@@ -1,0 +1,54 @@
+{
+  "name": "RingCentral Embeddable Demo",
+  "description": "A RingCentral Embeddable extension demo",
+  "version": "0.0.1",
+  "permissions": [
+    "storage",
+    "alarms",
+    "identity",
+    "activeTab",
+    "tabs",
+    "background",
+    "tabCapture",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://contacts.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://contacts.google.com/*"],
+      "js": [
+        "./c2d/index.js",
+        "./content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["/embeddable/*", "/c2d/*"],
+      "matches": ["https://contacts.google.com/*"]
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "/images/logo16.png",
+      "32": "/images/logo32.png",
+      "48": "/images/logo48.png",
+      "128": "/images/logo128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "manifest_version": 3,
+  "icons": {
+    "16": "/images/logo16.png",
+    "32": "/images/logo32.png",
+    "48": "/images/logo48.png",
+    "128": "/images/logo128.png"
+  }
+}

@@ -1,0 +1,45 @@
+@startuml
+
+title RingCentral Unified CRM Extension Flow
+
+autonumber
+
+actor "Widget" as u
+control "Server" as s
+Database "Database" as db
+control "CRM" as c
+
+group Sync Call Log - successful
+        u -> u: call ends
+        activate u
+        u -> s: create call log request
+        activate s
+        s -> c: create call log request
+        activate c
+        c -> c: create call log
+        c -> s: successful response
+        deactivate c
+        s -> db: save
+        s -> u: successful response
+        deactivate s
+        u -> u: show 'call log synced'
+        deactivate u
+end
+
+group Sync Call Log - fail
+        u -> u: call ends
+        activate u
+        u -> s: create call log request
+        activate s
+        s -> c: create call log request
+        activate c
+        c -> c: create call log FAILED
+        c -> s: failed response
+        deactivate c
+        s -> u: failed response
+        deactivate s
+        u -> u: show error and let user re-try
+        deactivate u
+end
+
+@enduml
