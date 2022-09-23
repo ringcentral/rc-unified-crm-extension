@@ -1,4 +1,3 @@
-console.log('from standalong.js');
 window.__ON_RC_POPUP_WINDOW = 1;
 
 function responseMessage(responseId, response) {
