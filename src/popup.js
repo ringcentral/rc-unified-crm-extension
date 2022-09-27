@@ -6,7 +6,6 @@ function responseMessage(responseId, response) {
     responseId,
     response,
   }, '*');
-  console.log(response);
 }
 
 var registered = false;
@@ -74,10 +73,13 @@ window.addEventListener('message', async (e) => {
             break;
           case '/callLogger':
             // add your codes here to log call to your service
-            console.log(data);
-            let dataToLog = {};
-            dataToLog[data.body.call.sessionId] = { note: data.body.note, id: '1111' }
-            await chrome.storage.sync.set(dataToLog);
+            const callLogMessageObj = {
+              type: 'rc-call-log-modal',
+              callLogProps: {
+                id: data.body.call.sessionId
+              }
+            }
+            window.postMessage(callLogMessageObj, '*')
             // response to widget
             responseMessage(
               data.requestId,
@@ -85,10 +87,6 @@ window.addEventListener('message', async (e) => {
                 data: 'ok'
               }
             );
-            document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-              type: 'rc-adapter-trigger-call-logger-match',
-              sessionIds: [data.body.call.sessionId],
-            }, '*');
             break;
           case '/callLogger/match':
             const storedLog = await chrome.storage.sync.get(data.body.sessionIds);
@@ -182,7 +180,6 @@ function getServiceConfig(serviceName) {
     callLoggerPath: '/callLogger',
     callLoggerTitle: `Log to ${serviceName}`,
     callLogEntityMatcherPath: '/callLogger/match',
-    showLogModal: true,
 
 
     messageLoggerPath: '/messageLogger',
@@ -192,3 +189,18 @@ function getServiceConfig(serviceName) {
   }
   return services;
 }
+
+async function onModalSubmission({ id, note }) {
+  let dataToLog = {};
+  // TODO: change id to 3rd party id
+  dataToLog[id] = { note, id: '1111' }
+  await chrome.storage.sync.set(dataToLog);
+
+  // force call log matcher check
+  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+    type: 'rc-adapter-trigger-call-logger-match',
+    sessionIds: [id],
+  }, '*');
+}
+
+exports.onModalSubmission = onModalSubmission;
