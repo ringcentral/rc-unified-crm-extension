@@ -24,37 +24,6 @@ window.clickToDialInject.on(
   },
 );
 
-function responseMessage(request, response) {
-  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-    type: 'rc-post-message-response',
-    responseId: request.requestId,
-    response,
-  }, '*');
-}
-
-// Interact with RingCentral Embeddable Voice:
-window.addEventListener('message', (e) => {
-  const data = e.data;
-  if (data) {
-    switch (data.type) {
-      case 'rc-call-ring-notify':
-        // get call on ring event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        break;
-      case 'rc-call-end-notify':
-        // get call on call end event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        break;
-      case 'rc-call-start-notify':
-        // get call on start a outbound call event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        break;
-      default:
-        break;
-    }
-  }
-});
-
 // Listen message from background.js to open app window when user click icon.
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {

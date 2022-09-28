@@ -42,7 +42,6 @@ window.addEventListener('message', async (e) => {
         console.log('RingCentral Embeddable Voice Extension:', data.call);
         break;
       case 'rc-post-message-request':
-        console.log(data);
         switch (data.path) {
           case '/contacts':
             // you can get page and syncTimestamp params from data.body
@@ -72,21 +71,24 @@ window.addEventListener('message', async (e) => {
               });
             break;
           case '/callLogger':
-            // add your codes here to log call to your service
-            const callLogMessageObj = {
-              type: 'rc-call-log-modal',
-              callLogProps: {
-                id: data.body.call.sessionId
+            if (data.body.call.result === 'Disconnected') {
+              // add your codes here to log call to your service
+              const callLogMessageObj = {
+                type: 'rc-log-modal',
+                logProps: {
+                  logType: 'Call',
+                  id: data.body.call.sessionId
+                }
               }
+              window.postMessage(callLogMessageObj, '*')
+              // response to widget
+              responseMessage(
+                data.requestId,
+                {
+                  data: 'ok'
+                }
+              );
             }
-            window.postMessage(callLogMessageObj, '*')
-            // response to widget
-            responseMessage(
-              data.requestId,
-              {
-                data: 'ok'
-              }
-            );
             break;
           case '/callLogger/match':
             const storedLog = await chrome.storage.sync.get(data.body.sessionIds);
@@ -99,6 +101,27 @@ window.addEventListener('message', async (e) => {
               {
                 data: matchData
               });
+            break;
+          case '/messageLogger':
+            console.log(data);
+            // add your codes here to log call to your service
+            const messageLogMessageObj = {
+              type: 'rc-log-modal',
+              logProps: {
+                logType: 'Message',
+                id: data.body.conversation.conversationLogId
+              }
+            }
+            window.postMessage(messageLogMessageObj, '*')
+            // response to widget
+            responseMessage(
+              data.requestId,
+              {
+                data: 'ok'
+              }
+            );
+            break;
+          case '/messageLogger/match':
             break;
           default:
             break;
@@ -138,20 +161,6 @@ async function handleOAuthWindow(oAuthUri) {
     type: 'openOAuthWindow',
     oAuthUri,
   });
-  // chrome.identity.launchWebAuthFlow(
-  //   {
-  //     url: oAuthUri,
-  //     interactive: true,
-  //   },
-  //   (responseUrl) => {
-  //     if (responseUrl) {
-  //       document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-  //         type: 'rc-adapter-authorization-code',
-  //         callbackUri: responseUrl,
-  //       }, '*');
-  //     }
-  //   },
-  // );
 }
 
 function getServiceConfig(serviceName) {
@@ -184,23 +193,7 @@ function getServiceConfig(serviceName) {
 
     messageLoggerPath: '/messageLogger',
     messageLoggerTitle: `Log to ${serviceName}`,
-
-    // messageLogEntityMatcherPath: '/messageLogger/match'
+    messageLogEntityMatcherPath: '/messageLogger/match'
   }
   return services;
 }
-
-async function onModalSubmission({ id, note }) {
-  let dataToLog = {};
-  // TODO: change id to 3rd party id
-  dataToLog[id] = { note, id: '1111' }
-  await chrome.storage.sync.set(dataToLog);
-
-  // force call log matcher check
-  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-    type: 'rc-adapter-trigger-call-logger-match',
-    sessionIds: [id],
-  }, '*');
-}
-
-exports.onModalSubmission = onModalSubmission;

@@ -5,10 +5,9 @@ import {
     RcText
 } from '@ringcentral/juno';
 import React, { useState, useEffect } from 'react';
-import { onModalSubmission } from '../popup';
+import { syncLog } from '../core/log';
 
 export default () => {
-
     const modalStyle = {
         top: '50%',
         left: '50%',
@@ -26,19 +25,27 @@ export default () => {
         padding: '20px',
         border: '1px solid #a5a5a5'
     };
+    const backgroundStyle = {
+        width: '100%',
+        height: '100%',
+        background: '#ffffffb5',
+        position: 'absolute',
+        zIndex: '5'
+    }
     const elementStyle = {
-        margin: '20px'
+        margin: '0px 30px 20px'
     }
 
     function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
             return
         }
-        const { type, callLogProps } = e.data
-        if (type === 'rc-call-log-modal') {
+        const { type, logProps } = e.data
+        if (type === 'rc-log-modal') {
             setIsOpen(true);
-            setSessionId(callLogProps.id);
+            setSessionId(logProps.id);
             setNote('');
+            setLogType(logProps.logType);
             document.getElementById('rc-widget').style.zIndex = 0;
         }
     }
@@ -52,10 +59,12 @@ export default () => {
     const [isOpen, setIsOpen] = useState(false);
     const [sessionId, setSessionId] = useState(null);
     const [note, setNote] = useState('');
+    const [logType, setLogType] = useState('');
 
     async function onSubmission() {
         closeModal();
-        await onModalSubmission({
+        await syncLog({
+            logType,
             id: sessionId,
             note
         });
@@ -73,27 +82,24 @@ export default () => {
         <RcThemeProvider>
             {
                 isOpen && (
-                    <div style={modalStyle}>
-                        <RcText style={elementStyle} variant='headline1'>Sync Call Log</RcText>
-                        <RcTextarea
-                            style={elementStyle}
-                            label='Note'
-                            onChange={onChangeNote}
-                            value={note}
-                            fullWidth
-                        ></RcTextarea>
-                        <RcButton
-                            style={elementStyle}
-                            onClick={onSubmission}
-                        >
-                            Submit
-                        </RcButton>
-                        <RcButton
-                            onClick={closeModal}
-                            color='presence.busy'
-                        >
-                            Cancel
-                        </RcButton>
+                    <div>
+                        <div style={backgroundStyle} onClick={closeModal}></div>
+                        <div style={modalStyle}>
+                            <RcText style={elementStyle} variant='title1'>Sync {logType} Log</RcText>
+                            <RcTextarea
+                                style={elementStyle}
+                                label='Note'
+                                onChange={onChangeNote}
+                                value={note}
+                                fullWidth
+                            ></RcTextarea>
+                            <RcButton
+                                radius='sm'
+                                onClick={onSubmission}
+                            >
+                                Submit
+                            </RcButton>
+                        </div>
                     </div>
                 )
             }

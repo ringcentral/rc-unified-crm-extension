@@ -23,7 +23,7 @@ async function openPopupWindow() {
   const popup = await chrome.windows.create({
     url: popupUri,
     type: 'popup',
-    width: 300,
+    width: 315,
     height: 566,
   });
   await chrome.storage.local.set({
