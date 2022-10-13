@@ -1,12 +1,7 @@
-window.__ON_RC_POPUP_WINDOW = 1;
+const { responseMessage } = require('./util');
+const auth = require('./core/auth');
 
-function responseMessage(responseId, response) {
-  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-    type: 'rc-post-message-response',
-    responseId,
-    response,
-  }, '*');
-}
+window.__ON_RC_POPUP_WINDOW = 1;
 
 var registered = false;
 // Interact with RingCentral Embeddable Voice:
@@ -23,8 +18,13 @@ window.addEventListener('message', async (e) => {
           }, '*');
         }
         break;
+      case 'rc-login-status-notify':
+        // get login status from widget
+        console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber);
+        const rcUserInfo = { rcUserNumber: data.loginNumber };
+        await chrome.storage.sync.set(rcUserInfo);
       case 'rc-login-popup-notify':
-        handleOAuthWindow(data.oAuthUri);
+        handleRCOAuthWindow(data.oAuthUri);
         break;
       case 'rc-call-ring-notify':
         // get call on ring event
@@ -43,35 +43,51 @@ window.addEventListener('message', async (e) => {
         break;
       case 'rc-post-message-request':
         switch (data.path) {
-          case '/contacts':
-            // you can get page and syncTimestamp params from data.body
-            // query contacts data from third party service with page and syncTimestamp
-            // if syncTimestamp existed, please only return updated contacts after syncTimestamp
-            // response to widget:
-            const contacts = [{
-              id: '123456', // id to identify third party contact
-              name: 'TestService Name', // contact name
-              type: 'TestService', // need to same as service name
-              phoneNumbers: [{
-                phoneNumber: '+1234567890',
-                phoneType: 'direct', // support: business, extension, home, mobile, phone, unknown, company, direct, fax, other
-              }],
-              company: 'CompanyName',
-              jobTitle: 'Engineer',
-              emails: ['test@email.com'],
-              deleted: false, // set deleted to true if you need to delete it in updated contacts
-            }];
-            // pass nextPage number when there are more than one page data, widget will repeat same request with nextPage increased
+          case '/authorize':
+            const authUri = 'https://oauth.pipedrive.com/oauth/authorize?' +
+              'client_id=6c1976beeb0cb1b4' +
+              '&state=' +
+              '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+            handleThirdPartyOAuthWindow(authUri);
             responseMessage(
               data.requestId,
               {
-                data: contacts,
-                nextPage: null,
-                syncTimestamp: Date.now()
-              });
+                data: 'OK'
+              }
+            );
+            // TODO: put in call back logic
+            // document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+            //   type: 'rc-adapter-update-authorization-status',
+            //   authorized: true,
+            // }, '*');
+            break;
+          case '/contacts/match':
+            console.log(data); // include phone number array that need to match
+            const incomingCallNumbers = data.body.phoneNumbers;
+            // query on 3rd party API to get the matched contact info and return
+            const matchedContacts = {
+              '+13133982125': [
+                {
+                  id: '123456', // id to identify third party contact
+                  type: 'TestService', // need to same as service name
+                  name: 'TestService 10',
+                  phoneNumbers: [{
+                    phoneNumber: '+13133982125',
+                    phoneType: 'direct', // support: business, extension, home, mobile, phone, unknown, company, direct, fax, other
+                  }]
+                }
+              ]
+            };
+            // return matched contact object with phone number as key
+            responseMessage(
+              data.requestId,
+              {
+                data: matchedContacts
+              }
+            );
             break;
           case '/callLogger':
-            if (data.body.call.result === 'Disconnected') {
+            if (!data.body.triggerType || data.body.call.result === 'Disconnected') {
               // add your codes here to log call to your service
               const callLogMessageObj = {
                 type: 'rc-log-modal',
@@ -103,7 +119,6 @@ window.addEventListener('message', async (e) => {
               });
             break;
           case '/messageLogger':
-            console.log(data);
             // add your codes here to log call to your service
             const messageLogMessageObj = {
               type: 'rc-log-modal',
@@ -135,10 +150,15 @@ window.addEventListener('message', async (e) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'oauthCallBack') {
-    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-      type: 'rc-adapter-authorization-code',
-      callbackUri: request.callbackUri,
-    }, '*');
+    if (request.platform === 'rc') {
+      document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+        type: 'rc-adapter-authorization-code',
+        callbackUri: request.callbackUri,
+      }, '*');
+    }
+    else if (request.platform === 'thirdParty') {
+      auth.onAuthCallback(request.callbackUri);
+    }
     sendResponse({ result: 'ok' });
   } else if (request.type === 'c2sms') {
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
@@ -156,10 +176,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function handleOAuthWindow(oAuthUri) {
+async function handleRCOAuthWindow(oAuthUri) {
   chrome.runtime.sendMessage({
-    type: 'openOAuthWindow',
+    type: 'openRCOAuthWindow',
     oAuthUri,
+  });
+}
+
+function handleThirdPartyOAuthWindow(oAuthUri) {
+  chrome.runtime.sendMessage({
+    type: 'openThirdPartyAuthWindow',
+    oAuthUri
   });
 }
 
@@ -174,16 +201,16 @@ function getServiceConfig(serviceName) {
     // ],
     name: serviceName,
     // // show contacts in ringcentral widgets
-    contactsPath: '/contacts',
-    contactIcon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png',
+    // contactsPath: '/contacts',
+    // contactIcon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png',
     // contactSearchPath: '/contacts/search',
-    // contactMatchPath: '/contacts/match',
+    contactMatchPath: '/contacts/match',
 
     // show auth/unauth button in ringcentral widgets
-    // authorizationPath: '/authorize',
-    // authorizedTitle: 'Unauthorize',
-    // unauthorizedTitle: 'Authorize',
-    // authorized: false,
+    authorizationPath: '/authorize',
+    authorizedTitle: 'Unauthorize',
+    unauthorizedTitle: 'Authorize',
+    authorized: false,
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',

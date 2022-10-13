@@ -44,11 +44,11 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 });
 
 chrome.alarms.onAlarm.addListener(async () => {
-  const { loginWindowId } = await chrome.storage.local.get('loginWindowId');
-  if (!loginWindowId) {
+  const { loginWindowInfo } = await chrome.storage.local.get('loginWindowInfo');
+  if (!loginWindowInfo) {
     return;
   }
-  const tabs = await chrome.tabs.query({ windowId: loginWindowId });
+  const tabs = await chrome.tabs.query({ windowId: loginWindowInfo.id });
   if (tabs.length === 0) {
     return;
   }
@@ -61,10 +61,11 @@ chrome.alarms.onAlarm.addListener(async () => {
   console.log('login success', loginWindowUrl);
   chrome.runtime.sendMessage({
     type: 'oauthCallBack',
+    platform: loginWindowInfo.platform,
     callbackUri: loginWindowUrl,
   });
-  await chrome.windows.remove(loginWindowId);
-  await chrome.storage.local.remove('loginWindowId');
+  await chrome.windows.remove(loginWindowInfo.id);
+  await chrome.storage.local.remove('loginWindowInfo');
 });
 
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
@@ -76,7 +77,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
     return;
   }
-  if (request.type === 'openOAuthWindow') {
+  if (request.type === 'openRCOAuthWindow') {
     const loginWindow = await chrome.windows.create({
       url: request.oAuthUri,
       type: 'popup',
@@ -84,7 +85,27 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       height: 600,
     });
     await chrome.storage.local.set({
-      loginWindowId: loginWindow.id,
+      loginWindowInfo: {
+        platform: 'rc',
+        id: loginWindow.id
+      }
+    });
+    chrome.alarms.create('oauthCheck', { when: Date.now() + 3000 });
+    sendResponse({ result: 'ok' });
+    return;
+  }
+  if (request.type === 'openThirdPartyAuthWindow') {
+    const loginWindow = await chrome.windows.create({
+      url: request.oAuthUri,
+      type: 'popup',
+      width: 600,
+      height: 600,
+    });
+    await chrome.storage.local.set({
+      loginWindowInfo: {
+        platform: 'thirdParty',
+        id: loginWindow.id
+      }
     });
     chrome.alarms.create('oauthCheck', { when: Date.now() + 3000 });
     sendResponse({ result: 'ok' });
