@@ -102,9 +102,10 @@ window.addEventListener('message', async (e) => {
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Call',
-                    id: data.body.call.sessionId
+                    callInfo: data.body.call
                   }
                 }
+                console.log(data.body);
                 window.postMessage(callLogMessageObj, '*')
                 // response to widget
                 responseMessage(

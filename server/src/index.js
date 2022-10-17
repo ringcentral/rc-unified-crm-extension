@@ -1,19 +1,18 @@
 const express = require('express');
+const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const cors = require('cors')
 const axios = require('axios');
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
+const callLog = require('./core/callLog');
 
 const app = express();
+app.use(bodyParser.json())
 
 app.use(cors({
     origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
-    methods: ['GET', 'PUT', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-    credentials: true,
-    maxAge: 600,
-    exposedHeaders: ['*', 'Authorization']
+    methods: ['GET', 'PUT', 'POST']
 }));
 app.get('/oauth-callback', async function (req, res) {
     const oauthClient = oauth.getOAuthApp();
@@ -66,5 +65,19 @@ app.post('/unAuthorize', async function (req, res) {
     }
     res.status(400).send();
 })
+app.post('/callLog', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const { id: userId } = jwt.decodeJwt(jwtToken);
+            await callLog.addCallLog(userId, req.body);
+            res.status(200).send();
+        }
+    }
+    catch (e) {
+        console.log(e);
+    }
+    res.status(400).send();
+});
 
 exports.server = app;
