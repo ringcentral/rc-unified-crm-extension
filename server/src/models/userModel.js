@@ -31,7 +31,7 @@ exports.UserModel = sequelize.define('users', {
   tokenExpiry:{
     type: Sequelize.DATE
   },
-  rcUserId: {
+  rcUserNumber: {
     type: Sequelize.STRING,
   }
 });

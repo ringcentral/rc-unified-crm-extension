@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
     return;
   }
-  if (request.type === 'openRCOAuthWindow') {
+  if (request.type === 'openRCOAuthWindow' && request.oAuthUri) {
     const loginWindow = await chrome.windows.create({
       url: request.oAuthUri,
       type: 'popup',
@@ -94,7 +94,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
     return;
   }
-  if (request.type === 'openThirdPartyAuthWindow') {
+  if (request.type === 'openThirdPartyAuthWindow' && request.oAuthUri) {
     const loginWindow = await chrome.windows.create({
       url: request.oAuthUri,
       type: 'popup',

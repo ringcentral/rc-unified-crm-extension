@@ -10,14 +10,17 @@
     "tabs",
     "background",
     "tabCapture",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "cookies"
   ],
   "host_permissions": [
-    "https://contacts.google.com/*"
+    "http://*/"
   ],
   "content_scripts": [
     {
-      "matches": ["https://contacts.google.com/*"],
+      "matches": [
+        "https://contacts.google.com/*"
+      ],
       "js": [
         "./c2d/index.js",
         "./content.js"
@@ -26,8 +29,13 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["/embeddable/*", "/c2d/*"],
-      "matches": ["https://contacts.google.com/*"]
+      "resources": [
+        "/embeddable/*",
+        "/c2d/*"
+      ],
+      "matches": [
+        "https://contacts.google.com/*"
+      ]
     }
   ],
   "action": {

@@ -7,96 +7,136 @@ var registered = false;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
-  if (data) {
-    switch (data.type) {
-      case 'rc-adapter-pushAdapterState':
-        if (!registered) {
-          registered = true;
-          document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-            type: 'rc-adapter-register-third-party-service',
-            service: getServiceConfig('TestService')
-          }, '*');
-        }
-        break;
-      case 'rc-login-status-notify':
-        // get login status from widget
-        console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber);
-        const rcUserInfo = { rcUserNumber: data.loginNumber };
-        await chrome.storage.sync.set(rcUserInfo);
-      case 'rc-login-popup-notify':
-        handleRCOAuthWindow(data.oAuthUri);
-        break;
-      case 'rc-call-ring-notify':
-        // get call on ring event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        chrome.runtime.sendMessage({
-          type: 'openPopupWindow'
-        });
-        break;
-      case 'rc-call-end-notify':
-        // get call on call end event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        break;
-      case 'rc-call-start-notify':
-        // get call on start a outbound call event
-        console.log('RingCentral Embeddable Voice Extension:', data.call);
-        break;
-      case 'rc-post-message-request':
-        switch (data.path) {
-          case '/authorize':
-            const authUri = 'https://oauth.pipedrive.com/oauth/authorize?' +
-              'client_id=6c1976beeb0cb1b4' +
-              '&state=' +
-              '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
-            handleThirdPartyOAuthWindow(authUri);
-            responseMessage(
-              data.requestId,
-              {
-                data: 'OK'
+  try {
+
+    if (data) {
+      switch (data.type) {
+        case 'rc-webphone-connection-status-notify':
+          // get call on active call updated event
+          if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
+            await auth.checkAuth();
+          }
+          break;
+        case 'rc-adapter-pushAdapterState':
+          if (!registered) {
+            registered = true;
+            document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+              type: 'rc-adapter-register-third-party-service',
+              service: getServiceConfig('TestService')
+            }, '*');
+          }
+          break;
+        case 'rc-login-status-notify':
+          // get login status from widget
+          console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber);
+          const rcUserInfo = { rcUserNumber: data.loginNumber };
+          await chrome.storage.local.set(rcUserInfo);
+        case 'rc-login-popup-notify':
+          handleRCOAuthWindow(data.oAuthUri);
+          break;
+        case 'rc-call-ring-notify':
+          // get call on ring event
+          console.log('RingCentral Embeddable Voice Extension:', data.call);
+          chrome.runtime.sendMessage({
+            type: 'openPopupWindow'
+          });
+          break;
+        case 'rc-call-end-notify':
+          // get call on call end event
+          console.log('RingCentral Embeddable Voice Extension:', data.call);
+          break;
+        case 'rc-call-start-notify':
+          // get call on start a outbound call event
+          console.log('RingCentral Embeddable Voice Extension:', data.call);
+          break;
+        case 'rc-post-message-request':
+          switch (data.path) {
+            case '/authorize':
+              const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+              if (!rcUnifiedCrmExtJwt) {
+                const authUri = 'https://oauth.pipedrive.com/oauth/authorize?' +
+                  'client_id=6c1976beeb0cb1b4' +
+                  '&state=' +
+                  '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+                handleThirdPartyOAuthWindow(authUri);
               }
-            );
-            // TODO: put in call back logic
-            // document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-            //   type: 'rc-adapter-update-authorization-status',
-            //   authorized: true,
-            // }, '*');
-            break;
-          case '/contacts/match':
-            console.log(data); // include phone number array that need to match
-            const incomingCallNumbers = data.body.phoneNumbers;
-            // query on 3rd party API to get the matched contact info and return
-            const matchedContacts = {
-              '+13133982125': [
+              else {
+                await auth.unAuthorize(rcUnifiedCrmExtJwt);
+              }
+              responseMessage(
+                data.requestId,
                 {
-                  id: '123456', // id to identify third party contact
-                  type: 'TestService', // need to same as service name
-                  name: 'TestService 10',
-                  phoneNumbers: [{
-                    phoneNumber: '+13133982125',
-                    phoneType: 'direct', // support: business, extension, home, mobile, phone, unknown, company, direct, fax, other
-                  }]
+                  data: 'OK'
                 }
-              ]
-            };
-            // return matched contact object with phone number as key
-            responseMessage(
-              data.requestId,
-              {
-                data: matchedContacts
+              );
+              break;
+            case '/contacts/match':
+              console.log(data); // include phone number array that need to match
+              const incomingCallNumbers = data.body.phoneNumbers;
+              // query on 3rd party API to get the matched contact info and return
+              const matchedContacts = {
+                '+13133982125': [
+                  {
+                    id: '123456', // id to identify third party contact
+                    type: 'TestService', // need to same as service name
+                    name: 'TestService 10',
+                    phoneNumbers: [{
+                      phoneNumber: '+13133982125',
+                      phoneType: 'direct', // support: business, extension, home, mobile, phone, unknown, company, direct, fax, other
+                    }]
+                  }
+                ]
+              };
+              // return matched contact object with phone number as key
+              responseMessage(
+                data.requestId,
+                {
+                  data: matchedContacts
+                }
+              );
+              break;
+            case '/callLogger':
+              if (!data.body.triggerType || data.body.call.result === 'Disconnected') {
+                // add your codes here to log call to your service
+                const callLogMessageObj = {
+                  type: 'rc-log-modal',
+                  logProps: {
+                    logType: 'Call',
+                    id: data.body.call.sessionId
+                  }
+                }
+                window.postMessage(callLogMessageObj, '*')
+                // response to widget
+                responseMessage(
+                  data.requestId,
+                  {
+                    data: 'ok'
+                  }
+                );
               }
-            );
-            break;
-          case '/callLogger':
-            if (!data.body.triggerType || data.body.call.result === 'Disconnected') {
+              break;
+            case '/callLogger/match':
+              const storedLog = await chrome.storage.local.get(data.body.sessionIds);
+              let matchData = {};
+              for (const id in storedLog) {
+                matchData[id] = [storedLog[id]];
+              }
+              responseMessage(
+                data.requestId,
+                {
+                  data: matchData
+                });
+              break;
+            case '/messageLogger':
               // add your codes here to log call to your service
-              const callLogMessageObj = {
+              const messageLogMessageObj = {
                 type: 'rc-log-modal',
                 logProps: {
-                  logType: 'Call',
-                  id: data.body.call.sessionId
+                  logType: 'Message',
+                  id: data.body.conversation.conversationLogId
                 }
               }
-              window.postMessage(callLogMessageObj, '*')
+              window.postMessage(messageLogMessageObj, '*')
               // response to widget
               responseMessage(
                 data.requestId,
@@ -104,47 +144,20 @@ window.addEventListener('message', async (e) => {
                   data: 'ok'
                 }
               );
-            }
-            break;
-          case '/callLogger/match':
-            const storedLog = await chrome.storage.sync.get(data.body.sessionIds);
-            let matchData = {};
-            for (const id in storedLog) {
-              matchData[id] = [storedLog[id]];
-            }
-            responseMessage(
-              data.requestId,
-              {
-                data: matchData
-              });
-            break;
-          case '/messageLogger':
-            // add your codes here to log call to your service
-            const messageLogMessageObj = {
-              type: 'rc-log-modal',
-              logProps: {
-                logType: 'Message',
-                id: data.body.conversation.conversationLogId
-              }
-            }
-            window.postMessage(messageLogMessageObj, '*')
-            // response to widget
-            responseMessage(
-              data.requestId,
-              {
-                data: 'ok'
-              }
-            );
-            break;
-          case '/messageLogger/match':
-            break;
-          default:
-            break;
-        }
-        break;
-      default:
-        break;
+              break;
+            case '/messageLogger/match':
+              break;
+            default:
+              break;
+          }
+          break;
+        default:
+          break;
+      }
     }
+  }
+  catch (e) {
+    console.log(e);
   }
 });
 
@@ -176,7 +189,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function handleRCOAuthWindow(oAuthUri) {
+function handleRCOAuthWindow(oAuthUri) {
   chrome.runtime.sendMessage({
     type: 'openRCOAuthWindow',
     oAuthUri,

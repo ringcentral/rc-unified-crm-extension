@@ -3,36 +3,68 @@ const { UserModel } = require('./models/userModel');
 const cors = require('cors')
 const axios = require('axios');
 const oauth = require('./lib/oauth');
+const jwt = require('./lib/jwt');
 
 const app = express();
 
-app.use(cors())
+app.use(cors({
+    origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
+    methods: ['GET', 'PUT', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+    credentials: true,
+    maxAge: 600,
+    exposedHeaders: ['*', 'Authorization']
+}));
 app.get('/oauth-callback', async function (req, res) {
     const oauthClient = oauth.getOAuthApp();
     try {
         const { accessToken, refreshToken, expires } = await oauthClient.code.getToken(req.query.callbackUri);
-        const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me',{
+        const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
             headers: {
-                'Authorization': `Bearer ${accessToken}` 
-              }
+                'Authorization': `Bearer ${accessToken}`
+            }
         });
         const userInfo = userInfoResponse.data.data;
         await UserModel.create({
             id: userInfo.id,
             name: userInfo.name,
-            companyId:userInfo.company_id,
-            companyName:userInfo.company_name,
-            companyDomain:userInfo.company_domain,
+            companyId: userInfo.company_id,
+            companyName: userInfo.company_name,
+            companyDomain: userInfo.company_domain,
             platform: 'pipedrive',
             accessToken,
             refreshToken,
             tokenExpiry: expires,
-            rcUserId: req.query.rcUserNumber
+            rcUserNumber: req.query.rcUserNumber
         });
+        const jwtToken = jwt.generateJwt({
+            id: userInfo.id,
+            rcUserNumber: req.query.rcUserNumber
+        });
+        res.status(200).send(jwtToken);
     }
     catch (e) {
-        console.log(e)
+        console.log(e);
     }
+    res.status(400).send();
+})
+app.post('/unAuthorize', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            await UserModel.destroy({
+                where: {
+                    id: unAuthData.id
+                }
+            });
+            res.status(200).send();
+        }
+    }
+    catch (e) {
+        console.log(e);
+    }
+    res.status(400).send();
 })
 
 exports.server = app;

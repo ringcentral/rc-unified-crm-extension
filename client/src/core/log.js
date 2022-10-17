@@ -12,7 +12,7 @@ async function syncLog({ logType, id, note }) {
             // TODO: sync to 3rd party platform
             // TODO: change id to 3rd party id
             dataToLog[id] = { logType, note, id: '3rd_party_id' }
-            await chrome.storage.sync.set(dataToLog);
+            await chrome.storage.local.set(dataToLog);
     
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
@@ -22,7 +22,7 @@ async function syncLog({ logType, id, note }) {
             break;
         case 'Message':
             dataToLog[id] = { logType, id: '3rd_party_id' }
-            await chrome.storage.sync.set(dataToLog);
+            await chrome.storage.local.set(dataToLog);
             break;
     }
 }
