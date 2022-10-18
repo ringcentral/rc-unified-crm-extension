@@ -8,33 +8,39 @@ function init(thirdPartyModule) {
 }
 
 // Input {id} = sessionId from RC
-async function syncLog({ logType, callInfo, note }) {
+async function syncLog({ logType, logInfo, note }) {
     let dataToLog = {};
+    // TODO: sync to 3rd party platform
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            // TODO: sync to 3rd party platform
-            const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, callInfo);
-            // TODO: change id to 3rd party id
-            dataToLog[callInfo.sessionId] = { logType, note, id: '3rd_party_id' }
-            await chrome.storage.local.set(dataToLog);
-
+            const callLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, logInfo);
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-trigger-call-logger-match',
-                sessionIds: [callInfo.sessionId]
+                sessionIds: [logInfo.sessionId]
             }, '*');
             break;
         case 'Message':
-            dataToLog[callInfo.sessionId] = { logType, id: '3rd_party_id' }
+            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, logInfo);
+            // TODO: change id to 3rd party id
+            dataToLog[logInfo.conversationLogId] = { logType, note, id: messageLogRes.data.logId }
             await chrome.storage.local.set(dataToLog);
             break;
     }
 }
 
-async function renderExtraFields(){
-
+async function checkLog({ logType, logId }) {
+    // TODO: sync to 3rd party platform
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    switch (logType) {
+        case 'Call':
+            const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}`);
+            return { matched: callLogRes.data.successful, logId: callLogRes.data.logId };
+        case 'Message':
+            return true;
+    }
 }
 
 exports.syncLog = syncLog;
-exports.renderExtraFields = renderExtraFields;
+exports.checkLog = checkLog;

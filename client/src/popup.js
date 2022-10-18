@@ -1,5 +1,6 @@
 const { responseMessage } = require('./util');
 const auth = require('./core/auth');
+const { checkLog } = require('./core/log');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -56,7 +57,7 @@ window.addEventListener('message', async (e) => {
               if (!rcUnifiedCrmExtJwt) {
                 const authUri = 'https://oauth.pipedrive.com/oauth/authorize?' +
                   'client_id=6c1976beeb0cb1b4' +
-                  '&state=' +
+                  `&state=platform=pipedrive` + // TODO: change to platform var
                   '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                 handleThirdPartyOAuthWindow(authUri);
               }
@@ -102,7 +103,7 @@ window.addEventListener('message', async (e) => {
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Call',
-                    callInfo: data.body.call
+                    logInfo: data.body.call
                   }
                 }
                 console.log(data.body);
@@ -117,10 +118,12 @@ window.addEventListener('message', async (e) => {
               }
               break;
             case '/callLogger/match':
-              const storedLog = await chrome.storage.local.get(data.body.sessionIds);
               let matchData = {};
-              for (const id in storedLog) {
-                matchData[id] = [storedLog[id]];
+              for (const sessionId of data.body.sessionIds) {
+                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId });
+                if (matched) {
+                  matchData[sessionId] = [{ id: logId, note: '' }];
+                }
               }
               responseMessage(
                 data.requestId,
@@ -134,7 +137,7 @@ window.addEventListener('message', async (e) => {
                 type: 'rc-log-modal',
                 logProps: {
                   logType: 'Message',
-                  id: data.body.conversation.conversationLogId
+                  logInfo: data.body.conversation
                 }
               }
               window.postMessage(messageLogMessageObj, '*')

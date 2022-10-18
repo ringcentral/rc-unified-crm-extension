@@ -44,7 +44,7 @@ export default () => {
         const { type, logProps } = e.data
         if (type === 'rc-log-modal') {
             setIsOpen(true);
-            setCallInfo(logProps.callInfo);
+            setLogInfo(logProps.logInfo);
             setNote('');
             setLogType(logProps.logType);
             document.getElementById('rc-widget').style.zIndex = 0;
@@ -60,13 +60,13 @@ export default () => {
     const [isOpen, setIsOpen] = useState(false);
     const [note, setNote] = useState('');
     const [logType, setLogType] = useState('');
-    const [callInfo, setCallInfo] = useState(null);
+    const [logInfo, setLogInfo] = useState(null);
 
     async function onSubmission() {
         closeModal();
         await syncLog({
             logType,
-            callInfo,
+            logInfo,
             note
         });
     }
