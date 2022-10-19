@@ -1,6 +1,7 @@
-const { responseMessage } = require('./util');
+const { responseMessage, isObjectEmpty } = require('./util');
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
+const moment = require('moment');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -97,7 +98,8 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/callLogger':
-              if (!data.body.triggerType || data.body.call.result === 'Disconnected') {
+              const { matched } = await checkLog({ logType: 'Call', logId: data.body.call.sessionId });
+              if (!matched && (!data.body.triggerType || data.body.call.result === 'Disconnected')) {
                 // add your codes here to log call to your service
                 const callLogMessageObj = {
                   type: 'rc-log-modal',
@@ -118,29 +120,33 @@ window.addEventListener('message', async (e) => {
               }
               break;
             case '/callLogger/match':
-              let matchData = {};
+              let callLogMatchData = {};
               for (const sessionId of data.body.sessionIds) {
                 const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId });
                 if (matched) {
-                  matchData[sessionId] = [{ id: logId, note: '' }];
+                  callLogMatchData[sessionId] = [{ id: logId, note: '' }];
                 }
               }
               responseMessage(
                 data.requestId,
                 {
-                  data: matchData
+                  data: callLogMatchData
                 });
               break;
             case '/messageLogger':
-              // add your codes here to log call to your service
-              const messageLogMessageObj = {
-                type: 'rc-log-modal',
-                logProps: {
-                  logType: 'Message',
-                  logInfo: data.body.conversation
+              const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
+              const isToday = moment(data.body.conversation.date).isSame(moment(), 'day');
+              if (isObjectEmpty(existingMessageLog) || (data.body.triggerType === 'manual' && isToday)) {
+                // add your codes here to log call to your service
+                const messageLogMessageObj = {
+                  type: 'rc-log-modal',
+                  logProps: {
+                    logType: 'Message',
+                    logInfo: data.body.conversation
+                  }
                 }
+                window.postMessage(messageLogMessageObj, '*')
               }
-              window.postMessage(messageLogMessageObj, '*')
               // response to widget
               responseMessage(
                 data.requestId,
@@ -150,6 +156,13 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/messageLogger/match':
+              const localMessageLogs = await chrome.storage.local.get(data.body.conversationLogIds);
+              responseMessage(
+                data.requestId,
+                {
+                  data: localMessageLogs
+                }
+              );
               break;
             default:
               break;

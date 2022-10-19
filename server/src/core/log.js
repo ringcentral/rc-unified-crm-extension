@@ -16,6 +16,7 @@ async function addCallLog(platform, userId, incomingData) {
         thirdPartyLogId: logId,
         userId
     });
+    console.log(`added call log: ${incomingData.sessionId}`);
     return { successful: true, logId };
 }
 
@@ -28,13 +29,25 @@ async function addMessageLog(platform, userId, incomingData) {
     });
     const existingIds = existingMessages.map(m => m.id);
     const platformModule = require(`../platformModules/${platform}`);
-    for (const message of incomingData.data.messages) {
+    const logIds = [];
+    for (const message of incomingData.messages) {
         if (existingIds.includes(message.id)) {
+            console.log(`existing message log: ${message.id}`);
             continue;
         }
-        const logId = await platformModule.addMessageLog(userId, incomingData);
-        return logId;
+        const logId = await platformModule.addMessageLog(userId, message, incomingData.correspondents[0].phoneNumber);
+        await MessageLogModel.create({
+            id: message.id,
+            platform,
+            conversationId: incomingData.conversationId,
+            thirdPartyLogId: logId,
+            userId
+        });
+        console.log(`added message log: ${message.id}`);
+        logIds.push(logId);
     }
+    console.log(`logged ${logIds.length} messages.`);
+    return { successful: true, logIds };
 }
 
 async function getCallLog(platform, sessionId) {
@@ -47,15 +60,27 @@ async function getCallLog(platform, sessionId) {
     if (callLog) {
         return { successful: true, logId: callLog.thirdPartyLogId };
     }
-    else{
+    else {
         return { successful: false, message: `cannot find call log for sessionId: ${sessionId}` };
     }
 }
 
-async function getMessageLogs() {
-
+async function getMessageLogs(platform, messageId) {
+    const messageLog = await MessageLogModel.findOne({
+        where: {
+            platform,
+            id: messageId
+        }
+    });
+    if (callLog) {
+        return { successful: true, logId: callLog.thirdPartyLogId };
+    }
+    else {
+        return { successful: false, message: `cannot find message log for messageId: ${messageId}` };
+    }
 }
 
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
+exports.getMessageLogs = getMessageLogs;

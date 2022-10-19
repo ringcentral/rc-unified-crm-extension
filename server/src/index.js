@@ -67,8 +67,8 @@ app.post('/unAuthorize', async function (req, res) {
     }
     res.status(400).send();
 })
-app.get('/callLog', async function (req,res){
-    try{
+app.get('/callLog', async function (req, res) {
+    try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { platform } = jwt.decodeJwt(jwtToken);
@@ -76,7 +76,7 @@ app.get('/callLog', async function (req,res){
             res.status(200).send({ successful, message, logId });
         }
     }
-    catch(e){
+    catch (e) {
         console.log(e);
         res.status(400).send();
     }
@@ -100,8 +100,8 @@ app.post('/messageLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const logId = await addMessageLog(platform, userId, req.body);
-            res.status(200).send({ logId });
+            const { successful, logIds } = await addMessageLog(platform, userId, req.body);
+            res.status(200).send({ successful, logIds });
         }
     }
     catch (e) {

@@ -12,3 +12,9 @@ Require:
       - Call Info -> phone number -> /v1/persons/search?term={phoneNumber}&fields=phone
     - 4. deal_id
       - person_id -> /v1/persons/{id}/deals -> filter by user_id
+
+
+### Message Log Check
+
+    - Client side check ONLY. If change device, auto check will be trigger again
+    - Server side validation, duplicated log won't be processed

@@ -10,7 +10,6 @@ function init(thirdPartyModule) {
 // Input {id} = sessionId from RC
 async function syncLog({ logType, logInfo, note }) {
     let dataToLog = {};
-    // TODO: sync to 3rd party platform
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
@@ -23,22 +22,22 @@ async function syncLog({ logType, logInfo, note }) {
             break;
         case 'Message':
             const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, logInfo);
-            // TODO: change id to 3rd party id
-            dataToLog[logInfo.conversationLogId] = { logType, note, id: messageLogRes.data.logId }
-            await chrome.storage.local.set(dataToLog);
+            if (messageLogRes.data.successful) {
+                dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
+                await chrome.storage.local.set(dataToLog);
+            }
             break;
     }
 }
 
 async function checkLog({ logType, logId }) {
-    // TODO: sync to 3rd party platform
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
             const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}`);
             return { matched: callLogRes.data.successful, logId: callLogRes.data.logId };
-        case 'Message':
-            return true;
+        // case 'Message':
+        //     return true;
     }
 }
 
