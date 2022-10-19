@@ -5,14 +5,14 @@ const { checkAndRefreshAccessToken } = require('../lib/oauth');
 
 const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
 
-async function addCallLog(userId, incomingData) {
+async function addCallLog(userId, callLog, note) {
     const user = await UserModel.findByPk(userId);
     if (!user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
     await checkAndRefreshAccessToken(user);
     const authHeader = `Bearer ${user.accessToken}`;
-    const personNumber = incomingData.direction === 'Inbound' ? incomingData.from.phoneNumber : incomingData.to.phoneNumber;
+    const personNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
     const personInfo = await axios.get(
         `${BASE_URL}/v1/persons/search?term=${personNumber}&fields=phone`,
         {
@@ -25,15 +25,15 @@ async function addCallLog(userId, incomingData) {
     const postBody = {
         user_id: userId,
         subject: 'Call',
-        duration: incomingData.duration,    // secs
+        duration: callLog.duration,    // secs
         outcome: 'connected',   //connected,no_answer,left_message,left_voicemail,wrong_number,busy
-        from_phone_number: incomingData.from.phoneNumber,
-        to_phone_number: incomingData.to.phoneNumber,
-        start_time: moment(incomingData.startTime),
-        end_time: moment(incomingData.startTime).add(incomingData.duration, 'seconds'),
+        from_phone_number: callLog.from.phoneNumber,
+        to_phone_number: callLog.to.phoneNumber,
+        start_time: moment(callLog.startTime),
+        end_time: moment(callLog.startTime).add(callLog.duration, 'seconds'),
         person_id: personInfo.data.data.items[0].item.id,
         // deal_id: '',
-        // note: ''
+        note
     }
     const addLogRes = await axios.post(
         `${BASE_URL}/v1/callLogs`,
@@ -44,7 +44,7 @@ async function addCallLog(userId, incomingData) {
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog(userId, message, contactNumber) {
+async function addMessageLog(userId, message, contactNumber, note) {
     const user = await UserModel.findByPk(userId);
     if (!user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
@@ -70,7 +70,7 @@ async function addMessageLog(userId, message, contactNumber) {
         end_time: moment(message.lastModifiedTime),
         person_id: personInfo.data.data.items[0].item.id,
         // deal_id: '',
-        note: message.subject
+        note: `Message: ${message.subject} \nNote:${note}`
     }
     const addLogRes = await axios.post(
         `${BASE_URL}/v1/callLogs`,

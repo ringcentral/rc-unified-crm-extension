@@ -3,25 +3,25 @@ const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 
 async function addCallLog(platform, userId, incomingData) {
-    const existingCallLog = await CallLogModel.findByPk(incomingData.id);
+    const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
     if (existingCallLog) {
-        return { successful: false, message: `existing log for session ${incomingData.sessionId}` }
+        return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
     }
     const platformModule = require(`../platformModules/${platform}`);
-    const logId = await platformModule.addCallLog(userId, incomingData);
+    const logId = await platformModule.addCallLog(userId, incomingData.logInfo, incomingData.note);
     await CallLogModel.create({
-        id: incomingData.id,
-        sessionId: incomingData.sessionId,
+        id: incomingData.logInfo.id,
+        sessionId: incomingData.logInfo.sessionId,
         platform,
         thirdPartyLogId: logId,
         userId
     });
-    console.log(`added call log: ${incomingData.sessionId}`);
+    console.log(`added call log: ${incomingData.logInfo.sessionId}`);
     return { successful: true, logId };
 }
 
 async function addMessageLog(platform, userId, incomingData) {
-    const messageIds = incomingData.messages.map(m => { return { id: m.id }; });
+    const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id }; });
     const existingMessages = await MessageLogModel.findAll({
         where: {
             [Op.or]: messageIds
@@ -30,16 +30,16 @@ async function addMessageLog(platform, userId, incomingData) {
     const existingIds = existingMessages.map(m => m.id);
     const platformModule = require(`../platformModules/${platform}`);
     const logIds = [];
-    for (const message of incomingData.messages) {
+    for (const message of incomingData.logInfo.messages) {
         if (existingIds.includes(message.id)) {
             console.log(`existing message log: ${message.id}`);
             continue;
         }
-        const logId = await platformModule.addMessageLog(userId, message, incomingData.correspondents[0].phoneNumber);
+        const logId = await platformModule.addMessageLog(userId, message, incomingData.logInfo.correspondents[0].phoneNumber, incomingData.note);
         await MessageLogModel.create({
             id: message.id,
             platform,
-            conversationId: incomingData.conversationId,
+            conversationId: incomingData.logInfo.conversationId,
             thirdPartyLogId: logId,
             userId
         });

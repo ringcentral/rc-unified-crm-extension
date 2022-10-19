@@ -7,6 +7,8 @@ import {
 import React, { useState, useEffect } from 'react';
 import { syncLog } from '../core/log';
 
+const logEvents = [];
+
 // TODO: add loading animation
 export default () => {
     const modalStyle = {
@@ -43,13 +45,19 @@ export default () => {
         }
         const { type, logProps } = e.data
         if (type === 'rc-log-modal') {
-            setIsOpen(true);
-            setLogInfo(logProps.logInfo);
-            setNote('');
-            setLogType(logProps.logType);
-            document.getElementById('rc-widget').style.zIndex = 0;
+            logEvents.push({ type, logProps });
+            setupModal();
         }
     }
+
+    function setupModal() {
+        setIsOpen(true);
+        setLogInfo(logEvents[0].logProps.logInfo);
+        setNote('');
+        setLogType(logEvents[0].logProps.logType);
+        document.getElementById('rc-widget').style.zIndex = 0;
+    }
+
     useEffect(() => {
         window.addEventListener('message', onEvent)
         return () => {
@@ -64,11 +72,20 @@ export default () => {
 
     async function onSubmission() {
         closeModal();
-        await syncLog({
-            logType,
-            logInfo,
-            note
-        });
+        try {
+            await syncLog({
+                logType,
+                logInfo,
+                note
+            });
+        }
+        catch (e) {
+            console.log(e);
+        }
+        logEvents.shift();  // array FIFO
+        if (logEvents.length > 0) {
+            setupModal();
+        }
     }
 
     function closeModal() {
