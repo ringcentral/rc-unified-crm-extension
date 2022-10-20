@@ -1,5 +1,4 @@
 const axios = require('axios');
-const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const { checkAndRefreshAccessToken } = require('../lib/oauth');
 
@@ -24,19 +23,15 @@ async function addCallLog(userId, callLog, note) {
     // TODO: contact match
     const postBody = {
         user_id: userId,
-        subject: 'Call',
+        subject: `${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber})`,
         duration: callLog.duration,    // secs
-        outcome: 'connected',   //connected,no_answer,left_message,left_voicemail,wrong_number,busy
-        from_phone_number: callLog.from.phoneNumber,
-        to_phone_number: callLog.to.phoneNumber,
-        start_time: moment(callLog.startTime),
-        end_time: moment(callLog.startTime).add(callLog.duration, 'seconds'),
         person_id: personInfo.data.data.items[0].item.id,
         // deal_id: '',
-        note
+        note: `[${callLog.result}] ${note}`,
+        done: true
     }
     const addLogRes = await axios.post(
-        `${BASE_URL}/v1/callLogs`,
+        `${BASE_URL}/v1/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -59,21 +54,16 @@ async function addMessageLog(userId, message, contactNumber, note) {
     if (personInfo.data.data.items.length === 0) {
         throw `Person not found for number ${contactNumber}`;
     }
-    // TODO: contact match
     const postBody = {
         user_id: userId,
-        subject: 'SMS',
-        outcome: 'connected',   //connected,no_answer,left_message,left_voicemail,wrong_number,busy
-        from_phone_number: message.from.phoneNumber,
-        to_phone_number: message.to[0].phoneNumber,
-        start_time: moment(message.lastModifiedTime),
-        end_time: moment(message.lastModifiedTime),
+        subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
         person_id: personInfo.data.data.items[0].item.id,
         // deal_id: '',
-        note: `Message: ${message.subject} \nNote:${note}`
+        note: `Message: ${message.subject} ${!!note ? '\nNote: ' : ''}${note}`,
+        done: true
     }
     const addLogRes = await axios.post(
-        `${BASE_URL}/v1/callLogs`,
+        `${BASE_URL}/v1/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }

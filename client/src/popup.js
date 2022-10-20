@@ -1,16 +1,16 @@
 const { responseMessage, isObjectEmpty } = require('./util');
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
-const moment = require('moment');
+const config = require('./config.json');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
-var registered = false;
+let registered = false;
+const platform = config.platforms[config.currentPlatform];
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
   try {
-
     if (data) {
       switch (data.type) {
         case 'rc-webphone-connection-status-notify':
@@ -24,7 +24,7 @@ window.addEventListener('message', async (e) => {
             registered = true;
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
               type: 'rc-adapter-register-third-party-service',
-              service: getServiceConfig('TestService')
+              service: getServiceConfig(config.currentPlatform)
             }, '*');
           }
           break;
@@ -43,22 +43,14 @@ window.addEventListener('message', async (e) => {
             type: 'openPopupWindow'
           });
           break;
-        case 'rc-call-end-notify':
-          // get call on call end event
-          console.log('RingCentral Embeddable Voice Extension:', data.call);
-          break;
-        case 'rc-call-start-notify':
-          // get call on start a outbound call event
-          console.log('RingCentral Embeddable Voice Extension:', data.call);
-          break;
         case 'rc-post-message-request':
           switch (data.path) {
             case '/authorize':
               const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
               if (!rcUnifiedCrmExtJwt) {
-                const authUri = 'https://oauth.pipedrive.com/oauth/authorize?' +
-                  'client_id=6c1976beeb0cb1b4' +
-                  `&state=platform=pipedrive` + // TODO: change to platform var
+                const authUri = `${platform.authUrl}?` +
+                  `client_id=${platform.clientId}` +
+                  `&state=platform=${config.currentPlatform}` + 
                   '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                 handleThirdPartyOAuthWindow(authUri);
               }
@@ -99,7 +91,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger':
               const { matched } = await checkLog({ logType: 'Call', logId: data.body.call.sessionId });
-              if (!matched && (!data.body.triggerType || data.body.call.result === 'Disconnected')) {
+              if ((!matched && (!data.body.triggerType || data.body.call.result === 'Disconnected')) || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
                 const callLogMessageObj = {
                   type: 'rc-log-modal',
@@ -135,8 +127,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/messageLogger':
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
-              const isToday = moment(data.body.conversation.date).isSame(moment(), 'day');
-              if (isObjectEmpty(existingMessageLog) || (data.body.triggerType === 'manual' && isToday)) {
+              if (isObjectEmpty(existingMessageLog) || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
                 const messageLogMessageObj = {
                   type: 'rc-log-modal',
@@ -244,12 +235,10 @@ function getServiceConfig(serviceName) {
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',
-    callLoggerTitle: `Log to ${serviceName}`,
     callLogEntityMatcherPath: '/callLogger/match',
 
 
     messageLoggerPath: '/messageLogger',
-    messageLoggerTitle: `Log to ${serviceName}`,
     messageLogEntityMatcherPath: '/messageLogger/match'
   }
   return services;

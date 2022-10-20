@@ -16,5 +16,8 @@ Require:
 
 ### Message Log Check
 
-    - Client side check ONLY. If change device, auto check will be trigger again
-    - Server side validation, duplicated log won't be processed
+    - Client side check ONLY. (manage auto log trigger)
+      - Auto Log will be triggered if there's no logging on the day
+      - Manual Log can be triggered always
+    - Server side validation, duplicated log won't be processed. (manage platform API call)
+      - Log request will be sent as a pack of messages, logged message won't be logged again

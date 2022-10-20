@@ -1,3 +1,10 @@
 {
-    "serverUrl":"https://30f6-202-163-1-218.ap.ngrok.io"
+    "serverUrl": "https://05b5-202-163-1-218.ap.ngrok.io",
+    "currentPlatform": "Pipedrive",
+    "platforms": {
+        "Pipedrive": {
+            "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
+            "clientId": "6c1976beeb0cb1b4"
+        }
+    }
 }

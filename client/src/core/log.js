@@ -1,12 +1,6 @@
 import axios from 'axios';
 import config from '../config.json';
 
-// TODO: add 3rd party module as like const pipedrive = require('../platformModules/pipedrive.js');
-
-function init(thirdPartyModule) {
-    // TODO: load 3rd party module
-}
-
 // Input {id} = sessionId from RC
 async function syncLog({ logType, logInfo, note }) {
     let dataToLog = {};

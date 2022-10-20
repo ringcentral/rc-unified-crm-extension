@@ -1,10 +1,8 @@
 require('dotenv').config();
-const { checkAndRefreshAccessToken } = require('./lib/oauth');
-const {UserModel} = require('./models/userModel');
+const moment = require('moment');
 
 async function test(){
-    const user = await UserModel.findByPk('15976936');
-    await checkAndRefreshAccessToken(user);
+    console.log(moment(new Date()).format('YYYY-MM-DD hh:mm:ss'));
 }
 
 test();

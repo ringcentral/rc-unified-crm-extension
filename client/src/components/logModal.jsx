@@ -2,7 +2,8 @@ import {
     RcButton,
     RcTextarea,
     RcThemeProvider,
-    RcText
+    RcText,
+    RcLoading
 } from '@ringcentral/juno';
 import React, { useState, useEffect } from 'react';
 import { syncLog } from '../core/log';
@@ -35,9 +36,22 @@ export default () => {
         position: 'absolute',
         zIndex: '5'
     }
+    const loadingStyle = {
+        width: '100%',
+        height: '100%',
+        background: '#ffffffb5',
+        position: 'absolute',
+        zIndex: '15'
+    }
     const elementStyle = {
         margin: '0px 30px 20px'
     }
+
+    const [isOpen, setIsOpen] = useState(false);
+    const [note, setNote] = useState('');
+    const [logType, setLogType] = useState('');
+    const [logInfo, setLogInfo] = useState(null);
+    const [isLoading, setLoading] = useState(false);
 
     function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -65,14 +79,9 @@ export default () => {
         }
     }, [])
 
-    const [isOpen, setIsOpen] = useState(false);
-    const [note, setNote] = useState('');
-    const [logType, setLogType] = useState('');
-    const [logInfo, setLogInfo] = useState(null);
-
     async function onSubmission() {
-        closeModal();
         try {
+            setLoading(true);
             await syncLog({
                 logType,
                 logInfo,
@@ -82,14 +91,16 @@ export default () => {
         catch (e) {
             console.log(e);
         }
-        logEvents.shift();  // array FIFO
-        if (logEvents.length > 0) {
-            setupModal();
-        }
+        closeModal();
+        setLoading(false);
     }
 
     function closeModal() {
         setIsOpen(false);
+        logEvents.shift();  // array FIFO
+        if (logEvents.length > 0) {
+            setupModal();
+        }
     }
 
     function onChangeNote(e) {
@@ -98,6 +109,7 @@ export default () => {
 
     return (
         <RcThemeProvider>
+            {isLoading && <RcLoading style={loadingStyle} loading={isLoading} />}
             {
                 isOpen && (
                     <div>
