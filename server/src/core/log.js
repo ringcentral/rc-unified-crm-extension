@@ -35,7 +35,12 @@ async function addMessageLog(platform, userId, incomingData) {
             console.log(`existing message log: ${message.id}`);
             continue;
         }
-        const logId = await platformModule.addMessageLog(userId, message, incomingData.logInfo.correspondents[0].phoneNumber, incomingData.note);
+        let recordingLink = null;
+        if(message.attachments.some(a => a.type==='AudioRecording'))
+        {
+            recordingLink = message.attachments.find(a => a.type==='AudioRecording').link;
+        }
+        const logId = await platformModule.addMessageLog(userId, message, incomingData.logInfo.correspondents[0].phoneNumber, recordingLink);
         await MessageLogModel.create({
             id: message.id,
             platform,

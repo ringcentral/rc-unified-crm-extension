@@ -15,7 +15,7 @@ async function syncLog({ logType, logInfo, note }) {
             }, '*');
             break;
         case 'Message':
-            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note });
+            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo });
             if (messageLogRes.data.successful) {
                 dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                 await chrome.storage.local.set(dataToLog);

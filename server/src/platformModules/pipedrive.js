@@ -39,7 +39,7 @@ async function addCallLog(userId, callLog, note) {
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog(userId, message, contactNumber, note) {
+async function addMessageLog(userId, message, contactNumber, recordingLink) {
     const user = await UserModel.findByPk(userId);
     if (!user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
@@ -59,7 +59,7 @@ async function addMessageLog(userId, message, contactNumber, note) {
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
         person_id: personInfo.data.data.items[0].item.id,
         // deal_id: '',
-        note: `Message: ${message.subject} ${!!note ? '\nNote: ' : ''}${note}`,
+        note: `${!!message.subject? `Message: ${message.subject}`: ''} ${!!recordingLink ? `\nRecording Link: ${recordingLink}` : ''}`,
         done: true
     }
     const addLogRes = await axios.post(

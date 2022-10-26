@@ -116,13 +116,13 @@ export default () => {
                         <div style={backgroundStyle} onClick={closeModal}></div>
                         <div style={modalStyle}>
                             <RcText style={elementStyle} variant='title1'>Sync {logType} Log</RcText>
-                            <RcTextarea
+                            {logType === 'Call' && <RcTextarea
                                 style={elementStyle}
                                 label='Note'
                                 onChange={onChangeNote}
                                 value={note}
                                 fullWidth
-                            ></RcTextarea>
+                            ></RcTextarea>}
                             <RcButton
                                 radius='sm'
                                 onClick={onSubmission}
