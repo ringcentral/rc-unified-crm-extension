@@ -1,6 +1,7 @@
 const { responseMessage, isObjectEmpty } = require('./util');
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
+const { getContact } = require('./core/contact');
 const config = require('./config.json');
 
 window.__ON_RC_POPUP_WINDOW = 1;
@@ -50,7 +51,7 @@ window.addEventListener('message', async (e) => {
               if (!rcUnifiedCrmExtJwt) {
                 const authUri = `${platform.authUrl}?` +
                   `client_id=${platform.clientId}` +
-                  `&state=platform=${config.currentPlatform}` + 
+                  `&state=platform=${config.currentPlatform}` +
                   '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                 handleThirdPartyOAuthWindow(authUri);
               }
@@ -68,39 +69,56 @@ window.addEventListener('message', async (e) => {
               console.log(data); // include phone number array that need to match
               const incomingCallNumbers = data.body.phoneNumbers;
               // query on 3rd party API to get the matched contact info and return
-              const matchedContacts = {
-                '+13133982125': [
+              const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: incomingCallNumbers[0] });
+              if (contactMatched) {
+                let matchedContacts = {};
+                matchedContacts[contactInfo.phones[0]] = [{
+                  id: contactInfo.id,
+                  type: config.currentPlatform,
+                  name: contactInfo.name,
+                  phoneNumbers: [
+                    {
+                      phoneNumber: contactInfo.phones[0],
+                      phoneType: 'direct'
+                    }
+                  ]
+                }];
+                // return matched contact object with phone number as key
+                responseMessage(
+                  data.requestId,
                   {
-                    id: '123456', // id to identify third party contact
-                    type: 'TestService', // need to same as service name
-                    name: 'TestService 10',
-                    phoneNumbers: [{
-                      phoneNumber: '+13133982125',
-                      phoneType: 'direct', // support: business, extension, home, mobile, phone, unknown, company, direct, fax, other
-                    }]
+                    data: matchedContacts
                   }
-                ]
-              };
-              // return matched contact object with phone number as key
-              responseMessage(
-                data.requestId,
-                {
-                  data: matchedContacts
-                }
-              );
+                );
+              }
+              else {
+                // return matched contact object with phone number as key
+                responseMessage(
+                  data.requestId,
+                  {
+                    data: []
+                  }
+                );
+              }
               break;
             case '/callLogger':
-              const { matched } = await checkLog({ logType: 'Call', logId: data.body.call.sessionId });
-              if ((!matched && (!data.body.triggerType || data.body.call.result === 'Disconnected')) || data.body.triggerType === 'manual') {
+              const { matched: callLogMatched, contactName: callLogContactName } = await checkLog({
+                logType: 'Call',
+                logId: data.body.call.sessionId,
+                phoneNumber: data.body.call.direction === 'Inbound' ?
+                  data.body.call.from.phoneNumber :
+                  data.body.call.to.phoneNumber
+              });
+              if ((!callLogMatched && !data.body.triggerType) || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
                 const callLogMessageObj = {
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Call',
-                    logInfo: data.body.call
+                    logInfo: data.body.call,
+                    contactName: callLogContactName
                   }
                 }
-                console.log(data.body);
                 window.postMessage(callLogMessageObj, '*')
                 // response to widget
                 responseMessage(
@@ -126,6 +144,12 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              const { matched: messageLogMatched } = await checkLog(
+                {
+                  logType: 'Message',
+                  logId: data.body.conversation.conversationLogId,
+                  phoneNumber: data.body.conversation.correspondents[0].phoneNumber
+                });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
               if (isObjectEmpty(existingMessageLog) || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
@@ -133,7 +157,8 @@ window.addEventListener('message', async (e) => {
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Message',
-                    logInfo: data.body.conversation
+                    logInfo: data.body.conversation,
+                    isManual: data.body.triggerType === 'manual'
                   }
                 }
                 window.postMessage(messageLogMessageObj, '*')

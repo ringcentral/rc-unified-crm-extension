@@ -1,14 +1,15 @@
 const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
+const { UserModel } = require('../models/userModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 
-async function addCallLog(platform, userId, incomingData) {
+async function addCallLog({ platform, userId, incomingData }) {
     const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
     if (existingCallLog) {
         return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
     }
     const platformModule = require(`../platformModules/${platform}`);
-    const logId = await platformModule.addCallLog(userId, incomingData.logInfo, incomingData.note);
+    const logId = await platformModule.addCallLog({ userId, callLog: incomingData.logInfo, note: incomingData.note });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -20,7 +21,7 @@ async function addCallLog(platform, userId, incomingData) {
     return { successful: true, logId };
 }
 
-async function addMessageLog(platform, userId, incomingData) {
+async function addMessageLog({ platform, userId, incomingData }) {
     const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id }; });
     const existingMessages = await MessageLogModel.findAll({
         where: {
@@ -36,11 +37,10 @@ async function addMessageLog(platform, userId, incomingData) {
             continue;
         }
         let recordingLink = null;
-        if(message.attachments.some(a => a.type==='AudioRecording'))
-        {
-            recordingLink = message.attachments.find(a => a.type==='AudioRecording').link;
+        if (message.attachments.some(a => a.type === 'AudioRecording')) {
+            recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog(userId, message, incomingData.logInfo.correspondents[0].phoneNumber, recordingLink);
+        const logId = await platformModule.addMessageLog({ userId, message, contactNumber: incomingData.logInfo.correspondents[0].phoneNumber, recordingLink });
         await MessageLogModel.create({
             id: message.id,
             platform,
@@ -55,7 +55,7 @@ async function addMessageLog(platform, userId, incomingData) {
     return { successful: true, logIds };
 }
 
-async function getCallLog(platform, sessionId) {
+async function getCallLog({ platform, userId, sessionId, phoneNumber }) {
     const callLog = await CallLogModel.findOne({
         where: {
             platform,
@@ -65,27 +65,32 @@ async function getCallLog(platform, sessionId) {
     if (callLog) {
         return { successful: true, logId: callLog.thirdPartyLogId };
     }
-    else {
-        return { successful: false, message: `cannot find call log for sessionId: ${sessionId}` };
+    else if (phoneNumber != null) {
+        const platformModule = require(`../platformModules/${platform}`);
+        const contactInfo = await platformModule.getContact({ userId, phoneNumber });
+        if (contactInfo != null) {
+            return { successful: false, contactName: contactInfo.name };
+        }
     }
+    return { successful: false, message: `Cannot find call log or phone number` };
 }
 
-async function getMessageLogs(platform, messageId) {
-    const messageLog = await MessageLogModel.findOne({
-        where: {
-            platform,
-            id: messageId
-        }
-    });
-    if (callLog) {
-        return { successful: true, logId: callLog.thirdPartyLogId };
-    }
-    else {
-        return { successful: false, message: `cannot find message log for messageId: ${messageId}` };
-    }
-}
+// async function getMessageLogs(platform, messageId) {
+//     const messageLog = await MessageLogModel.findOne({
+//         where: {
+//             platform,
+//             id: messageId
+//         }
+//     });
+//     if (callLog) {
+//         return { successful: true, logId: callLog.thirdPartyLogId };
+//     }
+//     else {
+//         return { successful: false, message: `cannot find message log for messageId: ${messageId}` };
+//     }
+// }
 
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
-exports.getMessageLogs = getMessageLogs;
+// exports.getMessageLogs = getMessageLogs;

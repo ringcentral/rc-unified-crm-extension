@@ -2,7 +2,7 @@ import axios from 'axios';
 import config from '../config.json';
 
 // Input {id} = sessionId from RC
-async function syncLog({ logType, logInfo, note }) {
+async function syncLog({ logType, logInfo, note, isManual }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
@@ -16,7 +16,7 @@ async function syncLog({ logType, logInfo, note }) {
             break;
         case 'Message':
             const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo });
-            if (messageLogRes.data.successful) {
+            if (!isManual && messageLogRes.data.successful) {
                 dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                 await chrome.storage.local.set(dataToLog);
             }
@@ -24,14 +24,15 @@ async function syncLog({ logType, logInfo, note }) {
     }
 }
 
-async function checkLog({ logType, logId }) {
+async function checkLog({ logType, logId, phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}`);
-            return { matched: callLogRes.data.successful, logId: callLogRes.data.logId };
-        // case 'Message':
-        //     return true;
+            const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}&phoneNumber=${phoneNumber}`);
+            return { matched: callLogRes.data.successful, logId: callLogRes.data.logId, contactName: callLogRes.data.contactName };
+        case 'Message':
+            const messageLogRes = await axios.get(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}&conversationLog=${logId}`);
+            return { matched: messageLogRes.data.successful, logId: messageLogRes.data.logId };
     }
 }
 

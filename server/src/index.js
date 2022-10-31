@@ -6,6 +6,7 @@ const axios = require('axios');
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const { addCallLog, addMessageLog, getCallLog } = require('./core/log');
+const { getContact } = require('./core/contact');
 
 const app = express();
 app.use(bodyParser.json())
@@ -47,7 +48,7 @@ app.get('/oauth-callback', async function (req, res) {
     catch (e) {
         console.log(e);
     }
-    res.status(400).send();
+    res.status(400).send(e.message);
 })
 app.post('/unAuthorize', async function (req, res) {
     try {
@@ -65,20 +66,35 @@ app.post('/unAuthorize', async function (req, res) {
     catch (e) {
         console.log(e);
     }
-    res.status(400).send();
-})
-app.get('/callLog', async function (req, res) {
+    res.status(400).send(e.message);
+});
+app.get('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId } = await getCallLog(platform, req.query.sessionId);
-            res.status(200).send({ successful, message, logId });
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            console.log(req.query.phoneNumber);
+            const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber });
+            res.status(200).send({ successful, message, contact });
         }
     }
     catch (e) {
         console.log(e);
-        res.status(400).send();
+        res.status(400).send(e.message);
+    }
+});
+app.get('/callLog', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const { successful, logId, contactName } = await getCallLog({ platform, userId, sessionId: req.query.sessionId, phoneNumber: req.query.phoneNumber });
+            res.status(200).send({ successful, logId, contactName });
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e.message);
     }
 });
 app.post('/callLog', async function (req, res) {
@@ -86,13 +102,13 @@ app.post('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId } = await addCallLog(platform, userId, req.body);
+            const { successful, message, logId } = await addCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
         }
     }
     catch (e) {
         console.log(e);
-        res.status(400).send();
+        res.status(400).send(e.message);
     }
 });
 app.post('/messageLog', async function (req, res) {
@@ -100,14 +116,14 @@ app.post('/messageLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, logIds } = await addMessageLog(platform, userId, req.body);
+            const { successful, logIds } = await addMessageLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, logIds });
         }
     }
     catch (e) {
         console.log(e);
+        res.status(400).send(e.message);
     }
-    res.status(400).send();
 });
 
 exports.server = app;
