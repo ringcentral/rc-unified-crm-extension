@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import LogModal from './components/logModal.jsx';
+import { RcThemeProvider } from '@ringcentral/juno';
 
 function App() {
     return (
-        <div>
+        <RcThemeProvider>
             <LogModal />
-        </div>
+        </RcThemeProvider>
     )
 }
 const container = document.getElementById('react-container');

@@ -2,12 +2,12 @@ import axios from 'axios';
 import config from '../config.json';
 
 // Input {id} = sessionId from RC
-async function syncLog({ logType, logInfo, note, isManual }) {
+async function addLog({ logType, logInfo, note, isManual }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            const callLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note });
+            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note });
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-trigger-call-logger-match',
@@ -30,11 +30,8 @@ async function checkLog({ logType, logId, phoneNumber }) {
         case 'Call':
             const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}&phoneNumber=${phoneNumber}`);
             return { matched: callLogRes.data.successful, logId: callLogRes.data.logId, contactName: callLogRes.data.contactName };
-        case 'Message':
-            const messageLogRes = await axios.get(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}&conversationLog=${logId}`);
-            return { matched: messageLogRes.data.successful, logId: messageLogRes.data.logId };
     }
 }
 
-exports.syncLog = syncLog;
+exports.addLog = addLog;
 exports.checkLog = checkLog;

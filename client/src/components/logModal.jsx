@@ -7,7 +7,7 @@ import {
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
-import { syncLog } from '../core/log';
+import { addLog } from '../core/log';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../lib/util';
 
@@ -93,7 +93,7 @@ export default () => {
                 break;
             case 'Message':
                 setDirection('');
-                setContactName('WIP - add name');
+                setContactName(logEvents[0].logProps.contactName);
                 setPhoneNumber(logEvents[0].logProps.logInfo.correspondents[0].phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
                 break;
@@ -111,7 +111,7 @@ export default () => {
     async function onSubmission() {
         try {
             setLoading(true);
-            await syncLog({
+            await addLog({
                 logType,
                 logInfo,
                 note,
@@ -138,7 +138,7 @@ export default () => {
     }
 
     return (
-        <RcThemeProvider>
+        <div>
             {isLoading && <RcLoading style={loadingStyle} loading={isLoading} />}
             {
                 isOpen && (
@@ -174,6 +174,6 @@ export default () => {
                     </div>
                 )
             }
-        </RcThemeProvider >
+            </div>
     )
 }

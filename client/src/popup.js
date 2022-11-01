@@ -102,37 +102,37 @@ window.addEventListener('message', async (e) => {
               }
               break;
             case '/callLogger':
+              const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
+                data.body.call.from.phoneNumber :
+                data.body.call.to.phoneNumber;
               const { matched: callLogMatched, contactName: callLogContactName } = await checkLog({
                 logType: 'Call',
                 logId: data.body.call.sessionId,
-                phoneNumber: data.body.call.direction === 'Inbound' ?
-                  data.body.call.from.phoneNumber :
-                  data.body.call.to.phoneNumber
+                phoneNumber: contactPhoneNumber
               });
               if ((!callLogMatched && !data.body.triggerType) || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
-                const callLogMessageObj = {
+                window.postMessage({
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
                     contactName: callLogContactName
                   }
-                }
-                window.postMessage(callLogMessageObj, '*')
-                // response to widget
-                responseMessage(
-                  data.requestId,
-                  {
-                    data: 'ok'
-                  }
-                );
+                }, '*')
               }
+              // response to widget
+              responseMessage(
+                data.requestId,
+                {
+                  data: 'ok'
+                }
+              );
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
               for (const sessionId of data.body.sessionIds) {
-                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId });
+                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId, phoneNumber:'' });
                 if (matched) {
                   callLogMatchData[sessionId] = [{ id: logId, note: '' }];
                 }
@@ -144,24 +144,21 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
-              const { matched: messageLogMatched } = await checkLog(
-                {
-                  logType: 'Message',
-                  logId: data.body.conversation.conversationLogId,
-                  phoneNumber: data.body.conversation.correspondents[0].phoneNumber
-                });
+              const { matched: messageMatched, contactInfo: messageMatchedContact } = await getContact({
+                phoneNumber: data.body.conversation.correspondents[0].phoneNumber
+              });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
-              if (isObjectEmpty(existingMessageLog) || data.body.triggerType === 'manual') {
+              if (messageMatched && (isObjectEmpty(existingMessageLog) || data.body.triggerType === 'manual')) {
                 // add your codes here to log call to your service
-                const messageLogMessageObj = {
+                window.postMessage({
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Message',
                     logInfo: data.body.conversation,
-                    isManual: data.body.triggerType === 'manual'
+                    isManual: data.body.triggerType === 'manual',
+                    contactName: messageMatchedContact.name
                   }
-                }
-                window.postMessage(messageLogMessageObj, '*')
+                }, '*')
               }
               // response to widget
               responseMessage(
@@ -190,7 +187,11 @@ window.addEventListener('message', async (e) => {
     }
   }
   catch (e) {
-    console.log(e);
+    // TODO: show error message
+    // window.postMessage({
+    //   type: 'rc-log-modal',
+    //   message: e.response.data
+    // }, '*')
   }
 });
 

@@ -1,6 +1,5 @@
 const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
-const { UserModel } = require('../models/userModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 
 async function addCallLog({ platform, userId, incomingData }) {
@@ -63,16 +62,20 @@ async function getCallLog({ platform, userId, sessionId, phoneNumber }) {
         }
     });
     if (callLog) {
+        console.log('found call log');
         return { successful: true, logId: callLog.thirdPartyLogId };
     }
-    else if (phoneNumber != null) {
+    else if (phoneNumber) {
         const platformModule = require(`../platformModules/${platform}`);
         const contactInfo = await platformModule.getContact({ userId, phoneNumber });
         if (contactInfo != null) {
             return { successful: false, contactName: contactInfo.name };
         }
+        throw `Cannot find contact for phone number ${phoneNumber}. Please create a contact.`;
     }
-    return { successful: false, message: `Cannot find call log or phone number` };
+    else {
+        return { successful: false };
+    }
 }
 
 // async function getMessageLogs(platform, messageId) {
