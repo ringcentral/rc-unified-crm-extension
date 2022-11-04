@@ -3,6 +3,7 @@ const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 const config = require('./config.json');
+const { showNotification } = require('./lib/util');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -34,6 +35,7 @@ window.addEventListener('message', async (e) => {
           console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber);
           const rcUserInfo = { rcUserNumber: data.loginNumber };
           await chrome.storage.local.set(rcUserInfo);
+          document.getElementById('rc-widget').style.zIndex = 0;
         case 'rc-login-popup-notify':
           handleRCOAuthWindow(data.oAuthUri);
           break;
@@ -102,23 +104,37 @@ window.addEventListener('message', async (e) => {
               }
               break;
             case '/callLogger':
+              window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
-              const { matched: callLogMatched, contactName: callLogContactName } = await checkLog({
+              const { matched: callLogMatched } = await checkLog({
                 logType: 'Call',
-                logId: data.body.call.sessionId,
-                phoneNumber: contactPhoneNumber
+                logId: data.body.call.sessionId
               });
-              if ((!callLogMatched && !data.body.triggerType) || data.body.triggerType === 'manual') {
+              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
+              if (callLogMatched) {
+                showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
+              }
+              else if (!callContactMatched) {
+                showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
+              }
+              else if (!data.body.triggerType || data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
-                    contactName: callLogContactName
-                  }
+                    contactName: callMatchedContact.name
+                  },
+                  additionalLogInfo: [
+                    {
+                      type: 'dropdown',
+                      label: 'Sync to deal',
+                      value: callMatchedContact.relatedDeals
+                    }
+                  ]
                 }, '*')
               }
               // response to widget
@@ -128,11 +144,12 @@ window.addEventListener('message', async (e) => {
                   data: 'ok'
                 }
               );
+              window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
               for (const sessionId of data.body.sessionIds) {
-                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId, phoneNumber:'' });
+                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId });
                 if (matched) {
                   callLogMatchData[sessionId] = [{ id: logId, note: '' }];
                 }
@@ -144,11 +161,18 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
-              const { matched: messageMatched, contactInfo: messageMatchedContact } = await getContact({
+              window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
+              const { matched: messageContactMatched, message: messageContactMatchMessage, contactInfo: messageMatchedContact } = await getContact({
                 phoneNumber: data.body.conversation.correspondents[0].phoneNumber
               });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
-              if (messageMatched && (isObjectEmpty(existingMessageLog) || data.body.triggerType === 'manual')) {
+              if (!messageContactMatched) {
+                showNotification({ level: 'warning', message: messageContactMatchMessage, ttl: 3000 });
+              }
+              else if (!isObjectEmpty(existingMessageLog)) {
+                showNotification({ level: 'warning', message: 'Message log already exists', ttl: 3000 });
+              }
+              else if (data.body.triggerType === 'manual') {
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
@@ -157,7 +181,14 @@ window.addEventListener('message', async (e) => {
                     logInfo: data.body.conversation,
                     isManual: data.body.triggerType === 'manual',
                     contactName: messageMatchedContact.name
-                  }
+                  },
+                  additionalLogInfo: [
+                    {
+                      type: 'dropdown',
+                      label: 'Sync to deal',
+                      value: callMatchedContact.relatedDeals
+                    }
+                  ]
                 }, '*')
               }
               // response to widget
@@ -167,6 +198,7 @@ window.addEventListener('message', async (e) => {
                   data: 'ok'
                 }
               );
+              window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/messageLogger/match':
               const localMessageLogs = await chrome.storage.local.get(data.body.conversationLogIds);
@@ -187,11 +219,10 @@ window.addEventListener('message', async (e) => {
     }
   }
   catch (e) {
-    // TODO: show error message
-    // window.postMessage({
-    //   type: 'rc-log-modal',
-    //   message: e.response.data
-    // }, '*')
+    if (e.response.data) {
+      showNotification({ level: 'warning', message: e.response.data.message, ttl: 5000 });
+    }
+    window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }
 });
 

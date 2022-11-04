@@ -8,7 +8,7 @@ async function addCallLog({ platform, userId, incomingData }) {
         return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
     }
     const platformModule = require(`../platformModules/${platform}`);
-    const logId = await platformModule.addCallLog({ userId, callLog: incomingData.logInfo, note: incomingData.note });
+    const logId = await platformModule.addCallLog({ userId, incomingData });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -39,7 +39,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         if (message.attachments.some(a => a.type === 'AudioRecording')) {
             recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog({ userId, message, contactNumber: incomingData.logInfo.correspondents[0].phoneNumber, recordingLink });
+        const logId = await platformModule.addMessageLog({ userId, message, incomingData, recordingLink });
         await MessageLogModel.create({
             id: message.id,
             platform,
@@ -54,7 +54,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     return { successful: true, logIds };
 }
 
-async function getCallLog({ platform, userId, sessionId, phoneNumber }) {
+async function getCallLog({ platform, sessionId }) {
     const callLog = await CallLogModel.findOne({
         where: {
             platform,
@@ -62,16 +62,7 @@ async function getCallLog({ platform, userId, sessionId, phoneNumber }) {
         }
     });
     if (callLog) {
-        console.log('found call log');
         return { successful: true, logId: callLog.thirdPartyLogId };
-    }
-    else if (phoneNumber) {
-        const platformModule = require(`../platformModules/${platform}`);
-        const contactInfo = await platformModule.getContact({ userId, phoneNumber });
-        if (contactInfo != null) {
-            return { successful: false, contactName: contactInfo.name };
-        }
-        throw `Cannot find contact for phone number ${phoneNumber}. Please create a contact.`;
     }
     else {
         return { successful: false };

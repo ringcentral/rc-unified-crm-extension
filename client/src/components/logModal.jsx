@@ -1,6 +1,5 @@
 import {
     RcTextarea,
-    RcThemeProvider,
     RcText,
     RcLoading,
     RcIconButton
@@ -10,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { addLog } from '../core/log';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../lib/util';
+import DropdownList from './dropdownList';
 
 const logEvents = [];
 
@@ -33,10 +33,7 @@ export default () => {
     }
     const loadingStyle = {
         width: '100%',
-        height: '100%',
-        background: '#ffffffb5',
-        position: 'absolute',
-        zIndex: '15'
+        height: '100%'
     }
     const titleStyle = {
         margin: '0px auto 15px auto'
@@ -65,19 +62,54 @@ export default () => {
     const [dateTime, setDateTime] = useState('');
     const [duration, setDuration] = useState('');
     const [isLoading, setLoading] = useState(false);
+    const [additionalForm, setAdditionalForm] = useState([]);
+    // additionalForm = {
+    //  type: dropdown
+    //  value: {}
+    //}
+    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState('');
 
     function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
             return
         }
-        const { type, logProps } = e.data
+        const { type, logProps, additionalLogInfo } = e.data
         if (type === 'rc-log-modal') {
-            logEvents.push({ type, logProps });
+            logEvents.push({ type, logProps, additionalLogInfo });
             setupModal();
             setIsManual(!!logProps.isManual);
+            setAdditionalForm(additionalLogInfo);
+            setLoading(false);
+        }
+        if (type === 'rc-log-modal-loading-on') {
+            setLoading(true);
+        }
+        if (type === 'rc-log-modal-loading-off') {
+            setLoading(false);
         }
     }
 
+    function onRenderDropdown() {
+        const dropdown = additionalForm.find(f => f.type === 'dropdown');
+        if (!dropdown) {
+            return '';
+        }
+        let presetSelection = '';
+        if (dropdown.value.length === 1) {
+            presetSelection = dropdown.value[0].id;
+        }
+
+        return <DropdownList
+            key='key'
+            style={labelStyle}
+            label={dropdown.label}
+            selectionItems={dropdown.value.map(d => { return { value: d.id, display: d.title } })}
+            presetSelection={presetSelection}
+            onSelected={(selection) => {
+                setAdditionalDropdownSelection(selection);
+            }} />;
+    }
+    
     function setupModal() {
         setIsOpen(true);
         setLogInfo(logEvents[0].logProps.logInfo);
@@ -98,11 +130,10 @@ export default () => {
                 setDateTime(moment(logEvents[0].logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
                 break;
         }
-        document.getElementById('rc-widget').style.zIndex = 0;
     }
 
     useEffect(() => {
-        window.addEventListener('message', onEvent)
+        window.addEventListener('message', onEvent);
         return () => {
             window.removeEventListener('message', onEvent)
         }
@@ -115,7 +146,8 @@ export default () => {
                 logType,
                 logInfo,
                 note,
-                isManual
+                isManual,
+                additionalDropdownSelection: additionalDropdownSelection === '' ? additionalForm.find(f => f.type === 'dropdown').value[0].id : additionalDropdownSelection
             });
         }
         catch (e) {
@@ -139,7 +171,7 @@ export default () => {
 
     return (
         <div>
-            {isLoading && <RcLoading style={loadingStyle} loading={isLoading} />}
+            <RcLoading loading={isLoading} />
             {
                 isOpen && (
                     <div style={modalStyle}>
@@ -171,9 +203,10 @@ export default () => {
                             onChange={onChangeNote}
                             value={note}
                         ></RcTextarea>}
+                        {onRenderDropdown()}
                     </div>
                 )
             }
-            </div>
+        </div>
     )
 }

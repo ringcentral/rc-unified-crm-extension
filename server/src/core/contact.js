@@ -5,7 +5,7 @@ async function getContact({ platform, userId, phoneNumber }) {
         return { successful: true, message: '', contact: contactInfo };
     }
     else {
-        throw `Cannot find contact for phone number: ${phoneNumber}. Please create a contact.`;
+        throw { successful: false, message: `Cannot find contact for phone number: ${phoneNumber}. Please create a contact.` };
     }
 }
 

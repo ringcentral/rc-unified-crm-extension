@@ -2,12 +2,12 @@ import axios from 'axios';
 import config from '../config.json';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, note, isManual }) {
+async function addLog({ logType, logInfo, note, isManual, additionalDropdownSelection }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note });
+            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalDropdownSelection });
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-trigger-call-logger-match',
@@ -15,7 +15,7 @@ async function addLog({ logType, logInfo, note, isManual }) {
             }, '*');
             break;
         case 'Message':
-            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo });
+            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalDropdownSelection });
             if (!isManual && messageLogRes.data.successful) {
                 dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                 await chrome.storage.local.set(dataToLog);
@@ -24,12 +24,12 @@ async function addLog({ logType, logInfo, note, isManual }) {
     }
 }
 
-async function checkLog({ logType, logId, phoneNumber }) {
+async function checkLog({ logType, logId }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}&phoneNumber=${phoneNumber}`);
-            return { matched: callLogRes.data.successful, logId: callLogRes.data.logId, contactName: callLogRes.data.contactName };
+            const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}`);
+            return { matched: callLogRes.data.successful, logId: callLogRes.data.logId };
     }
 }
 
