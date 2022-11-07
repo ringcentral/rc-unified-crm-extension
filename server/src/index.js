@@ -47,8 +47,8 @@ app.get('/oauth-callback', async function (req, res) {
     }
     catch (e) {
         console.log(e);
+        res.status(400).send(e);
     }
-    res.status(400).send(e);
 })
 app.post('/unAuthorize', async function (req, res) {
     try {
@@ -65,21 +65,20 @@ app.post('/unAuthorize', async function (req, res) {
     }
     catch (e) {
         console.log(e);
+        res.status(400).send(e);
     }
-    res.status(400).send(e);
 });
 app.get('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            console.log(req.query.phoneNumber);
             const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber });
             res.status(200).send({ successful, message, contact });
         }
     }
     catch (e) {
-        res.status(400).send(e);
+        console.log(e);
     }
 });
 app.get('/callLog', async function (req, res) {

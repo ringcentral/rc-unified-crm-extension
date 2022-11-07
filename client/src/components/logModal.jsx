@@ -67,7 +67,7 @@ export default () => {
     //  type: dropdown
     //  value: {}
     //}
-    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState('');
+    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(null);
 
     function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -94,17 +94,13 @@ export default () => {
         if (!dropdown) {
             return '';
         }
-        let presetSelection = '';
-        if (dropdown.value.length === 1) {
-            presetSelection = dropdown.value[0].id;
-        }
 
         return <DropdownList
             key='key'
             style={labelStyle}
             label={dropdown.label}
             selectionItems={dropdown.value.map(d => { return { value: d.id, display: d.title } })}
-            presetSelection={presetSelection}
+            presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
             }} />;
@@ -147,7 +143,7 @@ export default () => {
                 logInfo,
                 note,
                 isManual,
-                additionalDropdownSelection: additionalDropdownSelection === '' ? additionalForm.find(f => f.type === 'dropdown').value[0].id : additionalDropdownSelection
+                additionalDropdownSelection: additionalDropdownSelection
             });
         }
         catch (e) {
@@ -159,6 +155,7 @@ export default () => {
 
     function closeModal() {
         setIsOpen(false);
+        setAdditionalDropdownSelection(null);
         logEvents.shift();  // array FIFO
         if (logEvents.length > 0) {
             setupModal();

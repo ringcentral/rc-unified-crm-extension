@@ -84,12 +84,12 @@ async function getContact({ userId, phoneNumber }) {
         return null;
     }
     else {
+        let result = personInfo.data.data.items[0].item;
         const dealsResponse = await axios.get(
             `${BASE_URL}/v1/persons/${personInfo.data.data.items[0].item.id}/deals?status=open`,
             {
                 headers: { 'Authorization': authHeader }
             });
-        let result = personInfo.data.data.items[0].item;
         result['relatedDeals'] = dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } });
         return result;
     }

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import config from '../config.json';
+import { showNotification } from '../lib/util';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, note, isManual, additionalDropdownSelection }) {
@@ -13,12 +14,14 @@ async function addLog({ logType, logInfo, note, isManual, additionalDropdownSele
                 type: 'rc-adapter-trigger-call-logger-match',
                 sessionIds: [logInfo.sessionId]
             }, '*');
+            showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
             break;
         case 'Message':
             const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalDropdownSelection });
             if (!isManual && messageLogRes.data.successful) {
                 dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                 await chrome.storage.local.set(dataToLog);
+                showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
             }
             break;
     }

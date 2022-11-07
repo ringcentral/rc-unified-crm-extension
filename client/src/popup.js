@@ -1,9 +1,8 @@
-const { responseMessage, isObjectEmpty } = require('./util');
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 const config = require('./config.json');
-const { showNotification } = require('./lib/util');
+const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -68,42 +67,41 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/contacts/match':
-              console.log(data); // include phone number array that need to match
-              const incomingCallNumbers = data.body.phoneNumbers;
-              // query on 3rd party API to get the matched contact info and return
-              const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: incomingCallNumbers[0] });
-              if (contactMatched) {
-                let matchedContacts = {};
-                matchedContacts[contactInfo.phones[0]] = [{
-                  id: contactInfo.id,
-                  type: config.currentPlatform,
-                  name: contactInfo.name,
-                  phoneNumbers: [
-                    {
-                      phoneNumber: contactInfo.phones[0],
-                      phoneType: 'direct'
-                    }
-                  ]
-                }];
-                // return matched contact object with phone number as key
-                responseMessage(
-                  data.requestId,
-                  {
-                    data: matchedContacts
-                  }
-                );
+              let matchedContacts = {};
+              for (const contactPhoneNumber of data.body.phoneNumbers) {
+                // query on 3rd party API to get the matched contact info and return
+                const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
+                if (contactMatched) {
+                  matchedContacts[contactInfo.phones[0]] = [{
+                    id: contactInfo.id,
+                    type: config.currentPlatform,
+                    name: contactInfo.name,
+                    phoneNumbers: [
+                      {
+                        phoneNumber: contactInfo.phones[0],
+                        phoneType: 'direct'
+                      }
+                    ]
+                  }];
+                }
               }
-              else {
-                // return matched contact object with phone number as key
-                responseMessage(
-                  data.requestId,
-                  {
-                    data: []
-                  }
-                );
-              }
+              // return matched contact object with phone number as key
+              responseMessage(
+                data.requestId,
+                {
+                  data: matchedContacts
+                }
+              );
               break;
             case '/callLogger':
+              if (data.body.triggerType) {
+                if (data.body.triggerType === 'callLogSync') {
+                  break;
+                }
+                if (data.body.triggerType === 'presenceUpdate' && data.body.call.result !== 'Disconnected') {
+                  break;
+                }
+              }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
@@ -119,7 +117,7 @@ window.addEventListener('message', async (e) => {
               else if (!callContactMatched) {
                 showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
               }
-              else if (!data.body.triggerType || data.body.triggerType === 'manual') {
+              else {
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',

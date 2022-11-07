@@ -2,7 +2,7 @@ import {
     RcSelect,
     RcMenuItem
 } from '@ringcentral/juno';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 export default ({ selectionItems, presetSelection, onSelected, label, style }) => {
     const [selection, setSelection] = useState(presetSelection);
