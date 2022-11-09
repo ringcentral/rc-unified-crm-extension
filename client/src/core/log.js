@@ -3,12 +3,12 @@ import config from '../config.json';
 import { showNotification } from '../lib/util';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, note, isManual, additionalDropdownSelection }) {
+async function addLog({ logType, logInfo, note, isManual, additionalSubmission }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalDropdownSelection });
+            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission });
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-trigger-call-logger-match',
@@ -17,7 +17,7 @@ async function addLog({ logType, logInfo, note, isManual, additionalDropdownSele
             showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
             break;
         case 'Message':
-            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalDropdownSelection });
+            const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission });
             if (!isManual && messageLogRes.data.successful) {
                 dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                 await chrome.storage.local.set(dataToLog);

@@ -1,6 +1,8 @@
 const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
+const { UserModel } = require('../models/userModel');
+const { checkAndRefreshAccessToken } = require('../lib/oauth');
 
 async function addCallLog({ platform, userId, incomingData }) {
     const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
@@ -8,7 +10,21 @@ async function addCallLog({ platform, userId, incomingData }) {
         return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
     }
     const platformModule = require(`../platformModules/${platform}`);
-    const logId = await platformModule.addCallLog({ userId, incomingData });
+    const callLog = incomingData.logInfo;
+    const additionalSubmission = incomingData.additionalSubmission;
+    const note = incomingData.note;
+    const user = await UserModel.findByPk(userId);
+    if (!user || !user.accessToken) {
+        throw `Cannot find user with id: ${userId}`;
+    }
+    await checkAndRefreshAccessToken(user);
+    const authHeader = `Bearer ${user.accessToken}`;
+    const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
+    const contactInfo = await platformModule.getContact({ userId, phoneNumber: contactNumber });
+    if (contactInfo == null) {
+        throw `Contact not found for number ${contactNumber}`;
+    }
+    const logId = await platformModule.addCallLog({ userId, contactId: contactInfo.id, authHeader, callLog, note, additionalSubmission });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -21,6 +37,22 @@ async function addCallLog({ platform, userId, incomingData }) {
 }
 
 async function addMessageLog({ platform, userId, incomingData }) {
+    if (incomingData.logInfo.messages.length === 0) {
+        return { successful: false, message: 'no message to log.' }
+    }
+    const platformModule = require(`../platformModules/${platform}`);
+    const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
+    const additionalSubmission = incomingData.additionalSubmission;
+    const user = await UserModel.findByPk(userId);
+    if (!user || !user.accessToken) {
+        throw `Cannot find user with id: ${userId}`;
+    }
+    await checkAndRefreshAccessToken(user);
+    const authHeader = `Bearer ${user.accessToken}`;
+    const contactInfo = await platformModule.getContact({ userId, phoneNumber: contactNumber });
+    if (contactInfo == null) {
+        throw `Contact not found for number ${contactNumber}`;
+    }
     const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id }; });
     const existingMessages = await MessageLogModel.findAll({
         where: {
@@ -28,7 +60,6 @@ async function addMessageLog({ platform, userId, incomingData }) {
         }
     });
     const existingIds = existingMessages.map(m => m.id);
-    const platformModule = require(`../platformModules/${platform}`);
     const logIds = [];
     for (const message of incomingData.logInfo.messages) {
         if (existingIds.includes(message.id)) {
@@ -36,10 +67,10 @@ async function addMessageLog({ platform, userId, incomingData }) {
             continue;
         }
         let recordingLink = null;
-        if (message.attachments.some(a => a.type === 'AudioRecording')) {
+        if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
             recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog({ userId, message, incomingData, recordingLink });
+        const logId = await platformModule.addMessageLog({ userId, contactId: contactInfo.id, authHeader, message, additionalSubmission, recordingLink });
         await MessageLogModel.create({
             id: message.id,
             platform,

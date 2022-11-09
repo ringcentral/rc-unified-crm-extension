@@ -7,8 +7,10 @@
     "ngrok": "ngrok http -region ap 6066 ",
     "server": "node ./src/run-server.js",
     "start": "npm run server",
+    "start-debug": "node --inspect ./src/run-server.js",
     "initDB": "node ./scripts/initDB",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "set NODE_ENV=test&&jest --forceExit -i",
+    "test-coverage": "set NODE_ENV=test&&jest --coverage"
   },
   "author": "",
   "license": "ISC",
@@ -27,9 +29,12 @@
     "shortid": "^2.2.16"
   },
   "devDependencies": {
+    "jest": "^29.3.1",
     "ngrok": "^4.3.3",
+    "nock": "^13.2.9",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",
-    "sqlite3": "^5.1.2"
+    "sqlite3": "^5.1.2",
+    "supertest": "^6.3.1"
   }
 }

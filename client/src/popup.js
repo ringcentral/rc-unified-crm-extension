@@ -110,7 +110,7 @@ window.addEventListener('message', async (e) => {
                 logType: 'Call',
                 logId: data.body.call.sessionId
               });
-              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
+              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact, additionalLogInfo: callLogAdditionalInfo } = await getContact({ phoneNumber: contactPhoneNumber });
               if (callLogMatched) {
                 showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
               }
@@ -126,13 +126,7 @@ window.addEventListener('message', async (e) => {
                     logInfo: data.body.call,
                     contactName: callMatchedContact.name
                   },
-                  additionalLogInfo: [
-                    {
-                      type: 'dropdown',
-                      label: 'Sync to deal',
-                      value: callMatchedContact.relatedDeals
-                    }
-                  ]
+                  additionalLogInfo: callLogAdditionalInfo
                 }, '*')
               }
               // response to widget
@@ -160,7 +154,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/messageLogger':
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-              const { matched: messageContactMatched, message: messageContactMatchMessage, contactInfo: messageMatchedContact } = await getContact({
+              const { matched: messageContactMatched, message: messageContactMatchMessage, contactInfo: messageMatchedContact, additionalLogInfo: messageLogAdditionalLogInfo } = await getContact({
                 phoneNumber: data.body.conversation.correspondents[0].phoneNumber
               });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
@@ -180,13 +174,7 @@ window.addEventListener('message', async (e) => {
                     isManual: data.body.triggerType === 'manual',
                     contactName: messageMatchedContact.name
                   },
-                  additionalLogInfo: [
-                    {
-                      type: 'dropdown',
-                      label: 'Sync to deal',
-                      value: callMatchedContact.relatedDeals
-                    }
-                  ]
+                  additionalLogInfo: messageLogAdditionalLogInfo
                 }, '*')
               }
               // response to widget

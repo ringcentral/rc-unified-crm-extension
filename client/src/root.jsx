@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import LogModal from './components/logModal.jsx';
+import LogModal from './components/log/logModal';
 import { RcThemeProvider } from '@ringcentral/juno';
 
 function App() {

@@ -62,6 +62,9 @@ app.post('/unAuthorize', async function (req, res) {
             });
             res.status(200).send();
         }
+        else {
+            res.status(400).send('missing jwt token');
+        }
     }
     catch (e) {
         console.log(e);
@@ -76,6 +79,9 @@ app.get('/contact', async function (req, res) {
             const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber });
             res.status(200).send({ successful, message, contact });
         }
+        else {
+            res.status(400).send('missing jwt token');
+        }
     }
     catch (e) {
         console.log(e);
@@ -88,6 +94,9 @@ app.get('/callLog', async function (req, res) {
             const { platform } = jwt.decodeJwt(jwtToken);
             const { successful, logId } = await getCallLog({ platform, sessionId: req.query.sessionId });
             res.status(200).send({ successful, logId });
+        }
+        else {
+            res.status(400).send('missing jwt token');
         }
     }
     catch (e) {
@@ -103,6 +112,9 @@ app.post('/callLog', async function (req, res) {
             const { successful, message, logId } = await addCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
         }
+        else {
+            res.status(400).send('missing jwt token');
+        }
     }
     catch (e) {
         console.log(e);
@@ -114,8 +126,11 @@ app.post('/messageLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, logIds } = await addMessageLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, logIds });
+            const { successful, message, logIds } = await addMessageLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, message, logIds });
+        }
+        else {
+            res.status(400).send('missing jwt token');
         }
     }
     catch (e) {

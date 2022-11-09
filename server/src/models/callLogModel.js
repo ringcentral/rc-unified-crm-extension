@@ -3,6 +3,7 @@ const { sequelize } = require('./sequelize');
 
 // Model for User data
 exports.CallLogModel = sequelize.define('callLogs', {
+  // callId
   id: {
     type: Sequelize.STRING,
     primaryKey: true,
