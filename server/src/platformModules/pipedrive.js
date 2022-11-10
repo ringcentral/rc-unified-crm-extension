@@ -4,6 +4,21 @@ const { checkAndRefreshAccessToken } = require('../lib/oauth');
 
 const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
 
+async function getUserInfo({ accessToken }) {
+    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`
+        }
+    });;
+    return {
+        id: userInfoResponse.data.data.id,
+        name: userInfoResponse.data.data.name,
+        companyId: userInfoResponse.data.data.company_id,
+        companyName: userInfoResponse.data.data.company_name,
+        companyDomain: userInfoResponse.data.data.company_domain,
+    };
+}
+
 async function addCallLog({ userId, contactId, authHeader, callLog, note, additionalSubmission }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const postBody = {
@@ -45,7 +60,7 @@ async function addMessageLog({ userId, contactId, authHeader, message, additiona
 
 async function getContact({ userId, phoneNumber }) {
     const user = await UserModel.findByPk(userId);
-    if (!user.accessToken) {
+    if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
     await checkAndRefreshAccessToken(user);
@@ -72,6 +87,7 @@ async function getContact({ userId, phoneNumber }) {
     }
 }
 
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;

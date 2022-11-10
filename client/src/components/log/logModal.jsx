@@ -52,7 +52,7 @@ export default () => {
     const [note, setNote] = useState('');
     const [logType, setLogType] = useState('');
     const [logInfo, setLogInfo] = useState(null);
-    const [isManual, setIsManual] = useState(false);
+    const [isToday, setIsToday] = useState(null);
     const [contactName, setContactName] = useState('');
     const [direction, setDirection] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -71,7 +71,6 @@ export default () => {
             logEvents.push({ type, logProps, additionalLogInfo });
             setAdditionalFormInfo(additionalLogInfo);
             setupModal();
-            setIsManual(!!logProps.isManual);
             setLoading(false);
         }
         if (type === 'rc-log-modal-loading-on') {
@@ -85,6 +84,7 @@ export default () => {
     function setupModal() {
         setIsOpen(true);
         setLogInfo(logEvents[0].logProps.logInfo);
+        setIsToday(logEvents[0].logProps.isToday);
         setNote('');
         setLogType(logEvents[0].logProps.logType);
         switch (logEvents[0].logProps.logType) {
@@ -117,8 +117,8 @@ export default () => {
             await addLog({
                 logType,
                 logInfo,
+                isToday,
                 note,
-                isManual,
                 additionalSubmission
             });
         }

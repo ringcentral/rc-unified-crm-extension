@@ -3,6 +3,7 @@ const { checkLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
+const moment = require('moment');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -158,24 +159,26 @@ window.addEventListener('message', async (e) => {
                 phoneNumber: data.body.conversation.correspondents[0].phoneNumber
               });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
+              const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
+              const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
               if (!messageContactMatched) {
                 showNotification({ level: 'warning', message: messageContactMatchMessage, ttl: 3000 });
               }
-              else if (!isObjectEmpty(existingMessageLog)) {
+              else if (isObjectEmpty(existingMessageLog)) {
+                if (data.body.triggerType === 'manual') {
+                  // add your codes here to log call to your service
+                  window.postMessage({
+                    type: 'rc-log-modal',
+                    logProps: {
+                      logType: 'Message',
+                      logInfo: data.body.conversation,
+                      contactName: messageMatchedContact.name,
+                      isToday
+                    },
+                    additionalLogInfo: messageLogAdditionalLogInfo
+                  }, '*')
+                }
                 showNotification({ level: 'warning', message: 'Message log already exists', ttl: 3000 });
-              }
-              else if (data.body.triggerType === 'manual') {
-                // add your codes here to log call to your service
-                window.postMessage({
-                  type: 'rc-log-modal',
-                  logProps: {
-                    logType: 'Message',
-                    logInfo: data.body.conversation,
-                    isManual: data.body.triggerType === 'manual',
-                    contactName: messageMatchedContact.name
-                  },
-                  additionalLogInfo: messageLogAdditionalLogInfo
-                }, '*')
               }
               // response to widget
               responseMessage(

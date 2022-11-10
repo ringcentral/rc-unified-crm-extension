@@ -3,7 +3,7 @@ import config from '../config.json';
 import { showNotification } from '../lib/util';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, note, isManual, additionalSubmission }) {
+async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
@@ -18,9 +18,11 @@ async function addLog({ logType, logInfo, note, isManual, additionalSubmission }
             break;
         case 'Message':
             const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission });
-            if (!isManual && messageLogRes.data.successful) {
-                dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
-                await chrome.storage.local.set(dataToLog);
+            if (messageLogRes.data.successful) {
+                if (!isToday) {
+                    dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
+                    await chrome.storage.local.set(dataToLog);
+                }
                 showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
             }
             break;

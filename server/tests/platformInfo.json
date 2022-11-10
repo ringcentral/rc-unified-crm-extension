@@ -1,6 +1,8 @@
 [
     {
         "name": "pipedrive",
+        "userInfoDomain":"https://api.pipedrive.com",
+        "userInfoPath":"/v1/users/me",
         "domain": "https://ringcentral-sandbox.pipedrive.com",
         "callLogPath": "/v1/activities",
         "messageLogPath": "/v1/activities",

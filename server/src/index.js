@@ -2,7 +2,6 @@ const express = require('express');
 const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const cors = require('cors')
-const axios = require('axios');
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const { addCallLog, addMessageLog, getCallLog } = require('./core/log');
@@ -13,25 +12,21 @@ app.use(bodyParser.json())
 
 app.use(cors({
     origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
-    methods: ['GET', 'PUT', 'POST']
+    methods: ['GET', 'POST']
 }));
 app.get('/oauth-callback', async function (req, res) {
     const oauthClient = oauth.getOAuthApp();
     try {
         const platform = req.query.state.split('platform=')[1];
         const { accessToken, refreshToken, expires } = await oauthClient.code.getToken(req.query.callbackUri);
-        const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });;
-        const userInfo = userInfoResponse.data.data;
+        const platformModule = require(`./platformModules/${platform}`);
+        const userInfo = await platformModule.getUserInfo({ accessToken });
         await UserModel.create({
             id: userInfo.id,
             name: userInfo.name,
-            companyId: userInfo.company_id,
-            companyName: userInfo.company_name,
-            companyDomain: userInfo.company_domain,
+            companyId: userInfo.companyId,
+            companyName: userInfo.companyName,
+            companyDomain: userInfo.companyDomain,
             platform: platform,
             accessToken,
             refreshToken,
@@ -55,11 +50,15 @@ app.post('/unAuthorize', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            await UserModel.destroy({
+            const userToLogout = await UserModel.destroy({
                 where: {
                     id: unAuthData.id
                 }
             });
+            if(userToLogout === 0)
+            {
+                res.status(400).send('unknown user');
+            }
             res.status(200).send();
         }
         else {
@@ -85,6 +84,7 @@ app.get('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(e);
+        res.status(400).send(e);
     }
 });
 app.get('/callLog', async function (req, res) {
