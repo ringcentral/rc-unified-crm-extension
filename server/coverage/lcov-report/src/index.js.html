@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">97.36% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>74/76</span>
+                <span class='fraction'>65/78</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">85.71% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>12/12</span>
+                <span class='fraction'>12/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>6/6</span>
+                <span class='fraction'>5/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">97.36% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>74/76</span>
+                <span class='fraction'>65/78</span>
             </div>
         
             
@@ -204,7 +204,9 @@
 <a name='L139'></a><a href='#L139'>139</a>
 <a name='L140'></a><a href='#L140'>140</a>
 <a name='L141'></a><a href='#L141'>141</a>
-<a name='L142'></a><a href='#L142'>142</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -221,13 +223,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -239,12 +244,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -262,7 +267,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -361,14 +365,17 @@ app.use(cors({
     origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
     methods: ['GET', 'POST']
 }));
-app.get('/oauth-callback', async function (req, res) {
-    const oauthClient = oauth.getOAuthApp();
-    try {
-        const platform = req.query.state.split('platform=')[1];
-        const { accessToken, refreshToken, expires } = await oauthClient.code.getToken(req.query.callbackUri);
-        const platformModule = require(`./platformModules/${platform}`);
-        const userInfo = await platformModule.getUserInfo({ accessToken });
-        await UserModel.create({
+app.get('/oauth-callback', <span class="fstat-no" title="function not covered" >as</span>ync function (req, res) {
+<span class="cstat-no" title="statement not covered" >    try {</span>
+        const platform = <span class="cstat-no" title="statement not covered" >req.query.state.split('platform=')[1];</span>
+<span class="cstat-no" title="statement not covered" >        if (!platform) {</span>
+<span class="cstat-no" title="statement not covered" >            throw 'missing platform name';</span>
+        }
+        const platformModule = <span class="cstat-no" title="statement not covered" >require(`./platformModules/${platform}`);</span>
+        const oauthApp = <span class="cstat-no" title="statement not covered" >oauth.getOAuthApp(platformModule.getOauthInfo());</span>
+        const { accessToken, refreshToken, expires } = <span class="cstat-no" title="statement not covered" >await oauthApp.code.getToken(req.query.callbackUri);</span>
+        const userInfo = <span class="cstat-no" title="statement not covered" >await platformModule.getUserInfo({ accessToken });</span>
+<span class="cstat-no" title="statement not covered" >        await UserModel.create({</span>
             id: userInfo.id,
             name: userInfo.name,
             companyId: userInfo.companyId,
@@ -380,12 +387,12 @@ app.get('/oauth-callback', async function (req, res) {
             tokenExpiry: expires,
             rcUserNumber: req.query.rcUserNumber
         });
-        const jwtToken = jwt.generateJwt({
+        const jwtToken = <span class="cstat-no" title="statement not covered" >jwt.generateJwt({</span>
             id: userInfo.id,
             rcUserNumber: req.query.rcUserNumber,
             platform: platform
         });
-        res.status(200).send(jwtToken);
+<span class="cstat-no" title="statement not covered" >        res.status(200).send(jwtToken);</span>
     }
     catch (e) {
 <span class="cstat-no" title="statement not covered" >        console.log(e);</span>
@@ -402,8 +409,7 @@ app.post('/unAuthorize', async function (req, res) {
                     id: unAuthData.id
                 }
             });
-            if(userToLogout === 0)
-            {
+            if (userToLogout === 0) {
                 res.status(400).send('unknown user');
             }
             res.status(200).send();
@@ -493,7 +499,7 @@ exports.server = app;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2022-11-10T03:31:20.281Z
+                at 2022-11-11T03:31:00.020Z
             </div>
         <script src="../prettify.js"></script>
         <script>

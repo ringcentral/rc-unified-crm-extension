@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://contacts.google.com/*"
+        "https://*.pipedrive.com/*"
       ],
       "js": [
         "./c2d/index.js",
@@ -34,7 +34,7 @@
         "/c2d/*"
       ],
       "matches": [
-        "https://contacts.google.com/*"
+        "https://*.pipedrive.com/*"
       ]
     }
   ],

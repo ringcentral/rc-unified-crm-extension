@@ -2,7 +2,7 @@ const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
-const { checkAndRefreshAccessToken } = require('../lib/oauth');
+const oauth = require('../lib/oauth');
 
 async function addCallLog({ platform, userId, incomingData }) {
     const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
@@ -17,10 +17,11 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    await checkAndRefreshAccessToken(user);
+    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+    await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const authHeader = `Bearer ${user.accessToken}`;
     const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
-    const contactInfo = await platformModule.getContact({ userId, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
@@ -47,9 +48,10 @@ async function addMessageLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    await checkAndRefreshAccessToken(user);
+    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+    await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const authHeader = `Bearer ${user.accessToken}`;
-    const contactInfo = await platformModule.getContact({ userId, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }

@@ -1,6 +1,15 @@
+const oauth = require('../lib/oauth');
+const { UserModel } = require('../models/userModel');
+
 async function getContact({ platform, userId, phoneNumber }) {
+    const user = await UserModel.findByPk(userId);
+    if (!user || !user.accessToken) {
+        throw `Cannot find user with id: ${userId}`;
+    }
     const platformModule = require(`../platformModules/${platform}`);
-    const contactInfo = await platformModule.getContact({ userId, phoneNumber });
+    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+    await oauth.checkAndRefreshAccessToken(oauthApp, user);
+    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber });
     if (contactInfo != null) {
         return { successful: true, message: '', contact: contactInfo };
     }

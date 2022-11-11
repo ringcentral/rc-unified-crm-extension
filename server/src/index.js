@@ -15,11 +15,14 @@ app.use(cors({
     methods: ['GET', 'POST']
 }));
 app.get('/oauth-callback', async function (req, res) {
-    const oauthClient = oauth.getOAuthApp();
     try {
         const platform = req.query.state.split('platform=')[1];
-        const { accessToken, refreshToken, expires } = await oauthClient.code.getToken(req.query.callbackUri);
+        if (!platform) {
+            throw 'missing platform name';
+        }
         const platformModule = require(`./platformModules/${platform}`);
+        const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri);
         const userInfo = await platformModule.getUserInfo({ accessToken });
         await UserModel.create({
             id: userInfo.id,
@@ -55,8 +58,7 @@ app.post('/unAuthorize', async function (req, res) {
                     id: unAuthData.id
                 }
             });
-            if(userToLogout === 0)
-            {
+            if (userToLogout === 0) {
                 res.status(400).send('unknown user');
             }
             res.status(200).send();

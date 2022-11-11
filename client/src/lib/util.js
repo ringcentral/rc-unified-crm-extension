@@ -9,6 +9,9 @@ function secondsToHourMinuteSecondString(totalSeconds) {
 }
 
 function showNotification({ level, message, ttl }) {
+    if (!level || !message) {
+        return;
+    }
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
         type: 'rc-adapter-message-request',
         requestId: Date.now().toString(),

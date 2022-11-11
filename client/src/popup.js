@@ -12,6 +12,7 @@ const platform = config.platforms[config.currentPlatform];
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
+  let noShowNotification = false;
   try {
     if (data) {
       switch (data.type) {
@@ -68,6 +69,7 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/contacts/match':
+              noShowNotification = true;
               let matchedContacts = {};
               for (const contactPhoneNumber of data.body.phoneNumbers) {
                 // query on 3rd party API to get the matched contact info and return
@@ -208,8 +210,8 @@ window.addEventListener('message', async (e) => {
     }
   }
   catch (e) {
-    if (e.response.data) {
-      showNotification({ level: 'warning', message: e.response.data.message, ttl: 5000 });
+    if (e.response.data && !noShowNotification) {
+      showNotification({ level: 'warning', message: e.response.data, ttl: 5000 });
     }
     window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }

@@ -1,6 +1,9 @@
 */node_modules/
 */dist/
+node_modules/*
 package-lock.json
 
 *.env
 *.sqlite
+env.yml
+serverless.yml

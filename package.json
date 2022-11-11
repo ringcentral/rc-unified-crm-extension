@@ -1,0 +1,35 @@
+{
+  "name": "rc-unified-crm-extension",
+  "version": "0.0.1",
+  "description": "RingCentral Unified CRM Extension",
+  "main": "index.js",
+  "bin": {
+    "rc-unified-crm-extension": "bin/index.js"
+  },
+  "scripts": {
+    "test": "cd server&& npm run test",
+    "release": "npm run test&&node bin/index.js release"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DaKingKong/rc-unified-crm-extension.git"
+  },
+  "keywords": [
+    "RingCentral",
+    "crm",
+    "chrome",
+    "extension"
+  ],
+  "author": "Da Kong",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DaKingKong/rc-unified-crm-extension/issues"
+  },
+  "homepage": "https://github.com/DaKingKong/rc-unified-crm-extension#readme",
+  "devDependencies": {
+    "@octokit/rest": "^19.0.5",
+    "commander": "^9.4.1",
+    "inquirer": "^9.1.4",
+    "simple-git": "^3.14.1"
+  }
+}

@@ -6,6 +6,8 @@
         "domain": "https://ringcentral-sandbox.pipedrive.com",
         "callLogPath": "/v1/activities",
         "messageLogPath": "/v1/activities",
-        "contactPath":"/v1/persons"
+        "contactPath":"/v1/persons",
+        "oauthDomain":"https://oauth.pipedrive.com",
+        "oauthTokenPath":"/oauth/token"
     }
 ]

@@ -1,8 +1,15 @@
 const axios = require('axios');
-const { UserModel } = require('../models/userModel');
-const { checkAndRefreshAccessToken } = require('../lib/oauth');
 
 const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
+
+function getOauthInfo() {
+    return {
+        clientId: process.env.PIPEDRIVE_CLIENT_ID,
+        clientSecret: process.env.PIPEDRIVE_CLIENT_SECRET,
+        accessTokenUri: process.env.PIPEDRIVE_ACCESS_TOKEN_URI,
+        redirectUri: process.env.PIPEDRIVE_REDIRECT_URI
+    }
+}
 
 async function getUserInfo({ accessToken }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
@@ -58,13 +65,8 @@ async function addMessageLog({ userId, contactId, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function getContact({ userId, phoneNumber }) {
-    const user = await UserModel.findByPk(userId);
-    if (!user || !user.accessToken) {
-        throw `Cannot find user with id: ${userId}`;
-    }
-    await checkAndRefreshAccessToken(user);
-    const authHeader = `Bearer ${user.accessToken}`;
+async function getContact({ accessToken, phoneNumber }) {
+    const authHeader = `Bearer ${accessToken}`;
     const personInfo = await axios.get(
         `${BASE_URL}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
         {
@@ -87,6 +89,7 @@ async function getContact({ userId, phoneNumber }) {
     }
 }
 
+exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
