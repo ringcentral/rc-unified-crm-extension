@@ -5,10 +5,9 @@
   "main": "index.js",
   "scripts": {
     "ngrok": "ngrok http -region ap 6066 ",
-    "server": "node ./src/run-server.js",
+    "server": "node ./src/server.js",
     "start": "npm run server",
-    "start-debug": "node --inspect ./src/run-server.js",
-    "initDB": "node ./scripts/initDB",
+    "start-debug": "node --inspect ./src/server.js",
     "test": "set NODE_ENV=test&&jest --forceExit -i",
     "test-coverage": "set NODE_ENV=test&&jest --coverage",
     "serverless-build": "node ./scripts/serverless-build",
@@ -38,6 +37,8 @@
     "nock": "^13.2.9",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",
+    "serverless-plugin-log-retention": "^2.0.0",
+    "shelljs": "^0.8.5",
     "sqlite3": "^5.1.2",
     "supertest": "^6.3.1"
   }

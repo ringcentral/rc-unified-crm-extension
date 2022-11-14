@@ -7,3 +7,5 @@ package-lock.json
 *.sqlite
 env.yml
 serverless.yml
+
+server/serverless-deploy/*

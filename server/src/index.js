@@ -1,11 +1,21 @@
 const express = require('express');
 const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
+const { CallLogModel } = require('./models/callLogModel');
+const { MessageLogModel } = require('./models/messageLogModel');
 const cors = require('cors')
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const { addCallLog, addMessageLog, getCallLog } = require('./core/log');
 const { getContact } = require('./core/contact');
+
+async function initDB() {
+    await UserModel.sync();
+    await CallLogModel.sync();
+    await MessageLogModel.sync();
+}
+
+initDB();
 
 const app = express();
 app.use(bodyParser.json())
@@ -14,6 +24,8 @@ app.use(cors({
     origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
     methods: ['GET', 'POST']
 }));
+
+app.get('/is-alive', (req, res) => { res.send(`OK`); });
 app.get('/oauth-callback', async function (req, res) {
     try {
         const platform = req.query.state.split('platform=')[1];
