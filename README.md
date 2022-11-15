@@ -1,30 +1,20 @@
 # RC-Unified-CRM-Extension
 
-node16+ for esbuild copy
+[![Build Status](https://github.com/ringcentral/rc-unified-crm-extension/workflows/CI%20Pipeline/badge.svg?branch=master)](https://github.com/ringcentral/rc-unified-crm-extension/actions)
+[![Coverage Status](https://coveralls.io/repos/github/ringcentral/rc-unified-crm-extension/badge.svg?branch=master)](https://coveralls.io/github/ringcentral/rc-unified-crm-extension?branch=master)
 
-# Contact
+Pre-requisites:
+- node16+ for esbuild copy
 
-- Unknown incoming call / Unknown number log -> reminder for user to log
-- 
+## How To Use
 
-## Pipedrive
-### Call log
+1. Download and unpack chrome extension pack from Github release
+2. Install by: Chrome settings -> Extensions -> Load unpacked -> load unpacked `dist` folder
 
-Require: 
-    - 1. Call Info from RC API
-      - Embeddable event
-    - 2. user_id
-      - jwt -> db
-    - 3. person_id
-      - Call Info -> phone number -> /v1/persons/search?term={phoneNumber}&fields=phone
-    - 4. deal_id
-      - person_id -> /v1/persons/{id}/deals -> filter by user_id
+## Features
 
-
-### Message Log Check
-
-    - Client side check ONLY. (manage Embeddable auto log historical check)
-      - Auto Log: can only be triggered by Embeddable's historical check
-      - Manual Log: can always be triggered, but won't do log match to Embeddable
-    - Server side validation, duplicated log won't be processed. (manage platform API call)
-      - Log request will be sent as a pack of messages, logged message won't be logged again
+- Click to dial
+- Dialer
+- Active call control
+- Inbound call popup
+- Call log sync

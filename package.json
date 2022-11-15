@@ -1,6 +1,6 @@
 {
     "name": "rc-unified-crm-extension",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "RingCentral Unified CRM Extension",
     "main": "index.js",
     "bin": {
@@ -8,6 +8,7 @@
     },
     "scripts": {
         "test": "cd server&& npm run test&& cd ..",
+        "test-coverage": "cd server&& npm run test-coverage&& cd ..",
         "release": "npm run test&& node bin/index.js release",
         "build": "cd server&&npm install&& npm run build&& cd ..",
         "deploy": "cd server&& npm run deploy&& cd .."
