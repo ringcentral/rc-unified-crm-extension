@@ -1,13 +1,17 @@
 #! /usr/bin/env node
-const simpleGit = require('simple-git');
+import simpleGit from 'simple-git';
+import packageJson from '../package.json' assert { type: "json" };
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Octokit } from "@octokit/rest";
 const git = simpleGit();
-const packageJsonPath = '../package.json';
-const packageJson = require(packageJsonPath);
-const fs = require('fs').promises;
-const { resolve } = require('path');
-const { Octokit } = require("@octokit/rest");
 
-async function release({
+const __filename = fileURLToPath(import.meta.url);
+// 👇️ "/home/john/Desktop/javascript"
+const __dirname = path.dirname(__filename);
+
+export async function release({
     releaseType,
     commit
 }) {
@@ -44,7 +48,7 @@ async function release({
         const versionTag = `${newVersionNumber}`;
         packageJson.version = newVersionNumber;
         console.log(`new version: ${newVersionNumber}`);
-        await fs.writeFile(resolve(__dirname, packageJsonPath), JSON.stringify(packageJson, null, 4));
+        await fs.writeFile(path.resolve(__dirname, '../package.json'), JSON.stringify(packageJson, null, 4));
         console.log('package.json version updated.');
         await git.add('*').commit(commit).push().addTag(versionTag);
         await git.push('gitlab-repo', '--tags');
@@ -66,5 +70,3 @@ async function release({
         console.log(e);
     }
 }
-
-exports.release = release;

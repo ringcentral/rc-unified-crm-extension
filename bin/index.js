@@ -1,11 +1,12 @@
 #! /usr/bin/env node
-const commander = require('commander');
-const program = new commander.Command();
-const { version } = require('../package.json');
-const { release } = require('./release')
-const inquirer = require('inquirer');
+import { Command } from 'commander';
+import packageJson from '../package.json' assert { type: "json" };
+import { release } from './release.js';
+import inquirer from 'inquirer';
 
-program.version(version).description('RingCentral Unified CRM Extension');
+const program = new Command();
+
+program.version(packageJson.version).description('RingCentral Unified CRM Extension');
 
 program
     .command('release')
