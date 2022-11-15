@@ -10,12 +10,12 @@ const { addCallLog, addMessageLog, getCallLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 
 async function initDB() {
+    console.log('creating db tables if not exist...');
     await UserModel.sync();
     await CallLogModel.sync();
     await MessageLogModel.sync();
+    console.log('db tables created');
 }
-
-initDB();
 
 const app = express();
 app.use(bodyParser.json())
@@ -26,6 +26,10 @@ app.use(cors({
 }));
 
 app.get('/is-alive', (req, res) => { res.send(`OK`); });
+app.get('/init-db', async (req, res) => {
+    await initDB();
+    res.send(`OK`);
+});
 app.get('/oauth-callback', async function (req, res) {
     try {
         const platform = req.query.state.split('platform=')[1];
@@ -37,20 +41,22 @@ app.get('/oauth-callback', async function (req, res) {
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri);
         const userInfo = await platformModule.getUserInfo({ accessToken });
         await UserModel.create({
-            id: userInfo.id,
+            id: userInfo.id.toString(),
             name: userInfo.name,
-            companyId: userInfo.companyId,
+            companyId: userInfo.companyId.toString(),
             companyName: userInfo.companyName,
             companyDomain: userInfo.companyDomain,
+            timezoneName: userInfo.timezoneName,
+            timezoneOffset: userInfo.timezoneOffset,
             platform: platform,
             accessToken,
             refreshToken,
             tokenExpiry: expires,
-            rcUserNumber: req.query.rcUserNumber
+            rcUserNumber: req.query.rcUserNumber.toString()
         });
         const jwtToken = jwt.generateJwt({
-            id: userInfo.id,
-            rcUserNumber: req.query.rcUserNumber,
+            id: userInfo.id.toString(),
+            rcUserNumber: req.query.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send(jwtToken);

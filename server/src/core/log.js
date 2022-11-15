@@ -25,7 +25,7 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const logId = await platformModule.addCallLog({ userId, contactId: contactInfo.id, authHeader, callLog, note, additionalSubmission });
+    const logId = await platformModule.addCallLog({ userId, contactId: contactInfo.id, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -55,7 +55,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id }; });
+    const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
     const existingMessages = await MessageLogModel.findAll({
         where: {
             [Op.or]: messageIds
@@ -64,7 +64,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     const existingIds = existingMessages.map(m => m.id);
     const logIds = [];
     for (const message of incomingData.logInfo.messages) {
-        if (existingIds.includes(message.id)) {
+        if (existingIds.includes(message.id.toString())) {
             console.log(`existing message log: ${message.id}`);
             continue;
         }
@@ -72,9 +72,9 @@ async function addMessageLog({ platform, userId, incomingData }) {
         if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
             recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog({ userId, contactId: contactInfo.id, authHeader, message, additionalSubmission, recordingLink });
+        const logId = await platformModule.addMessageLog({ userId, contactId: contactInfo.id, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
         await MessageLogModel.create({
-            id: message.id,
+            id: message.id.toString(),
             platform,
             conversationId: incomingData.logInfo.conversationId,
             thirdPartyLogId: logId,

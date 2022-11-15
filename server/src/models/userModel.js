@@ -19,11 +19,17 @@ exports.UserModel = sequelize.define('users', {
   companyDomain:{
     type: Sequelize.STRING,
   },
+  timezoneName:{
+    type: Sequelize.STRING,
+  },
+  timezoneOffset:{
+    type: Sequelize.STRING,
+  },
   platform:{
     type: Sequelize.STRING,
   },
   accessToken: {
-    type: Sequelize.STRING,
+    type: Sequelize.STRING(500),
   },
   refreshToken: {
     type: Sequelize.STRING,

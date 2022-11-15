@@ -1,4 +1,5 @@
 const axios = require('axios');
+const moment = require('moment');
 
 const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
 
@@ -23,10 +24,12 @@ async function getUserInfo({ accessToken }) {
         companyId: userInfoResponse.data.data.company_id,
         companyName: userInfoResponse.data.data.company_name,
         companyDomain: userInfoResponse.data.data.company_domain,
+        timezoneName: userInfoResponse.data.data.timezone_name,
+        timezoneOffset: userInfoResponse.data.data.timezone_offset
     };
 }
 
-async function addCallLog({ userId, contactId, authHeader, callLog, note, additionalSubmission }) {
+async function addCallLog({ userId, contactId, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const postBody = {
         user_id: userId,
@@ -34,7 +37,7 @@ async function addCallLog({ userId, contactId, authHeader, callLog, note, additi
         duration: callLog.duration,    // secs
         person_id: contactId,
         deal_id: dealId,
-        note: `<p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by RingCentral Unified CRM Extension(<a href="https://github.com/ringcentral">https://github.com/ringcentral</a>)</span></em></p>`,
+        note: `<p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by RingCentral Unified CRM Extension(<a href="https://github.com/ringcentral">https://github.com/ringcentral</a>)</span></em></p>`,
         done: true
     }
     const addLogRes = await axios.post(
@@ -46,14 +49,14 @@ async function addCallLog({ userId, contactId, authHeader, callLog, note, additi
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog({ userId, contactId, authHeader, message, additionalSubmission, recordingLink }) {
+async function addMessageLog({ userId, contactId, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const postBody = {
         user_id: userId,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
         person_id: contactId,
         deal_id: dealId,
-        note: `${!!message.subject ? `Message: ${message.subject}` : ''} ${!!recordingLink ? `\nRecording Link: ${recordingLink}` : ''}`,
+        note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}`,
         done: true
     }
     const addLogRes = await axios.post(

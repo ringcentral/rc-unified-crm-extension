@@ -46,6 +46,8 @@ functions:
           method: any
           path: /{proxy+}
           cors: false
+  dbAccessor:
+    handler: dbAccessor.app
 
 resources:
   Resources:

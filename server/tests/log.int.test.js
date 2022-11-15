@@ -46,7 +46,8 @@ beforeAll(async () => {
             name: 'userName',
             platform: platform.name,
             rcUserNumber,
-            accessToken
+            accessToken,
+            timezoneOffset: '+08:00'
         });
     }
 });
@@ -258,7 +259,8 @@ describe('call&message log tests', () => {
                             },
                             duration: 0,
                             result: '',
-                            note: ''
+                            note: '',
+                            startTime: 1667263961801
 
                         }
                     };

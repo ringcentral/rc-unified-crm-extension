@@ -11,7 +11,7 @@ async function getContact({ phoneNumber }) {
 
 function getModule() {
     switch (config.currentPlatform) {
-        case 'Pipedrive':
+        case 'pipedrive':
             return pipedriveModule;
     }
 }

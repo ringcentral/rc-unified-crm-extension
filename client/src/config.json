@@ -1,8 +1,8 @@
 {
-    "serverUrl": "https://c2ca-240e-37b-1a1f-a900-3dc2-a9ed-4d-4949.ap.ngrok.io",
-    "currentPlatform": "Pipedrive",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "currentPlatform": "pipedrive",
     "platforms": {
-        "Pipedrive": {
+        "pipedrive": {
             "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
             "clientId": "6c1976beeb0cb1b4"
         }

@@ -175,7 +175,7 @@ export default () => {
                             onChange={onChangeNote}
                             value={note}
                         ></RcTextarea>}
-                        {config.currentPlatform === 'Pipedrive' && additionalFormInfo && <PipedriveAdditionalForm
+                        {config.currentPlatform === 'pipedrive' && additionalFormInfo && <PipedriveAdditionalForm
                             additionalFormInfo={additionalFormInfo}
                             setSubmission={setAdditionalSubmission}
                             style={labelStyle}
