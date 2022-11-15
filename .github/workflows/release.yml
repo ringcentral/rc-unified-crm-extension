@@ -14,7 +14,3 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: cd server&&npm i
       - run: npm run test-coverage
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
