@@ -8,7 +8,7 @@
     },
     "scripts": {
         "test": "cd server&& npm run test",
-        "release": "node bin/index.js release"
+        "release": "npm run test&&node bin/index.js release"
     },
     "repository": {
         "type": "git",
