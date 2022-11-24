@@ -25,7 +25,7 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const logId = await platformModule.addCallLog({ userId, contactId: contactInfo.id, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
+    const logId = await platformModule.addCallLog({ userId, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -72,7 +72,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
             recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog({ userId, contactId: contactInfo.id, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
+        const logId = await platformModule.addMessageLog({ userId, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
         await MessageLogModel.create({
             id: message.id.toString(),
             platform,

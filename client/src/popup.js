@@ -33,7 +33,7 @@ window.addEventListener('message', async (e) => {
           break;
         case 'rc-login-status-notify':
           // get login status from widget
-          console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber);
+          console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber, data.contractedCountryCode);
           const rcUserInfo = { rcUserNumber: data.loginNumber };
           await chrome.storage.local.set(rcUserInfo);
           document.getElementById('rc-widget').style.zIndex = 0;

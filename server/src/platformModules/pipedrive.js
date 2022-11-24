@@ -29,13 +29,15 @@ async function getUserInfo({ accessToken }) {
     };
 }
 
-async function addCallLog({ userId, contactId, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function addCallLog({ userId, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
+    const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
         user_id: userId,
         subject: `${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber})`,
         duration: callLog.duration,    // secs
-        person_id: contactId,
+        person_id: contactInfo.id,
+        org_id: orgId,
         deal_id: dealId,
         note: `<p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by RingCentral Unified CRM Extension(<a href="https://github.com/ringcentral">https://github.com/ringcentral</a>)</span></em></p>`,
         done: true
@@ -49,12 +51,14 @@ async function addCallLog({ userId, contactId, authHeader, callLog, note, additi
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog({ userId, contactId, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function addMessageLog({ userId, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
+    const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
         user_id: userId,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
-        person_id: contactId,
+        person_id: contactInfo.id,
+        org_id: orgId,
         deal_id: dealId,
         note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}`,
         done: true
