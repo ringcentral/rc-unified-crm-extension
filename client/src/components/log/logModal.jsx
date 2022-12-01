@@ -14,7 +14,6 @@ import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 
 const logEvents = [];
 
-// TODO: add loading animation
 export default () => {
     const modalStyle = {
         height: '100%',

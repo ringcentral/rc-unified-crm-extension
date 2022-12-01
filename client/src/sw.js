@@ -1,3 +1,5 @@
+const { isObjectEmpty } = require('./lib/util');
+
 const apiConfig = {
   clientId: '',
   server: 'https://platform.ringcentral.com',
@@ -31,7 +33,24 @@ async function openPopupWindow() {
   });
 }
 
-chrome.action.onClicked.addListener(function (tab) {
+chrome.action.onClicked.addListener(async function (tab) {
+  const platformInfo = await chrome.storage.local.get('platform-info');
+  if (isObjectEmpty(platformInfo)) {
+    const url = tab.url;
+    let platformName = '';
+    if (url.includes('pipedrive')) {
+      platformName = 'pipedrive';
+    }
+    else if (url.includes('insightly')) {
+      platformName = 'insightly';
+    }
+    else {
+      return;
+    }
+    await chrome.storage.local.set({
+      ['platform-info']: { platformName }
+    });
+  }
   openPopupWindow();
 });
 

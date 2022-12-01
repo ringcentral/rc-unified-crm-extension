@@ -1,6 +1,12 @@
 import axios from 'axios';
 import config from '../config.json';
 
+async function submitPlatformSelection(platform) {
+    await chrome.storage.local.set({
+        ['platform-info']: platform
+    })
+}
+
 async function onAuthCallback(callbackUri) {
     const { rcUserNumber } = await chrome.storage.local.get('rcUserNumber');
     const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}`);
@@ -33,6 +39,7 @@ function setAuth(auth) {
     });
 }
 
+exports.submitPlatformSelection = submitPlatformSelection;
 exports.onAuthCallback = onAuthCallback;
 exports.unAuthorize = unAuthorize;
 exports.checkAuth = checkAuth;

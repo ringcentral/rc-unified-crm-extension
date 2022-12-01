@@ -7,37 +7,32 @@ exports.UserModel = sequelize.define('users', {
     type: Sequelize.STRING,
     primaryKey: true,
   },
-  name:{
+  name: {
     type: Sequelize.STRING,
   },
-  companyId:{
+  timezoneName: {
     type: Sequelize.STRING,
   },
-  companyName:{
+  timezoneOffset: {
     type: Sequelize.STRING,
   },
-  companyDomain:{
+  platform: {
     type: Sequelize.STRING,
   },
-  timezoneName:{
-    type: Sequelize.STRING,
-  },
-  timezoneOffset:{
-    type: Sequelize.STRING,
-  },
-  platform:{
-    type: Sequelize.STRING,
-  },
+  // in apiKey auth, accessToken will be API key
   accessToken: {
     type: Sequelize.STRING(500),
   },
   refreshToken: {
     type: Sequelize.STRING,
   },
-  tokenExpiry:{
+  tokenExpiry: {
     type: Sequelize.DATE
   },
   rcUserNumber: {
     type: Sequelize.STRING,
+  },
+  platformAdditionalInfo: {
+    type: Sequelize.JSON
   }
 });

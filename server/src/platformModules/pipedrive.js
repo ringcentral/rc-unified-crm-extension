@@ -1,7 +1,12 @@
 const axios = require('axios');
 const moment = require('moment');
+const { UserModel } = require('../models/userModel');
 
 const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
+
+function getAuthType() {
+    return 'oauth';
+}
 
 function getOauthInfo() {
     return {
@@ -12,21 +17,38 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ accessToken }) {
+async function getUserInfo({ authHeader }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': authHeader
         }
     });;
     return {
-        id: userInfoResponse.data.data.id,
+        id: userInfoResponse.data.data.id.toString(),
         name: userInfoResponse.data.data.name,
-        companyId: userInfoResponse.data.data.company_id,
-        companyName: userInfoResponse.data.data.company_name,
-        companyDomain: userInfoResponse.data.data.company_domain,
         timezoneName: userInfoResponse.data.data.timezone_name,
-        timezoneOffset: userInfoResponse.data.data.timezone_offset
+        timezoneOffset: userInfoResponse.data.data.timezone_offset,
+        additionalInfo: {
+            companyId: userInfoResponse.data.data.company_id,
+            companyName: userInfoResponse.data.data.company_name,
+            companyDomain: userInfoResponse.data.data.company_domain,
+        }
     };
+}
+
+async function saveUserOAuthInfo({ id, name, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    await UserModel.create({
+        id,
+        name,
+        timezoneName,
+        timezoneOffset,
+        platform: 'pipedrive',
+        accessToken,
+        refreshToken,
+        tokenExpiry,
+        rcUserNumber,
+        platformAdditionalInfo: additionalInfo
+    });
 }
 
 async function addCallLog({ userId, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
@@ -72,8 +94,7 @@ async function addMessageLog({ userId, contactInfo, authHeader, message, additio
     return addLogRes.data.data.id;
 }
 
-async function getContact({ accessToken, phoneNumber }) {
-    const authHeader = `Bearer ${accessToken}`;
+async function getContact({ authHeader, phoneNumber }) {
     const personInfo = await axios.get(
         `${BASE_URL}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
         {
@@ -96,7 +117,9 @@ async function getContact({ accessToken, phoneNumber }) {
     }
 }
 
+exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
+exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;

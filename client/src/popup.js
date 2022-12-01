@@ -8,7 +8,7 @@ const moment = require('moment');
 window.__ON_RC_POPUP_WINDOW = 1;
 
 let registered = false;
-const platform = config.platforms[config.currentPlatform];
+let platform = null;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -24,10 +24,13 @@ window.addEventListener('message', async (e) => {
           break;
         case 'rc-adapter-pushAdapterState':
           if (!registered) {
+            const platformInfo = await chrome.storage.local.get('platform-info');
+            const platformName = platformInfo['platform-info'].platformName;
+            platform = config.platforms[platformName];
             registered = true;
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
               type: 'rc-adapter-register-third-party-service',
-              service: getServiceConfig(config.currentPlatform)
+              service: getServiceConfig(platformName)
             }, '*');
           }
           break;
@@ -37,6 +40,7 @@ window.addEventListener('message', async (e) => {
           const rcUserInfo = { rcUserNumber: data.loginNumber };
           await chrome.storage.local.set(rcUserInfo);
           document.getElementById('rc-widget').style.zIndex = 0;
+          break;
         case 'rc-login-popup-notify':
           handleRCOAuthWindow(data.oAuthUri);
           break;

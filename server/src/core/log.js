@@ -17,11 +17,21 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
-    await oauth.checkAndRefreshAccessToken(oauthApp, user);
-    const authHeader = `Bearer ${user.accessToken}`;
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
     const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
-    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
@@ -48,10 +58,20 @@ async function addMessageLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
-    await oauth.checkAndRefreshAccessToken(oauthApp, user);
-    const authHeader = `Bearer ${user.accessToken}`;
-    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
+    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }

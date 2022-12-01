@@ -7,9 +7,20 @@ async function getContact({ platform, userId, phoneNumber }) {
         throw `Cannot find user with id: ${userId}`;
     }
     const platformModule = require(`../platformModules/${platform}`);
-    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
-    await oauth.checkAndRefreshAccessToken(oauthApp, user);
-    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber });
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
+    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber });
     if (contactInfo != null) {
         return { successful: true, message: '', contact: contactInfo };
     }

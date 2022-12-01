@@ -39,20 +39,51 @@ app.get('/oauth-callback', async function (req, res) {
         const platformModule = require(`./platformModules/${platform}`);
         const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri);
-        const userInfo = await platformModule.getUserInfo({ accessToken });
-        await UserModel.create({
-            id: userInfo.id.toString(),
+        const userInfo = await platformModule.getUserInfo({ authHeader: `Bearer ${accessToken}` });
+        await platformModule.saveUserOAuthInfo({
+            id: userInfo.id,
             name: userInfo.name,
-            companyId: userInfo.companyId.toString(),
-            companyName: userInfo.companyName,
-            companyDomain: userInfo.companyDomain,
-            timezoneName: userInfo.timezoneName,
-            timezoneOffset: userInfo.timezoneOffset,
-            platform: platform,
             accessToken,
             refreshToken,
             tokenExpiry: expires,
-            rcUserNumber: req.query.rcUserNumber.toString()
+            rcUserNumber: req.query.rcUserNumber.toString(),
+            timezoneName: userInfo.timezoneName,
+            timezoneOffset: userInfo.timezoneOffset,
+            additionalInfo: userInfo.additionalInfo
+        });
+        const jwtToken = jwt.generateJwt({
+            id: userInfo.id.toString(),
+            rcUserNumber: req.query.rcUserNumber.toString(),
+            platform: platform
+        });
+        res.status(200).send(jwtToken);
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+})
+app.post('/apiKeyLogin', async function (req, res) {
+    try {
+        const platform = req.query.state.split('platform=')[1];
+        const apiKey = req.body.apiKey;
+        if (!platform) {
+            throw 'missing platform name';
+        }
+        if (!apiKey) {
+            throw 'missing api key';
+        }
+        const platformModule = require(`./platformModules/${platform}`);
+        const authHeader = await platformModule.getBasicAuth({ apiKey });
+        const userInfo = await platformModule.getUserInfo({ authHeader });
+        await platformModule.saveApiKeyUserInfo({
+            id: userInfo.id,
+            name: userInfo.name,
+            apiKey,
+            rcUserNumber: req.query.rcUserNumber.toString(),
+            timezoneName: userInfo.timezoneName,
+            timezoneOffset: userInfo.timezoneOffset,
+            additionalInfo: userInfo.additionalInfo
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
