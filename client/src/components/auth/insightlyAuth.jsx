@@ -1,6 +1,7 @@
 import {
     RcTextField,
     RcText,
+    RcLoading,
     RcIconButton
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
@@ -28,6 +29,7 @@ export default () => {
         margin: '0px auto 15px auto'
     }
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setLoading] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [apiUrl, setApiUrl] = useState('');
 
@@ -47,8 +49,10 @@ export default () => {
     }, [])
 
     async function onSubmission() {
-        setIsOpen(false);
+        setLoading(true);
         await apiKeyLogin({ apiKey, apiUrl });
+        setIsOpen(false);
+        setLoading(false);
     }
 
     function onChangeKey(e) {
@@ -61,6 +65,7 @@ export default () => {
 
     return (
         <div>
+            <RcLoading loading={isLoading} />
             {
                 isOpen && (
                     <div style={modalStyle}>
