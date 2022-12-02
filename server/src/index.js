@@ -65,8 +65,9 @@ app.get('/oauth-callback', async function (req, res) {
 })
 app.post('/apiKeyLogin', async function (req, res) {
     try {
-        const platform = req.query.state.split('platform=')[1];
+        const platform = req.body.platform;
         const apiKey = req.body.apiKey;
+        const additionalInfo = req.body.additionalInfo;
         if (!platform) {
             throw 'missing platform name';
         }
@@ -74,20 +75,21 @@ app.post('/apiKeyLogin', async function (req, res) {
             throw 'missing api key';
         }
         const platformModule = require(`./platformModules/${platform}`);
-        const authHeader = await platformModule.getBasicAuth({ apiKey });
-        const userInfo = await platformModule.getUserInfo({ authHeader });
+        const basicAuth = await platformModule.getBasicAuth({ apiKey });
+        const userInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
         await platformModule.saveApiKeyUserInfo({
             id: userInfo.id,
             name: userInfo.name,
             apiKey,
-            rcUserNumber: req.query.rcUserNumber.toString(),
+            additionalInfo,
+            rcUserNumber: req.body.rcUserNumber.toString(),
             timezoneName: userInfo.timezoneName,
             timezoneOffset: userInfo.timezoneOffset,
             additionalInfo: userInfo.additionalInfo
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
-            rcUserNumber: req.query.rcUserNumber.toString(),
+            rcUserNumber: req.body.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send(jwtToken);

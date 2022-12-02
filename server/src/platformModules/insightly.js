@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 
+// TODO: replace this with user.additionalInfo.apiUrl
 const BASE_URL = 'https://api.insightly.com/v3.1';
 
 function getAuthType() {
@@ -13,19 +14,21 @@ function getBasicAuth({ apiKey }) {
 }
 
 
-async function getUserInfo({ authHeader }) {
-    const userInfoResponse = await axios.get(`${BASE_URL}/users/me`, {
+async function getUserInfo({ authHeader, additionalInfo }) {
+    const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/v3.1/users/me`, {
         headers: {
             'Authorization': authHeader
         }
     });;
-    const timezoneOffset = moment().tz(userInfoResponse.data.TIMEZONE_ID).format('Z');
+    // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
+    // We use UTC here for now
+    const timezoneOffset = null;
     return {
         id: userInfoResponse.data.USER_ID.toString(),
         name: `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`,
         timezoneName: userInfoResponse.data.TIMEZONE_ID,
         timezoneOffset,
-        platformAdditionalInfo: {}
+        additionalInfo
     };
 }
 
@@ -35,10 +38,10 @@ async function saveApiKeyUserInfo({ id, name, apiKey, rcUserNumber, timezoneName
         name,
         timezoneName,
         timezoneOffset,
-        platform: 'pipedrive',
+        platform: 'insightly',
         accessToken: apiKey,
         rcUserNumber,
-        additionalInfo
+        platformAdditionalInfo: additionalInfo
     });
 }
 
@@ -91,7 +94,7 @@ async function addMessageLog({ userId, contactInfo, authHeader, message, additio
 
 async function getContact({ authHeader, phoneNumber }) {
     const personInfo = await axios.get(
-        `${BASE_URL}/contacts/search??field_name=PHONE&field_value=${phoneNumber.replace('+', '')}&brief=true&top=1`,
+        `${BASE_URL}/contacts/search?field_name=PHONE&field_value=${phoneNumber.replace('+', '')}&brief=true&top=1`,
         {
             headers: { 'Authorization': authHeader }
         });

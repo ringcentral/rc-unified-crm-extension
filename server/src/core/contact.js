@@ -16,7 +16,7 @@ async function getContact({ platform, userId, phoneNumber }) {
             authHeader = `Bearer ${user.accessToken}`;
             break;
         case 'apiKey':
-            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
             authHeader = `Basic ${basicAuth}`;
             break;
     }

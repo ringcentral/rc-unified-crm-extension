@@ -63,7 +63,7 @@ export default () => {
 
     function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
-            return
+            return;
         }
         const { type, logProps, additionalLogInfo } = e.data
         if (type === 'rc-log-modal') {

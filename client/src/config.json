@@ -1,10 +1,13 @@
 {
-    "serverUrl": "https://1e25-202-163-1-218.ap.ngrok.io",
-    "currentPlatform": "pipedrive",
+    "serverUrl": "https://a587-202-163-1-218.ap.ngrok.io",
     "platforms": {
         "pipedrive": {
+            "authType": "oauth",
             "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
             "clientId": "6c1976beeb0cb1b4"
+        },
+        "insightly": {
+            "authType": "apiKey"
         }
     }
 }

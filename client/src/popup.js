@@ -56,11 +56,19 @@ window.addEventListener('message', async (e) => {
             case '/authorize':
               const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
               if (!rcUnifiedCrmExtJwt) {
-                const authUri = `${platform.authUrl}?` +
-                  `client_id=${platform.clientId}` +
-                  `&state=platform=${config.currentPlatform}` +
-                  '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
-                handleThirdPartyOAuthWindow(authUri);
+                switch (platform.authType) {
+                  case 'oauth':
+                    const authUri = `${platform.authUrl}?` +
+                      `client_id=${platform.clientId}` +
+                      `&state=platform=${config.currentPlatform}` +
+                      '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+                    handleThirdPartyOAuthWindow(authUri);
+                    break;
+                  case 'apiKey':
+                    // TODO: let user input apiKey
+                    window.postMessage({ type: 'rc-apiKey-input-modal' }, '*');
+                    break;
+                }
               }
               else {
                 await auth.unAuthorize(rcUnifiedCrmExtJwt);
