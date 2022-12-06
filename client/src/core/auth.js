@@ -35,7 +35,9 @@ async function apiKeyLogin({ apiKey, apiUrl }) {
 
 async function onAuthCallback(callbackUri) {
     const { rcUserNumber } = await chrome.storage.local.get('rcUserNumber');
-    const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}`);
+    const platformInfo = await chrome.storage.local.get('platform-info');
+    const hostname = platformInfo['platform-info'].hostname;
+    const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`);
     setAuth(true);
     await chrome.storage.local.set({
         ['rcUnifiedCrmExtJwt']: res.data

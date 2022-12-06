@@ -1,12 +1,14 @@
 {
-    "serverUrl": "https://9c80-202-163-1-218.ap.ngrok.io",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "platforms": {
         "pipedrive": {
+            "name":"pipedrive",
             "authType": "oauth",
             "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
             "clientId": "6c1976beeb0cb1b4"
         },
         "insightly": {
+            "name":"insightly",
             "authType": "apiKey"
         }
     }

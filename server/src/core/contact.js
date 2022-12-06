@@ -20,7 +20,7 @@ async function getContact({ platform, userId, phoneNumber }) {
             authHeader = `Basic ${basicAuth}`;
             break;
     }
-    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber });
+    const contactInfo = await platformModule.getContact({user, authHeader, phoneNumber });
     if (contactInfo != null) {
         return { successful: true, message: '', contact: contactInfo };
     }

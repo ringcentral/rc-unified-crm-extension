@@ -36,19 +36,20 @@ async function openPopupWindow() {
 chrome.action.onClicked.addListener(async function (tab) {
   const platformInfo = await chrome.storage.local.get('platform-info');
   if (isObjectEmpty(platformInfo)) {
-    const url = tab.url;
+    const url = new URL(tab.url);
     let platformName = '';
-    if (url.includes('pipedrive')) {
+    const hostname = url.hostname;
+    if (hostname.includes('pipedrive')) {
       platformName = 'pipedrive';
     }
-    else if (url.includes('insightly')) {
+    else if (hostname.includes('insightly')) {
       platformName = 'insightly';
     }
     else {
       return;
     }
     await chrome.storage.local.set({
-      ['platform-info']: { platformName }
+      ['platform-info']: { platformName, hostname }
     });
   }
   openPopupWindow();

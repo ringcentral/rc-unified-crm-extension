@@ -26,16 +26,16 @@ async function addCallLog({ platform, userId, incomingData }) {
             authHeader = `Bearer ${user.accessToken}`;
             break;
         case 'apiKey':
-            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
             authHeader = `Basic ${basicAuth}`;
             break;
     }
     const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
-    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const logId = await platformModule.addCallLog({ userId, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
+    const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -67,11 +67,11 @@ async function addMessageLog({ platform, userId, incomingData }) {
             authHeader = `Bearer ${user.accessToken}`;
             break;
         case 'apiKey':
-            const basicAuth = platformModule.getBasicAuth({ apiKey: accessToken });
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
             authHeader = `Basic ${basicAuth}`;
             break;
     }
-    const contactInfo = await platformModule.getContact({ authHeader, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
@@ -92,7 +92,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
             recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
         }
-        const logId = await platformModule.addMessageLog({ userId, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
+        const logId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
         await MessageLogModel.create({
             id: message.id.toString(),
             platform,

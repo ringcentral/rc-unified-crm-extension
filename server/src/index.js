@@ -33,6 +33,7 @@ app.get('/init-db', async (req, res) => {
 app.get('/oauth-callback', async function (req, res) {
     try {
         const platform = req.query.state.split('platform=')[1];
+        const hostname = req.query.hostname;
         if (!platform) {
             throw 'missing platform name';
         }
@@ -43,6 +44,7 @@ app.get('/oauth-callback', async function (req, res) {
         await platformModule.saveUserOAuthInfo({
             id: userInfo.id,
             name: userInfo.name,
+            hostname,
             accessToken,
             refreshToken,
             tokenExpiry: expires,

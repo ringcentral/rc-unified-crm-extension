@@ -60,12 +60,11 @@ window.addEventListener('message', async (e) => {
                   case 'oauth':
                     const authUri = `${platform.authUrl}?` +
                       `client_id=${platform.clientId}` +
-                      `&state=platform=${config.currentPlatform}` +
+                      `&state=platform=${platform.name}` +
                       '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                     handleThirdPartyOAuthWindow(authUri);
                     break;
                   case 'apiKey':
-                    // TODO: let user input apiKey
                     window.postMessage({ type: 'rc-apiKey-input-modal' }, '*');
                     break;
                 }

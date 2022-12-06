@@ -1,6 +1,6 @@
 {
-  "name": "RingCentral Embeddable Demo",
-  "description": "A RingCentral Embeddable extension demo",
+  "name": "RingCentral Unified CRM Extension",
+  "description": "A RingCentral Embeddable extension for CRMs",
   "version": "0.0.1",
   "permissions": [
     "storage",
@@ -19,7 +19,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.pipedrive.com/*"
+        "https://*.pipedrive.com/*",
+        "https://*.insightly.com/*"
       ],
       "js": [
         "./c2d/index.js",
@@ -34,7 +35,8 @@
         "/c2d/*"
       ],
       "matches": [
-        "https://*.pipedrive.com/*"
+        "https://*.pipedrive.com/*",
+        "https://*.insightly.com/*"
       ]
     }
   ],

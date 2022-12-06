@@ -8,13 +8,19 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     switch (logType) {
         case 'Call':
-            await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission });
+            const addCallLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission });
             // force call log matcher check
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-trigger-call-logger-match',
                 sessionIds: [logInfo.sessionId]
             }, '*');
-            showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
+            if(addCallLogRes.data.successful)
+            {
+                showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
+            }
+            else{
+                showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
+            }
             break;
         case 'Message':
             const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission });

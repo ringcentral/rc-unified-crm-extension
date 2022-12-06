@@ -2,8 +2,6 @@ const axios = require('axios');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 
-const BASE_URL = 'https://ringcentral-sandbox.pipedrive.com';
-
 function getAuthType() {
     return 'oauth';
 }
@@ -36,10 +34,11 @@ async function getUserInfo({ authHeader }) {
     };
 }
 
-async function saveUserOAuthInfo({ id, name, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
     await UserModel.create({
         id,
         name,
+        hostname,
         timezoneName,
         timezoneOffset,
         platform: 'pipedrive',
@@ -51,11 +50,11 @@ async function saveUserOAuthInfo({ id, name, accessToken, refreshToken, tokenExp
     });
 }
 
-async function addCallLog({ userId, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
-        user_id: userId,
+        user_id: user.id,
         subject: `${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber})`,
         duration: callLog.duration,    // secs
         person_id: contactInfo.id,
@@ -65,7 +64,7 @@ async function addCallLog({ userId, contactInfo, authHeader, callLog, note, addi
         done: true
     }
     const addLogRes = await axios.post(
-        `${BASE_URL}/v1/activities`,
+        `https://${user.hostname}/v1/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -73,11 +72,11 @@ async function addCallLog({ userId, contactInfo, authHeader, callLog, note, addi
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog({ userId, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
-        user_id: userId,
+        user_id: user.id,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
         person_id: contactInfo.id,
         org_id: orgId,
@@ -86,7 +85,7 @@ async function addMessageLog({ userId, contactInfo, authHeader, message, additio
         done: true
     }
     const addLogRes = await axios.post(
-        `${BASE_URL}/v1/activities`,
+        `https://${user.hostname}/v1/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -94,9 +93,9 @@ async function addMessageLog({ userId, contactInfo, authHeader, message, additio
     return addLogRes.data.data.id;
 }
 
-async function getContact({ authHeader, phoneNumber }) {
+async function getContact({ user, authHeader, phoneNumber }) {
     const personInfo = await axios.get(
-        `${BASE_URL}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
+        `https://${user.hostname}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -106,7 +105,7 @@ async function getContact({ authHeader, phoneNumber }) {
     else {
         let result = personInfo.data.data.items[0].item;
         const dealsResponse = await axios.get(
-            `${BASE_URL}/v1/persons/${personInfo.data.data.items[0].item.id}/deals?status=open`,
+            `https://${user.hostname}/v1/persons/${personInfo.data.data.items[0].item.id}/deals?status=open`,
             {
                 headers: { 'Authorization': authHeader }
             });
