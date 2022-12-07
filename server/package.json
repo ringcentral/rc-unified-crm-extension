@@ -12,7 +12,7 @@
     "test-coverage": "set NODE_ENV=test&&jest --coverage",
     "serverless-build": "node ./scripts/serverless-build",
     "build": "npm run serverless-build",
-    "serverless-deploy": "sls deploy --force --verbose",
+    "serverless-deploy": "cd serverless-deploy&&sls deploy --force --verbose",
     "deploy": "npm run serverless-deploy"
   },
   "author": "",
