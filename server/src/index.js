@@ -104,7 +104,7 @@ app.post('/apiKeyLogin', async function (req, res) {
 app.post('/unAuthorize', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (jwtToken) {
+        if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const userToLogout = await UserModel.destroy({
                 where: {
@@ -117,7 +117,7 @@ app.post('/unAuthorize', async function (req, res) {
             res.status(200).send();
         }
         else {
-            res.status(400).send('missing jwt token');
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
@@ -128,13 +128,13 @@ app.post('/unAuthorize', async function (req, res) {
 app.get('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (jwtToken) {
+        if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber });
             res.status(200).send({ successful, message, contact });
         }
         else {
-            res.status(400).send('missing jwt token');
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
@@ -145,13 +145,13 @@ app.get('/contact', async function (req, res) {
 app.get('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (jwtToken) {
+        if (!!jwtToken) {
             const { platform } = jwt.decodeJwt(jwtToken);
             const { successful, logId } = await getCallLog({ platform, sessionId: req.query.sessionId });
             res.status(200).send({ successful, logId });
         }
         else {
-            res.status(400).send('missing jwt token');
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
@@ -162,13 +162,13 @@ app.get('/callLog', async function (req, res) {
 app.post('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (jwtToken) {
+        if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, logId } = await addCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
         }
         else {
-            res.status(400).send('missing jwt token');
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
@@ -179,13 +179,13 @@ app.post('/callLog', async function (req, res) {
 app.post('/messageLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (jwtToken) {
+        if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, logIds } = await addMessageLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logIds });
         }
         else {
-            res.status(400).send('missing jwt token');
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {

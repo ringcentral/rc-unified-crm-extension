@@ -27,6 +27,7 @@
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
+    "ngrok": "^4.3.3",
     "pg": "^8.8.0",
     "sequelize": "^6.25.0",
     "serverless-http": "^3.0.3",
@@ -34,7 +35,6 @@
   },
   "devDependencies": {
     "jest": "^29.3.1",
-    "ngrok": "^4.3.3",
     "nock": "^13.2.9",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",

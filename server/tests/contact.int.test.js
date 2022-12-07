@@ -2,7 +2,7 @@ const request = require('supertest');
 const nock = require('nock');
 const { server } = require('../src/index');
 const jwt = require('../src/lib/jwt');
-const platforms = require('./platformInfo.json');
+const platforms = require('../tests/platformInfo.json');
 const { UserModel } = require('../src/models/userModel');
 // create test data
 const userId = 'userId';
@@ -19,6 +19,7 @@ beforeAll(async () => {
         await UserModel.create({
             id: `${userId}-${platform.name}`,
             name: 'userName',
+            hostname: platform.hostname,
             platform: platform.name,
             rcUserNumber,
             accessToken
@@ -54,7 +55,7 @@ describe('contact tests', () => {
             // Assert
             expect(res.status).toEqual(400);
             console.log(res);
-            expect(res.error.text).toEqual('missing jwt token');
+            expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
         });
     });
     describe('get contact', () => {

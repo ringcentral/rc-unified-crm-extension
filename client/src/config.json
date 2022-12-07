@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://c3c9-202-163-1-218.ap.ngrok.io",
     "platforms": {
         "pipedrive": {
             "name":"pipedrive",

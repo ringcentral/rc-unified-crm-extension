@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">95.58% </span>
+                <span class="strong">89.02% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>65/68</span>
+                <span class='fraction'>73/82</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">88.46% </span>
+                <span class="strong">83.33% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>23/26</span>
+                <span class='fraction'>25/30</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">98.43% </span>
+                <span class="strong">91.02% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>63/64</span>
+                <span class='fraction'>71/78</span>
             </div>
         
             
@@ -185,7 +185,27 @@
 <a name='L120'></a><a href='#L120'>120</a>
 <a name='L121'></a><a href='#L121'>121</a>
 <a name='L122'></a><a href='#L122'>122</a>
-<a name='L123'></a><a href='#L123'>123</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -207,6 +227,16 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
@@ -238,6 +268,16 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -326,15 +366,25 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
-    await oauth.checkAndRefreshAccessToken(oauthApp, user);
-    const authHeader = `Bearer ${user.accessToken}`;
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+<span class="branch-1 cbranch-no" title="branch not covered" >        case 'apiKey':</span>
+            const basicAuth = <span class="cstat-no" title="statement not covered" >platformModule.getBasicAuth({ apiKey: user.accessToken });</span>
+<span class="cstat-no" title="statement not covered" >            authHeader = `Basic ${basicAuth}`;</span>
+<span class="cstat-no" title="statement not covered" >            break;</span>
+    }
     const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : <span class="branch-1 cbranch-no" title="branch not covered" >callLog.to.phoneNumber;</span>
-    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
+    const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const logId = await platformModule.addCallLog({ userId, contactId: contactInfo.id, authHeader, callLog, note, additionalSubmission });
+    const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
@@ -357,14 +407,24 @@ async function addMessageLog({ platform, userId, incomingData }) {
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
-    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
-    await oauth.checkAndRefreshAccessToken(oauthApp, user);
-    const authHeader = `Bearer ${user.accessToken}`;
-    const contactInfo = await platformModule.getContact({ accessToken: user.accessToken, phoneNumber: contactNumber });
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo());
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+<span class="branch-1 cbranch-no" title="branch not covered" >        case 'apiKey':</span>
+            const basicAuth = <span class="cstat-no" title="statement not covered" >platformModule.getBasicAuth({ apiKey: user.accessToken });</span>
+<span class="cstat-no" title="statement not covered" >            authHeader = `Basic ${basicAuth}`;</span>
+<span class="cstat-no" title="statement not covered" >            break;</span>
+    }
+    const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const messageIds = incomingData.logInfo.messages.map(m =&gt; { return { id: m.id }; });
+    const messageIds = incomingData.logInfo.messages.map(m =&gt; { return { id: m.id.toString() }; });
     const existingMessages = await MessageLogModel.findAll({
         where: {
             [Op.or]: messageIds
@@ -373,7 +433,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     const existingIds = existingMessages.map(m =&gt; m.id);
     const logIds = [];
     for (const message of incomingData.logInfo.messages) {
-        if (existingIds.includes(message.id)) {
+        if (existingIds.includes(message.id.toString())) {
             console.log(`existing message log: ${message.id}`);
             continue;
         }
@@ -381,9 +441,9 @@ async function addMessageLog({ platform, userId, incomingData }) {
         <span class="missing-if-branch" title="if path not taken" >I</span>if (message.attachments &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >message.attachments.some(<span class="fstat-no" title="function not covered" >a </span>=&gt; <span class="cstat-no" title="statement not covered" >a.type === 'AudioRecording')</span>)</span> {
 <span class="cstat-no" title="statement not covered" >            recordingLink = message.attachments.find(<span class="fstat-no" title="function not covered" >a </span>=&gt; <span class="cstat-no" title="statement not covered" >a.type === 'AudioRecording')</span>.link;</span>
         }
-        const logId = await platformModule.addMessageLog({ userId, contactId: contactInfo.id, authHeader, message, additionalSubmission, recordingLink });
+        const logId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
         await MessageLogModel.create({
-            id: message.id,
+            id: message.id.toString(),
             platform,
             conversationId: incomingData.logInfo.conversationId,
             thirdPartyLogId: logId,
@@ -436,7 +496,7 @@ exports.getCallLog = getCallLog;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2022-11-11T03:31:00.020Z
+                at 2022-12-07T07:06:19.017Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

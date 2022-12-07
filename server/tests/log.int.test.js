@@ -44,6 +44,7 @@ beforeAll(async () => {
         await UserModel.create({
             id: `${userId}-${platform.name}`,
             name: 'userName',
+            hostname: platform.hostname,
             platform: platform.name,
             rcUserNumber,
             accessToken,
@@ -91,7 +92,7 @@ describe('call&message log tests', () => {
                 // Assert
                 expect(res.status).toEqual(400);
                 console.log(res);
-                expect(res.error.text).toEqual('missing jwt token');
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('post jwt validation', () => {
@@ -109,7 +110,7 @@ describe('call&message log tests', () => {
                 // Assert
                 expect(res.status).toEqual(400);
                 console.log(res);
-                expect(res.error.text).toEqual('missing jwt token');
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('get call log', () => {
@@ -326,7 +327,7 @@ describe('call&message log tests', () => {
                 // Assert
                 expect(res.status).toEqual(400);
                 console.log(res);
-                expect(res.error.text).toEqual('missing jwt token');
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
 

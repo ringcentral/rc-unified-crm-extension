@@ -5,10 +5,15 @@ import insightlyModule from '../platformModules/insightly.js';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}`);
-    const platformModule = await getModule();
-    const additionalLogInfo = platformModule.getContactAdditionalInfo(contactRes);
-    return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact, additionalLogInfo };
+    if (!!rcUnifiedCrmExtJwt) {
+        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}`);
+        const platformModule = await getModule();
+        const additionalLogInfo = platformModule.getContactAdditionalInfo(contactRes);
+        return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact, additionalLogInfo };
+    }
+    else {
+        return { matched: false, message: 'Please go to Settings and authorize CRM platform', contactInfo: null };
+    }
 }
 
 async function getModule() {
