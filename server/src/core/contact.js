@@ -20,12 +20,12 @@ async function getContact({ platform, userId, phoneNumber }) {
             authHeader = `Basic ${basicAuth}`;
             break;
     }
-    const contactInfo = await platformModule.getContact({user, authHeader, phoneNumber });
+    const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber });
     if (contactInfo != null) {
         return { successful: true, message: '', contact: contactInfo };
     }
     else {
-        throw `Cannot find contact for phone number: ${phoneNumber}. Please create a contact.`;
+        return { successful: false, message: `Cannot find contact for phone number: ${phoneNumber}. Please create a contact.` };
     }
 }
 

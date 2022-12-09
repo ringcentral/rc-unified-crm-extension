@@ -97,8 +97,9 @@ describe('contact tests', () => {
                 const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${unknownPhoneNumber}`);
 
                 // Assert
-                expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber}. Please create a contact.`);
+                expect(res.status).toEqual(200);
+                expect(res.body.successful).toEqual(false);
+                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber}. Please create a contact.`);
 
                 // Clean up
                 platformGetContactScope.done();
