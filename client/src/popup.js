@@ -40,6 +40,11 @@ window.addEventListener('message', async (e) => {
           const rcUserInfo = { rcUserNumber: data.loginNumber };
           await chrome.storage.local.set(rcUserInfo);
           document.getElementById('rc-widget').style.zIndex = 0;
+          const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+          if(!rcUnifiedCrmExtJwt)
+          {
+            showNotification({ level: 'warning', message: 'Please authorize CRM platform account in User Settings.', ttl: 10000 });
+          }
           break;
         case 'rc-login-popup-notify':
           handleRCOAuthWindow(data.oAuthUri);
@@ -86,13 +91,13 @@ window.addEventListener('message', async (e) => {
                 // query on 3rd party API to get the matched contact info and return
                 const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
                 if (contactMatched) {
-                  matchedContacts[contactInfo.phones[0]] = [{
+                  matchedContacts[contactInfo.phone] = [{
                     id: contactInfo.id,
                     type: config.currentPlatform,
                     name: contactInfo.name,
                     phoneNumbers: [
                       {
-                        phoneNumber: contactInfo.phones[0],
+                        phoneNumber: contactInfo.phone,
                         phoneType: 'direct'
                       }
                     ]

@@ -118,7 +118,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -135,7 +135,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -154,7 +154,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -201,7 +201,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -240,7 +240,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -273,7 +273,8 @@ describe('call&message log tests', () => {
                                 items: [
                                     {
                                         item: {
-                                            id: contactId
+                                            id: contactId,
+                                            phones: [phoneNumber]
                                         }
                                     }
                                 ]
@@ -282,7 +283,12 @@ describe('call&message log tests', () => {
                     const platformGetDealScope = nock(platform.domain)
                         .get(`${platform.contactPath}/${contactId}/deals?status=open`)
                         .once()
-                        .reply(200, {});
+                        .reply(200, {
+                            data: [{
+                                id: 'dealId',
+                                title: 'dealTitle'
+                            }]
+                        });
                     const platformAddCallLogScope = nock(platform.domain)
                         .post(platform.callLogPath)
                         .once()
@@ -336,7 +342,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -392,7 +398,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -438,7 +444,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: `${userId}-${platform.name}`,
+                        id: userId,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -473,7 +479,8 @@ describe('call&message log tests', () => {
                                 items: [
                                     {
                                         item: {
-                                            id: contactId
+                                            id: contactId,
+                                            phones: [phoneNumber]
                                         }
                                     }
                                 ]
@@ -482,7 +489,12 @@ describe('call&message log tests', () => {
                     const platformGetDealScope = nock(platform.domain)
                         .get(`${platform.contactPath}/${contactId}/deals?status=open`)
                         .once()
-                        .reply(200, {});
+                        .reply(200, {
+                            data: [{
+                                id: 'dealId',
+                                title: 'dealTitle'
+                            }]
+                        });
                     const platformAddMessageLogScope = nock(platform.domain)
                         .post(platform.messageLogPath)
                         .once()

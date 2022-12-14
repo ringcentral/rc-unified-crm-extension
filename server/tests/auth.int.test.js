@@ -84,7 +84,7 @@ describe('auth tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(200);
-                const userCheck = await UserModel.findByPk(userId);
+                const userCheck = await UserModel.findByPk(`${userId}-pipedrive`);
                 expect(userCheck).toBeNull();
             });
         });

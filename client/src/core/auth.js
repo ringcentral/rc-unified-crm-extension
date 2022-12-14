@@ -23,6 +23,7 @@ async function apiKeyLogin({ apiKey, apiUrl }) {
             }
         });
         setAuth(true);
+        showNotification({ level: 'success', message: 'Successfully authorized.', ttl: 3000 });
         await chrome.storage.local.set({
             ['rcUnifiedCrmExtJwt']: res.data
         });
@@ -39,6 +40,7 @@ async function onAuthCallback(callbackUri) {
     const hostname = platformInfo['platform-info'].hostname;
     const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`);
     setAuth(true);
+    showNotification({ level: 'success', message: 'Successfully authorized.', ttl: 3000 });
     await chrome.storage.local.set({
         ['rcUnifiedCrmExtJwt']: res.data
     });

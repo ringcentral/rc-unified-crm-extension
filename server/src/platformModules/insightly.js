@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { raw } = require('body-parser');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 
@@ -33,17 +34,31 @@ async function getUserInfo({ user, authHeader, additionalInfo }) {
 }
 
 async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
-    await UserModel.create({
-        id,
-        name,
-        hostname,
-        timezoneName,
-        timezoneOffset,
-        platform: 'insightly',
-        accessToken: apiKey,
-        rcUserNumber,
-        platformAdditionalInfo: additionalInfo
-    });
+    const existingUser = await UserModel.findByPk(`${id}-insightly`);
+    if (existingUser) {
+        await existingUser.update({
+            name,
+            hostname,
+            timezoneName,
+            timezoneOffset,
+            accessToken: apiKey,
+            rcUserNumber,
+            platformAdditionalInfo: additionalInfo
+        });
+    }
+    else{
+        await UserModel.create({
+            id: `${id}-insightly`,
+            name,
+            hostname,
+            timezoneName,
+            timezoneOffset,
+            platform: 'insightly',
+            accessToken: apiKey,
+            rcUserNumber,
+            platformAdditionalInfo: additionalInfo
+        });
+    }
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
@@ -108,8 +123,15 @@ async function getContact({ user, authHeader, phoneNumber }) {
         return null;
     }
     else {
-        let result = personInfo.data[0];
-        return result;
+        return formatContact(personInfo.data[0]);
+    }
+}
+
+function formatContact(rawContactInfo) {
+    return {
+        id: rawContactInfo.CONTACT_ID,
+        name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
+        phone: rawContactInfo.PHONE
     }
 }
 

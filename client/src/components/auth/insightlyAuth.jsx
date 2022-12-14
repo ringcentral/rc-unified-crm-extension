@@ -83,12 +83,14 @@ export default () => {
                                 color='action.primary'
                             /></div>
                         <RcText style={titleStyle} variant='title2'>Register API Key</RcText>
+                        <RcText style={titleStyle} variant='caption1'>(info under User Settings - API section)</RcText>
                         <RcTextField
                             style={titleStyle}
                             label='Key'
                             onChange={onChangeKey}
                             value={apiKey}
                             required={true}
+                            helperText='eg. xxxxx-xxxx-xxxx-xxxx-xxxxxxx'
                         ></RcTextField>
                         <RcTextField
                             style={titleStyle}
@@ -96,7 +98,7 @@ export default () => {
                             onChange={onChangeApiUrl}
                             value={apiUrl}
                             required={true}
-                            helperText='eg. https://api.na1.insightly.com'
+                            helperText='eg. https://api.xxx.insightly.com'
                         ></RcTextField>
                     </div>
                 )

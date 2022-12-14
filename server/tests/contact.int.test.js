@@ -80,7 +80,7 @@ describe('contact tests', () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
-                    id: `${userId}-${platform.name}`,
+                    id: userId,
                     rcUserNumber,
                     platform: platform.name
                 });
@@ -109,7 +109,7 @@ describe('contact tests', () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
-                    id: `${userId}-${platform.name}`,
+                    id: userId,
                     rcUserNumber,
                     platform: platform.name
                 });
@@ -121,7 +121,8 @@ describe('contact tests', () => {
                             items: [
                                 {
                                     item: {
-                                        id: contactId
+                                        id: contactId,
+                                        phones: [phoneNumber]
                                     }
                                 }
                             ]
@@ -130,7 +131,12 @@ describe('contact tests', () => {
                 const platformGetDealScope = nock(platform.domain)
                     .get(`${platform.contactPath}/${contactId}/deals?status=open`)
                     .once()
-                    .reply(200, {});
+                    .reply(200, {
+                        data: [{
+                            id: 'dealId',
+                            title: 'dealTitle'
+                        }]
+                    });
 
                 // Act
                 const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${phoneNumber}`);

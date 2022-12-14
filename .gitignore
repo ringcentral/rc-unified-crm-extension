@@ -9,3 +9,4 @@ env.yml
 serverless.yml
 
 server/serverless-deploy/*
+client/dist.zip
