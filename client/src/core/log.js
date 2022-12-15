@@ -1,6 +1,6 @@
 import axios from 'axios';
 import config from '../config.json';
-import { showNotification } from '../lib/util';
+import { isObjectEmpty, showNotification } from '../lib/util';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
@@ -53,5 +53,24 @@ async function checkLog({ logType, logId }) {
     }
 }
 
+async function cacheCallNote({ sessionId, note }) {
+    let noteToCache = {};
+    noteToCache[sessionId] = note;
+    await chrome.storage.local.set(noteToCache);
+}
+
+async function getCachedNote({ sessionId }) {
+    const cachedNote = await chrome.storage.local.get(sessionId);
+    if (isObjectEmpty(cachedNote)){
+        return '';
+    }
+    else
+    {
+        return cachedNote[sessionId];
+    }
+}
+
 exports.addLog = addLog;
 exports.checkLog = checkLog;
+exports.cacheCallNote = cacheCallNote;
+exports.getCachedNote = getCachedNote;

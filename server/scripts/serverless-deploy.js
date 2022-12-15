@@ -26,7 +26,7 @@ async function run () {
   console.log(installRes);
   const serverlessDeployCmd = resolve(__dirname, '../node_modules/.bin/sls deploy --force --verbose');
   console.log(`run cmd: ${serverlessDeployCmd}`)
-  const serverlessDeployRes = await execAsync(serverlessDeployCmd);
+  const serverlessDeployRes = await execAsync(serverlessDeployCmd).catch((e) => console.log(e));
   console.log(serverlessDeployRes);
 }
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import LogModal from './components/log/logModal';
+import ExpandableNote from './components/note/expandableNote';
 import InsightlyAuth from './components/auth/insightlyAuth';
 import { RcThemeProvider } from '@ringcentral/juno';
 
@@ -9,6 +10,7 @@ function App() {
         <RcThemeProvider>
             <LogModal />
             <InsightlyAuth />
+            <ExpandableNote />
         </RcThemeProvider>
     )
 }

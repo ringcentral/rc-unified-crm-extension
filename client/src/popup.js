@@ -41,8 +41,7 @@ window.addEventListener('message', async (e) => {
           await chrome.storage.local.set(rcUserInfo);
           document.getElementById('rc-widget').style.zIndex = 0;
           const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-          if(!rcUnifiedCrmExtJwt)
-          {
+          if (!rcUnifiedCrmExtJwt) {
             showNotification({ level: 'warning', message: 'Please authorize CRM platform account in User Settings.', ttl: 10000 });
           }
           break;
@@ -55,6 +54,14 @@ window.addEventListener('message', async (e) => {
           chrome.runtime.sendMessage({
             type: 'openPopupWindow'
           });
+          break;
+        case "rc-active-call-notify":
+          if (data.call.telephonyStatus === 'CallConnected') {
+            window.postMessage({ type: 'rc-expandable-call-note-open', sessionId: data.call.sessionId }, '*');
+          }
+          if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
+            window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
+          }
           break;
         case 'rc-post-message-request':
           switch (data.path) {

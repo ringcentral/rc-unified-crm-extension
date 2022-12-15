@@ -6,7 +6,7 @@ import {
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
-import { addLog } from '../../core/log';
+import { addLog, getCachedNote } from '../../core/log';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
 import config from '../../config.json';
@@ -61,7 +61,7 @@ export default () => {
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
 
-    function onEvent(e) {
+    async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
             return;
         }
@@ -69,7 +69,7 @@ export default () => {
         if (type === 'rc-log-modal') {
             logEvents.push({ type, logProps, additionalLogInfo });
             setAdditionalFormInfo(additionalLogInfo);
-            setupModal();
+            await setupModal();
             setLoading(false);
         }
         if (type === 'rc-log-modal-loading-on') {
@@ -80,11 +80,12 @@ export default () => {
         }
     }
 
-    function setupModal() {
+    async function setupModal() {
+        const cachedNote = await getCachedNote({ sessionId: logEvents[0].logProps.logInfo.sessionId });
         setIsOpen(true);
         setLogInfo(logEvents[0].logProps.logInfo);
         setIsToday(logEvents[0].logProps.isToday);
-        setNote('');
+        setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         switch (logEvents[0].logProps.logType) {
             case 'Call':
