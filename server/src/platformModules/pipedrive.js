@@ -1,6 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
+const Op = require('sequelize').Op;
 
 function getAuthType() {
     return 'oauth';
@@ -35,10 +36,20 @@ async function getUserInfo({ authHeader }) {
 }
 
 async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
-    const existingUser = await UserModel.findByPk(`${id}-pipedrive`);
+    const existingUser = await UserModel.findOne({
+        where: {
+            [Op.and]: [
+                {
+                    id,
+                    platform: 'pipedrive'
+                }
+            ]
+        }
+    });
     if (existingUser) {
         await existingUser.update(
-            {name,
+            {
+                name,
                 hostname,
                 timezoneName,
                 timezoneOffset,
@@ -50,9 +61,9 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             }
         );
     }
-    else{
+    else {
         await UserModel.create({
-            id: `${id}-pipedrive`,
+            id,
             name,
             hostname,
             timezoneName,
@@ -77,7 +88,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by <a href="https://github.com/ringcentral/rc-unified-crm-extension">RingCentral Unified CRM Extension</a></span></em></p>`,
+        note: `<p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by <a href="https://github.com/ringcentral/rc-unified-crm-extension">RingCentral CRM Extension</a></span></em></p>`,
         done: true
     }
     const addLogRes = await axios.post(
@@ -112,7 +123,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 
 async function getContact({ user, authHeader, phoneNumber }) {
     const personInfo = await axios.get(
-        `https://${user.hostname}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
+        `https://${user.hostname}/contacts.json`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -133,7 +144,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
     }
 }
 
-function formatContact(rawContactInfo, relatedDeals){
+function formatContact(rawContactInfo, relatedDeals) {
     return {
         id: rawContactInfo.id,
         name: rawContactInfo.name,

@@ -2,7 +2,7 @@ const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 
 async function getContact({ platform, userId, phoneNumber }) {
-    const user = await UserModel.findByPk(`${userId}-${platform}`);
+    const user = await UserModel.findByPk(userId);
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import config from '../config.json';
 import { showNotification } from '../lib/util';
+import { trackCrmLogin, trackCrmLogout } from '../lib/analytics'
 
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({
@@ -9,7 +10,7 @@ async function submitPlatformSelection(platform) {
 }
 
 // apiUrl only by Insightly
-async function apiKeyLogin({ apiKey, apiUrl }) {
+async function apiKeyLogin({ analytics, apiKey, apiUrl }) {
     try {
         const platformInfo = await chrome.storage.local.get('platform-info');
         const platformName = platformInfo['platform-info'].platformName;
@@ -27,6 +28,7 @@ async function apiKeyLogin({ apiKey, apiUrl }) {
         await chrome.storage.local.set({
             ['rcUnifiedCrmExtJwt']: res.data
         });
+        trackCrmLogin({ platform: platformName });
     }
     catch (e) {
         console.log(e);
@@ -35,7 +37,8 @@ async function apiKeyLogin({ apiKey, apiUrl }) {
 }
 
 async function onAuthCallback(callbackUri) {
-    const { rcUserNumber } = await chrome.storage.local.get('rcUserNumber');
+    const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
+    const rcUserNumber = rcUserInfo.rcUserNumber;
     const platformInfo = await chrome.storage.local.get('platform-info');
     const hostname = platformInfo['platform-info'].hostname;
     const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`);
@@ -44,6 +47,7 @@ async function onAuthCallback(callbackUri) {
     await chrome.storage.local.set({
         ['rcUnifiedCrmExtJwt']: res.data
     });
+    trackCrmLogin({ platform: platformInfo['platform-info'].platformName });
 }
 
 async function unAuthorize(rcUnifiedCrmExtJwt) {
@@ -51,6 +55,8 @@ async function unAuthorize(rcUnifiedCrmExtJwt) {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
         await chrome.storage.local.remove('rcUnifiedCrmExtJwt');
         setAuth(false);
+        const platformInfo = await chrome.storage.local.get('platform-info');
+        trackCrmLogout({ platform: platformInfo['platform-info'].platformName })
     }
     catch (e) {
         console.log(e);

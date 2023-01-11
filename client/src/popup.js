@@ -3,7 +3,17 @@ const { checkLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
+const { getUserInfo } = require('./lib/rcAPI');
 const moment = require('moment');
+const {
+  trackFirstTimeSetup,
+  identify,
+  trackRcLogin,
+  trackRcLogout,
+  trackPlacedCall,
+  trackAnsweredCall,
+  trackCallEnd
+} = require('./lib/analytics');
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
@@ -32,13 +42,35 @@ window.addEventListener('message', async (e) => {
               type: 'rc-adapter-register-third-party-service',
               service: getServiceConfig(platformName)
             }, '*');
+            const isFirstTime = await chrome.storage.local.get('isFirstTime');
+            if (isObjectEmpty(isFirstTime)) {
+              trackFirstTimeSetup({ platform: platformName });
+              await chrome.storage.local.set({ isFirstTime: false });
+            }
           }
           break;
         case 'rc-login-status-notify':
           // get login status from widget
           console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber, data.contractedCountryCode);
-          const rcUserInfo = { rcUserNumber: data.loginNumber };
-          await chrome.storage.local.set(rcUserInfo);
+          const platformInfo = await chrome.storage.local.get('platform-info');
+          const platformName = platformInfo['platform-info'].platformName;
+          let rcUserInfo = await chrome.storage.local.get('rcUserInfo');
+          if (isObjectEmpty(rcUserInfo)) {
+            const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
+            const userInfoResponse = await getUserInfo(accessToken);
+            rcUserInfo = { rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
+            await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
+            identify({ platformName, accountId: rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
+            trackRcLogin();
+          }
+          else {
+            identify({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcUserInfo.rcExtensionId });
+          }
+
+          if (!data.loggedIn) {
+            trackRcLogout();
+          }
+
           document.getElementById('rc-widget').style.zIndex = 0;
           const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
           if (!rcUnifiedCrmExtJwt) {
@@ -54,6 +86,19 @@ window.addEventListener('message', async (e) => {
           chrome.runtime.sendMessage({
             type: 'openPopupWindow'
           });
+          break;
+        case 'rc-call-init-notify':
+          trackPlacedCall();
+          break;
+        case 'rc-call-start-notify':
+          // get call when a incoming call is accepted or a outbound call is connected
+          if (data.call.direction === 'Inbound') {
+            trackAnsweredCall();
+          }
+          break;
+        case 'rc-call-end-notify':
+          // get call on call end event
+          trackCallEnd({ durationInSeconds: data.call.duration });
           break;
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -71,7 +116,8 @@ window.addEventListener('message', async (e) => {
                 switch (platform.authType) {
                   case 'oauth':
                     const authUri = `${platform.authUrl}?` +
-                      `client_id=${platform.clientId}` +
+                      `response_type=code` +
+                      `&client_id=${platform.clientId}` +
                       `&state=platform=${platform.name}` +
                       '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                     handleThirdPartyOAuthWindow(authUri);
@@ -94,17 +140,19 @@ window.addEventListener('message', async (e) => {
             case '/contacts/match':
               noShowNotification = true;
               let matchedContacts = {};
+              const platformInfo = await chrome.storage.local.get('platform-info');
+              const platformName = platformInfo['platform-info'].platformName;
               for (const contactPhoneNumber of data.body.phoneNumbers) {
                 // query on 3rd party API to get the matched contact info and return
                 const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
                 if (contactMatched) {
-                  matchedContacts[contactInfo.phone] = [{
+                  matchedContacts[contactPhoneNumber] = [{
                     id: contactInfo.id,
-                    type: config.currentPlatform,
+                    type: platformName,
                     name: contactInfo.name,
                     phoneNumbers: [
                       {
-                        phoneNumber: contactInfo.phone,
+                        phoneNumber: contactPhoneNumber,
                         phoneType: 'direct'
                       }
                     ]
@@ -233,8 +281,11 @@ window.addEventListener('message', async (e) => {
     }
   }
   catch (e) {
-    if (e.response.data && !noShowNotification) {
+    if (e.response && e.response.data && !noShowNotification) {
       showNotification({ level: 'warning', message: e.response.data, ttl: 5000 });
+    }
+    else {
+      console.error(e);
     }
     window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }

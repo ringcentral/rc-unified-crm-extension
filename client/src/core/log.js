@@ -1,6 +1,7 @@
 import axios from 'axios';
 import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
+import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
@@ -17,6 +18,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 }, '*');
                 if (addCallLogRes.data.successful) {
                     showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
+                    trackSyncCallLog({ hasNote: note !== '' });
                 }
                 else {
                     showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
@@ -30,6 +32,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                         await chrome.storage.local.set(dataToLog);
                     }
                     showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
+                    trackSyncMessageLog();
                 }
                 break;
         }
@@ -61,11 +64,10 @@ async function cacheCallNote({ sessionId, note }) {
 
 async function getCachedNote({ sessionId }) {
     const cachedNote = await chrome.storage.local.get(sessionId);
-    if (isObjectEmpty(cachedNote)){
+    if (isObjectEmpty(cachedNote)) {
         return '';
     }
-    else
-    {
+    else {
         return cachedNote[sessionId];
     }
 }

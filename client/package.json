@@ -20,7 +20,9 @@
   "dependencies": {
     "@ringcentral/juno": "^2.20.1",
     "@ringcentral/juno-icon": "^1.15.0",
+    "@segment/analytics-next": "^1.49.1",
     "axios": "^1.1.2",
+    "crypto-js": "^4.1.1",
     "moment": "^2.29.4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"

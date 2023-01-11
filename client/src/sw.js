@@ -45,6 +45,9 @@ chrome.action.onClicked.addListener(async function (tab) {
     else if (hostname.includes('insightly')) {
       platformName = 'insightly';
     }
+    else if (hostname.includes('clio')) {
+      platformName = 'clio';
+    }
     else {
       return;
     }

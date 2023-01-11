@@ -118,7 +118,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -135,7 +135,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -154,7 +154,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -201,7 +201,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -240,7 +240,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -342,7 +342,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -398,7 +398,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });
@@ -444,7 +444,7 @@ describe('call&message log tests', () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: `${userId}-${platform.name}`,
                         rcUserNumber,
                         platform: platform.name
                     });

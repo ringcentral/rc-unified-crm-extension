@@ -1,7 +1,7 @@
 const axios = require('axios');
-const { raw } = require('body-parser');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
+const Op = require('sequelize').Op;
 
 // TODO: replace this with user.additionalInfo.apiUrl
 const BASE_URL = 'https://api.na1.insightly.com/v3.1';
@@ -34,7 +34,16 @@ async function getUserInfo({ user, authHeader, additionalInfo }) {
 }
 
 async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
-    const existingUser = await UserModel.findByPk(`${id}-insightly`);
+    const existingUser = await UserModel.findOne({
+        where: {
+            [Op.and]: [
+                {
+                    id,
+                    platform: 'insightly'
+                }
+            ]
+        }
+    });
     if (existingUser) {
         await existingUser.update({
             name,
@@ -46,9 +55,9 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             platformAdditionalInfo: additionalInfo
         });
     }
-    else{
+    else {
         await UserModel.create({
-            id: `${id}-insightly`,
+            id,
             name,
             hostname,
             timezoneName,
@@ -64,7 +73,7 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const postBody = {
         TITLE: 'Call Log',
-        DETAILS: `${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber}) ${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral Unified CRM Extension`,
+        DETAILS: `${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber}) ${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds'),
     }
@@ -90,7 +99,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const postBody = {
         TITLE: `SMS Log`,
-        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral Unified CRM Extension`,
+        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
         START_DATE_UTC: moment(message.creationTime).utc(),
         END_DATE_UTC: moment(message.creationTime).utc()
     }

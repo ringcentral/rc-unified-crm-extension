@@ -2,6 +2,7 @@ import axios from 'axios';
 import config from '../config.json';
 import pipedriveModule from '../platformModules/pipedrive.js';
 import insightlyModule from '../platformModules/insightly.js';
+import clioModule from '../platformModules/clio.js';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -23,6 +24,8 @@ async function getModule() {
             return pipedriveModule;
         case 'insightly':
             return insightlyModule;
+        case 'clio':
+            return clioModule;
     }
 }
 

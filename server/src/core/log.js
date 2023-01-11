@@ -13,7 +13,7 @@ async function addCallLog({ platform, userId, incomingData }) {
     const callLog = incomingData.logInfo;
     const additionalSubmission = incomingData.additionalSubmission;
     const note = incomingData.note;
-    const user = await UserModel.findByPk(`${userId}-${platform}`);
+    const user = await UserModel.findByPk(userId);
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }
@@ -54,7 +54,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     const platformModule = require(`../platformModules/${platform}`);
     const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
     const additionalSubmission = incomingData.additionalSubmission;
-    const user = await UserModel.findByPk(`${userId}-${platform}`);
+    const user = await UserModel.findByPk(userId);
     if (!user || !user.accessToken) {
         throw `Cannot find user with id: ${userId}`;
     }

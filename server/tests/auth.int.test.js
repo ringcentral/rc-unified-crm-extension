@@ -2,7 +2,6 @@ const request = require('supertest');
 const { server } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const { UserModel } = require('../src/models/userModel');
-const ClientOAuth2 = require('client-oauth2');
 
 // create test data
 const userId = 'userId';
@@ -10,9 +9,6 @@ const unknownUserId = 'unknownUserId';
 const unknownJwt = 'unknownJwt;'
 const rcUserNumber = '+123456789';
 const unknownPhoneNumber = 'unknownPhoneNumber';
-const accessToken = 'accessToken';
-const refreshToken = 'refreshToken';
-const expires = new Date();
 
 describe('auth tests', () => {
     describe('oauth login', () => {

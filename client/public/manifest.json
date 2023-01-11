@@ -20,7 +20,8 @@
     {
       "matches": [
         "https://*.pipedrive.com/*",
-        "https://*.insightly.com/*"
+        "https://*.insightly.com/*",
+        "https://*.clio.com/*"
       ],
       "js": [
         "./c2d/index.js",
@@ -36,7 +37,8 @@
       ],
       "matches": [
         "https://*.pipedrive.com/*",
-        "https://*.insightly.com/*"
+        "https://*.insightly.com/*",
+        "https://*.clio.com/*"
       ]
     }
   ],

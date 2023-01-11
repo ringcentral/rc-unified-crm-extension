@@ -1,3 +1,5 @@
+import crypto from 'crypto-js';
+
 function secondsToHourMinuteSecondString(totalSeconds) {
     const hours = parseInt(totalSeconds / 3600);
     const hourString = hours === 0 ? '' : `${hours} hour(s)`;
@@ -34,7 +36,12 @@ function isObjectEmpty(obj) {
     return Object.keys(obj).length === 0 && obj.constructor === Object;
 }
 
+function getHash(input){
+    return crypto.SHA256(input, 'rc-crm-extension-hash-key').toString();
+}
+
 exports.secondsToHourMinuteSecondString = secondsToHourMinuteSecondString;
 exports.showNotification = showNotification;
 exports.responseMessage = responseMessage;
 exports.isObjectEmpty = isObjectEmpty;
+exports.getHash = getHash;
