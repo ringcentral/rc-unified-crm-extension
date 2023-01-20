@@ -123,7 +123,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 
 async function getContact({ user, authHeader, phoneNumber }) {
     const personInfo = await axios.get(
-        `https://${user.hostname}/contacts.json`,
+        `https://${user.hostname}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
         {
             headers: { 'Authorization': authHeader }
         });

@@ -82,7 +82,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             subject:`${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber})`, 
             body: `Duration: ${callLog.duration} secs\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
             type: 'PhoneCommunication',
-            date: moment(callLog.startTime).toISOString(),
+            received_at: moment(callLog.startTime).toISOString(),
             senders:[
                 {
                     id:contactInfo.id,
