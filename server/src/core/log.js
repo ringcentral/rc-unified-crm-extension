@@ -107,10 +107,9 @@ async function addMessageLog({ platform, userId, incomingData }) {
     return { successful: true, logIds };
 }
 
-async function getCallLog({ platform, sessionId }) {
+async function getCallLog({ sessionId }) {
     const callLog = await CallLogModel.findOne({
         where: {
-            platform,
             sessionId
         }
     });

@@ -146,8 +146,7 @@ app.get('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
-            const { platform } = jwt.decodeJwt(jwtToken);
-            const { successful, logId } = await getCallLog({ platform, sessionId: req.query.sessionId });
+            const { successful, logId } = await getCallLog({ sessionId: req.query.sessionId });
             res.status(200).send({ successful, logId });
         }
         else {

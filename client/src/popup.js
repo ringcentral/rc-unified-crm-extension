@@ -74,7 +74,7 @@ window.addEventListener('message', async (e) => {
           document.getElementById('rc-widget').style.zIndex = 0;
           const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
           if (!rcUnifiedCrmExtJwt) {
-            showNotification({ level: 'warning', message: 'Please authorize CRM platform account in User Settings.', ttl: 10000 });
+            showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
           }
           break;
         case 'rc-login-popup-notify':

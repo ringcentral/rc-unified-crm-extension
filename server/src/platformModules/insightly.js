@@ -88,7 +88,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         `${BASE_URL}/events/${addLogRes.data.EVENT_ID}/links`,
         {
             LINK_OBJECT_NAME: 'contact',
-            LINK_OBJECT_ID: contactInfo.CONTACT_ID
+            LINK_OBJECT_ID: contactInfo.id
         },
         {
             headers: { 'Authorization': authHeader }
@@ -114,7 +114,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         `${BASE_URL}/events/${addLogRes.data.EVENT_ID}/links`,
         {
             LINK_OBJECT_NAME: 'contact',
-            LINK_OBJECT_ID: contactInfo.CONTACT_ID
+            LINK_OBJECT_ID: contactInfo.id
         },
         {
             headers: { 'Authorization': authHeader }
