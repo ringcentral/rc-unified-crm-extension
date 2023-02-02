@@ -48,9 +48,12 @@ export default () => {
         }
         if (e.data.type === 'rc-expandable-call-note-terminate') {
             setIsInCall(false);
-            if (!isDrawerOpen && note !== '') {
+            if (!isDrawerOpen) {
                 setIsDrawerOpen(true);
             }
+        }
+        if (e.data.type === 'rc-expandable-call-note-clear') {
+            setIsOpen(false);
         }
     }
     useEffect(() => {

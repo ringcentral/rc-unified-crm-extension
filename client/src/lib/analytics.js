@@ -18,6 +18,15 @@ exports.identify = function identify({ platformName, accountId, extensionId }) {
     });
 }
 
+exports.group = function group({ platformName, accountId }) {
+    analytics.group(getHash(accountId), { crmPlatform: platformName }, {
+        integrations: {
+            All: true,
+            Mixpanel: true,
+        }
+    });
+}
+
 function track(event, properties = {}) {
     const trackProps = {
         appName: appName,

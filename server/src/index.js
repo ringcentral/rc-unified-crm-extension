@@ -21,7 +21,6 @@ const app = express();
 app.use(bodyParser.json())
 
 app.use(cors({
-    origin: ['chrome-extension://adlfdhlnnkokmmonfnapacebcldipebm'],
     methods: ['GET', 'POST']
 }));
 
@@ -69,6 +68,7 @@ app.post('/apiKeyLogin', async function (req, res) {
     try {
         const platform = req.body.platform;
         const apiKey = req.body.apiKey;
+        const hostname = req.body.hostname;
         const additionalInfo = req.body.additionalInfo;
         if (!platform) {
             throw 'missing platform name';
@@ -82,6 +82,7 @@ app.post('/apiKeyLogin', async function (req, res) {
         await platformModule.saveApiKeyUserInfo({
             id: userInfo.id,
             name: userInfo.name,
+            hostname,
             apiKey,
             additionalInfo,
             rcUserNumber: req.body.rcUserNumber.toString(),

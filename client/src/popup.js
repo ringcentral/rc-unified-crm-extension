@@ -8,6 +8,7 @@ const moment = require('moment');
 const {
   trackFirstTimeSetup,
   identify,
+  group,
   trackRcLogin,
   trackRcLogout,
   trackPlacedCall,
@@ -19,6 +20,7 @@ window.__ON_RC_POPUP_WINDOW = 1;
 
 let registered = false;
 let platform = null;
+let platformName = '';
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -35,7 +37,7 @@ window.addEventListener('message', async (e) => {
         case 'rc-adapter-pushAdapterState':
           if (!registered) {
             const platformInfo = await chrome.storage.local.get('platform-info');
-            const platformName = platformInfo['platform-info'].platformName;
+            platformName = platformInfo['platform-info'].platformName;
             platform = config.platforms[platformName];
             registered = true;
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
@@ -53,7 +55,7 @@ window.addEventListener('message', async (e) => {
           // get login status from widget
           console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber, data.contractedCountryCode);
           const platformInfo = await chrome.storage.local.get('platform-info');
-          const platformName = platformInfo['platform-info'].platformName;
+          platformName = platformInfo['platform-info'].platformName;
           let rcUserInfo = await chrome.storage.local.get('rcUserInfo');
           if (isObjectEmpty(rcUserInfo)) {
             const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
@@ -61,10 +63,12 @@ window.addEventListener('message', async (e) => {
             rcUserInfo = { rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
             await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
             identify({ platformName, accountId: rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
+            group({ platformName, accountId: rcUserInfo.rcAccountId });
             trackRcLogin();
           }
           else {
             identify({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcUserInfo.rcExtensionId });
+            group({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId });
           }
 
           if (!data.loggedIn) {
@@ -140,8 +144,6 @@ window.addEventListener('message', async (e) => {
             case '/contacts/match':
               noShowNotification = true;
               let matchedContacts = {};
-              const platformInfo = await chrome.storage.local.get('platform-info');
-              const platformName = platformInfo['platform-info'].platformName;
               for (const contactPhoneNumber of data.body.phoneNumbers) {
                 // query on 3rd party API to get the matched contact info and return
                 const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
@@ -176,6 +178,7 @@ window.addEventListener('message', async (e) => {
                   break;
                 }
               }
+              window.postMessage({ type: 'rc-expandable-call-note-clear' }, '*');
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
@@ -195,6 +198,7 @@ window.addEventListener('message', async (e) => {
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
+                  platform: platformName,
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
@@ -242,6 +246,7 @@ window.addEventListener('message', async (e) => {
                   // add your codes here to log call to your service
                   window.postMessage({
                     type: 'rc-log-modal',
+                    platform: platformName,
                     logProps: {
                       logType: 'Message',
                       logInfo: data.body.conversation,

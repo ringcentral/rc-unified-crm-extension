@@ -14,11 +14,13 @@ async function apiKeyLogin({ analytics, apiKey, apiUrl }) {
     try {
         const platformInfo = await chrome.storage.local.get('platform-info');
         const platformName = platformInfo['platform-info'].platformName;
+        const hostname = platformInfo['platform-info'].hostname;
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
         const rcUserNumber = rcUserInfo.rcUserNumber;
         const res = await axios.post(`${config.serverUrl}/apiKeyLogin?state=platform=${platformName}`, {
             apiKey,
             platform: platformName,
+            hostname,
             rcUserNumber,
             additionalInfo: {
                 apiUrl

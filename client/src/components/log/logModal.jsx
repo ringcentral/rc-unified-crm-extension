@@ -9,8 +9,8 @@ import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
-import config from '../../config.json';
 import PipedriveAdditionalForm from './PipedriveAdditionalForm';
+import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 
 const logEvents = [];
 
@@ -47,6 +47,7 @@ export default () => {
         width: '90%'
     }
 
+    const [platform, setPlatform] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [note, setNote] = useState('');
     const [logType, setLogType] = useState('');
@@ -65,10 +66,10 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        const { type, logProps, additionalLogInfo } = e.data
+        const { type, platform, logProps, additionalLogInfo } = e.data
         if (type === 'rc-log-modal') {
+            setPlatform(platform);
             logEvents.push({ type, logProps, additionalLogInfo });
-            setAdditionalFormInfo(additionalLogInfo);
             await setupModal();
             setLoading(false);
         }
@@ -87,6 +88,7 @@ export default () => {
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
+        setAdditionalFormInfo(logEvents[0].additionalLogInfo);
         switch (logEvents[0].logProps.logType) {
             case 'Call':
                 setDirection(` (${logEvents[0].logProps.logInfo.direction})`);
@@ -175,7 +177,12 @@ export default () => {
                             onChange={onChangeNote}
                             value={note}
                         ></RcTextarea>}
-                        {config.currentPlatform === 'pipedrive' && additionalFormInfo && <PipedriveAdditionalForm
+                        {platform === 'pipedrive' && additionalFormInfo && <PipedriveAdditionalForm
+                            additionalFormInfo={additionalFormInfo}
+                            setSubmission={setAdditionalSubmission}
+                            style={labelStyle}
+                        />}
+                        {platform === 'insightly' && additionalFormInfo && <InsightlyAdditionalForm
                             additionalFormInfo={additionalFormInfo}
                             setSubmission={setAdditionalSubmission}
                             style={labelStyle}
