@@ -147,8 +147,8 @@ app.get('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
-            const { successful, logId } = await getCallLog({ sessionId: req.query.sessionId });
-            res.status(200).send({ successful, logId });
+            const { successful, logs } = await getCallLog({ sessionIds: req.query.sessionIds });
+            res.status(200).send({ successful, logs });
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');

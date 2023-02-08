@@ -12,7 +12,7 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
             presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
-                setSubmission(selection);
+                setSubmission({ dealId: selection });
             }} />
     );
 }

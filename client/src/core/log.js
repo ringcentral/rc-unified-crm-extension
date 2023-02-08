@@ -42,17 +42,17 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
     }
 }
 
-async function checkLog({ logType, logId }) {
+async function checkLog({ logType, sessionIds }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
-                const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionId=${logId}`);
-                return { matched: callLogRes.data.successful, logId: callLogRes.data.logId };
+                const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionIds=${sessionIds}`);
+                return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
         }
     }
     else {
-        return { matched: false, message: 'Please go to Settings and authorize CRM platform' };
+        return { successful: false, message: 'Please go to Settings and authorize CRM platform' };
     }
 }
 

@@ -107,18 +107,18 @@ async function addMessageLog({ platform, userId, incomingData }) {
     return { successful: true, logIds };
 }
 
-async function getCallLog({ sessionId }) {
-    const callLog = await CallLogModel.findOne({
-        where: {
-            sessionId
-        }
-    });
-    if (callLog) {
-        return { successful: true, logId: callLog.thirdPartyLogId };
+async function getCallLog({ sessionIds }) {
+    const sessionIdsArray = sessionIds.split(',');
+    let logs = {};
+    for (const sessionId of sessionIdsArray) {
+        const callLog = await CallLogModel.findOne({
+            where: {
+                sessionId
+            }
+        });
+        logs[sessionId] = { matched: callLog != null };
     }
-    else {
-        return { successful: false };
-    }
+    return { successful: true, logs };
 }
 
 // async function getMessageLogs(platform, messageId) {

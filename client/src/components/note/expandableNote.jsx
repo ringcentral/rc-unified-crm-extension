@@ -32,7 +32,6 @@ export default () => {
 
     const [isOpen, setIsOpen] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [isInCall, setIsInCall] = useState(false);
     const [note, setNote] = useState('');
     const [sessionId, setSessionId] = useState('');
 
@@ -44,15 +43,9 @@ export default () => {
             setIsOpen(true);
             setNote('');
             setSessionId(e.data.sessionId);
-            setIsInCall(true);
         }
         if (e.data.type === 'rc-expandable-call-note-terminate') {
-            setIsInCall(false);
-            if (!isDrawerOpen) {
-                setIsDrawerOpen(true);
-            }
-        }
-        if (e.data.type === 'rc-expandable-call-note-clear') {
+            setIsDrawerOpen(false);
             setIsOpen(false);
         }
     }
@@ -63,16 +56,9 @@ export default () => {
         }
     }, [])
 
-    async function onSaveNote() {
-        if (!isInCall) {
-            await cacheCallNote({ sessionId, note });
-            setIsOpen(false);
-        }
-        setIsDrawerOpen(false);
-    }
-
     function onChangeNote(e) {
         setNote(e.target.value);
+        cacheCallNote({ sessionId, note: e.target.value });
     }
 
     return (
@@ -106,7 +92,7 @@ export default () => {
                                 style={buttonStyle}
                                 color='action.primary'
                                 variant='contained'
-                                onClick={onSaveNote}
+                                onClick={() => { setIsDrawerOpen(false) }}
                             />
                         </RcDrawer>
                     </div>

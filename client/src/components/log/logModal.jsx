@@ -177,12 +177,12 @@ export default () => {
                             onChange={onChangeNote}
                             value={note}
                         ></RcTextarea>}
-                        {platform === 'pipedrive' && additionalFormInfo && <PipedriveAdditionalForm
+                        {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 && <PipedriveAdditionalForm
                             additionalFormInfo={additionalFormInfo}
                             setSubmission={setAdditionalSubmission}
                             style={labelStyle}
                         />}
-                        {platform === 'insightly' && additionalFormInfo && <InsightlyAdditionalForm
+                        {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 && <InsightlyAdditionalForm
                             additionalFormInfo={additionalFormInfo}
                             setSubmission={setAdditionalSubmission}
                             style={labelStyle}

@@ -178,17 +178,16 @@ window.addEventListener('message', async (e) => {
                   break;
                 }
               }
-              window.postMessage({ type: 'rc-expandable-call-note-clear' }, '*');
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
-              const { matched: callLogMatched } = await checkLog({
+              const { callLogs: singleCallLog } = await checkLog({
                 logType: 'Call',
-                logId: data.body.call.sessionId
+                sessionIds: data.body.call.sessionId
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact, additionalLogInfo: callLogAdditionalInfo } = await getContact({ phoneNumber: contactPhoneNumber });
-              if (callLogMatched) {
+              if (singleCallLog[data.body.call.sessionId].matched) {
                 showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
               }
               else if (!callContactMatched) {
@@ -218,11 +217,18 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
-              for (const sessionId of data.body.sessionIds) {
-                const { matched, logId } = await checkLog({ logType: 'Call', logId: sessionId });
-                if (matched) {
-                  callLogMatchData[sessionId] = [{ id: logId, note: '' }];
+              const { successful, callLogs, message: checkLogMessage } = await checkLog({ logType: 'Call', sessionIds: data.body.sessionIds.toString() });
+              if (successful) {
+                for (const sessionId of data.body.sessionIds) {
+                  const correspondingLog = callLogs[sessionId];
+                  if (correspondingLog.matched) {
+                    callLogMatchData[sessionId] = [{ id: sessionId, note: '' }];
+                  }
                 }
+              }
+              else {
+                showNotification({ level: 'warning', message: checkLogMessage, ttl: 3000 });
+                break;
               }
               responseMessage(
                 data.requestId,

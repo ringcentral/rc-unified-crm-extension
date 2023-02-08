@@ -1,6 +1,6 @@
 {
-  "name": "RingCentral Unified CRM Extension",
-  "description": "A RingCentral Embeddable extension for CRMs",
+  "name": "RingCentral CRM Extension",
+  "description": "A RingCentral extension for CRM platforms",
   "version": "0.0.1",
   "permissions": [
     "storage",

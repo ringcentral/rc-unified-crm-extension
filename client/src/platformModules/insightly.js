@@ -1,5 +1,5 @@
 function getContactAdditionalInfo(contactRes) {
-    if (!contactRes.data.contact.links || contactRes.data.contact.links.length === 0) {
+    if (!contactRes.data.successful || !contactRes.data.contact.links || contactRes.data.contact.links.length === 0) {
         return [];
     }
     const additionalInfo = [];
@@ -11,7 +11,6 @@ function getContactAdditionalInfo(contactRes) {
             value: links.map(l => { return { id: l.id, title: l.name } })
         })
     }
-    console.log(additionalInfo);
     return additionalInfo;
 }
 

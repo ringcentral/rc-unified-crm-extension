@@ -114,7 +114,7 @@ describe('call&message log tests', () => {
             });
         });
         describe('get call log', () => {
-            test('existing call log - successful', async () => {
+            test('existing call log - matched', async () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
@@ -124,14 +124,15 @@ describe('call&message log tests', () => {
                     });
 
                     // Act
-                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionId=${sessionId}`)
+                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
+                    expect(res.body.logs[sessionId].matched).toEqual(true);
                 }
             });
-            test('unknown call log - unsuccessful', async () => {
+            test('unknown call log - not matched', async () => {
                 for (const platform of platforms) {
                     // Arrange
                     const jwtToken = jwt.generateJwt({
@@ -141,11 +142,31 @@ describe('call&message log tests', () => {
                     });
 
                     // Act
-                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionId=${unknownSessionId}`)
+                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.successful).toEqual(false);
+                    expect(res.body.successful).toEqual(true);
+                    expect(res.body.logs[unknownSessionId].matched).toEqual(false);
+                }
+            });
+            test('known and unknown call log - first matched and second not matched', async () => {
+                for (const platform of platforms) {
+                    // Arrange
+                    const jwtToken = jwt.generateJwt({
+                        id: `${userId}-${platform.name}`,
+                        rcUserNumber,
+                        platform: platform.name
+                    });
+
+                    // Act
+                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId},${unknownSessionId}`)
+
+                    // Assert
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(true);
+                    expect(res.body.logs[sessionId].matched).toEqual(true);
+                    expect(res.body.logs[unknownSessionId].matched).toEqual(false);
                 }
             });
         });
