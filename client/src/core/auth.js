@@ -56,14 +56,14 @@ async function onAuthCallback(callbackUri) {
 async function unAuthorize(rcUnifiedCrmExtJwt) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
-        await chrome.storage.local.remove('rcUnifiedCrmExtJwt');
-        setAuth(false);
         const platformInfo = await chrome.storage.local.get('platform-info');
         trackCrmLogout({ platform: platformInfo['platform-info'].platformName })
     }
     catch (e) {
         console.log(e);
     }
+    await chrome.storage.local.remove('rcUnifiedCrmExtJwt');
+    setAuth(false);
 }
 
 async function checkAuth() {
