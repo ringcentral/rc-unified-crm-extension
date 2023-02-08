@@ -71,23 +71,13 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+    const noteDetail = note ? `\n\nAgent notes: ${note}` : '';
+    const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         TITLE: `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        DETAILS: `This was a call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.\n${note}\n\n--- Added by RingCentral CRM Extension`,
+        DETAILS: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}\n\n--- Added by RingCentral CRM Extension`,
         START_DATE_UTC: moment(callLog.startTime).utc(),
-        END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds'),
-        CUSTOMFIELDS: [
-            {
-                FIELD_NAME: '[RC_CRM]Call Duration(s)',
-                FIELD_VALUE: callLog.duration
-            }
-        ]
-    }
-    if (callLog.recording) {
-        postBody.CUSTOMFIELDS.push({
-            FIELD_NAME: '[RC_CRM]Call Recording Link',
-            FIELD_VALUE: callLog.recording.link
-        });
+        END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
     const addLogRes = await axios.post(
         `${BASE_URL}/events`,
