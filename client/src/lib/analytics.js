@@ -6,7 +6,6 @@ const appName = 'RingCentral CRM Extension';
 
 exports.identify = function identify({ platformName, accountId, extensionId }) {
     const identifyTraits = {
-        appName: appName,
         crmPlatform: platformName,
         accountId: getHash(accountId)
     };
@@ -53,17 +52,108 @@ function page(name, properties = {}) {
 }
 
 
-exports.trackFirstTimeSetup = function trackFirstTimeSetup({ platform }) { track(`${appName} - First time setup`, { platform }); }
-exports.trackRcLogin = function trackRcLogin() { track('Login with RingCentral account', {}); }
-exports.trackRcLogout = function trackRcLogout() { track('Logout with RingCentral account', {}); }
-exports.trackCrmLogin = function trackCrmLogin({ platform }) { track('Login with CRM account', { platform }); }
-exports.trackCrmLogout = function trackCrmLogout({ platform }) { track('Logout with CRM account', { platform }); }
-exports.trackPlacedCall = function trackPlacedCall() { track('A new call placed', {}); }
-exports.trackAnsweredCall = function trackAnsweredCall() { track('A new call answered', {}); }
-exports.trackCallEnd = function trackCallEnd({ durationInSeconds }) { track('A call is ended', { durationInSeconds }); }
-exports.trackSentSMS = function trackSentSMS() { track('A new SMS sent'), {} }// TODO
-exports.trackSyncCallLog = function trackSyncCallLog({ hasNote }) { track('Sync call log', { hasNote }) }
-exports.trackSyncMessageLog = function trackSyncMessageLog() { track('Sync message log', {}) }
-exports.trackEditSettings = function trackEditSettings({ changedItem }) { track('Edit settings', { changedItem }) }// TODO
-exports.trackUpdateStatus = function trackUpdateStatus({ from, to }) { track('Update status', { from, to }) }// TODO
-exports.trackCreateMeeting = function trackCreateMeeting({ meetingType }) { track('Create meeting', { meetingType }) }// TODO
+exports.trackFirstTimeSetup = function trackFirstTimeSetup({ platformName }) {
+    track('First time setup', {
+        crmPlatform: platformName,
+        appName
+    });
+}
+exports.trackRcLogin = function trackRcLogin({ platformName, rcAccountId }) {
+    track('Login with RingCentral account', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+exports.trackRcLogout = function trackRcLogout({ platformName }) {
+    track('Logout with RingCentral account', {
+        crmPlatform: platformName,
+        appName
+    });
+}
+exports.trackCrmLogin = function trackCrmLogin({ platformName, rcAccountId }) {
+    track('Login with CRM account', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+exports.trackCrmLogout = function trackCrmLogout({ platformName, rcAccountId }) {
+    track('Logout with CRM account', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+exports.trackPlacedCall = function trackPlacedCall({ platformName, rcAccountId }) {
+    track('A new call placed', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+exports.trackAnsweredCall = function trackAnsweredCall({ platformName, rcAccountId }) {
+    track('A new call answered', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, rcAccountId }) {
+    track('A call is ended', {
+        durationInSeconds,
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    });
+}
+// TODO
+exports.trackSentSMS = function trackSentSMS({ platformName, rcAccountId }) {
+    track('A new SMS sent'), {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    }
+}
+exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, platformName, rcAccountId }) {
+    track('Sync call log', {
+        hasNote,
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    })
+}
+exports.trackSyncMessageLog = function trackSyncMessageLog({ platformName, rcAccountId }) {
+    track('Sync message log', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    })
+}
+// TODO
+exports.trackEditSettings = function trackEditSettings({ changedItem, platformName, rcAccountId }) {
+    track('Edit settings', {
+        changedItem,
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    })
+}
+// TODO
+exports.trackUpdateStatus = function trackUpdateStatus({ from, to, platformName, rcAccountId }) {
+    track('Update status', {
+        from, to,
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    })
+}
+// TODO
+exports.trackCreateMeeting = function trackCreateMeeting({ meetingType, platformName, rcAccountId }) {
+    track('Create meeting', {
+        meetingType,
+        crmPlatform: platformName,
+        appName,
+        rcAccountId: getHash(rcAccountId)
+    })
+}

@@ -7,6 +7,8 @@ import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
 async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    const platformInfo = await chrome.storage.local.get('platform-info');
+    const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
@@ -18,7 +20,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 }, '*');
                 if (addCallLogRes.data.successful) {
                     showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
-                    trackSyncCallLog({ hasNote: note !== '' });
+                    trackSyncCallLog({ hasNote: note !== '', platformName: platformInfo['platform-info'].platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId });
                 }
                 else {
                     showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
@@ -32,7 +34,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                         await chrome.storage.local.set(dataToLog);
                     }
                     showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
-                    trackSyncMessageLog();
+                    trackSyncMessageLog({ platformName: platformInfo['platform-info'].platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId });
                 }
                 break;
         }

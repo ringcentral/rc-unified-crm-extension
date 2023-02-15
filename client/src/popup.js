@@ -21,6 +21,7 @@ window.__ON_RC_POPUP_WINDOW = 1;
 let registered = false;
 let platform = null;
 let platformName = '';
+let rcUserInfo = {};
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -56,7 +57,7 @@ window.addEventListener('message', async (e) => {
           console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber, data.contractedCountryCode);
           const platformInfo = await chrome.storage.local.get('platform-info');
           platformName = platformInfo['platform-info'].platformName;
-          let rcUserInfo = await chrome.storage.local.get('rcUserInfo');
+          rcUserInfo = await chrome.storage.local.get('rcUserInfo');
           if (isObjectEmpty(rcUserInfo)) {
             const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
             const userInfoResponse = await getUserInfo(accessToken);
@@ -64,7 +65,7 @@ window.addEventListener('message', async (e) => {
             await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
             identify({ platformName, accountId: rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
             group({ platformName, accountId: rcUserInfo.rcAccountId });
-            trackRcLogin();
+            trackRcLogin({ platformName, rcAccountId: rcUserInfo.rcAccountId });
           }
           else {
             identify({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcUserInfo.rcExtensionId });
@@ -72,7 +73,7 @@ window.addEventListener('message', async (e) => {
           }
 
           if (!data.loggedIn) {
-            trackRcLogout();
+            trackRcLogout({ platformName });
           }
 
           document.getElementById('rc-widget').style.zIndex = 0;
@@ -92,17 +93,17 @@ window.addEventListener('message', async (e) => {
           });
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall();
+          trackPlacedCall({ platformName, rcAccountId: rcUserInfo.rcAccountId });
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall();
+            trackAnsweredCall({ platformName, rcAccountId: rcUserInfo.rcAccountId });
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
-          trackCallEnd({ durationInSeconds: data.call.duration });
+          trackCallEnd({ durationInSeconds: data.call.duration, platformName, rcAccountId: rcUserInfo.rcAccountId });
           break;
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -282,6 +283,16 @@ window.addEventListener('message', async (e) => {
                 }
               );
               break;
+            case '/feedback':
+              // response to widget
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-post-message-response',
+                responseId: data.requestId,
+                response: { data: 'ok' },
+              }, '*');
+              // add your codes here to show your feedback form
+              window.postMessage({ type: 'rc-feedback-open' }, '*');
+              break;
             default:
               break;
           }
@@ -346,18 +357,7 @@ function handleThirdPartyOAuthWindow(oAuthUri) {
 
 function getServiceConfig(serviceName) {
   const services = {
-    // settingsPath: '/settings',
-    // settings: [
-    //   {
-    //     name: 'Do not show create new contact form',
-    //     value: hideContactForm
-    //   }
-    // ],
     name: serviceName,
-    // // show contacts in ringcentral widgets
-    // contactsPath: '/contacts',
-    // contactIcon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png',
-    // contactSearchPath: '/contacts/search',
     contactMatchPath: '/contacts/match',
 
     // show auth/unauth button in ringcentral widgets
@@ -370,9 +370,10 @@ function getServiceConfig(serviceName) {
     callLoggerPath: '/callLogger',
     callLogEntityMatcherPath: '/callLogger/match',
 
-
     messageLoggerPath: '/messageLogger',
-    messageLogEntityMatcherPath: '/messageLogger/match'
+    messageLogEntityMatcherPath: '/messageLogger/match',
+
+    feedbackPath: '/feedback',
   }
   return services;
 }
