@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
@@ -15,6 +16,12 @@ async function initDB() {
     await CallLogModel.sync();
     await MessageLogModel.sync();
     console.log('db tables created');
+}
+
+function getHashValue(string, secretKey) {
+    return crypto.createHash('sha256').update(
+        `${string}:${secretKey}`
+    ).digest('hex');
 }
 
 const app = express();
@@ -126,6 +133,17 @@ app.post('/unAuthorize', async function (req, res) {
         res.status(400).send(e);
     }
 });
+app.get('/userInfoHash', async function (req, res) {
+    try {
+        const extensionId = getHashValue(req.query.extensionId, process.env.HASH_KEY);
+        const accountId = getHashValue(req.query.accountId, process.env.HASH_KEY);
+        res.status(200).send({ extensionId, accountId });
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+})
 app.get('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;

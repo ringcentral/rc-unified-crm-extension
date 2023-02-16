@@ -1,4 +1,3 @@
-import { getHash } from './util';
 import { AnalyticsBrowser } from '@segment/analytics-next'
 
 const analytics = AnalyticsBrowser.load({ writeKey: 'xlXnHES4XlHyloBQnzSDGRvq8axDmoi8' });
@@ -7,9 +6,9 @@ const appName = 'RingCentral CRM Extension';
 exports.identify = function identify({ platformName, accountId, extensionId }) {
     const identifyTraits = {
         crmPlatform: platformName,
-        accountId: getHash(accountId)
+        accountId
     };
-    analytics.identify(getHash(extensionId), identifyTraits, {
+    analytics.identify(extensionId, identifyTraits, {
         integrations: {
             All: true,
             Mixpanel: true,
@@ -18,7 +17,7 @@ exports.identify = function identify({ platformName, accountId, extensionId }) {
 }
 
 exports.group = function group({ platformName, accountId }) {
-    analytics.group(getHash(accountId), { crmPlatform: platformName }, {
+    analytics.group(accountId, { crmPlatform: platformName }, {
         integrations: {
             All: true,
             Mixpanel: true,
@@ -62,7 +61,7 @@ exports.trackRcLogin = function trackRcLogin({ platformName, rcAccountId }) {
     track('Login with RingCentral account', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 exports.trackRcLogout = function trackRcLogout({ platformName }) {
@@ -75,28 +74,28 @@ exports.trackCrmLogin = function trackCrmLogin({ platformName, rcAccountId }) {
     track('Login with CRM account', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 exports.trackCrmLogout = function trackCrmLogout({ platformName, rcAccountId }) {
     track('Logout with CRM account', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 exports.trackPlacedCall = function trackPlacedCall({ platformName, rcAccountId }) {
     track('A new call placed', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 exports.trackAnsweredCall = function trackAnsweredCall({ platformName, rcAccountId }) {
     track('A new call answered', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, rcAccountId }) {
@@ -104,7 +103,7 @@ exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, 
         durationInSeconds,
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     });
 }
 // TODO
@@ -112,7 +111,7 @@ exports.trackSentSMS = function trackSentSMS({ platformName, rcAccountId }) {
     track('A new SMS sent'), {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     }
 }
 exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, platformName, rcAccountId }) {
@@ -120,14 +119,14 @@ exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, platformName, rc
         hasNote,
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     })
 }
 exports.trackSyncMessageLog = function trackSyncMessageLog({ platformName, rcAccountId }) {
     track('Sync message log', {
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     })
 }
 // TODO
@@ -136,7 +135,7 @@ exports.trackEditSettings = function trackEditSettings({ changedItem, platformNa
         changedItem,
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     })
 }
 // TODO
@@ -145,7 +144,7 @@ exports.trackUpdateStatus = function trackUpdateStatus({ from, to, platformName,
         from, to,
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     })
 }
 // TODO
@@ -154,6 +153,6 @@ exports.trackCreateMeeting = function trackCreateMeeting({ meetingType, platform
         meetingType,
         crmPlatform: platformName,
         appName,
-        rcAccountId: getHash(rcAccountId)
+        rcAccountId
     })
 }
