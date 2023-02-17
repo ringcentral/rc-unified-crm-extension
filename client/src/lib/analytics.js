@@ -1,12 +1,15 @@
 import { AnalyticsBrowser } from '@segment/analytics-next'
+import manifest from '../../public/manifest.json';
 
 const analytics = AnalyticsBrowser.load({ writeKey: 'xlXnHES4XlHyloBQnzSDGRvq8axDmoi8' });
 const appName = 'RingCentral CRM Extension';
+const version = manifest.version;
 
-exports.identify = function identify({ platformName, accountId, extensionId }) {
+exports.identify = function identify({ platformName, rcAccountId, extensionId }) {
     const identifyTraits = {
         crmPlatform: platformName,
-        accountId
+        rcAccountId,
+        version
     };
     analytics.identify(extensionId, identifyTraits, {
         integrations: {
@@ -16,8 +19,11 @@ exports.identify = function identify({ platformName, accountId, extensionId }) {
     });
 }
 
-exports.group = function group({ platformName, accountId }) {
-    analytics.group(accountId, { crmPlatform: platformName }, {
+exports.group = function group({ platformName, rcAccountId }) {
+    analytics.group(rcAccountId, {
+        crmPlatform: platformName,
+        version
+    }, {
         integrations: {
             All: true,
             Mixpanel: true,
@@ -28,6 +34,7 @@ exports.group = function group({ platformName, accountId }) {
 function track(event, properties = {}) {
     const trackProps = {
         appName: appName,
+        version,
         ...properties,
     };
     analytics.track(event, trackProps, {
@@ -38,9 +45,10 @@ function track(event, properties = {}) {
     });
 }
 
-function page(name, properties = {}) {
+exports.trackPage = function page(name, properties = {}) {
     analytics.page(name, {
         appName: appName,
+        version,
         ...properties,
     }, {
         integrations: {
@@ -64,10 +72,11 @@ exports.trackRcLogin = function trackRcLogin({ platformName, rcAccountId }) {
         rcAccountId
     });
 }
-exports.trackRcLogout = function trackRcLogout({ platformName }) {
+exports.trackRcLogout = function trackRcLogout({ platformName, rcAccountId }) {
     track('Logout with RingCentral account', {
         crmPlatform: platformName,
-        appName
+        appName,
+        rcAccountId
     });
 }
 exports.trackCrmLogin = function trackCrmLogin({ platformName, rcAccountId }) {
@@ -106,13 +115,12 @@ exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, 
         rcAccountId
     });
 }
-// TODO
 exports.trackSentSMS = function trackSentSMS({ platformName, rcAccountId }) {
-    track('A new SMS sent'), {
+    track('A new SMS sent', {
         crmPlatform: platformName,
         appName,
         rcAccountId
-    }
+    });
 }
 exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, platformName, rcAccountId }) {
     track('Sync call log', {
@@ -129,28 +137,25 @@ exports.trackSyncMessageLog = function trackSyncMessageLog({ platformName, rcAcc
         rcAccountId
     })
 }
-// TODO
-exports.trackEditSettings = function trackEditSettings({ changedItem, platformName, rcAccountId }) {
+exports.trackEditSettings = function trackEditSettings({ changedItem, status, platformName, rcAccountId }) {
     track('Edit settings', {
         changedItem,
+        status,
         crmPlatform: platformName,
         appName,
         rcAccountId
     })
 }
-// TODO
-exports.trackUpdateStatus = function trackUpdateStatus({ from, to, platformName, rcAccountId }) {
+exports.trackUpdateStatus = function trackUpdateStatus({ presenceStatus, platformName, rcAccountId }) {
     track('Update status', {
-        from, to,
+        presenceStatus,
         crmPlatform: platformName,
         appName,
         rcAccountId
     })
 }
-// TODO
-exports.trackCreateMeeting = function trackCreateMeeting({ meetingType, platformName, rcAccountId }) {
+exports.trackCreateMeeting = function trackCreateMeeting({ platformName, rcAccountId }) {
     track('Create meeting', {
-        meetingType,
         crmPlatform: platformName,
         appName,
         rcAccountId

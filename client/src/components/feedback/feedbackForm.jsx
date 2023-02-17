@@ -14,7 +14,7 @@ export default () => {
         height: '100%',
         width: '100%',
         position: 'absolute',
-        zIndex: '10',
+        zIndex: '100000',
         background: 'rgb(255 255 255)',
         display: 'flex',
         justifyContent: 'flex-start',
@@ -43,6 +43,8 @@ export default () => {
     const [feedback, setFeedback] = useState('');
     const [recommend, setRecommend] = useState('');
     const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
+    const [userName, setUserName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
 
     async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -52,6 +54,8 @@ export default () => {
             setIsOpen(true);
             setFeedback('');
             setRecommend('');
+            setUserName(e.data.props.userName);
+            setUserEmail(e.data.props.userEmail);
         }
     }
     useEffect(() => {
@@ -76,7 +80,7 @@ export default () => {
 
     function onSubmission() {
         const feedbackText = encodeURIComponent(feedback);
-        const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${recommend}&entry.844920872=${feedbackText}`;
+        const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${recommend}&entry.844920872=${feedbackText}&entry.1467064016=${userName}&entry.1822789675=${userEmail}`;
         window.open(formUrl, '_blank');
         setIsOpen(false);
     }

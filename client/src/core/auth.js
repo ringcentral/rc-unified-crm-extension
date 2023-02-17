@@ -10,7 +10,7 @@ async function submitPlatformSelection(platform) {
 }
 
 // apiUrl only by Insightly
-async function apiKeyLogin({ analytics, apiKey, apiUrl }) {
+async function apiKeyLogin({ apiKey, apiUrl }) {
     try {
         const platformInfo = await chrome.storage.local.get('platform-info');
         const platformName = platformInfo['platform-info'].platformName;
@@ -56,8 +56,9 @@ async function onAuthCallback(callbackUri) {
 async function unAuthorize(rcUnifiedCrmExtJwt) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
+        const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
         const platformInfo = await chrome.storage.local.get('platform-info');
-        trackCrmLogout({ platform: platformInfo['platform-info'].platformName })
+        trackCrmLogout({ platform: platformInfo['platform-info'].platformName, rcAccountId: rcUserInfo.rcAccountId })
     }
     catch (e) {
         console.log(e);

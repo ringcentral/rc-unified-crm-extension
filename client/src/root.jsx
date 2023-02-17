@@ -9,10 +9,10 @@ import { RcThemeProvider } from '@ringcentral/juno';
 function App() {
     return (
         <RcThemeProvider>
-            <LogModal />
             <InsightlyAuth />
             <ExpandableNote />
             <FeedbackForm />
+            <LogModal />
         </RcThemeProvider>
     )
 }

@@ -9,11 +9,16 @@ const {
   trackFirstTimeSetup,
   identify,
   group,
+  trackPage,
   trackRcLogin,
   trackRcLogout,
   trackPlacedCall,
   trackAnsweredCall,
-  trackCallEnd
+  trackCallEnd,
+  trackUpdateStatus,
+  trackSentSMS,
+  trackCreateMeeting,
+  trackEditSettings
 } = require('./lib/analytics');
 
 window.__ON_RC_POPUP_WINDOW = 1;
@@ -57,29 +62,40 @@ window.addEventListener('message', async (e) => {
           console.log('rc-login-status-notify:', data.loggedIn, data.loginNumber, data.contractedCountryCode);
           const platformInfo = await chrome.storage.local.get('platform-info');
           platformName = platformInfo['platform-info'].platformName;
-          rcUserInfo = await chrome.storage.local.get('rcUserInfo');
-          if (isObjectEmpty(rcUserInfo)) {
-            const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
-            const userInfoResponse = await getUserInfo(accessToken);
-            rcUserInfo = { rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
-            await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-            identify({ platformName, accountId: rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
-            group({ platformName, accountId: rcUserInfo.rcAccountId });
-            trackRcLogin({ platformName, rcAccountId: rcUserInfo.rcAccountId });
+          rcUserInfo = (await chrome.storage.local.get('rcUserInfo')).rcUserInfo;
+          if (data.loggedIn) {
+            if (!rcUserInfo || isObjectEmpty(rcUserInfo)) {
+              const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
+              const userInfoResponse = await getUserInfo(accessToken);
+              rcUserInfo = { rcUserName: userInfoResponse.name, rcUserEmail: userInfoResponse.contact.email, rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
+              await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
+              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
+              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            }
+            else {
+              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
+              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            }
+            document.getElementById('rc-widget').style.zIndex = 0;
+            const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+            if (!rcUnifiedCrmExtJwt) {
+              showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
+            }
+          }
+
+          let { rcLoginStatus } = await chrome.storage.local.get('rcLoginStatus');
+          if (rcLoginStatus === false || !rcLoginStatus || isObjectEmpty(rcLoginStatus)) {
+            if (data.loggedIn) {
+              trackRcLogin({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              rcLoginStatus = true;
+              await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
+            }
           }
           else {
-            identify({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId, extensionId: rcUserInfo.rcUserInfo.rcExtensionId });
-            group({ platformName, accountId: rcUserInfo.rcUserInfo.rcAccountId });
-          }
-
-          if (!data.loggedIn) {
-            trackRcLogout({ platformName });
-          }
-
-          document.getElementById('rc-widget').style.zIndex = 0;
-          const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-          if (!rcUnifiedCrmExtJwt) {
-            showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
+            if (!data.loggedIn) {
+              trackRcLogout({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              rcLoginStatus = false;
+            }
           }
           break;
         case 'rc-login-popup-notify':
@@ -93,17 +109,18 @@ window.addEventListener('message', async (e) => {
           });
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall({ platformName, rcAccountId: rcUserInfo.rcAccountId });
+          trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall({ platformName, rcAccountId: rcUserInfo.rcAccountId });
+            trackAnsweredCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
-          trackCallEnd({ durationInSeconds: data.call.duration, platformName, rcAccountId: rcUserInfo.rcAccountId });
+          const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
+          trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -111,6 +128,35 @@ window.addEventListener('message', async (e) => {
           }
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
+          }
+          break;
+        case 'rc-adapter-syncPresence':
+          // get dndStatus, telephonyStatus, userStatus defined here https://developers.ringcentral.com/api-reference/Extension-Presence-Event
+          if (data.userStatus) {
+            if (data.dndStatus === 'DoNotAcceptAnyCalls') {
+              trackUpdateStatus({ presenceStatus: 'DND', platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            }
+            else {
+              trackUpdateStatus({ presenceStatus: data.userStatus, platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            }
+          }
+          break;
+        case 'rc-analytics-track':
+          switch (data.event) {
+            case 'SMS: SMS sent successfully':
+              trackSentSMS({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              break;
+            case 'Meeting Scheduled':
+              trackCreateMeeting({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              break;
+          }
+          break;
+        case 'rc-callLogger-auto-log-notify':
+          trackEditSettings({ changedItem: 'auto-call-log', platformName, status: data.autoLog, rcAccountId: rcUserInfo?.rcAccountId });
+          break;
+        case 'rc-route-changed-notify':
+          if (data.path !== '/') {
+            trackPage(data.path, { platformName, rcAccountId: rcUserInfo?.rcAccountId });
           }
           break;
         case 'rc-post-message-request':
@@ -291,7 +337,13 @@ window.addEventListener('message', async (e) => {
                 response: { data: 'ok' },
               }, '*');
               // add your codes here to show your feedback form
-              window.postMessage({ type: 'rc-feedback-open' }, '*');
+              window.postMessage({
+                type: 'rc-feedback-open',
+                props: {
+                  userName: rcUserInfo.rcUserName,
+                  userEmail: rcUserInfo.rcUserEmail
+                }
+              }, '*');
               break;
             default:
               break;

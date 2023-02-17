@@ -10,7 +10,7 @@ import { cacheCallNote } from '../../core/log';
 export default () => {
     const componentStyle = {
         position: 'relative',
-        zIndex: '10',
+        zIndex: '100000',
     }
     const drawerStyle = {
         display: 'flex',
