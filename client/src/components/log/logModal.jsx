@@ -19,7 +19,7 @@ export default () => {
         height: '100%',
         width: '100%',
         position: 'absolute',
-        zIndex: '100000',
+        zIndex: '100',
         background: 'rgb(255 255 255)',
         display: 'flex',
         justifyContent: 'flex-start',
@@ -145,7 +145,7 @@ export default () => {
 
     return (
         <div>
-            <RcLoading style={{ zIndex: '100001' }} loading={isLoading} />
+            <RcLoading loading={isLoading} />
             {
                 isOpen && (
                     <div style={modalStyle}>

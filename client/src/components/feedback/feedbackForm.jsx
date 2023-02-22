@@ -14,7 +14,7 @@ export default () => {
         height: '100%',
         width: '100%',
         position: 'absolute',
-        zIndex: '100000',
+        zIndex: '100',
         background: 'rgb(255 255 255)',
         display: 'flex',
         justifyContent: 'flex-start',
@@ -105,9 +105,9 @@ export default () => {
                                 disabled={!isSubmitEnabled}
                             />
                         </div>
-                        <RcTypography style={titleStyle} variant='title2' >Send us feedback </RcTypography>
-                        <RcTypography style={labelStyle} variant='caption1' >RingCentral CRM Extension is currently in beta and we welcome any and all feedback of any problems you may be experiencing, along with ideas and feature requests.</RcTypography>
-                        <RcTypography style={labelStyle} variant='body2'>Would you recommend RingCentral CRM Extension to your friends or colleagues?</RcTypography>
+                        <RcTypography style={titleStyle} variant='title2' >Send us your feedback</RcTypography>
+                        <RcTypography style={labelStyle} variant='caption1' >RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.</RcTypography>
+                        <RcTypography style={labelStyle} variant='body2'>Would you recommend this product to your friends or colleagues?</RcTypography>
 
                         <RcFormControl style={labelStyle}>
                             <RcRadioGroup row value={recommend} onChange={onChangeRecommend}>
@@ -116,7 +116,7 @@ export default () => {
                                 <RcRadio label="Maybe" value="Maybe" />
                             </RcRadioGroup>
                         </RcFormControl>
-                        <RcTypography style={labelStyle} variant='body2'>Please share any feedback in the space below.</RcTypography>
+                        <RcTypography style={labelStyle} variant='body2'>Please share your feedback in the space below.</RcTypography>
                         <RcTextarea
                             style={noteAreaStyle}
                             label='Feedback'

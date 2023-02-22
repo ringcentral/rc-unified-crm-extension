@@ -6,7 +6,7 @@ import inquirer from 'inquirer';
 
 const program = new Command();
 
-program.version(packageJson.version).description('RingCentral Unified CRM Extension');
+program.version(packageJson.version).description('RingCentral CRM Extension');
 
 program
     .command('release')

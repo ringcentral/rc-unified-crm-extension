@@ -4,8 +4,7 @@
   "description": "![image](https://user-images.githubusercontent.com/7036536/190325756-35ef367d-1557-4833-84aa-b09f5d6717ab.png)",
   "main": "background.js",
   "scripts": {
-    "build": "node ./build.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "node ./build.js"
   },
   "repository": {
     "type": "git",
