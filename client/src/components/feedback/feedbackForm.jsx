@@ -27,11 +27,21 @@ export default () => {
         width: '100%'
     }
     const titleStyle = {
-        margin: '0px auto 15px auto',
-        textAlign: 'center'
+        margin: '0px auto 10px auto',
+        color: '#2f2f2f',
+        fontSize: '20px',
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+    }
+    const subTitleStyle = {
+        margin: '0px 10px 5px 10px',
+        fontSize: '12px',
+        lineHeight: '15px',
+        color: '#2f2f2f'
     }
     const labelStyle = {
-        margin: '0px 10px 10px 10px'
+        margin: '0px 10px 5px 10px',
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+        fontSize: '14px'
     }
     const noteAreaStyle = {
         height: '300px',
@@ -94,20 +104,20 @@ export default () => {
                             <RcIconButton
                                 onClick={closeModal}
                                 symbol={ChevronLeft}
-                                size='xlarge'
+                                size='medium'
                                 color='action.primary'
                             />
                             <RcIconButton
                                 onClick={onSubmission}
                                 symbol={Check}
-                                size='xxlarge'
+                                size='large'
                                 color='action.primary'
                                 disabled={!isSubmitEnabled}
                             />
                         </div>
-                        <RcTypography style={titleStyle} variant='title2' >Send us your feedback</RcTypography>
-                        <RcTypography style={labelStyle} variant='caption1' >RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.</RcTypography>
-                        <RcTypography style={labelStyle} variant='body2'>Would you recommend this product to your friends or colleagues?</RcTypography>
+                        <RcTypography style={titleStyle} >Send us your feedback</RcTypography>
+                        <RcTypography style={subTitleStyle}  >RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.</RcTypography>
+                        <RcTypography style={labelStyle} >Would you recommend this product to your friends or colleagues?</RcTypography>
 
                         <RcFormControl style={labelStyle}>
                             <RcRadioGroup row value={recommend} onChange={onChangeRecommend}>
@@ -116,10 +126,9 @@ export default () => {
                                 <RcRadio label="Maybe" value="Maybe" />
                             </RcRadioGroup>
                         </RcFormControl>
-                        <RcTypography style={labelStyle} variant='body2'>Please share your feedback in the space below.</RcTypography>
+                        <RcTypography style={labelStyle} >Please share your feedback in the space below.</RcTypography>
                         <RcTextarea
                             style={noteAreaStyle}
-                            label='Feedback'
                             onChange={onChangeFeedback}
                             value={feedback}
                             size='large'

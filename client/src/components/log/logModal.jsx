@@ -2,7 +2,8 @@ import {
     RcTextarea,
     RcText,
     RcLoading,
-    RcIconButton
+    RcIconButton,
+    RcDivider
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
@@ -32,19 +33,36 @@ export default () => {
         width: '100%'
     }
     const titleStyle = {
-        margin: '0px auto 15px auto'
+        margin: '0px auto 5px auto',
+        color: '#2f2f2f',
+        fontSize: '20px'
+    }
+    const elementContainerStyle = {
+        padding: '2px 20px'
     }
     const labelStyle = {
-        marginLeft: '15px'
+        color: '#2f2f2f',
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+        fontSize: '13px'
     }
     const contentStyle = {
-        marginLeft: '25px',
-        marginBottom: '5px'
+        color: '#97979',
+        marginLeft: '15px',
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+        fontSize: '14px'
+    }
+    const dividerStyle = {
+        right: '4%',
+        margin: '0% 8%',
+        width: '92%'
     }
     const noteStyle = {
-        right: '5%',
-        margin: '0% 10%',
-        width: '90%'
+        right: '7%',
+        margin: '2% 14%',
+        width: '86%'
+    }
+    const buttonStyle = {
+        color: '#808080'
     }
 
     const [platform, setPlatform] = useState('');
@@ -153,40 +171,63 @@ export default () => {
                             <RcIconButton
                                 onClick={closeModal}
                                 symbol={ChevronLeft}
-                                size='xlarge'
-                                color='action.primary'
+                                size='medium'
+                                style={buttonStyle}
                             />
                             <RcIconButton
                                 onClick={onSubmission}
                                 symbol={Check}
-                                size='xxlarge'
-                                color='action.primary'
+                                size='large'
+                                style={buttonStyle}
                             /></div>
-                        <RcText style={titleStyle} variant='title2'>Sync {logType} Log</RcText>
-                        <RcText style={labelStyle} variant='caption2'>Phone No.:</RcText>
-                        <RcText style={contentStyle} variant='body1'>{phoneNumber}{direction}</RcText>
-                        <RcText style={labelStyle} variant='caption2'>Contact:</RcText>
-                        <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
-                        <RcText style={labelStyle} variant='caption2'>Time:</RcText>
-                        <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime}</RcText>
-                        {logType === 'Call' && <RcText style={labelStyle} variant='caption2'>Duration:</RcText>}
-                        {logType === 'Call' && <RcText style={contentStyle} variant='body1'>{duration}</RcText>}
-                        {logType === 'Call' && <RcTextarea
-                            style={noteStyle}
-                            label='Note'
-                            onChange={onChangeNote}
-                            value={note}
-                        ></RcTextarea>}
-                        {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 && <PipedriveAdditionalForm
-                            additionalFormInfo={additionalFormInfo}
-                            setSubmission={setAdditionalSubmission}
-                            style={labelStyle}
-                        />}
-                        {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 && <InsightlyAdditionalForm
-                            additionalFormInfo={additionalFormInfo}
-                            setSubmission={setAdditionalSubmission}
-                            style={labelStyle}
-                        />}
+                        <RcText style={titleStyle} >Sync {logType} Log</RcText>
+                        <div style={elementContainerStyle}>
+                            <RcText style={labelStyle} >Phone No.:</RcText>
+                            <RcText style={contentStyle} variant='body1'>{phoneNumber}{direction}</RcText>
+                        </div>
+                        <RcDivider style={dividerStyle} />
+                        <div style={elementContainerStyle}>
+                            <RcText style={labelStyle} >Contact:</RcText>
+                            <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
+                        </div>
+                        <RcDivider style={dividerStyle} />
+                        <div style={elementContainerStyle}>
+                            <RcText style={labelStyle} >Time:</RcText>
+                            <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime}</RcText>
+                        </div>
+                        <RcDivider style={dividerStyle} />
+                        {logType === 'Call' &&
+                            <div style={elementContainerStyle}>
+                                <RcText style={labelStyle} >Duration:</RcText>
+                                <RcText style={contentStyle} variant='body1'>{duration}</RcText>
+                            </div>
+                        }
+                        <RcDivider style={dividerStyle} />
+                        {logType === 'Call' &&
+                            <RcTextarea
+                                style={noteStyle}
+                                label='Note'
+                                onChange={onChangeNote}
+                                value={note}></RcTextarea>
+                        }
+                        {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            <div style={elementContainerStyle}>
+                                <PipedriveAdditionalForm
+                                    additionalFormInfo={additionalFormInfo}
+                                    setSubmission={setAdditionalSubmission}
+                                    style={labelStyle}
+                                />
+                            </div>
+                        }
+                        {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            <div style={elementContainerStyle}>
+                                <InsightlyAdditionalForm
+                                    additionalFormInfo={additionalFormInfo}
+                                    setSubmission={setAdditionalSubmission}
+                                    style={labelStyle}
+                                />
+                            </div>
+                        }
                     </div>
                 )
             }

@@ -5,16 +5,9 @@
   "permissions": [
     "storage",
     "alarms",
-    "identity",
-    "activeTab",
     "tabs",
     "background",
-    "tabCapture",
-    "unlimitedStorage",
-    "cookies"
-  ],
-  "host_permissions": [
-    "http://*/"
+    "unlimitedStorage"
   ],
   "content_scripts": [
     {
