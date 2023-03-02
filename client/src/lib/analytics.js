@@ -1,7 +1,7 @@
 import { AnalyticsBrowser } from '@segment/analytics-next'
 import manifest from '../../public/manifest.json';
 
-const analytics = AnalyticsBrowser.load({ writeKey: 'xlXnHES4XlHyloBQnzSDGRvq8axDmoi8' });
+const analytics = AnalyticsBrowser.load({ writeKey: '<your-segment-key>' });
 const appName = 'RingCentral CRM Extension';
 const version = manifest.version;
 

@@ -1,11 +1,11 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "",
     "platforms": {
         "pipedrive": {
             "name": "pipedrive",
             "authType": "oauth",
             "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
-            "clientId": "6c1976beeb0cb1b4"
+            "clientId": ""
         },
         "insightly": {
             "name": "insightly",
@@ -15,7 +15,7 @@
             "name": "clio",
             "authType": "oauth",
             "authUrl": "https://app.clio.com/oauth/authorize",
-            "clientId": "JxK4GglGRoZnWoKA4sSLoXa5PHA2E6Mjisv3iIMY"
+            "clientId": ""
         }
     }
 }
