@@ -309,6 +309,8 @@ window.addEventListener('message', async (e) => {
                     additionalLogInfo: messageLogAdditionalLogInfo
                   }, '*')
                 }
+              }
+              else {
                 showNotification({ level: 'warning', message: 'Message log already exists', ttl: 3000 });
               }
               // response to widget
