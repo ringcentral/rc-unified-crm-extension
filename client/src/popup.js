@@ -1,6 +1,6 @@
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
-const { getContact } = require('./core/contact');
+const { getContact, showIncomingCallContactInfo, showInCallContactInfo } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
@@ -27,6 +27,7 @@ let registered = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
+let incomingCallContactInfo = null;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -107,6 +108,7 @@ window.addEventListener('message', async (e) => {
           chrome.runtime.sendMessage({
             type: 'openPopupWindow'
           });
+          incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from });
           break;
         case 'rc-call-init-notify':
           trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
@@ -115,6 +117,7 @@ window.addEventListener('message', async (e) => {
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
             trackAnsweredCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
@@ -284,31 +287,32 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
+              const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
+              if (data.body.triggerType !== 'manual' && isToday) {
+                break;
+              }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const { matched: messageContactMatched, message: messageContactMatchMessage, contactInfo: messageMatchedContact, additionalLogInfo: messageLogAdditionalLogInfo } = await getContact({
                 phoneNumber: data.body.conversation.correspondents[0].phoneNumber
               });
               const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
-              const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
-              const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
               if (!messageContactMatched) {
                 showNotification({ level: 'warning', message: messageContactMatchMessage, ttl: 3000 });
               }
               else if (isObjectEmpty(existingMessageLog)) {
-                if (data.body.triggerType === 'manual') {
-                  // add your codes here to log call to your service
-                  window.postMessage({
-                    type: 'rc-log-modal',
-                    platform: platformName,
-                    logProps: {
-                      logType: 'Message',
-                      logInfo: data.body.conversation,
-                      contactName: messageMatchedContact.name,
-                      isToday
-                    },
-                    additionalLogInfo: messageLogAdditionalLogInfo
-                  }, '*')
-                }
+                // add your codes here to log call to your service
+                window.postMessage({
+                  type: 'rc-log-modal',
+                  platform: platformName,
+                  logProps: {
+                    logType: 'Message',
+                    logInfo: data.body.conversation,
+                    contactName: messageMatchedContact.name,
+                    isToday
+                  },
+                  additionalLogInfo: messageLogAdditionalLogInfo
+                }, '*');
               }
               else {
                 showNotification({ level: 'warning', message: 'Message log already exists', ttl: 3000 });

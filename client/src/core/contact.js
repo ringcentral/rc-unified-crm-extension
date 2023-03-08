@@ -17,6 +17,46 @@ async function getContact({ phoneNumber }) {
     }
 }
 
+// Hack: directly modify DOM element
+async function showIncomingCallContactInfo({ phoneNumber }) {
+    const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber });
+    if (contactMatched) {
+        const platformModule = await getModule();
+        const infoToShow = platformModule.getIncomingCallContactInfo(contactInfo);
+        const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.IncomingCallPanel_userInfo');
+        if (infoToShow.company) {
+            const companyDiv = document.createElement('div');
+            companyDiv.innerHTML = infoToShow.company;
+            companyDiv.style = 'font-size: 12px';
+            incomingCallUserPanelDOM.appendChild(companyDiv);
+        }
+        if (infoToShow.title) {
+            const titleDiv = document.createElement('div');
+            titleDiv.innerHTML = infoToShow.title;
+            titleDiv.style = 'font-size: 12px';
+            incomingCallUserPanelDOM.appendChild(titleDiv);
+        }
+        return infoToShow;
+    }
+    return null;
+}
+
+function showInCallContactInfo({ incomingCallContactInfo }) {
+    const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.ActiveCallPanel_userInfo');
+    if (incomingCallContactInfo.company) {
+        const companyDiv = document.createElement('div');
+        companyDiv.innerHTML = incomingCallContactInfo.company;
+        companyDiv.style = 'font-size: 12px';
+        incomingCallUserPanelDOM.appendChild(companyDiv);
+    }
+    if (incomingCallContactInfo.title) {
+        const titleDiv = document.createElement('div');
+        titleDiv.innerHTML = incomingCallContactInfo.title;
+        titleDiv.style = 'font-size: 12px';
+        incomingCallUserPanelDOM.appendChild(titleDiv);
+    }
+}
+
 async function getModule() {
     const platformInfo = await chrome.storage.local.get('platform-info');
     switch (platformInfo['platform-info'].platformName) {
@@ -30,3 +70,5 @@ async function getModule() {
 }
 
 exports.getContact = getContact;
+exports.showIncomingCallContactInfo = showIncomingCallContactInfo;
+exports.showInCallContactInfo = showInCallContactInfo;

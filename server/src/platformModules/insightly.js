@@ -221,6 +221,7 @@ function formatContact(rawContactInfo) {
         id: rawContactInfo.CONTACT_ID,
         name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
         phone: rawContactInfo.PHONE,
+        title: rawContactInfo.TITLE,
         links: rawContactInfo.linkData
     }
 }

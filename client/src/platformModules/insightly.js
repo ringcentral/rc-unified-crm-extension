@@ -14,4 +14,13 @@ function getContactAdditionalInfo(contactRes) {
     return additionalInfo;
 }
 
+function getIncomingCallContactInfo(contactInfo) {
+    const companyName = contactInfo.links.find(l => l.label === 'Organisation')?.name;
+    return {
+        company: companyName,
+        title: contactInfo.title
+    }
+}
+
 exports.getContactAdditionalInfo = getContactAdditionalInfo;
+exports.getIncomingCallContactInfo = getIncomingCallContactInfo;

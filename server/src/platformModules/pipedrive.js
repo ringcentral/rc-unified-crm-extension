@@ -149,6 +149,7 @@ function formatContact(rawContactInfo, relatedDeals) {
         id: rawContactInfo.id,
         name: rawContactInfo.name,
         phone: rawContactInfo.phones[0],
+        organization: rawContactInfo.organization.name,
         relatedDeals
     }
 }

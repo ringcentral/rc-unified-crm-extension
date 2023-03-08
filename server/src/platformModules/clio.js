@@ -113,7 +113,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 
 async function getContact({ user, authHeader, phoneNumber }) {
     const personInfo = await axios.get(
-        `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${phoneNumber}`,
+        `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${phoneNumber}&fields=id,name,title,company`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -125,6 +125,8 @@ async function getContact({ user, authHeader, phoneNumber }) {
         return {
             id: result.id,
             name: result.name,
+            title: result.title,
+            company: result.company.name,
             phone: phoneNumber
         }
     }
