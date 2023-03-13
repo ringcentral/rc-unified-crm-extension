@@ -1,7 +1,7 @@
 const { isObjectEmpty } = require('./lib/util');
 
 const apiConfig = {
-  clientId: '',
+  clientId: '3rJq9BxcTCm-I7CFcY19ew',
   server: 'https://platform.ringcentral.com',
   redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
 }
