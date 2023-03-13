@@ -122,7 +122,10 @@ describe('contact tests', () => {
                                 {
                                     item: {
                                         id: contactId,
-                                        phones: [phoneNumber]
+                                        phones: [phoneNumber],
+                                        organization: {
+                                            name: 'testOrganization'
+                                        }
                                     }
                                 }
                             ]

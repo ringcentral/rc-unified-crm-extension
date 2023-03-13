@@ -18,7 +18,7 @@ async function openPopupWindow() {
   }
   // const redirectUri = chrome.identity.getRedirectURL('redirect.html'); //  set this when oauth with chrome.identity.launchWebAuthFlow
   const redirectUri = apiConfig.redirectUri;
-  let popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${apiConfig.server}&redirectUri=${redirectUri}&enableAnalytics=1`;
+  let popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${apiConfig.server}&redirectUri=${redirectUri}&enableAnalytics=1&showSignUpButton=1`;
   if (apiConfig.clientId.length > 0) {
     popupUri = `${popupUri}&clientId=${apiConfig.clientId}`;
   }

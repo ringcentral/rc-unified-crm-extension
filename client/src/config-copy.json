@@ -17,5 +17,6 @@
             "authUrl": "https://app.clio.com/oauth/authorize",
             "clientId": ""
         }
-    }
+    },
+    "segmentKey": ""
 }
