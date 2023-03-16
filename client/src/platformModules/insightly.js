@@ -17,10 +17,16 @@ function getContactAdditionalInfo(contactRes) {
 function getIncomingCallContactInfo(contactInfo) {
     const companyName = contactInfo.links.find(l => l.label === 'Organisation')?.name;
     return {
+        id: contactInfo.id,
         company: companyName,
         title: contactInfo.title
     }
 }
 
+function openContactPage(hostname, id) {
+    window.open(`https://${hostname}/list/Contact/?blade=/details/contact/${id}`);
+}
+
 exports.getContactAdditionalInfo = getContactAdditionalInfo;
 exports.getIncomingCallContactInfo = getIncomingCallContactInfo;
+exports.openContactPage = openContactPage;

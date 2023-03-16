@@ -12,9 +12,15 @@ function getContactAdditionalInfo(contactRes){
 
 function getIncomingCallContactInfo(contactInfo) {
     return {
+        id: contactInfo.id,
         company: contactInfo.organization
     }
 }
 
+function openContactPage(hostname, id){
+    window.open(`https://${hostname}/person/${id}`);
+}
+
 exports.getContactAdditionalInfo = getContactAdditionalInfo;
 exports.getIncomingCallContactInfo = getIncomingCallContactInfo;
+exports.openContactPage = openContactPage;

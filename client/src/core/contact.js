@@ -57,6 +57,12 @@ function showInCallContactInfo({ incomingCallContactInfo }) {
     }
 }
 
+async function openContactPage({ incomingCallContactInfo }) {
+    const platformModule = await getModule();
+    const platformInfo = await chrome.storage.local.get('platform-info');
+    platformModule.openContactPage(platformInfo['platform-info'].hostname, incomingCallContactInfo.id);
+}
+
 async function getModule() {
     const platformInfo = await chrome.storage.local.get('platform-info');
     switch (platformInfo['platform-info'].platformName) {
@@ -72,3 +78,4 @@ async function getModule() {
 exports.getContact = getContact;
 exports.showIncomingCallContactInfo = showIncomingCallContactInfo;
 exports.showInCallContactInfo = showInCallContactInfo;
+exports.openContactPage = openContactPage;

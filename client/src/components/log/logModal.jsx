@@ -12,6 +12,7 @@ import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
 import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 import InsightlyAdditionalForm from './InsightlyAdditionalForm';
+import ClioAdditionalForm from './ClioAdditionalForm';
 
 const logEvents = [];
 
@@ -107,6 +108,7 @@ export default () => {
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
+        setAdditionalSubmission(null);
         switch (logEvents[0].logProps.logType) {
             case 'Call':
                 setDirection(` (${logEvents[0].logProps.logInfo.direction})`);
@@ -222,6 +224,15 @@ export default () => {
                         {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
                             <div style={elementContainerStyle}>
                                 <InsightlyAdditionalForm
+                                    additionalFormInfo={additionalFormInfo}
+                                    setSubmission={setAdditionalSubmission}
+                                    style={labelStyle}
+                                />
+                            </div>
+                        }
+                        {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            <div style={elementContainerStyle}>
+                                <ClioAdditionalForm
                                     additionalFormInfo={additionalFormInfo}
                                     setSubmission={setAdditionalSubmission}
                                     style={labelStyle}

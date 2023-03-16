@@ -1,6 +1,6 @@
 const auth = require('./core/auth');
 const { checkLog } = require('./core/log');
-const { getContact, showIncomingCallContactInfo, showInCallContactInfo } = require('./core/contact');
+const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
@@ -27,6 +27,7 @@ let registered = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
+let extensionUserSettings = null;
 let incomingCallContactInfo = null;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
@@ -42,6 +43,7 @@ window.addEventListener('message', async (e) => {
           }
           break;
         case 'rc-adapter-pushAdapterState':
+          extensionUserSettings = (await chrome.storage.local.get('extensionUserSettings')).extensionUserSettings;
           if (!registered) {
             const platformInfo = await chrome.storage.local.get('platform-info');
             platformName = platformInfo['platform-info'].platformName;
@@ -109,6 +111,9 @@ window.addEventListener('message', async (e) => {
             type: 'openPopupWindow'
           });
           incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from });
+          if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
+            openContactPage({ incomingCallContactInfo });
+          }
           break;
         case 'rc-call-init-notify':
           trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
@@ -351,6 +356,13 @@ window.addEventListener('message', async (e) => {
                 }
               }, '*');
               break;
+            case '/settings':
+              extensionUserSettings = data.body.settings;
+              await chrome.storage.local.set({ extensionUserSettings });
+              for (const setting of extensionUserSettings) {
+                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), platformName, status: setting.value, rcAccountId: rcUserInfo?.rcAccountId });
+              }
+              break;
             default:
               break;
           }
@@ -423,6 +435,7 @@ function getServiceConfig(serviceName) {
     authorizedTitle: 'Unauthorize',
     unauthorizedTitle: 'Authorize',
     authorized: false,
+    authorizedAccount: '',
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',
@@ -432,6 +445,8 @@ function getServiceConfig(serviceName) {
     messageLogEntityMatcherPath: '/messageLogger/match',
 
     feedbackPath: '/feedback',
+    settingsPath: '/settings',
+    settings: [{ name: 'Open contact web page from incoming call', value: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value }],
   }
   return services;
 }

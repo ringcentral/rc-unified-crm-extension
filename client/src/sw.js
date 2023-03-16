@@ -1,10 +1,6 @@
 const { isObjectEmpty } = require('./lib/util');
+const config = require('./config.json');
 
-const apiConfig = {
-  clientId: '3rJq9BxcTCm-I7CFcY19ew',
-  server: 'https://platform.ringcentral.com',
-  redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
-}
 async function openPopupWindow() {
   console.log('open popup');
   const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
@@ -17,11 +13,7 @@ async function openPopupWindow() {
     }
   }
   // const redirectUri = chrome.identity.getRedirectURL('redirect.html'); //  set this when oauth with chrome.identity.launchWebAuthFlow
-  const redirectUri = apiConfig.redirectUri;
-  let popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${apiConfig.server}&redirectUri=${redirectUri}&enableAnalytics=1&showSignUpButton=1`;
-  if (apiConfig.clientId.length > 0) {
-    popupUri = `${popupUri}&clientId=${apiConfig.clientId}`;
-  }
+  const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${config.rcServer}&redirectUri=${config.redirectUri}&enableAnalytics=1&showSignUpButton=1&clientId=${config.clientId}`;
   const popup = await chrome.windows.create({
     url: popupUri,
     type: 'popup',
@@ -77,7 +69,7 @@ chrome.alarms.onAlarm.addListener(async () => {
   }
   const loginWindowUrl = tabs[0].url
   console.log('loginWindowUrl', loginWindowUrl);
-  if (loginWindowUrl.indexOf(apiConfig.redirectUri) !== 0) {
+  if (loginWindowUrl.indexOf(config.redirectUri) !== 0) {
     chrome.alarms.create('oauthCheck', { when: Date.now() + 3000 });
     return;
   }

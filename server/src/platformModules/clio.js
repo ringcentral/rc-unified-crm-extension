@@ -78,29 +78,70 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const postBody = {
-        data:{
-            subject:`${callLog.direction} Call - ${callLog.from.name ?? callLog.fromName}(${callLog.from.phoneNumber}) to ${callLog.to.name ?? callLog.toName}(${callLog.to.phoneNumber})`, 
+        data: {
+            subject: `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
             body: `Duration: ${callLog.duration} secs\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
-            senders:[
+            senders: [
                 {
-                    id:contactInfo.id,
-                    type:'Contact'
+                    id: contactInfo.id,
+                    type: 'Contact'
                 }
             ],
-            receivers:[
+            receivers: [
                 {
-                    id:user.id,
-                    type:'User'
+                    id: user.id,
+                    type: 'User'
                 }
             ],
-            notification_event_subscribers:[
+            notification_event_subscribers: [
                 {
-                    user_id:user.id
+                    user_id: user.id
                 }
             ]
         }
+    }
+    if (additionalSubmission && additionalSubmission.matterId) {
+        postBody.data['matter'] = { id: additionalSubmission.matterId };
+    }
+    const addLogRes = await axios.post(
+        `https://${user.hostname}/api/v4/communications.json`,
+        postBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    return addLogRes.data.data.id;
+}
+
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+    const postBody = {
+        data: {
+            subject: `[SMS] ${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
+            body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
+            type: 'PhoneCommunication',
+            received_at: moment(message.creationTime).toISOString(),
+            senders: [
+                {
+                    id: contactInfo.id,
+                    type: 'Contact'
+                }
+            ],
+            receivers: [
+                {
+                    id: user.id,
+                    type: 'User'
+                }
+            ],
+            notification_event_subscribers: [
+                {
+                    user_id: user.id
+                }
+            ]
+        }
+    }
+    if (additionalSubmission && additionalSubmission.matterId) {
+        postBody.data['matter'] = { id: additionalSubmission.matterId };
     }
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v4/communications.json`,
@@ -122,12 +163,19 @@ async function getContact({ user, authHeader, phoneNumber }) {
     }
     else {
         let result = personInfo.data.data[0];
+        const matterInfo = await axios.get(
+            `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const matters = matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } });
         return {
             id: result.id,
             name: result.name,
             title: result.title,
             company: result.company.name,
-            phone: phoneNumber
+            phone: phoneNumber,
+            matters
         }
     }
 }
@@ -138,4 +186,5 @@ exports.getOauthInfo = getOauthInfo;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
+exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;

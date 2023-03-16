@@ -1,6 +1,6 @@
 {
     "name": "rc-unified-crm-extension",
-    "version": "0.4.4",
+    "version": "0.4.7",
     "description": "RingCentral Unified CRM Extension",
     "main": "index.js",
     "bin": {

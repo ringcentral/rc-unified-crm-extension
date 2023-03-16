@@ -18,5 +18,8 @@
             "clientId": ""
         }
     },
-    "segmentKey": ""
+    "segmentKey": "",
+    "clientId": "",
+    "rcServer": "https://platform.devtest.ringcentral.com",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
 }
