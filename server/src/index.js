@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const crypto = require('crypto');
 const bodyParser = require('body-parser')
@@ -36,6 +37,34 @@ app.get('/init-db', async (req, res) => {
     await initDB();
     res.send(`OK`);
 });
+app.get('/pipedrive-redirect', function (req, res) {
+    try {
+        res.sendFile(path.join(__dirname, 'pipedriveRedirect/redirect.html'));
+    }
+    catch (e) {
+        console.log(e);
+        res.status(500).send(e);
+    }
+})
+app.delete('/pipedrive-redirect', async function (req, res) {
+    try {
+        const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
+        if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
+            const platformModule = require(`./platformModules/pipedrive`);
+            await platformModule.unAuthorize({ id: req.body.user_id });
+            await UserModel.destroy({
+                where: {
+                    id: req.body.user_id,
+                    platform: 'pipedrive'
+                }
+            });
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(500).send(e);
+    }
+})
 app.get('/oauth-callback', async function (req, res) {
     try {
         const platform = req.query.state.split('platform=')[1];
@@ -109,11 +138,14 @@ app.post('/apiKeyLogin', async function (req, res) {
         res.status(400).send(e);
     }
 })
+
 app.post('/unAuthorize', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
+            const platformModule = require(`./platformModules/${unAuthData.platform}`);
+            await platformModule.unAuthorize({ id: unAuthData.id });
             const userToLogout = await UserModel.destroy({
                 where: {
                     id: unAuthData.id

@@ -70,6 +70,10 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
     }
 }
 
+async function unAuthorize({ id }) {
+
+}
+
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const noteDetail = note ? `\n\nAgent notes: ${note}` : '';
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
@@ -234,3 +238,4 @@ exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
+exports.unAuthorize = unAuthorize;

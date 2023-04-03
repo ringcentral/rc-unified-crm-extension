@@ -29,6 +29,7 @@ let platformName = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
+let pipedriveCallbackUri;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -72,6 +73,16 @@ window.addEventListener('message', async (e) => {
               const userInfoResponse = await getUserInfo(accessToken);
               rcUserInfo = { rcUserName: userInfoResponse.name, rcUserEmail: userInfoResponse.contact.email, rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
+              // Juuuuuust for Pipedrive
+              if (!!pipedriveCallbackUri) {
+                await auth.onAuthCallback(`${pipedriveCallbackUri}&state=platform=pipedrive`);
+                console.log('pipedriveAltAuthDone')
+                chrome.runtime.sendMessage(
+                  {
+                    type: 'pipedriveAltAuthDone'
+                  }
+                );
+              }
               identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
               group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
             }
@@ -379,6 +390,9 @@ window.addEventListener('message', async (e) => {
     else {
       console.error(e);
     }
+    if (e.response.status === 400) {
+      auth.setAuth(false);
+    }
     window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }
 });
@@ -390,6 +404,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         type: 'rc-adapter-authorization-code',
         callbackUri: request.callbackUri,
       }, '*');
+      if (!!request.pipedriveCallbackUri) {
+        pipedriveCallbackUri = request.pipedriveCallbackUri;
+      }
     }
     else if (request.platform === 'thirdParty') {
       auth.onAuthCallback(request.callbackUri);

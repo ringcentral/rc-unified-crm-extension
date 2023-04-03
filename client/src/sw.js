@@ -1,6 +1,9 @@
 const { isObjectEmpty } = require('./lib/util');
 const config = require('./config.json');
 
+let pipedriveCallbackUri;
+let pipedriveInstallationTabId;
+
 async function openPopupWindow() {
   console.log('open popup');
   const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
@@ -30,7 +33,7 @@ chrome.action.onClicked.addListener(async function (tab) {
   if (isObjectEmpty(platformInfo)) {
     const url = new URL(tab.url);
     let platformName = '';
-    const hostname = url.hostname;
+    let hostname = url.hostname;
     if (hostname.includes('pipedrive')) {
       platformName = 'pipedrive';
     }
@@ -39,6 +42,11 @@ chrome.action.onClicked.addListener(async function (tab) {
     }
     else if (hostname.includes('clio')) {
       platformName = 'clio';
+    }
+    else if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
+      platformName = 'pipedrive';
+      hostname = 'temp';
+      chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
     }
     else {
       return;
@@ -78,6 +86,7 @@ chrome.alarms.onAlarm.addListener(async () => {
     type: 'oauthCallBack',
     platform: loginWindowInfo.platform,
     callbackUri: loginWindowUrl,
+    pipedriveCallbackUri
   });
   await chrome.windows.remove(loginWindowInfo.id);
   await chrome.storage.local.remove('loginWindowInfo');
@@ -89,6 +98,22 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     "from the extension");
   if (request.type === "openPopupWindow") {
     openPopupWindow();
+    sendResponse({ result: 'ok' });
+    return;
+  }
+  if (request.type === "openPopupWindowWithPlatform") {
+    openPopupWindow();
+    chrome.tabs.sendMessage(sender.tab.id, { action: 'needCallbackUri' })
+    pipedriveInstallationTabId = sender.tab.id;
+    await chrome.storage.local.set({
+      ['platform-info']: { platformName: request.platform, hostname: request.hostname }
+    });
+    sendResponse({ result: 'ok' });
+    return;
+  }
+  if (request.type === 'pipedriveAltAuthDone') {
+    chrome.tabs.sendMessage(pipedriveInstallationTabId, { action: 'pipedriveAltAuthDone' });
+    console.log('pipedriveAltAuthDone')
     sendResponse({ result: 'ok' });
     return;
   }
@@ -128,5 +153,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   if (request.type === 'c2d' || request.type === 'c2sms') {
     openPopupWindow();
+  }
+  if (request.type === 'pipedriveCallbackUri') {
+    pipedriveCallbackUri = request.callbackUri;
   }
 });

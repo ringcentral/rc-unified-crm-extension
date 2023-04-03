@@ -76,6 +76,10 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
 }
 
 
+async function unAuthorize({ id }) {
+
+}
+
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const postBody = {
         data: {
@@ -188,3 +192,4 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
+exports.unAuthorize = unAuthorize;

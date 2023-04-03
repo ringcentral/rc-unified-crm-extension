@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
+const url = require('url');
 
 function getAuthType() {
     return 'oauth';
@@ -21,7 +22,7 @@ async function getUserInfo({ authHeader }) {
         headers: {
             'Authorization': authHeader
         }
-    });;
+    });
     return {
         id: userInfoResponse.data.data.id.toString(),
         name: userInfoResponse.data.data.name,
@@ -50,7 +51,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
         await existingUser.update(
             {
                 name,
-                hostname,
+                hostname: hostname == 'temp' ? `${additionalInfo.companyDomain}.pipedrive.com` : hostname,
                 timezoneName,
                 timezoneOffset,
                 accessToken,
@@ -65,7 +66,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
         await UserModel.create({
             id,
             name,
-            hostname,
+            hostname: hostname == 'temp' ? `${additionalInfo.companyDomain}.pipedrive.com` : hostname,
             timezoneName,
             timezoneOffset,
             platform: 'pipedrive',
@@ -76,6 +77,36 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             platformAdditionalInfo: additionalInfo
         });
     }
+}
+
+async function unAuthorize({ id }) {
+    const user = await UserModel.findOne(
+        {
+            where: {
+                id,
+                platform: 'pipedrive'
+            }
+        });
+    const revokeUrl = 'https://oauth.pipedrive.com/oauth/revoke';
+    const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
+    const refreshTokenParams = new url.URLSearchParams({
+        token: user.refreshToken
+    });
+    const refreshTokenRevokeRes = await axios.post(
+        revokeUrl,
+        refreshTokenParams,
+        {
+            headers: { 'Authorization': `Basic ${basicAuthHeader}` }
+        });
+    const accessTokenParams = new url.URLSearchParams({
+        token: user.accessToken
+    });
+    const accessTokenRevokeRes = await axios.post(
+        revokeUrl,
+        accessTokenParams,
+        {
+            headers: { 'Authorization': `Basic ${basicAuthHeader}` }
+        });
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
@@ -161,3 +192,4 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
+exports.unAuthorize = unAuthorize;

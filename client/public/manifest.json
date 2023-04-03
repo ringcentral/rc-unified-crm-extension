@@ -12,6 +12,8 @@
   "content_scripts": [
     {
       "matches": [
+        "https://*.ringcentral.com/*",
+        "https://*.ngrok.io/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*"
@@ -29,6 +31,8 @@
         "/c2d/*"
       ],
       "matches": [
+        "https://*.ringcentral.com/*",
+        "https://*.ngrok.io/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*"
