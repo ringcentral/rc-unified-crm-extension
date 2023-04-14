@@ -12,6 +12,7 @@ rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/lib`);
 rm('-rf', `${deployPath}/core`);
 rm('-rf', `${deployPath}/platformModules`);
+rm('-rf', `${deployPath}/pipedriveRedirect`);
 echo('building...');
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
 cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
@@ -22,6 +23,7 @@ cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 cp('-r', `${projectPath}/src/core`, `${deployPath}/core`);
 cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
 cp('-r', `${projectPath}/src/platformModules`, `${deployPath}/platformModules`);
+cp('-r', `${projectPath}/src/pipedriveRedirect`, `${deployPath}/pipedriveRedirect`);
 cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 
 echo('build done');

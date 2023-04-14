@@ -58,8 +58,14 @@ function showInCallContactInfo({ incomingCallContactInfo }) {
 }
 
 async function openContactPage({ incomingCallContactInfo }) {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const platformModule = await getModule();
-    const platformInfo = await chrome.storage.local.get('platform-info');
+    let platformInfo = await chrome.storage.local.get('platform-info');
+    if (platformInfo['platform-info'].hostname === 'temp') {
+        const hostnameRes = await axios.get(`${config.serverUrl}/hostname?jwtToken=${rcUnifiedCrmExtJwt}`);
+        platformInfo['platform-info'].hostname = hostnameRes.data;
+        await chrome.storage.local.set(platformInfo);
+    }
     platformModule.openContactPage(platformInfo['platform-info'].hostname, incomingCallContactInfo.id);
 }
 

@@ -2,6 +2,7 @@ const axios = require('axios');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const moment = require('moment');
+const url = require('url');
 
 function getAuthType() {
     return 'oauth';
@@ -77,7 +78,24 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
 
 
 async function unAuthorize({ id }) {
-
+    const user = await UserModel.findOne(
+        {
+            where: {
+                id,
+                platform: 'clio'
+            }
+        });
+    const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
+    const accessTokenParams = new url.URLSearchParams({
+        token: user.accessToken
+    });
+    const accessTokenRevokeRes = await axios.post(
+        revokeUrl,
+        accessTokenParams,
+        {
+            headers: { 'Authorization': `Bearer ${user.accessToken}` }
+        });
+    await user.destroy();
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {

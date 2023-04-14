@@ -1,10 +1,10 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "0.4.7",
+  "version": "0.4.9",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "ngrok": "ngrok http -region ap 6066 ",
+    "ngrok": "ngrok http 6066 ",
     "server": "node ./src/server.js",
     "start": "npm run server",
     "start-debug": "node --inspect ./src/server.js",

@@ -46,6 +46,31 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.status(500).send(e);
     }
 })
+app.get('/hostname', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findOne({
+                where: {
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
+                }
+            });
+            if (!!!user) {
+                res.status(400).send('unknown user');
+            }
+            res.status(200).send(user.hostname);
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(500).send(e);
+    }
+})
 app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
@@ -144,16 +169,18 @@ app.post('/unAuthorize', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            const platformModule = require(`./platformModules/${unAuthData.platform}`);
-            await platformModule.unAuthorize({ id: unAuthData.id });
-            const userToLogout = await UserModel.destroy({
+            const userToLogout = await UserModel.findOne({
                 where: {
-                    id: unAuthData.id
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
                 }
             });
-            if (userToLogout === 0) {
+            if (!!!userToLogout) {
                 res.status(400).send('unknown user');
+                return;
             }
+            const platformModule = require(`./platformModules/${unAuthData.platform}`);
+            await platformModule.unAuthorize({ id: unAuthData.id });
             res.status(200).send();
         }
         else {
