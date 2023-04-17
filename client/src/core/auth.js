@@ -70,6 +70,7 @@ async function unAuthorize(rcUnifiedCrmExtJwt) {
 async function checkAuth() {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     setAuth(!!rcUnifiedCrmExtJwt);
+    return !!rcUnifiedCrmExtJwt;
 }
 
 function setAuth(auth) {

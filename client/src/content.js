@@ -77,7 +77,7 @@ if (!window.location.hostname.includes('ringcentral')) {
 }
 
 if (window.location.pathname === '/pipedrive-redirect') {
-  chrome.runtime.sendMessage({ type: "openPopupWindowWithPlatform", platform: 'pipedrive', hostname: 'temp' });
+  chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
   const rcStepper = window.document.querySelector('#rc-stepper');
   rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account.';
 }

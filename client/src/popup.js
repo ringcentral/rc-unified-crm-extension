@@ -29,7 +29,6 @@ let platformName = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
-let pipedriveCallbackUri;
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -73,16 +72,6 @@ window.addEventListener('message', async (e) => {
               const userInfoResponse = await getUserInfo(accessToken);
               rcUserInfo = { rcUserName: userInfoResponse.name, rcUserEmail: userInfoResponse.contact.email, rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-              // Juuuuuust for Pipedrive
-              if (!!pipedriveCallbackUri) {
-                await auth.onAuthCallback(`${pipedriveCallbackUri}&state=platform=pipedrive`);
-                console.log('pipedriveAltAuthDone')
-                chrome.runtime.sendMessage(
-                  {
-                    type: 'pipedriveAltAuthDone'
-                  }
-                );
-              }
               identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
               group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
             }
@@ -92,7 +81,15 @@ window.addEventListener('message', async (e) => {
             }
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            if (!rcUnifiedCrmExtJwt) {
+            // Juuuuuust for Pipedrive
+            if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
+              chrome.runtime.sendMessage(
+                {
+                  type: 'popupWindowRequestPipedriveCallbackUri'
+                }
+              );
+            }
+            else if (!rcUnifiedCrmExtJwt) {
               showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
             }
           }
@@ -185,11 +182,17 @@ window.addEventListener('message', async (e) => {
               if (!rcUnifiedCrmExtJwt) {
                 switch (platform.authType) {
                   case 'oauth':
-                    const authUri = `${platform.authUrl}?` +
-                      `response_type=code` +
-                      `&client_id=${platform.clientId}` +
-                      `&state=platform=${platform.name}` +
-                      '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+                    let authUri;
+                    if (platformName === 'pipedrive') {
+                      authUri = config.platforms.pipedrive.redirectUri;
+                    }
+                    else {
+                      authUri = `${platform.authUrl}?` +
+                        `response_type=code` +
+                        `&client_id=${platform.clientId}` +
+                        `&state=platform=${platform.name}` +
+                        '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+                    }
                     handleThirdPartyOAuthWindow(authUri);
                     break;
                   case 'apiKey':
@@ -397,22 +400,29 @@ window.addEventListener('message', async (e) => {
   }
 });
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.type === 'oauthCallBack') {
     if (request.platform === 'rc') {
       document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
         type: 'rc-adapter-authorization-code',
         callbackUri: request.callbackUri,
       }, '*');
-      if (!!request.pipedriveCallbackUri) {
-        pipedriveCallbackUri = request.pipedriveCallbackUri;
-      }
     }
     else if (request.platform === 'thirdParty') {
       auth.onAuthCallback(request.callbackUri);
     }
     sendResponse({ result: 'ok' });
-  } else if (request.type === 'c2sms') {
+  }
+  else if (request.type === 'pipedriveCallbackUri') {
+    await auth.onAuthCallback(`${request.pipedriveCallbackUri}&state=platform=pipedrive`);
+    console.log('pipedriveAltAuthDone')
+    chrome.runtime.sendMessage(
+      {
+        type: 'pipedriveAltAuthDone'
+      }
+    );
+  }
+  else if (request.type === 'c2sms') {
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
       type: 'rc-adapter-new-sms',
       phoneNumber: request.phoneNumber,

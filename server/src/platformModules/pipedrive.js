@@ -107,6 +107,7 @@ async function unAuthorize({ id }) {
         {
             headers: { 'Authorization': `Basic ${basicAuthHeader}` }
         });
+    await user.destroy();
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {

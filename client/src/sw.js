@@ -1,9 +1,8 @@
 const { isObjectEmpty } = require('./lib/util');
 const config = require('./config.json');
 
-let pipedriveCallbackUri;
 let pipedriveInstallationTabId;
-
+let pipedriveCallbackUri;
 async function openPopupWindow() {
   console.log('open popup');
   const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
@@ -85,8 +84,7 @@ chrome.alarms.onAlarm.addListener(async () => {
   chrome.runtime.sendMessage({
     type: 'oauthCallBack',
     platform: loginWindowInfo.platform,
-    callbackUri: loginWindowUrl,
-    pipedriveCallbackUri
+    callbackUri: loginWindowUrl
   });
   await chrome.windows.remove(loginWindowInfo.id);
   await chrome.storage.local.remove('loginWindowInfo');
@@ -97,12 +95,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     "from a content script:" + sender.tab.url :
     "from the extension");
   if (request.type === "openPopupWindow") {
-    openPopupWindow();
+    await openPopupWindow();
     sendResponse({ result: 'ok' });
     return;
   }
-  if (request.type === "openPopupWindowWithPlatform") {
-    openPopupWindow();
+  if (request.type === "openPopupWindowOnPipedriveDirectPage") {
+    await openPopupWindow();
     chrome.tabs.sendMessage(sender.tab.id, { action: 'needCallbackUri' })
     pipedriveInstallationTabId = sender.tab.id;
     await chrome.storage.local.set({
@@ -110,6 +108,12 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     });
     sendResponse({ result: 'ok' });
     return;
+  }
+  if (request.type === "popupWindowRequestPipedriveCallbackUri") {
+    chrome.runtime.sendMessage({
+      type: 'pipedriveCallbackUri',
+      pipedriveCallbackUri
+    });
   }
   if (request.type === 'pipedriveAltAuthDone') {
     chrome.tabs.sendMessage(pipedriveInstallationTabId, { action: 'pipedriveAltAuthDone' });
@@ -152,9 +156,10 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     return;
   }
   if (request.type === 'c2d' || request.type === 'c2sms') {
-    openPopupWindow();
+    await openPopupWindow();
   }
   if (request.type === 'pipedriveCallbackUri') {
     pipedriveCallbackUri = request.callbackUri;
+    console.log('pipedrive callback uri: ', request.callbackUri)
   }
 });
