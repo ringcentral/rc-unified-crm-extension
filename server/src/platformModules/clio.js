@@ -102,7 +102,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const postBody = {
         data: {
             subject: `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-            body: `Duration: ${callLog.duration} secs\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
+            body: `\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
             senders: [
@@ -133,7 +133,24 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         {
             headers: { 'Authorization': authHeader }
         });
-    return addLogRes.data.data.id;
+    const communicationId = addLogRes.data.data.id;
+    const addTimerBody = {
+        data: {
+            communication: {
+                id: communicationId
+            },
+            quantity: callLog.duration,
+            date: moment(callLog.startTime).toISOString(),
+            type: 'TimeEntry'
+        }
+    }
+    const addTimerRes = await axios.post(
+        `https://${user.hostname}/api/v4/activities.json`,
+        addTimerBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    return communicationId;
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
