@@ -47,6 +47,9 @@ function track(event, properties = {}) {
 }
 
 exports.trackPage = function page(name, properties = {}) {
+    if (name.startsWith('/calls/active/')) {
+        name = '/calls/active/:callId';
+    }
     analytics.page(name, {
         appName: appName,
         version,
