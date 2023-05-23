@@ -47,19 +47,25 @@ function track(event, properties = {}) {
 }
 
 exports.trackPage = function page(name, properties = {}) {
-    if (name.startsWith('/calls/active/')) {
-        name = '/calls/active/:callId';
+    try {
+        const pathSegments = name.split('/');
+        const rootPath = `/${pathSegments[1]}`;
+        const childPath = name.split(rootPath)[1];
+        analytics.page(rootPath, {
+            appName: appName,
+            version,
+            childPath,
+            ...properties,
+        }, {
+            integrations: {
+                All: true,
+                Mixpanel: true,
+            },
+        });
     }
-    analytics.page(name, {
-        appName: appName,
-        version,
-        ...properties,
-    }, {
-        integrations: {
-            All: true,
-            Mixpanel: true,
-        },
-    });
+    catch (e) {
+        console.log(e)
+    }
 }
 
 

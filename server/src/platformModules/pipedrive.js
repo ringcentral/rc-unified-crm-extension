@@ -3,6 +3,7 @@ const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const url = require('url');
+const { phone } = require('phone');
 
 function getAuthType() {
     return 'oauth';
@@ -110,7 +111,7 @@ async function unAuthorize({ id }) {
     await user.destroy();
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
@@ -120,7 +121,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by <a href="https://github.com/ringcentral/rc-unified-crm-extension">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by <a href="https://github.com/ringcentral/rc-unified-crm-extension">RingCentral CRM Extension</a></span></em></p>`,
         done: true
     }
     const addLogRes = await axios.post(
@@ -132,7 +133,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.data.id;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
@@ -141,7 +142,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}`,
+        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}`,
         done: true
     }
     const addLogRes = await axios.post(
@@ -154,8 +155,13 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 async function getContact({ user, authHeader, phoneNumber }) {
+    const phoneNumberObj = phone(phoneNumber);
+    let phoneNumberWithoutCountryCode = phoneNumber;
+    if (phoneNumberObj.isValid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.phoneNumber.split(phoneNumberObj.countryCode)[1];
+    }
     const personInfo = await axios.get(
-        `https://${user.hostname}/v1/persons/search?term=${phoneNumber}&fields=phone&limit=1`,
+        `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone&limit=1`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -181,7 +187,7 @@ function formatContact(rawContactInfo, relatedDeals) {
         id: rawContactInfo.id,
         name: rawContactInfo.name,
         phone: rawContactInfo.phones[0],
-        organization: rawContactInfo.organization.name,
+        organization: rawContactInfo.organization?.name ?? '',
         relatedDeals
     }
 }

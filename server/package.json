@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
     "pg": "^8.8.0",
+    "phone": "^3.1.37",
     "sequelize": "^6.25.0",
     "serverless-http": "^3.0.3",
     "shortid": "^2.2.16"

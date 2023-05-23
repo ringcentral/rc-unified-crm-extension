@@ -35,7 +35,7 @@ async function addCallLog({ platform, userId, incomingData }) {
     if (contactInfo == null) {
         throw `Contact not found for number ${contactNumber}`;
     }
-    const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
+    const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset, contactNumber });
     await CallLogModel.create({
         id: incomingData.logInfo.id,
         sessionId: incomingData.logInfo.sessionId,
