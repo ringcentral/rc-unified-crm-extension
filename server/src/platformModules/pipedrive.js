@@ -3,7 +3,7 @@ const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const url = require('url');
-const { phone } = require('phone');
+const { parsePhoneNumber } = require('awesome-phonenumber');
 
 function getAuthType() {
     return 'oauth';
@@ -155,10 +155,11 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 async function getContact({ user, authHeader, phoneNumber }) {
-    const phoneNumberObj = phone(phoneNumber);
+    phoneNumber = phoneNumber.replace(' ', '+')
+    const phoneNumberObj = parsePhoneNumber(phoneNumber);
     let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.isValid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.phoneNumber.split(phoneNumberObj.countryCode)[1];
+    if (phoneNumberObj.valid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
     const personInfo = await axios.get(
         `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone&limit=1`,
