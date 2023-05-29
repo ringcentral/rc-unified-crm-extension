@@ -156,6 +156,10 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 
 async function getContact({ user, authHeader, phoneNumber }) {
     phoneNumber = phoneNumber.replace(' ', '+')
+    // without + is an extension, we don't want to search for that
+    if (!phoneNumber.includes('+')) {
+        return null;
+    }
     const phoneNumberObj = parsePhoneNumber(phoneNumber);
     let phoneNumberWithoutCountryCode = phoneNumber;
     if (phoneNumberObj.valid) {
