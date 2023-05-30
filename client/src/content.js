@@ -1,30 +1,45 @@
+import LibPhoneNumberMatcher from './lib/LibPhoneNumberMatcher'
+import RangeObserver from './lib/RangeObserver'
+
 console.log('import content js to web page');
 
-let callbackUri;
+async function initializeC2D() {
+  const countryCode = await chrome.storage.local.get(
+    { selectedRegion: 'US' }
+  );
 
-window.clickToDialInject = new window.RingCentralC2D();
-window.clickToDialInject.on(
-  window.RingCentralC2D.events.call,
-  function (phoneNumber) {
-    console.log('Click To Dial:', phoneNumber);
-    // alert('Click To Dial:' + phoneNumber);
-    chrome.runtime.sendMessage({
-      type: 'c2d',
-      phoneNumber,
-    });
-  },
-);
-window.clickToDialInject.on(
-  window.RingCentralC2D.events.text,
-  function (phoneNumber) {
-    console.log('Click To SMS:', phoneNumber);
-    // alert('Click To SMS:' + phoneNumber);
-    chrome.runtime.sendMessage({
-      type: 'c2sms',
-      phoneNumber,
-    });
-  },
-);
+  window.clickToDialInject = new window.RingCentralC2D({
+    observer: new RangeObserver({
+      matcher: new LibPhoneNumberMatcher({
+        countryCode: countryCode.selectedRegion
+      })
+    })
+  });
+
+  window.clickToDialInject.on(
+    window.RingCentralC2D.events.call,
+    function (phoneNumber) {
+      console.log('Click To Dial:', phoneNumber);
+      // alert('Click To Dial:' + phoneNumber);
+      chrome.runtime.sendMessage({
+        type: 'c2d',
+        phoneNumber,
+      });
+    },
+  );
+  window.clickToDialInject.on(
+    window.RingCentralC2D.events.text,
+    function (phoneNumber) {
+      console.log('Click To SMS:', phoneNumber);
+      // alert('Click To SMS:' + phoneNumber);
+      chrome.runtime.sendMessage({
+        type: 'c2sms',
+        phoneNumber,
+      });
+    },
+  );
+}
+initializeC2D();
 
 // Listen message from background.js to open app window when user click icon.
 chrome.runtime.onMessage.addListener(

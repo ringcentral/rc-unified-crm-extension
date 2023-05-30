@@ -11,8 +11,9 @@ const contactId = 'contactId';
 const unknownJwt = 'unknownJwt;'
 const rcUserNumber = '+123456789';
 const accessToken = 'accessToken';
-const phoneNumber = 'phoneNumber';
-const unknownPhoneNumber = 'unknownPhoneNumber';;
+const phoneNumber = '+17206789819';
+const unknownPhoneNumber = '+17206789820';
+const extensionNumber = '224';
 
 beforeAll(async () => {
     for (const platform of platforms) {
@@ -85,7 +86,7 @@ describe('contact tests', () => {
                     platform: platform.name
                 });
                 const platformGetContactScope = nock(platform.domain)
-                    .get(`${platform.contactPath}/search?term=${unknownPhoneNumber}&fields=phone&limit=1`)
+                    .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                     .once()
                     .reply(200, {
                         data: {
@@ -99,10 +100,28 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber}. Please create a contact.`);
+                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber.replace('+', ' ')}. Please create a contact.`);
 
                 // Clean up
                 platformGetContactScope.done();
+            }
+        });
+        test('contact with just extension number - unsuccessful', async () => {
+            for (const platform of platforms) {
+                // Arrange
+                const jwtToken = jwt.generateJwt({
+                    id: `${userId}-${platform.name}`,
+                    rcUserNumber,
+                    platform: platform.name
+                });
+
+                // Act
+                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${extensionNumber}`);
+
+                // Assert
+                expect(res.status).toEqual(200);
+                expect(res.body.successful).toEqual(false);
+                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${extensionNumber}. Please create a contact.`);
             }
         });
         test('known contact - successful', async () => {
@@ -114,7 +133,7 @@ describe('contact tests', () => {
                     platform: platform.name
                 });
                 const platformGetContactScope = nock(platform.domain)
-                    .get(`${platform.contactPath}/search?term=${phoneNumber}&fields=phone&limit=1`)
+                    .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                     .once()
                     .reply(200, {
                         data: {

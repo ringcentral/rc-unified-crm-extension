@@ -214,6 +214,10 @@ window.addEventListener('message', async (e) => {
               noShowNotification = true;
               let matchedContacts = {};
               for (const contactPhoneNumber of data.body.phoneNumbers) {
+                // skip contact with just extension number
+                if (!contactPhoneNumber.startsWith('+')) {
+                  continue;
+                }
                 // query on 3rd party API to get the matched contact info and return
                 const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
                 if (contactMatched) {

@@ -20,8 +20,8 @@ const unknownThirdPartyLogId = 'unknownThirdPartyLogId';
 const sessionId = 'sessionId';
 const unknownSessionId = 'unknownSessionId';
 const accessToken = 'accessToken';
-const phoneNumber = 'phoneNumber';
-const unknownPhoneNumber = 'unknownPhoneNumber';
+const phoneNumber = '+17206789819';
+const unknownPhoneNumber = '+17206789820';
 const messageLogId = 'messageLogId';
 const unknownMessageLogId = 'unknownMessageLogId';
 const conversationId = 'conversationId';
@@ -238,7 +238,7 @@ describe('call&message log tests', () => {
                         }
                     };
                     const platformGetContactScope = nock(platform.domain)
-                        .get(`${platform.contactPath}/search?term=${unknownPhoneNumber}&fields=phone&limit=1`)
+                        .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                         .once()
                         .reply(200, {
                             data: {
@@ -287,7 +287,7 @@ describe('call&message log tests', () => {
                         }
                     };
                     const platformGetContactScope = nock(platform.domain)
-                        .get(`${platform.contactPath}/search?term=${phoneNumber}&fields=phone&limit=1`)
+                        .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                         .once()
                         .reply(200, {
                             data: {
@@ -445,7 +445,7 @@ describe('call&message log tests', () => {
                     };
 
                     const platformGetContactScope = nock(platform.domain)
-                        .get(`${platform.contactPath}/search?term=${unknownPhoneNumber}&fields=phone&limit=1`)
+                        .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                         .once()
                         .reply(200, {
                             data: {
@@ -496,7 +496,7 @@ describe('call&message log tests', () => {
                         }
                     };
                     const platformGetContactScope = nock(platform.domain)
-                        .get(`${platform.contactPath}/search?term=${phoneNumber}&fields=phone&limit=1`)
+                        .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone&limit=1`)
                         .once()
                         .reply(200, {
                             data: {
