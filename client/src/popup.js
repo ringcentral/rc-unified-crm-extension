@@ -36,6 +36,15 @@ window.addEventListener('message', async (e) => {
   try {
     if (data) {
       switch (data.type) {
+        case 'rc-region-settings-notify':
+          // get region settings from widget
+          console.log('rc-region-settings-notify:', data);
+          if (data.countryCode) {
+            await chrome.storage.local.set(
+              { selectedRegion: data.countryCode }
+            )
+          }
+          break;
         case 'rc-webphone-connection-status-notify':
           // get call on active call updated event
           if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
