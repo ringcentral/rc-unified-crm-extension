@@ -181,7 +181,29 @@ window.addEventListener('message', async (e) => {
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
-            trackPage(data.path, { platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            trackPage(data.path, { crmPlatform: platformName, rcAccountId: rcUserInfo?.rcAccountId });
+          }
+          // Hack: inject a button to open sms template
+          if (data.path.includes('/conversations/')) {
+            const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
+            const buttonContainer = contentDocument.querySelector('.MessageInput_supportAttachment');
+            const textField = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_textField');
+            const attachmentButton = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_attachmentIcon');
+            textField.style.marginLeft = '60px';
+            const newButtonParent = attachmentButton.cloneNode(true);
+            buttonContainer.appendChild(newButtonParent);
+            newButtonParent.style.left = '30px';
+            newButton = newButtonParent.querySelector('button');
+            newButton.removeChild(newButton.querySelector('.attachment'))
+            const newIconStylesheetLink = contentDocument.createElement('link')
+            newIconStylesheetLink.rel = "stylesheet";
+            newIconStylesheetLink.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0";
+            newButton.appendChild(newIconStylesheetLink);
+            const newIconSpan = contentDocument.createElement('span');
+            newIconSpan.className = "material-symbols-outlined";
+            newIconSpan.innerText = "edit_note";
+            newButton.appendChild(newIconSpan);
+            newButton.onclick = () => { console.log('open sms template') }
           }
           break;
         case 'rc-post-message-request':
