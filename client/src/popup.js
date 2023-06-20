@@ -203,7 +203,12 @@ window.addEventListener('message', async (e) => {
             newIconSpan.className = "material-symbols-outlined";
             newIconSpan.innerText = "edit_note";
             newButton.appendChild(newIconSpan);
-            newButton.onclick = () => { console.log('open sms template') }
+            // TODO: delete mock data
+            newButton.onclick = () => {
+              window.postMessage({
+                type: 'rc-select-sms-template'
+              }, '*');
+            }
           }
           break;
         case 'rc-post-message-request':

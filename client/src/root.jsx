@@ -4,6 +4,7 @@ import LogModal from './components/log/logModal';
 import ExpandableNote from './components/note/expandableNote';
 import FeedbackForm from './components/feedback/feedbackForm';
 import InsightlyAuth from './components/auth/insightlyAuth';
+import SMSTemplate from './components/smsTemplate';
 import { RcThemeProvider } from '@ringcentral/juno';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
             <ExpandableNote />
             <FeedbackForm />
             <LogModal />
+            <SMSTemplate />
         </RcThemeProvider>
     )
 }
