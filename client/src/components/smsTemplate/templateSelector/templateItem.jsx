@@ -17,10 +17,26 @@ export default ({
     const [showEdit, setShowEdit] = useState(false);
     const [opacity, setOpacity] = useState(1);
 
+    // https://stackoverflow.com/questions/33063418/simulate-keyboard-input-insert-string-into-textarea-adwords
+    function setNativeValue(element, value) {
+        const { set: valueSetter } = Object.getOwnPropertyDescriptor(element, 'value') || {}
+        const prototype = Object.getPrototypeOf(element)
+        const { set: prototypeValueSetter } = Object.getOwnPropertyDescriptor(prototype, 'value') || {}
+
+        if (prototypeValueSetter && valueSetter !== prototypeValueSetter) {
+            prototypeValueSetter.call(element, value)
+        } else if (valueSetter) {
+            valueSetter.call(element, value)
+        } else {
+            throw new Error('The given element does not have a value setter')
+        }
+    }
+
     function applyMessage(e) {
         const message = e.target.getAttribute('value');
         const textArea = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.MessageInput_textField > textarea');
-        textArea.value = message;
+        setNativeValue(textArea, message);
+        textArea.dispatchEvent(new Event('input', { bubbles: true }))  // to mimic user type event
         setIsOpen(false);
     }
 

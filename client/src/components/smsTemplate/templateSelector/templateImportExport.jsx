@@ -1,5 +1,5 @@
-import { RcIconButton } from '@ringcentral/juno';
-import React from 'react';
+import { RcIconButton, RcDialog, RcButton, RcTypography } from '@ringcentral/juno';
+import React, { useState } from 'react';
 import { Download } from '@ringcentral/juno-icon';
 
 export default ({
@@ -15,6 +15,15 @@ export default ({
         justifyContent: 'center'
     }
 
+    const modalButtonContainerStyle = {
+        display: 'flex',
+        justifyContent: 'center',
+        padding: '20px',
+        gap: '10px',
+    }
+
+    const [showDialog, setShowDialog] = useState(false);
+
     function exportTemplates() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(templates));
         let dlAnchorElem = document.getElementById('downloadAnchorElem');
@@ -29,43 +38,76 @@ export default ({
     }
 
     return (
-        <div style={bottomButtonContainerStyle}>
-            {
-                templates.length !== 0 &&
+        <div>
+            <div style={bottomButtonContainerStyle}>
+                {
+                    templates.length !== 0 &&
+                    <RcIconButton
+                        symbol={Download}
+                        color="neutral.b06"
+                        onClick={() => { exportTemplates(); }}
+                        title="Export"
+                    />
+                }
                 <RcIconButton
                     symbol={Download}
                     color="neutral.b06"
-                    onClick={() => { exportTemplates(); }}
-                    title="Export"
+                    onClick={() => { setShowDialog(true); }}
+                    style={{
+                        transform: 'rotate(180deg) scaleX(-1)'
+                    }}
+                    title="Import"
                 />
-            }
-            <RcIconButton
-                symbol={Download}
-                color="neutral.b06"
-                onClick={async () => {
-                    try {
-                        const fileHandle = await window.showOpenFilePicker(
-                            {
-                                types: [
+            </div>
+            <RcDialog
+                open={showDialog}
+            >
+                <RcTypography
+                    variant='body2'
+                    style={{
+                        padding: '20px 20px 0px 20px'
+                    }}
+                >
+                    Importing templates will overwrite any existing templates. Do you wish to proceed?
+                </RcTypography>
+                <div style={modalButtonContainerStyle}>
+                    <RcButton
+                        variant='outlined'
+                        radius='zero'
+                        color="action.primary"
+                        onClick={async () => {
+                            try {
+                                const fileHandle = await window.showOpenFilePicker(
                                     {
-                                        accept: { 'application/json': ['.json'] }
-                                    }
-                                ]
-                            });
-                        const file = await fileHandle[0].getFile();
-                        const templatesText = await file.text();
-                        const templatesJson = JSON.parse(templatesText);
-                        await saveTemplates({ templates: templatesJson })
-                    }
-                    catch (e) {
-                        console.log(e)
-                    }
-                }}
-                style={{
-                    transform: 'rotate(180deg) scaleX(-1)'
-                }}
-                title="Import"
-            />
+                                        types: [
+                                            {
+                                                accept: { 'application/json': ['.json'] }
+                                            }
+                                        ]
+                                    });
+                                const file = await fileHandle[0].getFile();
+                                const templatesText = await file.text();
+                                const templatesJson = JSON.parse(templatesText);
+                                await saveTemplates({ templates: templatesJson })
+                                setShowDialog(false);
+                            }
+                            catch (e) {
+                                console.log(e)
+                            }
+                        }}
+                    >
+                        Import
+                    </RcButton>
+                    <RcButton
+                        variant='outlined'
+                        color="danger.b03"
+                        radius='zero'
+                        onClick={() => { setShowDialog(false); }}
+                    >
+                        Cancel
+                    </RcButton>
+                </div>
+            </RcDialog>
         </div>
     )
 }
