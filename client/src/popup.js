@@ -117,6 +117,9 @@ window.addEventListener('message', async (e) => {
               rcLoginStatus = false;
             }
           }
+          window.postMessage({
+            type: 'rc-check-version'
+          }, '*');
           break;
         case 'rc-login-popup-notify':
           handleRCOAuthWindow(data.oAuthUri);

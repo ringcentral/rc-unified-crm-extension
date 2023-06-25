@@ -19,8 +19,11 @@ export default () => {
         padding: '30px',
     }
 
-    useEffect(() => {
-        const fetchVersionInfo = async function () {
+    async function onEvent(e) {
+        if (!e || !e.data || !e.data.type) {
+            return;
+        }
+        if (e.data.type === 'rc-check-version') {
             const recordedVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
             const version = recordedVersionInfo['rc-crm-extension-version'];
             if (version && version !== config.version) {
@@ -32,7 +35,12 @@ export default () => {
                 ['rc-crm-extension-version']: config.version
             });
         }
-        fetchVersionInfo();
+    }
+    useEffect(() => {
+        window.addEventListener('message', onEvent);
+        return () => {
+            window.removeEventListener('message', onEvent)
+        }
     }, [])
 
     const [isOpen, setIsOpen] = useState(false);
