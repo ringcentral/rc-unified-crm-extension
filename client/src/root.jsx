@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import LogModal from './components/log/logModal';
 import ExpandableNote from './components/note/expandableNote';
 import FeedbackForm from './components/feedback/feedbackForm';
+import Notification from './components/notification';
 import InsightlyAuth from './components/auth/insightlyAuth';
 import SMSTemplate from './components/smsTemplate';
 import { RcThemeProvider } from '@ringcentral/juno';
@@ -13,6 +14,7 @@ function App() {
             <InsightlyAuth />
             <ExpandableNote />
             <FeedbackForm />
+            <Notification />
             <LogModal />
             <SMSTemplate />
         </RcThemeProvider>

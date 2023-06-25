@@ -211,8 +211,8 @@ async function getContact({ user, authHeader, phoneNumber }) {
         return {
             id: result.id,
             name: result.name,
-            title: result.title,
-            company: result.company.name,
+            title: result.title ?? "",
+            company: result.company?.name ?? "",
             phone: phoneNumber,
             matters
         }
