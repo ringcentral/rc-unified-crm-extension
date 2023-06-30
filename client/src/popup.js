@@ -158,17 +158,6 @@ window.addEventListener('message', async (e) => {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
           }
           break;
-        case 'rc-adapter-syncPresence':
-          // get dndStatus, telephonyStatus, userStatus defined here https://developers.ringcentral.com/api-reference/Extension-Presence-Event
-          if (data.userStatus) {
-            if (data.dndStatus === 'DoNotAcceptAnyCalls') {
-              trackUpdateStatus({ presenceStatus: 'DND', platformName, rcAccountId: rcUserInfo?.rcAccountId });
-            }
-            else {
-              trackUpdateStatus({ presenceStatus: data.userStatus, platformName, rcAccountId: rcUserInfo?.rcAccountId });
-            }
-          }
-          break;
         case 'rc-analytics-track':
           switch (data.event) {
             case 'SMS: SMS sent successfully':

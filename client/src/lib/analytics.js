@@ -156,6 +156,8 @@ exports.trackEditSettings = function trackEditSettings({ changedItem, status, pl
         rcAccountId
     })
 }
+
+// Not in use
 exports.trackUpdateStatus = function trackUpdateStatus({ presenceStatus, platformName, rcAccountId }) {
     track('Update status', {
         presenceStatus,
