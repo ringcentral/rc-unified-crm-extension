@@ -130,10 +130,6 @@ window.addEventListener('message', async (e) => {
           chrome.runtime.sendMessage({
             type: 'openPopupWindow'
           });
-          incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from });
-          if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-            openContactPage({ incomingCallContactInfo });
-          }
           break;
         case 'rc-call-init-notify':
           trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
@@ -156,6 +152,12 @@ window.addEventListener('message', async (e) => {
           }
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
+          }
+          if (data.call.telephonyStatus === 'Ringing') {
+            incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from.phoneNumber });
+            if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
+              openContactPage({ incomingCallContactInfo });
+            }
           }
           break;
         case 'rc-analytics-track':

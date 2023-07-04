@@ -24,13 +24,13 @@ async function showIncomingCallContactInfo({ phoneNumber }) {
         const platformModule = await getModule();
         const infoToShow = platformModule.getIncomingCallContactInfo(contactInfo);
         const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.IncomingCallPanel_userInfo');
-        if (infoToShow.company) {
+        if (incomingCallUserPanelDOM && infoToShow.company) {
             const companyDiv = document.createElement('div');
             companyDiv.innerHTML = infoToShow.company;
             companyDiv.style = 'font-size: 12px';
             incomingCallUserPanelDOM.appendChild(companyDiv);
         }
-        if (infoToShow.title) {
+        if (incomingCallUserPanelDOM && infoToShow.title) {
             const titleDiv = document.createElement('div');
             titleDiv.innerHTML = infoToShow.title;
             titleDiv.style = 'font-size: 12px';
