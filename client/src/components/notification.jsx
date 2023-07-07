@@ -46,19 +46,23 @@ export default () => {
     const [isOpen, setIsOpen] = useState(false);
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
+
+    function composeMessage() {
+        const messageBreakDown = message.split(';');
+        return messageBreakDown.map(b => {
+            return <RcTypography variant='body1'>{b}</RcTypography>
+        })
+    }
+
     return (
         <div>
             {isOpen && <div style={containerStyle}>
                 <RcTypography
                     variant='title1'
                 >
-                    {title}
+                    {title}(v{config.version})
                 </RcTypography>
-                <RcTypography
-                    variant='body1'
-                >
-                    {message}
-                </RcTypography>
+                {composeMessage()}
                 <RcButton
                     onClick={() => { setIsOpen(false); }}
                     style={{

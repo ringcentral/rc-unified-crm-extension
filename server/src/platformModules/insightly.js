@@ -71,7 +71,11 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
 }
 
 async function unAuthorize({ id }) {
-
+    const user = await UserModel.findByPk(id);
+    if(user)
+    {
+        await user.destroy();
+    }
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
@@ -143,7 +147,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const postBody = {
         TITLE: `SMS Log`,
-        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
+        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
         START_DATE_UTC: moment(message.creationTime).utc(),
         END_DATE_UTC: moment(message.creationTime).utc()
     }

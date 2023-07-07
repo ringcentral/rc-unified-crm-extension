@@ -124,13 +124,6 @@ window.addEventListener('message', async (e) => {
         case 'rc-login-popup-notify':
           handleRCOAuthWindow(data.oAuthUri);
           break;
-        case 'rc-call-ring-notify':
-          // get call on ring event
-          console.log('RingCentral Embeddable Voice Extension:', data.call);
-          chrome.runtime.sendMessage({
-            type: 'openPopupWindow'
-          });
-          break;
         case 'rc-call-init-notify':
           trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
           break;
@@ -154,6 +147,9 @@ window.addEventListener('message', async (e) => {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
           }
           if (data.call.telephonyStatus === 'Ringing') {
+            chrome.runtime.sendMessage({
+              type: 'openPopupWindow'
+            });
             incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from.phoneNumber });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
               openContactPage({ incomingCallContactInfo });
@@ -177,9 +173,21 @@ window.addEventListener('message', async (e) => {
           if (data.path !== '/') {
             trackPage(data.path, { crmPlatform: platformName, rcAccountId: rcUserInfo?.rcAccountId });
           }
+          const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
+          // Hack: change auto log wording
+          if (data.path.includes('/settings')) {
+            const changeWordingList = contentDocument.querySelectorAll('.SettingsPanel_content > .Line_root > .IconField_wrapper > .IconField_content > span');
+            for (const changeWordingNode of changeWordingList) {
+              if (changeWordingNode.innerHTML.includes('calls')) {
+                changeWordingNode.innerHTML = 'Auto pop up call logging page after call';
+              }
+              if (changeWordingNode.innerHTML.includes('messages')) {
+                changeWordingNode.innerHTML = 'Auto pop up message logging page';
+              }
+            }
+          }
           // Hack: inject a button to open sms template
           if (data.path.includes('/conversations/')) {
-            const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
             const buttonContainer = contentDocument.querySelector('.MessageInput_supportAttachment');
             const textField = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_textField');
             const attachmentButton = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_attachmentIcon');
@@ -226,7 +234,7 @@ window.addEventListener('message', async (e) => {
                     handleThirdPartyOAuthWindow(authUri);
                     break;
                   case 'apiKey':
-                    window.postMessage({ type: 'rc-apiKey-input-modal' }, '*');
+                    window.postMessage({ type: 'rc-apiKey-input-modal', platform: platform.name }, '*');
                     break;
                 }
               }
@@ -428,7 +436,7 @@ window.addEventListener('message', async (e) => {
       console.error(e);
     }
     if (e.response.status === 400) {
-      auth.setAuth(false);
+      await auth.checkAuth();
     }
     window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }
