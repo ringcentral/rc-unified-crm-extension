@@ -138,7 +138,7 @@ app.post('/apiKeyLogin', async function (req, res) {
             throw 'missing api key';
         }
         const platformModule = require(`./platformModules/${platform}`);
-        const basicAuth = await platformModule.getBasicAuth({ apiKey });
+        const basicAuth = platformModule.getBasicAuth({ apiKey });
         const userInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
         await platformModule.saveApiKeyUserInfo({
             id: userInfo.id,

@@ -37,7 +37,7 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        if (e.data.type === 'rc-apiKey-input-modal') {
+        if (e.data.type === 'rc-apiKey-input-modal' && e.data.platform === 'insightly') {
             setIsOpen(true);
         }
     }
