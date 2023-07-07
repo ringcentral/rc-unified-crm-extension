@@ -3,6 +3,7 @@ import config from '../config.json';
 import pipedriveModule from '../platformModules/pipedrive.js';
 import insightlyModule from '../platformModules/insightly.js';
 import clioModule from '../platformModules/clio.js';
+import redtailModule from '../platformModules/redtail';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -58,6 +59,10 @@ function showInCallContactInfo({ incomingCallContactInfo }) {
 }
 
 async function openContactPage({ incomingCallContactInfo }) {
+    if(!!!incomingCallContactInfo.id)
+    {
+        return;
+    }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const platformModule = await getModule();
     let platformInfo = await chrome.storage.local.get('platform-info');
@@ -78,6 +83,8 @@ async function getModule() {
             return insightlyModule;
         case 'clio':
             return clioModule;
+        case 'redtail':
+            return redtailModule;
     }
 }
 

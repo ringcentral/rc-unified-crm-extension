@@ -16,7 +16,8 @@
         "https://*.ngrok-free.app/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
-        "https://*.clio.com/*"
+        "https://*.clio.com/*",
+        "https://*.redtailtechnology.com/*"
       ],
       "js": [
         "./c2d/index.js",
@@ -35,7 +36,8 @@
         "https://*.ngrok-free.app/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
-        "https://*.clio.com/*"
+        "https://*.clio.com/*",
+        "https://*.redtailtechnology.com/*"
       ]
     }
   ],

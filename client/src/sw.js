@@ -43,6 +43,9 @@ chrome.action.onClicked.addListener(async function (tab) {
     else if (hostname.includes('clio')) {
       platformName = 'clio';
     }
+    else if (hostname.includes('redtailtechnology')) {
+      platformName = 'redtail';
+    }
     else if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
       platformName = 'pipedrive';
       hostname = 'temp';
