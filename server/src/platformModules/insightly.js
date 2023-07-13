@@ -72,8 +72,7 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
 
 async function unAuthorize({ id }) {
     const user = await UserModel.findByPk(id);
-    if(user)
-    {
+    if (user) {
         await user.destroy();
     }
 }
@@ -177,13 +176,42 @@ async function getContact({ user, authHeader, phoneNumber }) {
     if (phoneNumberObj.valid) {
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
-    const personInfo = await axios.get(
+    // try Contact by PHONE
+    let personInfo = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
         {
             headers: { 'Authorization': authHeader }
         });
+        console.log('contact phone...');
     if (personInfo.data.length === 0) {
-        return null;
+        // try Contact by PHONE_MOBILE
+        console.log('contact mobile...');
+        personInfo = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        if (personInfo.data.length === 0) {
+            // try Lead by PHONE
+            personInfo = await axios.get(
+                `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+                console.log('lead phone...');
+            if (personInfo.data.length === 0) {
+                // try Lead by MOBILE
+                personInfo = await axios.get(
+                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                    console.log('lead mobile...');
+                if (personInfo.data.length === 0) {
+                    return null;
+                }
+            }
+        }
     }
     const rawPersonInfo = personInfo.data[0];
     rawPersonInfo.linkData = [];

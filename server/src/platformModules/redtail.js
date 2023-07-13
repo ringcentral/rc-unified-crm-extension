@@ -84,9 +84,9 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         subject: `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}\n\n--- Added by RingCentral CRM Extension`,
-        start_date: moment(callLog.startTime).utc(),
-        end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds'),
+        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}<br><br>--- Added by RingCentral CRM Extension`,
+        start_date: moment(callLog.startTime).utc().toISOString(),
+        end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
         activity_code_id: 3,
         repeats: 'never',
         linked_contacts: [
@@ -115,10 +115,10 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const postBody = {
-        subject: `SMS Log`,
-        description: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
-        start_date: moment(message.creationTime).utc(),
-        end_date: moment(message.creationTime).utc(),
+        subject: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`}`,
+        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}<br><br>--- Added by RingCentral CRM Extension`,
+        start_date: moment(message.creationTime).utc().toISOString(),
+        end_date: moment(message.creationTime).utc().toISOString(),
         activity_code_id: 3,
         repeats: 'never',
         linked_contacts: [
