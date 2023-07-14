@@ -117,6 +117,13 @@ exports.trackAnsweredCall = function trackAnsweredCall({ platformName, rcAccount
         rcAccountId
     });
 }
+exports.trackConnectedCall = function trackAnsweredCall({ platformName, rcAccountId }) {
+    track('A new call connected', {
+        crmPlatform: platformName,
+        appName,
+        rcAccountId
+    });
+}
 exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, rcAccountId }) {
     track('A call is ended', {
         durationInSeconds,

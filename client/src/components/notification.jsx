@@ -26,7 +26,7 @@ export default () => {
         if (e.data.type === 'rc-check-version') {
             const recordedVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
             const version = recordedVersionInfo['rc-crm-extension-version'];
-            if (version && version !== config.version) {
+            if (version && version !== config.version && config.releaseNote) {
                 setIsOpen(true);
                 setTitle('Release note');
                 setMessage(config.releaseNote);

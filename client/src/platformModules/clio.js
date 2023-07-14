@@ -18,8 +18,8 @@ function getIncomingCallContactInfo(contactInfo) {
     }
 }
 
-function openContactPage(hostname, id){
-    window.open(`https://${hostname}/nc/#/contacts/${id}`);
+function openContactPage(hostname, incomingCallContactInfo){
+    window.open(`https://${hostname}/nc/#/contacts/${incomingCallContactInfo.id}`);
 }
 
 exports.getContactAdditionalInfo = getContactAdditionalInfo;

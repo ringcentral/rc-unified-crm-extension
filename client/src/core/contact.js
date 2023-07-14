@@ -71,7 +71,7 @@ async function openContactPage({ incomingCallContactInfo }) {
         platformInfo['platform-info'].hostname = hostnameRes.data;
         await chrome.storage.local.set(platformInfo);
     }
-    platformModule.openContactPage(platformInfo['platform-info'].hostname, incomingCallContactInfo.id);
+    platformModule.openContactPage(platformInfo['platform-info'].hostname, incomingCallContactInfo);
 }
 
 async function getModule() {

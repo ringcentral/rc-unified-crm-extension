@@ -93,52 +93,65 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             headers: { 'Authorization': authHeader }
         });
     // add linked contact to log
-    await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
-        {
-            LINK_OBJECT_NAME: 'contact',
-            LINK_OBJECT_ID: contactInfo.id
-        },
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    if (additionalSubmission != null) {
-        // add org link
-        if (additionalSubmission.orgSelection != null) {
-            await axios.post(
-                `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
-                {
-                    LINK_OBJECT_NAME: 'Organisation',
-                    LINK_OBJECT_ID: additionalSubmission.orgSelection
-                },
-                {
-                    headers: { 'Authorization': authHeader }
-                });
+    if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile') {
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            {
+                LINK_OBJECT_NAME: 'contact',
+                LINK_OBJECT_ID: contactInfo.id
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        if (additionalSubmission != null) {
+            // add org link
+            if (additionalSubmission.orgSelection != null) {
+                await axios.post(
+                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    {
+                        LINK_OBJECT_NAME: 'Organisation',
+                        LINK_OBJECT_ID: additionalSubmission.orgSelection
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+            }
+            // add opportunity link
+            if (additionalSubmission.opportunitySelection != null) {
+                await axios.post(
+                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    {
+                        LINK_OBJECT_NAME: 'Opportunity',
+                        LINK_OBJECT_ID: additionalSubmission.opportunitySelection
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+            }
+            // add org link
+            if (additionalSubmission.projectSelection != null) {
+                await axios.post(
+                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    {
+                        LINK_OBJECT_NAME: 'Project',
+                        LINK_OBJECT_ID: additionalSubmission.projectSelection
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+            }
         }
-        // add opportunity link
-        if (additionalSubmission.opportunitySelection != null) {
-            await axios.post(
-                `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
-                {
-                    LINK_OBJECT_NAME: 'Opportunity',
-                    LINK_OBJECT_ID: additionalSubmission.opportunitySelection
-                },
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-        }
-        // add org link
-        if (additionalSubmission.projectSelection != null) {
-            await axios.post(
-                `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
-                {
-                    LINK_OBJECT_NAME: 'Project',
-                    LINK_OBJECT_ID: additionalSubmission.projectSelection
-                },
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-        }
+    }
+    else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile') {
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            {
+                LINK_OBJECT_NAME: 'lead',
+                LINK_OBJECT_ID: contactInfo.id
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
     }
     return addLogRes.data.EVENT_ID;
 }
@@ -157,15 +170,28 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             headers: { 'Authorization': authHeader }
         });
     // add linked contact to log
-    await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
-        {
-            LINK_OBJECT_NAME: 'contact',
-            LINK_OBJECT_ID: contactInfo.id
-        },
-        {
-            headers: { 'Authorization': authHeader }
-        });
+    if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile') {
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            {
+                LINK_OBJECT_NAME: 'contact',
+                LINK_OBJECT_ID: contactInfo.id
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+    else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile') {
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            {
+                LINK_OBJECT_NAME: 'lead',
+                LINK_OBJECT_ID: contactInfo.id
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
     return addLogRes.data.EVENT_ID;
 }
 
@@ -182,15 +208,15 @@ async function getContact({ user, authHeader, phoneNumber }) {
         {
             headers: { 'Authorization': authHeader }
         });
-        console.log('contact phone...');
+    let contactType = 'contactPhone';
     if (personInfo.data.length === 0) {
         // try Contact by PHONE_MOBILE
-        console.log('contact mobile...');
         personInfo = await axios.get(
             `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
             {
                 headers: { 'Authorization': authHeader }
             });
+        contactType = 'contactMobile';
         if (personInfo.data.length === 0) {
             // try Lead by PHONE
             personInfo = await axios.get(
@@ -198,7 +224,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
                 {
                     headers: { 'Authorization': authHeader }
                 });
-                console.log('lead phone...');
+            contactType = 'leadPhone';
             if (personInfo.data.length === 0) {
                 // try Lead by MOBILE
                 personInfo = await axios.get(
@@ -206,7 +232,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                    console.log('lead mobile...');
+                contactType = 'leadMobile';
                 if (personInfo.data.length === 0) {
                     return null;
                 }
@@ -255,16 +281,47 @@ async function getContact({ user, authHeader, phoneNumber }) {
                 break;
         }
     }
-    return formatContact(rawPersonInfo);
+    return formatContact(rawPersonInfo, contactType);
 }
 
-function formatContact(rawContactInfo) {
-    return {
-        id: rawContactInfo.CONTACT_ID,
-        name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
-        phone: rawContactInfo.PHONE,
-        title: rawContactInfo.TITLE,
-        links: rawContactInfo.linkData
+function formatContact(rawContactInfo, contactType) {
+    switch (contactType) {
+        case 'contactPhone':
+            return {
+                id: rawContactInfo.CONTACT_ID,
+                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
+                phone: rawContactInfo.PHONE,
+                title: rawContactInfo.TITLE,
+                links: rawContactInfo.linkData,
+                type: contactType
+            };
+        case 'contactMobile':
+            return {
+                id: rawContactInfo.CONTACT_ID,
+                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
+                phone: rawContactInfo.PHONE_MOBILE,
+                title: rawContactInfo.TITLE,
+                links: rawContactInfo.linkData,
+                type: contactType
+            };
+        case 'leadPhone':
+            return {
+                id: rawContactInfo.LEAD_ID,
+                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
+                phone: rawContactInfo.PHONE,
+                title: rawContactInfo.TITLE,
+                links: rawContactInfo.linkData,
+                type: contactType
+            };
+        case 'leadMobile':
+            return {
+                id: rawContactInfo.LEAD_ID,
+                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
+                phone: rawContactInfo.MOBILE,
+                title: rawContactInfo.TITLE,
+                links: rawContactInfo.linkData,
+                type: contactType
+            };
     }
 }
 

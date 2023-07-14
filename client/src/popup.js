@@ -18,7 +18,8 @@ const {
   trackUpdateStatus,
   trackSentSMS,
   trackCreateMeeting,
-  trackEditSettings
+  trackEditSettings,
+  trackConnectedCall
 } = require('./lib/analytics');
 
 window.__ON_RC_POPUP_WINDOW = 1;
@@ -139,6 +140,16 @@ window.addEventListener('message', async (e) => {
           const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
           trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
           break;
+        case 'rc-ringout-call-notify':
+          // get call on active call updated event
+          console.log('ringout: ', data.call);
+          if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
+            const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
+            trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
+          }
+          if (data.call.telephonyStatus === 'CallConnected') {
+            trackConnectedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+          }
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
             window.postMessage({ type: 'rc-expandable-call-note-open', sessionId: data.call.sessionId }, '*');

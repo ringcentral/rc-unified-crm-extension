@@ -19,12 +19,20 @@ function getIncomingCallContactInfo(contactInfo) {
     return {
         id: contactInfo.id,
         company: companyName,
-        title: contactInfo.title
+        title: contactInfo.title,
+        type: contactInfo.type
     }
 }
 
-function openContactPage(hostname, id) {
-    window.open(`https://${hostname}/list/Contact/?blade=/details/contact/${id}`);
+function openContactPage(hostname, incomingCallContactInfo) {
+    if(incomingCallContactInfo?.type?.startsWith('contact'))
+    {    
+        window.open(`https://${hostname}/list/Contact/?blade=/details/contact/${incomingCallContactInfo.id}`);
+    }
+    if(incomingCallContactInfo?.type?.startsWith('lead'))
+    {    
+        window.open(`https://${hostname}/list/Lead/?blade=/details/lead/${incomingCallContactInfo.id}`);
+    }
 }
 
 exports.getContactAdditionalInfo = getContactAdditionalInfo;
