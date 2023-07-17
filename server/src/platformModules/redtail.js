@@ -19,7 +19,7 @@ function getAuthHeader({ userKey }) {
 async function getUserInfo({ user, authHeader, additionalInfo }) {
     const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
     const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
-    const authResponse = await axios.get(`${additionalInfo.apiUrl}/api/public/v1/authentication`, {
+    const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
         headers: {
             'Authorization': overrideAuthHeader
         }
@@ -96,13 +96,13 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         ]
     }
     const addLogRes = await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/api/public/v1/activities`,
+        `${process.env.REDTAIL_API_SERVER}/activities`,
         postBody,
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
     const completeLogRes = await axios.put(
-        `${user.platformAdditionalInfo.apiUrl}/api/public/v1/activities/${addLogRes.data.activity.id}`,
+        `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
         {
             'completed': true
         },
@@ -128,13 +128,13 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         ]
     }
     const addLogRes = await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/api/public/v1/activities`,
+        `${process.env.REDTAIL_API_SERVER}/activities`,
         postBody,
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
     const completeLogRes = await axios.put(
-        `${user.platformAdditionalInfo.apiUrl}/api/public/v1/activities/${addLogRes.data.activity.id}`,
+        `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
         {
             'completed': true
         },
@@ -153,7 +153,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
     const personInfo = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/api/public/v1/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
+        `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
