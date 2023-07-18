@@ -214,8 +214,9 @@ describe('call&message log tests', () => {
                     const res = await request(server).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
-                    expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.status).toEqual(200);
+                    expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.successful).toEqual(false);
                 }
             });
             test('unknown contact - unsuccessful', async () => {
@@ -250,8 +251,9 @@ describe('call&message log tests', () => {
                     const res = await request(server).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
-                    expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual(`Contact not found for number ${unknownPhoneNumber}`);
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(false);
+                    expect(res.body.message).toEqual(`Contact not found for number ${unknownPhoneNumber}`);
 
                     // Clean up
                     platformGetContactScope.done();
@@ -414,8 +416,9 @@ describe('call&message log tests', () => {
                     const res = await request(server).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
-                    expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.status).toEqual(200);
+                    expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.successful).toEqual(false);
                 }
             });
             test('unknown contact - unsuccessful', async () => {
@@ -457,8 +460,9 @@ describe('call&message log tests', () => {
                     const res = await request(server).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
-                    expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual(`Contact not found for number ${unknownPhoneNumber}`);
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(false);
+                    expect(res.body.message).toEqual(`Contact not found for number ${unknownPhoneNumber}`);
 
                     // Clean up
                     platformGetContactScope.done();

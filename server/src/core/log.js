@@ -16,7 +16,7 @@ async function addCallLog({ platform, userId, incomingData }) {
         const note = incomingData.note;
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
-            throw `Cannot find user with id: ${userId}`;
+            return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
         const authType = platformModule.getAuthType();
         let authHeader = '';
@@ -34,7 +34,7 @@ async function addCallLog({ platform, userId, incomingData }) {
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
         const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
         if (contactInfo == null) {
-            throw `Contact not found for number ${contactNumber}`;
+            return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
         const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset, contactNumber });
         await CallLogModel.create({
@@ -62,7 +62,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         const additionalSubmission = incomingData.additionalSubmission;
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
-            throw `Cannot find user with id: ${userId}`;
+            return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
         const authType = platformModule.getAuthType();
         let authHeader = '';
@@ -79,7 +79,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         }
         const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
         if (contactInfo == null) {
-            return { successful: false };
+            return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
         const existingMessages = await MessageLogModel.findAll({

@@ -73,8 +73,9 @@ describe('contact tests', () => {
                 const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${phoneNumber}`);
 
                 // Assert
-                expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                expect(res.status).toEqual(200);
+                expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                expect(res.body.successful).toEqual(false);
             }
         });
         test('unknown contact - unsuccessful', async () => {
@@ -100,7 +101,7 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber.replace('+', ' ')}. Please create a contact.`);
+                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber.replace('+', ' ')}. Please create a contact on CRM website with  17206789820.`);
 
                 // Clean up
                 platformGetContactScope.done();
@@ -121,7 +122,7 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${extensionNumber}. Please create a contact.`);
+                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${extensionNumber}. Please create a contact on CRM website with 224.`);
             }
         });
         test('known contact - successful', async () => {

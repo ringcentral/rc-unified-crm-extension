@@ -5,7 +5,7 @@ async function getContact({ platform, userId, phoneNumber }) {
     try {
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
-            throw `Cannot find user with id: ${userId}`;
+            return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
         const platformModule = require(`../platformModules/${platform}`);
         const authType = platformModule.getAuthType();
