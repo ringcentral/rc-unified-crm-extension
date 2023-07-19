@@ -15,7 +15,6 @@ const {
   trackPlacedCall,
   trackAnsweredCall,
   trackCallEnd,
-  trackUpdateStatus,
   trackSentSMS,
   trackCreateMeeting,
   trackEditSettings,
@@ -30,6 +29,7 @@ let platformName = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
+
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -51,6 +51,24 @@ window.addEventListener('message', async (e) => {
           if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
             await auth.checkAuth();
           }
+          // Hack: add a feedback button
+          if (!document.querySelector('.Adapter_header .header_feedback_button')) {
+            const headerElement = document.querySelector('.Adapter_header');
+            const feedbackButtonElement = document.createElement('div');
+            headerElement.appendChild(feedbackButtonElement);
+            feedbackButtonElement.className = 'header_feedback_button';
+            feedbackButtonElement.style = "position: absolute;right: 5px;top: 5px; width: 24px;cursor: pointer;";
+            feedbackButtonElement.innerHTML = '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiBox-root css-uqopch" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="FeedbackIcon"><path fill="#2559E4" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"></path></svg>';
+            feedbackButtonElement.onclick = () => {
+              window.postMessage({
+                type: 'rc-feedback-open',
+                props: {
+                  userName: rcUserInfo.rcUserName,
+                  userEmail: rcUserInfo.rcUserEmail
+                }
+              }, '*');
+            }
+          }
           break;
         case 'rc-adapter-pushAdapterState':
           extensionUserSettings = (await chrome.storage.local.get('extensionUserSettings')).extensionUserSettings;
@@ -65,7 +83,7 @@ window.addEventListener('message', async (e) => {
             }, '*');
             const isFirstTime = await chrome.storage.local.get('isFirstTime');
             if (isObjectEmpty(isFirstTime)) {
-              trackFirstTimeSetup({ platform: platformName });
+              trackFirstTimeSetup();
               await chrome.storage.local.set({ isFirstTime: false });
             }
           }
@@ -107,14 +125,14 @@ window.addEventListener('message', async (e) => {
           let { rcLoginStatus } = await chrome.storage.local.get('rcLoginStatus');
           if (rcLoginStatus === false || !rcLoginStatus || isObjectEmpty(rcLoginStatus)) {
             if (data.loggedIn) {
-              trackRcLogin({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              trackRcLogin({ rcAccountId: rcUserInfo?.rcAccountId });
               rcLoginStatus = true;
               await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
             }
           }
           else {
             if (!data.loggedIn) {
-              trackRcLogout({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              trackRcLogout({ rcAccountId: rcUserInfo?.rcAccountId });
               rcLoginStatus = false;
             }
           }
@@ -126,29 +144,28 @@ window.addEventListener('message', async (e) => {
           handleRCOAuthWindow(data.oAuthUri);
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+          trackPlacedCall({ rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
             showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
           const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-          trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
+          trackCallEnd({ durationInSeconds: callDurationInSeconds, rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case 'rc-ringout-call-notify':
           // get call on active call updated event
-          console.log('ringout: ', data.call);
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
             trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
           }
           if (data.call.telephonyStatus === 'CallConnected') {
-            trackConnectedCall({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            trackConnectedCall({ rcAccountId: rcUserInfo?.rcAccountId });
           }
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -170,19 +187,19 @@ window.addEventListener('message', async (e) => {
         case 'rc-analytics-track':
           switch (data.event) {
             case 'SMS: SMS sent successfully':
-              trackSentSMS({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              trackSentSMS({ rcAccountId: rcUserInfo?.rcAccountId });
               break;
             case 'Meeting Scheduled':
-              trackCreateMeeting({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              trackCreateMeeting({ rcAccountId: rcUserInfo?.rcAccountId });
               break;
           }
           break;
         case 'rc-callLogger-auto-log-notify':
-          trackEditSettings({ changedItem: 'auto-call-log', platformName, status: data.autoLog, rcAccountId: rcUserInfo?.rcAccountId });
+          trackEditSettings({ changedItem: 'auto-call-log', status: data.autoLog, rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
-            trackPage(data.path, { crmPlatform: platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            trackPage(data.path, { rcAccountId: rcUserInfo?.rcAccountId });
           }
           const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
           // Hack: change auto log wording
@@ -427,7 +444,7 @@ window.addEventListener('message', async (e) => {
               extensionUserSettings = data.body.settings;
               await chrome.storage.local.set({ extensionUserSettings });
               for (const setting of extensionUserSettings) {
-                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), platformName, status: setting.value, rcAccountId: rcUserInfo?.rcAccountId });
+                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value, rcAccountId: rcUserInfo?.rcAccountId });
               }
               break;
             default:

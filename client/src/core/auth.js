@@ -34,7 +34,7 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         await chrome.storage.local.set({
             ['rcUnifiedCrmExtJwt']: res.data
         });
-        trackCrmLogin({ platformName, rcAccountId: rcUserInfo.rcAccountId });
+        trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
     }
     catch (e) {
         console.log(e);
@@ -53,15 +53,14 @@ async function onAuthCallback(callbackUri) {
     await chrome.storage.local.set({
         ['rcUnifiedCrmExtJwt']: res.data
     });
-    trackCrmLogin({ platformName: platformInfo['platform-info'].platformName, rcAccountId: rcUserInfo.rcAccountId });
+    trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
 }
 
 async function unAuthorize(rcUnifiedCrmExtJwt) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
-        const platformInfo = await chrome.storage.local.get('platform-info');
-        trackCrmLogout({ platform: platformInfo['platform-info'].platformName, rcAccountId: rcUserInfo.rcAccountId })
+        trackCrmLogout({ rcAccountId: rcUserInfo.rcAccountId })
     }
     catch (e) {
         console.log(e);

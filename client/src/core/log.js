@@ -20,7 +20,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 }, '*');
                 if (addCallLogRes.data.successful) {
                     showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
-                    trackSyncCallLog({ hasNote: note !== '', platformName: platformInfo['platform-info'].platformName, rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
+                    trackSyncCallLog({ hasNote: note !== '', rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
                 }
                 else {
                     showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
@@ -34,7 +34,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                         await chrome.storage.local.set(dataToLog);
                     }
                     showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
-                    trackSyncMessageLog({ platformName: platformInfo['platform-info'].platformName, rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
+                    trackSyncMessageLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
                 }
                 break;
         }

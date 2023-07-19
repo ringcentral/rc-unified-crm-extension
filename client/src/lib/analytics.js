@@ -69,113 +69,90 @@ exports.trackPage = function page(name, properties = {}) {
 }
 
 
-exports.trackFirstTimeSetup = function trackFirstTimeSetup({ platformName }) {
+exports.trackFirstTimeSetup = function trackFirstTimeSetup() {
     track('First time setup', {
-        crmPlatform: platformName,
         appName
     });
 }
-exports.trackRcLogin = function trackRcLogin({ platformName, rcAccountId }) {
+exports.trackRcLogin = function trackRcLogin({ rcAccountId }) {
     track('Login with RingCentral account', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackRcLogout = function trackRcLogout({ platformName, rcAccountId }) {
+exports.trackRcLogout = function trackRcLogout({ rcAccountId }) {
     track('Logout with RingCentral account', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackCrmLogin = function trackCrmLogin({ platformName, rcAccountId }) {
+exports.trackCrmLogin = function trackCrmLogin({ rcAccountId }) {
     track('Login with CRM account', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackCrmLogout = function trackCrmLogout({ platformName, rcAccountId }) {
+exports.trackCrmLogout = function trackCrmLogout({  rcAccountId }) {
     track('Logout with CRM account', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackPlacedCall = function trackPlacedCall({ platformName, rcAccountId }) {
+exports.trackPlacedCall = function trackPlacedCall({ rcAccountId }) {
     track('A new call placed', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackAnsweredCall = function trackAnsweredCall({ platformName, rcAccountId }) {
+exports.trackAnsweredCall = function trackAnsweredCall({ rcAccountId }) {
     track('A new call answered', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackConnectedCall = function trackAnsweredCall({ platformName, rcAccountId }) {
+exports.trackConnectedCall = function trackConnectedCall({ rcAccountId }) {
     track('A new call connected', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackCallEnd = function trackCallEnd({ durationInSeconds, platformName, rcAccountId }) {
+exports.trackCallEnd = function trackCallEnd({ durationInSeconds, rcAccountId }) {
     track('A call is ended', {
         durationInSeconds,
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackSentSMS = function trackSentSMS({ platformName, rcAccountId }) {
+exports.trackSentSMS = function trackSentSMS({ rcAccountId }) {
     track('A new SMS sent', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     });
 }
-exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, platformName, rcAccountId }) {
+exports.trackSyncCallLog = function trackSyncCallLog({ hasNote, rcAccountId }) {
     track('Sync call log', {
         hasNote,
-        crmPlatform: platformName,
         appName,
         rcAccountId
     })
 }
-exports.trackSyncMessageLog = function trackSyncMessageLog({ platformName, rcAccountId }) {
+exports.trackSyncMessageLog = function trackSyncMessageLog({ rcAccountId }) {
     track('Sync message log', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     })
 }
-exports.trackEditSettings = function trackEditSettings({ changedItem, status, platformName, rcAccountId }) {
+exports.trackEditSettings = function trackEditSettings({ changedItem, status, rcAccountId }) {
     track('Edit settings', {
         changedItem,
         status,
-        crmPlatform: platformName,
         appName,
         rcAccountId
     })
 }
 
-// Not in use
-exports.trackUpdateStatus = function trackUpdateStatus({ presenceStatus, platformName, rcAccountId }) {
-    track('Update status', {
-        presenceStatus,
-        crmPlatform: platformName,
-        appName,
-        rcAccountId
-    })
-}
-exports.trackCreateMeeting = function trackCreateMeeting({ platformName, rcAccountId }) {
+exports.trackCreateMeeting = function trackCreateMeeting({ rcAccountId }) {
     track('Create meeting', {
-        crmPlatform: platformName,
         appName,
         rcAccountId
     })
