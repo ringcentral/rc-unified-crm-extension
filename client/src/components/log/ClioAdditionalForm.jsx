@@ -1,8 +1,11 @@
 import DropdownList from '../dropdownList';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default ({ additionalFormInfo, setSubmission, style }) => {
-    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(null);
+    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo.value[0].id);
+    useEffect(() => {
+        setSubmission({ matterId: additionalFormInfo.value[0].id })
+    }, [])
     return (
         <DropdownList
             key='key'
@@ -12,7 +15,7 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
             presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
-                setSubmission({ matterId: selection });
+                selection ? setSubmission({ matterId: selection }) : setSubmission(null);
             }} />
     );
 }

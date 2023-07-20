@@ -108,7 +108,6 @@ export default () => {
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
-        setAdditionalSubmission(null);
         switch (logEvents[0].logProps.logType) {
             case 'Call':
                 setDirection(` (${logEvents[0].logProps.logInfo.direction})`);
