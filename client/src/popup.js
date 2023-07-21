@@ -215,7 +215,7 @@ window.addEventListener('message', async (e) => {
             }
           }
           // Hack: inject a button to open sms template
-          if (data.path.includes('/conversations/')) {
+          if (data.path.includes('/conversations/') || data.path === '/composeText') {
             const buttonContainer = contentDocument.querySelector('.MessageInput_supportAttachment');
             const textField = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_textField');
             const attachmentButton = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_attachmentIcon');
@@ -233,7 +233,6 @@ window.addEventListener('message', async (e) => {
             newIconSpan.className = "material-symbols-outlined";
             newIconSpan.innerText = "edit_note";
             newButton.appendChild(newIconSpan);
-            // TODO: delete mock data
             newButton.onclick = () => {
               window.postMessage({
                 type: 'rc-select-sms-template'
