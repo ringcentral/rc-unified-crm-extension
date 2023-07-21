@@ -225,14 +225,7 @@ window.addEventListener('message', async (e) => {
             newButtonParent.style.left = '30px';
             newButton = newButtonParent.querySelector('button');
             newButton.removeChild(newButton.querySelector('.attachment'))
-            const newIconStylesheetLink = contentDocument.createElement('link')
-            newIconStylesheetLink.rel = "stylesheet";
-            newIconStylesheetLink.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0";
-            newButton.appendChild(newIconStylesheetLink);
-            const newIconSpan = contentDocument.createElement('span');
-            newIconSpan.className = "material-symbols-outlined";
-            newIconSpan.innerText = "edit_note";
-            newButton.appendChild(newIconSpan);
+            newButton.innerHTML = '<svg viewBox="-3 -3 30 30"><path d="M3 10h11v2H3v-2zm0-2h11V6H3v2zm0 8h7v-2H3v2zm15.01-3.13.71-.71c.39-.39 1.02-.39 1.41 0l.71.71c.39.39.39 1.02 0 1.41l-.71.71-2.12-2.12zm-.71.71-5.3 5.3V21h2.12l5.3-5.3-2.12-2.12z"></path></svg>'
             newButton.onclick = () => {
               window.postMessage({
                 type: 'rc-select-sms-template'
