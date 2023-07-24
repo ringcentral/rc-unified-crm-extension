@@ -5,6 +5,7 @@ const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
 const moment = require('moment');
+const { openDB } = require('idb');
 const {
   trackFirstTimeSetup,
   identify,
@@ -96,9 +97,20 @@ window.addEventListener('message', async (e) => {
           rcUserInfo = (await chrome.storage.local.get('rcUserInfo')).rcUserInfo;
           if (data.loggedIn) {
             if (!rcUserInfo || isObjectEmpty(rcUserInfo)) {
-              const accessToken = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).access_token;
-              const userInfoResponse = await getUserInfo(accessToken);
-              rcUserInfo = { rcUserName: userInfoResponse.name, rcUserEmail: userInfoResponse.contact.email, rcUserNumber: data.loginNumber, rcAccountId: userInfoResponse.account.id, rcExtensionId: userInfoResponse.id };
+              const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
+              const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
+              const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
+              const userInfoResponse = await getUserInfo({
+                extensionId: rcInfo.value.cachedData.extensionInfo.id,
+                accountId: rcInfo.value.cachedData.extensionInfo.account.id
+              });
+              rcUserInfo = {
+                rcUserName: rcInfo.value.cachedData.extensionInfo.name,
+                rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
+                rcUserNumber: data.loginNumber,
+                rcAccountId: userInfoResponse.accountId,
+                rcExtensionId: userInfoResponse.extensionId
+              };
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
               identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
               group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
