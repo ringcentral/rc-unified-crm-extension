@@ -50,8 +50,7 @@ export default () => {
 
     async function onSubmission() {
         setLoading(true);
-        // TODO: change to redtail prod url
-        await apiKeyLogin({ apiKey: 'apiKey', apiUrl: 'https://dev.otw.redtailtechnology.com', username, password });
+        await apiKeyLogin({ apiKey: 'apiKey', username, password });
         setIsOpen(false);
         setLoading(false);
     }

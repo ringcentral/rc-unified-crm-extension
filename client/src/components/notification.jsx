@@ -6,12 +6,15 @@ import {
 import config from '../config.json';
 
 export default () => {
-    const containerStyle = {
+    const pageStyle = {
         position: 'absolute',
         zIndex: '1000000000',
-        width: 'auto',
+        width: '100%',
         height: '100%',
-        background: 'white',
+        background: 'white'
+    }
+
+    const containerStyle = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -55,23 +58,25 @@ export default () => {
     }
 
     return (
-        <div>
-            {isOpen && <div style={containerStyle}>
-                <RcTypography
-                    variant='title1'
-                >
-                    {title}(v{config.version})
-                </RcTypography>
-                {composeMessage()}
-                <RcButton
-                    onClick={() => { setIsOpen(false); }}
-                    style={{
-                        position: 'absolute',
-                        bottom: '100px'
-                    }}
-                >
-                    OK
-                </RcButton>
+        <div >
+            {isOpen && <div style={pageStyle}>
+                <div style={containerStyle}>
+                    <RcTypography
+                        variant='title1'
+                    >
+                        {title}(v{config.version})
+                    </RcTypography>
+                    {composeMessage()}
+                    <RcButton
+                        onClick={() => { setIsOpen(false); }}
+                        style={{
+                            position: 'absolute',
+                            bottom: '100px'
+                        }}
+                    >
+                        OK
+                    </RcButton>
+                </div>
             </div>}
         </div>
     )
