@@ -28,35 +28,39 @@ async function openPopupWindow() {
   });
 }
 
+async function registerPlatform(tabUrl) {
+  const url = new URL(tabUrl);
+  let platformName = '';
+  let hostname = url.hostname;
+  if (hostname.includes('pipedrive')) {
+    platformName = 'pipedrive';
+  }
+  else if (hostname.includes('insightly')) {
+    platformName = 'insightly';
+  }
+  else if (hostname.includes('clio')) {
+    platformName = 'clio';
+  }
+  else if (hostname.includes('redtailtechnology')) {
+    platformName = 'redtail';
+  }
+  else if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
+    platformName = 'pipedrive';
+    hostname = 'temp';
+    chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
+  }
+  else {
+    return;
+  }
+  await chrome.storage.local.set({
+    ['platform-info']: { platformName, hostname }
+  });
+}
+
 chrome.action.onClicked.addListener(async function (tab) {
   const platformInfo = await chrome.storage.local.get('platform-info');
   if (isObjectEmpty(platformInfo)) {
-    const url = new URL(tab.url);
-    let platformName = '';
-    let hostname = url.hostname;
-    if (hostname.includes('pipedrive')) {
-      platformName = 'pipedrive';
-    }
-    else if (hostname.includes('insightly')) {
-      platformName = 'insightly';
-    }
-    else if (hostname.includes('clio')) {
-      platformName = 'clio';
-    }
-    else if (hostname.includes('redtailtechnology')) {
-      platformName = 'redtail';
-    }
-    else if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
-      platformName = 'pipedrive';
-      hostname = 'temp';
-      chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
-    }
-    else {
-      return;
-    }
-    await chrome.storage.local.set({
-      ['platform-info']: { platformName, hostname }
-    });
+    registerPlatform(tab.url);
   }
   openPopupWindow();
 });
@@ -99,6 +103,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     "from a content script:" + sender.tab.url :
     "from the extension");
   if (request.type === "openPopupWindow") {
+    registerPlatform(sender.tab.url);
     await openPopupWindow();
     sendResponse({ result: 'ok' });
     return;
