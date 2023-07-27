@@ -96,29 +96,24 @@ window.addEventListener('message', async (e) => {
           platformName = platformInfo['platform-info'].platformName;
           rcUserInfo = (await chrome.storage.local.get('rcUserInfo')).rcUserInfo;
           if (data.loggedIn) {
-            if (!rcUserInfo || isObjectEmpty(rcUserInfo)) {
-              const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
-              const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
-              const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
-              const userInfoResponse = await getUserInfo({
-                extensionId: rcInfo.value.cachedData.extensionInfo.id,
-                accountId: rcInfo.value.cachedData.extensionInfo.account.id
-              });
-              rcUserInfo = {
-                rcUserName: rcInfo.value.cachedData.extensionInfo.name,
-                rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
-                rcUserNumber: data.loginNumber,
-                rcAccountId: userInfoResponse.accountId,
-                rcExtensionId: userInfoResponse.extensionId
-              };
-              await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
-              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
-            }
-            else {
-              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo.rcExtensionId });
-              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
-            }
+            const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
+            const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
+            const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
+            identify({ platformName, extensionId: extId });
+            const userInfoResponse = await getUserInfo({
+              extensionId: rcInfo.value.cachedData.extensionInfo.id,
+              accountId: rcInfo.value.cachedData.extensionInfo.account.id
+            });
+            rcUserInfo = {
+              rcUserName: rcInfo.value.cachedData.extensionInfo.name,
+              rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
+              rcUserNumber: data.loginNumber,
+              rcAccountId: userInfoResponse.accountId,
+              rcExtensionId: userInfoResponse.extensionId
+            };
+            await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
+            identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.extensionId });
+            group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
             // Juuuuuust for Pipedrive
@@ -382,7 +377,7 @@ window.addEventListener('message', async (e) => {
             case '/messageLogger':
               const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
               const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
-              if (data.body.triggerType !== 'manual' && isToday) {
+              if ((data.body.triggerType !== 'manual' && isToday) || !data.body.correspondentEntity) {
                 break;
               }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');

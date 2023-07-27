@@ -50,19 +50,25 @@ async function registerPlatform(tabUrl) {
     chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
   }
   else {
-    return;
+    return false;
   }
   await chrome.storage.local.set({
     ['platform-info']: { platformName, hostname }
   });
+  return true;
 }
 
 chrome.action.onClicked.addListener(async function (tab) {
   const platformInfo = await chrome.storage.local.get('platform-info');
   if (isObjectEmpty(platformInfo)) {
-    registerPlatform(tab.url);
+    const registered = await registerPlatform(tab.url);
+    if (registered) {
+      openPopupWindow();
+    }
   }
-  openPopupWindow();
+  else {
+    openPopupWindow();
+  }
 });
 
 chrome.windows.onRemoved.addListener(async (windowId) => {
