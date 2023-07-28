@@ -3,9 +3,10 @@ import {
     RcText,
     RcLoading,
     RcIconButton,
-    RcDivider
+    RcDivider,
+    RcCheckbox,
 } from '@ringcentral/juno';
-import { ChevronLeft, Check } from '@ringcentral/juno-icon';
+import { ChevronLeft, SaveDraft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
 import moment from 'moment';
@@ -26,15 +27,16 @@ export default () => {
         display: 'flex',
         justifyContent: 'flex-start',
         flexDirection: 'column',
-        alignItems: 'flex-start'
+        alignItems: 'flex-start',
+        overflow: 'hidden auto'
     };
     const topBarStyle = {
         display: 'flex',
         justifyContent: 'space-between',
-        width: '100%'
+        width: '100%',
+        alignItems: 'center'
     }
     const titleStyle = {
-        margin: '0px auto 5px auto',
         color: '#2f2f2f',
         fontSize: '20px'
     }
@@ -62,9 +64,6 @@ export default () => {
         margin: '2% 14%',
         width: '86%'
     }
-    const buttonStyle = {
-        color: '#808080'
-    }
 
     const [platform, setPlatform] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -80,6 +79,8 @@ export default () => {
     const [isLoading, setLoading] = useState(false);
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
+    const [useCustomSubject, setUseCustomSubject] = useState(false);
+    const [customSubject, setCustomSubject] = useState('');
 
     async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -108,6 +109,8 @@ export default () => {
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
+        setUseCustomSubject(false);
+        setCustomSubject('');
         switch (logEvents[0].logProps.logType) {
             case 'Call':
                 setDirection(` (${logEvents[0].logProps.logInfo.direction})`);
@@ -135,6 +138,9 @@ export default () => {
     async function onSubmission() {
         try {
             setLoading(true);
+            if (useCustomSubject) {
+                logInfo['customSubject'] = customSubject;
+            }
             await addLog({
                 logType,
                 logInfo,
@@ -162,6 +168,14 @@ export default () => {
         setNote(e.target.value);
     }
 
+    function onChangeCustomSubjectCheckBox(e) {
+        setUseCustomSubject(e.target.checked);
+    }
+
+    function onChangeCustomSubject(e) {
+        setCustomSubject(e.target.value);
+    }
+
     return (
         <div>
             <RcLoading loading={isLoading} />
@@ -172,16 +186,16 @@ export default () => {
                             <RcIconButton
                                 onClick={closeModal}
                                 symbol={ChevronLeft}
+                                color='action.primary'
                                 size='medium'
-                                style={buttonStyle}
                             />
+                            <RcText style={titleStyle} >Sync {logType} Log</RcText>
                             <RcIconButton
                                 onClick={onSubmission}
-                                symbol={Check}
+                                symbol={SaveDraft}
+                                color='action.primary'
                                 size='large'
-                                style={buttonStyle}
                             /></div>
-                        <RcText style={titleStyle} >Sync {logType} Log</RcText>
                         <div style={elementContainerStyle}>
                             <RcText style={labelStyle} >Phone No.:</RcText>
                             <RcText style={contentStyle} variant='body1'>{phoneNumber}{direction}</RcText>
@@ -205,11 +219,29 @@ export default () => {
                         }
                         <RcDivider style={dividerStyle} />
                         {logType === 'Call' &&
+                            <div style={elementContainerStyle}>
+                                <RcCheckbox
+                                    label="Custom log subject"
+                                    onChange={onChangeCustomSubjectCheckBox}
+                                    disableRipple
+                                />
+                            </div>
+                        }
+                        {useCustomSubject &&
+                            <RcTextarea
+                                style={noteStyle}
+                                label='Custom subject'
+                                onChange={onChangeCustomSubject}
+                                value={customSubject}
+                            />
+                        }
+                        {logType === 'Call' &&
                             <RcTextarea
                                 style={noteStyle}
                                 label='Note'
                                 onChange={onChangeNote}
-                                value={note}></RcTextarea>
+                                value={note}
+                            />
                         }
                         {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
                             <div style={elementContainerStyle}>

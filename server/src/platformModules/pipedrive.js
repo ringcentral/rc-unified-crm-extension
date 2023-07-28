@@ -116,7 +116,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const postBody = {
         user_id: user.id,
-        subject: `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
+        subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         duration: callLog.duration,    // secs
         person_id: contactInfo.id,
         org_id: orgId,

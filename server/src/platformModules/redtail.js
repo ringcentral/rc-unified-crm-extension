@@ -83,7 +83,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const noteDetail = note ? `\n\nAgent notes: ${note}` : '';
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
-        subject: `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
+        subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}<br><br>--- Added by RingCentral CRM Extension`,
         start_date: moment(callLog.startTime).utc().toISOString(),
         end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
