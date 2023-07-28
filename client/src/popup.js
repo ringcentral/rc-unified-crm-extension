@@ -99,7 +99,6 @@ window.addEventListener('message', async (e) => {
             const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
             const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
             const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
-            identify({ platformName, extensionId: extId });
             const userInfoResponse = await getUserInfo({
               extensionId: rcInfo.value.cachedData.extensionInfo.id,
               accountId: rcInfo.value.cachedData.extensionInfo.account.id
