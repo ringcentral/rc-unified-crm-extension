@@ -111,7 +111,7 @@ window.addEventListener('message', async (e) => {
               rcExtensionId: userInfoResponse.extensionId
             };
             await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-            identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.extensionId });
+            identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.rcExtensionId });
             group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
