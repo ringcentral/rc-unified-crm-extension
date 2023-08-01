@@ -31,6 +31,9 @@ let rcUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
 
+const errorLogWebhookUrl = "https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQ0NDY2MTc3IiwiaWQiOiIyMDc4MDgxMDUxIn0.NnAUGG4stGsPz8mhNsy6Qo2yosX0ydk58Dv70fmbugc";
+import axios from 'axios';
+
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
@@ -96,23 +99,6 @@ window.addEventListener('message', async (e) => {
           platformName = platformInfo['platform-info'].platformName;
           rcUserInfo = (await chrome.storage.local.get('rcUserInfo')).rcUserInfo;
           if (data.loggedIn) {
-            const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
-            const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
-            const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
-            const userInfoResponse = await getUserInfo({
-              extensionId: rcInfo.value.cachedData.extensionInfo.id,
-              accountId: rcInfo.value.cachedData.extensionInfo.account.id
-            });
-            rcUserInfo = {
-              rcUserName: rcInfo.value.cachedData.extensionInfo.name,
-              rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
-              rcUserNumber: data.loginNumber,
-              rcAccountId: userInfoResponse.accountId,
-              rcExtensionId: userInfoResponse.extensionId
-            };
-            await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-            identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.rcExtensionId });
-            group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
             // Juuuuuust for Pipedrive
@@ -126,19 +112,52 @@ window.addEventListener('message', async (e) => {
             else if (!rcUnifiedCrmExtJwt) {
               showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
             }
+            let stepperLog='';
+            try {
+              const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
+              stepperLog += `extId: ${extId}; `
+              const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
+              const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
+              stepperLog += `rcInfo extId: ${rcInfo.value.cachedData.extensionInfo.id}; `
+              const userInfoResponse = await getUserInfo({
+                extensionId: rcInfo.value.cachedData.extensionInfo.id,
+                accountId: rcInfo.value.cachedData.extensionInfo.account.id
+              });
+              stepperLog += `userInfoResponse: ${userInfoResponse}; `
+              rcUserInfo = {
+                rcUserName: rcInfo.value.cachedData.extensionInfo.name,
+                rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
+                rcUserNumber: data.loginNumber,
+                rcAccountId: userInfoResponse.accountId,
+                rcExtensionId: userInfoResponse.extensionId
+              };
+              stepperLog += `rcUserInfo: ${rcUserInfo}; `
+              await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
+              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.rcExtensionId });
+              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            }
+            catch (e) {
+              identify({ platformName });
+              group({ platformName });
+              await axios.post(errorLogWebhookUrl, {
+                  activity: "Error Log",
+                  title: "Log",
+                  text: stepperLog
+              });
+            }
           }
 
           let { rcLoginStatus } = await chrome.storage.local.get('rcLoginStatus');
           if (rcLoginStatus === false || !rcLoginStatus || isObjectEmpty(rcLoginStatus)) {
             if (data.loggedIn) {
-              trackRcLogin({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackRcLogin();
               rcLoginStatus = true;
               await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
             }
           }
           else {
             if (!data.loggedIn) {
-              trackRcLogout({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackRcLogout();
               rcLoginStatus = false;
             }
           }
@@ -150,28 +169,28 @@ window.addEventListener('message', async (e) => {
           handleRCOAuthWindow(data.oAuthUri);
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall({ rcAccountId: rcUserInfo?.rcAccountId });
+          trackPlacedCall();
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
+            trackAnsweredCall();
             showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
           const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-          trackCallEnd({ durationInSeconds: callDurationInSeconds, rcAccountId: rcUserInfo?.rcAccountId });
+          trackCallEnd({ durationInSeconds: callDurationInSeconds });
           break;
         case 'rc-ringout-call-notify':
           // get call on active call updated event
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-            trackCallEnd({ durationInSeconds: callDurationInSeconds, platformName, rcAccountId: rcUserInfo?.rcAccountId });
+            trackCallEnd({ durationInSeconds: callDurationInSeconds });
           }
           if (data.call.telephonyStatus === 'CallConnected') {
-            trackConnectedCall({ rcAccountId: rcUserInfo?.rcAccountId });
+            trackConnectedCall();
           }
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -193,19 +212,19 @@ window.addEventListener('message', async (e) => {
         case 'rc-analytics-track':
           switch (data.event) {
             case 'SMS: SMS sent successfully':
-              trackSentSMS({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackSentSMS();
               break;
             case 'Meeting Scheduled':
-              trackCreateMeeting({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackCreateMeeting();
               break;
           }
           break;
         case 'rc-callLogger-auto-log-notify':
-          trackEditSettings({ changedItem: 'auto-call-log', status: data.autoLog, rcAccountId: rcUserInfo?.rcAccountId });
+          trackEditSettings({ changedItem: 'auto-call-log', status: data.autoLog });
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
-            trackPage(data.path, { rcAccountId: rcUserInfo?.rcAccountId });
+            trackPage(data.path);
           }
           const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
           // Hack: change auto log wording
@@ -442,7 +461,7 @@ window.addEventListener('message', async (e) => {
               extensionUserSettings = data.body.settings;
               await chrome.storage.local.set({ extensionUserSettings });
               for (const setting of extensionUserSettings) {
-                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value, rcAccountId: rcUserInfo?.rcAccountId });
+                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
               break;
             default:
