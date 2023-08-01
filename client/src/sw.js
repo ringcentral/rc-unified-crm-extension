@@ -65,6 +65,15 @@ chrome.action.onClicked.addListener(async function (tab) {
     if (registered) {
       openPopupWindow();
     }
+    else{
+      chrome.notifications.create({
+      type: 'basic',
+      iconUrl: '/images/logo32.png',
+      title: `Please open the extension from a CRM page`,
+      message: "For first time setup, please open it from a CRM page. RingCentral CRM Extension requires initial setup and match to your CRM platform.",
+      priority: 1
+      });
+    }
   }
   else {
     openPopupWindow();

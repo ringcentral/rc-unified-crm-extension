@@ -1,13 +1,14 @@
 {
   "name": "RingCentral CRM Extension",
   "description": "A RingCentral extension for CRM platforms",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "permissions": [
     "storage",
     "alarms",
     "tabs",
     "background",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "notifications"
   ],
   "content_scripts": [
     {

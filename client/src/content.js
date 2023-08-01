@@ -1,5 +1,9 @@
 import LibPhoneNumberMatcher from './lib/LibPhoneNumberMatcher'
 import RangeObserver from './lib/RangeObserver'
+import App from './components/embedded';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { RcThemeProvider } from '@ringcentral/juno';
 
 console.log('import content js to web page');
 
@@ -73,22 +77,18 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+function Root() {
+  return (
+    <RcThemeProvider>
+      <App />
+    </RcThemeProvider>
+  );
+}
+
 if (!window.location.hostname.includes('ringcentral')) {
-  // Inject quick access button on crm pages to call out extension window
-  const quickAccessButtonDiv = window.document.createElement('div');
-  quickAccessButtonDiv.id = 'rc-unified-extension-quick-access';
-  quickAccessButtonDiv.style = 'position: fixed;right: 0px;bottom: 50px;z-index: 99999;box-shadow: 0px 0px 5px 1px rgb(0 0 0 / 18%);';
-  const quickAccessButton = window.document.createElement('button');
-  quickAccessButton.onclick = () => {
-    chrome.runtime.sendMessage({ type: "openPopupWindow" });
-  };
-  quickAccessButton.style = 'cursor: pointer; border-width: 0; padding: 3px;';
-  const quickAccessImage = window.document.createElement('img');
-  quickAccessImage.src = 'https://lh3.googleusercontent.com/pErf1dGSKiF5v8bjGdnymK7mcUtAkK7KFqyBVhnz_3Y5SAo3-I0BC6pf_u4TsnrDsl4WWW2yyU5r1u8i5Ux5uEZodg=w128-h128-e365-rj-sc0x00ffffff';
-  quickAccessImage.style = 'width: 30px;';
-  window.document.body.appendChild(quickAccessButtonDiv);
-  quickAccessButtonDiv.appendChild(quickAccessButton);
-  quickAccessButton.appendChild(quickAccessImage);
+  const rootElement = window.document.createElement('root');
+  window.document.body.appendChild(rootElement);
+  ReactDOM.render(<Root />, rootElement);
 }
 
 if (window.location.pathname === '/pipedrive-redirect') {
