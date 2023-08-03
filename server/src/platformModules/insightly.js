@@ -4,8 +4,6 @@ const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
-const API_VERSION = 'v3.1';
-
 function getAuthType() {
     return 'apiKey';
 }
@@ -16,7 +14,8 @@ function getBasicAuth({ apiKey }) {
 
 
 async function getUserInfo({ user, authHeader, additionalInfo }) {
-    const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/v3.1/users/me`, {
+    additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
+    const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
             'Authorization': authHeader
         }
@@ -87,7 +86,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
     const addLogRes = await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events`,
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -95,7 +94,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     // add linked contact to log
     if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile') {
         await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'contact',
                 LINK_OBJECT_ID: contactInfo.id
@@ -107,7 +106,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             // add org link
             if (additionalSubmission.orgSelection != null) {
                 await axios.post(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Organisation',
                         LINK_OBJECT_ID: additionalSubmission.orgSelection
@@ -119,7 +118,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             // add opportunity link
             if (additionalSubmission.opportunitySelection != null) {
                 await axios.post(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Opportunity',
                         LINK_OBJECT_ID: additionalSubmission.opportunitySelection
@@ -131,7 +130,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             // add org link
             if (additionalSubmission.projectSelection != null) {
                 await axios.post(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Project',
                         LINK_OBJECT_ID: additionalSubmission.projectSelection
@@ -144,7 +143,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     }
     else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile') {
         await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'lead',
                 LINK_OBJECT_ID: contactInfo.id
@@ -164,7 +163,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         END_DATE_UTC: moment(message.creationTime).utc()
     }
     const addLogRes = await axios.post(
-        `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events`,
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -172,7 +171,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     // add linked contact to log
     if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile') {
         await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'contact',
                 LINK_OBJECT_ID: contactInfo.id
@@ -183,7 +182,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     }
     else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile') {
         await axios.post(
-            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'lead',
                 LINK_OBJECT_ID: contactInfo.id
@@ -204,7 +203,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
     }
     // try Contact by PHONE
     let personInfo = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -212,7 +211,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
     if (personInfo.data.length === 0) {
         // try Contact by PHONE_MOBILE
         personInfo = await axios.get(
-            `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -220,7 +219,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
         if (personInfo.data.length === 0) {
             // try Lead by PHONE
             personInfo = await axios.get(
-                `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
                 {
                     headers: { 'Authorization': authHeader }
                 });
@@ -228,7 +227,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
             if (personInfo.data.length === 0) {
                 // try Lead by MOBILE
                 personInfo = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
@@ -245,7 +244,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
         switch (link.LINK_OBJECT_NAME) {
             case 'Organisation':
                 const orgRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
@@ -257,7 +256,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
                 break;
             case 'Opportunity':
                 const opportunityRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
@@ -269,7 +268,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
                 break;
             case 'Project':
                 const projectRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
                     {
                         headers: { 'Authorization': authHeader }
                     });

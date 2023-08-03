@@ -112,7 +112,7 @@ window.addEventListener('message', async (e) => {
             else if (!rcUnifiedCrmExtJwt) {
               showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
             }
-            let stepperLog='';
+            let stepperLog = '';
             try {
               const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
               stepperLog += `extId: ${extId}; `
@@ -140,9 +140,9 @@ window.addEventListener('message', async (e) => {
               identify({ platformName });
               group({ platformName });
               await axios.post(errorLogWebhookUrl, {
-                  activity: "Error Log",
-                  title: "Log",
-                  text: stepperLog
+                activity: "Error Log",
+                title: "Log",
+                text: stepperLog
               });
             }
           }
@@ -513,6 +513,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
       type: 'rc-adapter-new-sms',
       phoneNumber: request.phoneNumber,
+      conversation: true, // will go to conversation page if conversation existed
     }, '*');
     sendResponse({ result: 'ok' });
   } else if (request.type === 'c2d') {
@@ -521,6 +522,24 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       phoneNumber: request.phoneNumber,
       toCall: true,
     }, '*');
+    sendResponse({ result: 'ok' });
+  }
+  else if (request.type === 'navigate') {
+    if (request.path === '/feedback') {
+      window.postMessage({
+        type: 'rc-feedback-open',
+        props: {
+          userName: rcUserInfo?.rcUserName,
+          userEmail: rcUserInfo?.rcUserEmail
+        }
+      }, '*');
+    }
+    else {
+      document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+        type: 'rc-adapter-navigate-to',
+        path: request.path, // '/meeting', '/dialer', '//history', '/settings'
+      }, '*');
+    }
     sendResponse({ result: 'ok' });
   }
 });
