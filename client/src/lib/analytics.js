@@ -139,8 +139,18 @@ exports.trackEditSettings = function trackEditSettings({ changedItem, status }) 
     })
 }
 
-exports.trackCreateMeeting = function trackCreateMeeting({ rcAccountId }) {
+exports.trackCreateMeeting = function trackCreateMeeting() {
     track('Create meeting', {
+        appName
+    })
+}
+exports.trackOpenFeedback = function trackOpenFeedback() {
+    track('Open feedback', {
+        appName
+    })
+}
+exports.trackSubmitFeedback = function trackSubmitFeedback() {
+    track('Submit feedback', {
         appName
     })
 }

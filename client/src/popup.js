@@ -19,7 +19,8 @@ const {
   trackSentSMS,
   trackCreateMeeting,
   trackEditSettings,
-  trackConnectedCall
+  trackConnectedCall,
+  trackOpenFeedback
 } = require('./lib/analytics');
 
 window.__ON_RC_POPUP_WINDOW = 1;
@@ -71,6 +72,7 @@ window.addEventListener('message', async (e) => {
                   userEmail: rcUserInfo.rcUserEmail
                 }
               }, '*');
+              trackOpenFeedback();
             }
           }
           break;
@@ -456,6 +458,7 @@ window.addEventListener('message', async (e) => {
                   userEmail: rcUserInfo.rcUserEmail
                 }
               }, '*');
+              trackOpenFeedback();
               break;
             case '/settings':
               extensionUserSettings = data.body.settings;
@@ -533,6 +536,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
           userEmail: rcUserInfo?.rcUserEmail
         }
       }, '*');
+      trackOpenFeedback();
     }
     else {
       document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
