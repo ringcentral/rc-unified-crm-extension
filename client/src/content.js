@@ -77,6 +77,7 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
 function Root() {
   return (
     <RcThemeProvider>
@@ -85,11 +86,19 @@ function Root() {
   );
 }
 
-if (!window.location.hostname.includes('ringcentral.')) {
-  const rootElement = window.document.createElement('root');
-  window.document.body.appendChild(rootElement);
-  ReactDOM.render(<Root />, rootElement);
+async function RenderQuickAccessButton(){
+  if (!window.location.hostname.includes('ringcentral.')) {
+    if(window.location.hostname.includes('pipedrive'))
+    {
+      await delay(1000); // to prevent react hydration error on Pipedrive
+    }
+    const rootElement = window.document.createElement('root');
+    window.document.body.appendChild(rootElement);
+    ReactDOM.render(<Root />, rootElement);
+  }
 }
+
+RenderQuickAccessButton();
 
 if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });

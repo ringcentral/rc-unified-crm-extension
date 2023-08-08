@@ -108,8 +108,11 @@ export default () => {
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
+        if(!logEvents[0].additionalLogInfo)
+        {
+            setAdditionalSubmission(null);
+        }
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
-        setAdditionalSubmission(null);
         setUseCustomSubject(false);
         setCustomSubject('');
         switch (logEvents[0].logProps.logType) {
