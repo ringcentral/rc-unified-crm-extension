@@ -8,7 +8,6 @@ import {
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
-import { trackSubmitFeedback } from '../../lib/analytics';
 
 export default () => {
     const modalStyle = {
@@ -42,7 +41,18 @@ export default () => {
     const labelStyle = {
         margin: '0px 10px 5px 10px',
         fontFamily: 'Lato, Helvetica, Arial, sans-serif',
-        fontSize: '14px'
+        fontSize: '14px',
+        fontWeight: 'bold'
+    }
+    const recommendRadioGroupStyle = {
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+        fontSize: '14px',
+        margin: 'auto'
+    }
+    const platformRadioGroupStyle = {
+        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
+        fontSize: '14px',
+        marginLeft: '15px'
     }
     const noteAreaStyle = {
         height: '300px',
@@ -53,6 +63,7 @@ export default () => {
     const [isOpen, setIsOpen] = useState(false);
     const [feedback, setFeedback] = useState('');
     const [recommend, setRecommend] = useState('');
+    const [platform, setPlatform] = useState('');
     const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
@@ -78,11 +89,15 @@ export default () => {
 
     function onChangeFeedback(e) {
         setFeedback(e.target.value);
-        setIsSubmitEnabled(e.target.value !== '' && recommend !== '');
+        setIsSubmitEnabled(e.target.value !== '' && recommend !== '' && platform !== '');
     }
     function onChangeRecommend(e) {
         setRecommend(e.target.value);
-        setIsSubmitEnabled(e.target.value !== '' && feedback !== '');
+        setIsSubmitEnabled(e.target.value !== '' && feedback !== '' && platform !== '');
+    }
+    function onChangePlatform(e) {
+        setPlatform(e.target.value);
+        setIsSubmitEnabled(e.target.value !== '' && feedback !== '' && recommend !== '');
     }
 
     function closeModal() {
@@ -90,9 +105,8 @@ export default () => {
     }
 
     function onSubmission() {
-        trackSubmitFeedback();
         const feedbackText = encodeURIComponent(feedback);
-        const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${recommend}&entry.844920872=${feedbackText}&entry.1467064016=${userName}&entry.1822789675=${userEmail}`;
+        const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${recommend}&entry.2052354973=${platform}&entry.844920872=${feedbackText}&entry.1467064016=${userName}&entry.1822789675=${userEmail}`;
         window.open(formUrl, '_blank');
         setIsOpen(false);
     }
@@ -119,15 +133,38 @@ export default () => {
                         </div>
                         <RcTypography style={titleStyle} >Send us your feedback</RcTypography>
                         <RcTypography style={subTitleStyle}  >RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.</RcTypography>
-                        <RcTypography style={labelStyle} >Would you recommend this product to your friends or colleagues?</RcTypography>
+                        <RcTypography style={labelStyle} >How likely are you to recommend the Unified CRM Extension to a friend or colleague?</RcTypography>
 
-                        <RcFormControl style={labelStyle}>
+                        <RcFormControl style={recommendRadioGroupStyle}>
                             <RcRadioGroup row value={recommend} onChange={onChangeRecommend}>
-                                <RcRadio label="Yes" value="Yes" />
-                                <RcRadio label="No" value="No" />
-                                <RcRadio label="Maybe" value="Maybe" />
+                                <RcRadio useRcTooltip TooltipProps={1} size='xsmall' title="1" value="1" />
+                                <RcRadio useRcTooltip TooltipProps={2} size='xsmall' title="2" value="2" />
+                                <RcRadio useRcTooltip TooltipProps={3} size='xsmall' title="3" value="3" />
+                                <RcRadio useRcTooltip TooltipProps={4} size='xsmall' title="4" value="4" />
+                                <RcRadio useRcTooltip TooltipProps={5} size='xsmall' title="5" value="5" />
+                                <RcRadio useRcTooltip TooltipProps={6} size='xsmall' title="6" value="6" />
+                                <RcRadio useRcTooltip TooltipProps={7} size='xsmall' title="7" value="7" />
+                                <RcRadio useRcTooltip TooltipProps={8} size='xsmall' title="8" value="8" />
+                                <RcRadio useRcTooltip TooltipProps={9} size='xsmall' title="9" value="9" />
+                                <RcRadio useRcTooltip TooltipProps={10} size='xsmall' title="10" value="10" />
                             </RcRadioGroup>
                         </RcFormControl>
+                        <div style={{ height: '35px' }}>
+                            <RcTypography style={{ position: 'absolute', left: '10px' }} variant='caption1'>Not likely at all</RcTypography>
+                            <RcTypography style={{ position: 'absolute', right: '10px' }} variant='caption1'>Extremely likely</RcTypography>
+                        </div>
+                        <RcTypography style={labelStyle} >What CRM are you connecting to?</RcTypography>
+
+                        <RcFormControl style={platformRadioGroupStyle}>
+                            <RcRadioGroup row value={platform} onChange={onChangePlatform}>
+                                <RcRadio size='xsmall' label="Clio" value="Clio" />
+                                <RcRadio size='xsmall' label="Insightly" value="Insightly" />
+                                <RcRadio size='xsmall' label="Pipedrive" value="Pipedrive" />
+                                <RcRadio size='xsmall' label="Redtail" value="Redtail" />
+                                <RcRadio size='xsmall' label="Other" value="Other" />
+                            </RcRadioGroup>
+                        </RcFormControl>
+
                         <RcTypography style={labelStyle} >Please share your feedback in the space below.</RcTypography>
                         <RcTextarea
                             style={noteAreaStyle}

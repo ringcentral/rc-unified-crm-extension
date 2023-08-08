@@ -109,6 +109,7 @@ export default () => {
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
+        setAdditionalSubmission(null);
         setUseCustomSubject(false);
         setCustomSubject('');
         switch (logEvents[0].logProps.logType) {

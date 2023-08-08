@@ -61,9 +61,12 @@ function App() {
 
     function updatePos() {
         const setTransform = localStorage.getItem('rcQuickAccessButtonTransform');
-        const xPos = setTransform.split('translate(')[1].split('px,')[0];
-        const yPos = setTransform.split('px, ')[1].split('px')[0];
-        setPos({ x: Number(xPos), y: Number(yPos) });
+        if(setTransform)
+        {
+            const xPos = setTransform.split('translate(')[1].split('px,')[0];
+            const yPos = setTransform.split('px, ')[1].split('px')[0];
+            setPos({ x: Number(xPos), y: Number(yPos) });
+        }
     }
 
     function onDragStop(e) {

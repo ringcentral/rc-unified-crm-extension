@@ -85,7 +85,7 @@ function Root() {
   );
 }
 
-if (!window.location.hostname.includes('ringcentral')) {
+if (!window.location.hostname.includes('ringcentral.')) {
   const rootElement = window.document.createElement('root');
   window.document.body.appendChild(rootElement);
   ReactDOM.render(<Root />, rootElement);
