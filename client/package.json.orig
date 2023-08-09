@@ -1,0 +1,39 @@
+{
+  "name": "rc-unified-crm-extension-client",
+<<<<<<< HEAD
+  "version": "0.6.1",
+=======
+  "version": "0.6.0",
+>>>>>>> 51bbb31b1086acff055ce5923c06f605d07ed686
+  "description": "![image](https://user-images.githubusercontent.com/7036536/190325756-35ef367d-1557-4833-84aa-b09f5d6717ab.png)",
+  "main": "background.js",
+  "scripts": {
+    "build": "node ./build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DaKingKong/rc-unified-crm-extension.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DaKingKong/rc-unified-crm-extension/issues"
+  },
+  "homepage": "./",
+  "dependencies": {
+    "@ringcentral/juno": "^2.20.1",
+    "@ringcentral/juno-icon": "^1.15.0",
+    "@segment/analytics-next": "^1.49.1",
+    "axios": "^1.1.2",
+    "crypto-js": "^4.1.1",
+    "idb": "^7.1.1",
+    "moment": "^2.29.4",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-draggable": "^4.4.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.15.9",
+    "esbuild-copy-static-files": "^0.1.0"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "name": "RingCentral CRM Extension",
+  "description": "A RingCentral extension for CRM platforms",
+<<<<<<< HEAD
+  "version": "0.6.1",
+=======
+  "version": "0.6.0",
+>>>>>>> 51bbb31b1086acff055ce5923c06f605d07ed686
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "background",
+    "unlimitedStorage",
+    "notifications"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.ringcentral.com/*",
+        "https://*.ngrok-free.app/*",
+        "https://*.pipedrive.com/*",
+        "https://*.insightly.com/*",
+        "https://*.clio.com/*",
+        "https://*.redtailtechnology.com/*"
+      ],
+      "js": [
+        "./c2d/index.js",
+        "./content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "/embeddable/*",
+        "/c2d/*"
+      ],
+      "matches": [
+        "https://*.ringcentral.com/*",
+        "https://*.ngrok-free.app/*",
+        "https://*.pipedrive.com/*",
+        "https://*.insightly.com/*",
+        "https://*.clio.com/*",
+        "https://*.redtailtechnology.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "/images/logo16.png",
+      "32": "/images/logo32.png",
+      "48": "/images/logo48.png",
+      "128": "/images/logo128.png"
+    }
+  },
+  "background": {
+    "service_worker": "sw.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' ; object-src 'self'"
+  },
+  "manifest_version": 3,
+  "icons": {
+    "16": "/images/logo16.png",
+    "32": "/images/logo32.png",
+    "48": "/images/logo48.png",
+    "128": "/images/logo128.png"
+  }
+}
