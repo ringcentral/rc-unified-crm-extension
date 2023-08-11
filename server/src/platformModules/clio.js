@@ -207,7 +207,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
             {
                 headers: { 'Authorization': authHeader }
             });
-        const matters = matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } });
+        const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
         return {
             id: result.id,
             name: result.name,
