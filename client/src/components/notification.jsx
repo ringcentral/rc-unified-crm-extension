@@ -5,6 +5,8 @@ import {
 } from '@ringcentral/juno';
 import config from '../config.json';
 
+let platformName;
+
 export default () => {
     const pageStyle = {
         position: 'absolute',
@@ -29,10 +31,14 @@ export default () => {
         if (e.data.type === 'rc-check-version') {
             const recordedVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
             const version = recordedVersionInfo['rc-crm-extension-version'];
-            if (version && version !== config.version && config.releaseNote) {
+            let releaseNote = config.releaseNote.all;
+            if (!!platformName) {
+                releaseNote += config.releaseNote[platformName]
+            }
+            if (version && version !== config.version && !!releaseNote) {
                 setIsOpen(true);
                 setTitle('Release note');
-                setMessage(config.releaseNote);
+                setMessage(releaseNote);
             }
             await chrome.storage.local.set({
                 ['rc-crm-extension-version']: config.version
@@ -40,10 +46,17 @@ export default () => {
         }
     }
     useEffect(() => {
+        async function getPlatformName() {
+            const platformInfo = await chrome.storage.local.get('platform-info');
+            platformName = platformInfo['platform-info'].platformName;
+        }
+        getPlatformName();
+
         window.addEventListener('message', onEvent);
         return () => {
             window.removeEventListener('message', onEvent)
         }
+
     }, [])
 
     const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +64,10 @@ export default () => {
     const [message, setMessage] = useState('');
 
     function composeMessage() {
+        if(!!!message)
+        {
+            return "";
+        }
         const messageBreakDown = message.split(';');
         return messageBreakDown.map(b => {
             return <RcTypography variant='body1'>{b}</RcTypography>
