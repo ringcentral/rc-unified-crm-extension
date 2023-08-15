@@ -86,10 +86,9 @@ function Root() {
   );
 }
 
-async function RenderQuickAccessButton(){
+async function RenderQuickAccessButton() {
   if (!window.location.hostname.includes('ringcentral.')) {
-    if(window.location.hostname.includes('pipedrive'))
-    {
+    if (window.location.hostname.includes('pipedrive')) {
       await delay(1000); // to prevent react hydration error on Pipedrive
     }
     const rootElement = window.document.createElement('root');
@@ -104,4 +103,24 @@ if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
   const rcStepper = window.document.querySelector('#rc-stepper');
   rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account.';
+}
+
+if (document.readyState !== 'loading') {
+  registerInsightlyApiKey();
+} else {
+  document.addEventListener('DOMContentLoaded', function () {
+    registerInsightlyApiKey();
+  });
+}
+
+function registerInsightlyApiKey() {
+  if (window.location.pathname === '/Users/UserSettings' && window.location.hostname.includes('insightly.com')) {
+    const insightlyApiKey = document.querySelector('#apikey').innerHTML;
+    const insightlyApiUrl = document.querySelector('#apiUrl').firstChild.innerHTML;
+    chrome.runtime.sendMessage({
+      type: 'insightlyAuth',
+      apiKey: insightlyApiKey,
+      apiUrl: insightlyApiUrl
+    });
+  }
 }

@@ -4,6 +4,7 @@ const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openCont
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
+const { apiKeyLogin } = require('./core/auth');
 const moment = require('moment');
 const { openDB } = require('idb');
 const {
@@ -545,6 +546,16 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       }, '*');
     }
     sendResponse({ result: 'ok' });
+  }
+  else if (request.type === 'insightlyAuth') {
+    await apiKeyLogin({
+      apiKey: request.apiKey,
+      apiUrl: request.apiUrl
+    });
+    window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
+    chrome.runtime.sendMessage({
+      type: 'openPopupWindow'
+    });
   }
 });
 
