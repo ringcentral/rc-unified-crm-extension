@@ -80,11 +80,11 @@ async function unAuthorize({ id }) {
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const noteDetail = note ? `\n\nAgent notes: ${note}` : '';
+    const noteDetail = note ? `${note} \n\n --- Added by RingCentral CRM Extension` : '';
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}<br><br>--- Added by RingCentral CRM Extension`,
+        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${callRecordingDetail}<br><br>--- Added by RingCentral CRM Extension`,
         start_date: moment(callLog.startTime).utc().toISOString(),
         end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
         activity_code_id: 3,
@@ -101,6 +101,18 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
+    if (!!noteDetail) {
+        const addNoteRes = await axios.post(
+            `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}/notes`,
+            {
+                category_id: 2,
+                note_type: 1,
+                body: noteDetail
+            },
+            {
+                headers: { 'Authorization': overrideAuthHeader }
+            });
+    }
     const completeLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
         {
