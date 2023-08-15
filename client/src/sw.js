@@ -190,6 +190,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   if (request.type === 'pipedriveCallbackUri') {
     pipedriveCallbackUri = request.callbackUri;
-    console.log('pipedrive callback uri: ', request.callbackUri)
+    console.log('pipedrive callback uri: ', request.callbackUri);
+
+    chrome.runtime.sendMessage({
+      type: 'pipedriveCallbackUri',
+      pipedriveCallbackUri
+    });
   }
 });

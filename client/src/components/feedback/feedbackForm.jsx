@@ -8,6 +8,7 @@ import {
 } from '@ringcentral/juno';
 import { ChevronLeft, Check } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
+import { trackSubmitFeedback } from '../../lib/analytics';
 
 export default () => {
     const modalStyle = {
@@ -105,6 +106,7 @@ export default () => {
     }
 
     function onSubmission() {
+        trackSubmitFeedback();
         const feedbackText = encodeURIComponent(feedback);
         const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${recommend}&entry.2052354973=${platform}&entry.844920872=${feedbackText}&entry.1467064016=${userName}&entry.1822789675=${userEmail}`;
         window.open(formUrl, '_blank');

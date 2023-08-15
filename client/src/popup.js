@@ -201,7 +201,7 @@ window.addEventListener('message', async (e) => {
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
           }
-          if (data.call.telephonyStatus === 'Ringing') {
+          if (data.call.telephonyStatus === 'Ringing' && data.call.direction === 'Inbound') {
             chrome.runtime.sendMessage({
               type: 'openPopupWindow'
             });
@@ -503,7 +503,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
     sendResponse({ result: 'ok' });
   }
-  else if (request.type === 'pipedriveCallbackUri') {
+  else if (request.type === 'pipedriveCallbackUri' && !(await auth.checkAuth())) {
     await auth.onAuthCallback(`${request.pipedriveCallbackUri}&state=platform=pipedrive`);
     console.log('pipedriveAltAuthDone')
     chrome.runtime.sendMessage(
