@@ -4,6 +4,7 @@ const packageJson = require('../package.json');
 
 let pipedriveInstallationTabId;
 let pipedriveCallbackUri;
+let cachedClickToXRequest;
 async function openPopupWindow() {
   console.log('open popup');
   const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
@@ -187,6 +188,15 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   if (request.type === 'c2d' || request.type === 'c2sms') {
     await openPopupWindow();
+    cachedClickToXRequest = {
+      type: request.type,
+      phoneNumber: request.phoneNumber,
+    }
+  }
+  if(request.type === 'checkForClickToXCache')
+  {
+      sendResponse(cachedClickToXRequest);
+      cachedClickToXRequest = null;
   }
   if (request.type === 'pipedriveCallbackUri') {
     pipedriveCallbackUri = request.callbackUri;

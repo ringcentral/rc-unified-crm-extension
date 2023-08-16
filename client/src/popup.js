@@ -56,6 +56,30 @@ window.addEventListener('message', async (e) => {
           // get call on active call updated event
           if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
             await auth.checkAuth();
+            // check for Click-To-Dial or Click-To-SMS cached action
+            const cachedClickToXRequest = await chrome.runtime.sendMessage(
+              {
+                type: 'checkForClickToXCache'
+              }
+            )
+            if (cachedClickToXRequest) {
+              if(cachedClickToXRequest.type === 'c2d')
+              {
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-new-call',
+                  phoneNumber: cachedClickToXRequest.phoneNumber,
+                  toCall: true,
+                }, '*');
+              }
+              if(cachedClickToXRequest.type === 'c2sms')
+              {
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-new-sms',
+                  phoneNumber: cachedClickToXRequest.phoneNumber,
+                  conversation: true, // will go to conversation page if conversation existed
+                }, '*');
+              }
+            }
           }
           // Hack: add a feedback button
           if (!document.querySelector('.Adapter_header .header_feedback_button')) {
