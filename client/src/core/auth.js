@@ -34,7 +34,9 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         await chrome.storage.local.set({
             ['rcUnifiedCrmExtJwt']: res.data
         });
-        trackCrmLogin();
+        trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
+        showCRMLoginStatusDot();
+        removeWarningDots();
     }
     catch (e) {
         console.log(e);
@@ -53,14 +55,17 @@ async function onAuthCallback(callbackUri) {
     await chrome.storage.local.set({
         ['rcUnifiedCrmExtJwt']: res.data
     });
-    trackCrmLogin();
+    trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
+    showCRMLoginStatusDot();
+    removeWarningDots();
 }
 
 async function unAuthorize(rcUnifiedCrmExtJwt) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
-        trackCrmLogout()
+        trackCrmLogout({ rcAccountId: rcUserInfo.rcAccountId })
+        removeOnlineDot();
     }
     catch (e) {
         console.log(e);
@@ -72,6 +77,10 @@ async function unAuthorize(rcUnifiedCrmExtJwt) {
 async function checkAuth() {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     setAuth(!!rcUnifiedCrmExtJwt);
+
+    if (!rcUnifiedCrmExtJwt) {
+        showCRMLoginWarning();
+    }
     return !!rcUnifiedCrmExtJwt;
 }
 
@@ -82,9 +91,71 @@ function setAuth(auth) {
     });
 }
 
+// Red dot at the corner of settings button
+function showCRMLoginWarning() {
+    const targetDoc = document.querySelector("#rc-widget-adapter-frame").contentWindow.document
+    const moreMenuButton = targetDoc.querySelector('.NavigationBar_root').children[4];
+    if (!moreMenuButton.querySelector('#crmLoginWarning')) {
+        const warningDot = targetDoc.createElement('div');
+        warningDot.style = "position: absolute;  background: #ff3f3f;  width: 16px;  height: 16px;  right: 7px;top: 3px;font-size: 14px;border-radius: 50%;z-index: 1;"
+        warningDot.innerHTML = "1";
+        warningDot.id = "crmLoginWarning";
+        moreMenuButton.appendChild(warningDot);
+        moreMenuButton.addEventListener("click", addSettingsWarningDot)
+    }
+}
+
+async function addSettingsWarningDot() {
+    const targetDoc = document.querySelector("#rc-widget-adapter-frame").contentWindow.document
+    await delay(100);
+    const settingButton = targetDoc.querySelector('[title="Settings"]');
+    if (settingButton && !(await checkAuth())) {
+        const settingsWarningDot = targetDoc.createElement('div');
+        settingsWarningDot.style = "position: absolute;background: rgb(255, 63, 63);width: 14px;height: 14px;left: 35px;top: 3px;font-size: 12px;border-radius: 50%;z-index: 1;"
+        settingsWarningDot.id = "crmLoginSettingsWarning";
+        settingButton.appendChild(settingsWarningDot);
+    }
+}
+
+function removeWarningDots() {
+    const targetDoc = document.querySelector("#rc-widget-adapter-frame").contentWindow.document
+    targetDoc.querySelector('#crmLoginWarning')?.remove();
+    targetDoc.querySelector('#crmLoginSettingsWarning')?.remove();
+    targetDoc.querySelector('#crmAuthButtonWarningDot')?.remove();
+    const moreMenuButton = targetDoc.querySelector('.NavigationBar_root').children[4];
+    moreMenuButton.removeEventListener("click", addSettingsWarningDot)
+}
+
+function removeOnlineDot() {
+    const targetDoc = document.querySelector("#rc-widget-adapter-frame").contentWindow.document
+    targetDoc.querySelector('#crmLoginOnlineDot')?.remove();
+}
+
+async function showCRMLoginStatusDot() {
+    const isLoggedIn = await checkAuth();
+    const targetDoc = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
+    if (isLoggedIn) {
+        const crmOnlineDot = targetDoc.createElement('div');
+        crmOnlineDot.style = "position: absolute;background: #52b940;width: 16px;height: 16px;left: 78px;top: 21px;border-radius: 50%;"
+        crmOnlineDot.id = "crmLoginOnlineDot";
+        const crmRow = targetDoc.querySelector('.AuthorizeSettingsSection_accountWrapper');
+        crmRow.appendChild(crmOnlineDot);
+    }
+    else {
+        const authorizeButton = targetDoc.querySelector('.Button_root.AuthorizeSettingsSection_authorizaButton');
+        const warningDot = targetDoc.createElement('div');
+        warningDot.style = "position: absolute;  background: #ff3f3f;  width: 16px;  height: 16px;  right: 16px;top: 8px;font-size: 14px;border-radius: 50%;z-index: 1;"
+        warningDot.id = "crmAuthButtonWarningDot";
+        authorizeButton.appendChild(warningDot);
+    }
+}
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 exports.submitPlatformSelection = submitPlatformSelection;
 exports.apiKeyLogin = apiKeyLogin;
 exports.onAuthCallback = onAuthCallback;
 exports.unAuthorize = unAuthorize;
 exports.checkAuth = checkAuth;
 exports.setAuth = setAuth;
+exports.showCRMLoginStatusDot = showCRMLoginStatusDot;

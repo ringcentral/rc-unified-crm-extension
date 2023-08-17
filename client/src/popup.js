@@ -4,7 +4,7 @@ const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openCont
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
-const { apiKeyLogin } = require('./core/auth');
+const { apiKeyLogin, showCRMLoginStatusDot } = require('./core/auth');
 const moment = require('moment');
 const { openDB } = require('idb');
 const {
@@ -63,16 +63,14 @@ window.addEventListener('message', async (e) => {
               }
             )
             if (cachedClickToXRequest) {
-              if(cachedClickToXRequest.type === 'c2d')
-              {
+              if (cachedClickToXRequest.type === 'c2d') {
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                   type: 'rc-adapter-new-call',
                   phoneNumber: cachedClickToXRequest.phoneNumber,
                   toCall: true,
                 }, '*');
               }
-              if(cachedClickToXRequest.type === 'c2sms')
-              {
+              if (cachedClickToXRequest.type === 'c2sms') {
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                   type: 'rc-adapter-new-sms',
                   phoneNumber: cachedClickToXRequest.phoneNumber,
@@ -97,7 +95,7 @@ window.addEventListener('message', async (e) => {
                   userEmail: rcUserInfo.rcUserEmail
                 }
               }, '*');
-              trackOpenFeedback();
+              trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
             }
           }
           break;
@@ -177,14 +175,14 @@ window.addEventListener('message', async (e) => {
           let { rcLoginStatus } = await chrome.storage.local.get('rcLoginStatus');
           if (rcLoginStatus === false || !rcLoginStatus || isObjectEmpty(rcLoginStatus)) {
             if (data.loggedIn) {
-              trackRcLogin();
+              trackRcLogin({ rcAccountId: rcUserInfo?.rcAccountId });
               rcLoginStatus = true;
               await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
             }
           }
           else {
             if (!data.loggedIn) {
-              trackRcLogout();
+              trackRcLogout({ rcAccountId: rcUserInfo?.rcAccountId });
               rcLoginStatus = false;
             }
           }
@@ -196,28 +194,28 @@ window.addEventListener('message', async (e) => {
           handleRCOAuthWindow(data.oAuthUri);
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall();
+          trackPlacedCall({ rcAccountId: rcUserInfo?.rcAccountId });
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall();
+            trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
             showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
           const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-          trackCallEnd({ durationInSeconds: callDurationInSeconds });
+          trackCallEnd({ rcAccountId: rcUserInfo?.rcAccountId, durationInSeconds: callDurationInSeconds });
           break;
         case 'rc-ringout-call-notify':
           // get call on active call updated event
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-            trackCallEnd({ durationInSeconds: callDurationInSeconds });
+            trackCallEnd({ rcAccountId: rcUserInfo?.rcAccountId, durationInSeconds: callDurationInSeconds });
           }
           if (data.call.telephonyStatus === 'CallConnected') {
-            trackConnectedCall();
+            trackConnectedCall({ rcAccountId: rcUserInfo?.rcAccountId });
           }
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
@@ -239,23 +237,23 @@ window.addEventListener('message', async (e) => {
         case 'rc-analytics-track':
           switch (data.event) {
             case 'SMS: SMS sent successfully':
-              trackSentSMS();
+              trackSentSMS({ rcAccountId: rcUserInfo?.rcAccountId });
               break;
             case 'Meeting Scheduled':
-              trackCreateMeeting();
+              trackCreateMeeting({ rcAccountId: rcUserInfo?.rcAccountId });
               break;
           }
           break;
         case 'rc-callLogger-auto-log-notify':
-          trackEditSettings({ changedItem: 'auto-call-log', status: data.autoLog });
+          trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: 'auto-call-log', status: data.autoLog });
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
             trackPage(data.path);
           }
           const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
-          // Hack: change auto log wording
           if (data.path.includes('/settings')) {
+            // Hack: change auto log wording
             const changeWordingList = contentDocument.querySelectorAll('.SettingsPanel_content > .Line_root > .IconField_wrapper > .IconField_content > span');
             for (const changeWordingNode of changeWordingList) {
               if (changeWordingNode.innerHTML.includes('calls')) {
@@ -265,6 +263,9 @@ window.addEventListener('message', async (e) => {
                 changeWordingNode.innerHTML = 'Auto pop up message logging page';
               }
             }
+
+            // Hack: show login status
+            showCRMLoginStatusDot();
           }
           // Hack: inject a button to open sms template
           if (data.path.includes('/conversations/') || data.path === '/composeText') {
@@ -483,13 +484,13 @@ window.addEventListener('message', async (e) => {
                   userEmail: rcUserInfo.rcUserEmail
                 }
               }, '*');
-              trackOpenFeedback();
+              trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
               break;
             case '/settings':
               extensionUserSettings = data.body.settings;
               await chrome.storage.local.set({ extensionUserSettings });
               for (const setting of extensionUserSettings) {
-                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
+                trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
               break;
             default:
@@ -561,7 +562,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
           userEmail: rcUserInfo?.rcUserEmail
         }
       }, '*');
-      trackOpenFeedback();
+      trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
     }
     else {
       document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({

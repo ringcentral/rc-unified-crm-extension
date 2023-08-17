@@ -74,83 +74,98 @@ exports.trackFirstTimeSetup = function trackFirstTimeSetup() {
         appName
     });
 }
-exports.trackRcLogin = function trackRcLogin() {
+exports.trackRcLogin = function trackRcLogin({ rcAccountId }) {
     track('Login with RingCentral account', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackRcLogout = function trackRcLogout() {
+exports.trackRcLogout = function trackRcLogout({ rcAccountId }) {
     track('Logout with RingCentral account', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackCrmLogin = function trackCrmLogin() {
+exports.trackCrmLogin = function trackCrmLogin({ rcAccountId }) {
     track('Login with CRM account', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackCrmLogout = function trackCrmLogout() {
+exports.trackCrmLogout = function trackCrmLogout({ rcAccountId }) {
     track('Logout with CRM account', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackPlacedCall = function trackPlacedCall() {
+exports.trackPlacedCall = function trackPlacedCall({ rcAccountId }) {
     track('A new call placed', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackAnsweredCall = function trackAnsweredCall() {
+exports.trackAnsweredCall = function trackAnsweredCall({ rcAccountId }) {
     track('A new call answered', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackConnectedCall = function trackConnectedCall() {
+exports.trackConnectedCall = function trackConnectedCall({ rcAccountId }) {
     track('A new call connected', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackCallEnd = function trackCallEnd({ durationInSeconds }) {
+exports.trackCallEnd = function trackCallEnd({ rcAccountId, durationInSeconds }) {
     track('A call is ended', {
         durationInSeconds,
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackSentSMS = function trackSentSMS() {
+exports.trackSentSMS = function trackSentSMS({ rcAccountId }) {
     track('A new SMS sent', {
-        appName
+        appName,
+        rcAccountId
     });
 }
-exports.trackSyncCallLog = function trackSyncCallLog({ hasNote }) {
+exports.trackSyncCallLog = function trackSyncCallLog({ rcAccountId, hasNote }) {
     track('Sync call log', {
         hasNote,
-        appName
+        appName,
+        rcAccountId
     })
 }
-exports.trackSyncMessageLog = function trackSyncMessageLog() {
+exports.trackSyncMessageLog = function trackSyncMessageLog({ rcAccountId }) {
     track('Sync message log', {
-        appName
+        appName,
+        rcAccountId
     })
 }
-exports.trackEditSettings = function trackEditSettings({ changedItem, status }) {
+exports.trackEditSettings = function trackEditSettings({ rcAccountId, changedItem, status }) {
     track('Edit settings', {
         changedItem,
         status,
-        appName
+        appName,
+        rcAccountId
     })
 }
 
-exports.trackCreateMeeting = function trackCreateMeeting() {
+exports.trackCreateMeeting = function trackCreateMeeting({ rcAccountId }) {
     track('Create meeting', {
-        appName
+        appName,
+        rcAccountId
     })
 }
-exports.trackOpenFeedback = function trackOpenFeedback() {
+exports.trackOpenFeedback = function trackOpenFeedback({ rcAccountId }) {
     track('Open feedback', {
-        appName
+        appName,
+        rcAccountId
     })
 }
-exports.trackSubmitFeedback = function trackSubmitFeedback() {
+exports.trackSubmitFeedback = function trackSubmitFeedback({ rcAccountId }) {
     track('Submit feedback', {
-        appName
+        appName,
+        rcAccountId
     })
 }
