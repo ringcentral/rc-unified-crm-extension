@@ -87,7 +87,10 @@ function Root() {
 }
 
 async function RenderQuickAccessButton() {
-  if (!window.location.hostname.includes('ringcentral.')) {
+  const { quickAccessButtonOn } = await chrome.storage.local.get(
+    { quickAccessButtonOn: 'ON' }
+  );
+  if (!window.location.hostname.includes('ringcentral.') && quickAccessButtonOn === 'ON') {
     if (window.location.hostname.includes('pipedrive')) {
       await delay(1000); // to prevent react hydration error on Pipedrive
     }
