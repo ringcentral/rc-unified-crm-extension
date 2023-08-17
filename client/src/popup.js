@@ -52,10 +52,8 @@ window.addEventListener('message', async (e) => {
             )
           }
           break;
-        case 'rc-webphone-connection-status-notify':
-          // get call on active call updated event
-          if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
-            await auth.checkAuth();
+        case 'rc-dialer-status-notify':
+          if (data.ready) {
             // check for Click-To-Dial or Click-To-SMS cached action
             const cachedClickToXRequest = await chrome.runtime.sendMessage(
               {
@@ -78,6 +76,11 @@ window.addEventListener('message', async (e) => {
                 }, '*');
               }
             }
+          }
+        case 'rc-webphone-connection-status-notify':
+          // get call on active call updated event
+          if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
+            await auth.checkAuth();
           }
           // Hack: add a feedback button
           if (!document.querySelector('.Adapter_header .header_feedback_button')) {
