@@ -4,6 +4,7 @@ import pipedriveModule from '../platformModules/pipedrive.js';
 import insightlyModule from '../platformModules/insightly.js';
 import clioModule from '../platformModules/clio.js';
 import redtailModule from '../platformModules/redtail';
+import bullhornModule from '../platformModules/bullhorn';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -85,6 +86,8 @@ async function getModule() {
             return clioModule;
         case 'redtail':
             return redtailModule;
+        case 'bullhorn':
+            return bullhornModule;
     }
 }
 

@@ -42,6 +42,9 @@ async function registerPlatform(tabUrl) {
   else if (hostname.includes('clio')) {
     platformName = 'clio';
   }
+  else if (hostname.includes('bullhorn')) {
+    platformName = 'bullhorn';
+  }
   else if (hostname.includes('redtailtechnology')) {
     platformName = 'redtail';
   }
