@@ -32,7 +32,7 @@ async function addCallLog({ platform, userId, incomingData }) {
                 break;
         }
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
+        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
         if (contactInfo == null) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }

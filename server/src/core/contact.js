@@ -1,7 +1,7 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 
-async function getContact({ platform, userId, phoneNumber }) {
+async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
     try {
         const user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
@@ -21,7 +21,7 @@ async function getContact({ platform, userId, phoneNumber }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber });
+        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber, overridingFormat });
         if (contactInfo != null) {
             return { successful: true, message: '', contact: contactInfo };
         }

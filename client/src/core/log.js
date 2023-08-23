@@ -7,12 +7,13 @@ import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
 async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
     const platformInfo = await chrome.storage.local.get('platform-info');
     const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
-                const addCallLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission });
+                const addCallLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission, overridingFormat: overridingPhoneNumberFormat });
                 // force call log matcher check
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-trigger-call-logger-match',

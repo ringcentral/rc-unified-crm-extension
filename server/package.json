@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "ngrok": "ngrok http 6066 ",
+    "tunnel": "lite-http-tunnel start 6066 -p crm",
     "server": "node ./src/server.js",
     "start": "npm run server",
     "start-debug": "node --inspect ./src/server.js",

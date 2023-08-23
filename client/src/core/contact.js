@@ -7,8 +7,9 @@ import redtailModule from '../platformModules/redtail';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
     if (!!rcUnifiedCrmExtJwt) {
-        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}`);
+        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingPhoneNumberFormat}`);
         const platformModule = await getModule();
         const additionalLogInfo = platformModule.getContactAdditionalInfo(contactRes);
         return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact, additionalLogInfo };
@@ -59,8 +60,7 @@ function showInCallContactInfo({ incomingCallContactInfo }) {
 }
 
 async function openContactPage({ incomingCallContactInfo }) {
-    if(!!!incomingCallContactInfo.id)
-    {
+    if (!!!incomingCallContactInfo.id) {
         return;
     }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');

@@ -3,6 +3,7 @@ const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const moment = require('moment');
 const url = require('url');
+const { parsePhoneNumber } = require('awesome-phonenumber');
 
 function getAuthType() {
     return 'oauth';
@@ -191,7 +192,17 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function getContact({ user, authHeader, phoneNumber }) {
+async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    if (overridingFormat) {
+        const phoneNumberObj = parsePhoneNumber( phoneNumber.replace(' ', '+'));
+        if (phoneNumberObj.valid) {
+            const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+            phoneNumber = overridingFormat;
+            for (const numberBit of phoneNumberWithoutCountryCode) {
+                phoneNumber = phoneNumber.replace('*', numberBit);
+            }
+        }
+    }
     const personInfo = await axios.get(
         `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${phoneNumber}&fields=id,name,title,company`,
         {

@@ -194,16 +194,27 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.EVENT_ID;
 }
 
-async function getContact({ user, authHeader, phoneNumber }) {
-    phoneNumber = phoneNumber.replace(' ', '+')
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.valid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    if (overridingFormat) {
+        const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+        if (phoneNumberObj.valid) {
+            const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+            phoneNumber = overridingFormat;
+            for (const numberBit of phoneNumberWithoutCountryCode) {
+                phoneNumber = phoneNumber.replace('*', numberBit);
+            }
+        }
+    }
+    else {
+        phoneNumber = phoneNumber.replace(' ', '+')
+        const phoneNumberObj = parsePhoneNumber(phoneNumber);
+        if (phoneNumberObj.valid) {
+            phoneNumber = phoneNumberObj.number.significant;
+        }
     }
     // try Contact by PHONE
     let personInfo = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumber}&brief=false&top=1`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -211,7 +222,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
     if (personInfo.data.length === 0) {
         // try Contact by PHONE_MOBILE
         personInfo = await axios.get(
-            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumber}&brief=false&top=1`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -219,7 +230,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
         if (personInfo.data.length === 0) {
             // try Lead by PHONE
             personInfo = await axios.get(
-                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumber}&brief=false&top=1`,
                 {
                     headers: { 'Authorization': authHeader }
                 });
@@ -227,7 +238,7 @@ async function getContact({ user, authHeader, phoneNumber }) {
             if (personInfo.data.length === 0) {
                 // try Lead by MOBILE
                 personInfo = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumberWithoutCountryCode}&brief=false&top=1`,
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumber}&brief=false&top=1`,
                     {
                         headers: { 'Authorization': authHeader }
                     });

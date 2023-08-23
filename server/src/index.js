@@ -208,7 +208,7 @@ app.get('/contact', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber });
+            const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, message, contact });
         }
         else {
