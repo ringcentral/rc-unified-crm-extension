@@ -43,7 +43,6 @@ async function initializeC2D() {
     },
   );
 }
-initializeC2D();
 
 // Listen message from background.js to open app window when user click icon.
 chrome.runtime.onMessage.addListener(
@@ -77,7 +76,6 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
 function Root() {
   return (
     <RcThemeProvider>
@@ -87,20 +85,25 @@ function Root() {
 }
 
 async function RenderQuickAccessButton() {
-  const { quickAccessButtonOn } = await chrome.storage.local.get(
-    { quickAccessButtonOn: 'ON' }
-  );
-  if (!window.location.hostname.includes('ringcentral.') && quickAccessButtonOn === 'ON') {
-    if (window.location.hostname.includes('pipedrive')) {
-      await delay(1000); // to prevent react hydration error on Pipedrive
-    }
+  if (!window.location.hostname.includes('ringcentral.')) {
     const rootElement = window.document.createElement('root');
     window.document.body.appendChild(rootElement);
     ReactDOM.render(<Root />, rootElement);
   }
 }
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
-RenderQuickAccessButton();
+async function Initialize() {
+  const { c2dDelay } = await chrome.storage.local.get(
+    { c2dDelay: '0' }
+  );
+  const delayInMilliSec = Number(c2dDelay) * 1000;
+  await delay(delayInMilliSec);
+  await initializeC2D();
+  await RenderQuickAccessButton();
+}
+
+Initialize();
 
 if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
