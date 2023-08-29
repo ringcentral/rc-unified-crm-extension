@@ -28,7 +28,7 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 }
                 break;
             case 'Message':
-                const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission });
+                const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat });
                 if (messageLogRes.data.successful) {
                     if (!isToday) {
                         dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
