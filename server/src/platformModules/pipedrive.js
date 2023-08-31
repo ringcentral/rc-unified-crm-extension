@@ -114,6 +114,8 @@ async function unAuthorize({ id }) {
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
+    const timeUtc = moment(callLog.startTime).utcOffset(0).format('hh:mm')
+    const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
     const postBody = {
         user_id: user.id,
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
@@ -122,7 +124,9 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         org_id: orgId,
         deal_id: dealId,
         note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}`,
-        done: true
+        done: true,
+        due_date: timeUtc,
+        due_time: dateUtc
     }
     const addLogRes = await axios.post(
         `https://${user.hostname}/v1/activities`,
