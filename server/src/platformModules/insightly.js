@@ -81,7 +81,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         TITLE: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        DETAILS: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}\n\n--- Added by RingCentral CRM Extension`,
+        DETAILS: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}`,
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
@@ -158,7 +158,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const postBody = {
         TITLE: `SMS Log`,
-        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
+        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}`,
         START_DATE_UTC: moment(message.creationTime).utc(),
         END_DATE_UTC: moment(message.creationTime).utc()
     }

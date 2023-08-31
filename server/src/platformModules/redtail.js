@@ -80,12 +80,12 @@ async function unAuthorize({ id }) {
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const linkedNotes = note ? `${note} \n\n --- Added by RingCentral CRM Extension` : '';
+    const linkedNotes = note ?? '';
     const descriptionNotes = note ? `\n\nAgent notes: ${note}` : '';
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${descriptionNotes}${callRecordingDetail}<br><br>--- Added by RingCentral CRM Extension`,
+        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${descriptionNotes}${callRecordingDetail}`,
         start_date: moment(callLog.startTime).utc().toISOString(),
         end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
         activity_code_id: 3,
@@ -129,7 +129,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const postBody = {
         subject: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`}`,
-        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}<br><br>--- Added by RingCentral CRM Extension`,
+        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}`,
         start_date: moment(message.creationTime).utc().toISOString(),
         end_date: moment(message.creationTime).utc().toISOString(),
         activity_code_id: 3,

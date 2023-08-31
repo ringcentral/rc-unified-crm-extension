@@ -121,7 +121,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p> </p><p><em><span style="font-size:9px">--- Added by <a href="https://github.com/ringcentral/rc-unified-crm-extension">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}`,
         done: true
     }
     const addLogRes = await axios.post(
