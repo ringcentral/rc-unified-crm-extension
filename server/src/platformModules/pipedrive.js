@@ -140,6 +140,8 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
+    const timeUtc = moment(callLog.startTime).utcOffset(0).format('hh:mm')
+    const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
     const postBody = {
         user_id: user.id,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
@@ -147,7 +149,9 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         org_id: orgId,
         deal_id: dealId,
         note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}`,
-        done: true
+        done: true,
+        due_date: timeUtc,
+        due_time: dateUtc
     }
     const addLogRes = await axios.post(
         `https://${user.hostname}/v1/activities`,
