@@ -87,20 +87,24 @@ function Root() {
 async function RenderQuickAccessButton() {
   if (!window.location.hostname.includes('ringcentral.')) {
     const rootElement = window.document.createElement('root');
+    rootElement.id = 'rc-crm-extension-quick-access-button';
     window.document.body.appendChild(rootElement);
     ReactDOM.render(<Root />, rootElement);
   }
 }
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function Initialize() {
-  const { c2dDelay } = await chrome.storage.local.get(
-    { c2dDelay: '0' }
-  );
-  const delayInMilliSec = Number(c2dDelay) * 1000;
-  await delay(delayInMilliSec);
-  await initializeC2D();
+  if (window.location.hostname.includes('pipedrive.com')) {
+    const { c2dDelay } = await chrome.storage.local.get(
+      { c2dDelay: '3' }
+    );
+    const delayInMilliSec = Number(c2dDelay) * 1000;
+    await delay(delayInMilliSec);
+  }
   await RenderQuickAccessButton();
+  await initializeC2D();
 }
 
 Initialize();
