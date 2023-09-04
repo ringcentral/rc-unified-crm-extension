@@ -42,6 +42,12 @@ async function initializeC2D() {
       });
     },
   );
+
+  const collidingC2DResponse = await fetch("chrome-extension://fddhonoimfhgiopglkiokmofecgdiedb/redirect.html");
+  if(collidingC2DResponse.status === 200)
+  {
+    alert("RingCentral CRM Extension detected that you are using RingCentral for Google extension. It's recommended that you use one of them only in case of click-to-dial collision.");
+  }
 }
 
 // Listen message from background.js to open app window when user click icon.
