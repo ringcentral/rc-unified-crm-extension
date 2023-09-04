@@ -85,7 +85,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${descriptionNotes}${callRecordingDetail}`,
+        description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.<br>${descriptionNotes}<br>${callRecordingDetail}<br><em> Created via: <a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em>`,
         start_date: moment(callLog.startTime).utc().toISOString(),
         end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
         activity_code_id: 3,
@@ -129,7 +129,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const postBody = {
         subject: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`}`,
-        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}`,
+        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}<br><br><em> Created via: <a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em>`,
         start_date: moment(message.creationTime).utc().toISOString(),
         end_date: moment(message.creationTime).utc().toISOString(),
         activity_code_id: 3,
