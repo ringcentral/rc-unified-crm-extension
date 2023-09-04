@@ -426,7 +426,7 @@ window.addEventListener('message', async (e) => {
             case '/messageLogger':
               const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
               const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
-              if ((data.body.triggerType !== 'manual' && isToday) || !data.body.correspondentEntity) {
+              if (!data.body.correspondentEntity) {
                 break;
               }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');

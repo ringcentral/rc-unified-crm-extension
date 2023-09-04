@@ -102,8 +102,8 @@ async function unAuthorize({ id }) {
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const postBody = {
         data: {
-            subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-            body: `\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''} \n\n--- Added by RingCentral CRM Extension`,
+            subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
+            body: `\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
             senders: [
@@ -158,7 +158,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const postBody = {
         data: {
             subject: `[SMS] ${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
-            body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Added by RingCentral CRM Extension`,
+            body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(message.creationTime).toISOString(),
             senders: [
@@ -193,41 +193,49 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    const numberToQueryArray = [];
     if (overridingFormat) {
-        const phoneNumberObj = parsePhoneNumber( phoneNumber.replace(' ', '+'));
-        if (phoneNumberObj.valid) {
-            const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-            phoneNumber = overridingFormat;
-            for (const numberBit of phoneNumberWithoutCountryCode) {
-                phoneNumber = phoneNumber.replace('*', numberBit);
+        const formats = overridingFormat.split(',');
+        for (var format of formats) {
+            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+            if (phoneNumberObj.valid) {
+                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                let formattedNumber = format;
+                for (const numberBit of phoneNumberWithoutCountryCode) {
+                    formattedNumber = formattedNumber.replace('*', numberBit);
+                }
+                numberToQueryArray.push(formattedNumber);
             }
         }
     }
-    const personInfo = await axios.get(
-        `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${phoneNumber}&fields=id,name,title,company`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    if (personInfo.data.data.length === 0) {
-        return null;
-    }
     else {
-        let result = personInfo.data.data[0];
-        const matterInfo = await axios.get(
-            `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    }
+    for (var numberToQuery of numberToQueryArray) {
+        const personInfo = await axios.get(
+            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
             {
                 headers: { 'Authorization': authHeader }
             });
-        const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
-        return {
-            id: result.id,
-            name: result.name,
-            title: result.title ?? "",
-            company: result.company?.name ?? "",
-            phone: phoneNumber,
-            matters
+        if (personInfo.data.data.length > 0) {
+            let result = personInfo.data.data[0];
+            const matterInfo = await axios.get(
+                `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
+            return {
+                id: result.id,
+                name: result.name,
+                title: result.title ?? "",
+                company: result.company?.name ?? "",
+                phone: numberToQuery,
+                matters
+            }
         }
     }
+    return null;
 }
 
 

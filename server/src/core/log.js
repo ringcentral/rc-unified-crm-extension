@@ -77,7 +77,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber });
+        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
         if (contactInfo == null) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }

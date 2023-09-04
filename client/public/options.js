@@ -1,11 +1,13 @@
 // Saves options to chrome.storage
 const saveOptions = () => {
     const region = document.getElementById('region').value;
-    const quickAccessButtonOn = document.getElementById('quickAccessButtonOn').value;
+    const c2dDelay = document.getElementById('c2dDelay').value;
     const overridingPhoneNumberFormat = document.getElementById('overridingPhoneNumberFormat').value;
+    const overridingPhoneNumberFormat2 = document.getElementById('overridingPhoneNumberFormat2').value;
+    const overridingPhoneNumberFormat3 = document.getElementById('overridingPhoneNumberFormat3').value;
 
     chrome.storage.local.set(
-        { selectedRegion: region, quickAccessButtonOn, overridingPhoneNumberFormat },
+        { selectedRegion: region, c2dDelay, overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 },
         () => {
             // Update status to let user know options were saved.
             const status = document.getElementById('status');
@@ -21,11 +23,13 @@ const saveOptions = () => {
 // stored in chrome.storage.
 const restoreOptions = () => {
     chrome.storage.local.get(
-        { selectedRegion: 'US', quickAccessButtonOn: 'ON', overridingPhoneNumberFormat: '' },
+        { selectedRegion: 'US', c2dDelay: '0', overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' },
         (items) => {
             document.getElementById('region').value = items.selectedRegion;
-            document.getElementById('quickAccessButtonOn').value = items.quickAccessButtonOn;
+            document.getElementById('c2dDelay').value = items.c2dDelay;
             document.getElementById('overridingPhoneNumberFormat').value = items.overridingPhoneNumberFormat;
+            document.getElementById('overridingPhoneNumberFormat2').value = items.overridingPhoneNumberFormat2;
+            document.getElementById('overridingPhoneNumberFormat3').value = items.overridingPhoneNumberFormat3;
         }
     );
 };
