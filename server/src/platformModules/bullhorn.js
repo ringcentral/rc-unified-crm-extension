@@ -9,27 +9,30 @@ function getAuthType() {
     return 'oauth';
 }
 
-function getOauthInfo() {
+async function getOauthInfo({ tokenUrl }) {
     return {
         clientId: process.env.BULLHORN_CLIENT_ID,
         clientSecret: process.env.BULLHORN_CLIENT_SECRET,
-        accessTokenUri: process.env.BULLHORN_ACCESS_TOKEN_URI,
+        accessTokenUri: tokenUrl,
         redirectUri: process.env.BULLHORN_REDIRECT_URI
     }
 }
 
-async function getUserInfo({ authHeader }) {
-    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
-        headers: {
-            'Authorization': authHeader
-        }
-    });
+async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
+    const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
+    const bhRestToken = userLoginResponse.data.BhRestToken;
+    const restUrl = userLoginResponse.data.restUrl;
+    const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
+    const userData = userInfoResponse.data.data[0];
+    const utcTimeOffset = userData.timeZoneOffsetEST - 5 * 60;
     return {
-        id: userInfoResponse.data.data.id.toString(),
-        name: userInfoResponse.data.data.name,
-        timezoneName: userInfoResponse.data.data.time_zone,
-        timezoneOffset: 0,  //TODO: find timezone offset from timezone name/code
+        id: userData.id.toString(),
+        name: userData.name,
+        timezoneOffset: utcTimeOffset,  //TODO: find timezone offset from timezone name/code
         additionalInfo: {
+            tokenUrl,
+            restUrl,
+            bhRestToken
         }
     };
 }
@@ -85,16 +88,6 @@ async function unAuthorize({ id }) {
                 id,
                 platform: 'bullhorn'
             }
-        });
-    const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
-    const accessTokenParams = new url.URLSearchParams({
-        token: user.accessToken
-    });
-    const accessTokenRevokeRes = await axios.post(
-        revokeUrl,
-        accessTokenParams,
-        {
-            headers: { 'Authorization': `Bearer ${user.accessToken}` }
         });
     await user.destroy();
 }

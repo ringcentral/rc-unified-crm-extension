@@ -4,6 +4,7 @@ import App from './components/embedded';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { RcThemeProvider } from '@ringcentral/juno';
+import axios from 'axios';
 
 console.log('import content js to web page');
 
@@ -102,6 +103,14 @@ async function Initialize() {
     );
     const delayInMilliSec = Number(c2dDelay) * 1000;
     await delay(delayInMilliSec);
+  }
+  const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+  if (window.location.hostname.includes('bullhornstaffing.com') && !crm_extension_bullhornUsername) {
+    const decodedCookie = decodeURIComponent(window.document.cookie);
+    const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
+    await chrome.storage.local.set({ crm_extension_bullhornUsername: bullhornUsername });
+    const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsername}`);
+    await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
   }
   await RenderQuickAccessButton();
   await initializeC2D();

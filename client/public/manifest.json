@@ -18,7 +18,7 @@
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
-        "https://*.redtailtechnology.com/*"
+        "https://*.bullhornstaffing.com/*"
       ],
       "js": [
         "./c2d/index.js",
@@ -38,7 +38,8 @@
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
-        "https://*.redtailtechnology.com/*"
+        "https://*.redtailtechnology.com/*",
+        "https://*.bullhornstaffing.com/*"
       ]
     }
   ],

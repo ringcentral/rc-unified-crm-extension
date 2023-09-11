@@ -49,7 +49,16 @@ async function onAuthCallback(callbackUri) {
     const rcUserNumber = rcUserInfo.rcUserNumber;
     const platformInfo = await chrome.storage.local.get('platform-info');
     const hostname = platformInfo['platform-info'].hostname;
-    const res = await axios.get(`${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`);
+    let oauthCallbackUrl = '';
+    if (platformInfo['platform-info'].platformName === 'bullhorn') {
+        const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
+        const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+        oauthCallbackUrl = `${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${crm_extension_bullhornUsername}`;
+    }
+    else {
+        oauthCallbackUrl = `${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`;
+    }
+    const res = await axios.get(oauthCallbackUrl);
     setAuth(true);
     showNotification({ level: 'success', message: 'Successfully authorized.', ttl: 3000 });
     await chrome.storage.local.set({
