@@ -11,7 +11,7 @@ async function openPopupWindow() {
   if (popupWindowId) {
     try {
       await chrome.windows.update(popupWindowId, { focused: true });
-      return;
+      return true;
     } catch (e) {
       // ignore
     }
@@ -27,6 +27,7 @@ async function openPopupWindow() {
   await chrome.storage.local.set({
     popupWindowId: popup.id,
   });
+  return false;
 }
 
 async function registerPlatform(tabUrl) {
@@ -187,16 +188,17 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     return;
   }
   if (request.type === 'c2d' || request.type === 'c2sms') {
-    await openPopupWindow();
-    cachedClickToXRequest = {
-      type: request.type,
-      phoneNumber: request.phoneNumber,
+    const isPopupExist = await openPopupWindow();
+    if (!isPopupExist) {
+      cachedClickToXRequest = {
+        type: request.type,
+        phoneNumber: request.phoneNumber,
+      }
     }
   }
-  if(request.type === 'checkForClickToXCache')
-  {
-      sendResponse(cachedClickToXRequest);
-      cachedClickToXRequest = null;
+  if (request.type === 'checkForClickToXCache') {
+    sendResponse(cachedClickToXRequest);
+    cachedClickToXRequest = null;
   }
   if (request.type === 'pipedriveCallbackUri') {
     pipedriveCallbackUri = request.callbackUri;
