@@ -99,7 +99,7 @@ app.get('/oauth-callback', async function (req, res) {
             throw 'missing platform name';
         }
         const platformModule = require(`./platformModules/${platform}`);
-        const oauthInfo = await platformModule.getOauthInfo({ tokenUrl });
+        const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
         const oauthApp = oauth.getOAuthApp(oauthInfo);
         let overridingHeader = null;
         let overridingQuery = null;

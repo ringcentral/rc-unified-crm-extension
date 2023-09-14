@@ -12,7 +12,7 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.additionalInfo?.tokenUrl }));
+                const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
                 await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;

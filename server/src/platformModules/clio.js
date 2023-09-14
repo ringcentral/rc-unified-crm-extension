@@ -9,7 +9,7 @@ function getAuthType() {
     return 'oauth';
 }
 
-async function getOauthInfo() {
+function getOauthInfo() {
     return {
         clientId: process.env.CLIO_CLIENT_ID,
         clientSecret: process.env.CLIO_CLIENT_SECRET,
