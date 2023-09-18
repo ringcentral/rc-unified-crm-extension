@@ -36,6 +36,34 @@ let incomingCallContactInfo = null;
 const errorLogWebhookUrl = "https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQ0NDY2MTc3IiwiaWQiOiIyMDc4MDgxMDUxIn0.NnAUGG4stGsPz8mhNsy6Qo2yosX0ydk58Dv70fmbugc";
 import axios from 'axios';
 
+async function checkC2DCollision() {
+  const { rcForGoogleCollisionChecked } = await chrome.storage.local.get({ rcForGoogleCollisionChecked: false });
+  const collidingC2DResponse = await fetch("chrome-extension://fddhonoimfhgiopglkiokmofecgdiedb/redirect.html");
+  if (!rcForGoogleCollisionChecked && collidingC2DResponse.status === 200) {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: '/images/logo32.png',
+      title: `Click-to-dial may not work`,
+      message: "The RingCentral for Google Chrome extension has been detected. You may wish to customize your click-to-dial preferences for your desired behavior",
+      priority: 1,
+      buttons: [
+        {
+          title: 'Configure'
+        }
+      ]
+    });
+    chrome.notifications.onButtonClicked.addListener(
+      (notificationId, buttonIndex) => {
+        window.open('https://youtu.be/tbCOM27GUbc');
+      }
+    )
+
+    await chrome.storage.local.set({ rcForGoogleCollisionChecked: true });
+  }
+}
+
+checkC2DCollision();
+
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
   const data = e.data;
