@@ -98,9 +98,13 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function Initialize() {
   if (window.location.hostname.includes('pipedrive.com')) {
-    const { c2dDelay } = await chrome.storage.local.get(
+    let { c2dDelay } = await chrome.storage.local.get(
       { c2dDelay: '3' }
     );
+    if(!!!c2dDelay)
+    {
+      c2dDelay = 3;
+    }
     const delayInMilliSec = Number(c2dDelay) * 1000;
     await delay(delayInMilliSec);
   }
