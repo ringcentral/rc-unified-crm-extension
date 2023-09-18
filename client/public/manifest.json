@@ -18,6 +18,7 @@
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
+        "https://*.redtailtechnology.com/*",
         "https://*.bullhornstaffing.com/*"
       ],
       "js": [

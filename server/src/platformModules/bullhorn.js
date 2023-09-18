@@ -18,7 +18,8 @@ function getOauthInfo({ tokenUrl }) {
 }
 
 async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
-    const { BhRestToken: bhRestToken, restUrl } = await getSessionToken(apiUrl, authHeader.split('Bearer ')[1]);
+    const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
+    const { BhRestToken: bhRestToken, restUrl } = userLoginResponse.data;
     const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
     const userData = userInfoResponse.data.data[0];
     const utcTimeOffset = userData.timeZoneOffsetEST - 5 * 60;
@@ -29,6 +30,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
         additionalInfo: {
             tokenUrl,
             restUrl,
+            loginUrl: apiUrl,
             bhRestToken
         }
     };
@@ -132,8 +134,19 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
         numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     }
     for (var numberToQuery of numberToQueryArray) {
-        const personInfo = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}query/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone&where=phone='${numberToQuery}'`);
+        numberToQuery = encodeURIComponent(numberToQuery);
+        let personInfo;
+        try {
+            personInfo = await axios.get(
+                `${user.platformAdditionalInfo.restUrl}query/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone&where=phone='${numberToQuery}'`);
+        }
+        catch (e) {
+            if (e.response.status === 401) {
+                const updatedUser = refreshSessionToken(user);
+                personInfo = await axios.get(
+                    `${user.platformAdditionalInfo.restUrl}query/ClientContact?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone&where=phone='${numberToQuery}'`);
+            }
+        }
         if (personInfo.data.data.length > 0) {
             const result = personInfo.data.data[0];
             return {
@@ -146,9 +159,16 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     return null;
 }
 
-async function getSessionToken(apiUrl, accessToken) {
-    const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${accessToken}`);
-    return { BhRestToken, restUrl } = userLoginResponse.data;
+async function refreshSessionToken(user) {
+    console.log('refreshing bullhorn session token...');
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}login?version=2.0&access_token=${user.accessToken}`);
+    const { BhRestToken, restUrl } = userLoginResponse.data;
+    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
+    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
+    updatedPlatformAdditionalInfo.restUrl = restUrl;
+    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
+    await user.save();
+    return user;
 }
 
 

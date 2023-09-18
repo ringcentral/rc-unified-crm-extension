@@ -38,7 +38,7 @@ async function bullhornTokenRefresh(oauthApp, user) {
     user.accessToken = refreshResponse.data.access_token;
     user.refreshToken = refreshResponse.data.refresh_token;
     const date = new Date();
-    user.tokenExpiry = date.setSeconds(date.getSeconds() +  + refreshResponse.data.expires_in);
+    user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshResponse.data.expires_in);
     await user.save();
 }
 
