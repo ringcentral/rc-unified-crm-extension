@@ -14,7 +14,6 @@ import { secondsToHourMinuteSecondString } from '../../lib/util';
 import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
-import BullhornAdditionalForm from './BullhornAdditionalForm';
 
 const logEvents = [];
 
@@ -268,15 +267,6 @@ export default () => {
                         {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
                             <div style={elementContainerStyle}>
                                 <ClioAdditionalForm
-                                    additionalFormInfo={additionalFormInfo}
-                                    setSubmission={setAdditionalSubmission}
-                                    style={labelStyle}
-                                />
-                            </div>
-                        }
-                        {platform === 'bullhorn' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                            <div style={elementContainerStyle}>
-                                <BullhornAdditionalForm
                                     additionalFormInfo={additionalFormInfo}
                                     setSubmission={setAdditionalSubmission}
                                     style={labelStyle}
