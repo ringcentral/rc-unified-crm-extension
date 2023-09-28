@@ -1,7 +1,7 @@
 {
   "name": "RingCentral CRM Extension",
   "description": "A RingCentral extension for CRM platforms",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "permissions": [
     "storage",
     "alarms",
@@ -24,7 +24,8 @@
       "js": [
         "./c2d/index.js",
         "./content.js"
-      ]
+      ],
+      "all_frames": true
     }
   ],
   "web_accessible_resources": [
