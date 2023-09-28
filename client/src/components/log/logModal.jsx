@@ -6,7 +6,7 @@ import {
     RcDivider,
     RcCheckbox,
 } from '@ringcentral/juno';
-import { ChevronLeft, SaveDraft } from '@ringcentral/juno-icon';
+import { ChevronLeft, SaveDraft, StopCircleBorder } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
 import moment from 'moment';
@@ -16,6 +16,7 @@ import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
 
 const logEvents = [];
+let countdownIntervalId = '';
 
 export default () => {
     const modalStyle = {
@@ -81,6 +82,8 @@ export default () => {
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
     const [useCustomSubject, setUseCustomSubject] = useState(false);
     const [customSubject, setCustomSubject] = useState('');
+    const [countdown, setCountdown] = useState(20);
+    const [countdownFinished, setCountdownFinished] = useState(false);
 
     async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -108,8 +111,14 @@ export default () => {
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
-        if(!logEvents[0].additionalLogInfo)
-        {
+        if (logEvents[0].logProps.autoLog) {
+            setCountdown(20);
+            countdownIntervalId = setInterval(() => {
+                setCountdown(c => { return c - 1; });
+            }, 1000);
+        }
+        setCountdownFinished(!logEvents[0].logProps.autoLog);
+        if (!logEvents[0].additionalLogInfo) {
             setAdditionalSubmission(null);
         }
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
@@ -139,8 +148,24 @@ export default () => {
         }
     }, [])
 
+    useEffect(() => {
+        const countDownCheck = async function () {
+            if (countdown <= 0) {
+                await onSubmission();
+            }
+        }
+        countDownCheck();
+    }, [countdown])
+
+    // any editing action would stop countdown
+    function stopCountDown() {
+        setCountdownFinished(true);
+        clearInterval(countdownIntervalId);
+    }
+
     async function onSubmission() {
         try {
+            stopCountDown();
             setLoading(true);
             if (useCustomSubject) {
                 logInfo['customSubject'] = customSubject;
@@ -161,6 +186,7 @@ export default () => {
     }
 
     function closeModal() {
+        stopCountDown();
         setIsOpen(false);
         logEvents.shift();  // array FIFO
         if (logEvents.length > 0) {
@@ -193,13 +219,23 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText style={titleStyle} >Sync {logType} Log</RcText>
-                            <RcIconButton
-                                onClick={onSubmission}
-                                symbol={SaveDraft}
-                                color='action.primary'
-                                size='large'
-                            /></div>
+                            <RcText style={titleStyle} >Sync {logType} Log{countdownFinished ? '' : `(${countdown})`}</RcText>
+                            {countdownFinished ?
+                                <RcIconButton
+                                    onClick={onSubmission}
+                                    symbol={SaveDraft}
+                                    color='action.primary'
+                                    size='large'
+                                /> :
+                                <RcIconButton
+                                    onClick={stopCountDown}
+                                    symbol={StopCircleBorder}
+                                    color="action.primary"
+                                    size='large'
+                                />
+                            }
+
+                        </div>
                         <div style={elementContainerStyle}>
                             <RcText style={labelStyle} >Phone No.:</RcText>
                             <RcText style={contentStyle} variant='body1'>{phoneNumber}{direction}</RcText>
