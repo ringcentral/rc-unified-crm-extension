@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "",
   "main": "index.js",
   "scripts": {
