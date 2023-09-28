@@ -144,7 +144,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const postBody = {
         user_id: user.id,
-        subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
+        subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${contactInfo.name}(${message.to[0].phoneNumber})`,
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
