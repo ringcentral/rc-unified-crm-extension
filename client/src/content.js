@@ -125,7 +125,7 @@ Initialize();
 if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
   const rcStepper = window.document.querySelector('#rc-stepper');
-  rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account.';
+  rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account. If nothing happens, please try refreshing this page and wait for a few seconds.';
 }
 
 if (document.readyState !== 'loading') {
