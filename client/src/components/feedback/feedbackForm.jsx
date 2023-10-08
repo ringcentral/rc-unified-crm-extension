@@ -166,6 +166,7 @@ export default () => {
                         <RcFormControl style={platformRadioGroupStyle}>
                             <RcRadioGroup row value={platform} onChange={onChangePlatform}>
                                 <RcRadio size='xsmall' label="Clio" value="Clio" />
+                                <RcRadio size='xsmall' label="Bullhorn" value="Bullhorn" />
                                 <RcRadio size='xsmall' label="Insightly" value="Insightly" />
                                 <RcRadio size='xsmall' label="Pipedrive" value="Pipedrive" />
                                 <RcRadio size='xsmall' label="Redtail" value="Redtail" />

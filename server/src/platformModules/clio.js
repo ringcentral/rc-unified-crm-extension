@@ -100,24 +100,32 @@ async function unAuthorize({ id }) {
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+    const sender = callLog.direction === 'Outbound' ?
+        {
+            id: user.id,
+            type: 'User'
+        } :
+        {
+            id: contactInfo.id,
+            type: 'Contact'
+        }
+    const receiver = callLog.direction === 'Outbound' ?
+        {
+            id: contactInfo.id,
+            type: 'Contact'
+        } :
+        {
+            id: user.id,
+            type: 'User'
+        }
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
             body: `\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
-            senders: [
-                {
-                    id: contactInfo.id,
-                    type: 'Contact'
-                }
-            ],
-            receivers: [
-                {
-                    id: user.id,
-                    type: 'User'
-                }
-            ],
+            senders: [sender],
+            receivers: [receiver],
             notification_event_subscribers: [
                 {
                     user_id: user.id
@@ -155,24 +163,32 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+    const sender = message.direction == 'Outbound' ?
+        {
+            id: user.id,
+            type: 'User'
+        } :
+        {
+            id: contactInfo.id,
+            type: 'Contact'
+        }
+    const receiver = message.direction == 'Outbound' ?
+        {
+            id: contactInfo.id,
+            type: 'Contact'
+        } :
+        {
+            id: user.id,
+            type: 'User'
+        }
     const postBody = {
         data: {
             subject: `[SMS] ${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
             body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(message.creationTime).toISOString(),
-            senders: [
-                {
-                    id: contactInfo.id,
-                    type: 'Contact'
-                }
-            ],
-            receivers: [
-                {
-                    id: user.id,
-                    type: 'User'
-                }
-            ],
+            senders: [sender],
+            receivers: [receiver],
             notification_event_subscribers: [
                 {
                     user_id: user.id

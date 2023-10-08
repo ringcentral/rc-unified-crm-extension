@@ -328,6 +328,20 @@ window.addEventListener('message', async (e) => {
                     if (platformName === 'pipedrive') {
                       authUri = config.platforms.pipedrive.redirectUri;
                     }
+                    else if (platformName === 'bullhorn') {
+                      const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
+                      if (crm_extension_bullhorn_user_urls.oauthUrl) {
+                        authUri = `${crm_extension_bullhorn_user_urls.oauthUrl}/authorize?` +
+                          `response_type=code` +
+                          `&action=Login` +
+                          `&client_id=${platform.clientId}` +
+                          `&state=platform=${platform.name}` +
+                          '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+                      }
+                      else {
+                        showNotification({ level: 'warning', message: 'Bullhorn user info not found. Please log in to bullhorn page and refresh the page. Then try come back and authorize.', ttl: 30000 });
+                      }
+                    }
                     else {
                       authUri = `${platform.authUrl}?` +
                         `response_type=code` +

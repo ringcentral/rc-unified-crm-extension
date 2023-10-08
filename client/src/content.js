@@ -4,6 +4,7 @@ import App from './components/embedded';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { RcThemeProvider } from '@ringcentral/juno';
+import axios from 'axios';
 
 console.log('import content js to web page');
 
@@ -97,11 +98,23 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function Initialize() {
   if (window.location.hostname.includes('pipedrive.com')) {
-    const { c2dDelay } = await chrome.storage.local.get(
+    let { c2dDelay } = await chrome.storage.local.get(
       { c2dDelay: '3' }
     );
+    if(!!!c2dDelay)
+    {
+      c2dDelay = 3;
+    }
     const delayInMilliSec = Number(c2dDelay) * 1000;
     await delay(delayInMilliSec);
+  }
+  const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+  if (window.location.hostname.includes('bullhornstaffing.com') && !crm_extension_bullhornUsername) {
+    const decodedCookie = decodeURIComponent(window.document.cookie);
+    const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
+    await chrome.storage.local.set({ crm_extension_bullhornUsername: bullhornUsername });
+    const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsername}`);
+    await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
   }
   await RenderQuickAccessButton();
   await initializeC2D();
@@ -112,7 +125,7 @@ Initialize();
 if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
   const rcStepper = window.document.querySelector('#rc-stepper');
-  rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account.';
+  rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account. If nothing happens, please try refreshing this page and wait for a few seconds.';
 }
 
 if (document.readyState !== 'loading') {
