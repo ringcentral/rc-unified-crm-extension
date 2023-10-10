@@ -430,7 +430,8 @@ window.addEventListener('message', async (e) => {
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
-                    contactName: callMatchedContact.name
+                    contactName: callMatchedContact.name,
+                    autoLog:  !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
                   additionalLogInfo: callLogAdditionalInfo
                 }, '*')
@@ -488,6 +489,7 @@ window.addEventListener('message', async (e) => {
                     logType: 'Message',
                     logInfo: data.body.conversation,
                     contactName: messageMatchedContact.name,
+                    autoLog:  !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
                     isToday
                   },
                   additionalLogInfo: messageLogAdditionalLogInfo
@@ -664,7 +666,16 @@ function getServiceConfig(serviceName) {
 
     feedbackPath: '/feedback',
     settingsPath: '/settings',
-    settings: [{ name: 'Open contact web page from incoming call', value: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value }],
+    settings: [
+      {
+        name: 'Auto log with countdown',
+        value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value ?? false)
+      },
+      {
+        name: 'Open contact web page from incoming call',
+        value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value ?? false)
+      }
+    ],
   }
   return services;
 }
