@@ -113,7 +113,10 @@ export default () => {
         setNote(cachedNote);
         setLogType(logEvents[0].logProps.logType);
         if (logEvents[0].logProps.autoLog) {
-            setCountdown(20);
+            let { autoLogCountdown } = await chrome.storage.local.get(
+                { autoLogCountdown: '20' }
+            );
+            setCountdown(Number(autoLogCountdown));
             countdownIntervalId = setInterval(() => {
                 setCountdown(c => { return c - 1; });
             }, 1000);
