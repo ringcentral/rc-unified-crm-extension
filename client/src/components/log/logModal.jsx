@@ -5,8 +5,9 @@ import {
     RcIconButton,
     RcDivider,
     RcCheckbox,
+    RcButton,
 } from '@ringcentral/juno';
-import { ChevronLeft, SaveDraft, StopCircleBorder } from '@ringcentral/juno-icon';
+import { ChevronLeft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
 import moment from 'moment';
@@ -142,9 +143,11 @@ export default () => {
     }
 
     useEffect(() => {
+        window.addEventListener("focus", stopCountDown);
         window.addEventListener('message', onEvent);
         return () => {
             window.removeEventListener('message', onEvent)
+            window.removeEventListener("focus", stopCountDown);
         }
     }, [])
 
@@ -219,22 +222,13 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText style={titleStyle} >Sync {logType} Log{countdownFinished ? '' : `(${countdown})`}</RcText>
-                            {countdownFinished ?
-                                <RcIconButton
-                                    onClick={onSubmission}
-                                    symbol={SaveDraft}
-                                    color='action.primary'
-                                    size='large'
-                                /> :
-                                <RcIconButton
-                                    onClick={stopCountDown}
-                                    symbol={StopCircleBorder}
-                                    color="action.primary"
-                                    size='large'
-                                />
-                            }
-
+                            <RcText style={titleStyle} >Sync {logType} Log</RcText>
+                            <RcButton
+                                variant="plain"
+                                style={{ paddingRight: '10px' }}
+                            >
+                                Save{countdownFinished ? '' : `(${countdown})`}
+                            </RcButton>
                         </div>
                         <div style={elementContainerStyle}>
                             <RcText style={labelStyle} >Phone No.:</RcText>
