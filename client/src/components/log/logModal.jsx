@@ -227,6 +227,7 @@ export default () => {
                             />
                             <RcText style={titleStyle} >Sync {logType} Log</RcText>
                             <RcButton
+                                onClick={onSubmission}
                                 variant="plain"
                                 style={{ paddingRight: '10px' }}
                             >
