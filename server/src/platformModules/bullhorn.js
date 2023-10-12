@@ -115,45 +115,61 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    const numberToQueryArray = [];
-    if (overridingFormat) {
-        const formats = overridingFormat.split(',');
-        for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-            if (phoneNumberObj.valid) {
-                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format;
-                for (const numberBit of phoneNumberWithoutCountryCode) {
-                    formattedNumber = formattedNumber.replace('*', numberBit);
-                }
-                numberToQueryArray.push(formattedNumber);
-            }
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    let personInfo;
+    // check for Contact
+    try {
+        personInfo = await axios.post(
+            `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+            {
+                query: `phone:${phoneNumberWithoutCountryCode}`
+            });
+    }
+    catch (e) {
+        console.log(e.response.status);
+        if (e.response.status === 401) {
+            const updatedUser = refreshSessionToken(user);
+            personInfo = await axios.post(
+                `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+                {
+                    query: `phone:${phoneNumberWithoutCountryCode}`
+                });
         }
     }
-    else {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    if (personInfo.data.data.length > 0) {
+        const result = personInfo.data.data[0];
+        return {
+            id: result.id,
+            name: result.name,
+            phone: result.phone
+        }
     }
-    for (var numberToQuery of numberToQueryArray) {
-        numberToQuery = encodeURIComponent(numberToQuery);
-        let personInfo;
-        try {
-            personInfo = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}query/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone&where=phone='${numberToQuery}'`);
+    // check for Candidate
+    try {
+        personInfo = await axios.post(
+            `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+            {
+                query: `phone:${phoneNumberWithoutCountryCode}`
+            });
+    }
+    catch (e) {
+        console.log(e.response.status);
+        if (e.response.status === 401) {
+            const updatedUser = refreshSessionToken(user);
+            personInfo = await axios.post(
+                `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+                {
+                    query: `phone:${phoneNumberWithoutCountryCode}`
+                });
         }
-        catch (e) {
-            if (e.response.status === 401) {
-                const updatedUser = refreshSessionToken(user);
-                personInfo = await axios.get(
-                    `${user.platformAdditionalInfo.restUrl}query/ClientContact?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone&where=phone='${numberToQuery}'`);
-            }
-        }
-        if (personInfo.data.data.length > 0) {
-            const result = personInfo.data.data[0];
-            return {
-                id: result.id,
-                name: result.name,
-                phone: result.phone
-            }
+    }
+    if (personInfo.data.data.length > 0) {
+        const result = personInfo.data.data[0];
+        return {
+            id: result.id,
+            name: result.name,
+            phone: result.phone
         }
     }
     return null;
