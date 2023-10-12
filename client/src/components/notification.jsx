@@ -37,12 +37,18 @@ export default () => {
             }
             if (version && version !== config.version && !!releaseNote) {
                 setIsOpen(true);
-                setTitle('Release note');
+                setTitle(`Release note(v${config.version})`);
                 setMessage(releaseNote);
             }
             await chrome.storage.local.set({
                 ['rc-crm-extension-version']: config.version
             });
+        }
+        if(e.data.type === 'rc-show-first-time-welcome')
+        {
+            setIsOpen(true);
+            setTitle('Hello');
+            setMessage(config.welcomeMessage[platformName]);
         }
     }
     useEffect(() => {
@@ -81,7 +87,7 @@ export default () => {
                     <RcTypography
                         variant='title1'
                     >
-                        {title}(v{config.version})
+                        {title}
                     </RcTypography>
                     {composeMessage()}
                     <RcButton

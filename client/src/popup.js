@@ -145,6 +145,10 @@ window.addEventListener('message', async (e) => {
             if (isObjectEmpty(isFirstTime)) {
               trackFirstTimeSetup();
               await chrome.storage.local.set({ isFirstTime: false });
+              // show welcome page when first-time open the extension
+              window.postMessage({
+                type: 'rc-show-first-time-welcome'
+              }, '*');
             }
           }
           break;
@@ -431,7 +435,7 @@ window.addEventListener('message', async (e) => {
                     logType: 'Call',
                     logInfo: data.body.call,
                     contactName: callMatchedContact.name,
-                    autoLog:  !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
                   additionalLogInfo: callLogAdditionalInfo
                 }, '*')
@@ -489,7 +493,7 @@ window.addEventListener('message', async (e) => {
                     logType: 'Message',
                     logInfo: data.body.conversation,
                     contactName: messageMatchedContact.name,
-                    autoLog:  !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
+                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
                     isToday
                   },
                   additionalLogInfo: messageLogAdditionalLogInfo

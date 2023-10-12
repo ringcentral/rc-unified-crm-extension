@@ -101,8 +101,7 @@ async function Initialize() {
     let { c2dDelay } = await chrome.storage.local.get(
       { c2dDelay: '3' }
     );
-    if(!!!c2dDelay)
-    {
+    if (!!!c2dDelay) {
       c2dDelay = 3;
     }
     const delayInMilliSec = Number(c2dDelay) * 1000;
@@ -116,7 +115,10 @@ async function Initialize() {
     const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsername}`);
     await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
   }
-  await RenderQuickAccessButton();
+  const { renderQuickAccessButton } = await chrome.storage.local.get({ renderQuickAccessButton: true });
+  if (renderQuickAccessButton) {
+    await RenderQuickAccessButton();
+  }
   await initializeC2D();
 }
 
