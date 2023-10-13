@@ -106,6 +106,7 @@ export default () => {
     }
 
     async function setupModal() {
+        clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logEvents[0].logProps.logInfo.sessionId });
         setIsOpen(true);
         setLogInfo(logEvents[0].logProps.logInfo);
