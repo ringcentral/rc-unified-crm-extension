@@ -1,4 +1,12 @@
 function getContactAdditionalInfo(contactRes){
+    if(contactRes.data.contact && contactRes.data.contact.commentActionList)
+    {
+        return {
+            label: 'Note action',
+            value: contactRes.data.contact.commentActionList
+        }
+    }
+
     return null;
 }
 

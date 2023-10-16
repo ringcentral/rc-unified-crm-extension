@@ -3,7 +3,7 @@ const { UserModel } = require('../models/userModel');
 
 async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
     try {
-        const user = await UserModel.findByPk(userId);
+        let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
@@ -13,7 +13,7 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
         switch (authType) {
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-                await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':

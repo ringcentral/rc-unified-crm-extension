@@ -30,6 +30,7 @@ async function checkAndRefreshAccessToken(oauthApp, user) {
             await user.save();
         }
     }
+    return user;
 }
 
 async function bullhornTokenRefresh(oauthApp, user) {

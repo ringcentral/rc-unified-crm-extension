@@ -83,105 +83,119 @@ async function unAuthorize({ id }) {
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+    const commentAction = additionalSubmission.commentAction ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} (${contactInfo.phone})`;
     const putBody = {
         comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Duration: <b>${callLog.duration} seconds</b></li><li>Result: <b>${callLog.result}</b></li><li>Note: <b>${note}</b></li>${callLog.recording ? `<li>Recording link: <b>${callLog.recording.link}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
-        action: `${callLog.direction} Call`,
+        action: commentAction,
         personReference: {
             id: contactInfo.id
         }
     }
-    const addLogRes = await axios.put(
-        `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        putBody
-    );
+    let addLogRes;
+    try {
+        addLogRes = await axios.put(
+            `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+            putBody
+        );
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            addLogRes = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                putBody
+            );
+        }
+    }
     return addLogRes.data.changedEntityId;
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+    const commentAction = additionalSubmission.commentAction ?? '';
     const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}(${contactInfo.phone})`;
     const putBody = {
         comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Message: <b>${message.subject}</b></li>${recordingLink ? `<li>Recording link: <b>${recordingLink}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
-        action: `${message.direction} SMS`,
+        action: commentAction,
         personReference: {
             id: contactInfo.id
         }
     }
-    const addLogRes = await axios.put(
-        `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        putBody
-    );
+    let addLogRes;
+    try {
+        addLogRes = await axios.put(
+            `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+            putBody
+        );
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            addLogRes = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                putBody
+            );
+        }
+    }
     return addLogRes.data.changedEntityId;
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    let commentActionListResponse;
+    try {
+        commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+        }
+    }
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, title: a } });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     let personInfo;
     // check for Contact
-    try {
-        personInfo = await axios.post(
-            `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-            {
-                query: `phone:${phoneNumberWithoutCountryCode}`
-            });
-    }
-    catch (e) {
-        console.log(e.response.status);
-        if (e.response.status === 401) {
-            const updatedUser = refreshSessionToken(user);
-            personInfo = await axios.post(
-                `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-                {
-                    query: `phone:${phoneNumberWithoutCountryCode}`
-                });
-        }
-    }
+    personInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        {
+            query: `phone:${phoneNumberWithoutCountryCode}`
+        });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
         return {
             id: result.id,
             name: result.name,
-            phone: result.phone
+            phone: result.phone,
+            commentActionList
         }
     }
     // check for Candidate
-    try {
-        personInfo = await axios.post(
-            `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-            {
-                query: `phone:${phoneNumberWithoutCountryCode}`
-            });
-    }
-    catch (e) {
-        console.log(e.response.status);
-        if (e.response.status === 401) {
-            const updatedUser = refreshSessionToken(user);
-            personInfo = await axios.post(
-                `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${updatedUser.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-                {
-                    query: `phone:${phoneNumberWithoutCountryCode}`
-                });
-        }
-    }
+    personInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        {
+            query: `phone:${phoneNumberWithoutCountryCode}`
+        });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
         return {
             id: result.id,
             name: result.name,
-            phone: result.phone
+            phone: result.phone,
+            commentActionList
         }
     }
     return null;
 }
 
 async function refreshSessionToken(user) {
-    console.log('refreshing bullhorn session token...');
-    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}login?version=2.0&access_token=${user.accessToken}`);
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
     const { BhRestToken, restUrl } = userLoginResponse.data;
     let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
     updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
     updatedPlatformAdditionalInfo.restUrl = restUrl;
+    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
+    user.platformAdditionalInfo = {};
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     await user.save();
     return user;
