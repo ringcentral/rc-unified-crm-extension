@@ -116,7 +116,7 @@ async function Initialize() {
     await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
   }
   const { renderQuickAccessButton } = await chrome.storage.local.get({ renderQuickAccessButton: true });
-  if (renderQuickAccessButton) {
+  if (window.self === window.top && renderQuickAccessButton) {
     await RenderQuickAccessButton();
   }
   await initializeC2D();

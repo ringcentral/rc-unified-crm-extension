@@ -295,7 +295,7 @@ window.addEventListener('message', async (e) => {
                 changeWordingNode.innerHTML = 'Auto pop up call logging page after call';
               }
               if (changeWordingNode.innerHTML.includes('messages')) {
-                changeWordingNode.innerHTML = 'Auto pop up message logging page';
+                changeWordingNode.innerHTML = 'Auto pop up SMS logging page';
               }
             }
 
@@ -554,14 +554,12 @@ window.addEventListener('message', async (e) => {
     }
   }
   catch (e) {
+    console.log(e)
     if (e.response && e.response.data && !noShowNotification) {
       showNotification({ level: 'warning', message: e.response.data, ttl: 5000 });
     }
     else {
       console.error(e);
-    }
-    if (e.response.status === 400) {
-      await auth.checkAuth();
     }
     window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
   }

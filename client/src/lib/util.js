@@ -9,7 +9,7 @@ function secondsToHourMinuteSecondString(totalSeconds) {
 }
 
 function showNotification({ level, message, ttl }) {
-    if (!level || !message) {
+    if (!level || !message || isObjectEmpty(message)) {
         return;
     }
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
