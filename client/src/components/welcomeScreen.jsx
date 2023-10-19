@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-    RcTypography,
-    RcButton
-} from '@ringcentral/juno';
+import { RcButton, RcTypography } from '@ringcentral/juno';
 import config from '../config.json';
 
 let platformName;
-
 export default () => {
     const pageStyle = {
         position: 'absolute',
@@ -28,21 +24,10 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        if (e.data.type === 'rc-check-version') {
-            const recordedVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
-            const version = recordedVersionInfo['rc-crm-extension-version'];
-            let releaseNote = config.releaseNote.all;
-            if (!!platformName) {
-                releaseNote += config.releaseNote[platformName]
-            }
-            if (version && version !== config.version && !!releaseNote) {
-                setIsOpen(true);
-                setTitle(`Release note(v${config.version})`);
-                setMessage(releaseNote);
-            }
-            await chrome.storage.local.set({
-                ['rc-crm-extension-version']: config.version
-            });
+        if (e.data.type === 'rc-show-first-time-welcome') {
+            setIsOpen(true);
+            setMessage(config.welcomeMessage[platformName].message);
+            setLink(config.welcomeMessage[platformName].link);
         }
     }
     useEffect(() => {
@@ -60,41 +45,39 @@ export default () => {
     }, [])
 
     const [isOpen, setIsOpen] = useState(false);
-    const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
-
-    function composeMessage() {
-        if(!!!message)
-        {
-            return "";
-        }
-        const messageBreakDown = message.split(';');
-        return messageBreakDown.map(b => {
-            return <RcTypography variant='body1'>{b}</RcTypography>
-        })
-    }
+    const [link, setLink] = useState('');
 
     return (
-        <div >
+        <div>
             {isOpen && <div style={pageStyle}>
                 <div style={containerStyle}>
                     <RcTypography
                         variant='title1'
                     >
-                        {title}
+                        Hello
                     </RcTypography>
-                    {composeMessage()}
+                    <RcTypography>
+                        {message}
+                    </RcTypography>
+                    {!!link &&
+                        <RcButton
+                            onClick={() => { window.open(link); }}
+                        >
+                            Watch video
+                        </RcButton>
+                    }
                     <RcButton
                         onClick={() => { setIsOpen(false); }}
                         style={{
                             position: 'absolute',
-                            bottom: '100px'
+                            bottom: '40px'
                         }}
                     >
-                        OK
+                        Close
                     </RcButton>
                 </div>
             </div>}
         </div>
-    )
-}
+    );
+};
