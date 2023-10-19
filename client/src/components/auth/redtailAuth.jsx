@@ -91,6 +91,7 @@ export default () => {
                         ></RcTextField>
                         <RcTextField
                             style={titleStyle}
+                            type='password'
                             label='password'
                             onChange={onChangePassword}
                             value={password}
