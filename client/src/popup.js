@@ -146,9 +146,9 @@ window.addEventListener('message', async (e) => {
               trackFirstTimeSetup();
               await chrome.storage.local.set({ isFirstTime: false });
               // show welcome page when first-time open the extension
-              window.postMessage({
-                type: 'rc-show-first-time-welcome'
-              }, '*');
+              // window.postMessage({
+              //   type: 'rc-show-first-time-welcome'
+              // }, '*');
             }
           }
           break;

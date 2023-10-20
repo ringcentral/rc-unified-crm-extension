@@ -108,8 +108,8 @@ async function Initialize() {
     await delay(delayInMilliSec);
   }
   const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
-  const existingBullhornUrls = await chrome.storage.local.set({ crm_extension_bullhorn_user_urls: null });
-  if (window.location.hostname.includes('bullhornstaffing.com') && (!crm_extension_bullhornUsername || !existingBullhornUrls)) {
+  let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
+  if (window.location.hostname.includes('bullhornstaffing.com') && (!crm_extension_bullhornUsername || !crm_extension_bullhorn_user_urls)) {
     const decodedCookie = decodeURIComponent(window.document.cookie);
     const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
     await chrome.storage.local.set({ crm_extension_bullhornUsername: bullhornUsername });
