@@ -2,7 +2,7 @@ import {
     RcSelect,
     RcMenuItem
 } from '@ringcentral/juno';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default ({ selectionItems, presetSelection, onSelected, label, style }) => {
     const [selection, setSelection] = useState(presetSelection);
@@ -17,6 +17,11 @@ export default ({ selectionItems, presetSelection, onSelected, label, style }) =
         itemElements.push(<RcMenuItem key='none' value='none'>none</RcMenuItem >);
         return itemElements;
     }
+
+    useEffect(() => {
+        setSelection(presetSelection);
+    }, [presetSelection])
+
     return (
         <div style={style}>
             <RcSelect
