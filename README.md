@@ -167,10 +167,10 @@ The Unified CRM extension injects a small handle in the lower right hand corner 
 
 In order to match a call to a contact in a CRM, the Unified CRM extension needs to search the CRM for a contact using a phone number. Some CRMs have more rudimentary APIs that require phone numbers to EXACTLY match the string searched for. For these CRMs, reliably finding a contact record for a phone number can be difficult, which in turn impacts your ability to log a call and associate it with the proper entity in your CRM. Let's look at an example to help you understand. The following phone numbers are all functionally equivalent, even though they are not literally identical. 
 
-* (###) ###-####
-* ###.###.####
-* ###-###-####
-* +1-###-###-####
+* `(###) ###-####`
+* `###.###.####`
+* `###-###-####`
+* `+1-###-###-####`
 * etc
 
 RingCentral phone numbers are all formatted using the [E.164 standard](https://en.wikipedia.org/wiki/E.164). If you are not storing phone numbers that utilize this format, and if your particular CRM does not support a more rigorous search mechanism, the Unified CRM extension may fail to associate calls with contacts properly. 
