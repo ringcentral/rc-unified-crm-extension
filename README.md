@@ -232,18 +232,76 @@ You will know if a contact record has been found if you see a contact's name in 
 Users should be aware, that calls received while the browser is closed, or while the extension is not actively running will NOT be logged. 
 
 ### Setting your presence/status
-### Placing and receiving calls
-### Click-to-dial
-### Call-pop
-### Logging past calls
-### Sending SMS
-### SMS templates
 
-## Troubleshooting and FAQ
+Using the embedded phone provided by the Unified CRM extension one can easily set their presence and/or status and instantly have that synced across the network. Similarly, your presence status will always be reflected in your embedded dialer as it changes via mechanisms outside of the extension. 
+
+There are two ways to change your status:
+
+* Click the presence indicator in the upper-lefthand corner of the embedded dialer
+* Navigate to the Settings page under the more menu and modify it from there
+
+### Placing and receiving calls
+
+It is hard to believe this needs to be documented at all. As soon as you login to your RingCentral account via the extension when it is first loaded and initialized, you will be able to make and receive calls. 
+
+When you receive a call, you will hear a ringing sound. Bring the extension to the foreground and click "Answer" to begin the call.
+
+To place a call, bring the extension to the foreground, open up the dialer, and dial the phone number. It is as simple as that. 
+
+### Click-to-dial
+
+When using your CRM, all phone numbers in your CRM will become clickable, allowing you to easily initiate a call with that phone number, or send an SMS message to that phone number. This helps users more quickly and easily engage with contacts, leads, candidates and people whom your CRM tracks. 
+
+### Call-pop
+
+If this feature is enabled, when you receive a phone call the Unified CRM extension will open a browser tab to the contact record of the person calling you. That way when you answer the call, you will have all pertinent information about them at your fingertips, helping you to create a personalized experience for your customer. 
+
+*Pro tip: call-pop functionality can easily be disabled via Settings accessed via the More menu.* 
+
+### Logging past calls
+
+The Unified CRM extension has the ability to automatically log calls in your connected CRM (see "Automatically logging calls" above). However, for calls to be logged automatically, the extension must be actively running. So if you receive a call overnight for example, the next morning when you login, you can navigate to the Call History tab, see the calls you missed, and click the call log icon to record notes or call disposition for that particular call. 
+
+What you are prompted to log will vary depending upon the CRM you are connected to, as we tailor the logging behavior to best fit with the conventions of the corresponding CRM. 
+
+### Sending SMS
+
+The Unified CRM extension also has the ability to send and receive SMS messages. You can access this functionality from the Messages tab and works more or less like your phone. Click on the conversation you want to view, and then send messages to that individual or group. 
+
+#### SMS templates
+
+Engaging with communications from customers can be overwhelming, and responding to the same questions individually can be taxing. SMS templates allow you to compose responses to common inquiries ahead of time. Then when it comes time to author a message, rather than composing your response manually, select from one of your pre-written responses, populate the message into the messaging box, make any small edits you need, and then click send. 
+
+**Importing and exporting SMS templates**
+
+Right now, all pre-written SMS messages are stored locally in your browser. But one can share their responses with their colleagues by exporting their templates to a file which is downloaded automatically, and then having their coworkers import that file into their instance of the Unified CRM extension. 
+
+*Warning: when importing templates all previous templates will be erased. So if you have made changes, be sure to export them or save them somewhere so that those changes can be preserved.*
+
+**Limitations**
+
+* SMS templates are stored locally in your browser, and are not shared with others in your organization or account. 
+
+## Support and troubleshooting
+
+### Always make sure you are running the latest version
+
+The Unified CRM extension is frequently updated with fixes and feature enhancements. While the extension is updated automatically, you may need to restart your browser in order for those updates to take effect. 
+
+In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
 
 ### Unable to find contact
+
+One of the most common challenges arises from phone calls for which a correspondong contact record in the CRM cannot be found. However, you know for sure the contact exists.
+
+When this happens it is almost certainly related to a failed lookup of the contact based on the given phone number. A lookup can fail in some CRMs if the phone number stored in the CRM does not EXACTLY match the phone number as seen in the Unified CRM extension. This is due to limitations in the connected CRMs' APIs. 
+
+There are two ways to fix the issue:
+
+1. Update the contact record's phone number so that it conforms to the E.164 standard. This will be the most reliable solution and the most performant. However, reformatting the phone numbers across a huge contact database may not be feasible or practical. 
+
+2. Update the advanced configuration settings of the Unified CRM extension to add the phone number formats commonly used by your company. The Unified CRM extension will then search for contacts using each of the phone number formats stored with us. This solution is easier to deploy, but can sometimes introduce latencies as multiple API calls are needed to successfully find a contact. 
+
 ### Submitting feedback
-### Common remedies
-#### Restarting Chrome
-#### Uninstalling, reinstalling extension
-### Can't find contact
+
+If at any point you would like to report an issue, suggest a feature or provide feedback of any kind, please click the feedback icon in the upper-righthand corner of the extension. From there, tell us your CRM and send us your feedback. 
