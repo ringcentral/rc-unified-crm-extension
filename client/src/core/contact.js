@@ -51,13 +51,13 @@ async function showIncomingCallContactInfo({ phoneNumber }) {
 
 function showInCallContactInfo({ incomingCallContactInfo }) {
     const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.ActiveCallPanel_userInfo');
-    if (incomingCallContactInfo.company) {
+    if (incomingCallContactInfo?.company) {
         const companyDiv = document.createElement('div');
         companyDiv.innerHTML = incomingCallContactInfo.company;
         companyDiv.style = 'font-size: 12px';
         incomingCallUserPanelDOM.appendChild(companyDiv);
     }
-    if (incomingCallContactInfo.title) {
+    if (incomingCallContactInfo?.title) {
         const titleDiv = document.createElement('div');
         titleDiv.innerHTML = incomingCallContactInfo.title;
         titleDiv.style = 'font-size: 12px';

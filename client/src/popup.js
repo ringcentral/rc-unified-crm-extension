@@ -344,6 +344,7 @@ window.addEventListener('message', async (e) => {
                       }
                       else {
                         const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+                        showNotification({ level: 'warning', message: 'Bullhorn authorize error. Please try again in 30 seconds', ttl: 30000 });
                         const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${crm_extension_bullhornUsername}`);
                         await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
                         if (crm_extension_bullhorn_user_urls?.oauthUrl) {
@@ -353,9 +354,6 @@ window.addEventListener('message', async (e) => {
                             `&client_id=${platform.clientId}` +
                             `&state=platform=${platform.name}` +
                             '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
-                        }
-                        else {
-                          showNotification({ level: 'warning', message: 'Bullhorn authorize error. Please try again in 30 seconds', ttl: 30000 });
                         }
                       }
                     }
