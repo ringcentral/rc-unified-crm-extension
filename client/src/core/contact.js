@@ -66,7 +66,7 @@ function showInCallContactInfo({ incomingCallContactInfo }) {
 }
 
 async function openContactPage({ incomingCallContactInfo }) {
-    if (!!!incomingCallContactInfo.id) {
+    if (!!!incomingCallContactInfo?.id) {
         return;
     }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');

@@ -167,6 +167,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
             id: result.id,
             name: result.name,
             phone: result.phone,
+            contactType: 'Contact',
             commentActionList
         }
     }
@@ -182,6 +183,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
             id: result.id,
             name: result.name,
             phone: result.phone,
+            contactType: 'Candidate',
             commentActionList
         }
     }
