@@ -21,6 +21,7 @@ The Unified CRM extension requires the following:
 
 RingCentral currently supports the following CRMs using the Unified CRM extension:
 
+* Bullhorn
 * Clio
 * Insightly
 * Pipedrive
@@ -160,6 +161,8 @@ When auto-logging calls, the parameter controls how many seconds the CRM extensi
 
 The Unified CRM extension injects a small handle in the lower right hand corner of your CRM. Some users have expressed concern that this handle obscures the page content, and therefore wish to remove it. Toggle this parameter to turn off/on the dialer handle in the lower-righthand corner. 
 
+*Disabling the quick access button does not impact the operability of the extension.*
+
 #### Phone number formats
 
 In order to match a call to a contact in a CRM, the Unified CRM extension needs to search the CRM for a contact using a phone number. Some CRMs have more rudimentary APIs that require phone numbers to EXACTLY match the string searched for. For these CRMs, reliably finding a contact record for a phone number can be difficult, which in turn impacts your ability to log a call and associate it with the proper entity in your CRM. Let's look at an example to help you understand. The following phone numbers are all functionally equivalent, even though they are not literally identical. 
@@ -179,8 +182,55 @@ CRMs known to exhibit this problem are:
 
 ## User guide
 
+The following content is intended for the every-day user of the Unified CRM extension. It describes all of the major features provided by the extension, and how to address common needs users have.
+
 ### Accessing the extension to make calls
-### Automatically logging calls
+
+The Unified CRM extension makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
+
+#### Click the quick access button
+
+When logged into and viewing your CRM, a blue "R" handle/button will appear in the lower-righthand corner of your browser window. Hovering over it will show a dialer icon. Click the dialer icon to open the dialer window and bring it to the foreground. 
+
+*Pro tip: if the blue handle obscures page content, or if you wish to hide it for other reasons, you may turn this off using an advanced configuration parameter.*
+
+#### Click "RingCentral CRM Extension" from the extensions menu
+
+You can open the Unified CRM extension dialer by finding the extension in your list of installed extensions and clicking "RingCentral CRM Extension."
+
+*Pro tip: if you need to access the extension often, you can "pin" the extension to your location bar so that it is more readily available.*
+
+### Logging phone calls
+
+One of the central features of the Unified CRM extension is the ability to automatically log calls that are received or placed while the extension is active. All calls made or received can be logged manually. To manually log a call, open the "Call history" tab in the extesion, find the call you wish to log in the list, and click the call log icon. You will then be prompted to enter call notes for the call. Clicking "save" will result in the call be logged, associated with the proper contact, and any notes you entered being saved with the associated activity.
+
+If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
+
+#### Automatically logging calls
+
+The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.
+
+* **Auto pop up call logging page after call**. This determines if you will be prompted to enter notes or not. 
+* **Auto log with countdown**. This determines how long the extension will wait for you to begin entering notes before logging the call automatically. 
+
+**Creating contact records prior to logging calls**
+
+Calls can currently only logged if a contact record in the CRM can be found with the associated phone number. If you find that you cannot log a call we recommend you do the following:
+
+* Log into your CRM
+* Create a contact record
+* Associate with that contact the phone number as it appears in your RingCentral call history. This is typically in the following format: `+1 (###) ###-####`.
+
+**How do you know if a contact record has been found?**
+
+You will know if a contact record has been found if you see a contact's name in the call history tab of the Unified CRM extension. If you see a phone number only, chances are a contact record could not be found. 
+
+*Remember: you can only log calls if a contact record for that phone call can be found.*
+
+**Limitations**
+
+Users should be aware, that calls received while the browser is closed, or while the extension is not actively running will NOT be logged. 
+
 ### Setting your presence/status
 ### Placing and receiving calls
 ### Click-to-dial
