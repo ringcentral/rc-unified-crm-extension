@@ -143,22 +143,24 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
-    const addTimerBody = {
-        data: {
-            communication: {
-                id: communicationId
-            },
-            quantity: callLog.duration,
-            date: moment(callLog.startTime).toISOString(),
-            type: 'TimeEntry'
+    if (additionalSubmission.logTimeEntry === undefined || additionalSubmission.logTimeEntry) {
+        const addTimerBody = {
+            data: {
+                communication: {
+                    id: communicationId
+                },
+                quantity: callLog.duration,
+                date: moment(callLog.startTime).toISOString(),
+                type: 'TimeEntry'
+            }
         }
+        const addTimerRes = await axios.post(
+            `https://${user.hostname}/api/v4/activities.json`,
+            addTimerBody,
+            {
+                headers: { 'Authorization': authHeader }
+            });
     }
-    const addTimerRes = await axios.post(
-        `https://${user.hostname}/api/v4/activities.json`,
-        addTimerBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
     return communicationId;
 }
 

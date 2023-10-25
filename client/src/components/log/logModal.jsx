@@ -204,14 +204,17 @@ export default () => {
 
     function onChangeNote(e) {
         setNote(e.target.value);
+        stopCountDown();
     }
 
     function onChangeCustomSubjectCheckBox(e) {
         setUseCustomSubject(e.target.checked);
+        stopCountDown();
     }
 
     function onChangeCustomSubject(e) {
         setCustomSubject(e.target.value);
+        stopCountDown();
     }
 
     return (
