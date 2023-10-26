@@ -1,8 +1,7 @@
-name: ci 
+name: Publish documentation 
 on:
   push:
     branches:
-      - master 
       - main
 permissions:
   contents: write
