@@ -2,12 +2,14 @@
 */dist/
 node_modules/*
 package-lock.json
+site/
 
 *.env
 *.sqlite
 env.yml
 serverless.yml
 *~
+**/.#*
 
 server/serverless-deploy/*
 client/dist.zip
