@@ -1,6 +1,13 @@
 # Unified CRM extension for Google Chrome and Microsoft Edge
 
-RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a browser plugin that helps connect your RingCentral account to a number of different CRM services. This browswer plugin, to the extent that each CRM allows, provides the following features:
+RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a browser plugin that helps connect your RingCentral account to a number of different CRM services. It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track calls and engage with customers.
+
+<figure markdown>
+  ![Unified CRM extension](img/intro.png)
+  <figcaption>RingCentral's Unified CRM extension as seen inside Redtail CRM</figcaption>
+</figure>
+
+## Features
 
 * **Embedded CTI**. A fully functional phone is embedded into your CRM so that you can place and receive phone calls. The CTI is also enhanced with specific capabilities designed specifically for use cases common to users of most CRMs. These enhancements are enumerated below. 
 * **Click-to-dial**. Make any phone number in your CRM clickable to easily call or send an SMS to that phone number. 
@@ -9,17 +16,17 @@ RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a br
 * **Send/receive SMS**. Not only can you place calls, but you can also send and receive SMS using the CTI. 
 * **SMS templates**. Respond to SMS more quickly, by storing and accessing messages you commonly send over SMS using a simple UI. 
 
-### Prerequisites
+## Prerequisites
 
 The Unified CRM extension requires the following:
 
 * Google Chrome or Microsoft Edge
 
-### Supported CRMs
+## Supported CRMs
 
 RingCentral currently supports the following CRMs using the Unified CRM extension:
 
-* Bullhorn
+* Bullhorn (beta)
 * Clio
 * Insightly
 * Pipedrive

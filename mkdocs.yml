@@ -1,11 +1,19 @@
+# Project information
 site_name: RingCentral Unified CRM extension for Chrome and Edge
 site_url: https://github.com/ringcentral/rc-unified-crm-extension
+
+# Repository
 repo_url: https://github.com/ringcentral/rc-unified-crm-extension
 edit_uri: tree/master/docs
 docs_dir: docs
 
 theme:
   name: material
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+#  - glightbox
 
 copyright: "2023 RingCentral, Inc. All rights reserved."
 

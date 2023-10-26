@@ -10,6 +10,13 @@ Below you will find information on the various ways in which the CRM extension c
 
 RingCentral customers may sometimes have multiple devices or ways of initiating a phone call. To better control what device you use for placing calls, from the Settings screen select "Calling." Then, select the device you prefer to use. Options include the following:
 
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-dialer.png){ style="max-width:400px" }
+  <figcaption>The settings screen for changing your preferred device for placing calls</figcaption>
+</figure>
+
+### Config options
+
 * **Browser**. Select this if you wish to place calls using the CRM extension itself. 
 * **RingCentral App**. If you prefer to use the main RingCentral desktop app to make calls, select this. 
 * **RingCentral Phone**. This option is not recommended as RingCentral Phone is no longer supported. However, if you still have this app installed and if you prefer to use it, select this. 
@@ -19,9 +26,19 @@ RingCentral customers may sometimes have multiple devices or ways of initiating 
 
 To customize your default country and area code, from the Settings screen select "Region." Then enter your preferred defaults. 
 
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-region.png){ style="max-width:400px" }
+  <figcaption>The settings screen for modifying your locale</figcaption>
+</figure>
+
 ## Customizing your preferred audio devices
 
 To customize your preferred input and output devices, e.g. headphones, laptop speakers, etc, from the Settings screen select "Audio." Then select your preferred default devices. 
+
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-audio.png){ style="max-width:400px" }
+  <figcaption>The settings screen for customizing audio devices</figcaption>
+</figure>
 
 ## Automatically prompt to capture call notes
 
@@ -44,6 +61,22 @@ Most users will not need to access these advanced configuration options. However
 * Open [Manage extensions](chrome://extensions/) in Chrome
 * Open [Manage extensions](?) in Microsoft Edge
 
+**Finding advanced settings**
+
+To access advanced settings, in your browser, navigate to "Manage Extensions," or just "Extensions." From there locate "RingCentral CRM extension" and click "Show Details."
+
+<figure markdown>
+  ![Setting your preferred phone device](img/extension-details.png){ style="max-width:400px" }
+  <figcaption>An excerpt from the extension details page for the Unified CRM extension</figcaption>
+</figure>
+
+Then scroll down near to the bottom and click "Extension options" to open the dialog below.
+
+<figure markdown>
+  ![Setting your preferred phone device](img/extension-options.png){ style="max-width:400px" }
+  <figcaption>Unified CRM extension options. Users may see a slightly different set of options depending upon the version they are using.</figcaption>
+</figure>
+
 ### Click-to-dial inject delay
 
 The embedded phone/dialer from the Unified CRM extension is injected into the CRM via a mechanism that some web servers will reject. This is circumvented by delaying the loading of the CTI by a couple of seconds. This config parameter controls this delay. 
@@ -51,6 +84,7 @@ The embedded phone/dialer from the Unified CRM extension is injected into the CR
 *This should only be used in rare circumstances.*
 
 CRMs known to need this parameter set are:
+
 * 
 
 ### Auto-log countdown timer
@@ -78,5 +112,6 @@ RingCentral phone numbers are all formatted using the [E.164 standard](https://e
 This configuration parameter allows you to specify multiple formats used by your team. The Unified CRM extension will then search for contacts using each of the formats provided until a record is found. This may have performance impacts.
 
 CRMs known to exhibit this problem are:
+
 * ??? 
 
