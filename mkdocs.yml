@@ -4,6 +4,7 @@ site_url: https://github.com/ringcentral/rc-unified-crm-extension
 
 # Repository
 repo_url: https://github.com/ringcentral/rc-unified-crm-extension
+repo_name: ringcentral/rc-unified-crm-extension
 edit_uri: tree/master/docs
 docs_dir: docs
 
