@@ -77,14 +77,14 @@ Sometimes users may not be present at their computer when a call is received, ye
   <figcaption>The settings screen for automatically logging a call after set number of seconds</figcaption>
 </figure>
 
-When this is enabled, the call will be logged automatically after a set number of seconds, which can be configured under "Advanced configuration options" below. If you have also configured the extention to prompt you to enter notes automatically, then you will observe that when a call ends the call log form appears, and a auto-save timer will start. If you do not interact with the form before the timer runs out, the call be logged automatically. 
+When this is enabled, the call will be logged automatically after a set number of seconds, which can be configured under "Advanced configuration options" below. If you have also configured the extension to prompt you to enter notes automatically, then you will observe that when a call ends the call log form appears, and a auto-save timer will start. If you do not interact with the form before the timer runs out, the call be logged automatically. 
 
 ## Advanced configuration options
 
 Most users will not need to access these advanced configuration options. However, they have been provided to assist in resolving less common, low-level challenges. These options can be accessed both in Chrome and Edge by opening the "Manage Extensions" area from the Window menu, or from the extension menu found adjacent to your browser's location bar. 
 
 * Open [Manage extensions](chrome://extensions/) in Chrome
-* Open [Manage extensions](?) in Microsoft Edge
+* Open [Manage extensions](edge://extensions) in Microsoft Edge
 
 **Finding advanced settings**
 

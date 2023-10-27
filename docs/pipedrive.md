@@ -8,21 +8,21 @@ RingCentral's integration with Pipedrive helps streamline communications between
 
 If you have not already done so, begin by [installing the Unified CRM extension](../getting-started/) from the Chrome web store. 
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/Hu0qC13HDkQ?si=XZLWUCalDRhF8ASP" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 ## Setup the extension
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Pipedrive. 
 
-1. [Login to Pipedrive](https://app.pipedrive.com/auth/login).
+1. Make sure you are [logged in to Pipedrive](https://app.pipedrive.com/auth/login).
 
-2. While visiting a Pipedrive application page, click the quick access button to bring the dialer to the foreground. 
+2. Navigate to the RingCentral CRM extension in the [Pipedrive Marketplace](https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57).
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "pipedrive."
+3. From the marketplace listing, initiate the authorization process by clicking the "Install Now" button.
 
-    ![Connect to Clio](img/pipedrive-connect.png){ style="max-width: 200px" }
+    ![Install Pipedrive ext](img/pipedrive-marketplace.png)
 
-4. Click the "Authorize" button. 
-
-5. A window will be opened prompting you to enter your Pipedrive username and password. Login to Pipedrive. 
+3. On the authorization screen, scroll to the bottom and click "Allow and Install." The CRM extension should automatically come to the foreground and show that you are now connected to Pipedrive. 
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "unauthorize."
 

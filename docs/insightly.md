@@ -8,6 +8,8 @@ RingCentral's integration with Insightly helps streamline communications between
 
 If you have not already done so, begin by [installing the Unified CRM extension](../getting-started/) from the Chrome web store. 
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 ## Setup the extension
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Insightly. 
@@ -18,11 +20,20 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "insightly."
 
-    ![Connect to Clio](img/insightly-connect.png){ style="max-width: 200px" }
+    ![Connect to Insightly](img/insightly-connect.png){ style="max-width: 200px" }
 
 4. Click the "Authorize" button. 
 
-5. A window will be opened prompting you to enter your Insightly username and password. Login to Insightly. 
+5. A window will be opened prompting you to enter numerous attributes from Insightly, including:
+    * API key
+    * API URL
+
+    ![Connect to Insightly](img/insightly-setup.png){ style="max-width: 200px" }
+
+
+6. Click the "Get Key" button and the extension will attempt to retrieve these values for you. You may also enter these values manually. In Insightly, navigate to User Settings from the pull down menu in the upper-righthand corner. Scroll down until you see a section labeled "API." Copy and paste your API key and API URL into the corresponding fields. 
+
+    ![Insightly API credentials](img/insightly-apicreds.png){ style="max-width: 600px" }
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Insightly. If you are connected, the button next to Insightly will say, "unauthorize."
 

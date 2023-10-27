@@ -8,6 +8,8 @@ RingCentral's integration with Clio helps streamline communications with clients
 
 If you have not already done so, begin by [installing the Unified CRM extension](../getting-started/) from the Chrome web store. 
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/pQgdsAR1UCI?si=PaSTDhHkTUa9fMtk" title="Unified CRM extension for Clio - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
 ## Setup the extension
 
 Once the extension has been installed, follow these steps to setup and configure the extension for Clio. 
