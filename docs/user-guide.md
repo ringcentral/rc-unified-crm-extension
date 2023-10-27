@@ -10,17 +10,34 @@ The Unified CRM extension makes available to users a fully-functional web phone 
 
 When logged into and viewing your CRM, a blue "R" handle/button will appear in the lower-righthand corner of your browser window. Hovering over it will show a dialer icon. Click the dialer icon to open the dialer window and bring it to the foreground. 
 
+<figure markdown>
+  ![Quick Access button](img/quick-access.png)
+  <figcaption>The Unified CRM extension quick access button</figcaption>
+</figure>
+
 *Pro tip: if the blue handle obscures page content, or if you wish to hide it for other reasons, you may turn this off using an advanced configuration parameter.*
 
 ### Click "RingCentral CRM Extension" from the extensions menu
 
 You can open the Unified CRM extension dialer by finding the extension in your list of installed extensions and clicking "RingCentral CRM Extension."
 
+<figure markdown>
+  ![Chrome extensions menu](img/chrome-extension-menu.png)
+  <figcaption>The Unified CRM extension quick access button</figcaption>
+</figure>
+
 *Pro tip: if you need to access the extension often, you can "pin" the extension to your location bar so that it is more readily available.*
+
+![Chrome location bar with pinned extension](img/chrome-pinning-ext.png)
 
 ## Logging phone calls
 
 One of the central features of the Unified CRM extension is the ability to automatically log calls that are received or placed while the extension is active. All calls made or received can be logged manually. To manually log a call, open the "Call history" tab in the extesion, find the call you wish to log in the list, and click the call log icon. You will then be prompted to enter call notes for the call. Clicking "save" will result in the call be logged, associated with the proper contact, and any notes you entered being saved with the associated activity.
+
+<figure markdown>
+  ![Logging calls](img/log-calls.png)
+  <figcaption>The Unified CRM extension quick access button</figcaption>
+</figure>
 
 If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
 
@@ -56,7 +73,12 @@ Using the embedded phone provided by the Unified CRM extension one can easily se
 There are two ways to change your status:
 
 * Click the presence indicator in the upper-lefthand corner of the embedded dialer
+
+     ![Change presence](img/presence.png)
+
 * Navigate to the Settings page under the more menu and modify it from there
+
+     ![Change presence from settings](img/presence-settings.png)
 
 ## Placing and receiving calls
 
@@ -69,6 +91,12 @@ To place a call, bring the extension to the foreground, open up the dialer, and 
 ## Click-to-dial
 
 When using your CRM, all phone numbers in your CRM will become clickable, allowing you to easily initiate a call with that phone number, or send an SMS message to that phone number. This helps users more quickly and easily engage with contacts, leads, candidates and people whom your CRM tracks. 
+
+<figure markdown>
+  ![Click to dial](img/click-to-dial.png)
+  <figcaption>Click-to-dial hovercard for easy calling</figcaption>
+</figure>
+
 
 ### Call-pop
 
