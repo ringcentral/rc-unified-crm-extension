@@ -19,8 +19,8 @@ copyright: "2023 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md
-- 'Setup and installation': 
-   - 'Installation': getting-started.md
+- 'Installation': getting-started.md
+- 'Setup': 
    - 'Bullhorn': bullhorn.md
    - 'Clio': clio.md
    - 'Insightly': insightly.md

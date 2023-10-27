@@ -21,3 +21,10 @@ There are two ways to fix the issue:
 ## Submitting feedback
 
 If at any point you would like to report an issue, suggest a feature or provide feedback of any kind, please click the feedback icon in the upper-righthand corner of the extension. From there, tell us your CRM and send us your feedback. 
+
+## Managing software updates
+
+Updates to the Unified CRM extension are installed automatically by Chrome and Edge when you restart your browser. You can see what version of the Unified CRM extension is currently installed by navigating to the "Manage extensions" area of your browser, finding the Unified CRM extension in your list of installed plugins, and clicking "Show details." On the resulting page you can see the currently installed version. 
+
+To ensure you are actively running the most recent version, please restart your browser. 
+

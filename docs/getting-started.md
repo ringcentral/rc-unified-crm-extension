@@ -12,19 +12,26 @@ RingCentral's Unified CRM extention for Google Chrome and Microsoft Edge is avai
 
 ## Installing the browser plugin
 
-**Google Chrome**
+### Google Chrome
 
 The Unified CRM extension was initially architected for Google Chrome, and is therefore installed easily from the [Google Chrome web store](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh). Click the "Add to Chrome" button to install the extension instantly. Then, consult the instructions specific to your CRM.
 
 ![Web Store Install](img/web-store-install.png)
 
-**Microsoft Edge**
+### Microsoft Edge
 
 Microsoft Edge supports most Chrome extensions. To install them, however, you will need to [make configuration changes](https://support.microsoft.com/en-us/microsoft-edge/add-turn-off-or-remove-extensions-in-microsoft-edge-9c0ec68c-2fbc-2f2c-9ff0-bdc76f46b026) to Edge. In summary:
 
-1. In Microsoft Edge, navigate to the Chrome Web Store. 
+1. In Microsoft Edge, navigate to the [Manage extensions](edge://extensions/). 
+
+    ![Extensions menu](img/edge-extensions-menu.png){ style="max-width: 250px"}
+
 2. Select "Allow extensions from other stores" in the banner at the top of the page, then select "Allow" to confirm.
-3. Navigate to the [Unified CRM extension](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh) and select "Add to Chrome."
+
+    ![Allow extensions from other stores](img/edge-allow-ext.png){ style="max-width: 250px"}
+
+3. Navigate to the [Unified CRM extension](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh) in the Chrome web store and select "Add to Chrome."
+
 4. Follow any additional prompts to complete the installation process. 
 
 ## Connecting to your CRM
@@ -45,9 +52,4 @@ Each CRM may have a slightly different approach in order to install the extensio
 * [Connect and setup Pipedrive](../pipedrive/)
 * [Connect and setup Redtail CRM](../redtail/)
 
-## Managing software updates
-
-Updates to the Unified CRM extension are installed automatically by Chrome and Edge when you restart your browser. You can see what version of the Unified CRM extension is currently installed by navigating to the "Manage extensions" area of your browser, finding the Unified CRM extension in your list of installed plugins, and clicking "Show details." On the resulting page you can see the currently installed version. 
-
-To ensure you are actively running the most recent version, please restart your browser. 
 
