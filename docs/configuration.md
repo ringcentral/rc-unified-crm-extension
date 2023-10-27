@@ -11,7 +11,7 @@ Below you will find information on the various ways in which the CRM extension c
 RingCentral customers may sometimes have multiple devices or ways of initiating a phone call. To better control what device you use for placing calls, from the Settings screen select "Calling." Then, select the device you prefer to use. Options include the following:
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-dialer.png){ style="max-width:400px" }
+  ![Setting your preferred phone device](img/settings-dialer.png){ style="max-width:300px" }
   <figcaption>The settings screen for changing your preferred device for placing calls</figcaption>
 </figure>
 
@@ -27,7 +27,7 @@ RingCentral customers may sometimes have multiple devices or ways of initiating 
 To customize your default country and area code, from the Settings screen select "Region." Then enter your preferred defaults. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-region.png){ style="max-width:400px" }
+  ![Setting your preferred phone device](img/settings-region.png){ style="max-width:300px" }
   <figcaption>The settings screen for modifying your locale</figcaption>
 </figure>
 
@@ -36,21 +36,46 @@ To customize your default country and area code, from the Settings screen select
 To customize your preferred input and output devices, e.g. headphones, laptop speakers, etc, from the Settings screen select "Audio." Then select your preferred default devices. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-audio.png){ style="max-width:400px" }
+  ![Setting your preferred phone device](img/settings-audio.png){ style="max-width:300px" }
   <figcaption>The settings screen for customizing audio devices</figcaption>
 </figure>
+
+## Toggling the call-pop feature
+
+The term "call-pop" refers to opening a page about an incoming caller automatically so that the person making (or receiving) the call can see all of the relevant information about that person prior to answering the phone. You can easily toggle this feature on and off using this toggle. 
+
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-callpop.png){ style="max-width:300px" }
+  <figcaption>The settings screen for toggling call-pop</figcaption>
+</figure>
+
 
 ## Automatically prompt to capture call notes
 
 Many end users would like confidence in knowing that every call they place or receive is logged properly in the CRM they are connected to. Furthermore, users also want to be prompted to capture notes about a call immediately upon a call ending. To automatically be prompted to enter and save notes relating to a call that has just ended, enable "Prompt to enter notes when calls end" from the Settings page. 
 
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-autolog.png){ style="max-width:300px" }
+  <figcaption>The settings screen to enable prompting the user to enter notes after a call</figcaption>
+</figure>
+
 ## Automatically prompt to capture SMS and text messaging notes
 
 As with phone calls, many end users would like to reliably capture the SMS messages transmitted to contacts. To be prompted automatically to enter notes upon sending an SMS, enable "Prompt to enter notes after sending SMS" from the Settings page. 
 
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-sms.png){ style="max-width:300px" }
+  <figcaption>The settings screen to enable prompting the user to enter notes after sending an SMS</figcaption>
+</figure>
+
 ## Automatically log calls and SMS messages
 
 Sometimes users may not be present at their computer when a call is received, yet they still wish to record the call was received and possibly that the call was never responded to. To ensure all calls are captured whether you are present or not, enable "Auto-log save delay."
+
+<figure markdown>
+  ![Setting your preferred phone device](img/settings-countdown.png){ style="max-width:300px" }
+  <figcaption>The settings screen for automatically logging a call after set number of seconds</figcaption>
+</figure>
 
 When this is enabled, the call will be logged automatically after a set number of seconds, which can be configured under "Advanced configuration options" below. If you have also configured the extention to prompt you to enter notes automatically, then you will observe that when a call ends the call log form appears, and a auto-save timer will start. If you do not interact with the form before the timer runs out, the call be logged automatically. 
 
@@ -85,7 +110,7 @@ The embedded phone/dialer from the Unified CRM extension is injected into the CR
 
 CRMs known to need this parameter set are:
 
-* 
+* Pipedrive
 
 ### Auto-log countdown timer
 
@@ -113,5 +138,6 @@ This configuration parameter allows you to specify multiple formats used by your
 
 CRMs known to exhibit this problem are:
 
-* ??? 
+* Clio
+* Insightly 
 

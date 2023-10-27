@@ -27,3 +27,11 @@ Once the extension has been installed, follow these steps to setup and configure
 When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "unauthorize."
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
+
+## Tailoring your configuration
+
+Pipedrive's system exhibits a relatively uncommon behavior that is the result of a perfectly normal function of the frameworks used by their engineers. However, this behavior is unfortunate because it causes the dialer to be removed from the page after it has loaded. You may see it appear briefly, and then POOF! It is gone. 
+
+To address this, go our [advanced settings](../configuration/#advanced-configuration-options) and set the config option called "Click-to-dial inject delay" to `2` or `3`. Depending upon network latencies, you may need to increase this number, but usually a value of `2` is sufficient. 
+
+
