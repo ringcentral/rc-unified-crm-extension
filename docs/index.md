@@ -7,6 +7,10 @@ RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a br
   <figcaption>RingCentral's Unified CRM extension as seen inside Redtail CRM</figcaption>
 </figure>
 
+## Supported CRMs
+
+![Unified CRM extension](img/supported-crms.png)
+
 ## Features
 
 * **Embedded CTI**. A fully functional phone is embedded into your CRM so that you can place and receive phone calls. The CTI is also enhanced with specific capabilities designed specifically for use cases common to users of most CRMs. These enhancements are enumerated below. 
