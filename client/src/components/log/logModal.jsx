@@ -91,10 +91,11 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        const { type, platform, logProps, additionalLogInfo } = e.data
+        const { type, platform, logProps, additionalLogInfo, triggerType } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
-            logEvents.push({ type, logProps, additionalLogInfo });
+            // no trigger type means manual trigger
+            logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
             await setupModal();
             setLoading(false);
         }
@@ -119,11 +120,15 @@ export default () => {
                 { autoLogCountdown: '20' }
             );
             setCountdown(Number(autoLogCountdown));
+            setCountdownFinished(false);
             countdownIntervalId = setInterval(() => {
                 setCountdown(c => { return c - 1; });
             }, 1000);
         }
-        setCountdownFinished(!logEvents[0].logProps.autoLog);
+        if(!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger)
+        {
+            stopCountDown();
+        }
         if (!logEvents[0].additionalLogInfo) {
             setAdditionalSubmission(null);
         }
@@ -163,6 +168,7 @@ export default () => {
             }
         }
         countDownCheck();
+        console.log(`Auto log countdown: ${countdown}`)
     }, [countdown])
 
     // any editing action would stop countdown

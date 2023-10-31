@@ -421,14 +421,16 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger':
               if (data.body.triggerType) {
+                // Sync events
                 if (data.body.triggerType === 'callLogSync') {
                   break;
                 }
+                // Presence events, but not hang up event
                 if (data.body.triggerType === 'presenceUpdate' && data.body.call.result !== 'Disconnected') {
                   break;
                 }
               }
-              window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
+              window.postMessage({ type: 'rc-log-modal-loading-on'}, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
@@ -454,7 +456,8 @@ window.addEventListener('message', async (e) => {
                     contactName: callMatchedContact.name,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
-                  additionalLogInfo: callLogAdditionalInfo
+                  additionalLogInfo: callLogAdditionalInfo,
+                  triggerType: data.body.triggerType 
                 }, '*')
               }
               // response to widget
