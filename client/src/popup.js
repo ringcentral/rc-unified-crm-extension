@@ -302,7 +302,7 @@ window.addEventListener('message', async (e) => {
             // Hack: change authorize button wording
             const authorizeButtonNode = contentDocument.querySelector('.SettingsPanel_content > section > .Line_root > .AuthorizeSettingsSection_accountWrapper > .Button_root');
             if (!!authorizeButtonNode) {
-              authorizeButtonNode.innerText = authorizeButtonNode.innerText === 'Authorize' ? 'Connect' : 'Disconnect';
+              authorizeButtonNode.innerText = authorizeButtonNode.innerText === 'Authorize' ? 'Connect' : 'Logout';
             }
 
             // Hack: show login status
