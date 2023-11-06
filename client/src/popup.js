@@ -8,7 +8,6 @@ const { apiKeyLogin, showCRMLoginStatusDot } = require('./core/auth');
 const moment = require('moment');
 const { openDB } = require('idb');
 const {
-  trackFirstTimeSetup,
   identify,
   group,
   trackPage,
@@ -141,15 +140,6 @@ window.addEventListener('message', async (e) => {
               type: 'rc-adapter-register-third-party-service',
               service: getServiceConfig(platformName)
             }, '*');
-            const isFirstTime = await chrome.storage.local.get('isFirstTime');
-            if (isObjectEmpty(isFirstTime)) {
-              trackFirstTimeSetup();
-              await chrome.storage.local.set({ isFirstTime: false });
-              // show welcome page when first-time open the extension
-              // window.postMessage({
-              //   type: 'rc-show-first-time-welcome'
-              // }, '*');
-            }
           }
           break;
         case 'rc-login-status-notify':

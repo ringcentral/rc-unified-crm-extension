@@ -8,7 +8,6 @@ import InsightlyAuth from './components/auth/insightlyAuth';
 import RedtailAuth from './components/auth/redtailAuth';
 import SMSTemplate from './components/smsTemplate';
 import { RcThemeProvider } from '@ringcentral/juno';
-import WelcomeScreen from './components/welcomeScreen';
 
 function App() {
     return (
@@ -20,7 +19,6 @@ function App() {
             <Notification />
             <LogModal />
             <SMSTemplate />
-            <WelcomeScreen />
         </RcThemeProvider>
     )
 }

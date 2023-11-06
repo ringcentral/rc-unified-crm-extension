@@ -33,7 +33,6 @@ export default () => {
 
     const getKeyButtonStyle = {
         background: '#3a68e1',
-        borderRradius: '6px',
         width: '100px',
         height: '40px',
         color: 'white',
