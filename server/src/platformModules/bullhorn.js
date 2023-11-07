@@ -86,7 +86,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const commentAction = additionalSubmission.commentAction ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} (${contactInfo.phone})`;
     const putBody = {
-        comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Duration: <b>${callLog.duration} seconds</b></li><li>Result: <b>${callLog.result}</b></li><li>Note: <b>${note}</b></li>${callLog.recording ? `<li>Recording link: <b>${callLog.recording.link}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
+        comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Duration: <b>${callLog.duration} seconds</b></li><li>Result: <b>${callLog.result}</b></li><li>Note: <b>${note}</b></li>${callLog.recording ? `<li>Recording link: <b>${callLog.recording.link}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
         action: commentAction,
         personReference: {
             id: contactInfo.id
@@ -115,7 +115,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const commentAction = additionalSubmission.commentAction ?? '';
     const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}(${contactInfo.phone})`;
     const putBody = {
-        comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Message: <b>${message.subject}</b></li>${recordingLink ? `<li>Recording link: <b>${recordingLink}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
+        comments: `<ul><li>Subject: <b>${subject}</b></li><li>Time: <b>${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</b></li><li>Message: <b>${message.subject}</b></li>${recordingLink ? `<li>Recording link: <b>${recordingLink}</b></li>` : ''}</ul><br/><em><i>--- Created via RingCentral CRM Extension</i></em>`,
         action: commentAction,
         personReference: {
             id: contactInfo.id
