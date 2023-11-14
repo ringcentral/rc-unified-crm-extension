@@ -4,7 +4,7 @@ const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openCont
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
-const { apiKeyLogin, showCRMLoginStatusDot } = require('./core/auth');
+const { apiKeyLogin } = require('./core/auth');
 const moment = require('moment');
 const { openDB } = require('idb');
 const {
@@ -276,46 +276,6 @@ window.addEventListener('message', async (e) => {
           if (data.path !== '/') {
             trackPage(data.path);
           }
-          const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
-          if (data.path.includes('/settings')) {
-            // Hack: change auto log wording
-            const changeWordingList = contentDocument.querySelectorAll('.SettingsPanel_content > .Line_root > .IconField_wrapper > .IconField_content > span');
-            for (const changeWordingNode of changeWordingList) {
-              if (changeWordingNode.innerHTML.includes('calls')) {
-                changeWordingNode.innerHTML = 'Auto pop up call logging page after call';
-              }
-              if (changeWordingNode.innerHTML.includes('messages')) {
-                changeWordingNode.innerHTML = 'Auto pop up SMS logging page';
-              }
-            }
-
-            // Hack: change authorize button wording
-            const authorizeButtonNode = contentDocument.querySelector('.SettingsPanel_content > section > .Line_root > .AuthorizeSettingsSection_accountWrapper > .Button_root');
-            if (!!authorizeButtonNode) {
-              authorizeButtonNode.innerText = authorizeButtonNode.innerText === 'Authorize' ? 'Connect' : 'Logout';
-            }
-
-            // Hack: show login status
-            showCRMLoginStatusDot();
-          }
-          // Hack: inject a button to open sms template
-          if (data.path.includes('/conversations/') || data.path === '/composeText') {
-            const buttonContainer = contentDocument.querySelector('.MessageInput_supportAttachment');
-            const textField = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_textField');
-            const attachmentButton = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_attachmentIcon');
-            textField.style.marginLeft = '60px';
-            const newButtonParent = attachmentButton.cloneNode(true);
-            buttonContainer.appendChild(newButtonParent);
-            newButtonParent.style.left = '30px';
-            newButton = newButtonParent.querySelector('button');
-            newButton.removeChild(newButton.querySelector('.attachment'))
-            newButton.innerHTML = '<svg viewBox="-3 -3 30 30"><path d="M3 10h11v2H3v-2zm0-2h11V6H3v2zm0 8h7v-2H3v2zm15.01-3.13.71-.71c.39-.39 1.02-.39 1.41 0l.71.71c.39.39.39 1.02 0 1.41l-.71.71-2.12-2.12zm-.71.71-5.3 5.3V21h2.12l5.3-5.3-2.12-2.12z"></path></svg>'
-            newButton.onclick = () => {
-              window.postMessage({
-                type: 'rc-select-sms-template'
-              }, '*');
-            }
-          }
           break;
         case 'rc-post-message-request':
           switch (data.path) {
@@ -420,7 +380,7 @@ window.addEventListener('message', async (e) => {
                   break;
                 }
               }
-              window.postMessage({ type: 'rc-log-modal-loading-on'}, '*');
+              window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
@@ -447,7 +407,7 @@ window.addEventListener('message', async (e) => {
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
                   additionalLogInfo: callLogAdditionalInfo,
-                  triggerType: data.body.triggerType 
+                  triggerType: data.body.triggerType
                 }, '*')
               }
               // response to widget
@@ -553,6 +513,11 @@ window.addEventListener('message', async (e) => {
               for (const setting of extensionUserSettings) {
                 trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
+              break;
+            case '/sms-template-button-click':
+              window.postMessage({
+                type: 'rc-select-sms-template'
+              }, '*');
               break;
             default:
               break;
@@ -664,17 +629,20 @@ function getServiceConfig(serviceName) {
 
     // show auth/unauth button in ringcentral widgets
     authorizationPath: '/authorize',
-    authorizedTitle: 'Unauthorize',
-    unauthorizedTitle: 'Authorize',
+    authorizedTitle: 'Logout',
+    unauthorizedTitle: 'Connect',
+    showAuthRedDot: true,
     authorized: false,
     authorizedAccount: '',
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',
     callLogEntityMatcherPath: '/callLogger/match',
+    callLoggerAutoSettingLabel: 'Auto pop up call logging page after call',
 
     messageLoggerPath: '/messageLogger',
     messageLogEntityMatcherPath: '/messageLogger/match',
+    messageLoggerAutoSettingLabel: 'Auto pop up SMS logging page',
 
     feedbackPath: '/feedback',
     settingsPath: '/settings',
@@ -688,6 +656,15 @@ function getServiceConfig(serviceName) {
         value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value ?? false)
       }
     ],
+
+    // SMS template button
+    buttonEventPath: '/sms-template-button-click',
+    buttons: [{
+      id: 'sms-template-button',
+      type: 'smsToolbar',
+      icon: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSItMyAtMyAzMCAzMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTSAtMi45MjUgNS40MzUgTCAxNS4wODcgNS40MzUgTCAxNS4wODcgOS4xNSBMIC0yLjkyNSA5LjE1IEwgLTIuOTI1IDUuNDM1IFogTSAtMi45MjUgMS43MTkgTCAxNS4wODcgMS43MTkgTCAxNS4wODcgLTEuOTk1IEwgLTIuOTI1IC0xLjk5NSBMIC0yLjkyNSAxLjcxOSBaIE0gLTIuOTI1IDE2LjU3OSBMIDguNTM3IDE2LjU3OSBMIDguNTM3IDEyLjg2NiBMIC0yLjkyNSAxMi44NjYgTCAtMi45MjUgMTYuNTc5IFogTSAyMS42NTIgMTAuNzY1IEwgMjIuODE1IDkuNDQ3IEMgMjMuNDU0IDguNzI0IDI0LjQ4NiA4LjcyNCAyNS4xMjUgOS40NDcgTCAyNi4yODcgMTAuNzY1IEMgMjYuOTI1IDExLjQ4OSAyNi45MjUgMTIuNjYxIDI2LjI4NyAxMy4zODYgTCAyNS4xMjUgMTQuNzA0IEwgMjEuNjUyIDEwLjc2NSBaIE0gMjAuNDkgMTIuMDg1IEwgMTEuODEyIDIxLjkzIEwgMTEuODEyIDI1Ljg2OCBMIDE1LjI4NCAyNS44NjggTCAyMy45NjMgMTYuMDIyIEwgMjAuNDkgMTIuMDg1IFoiIHN0eWxlPSIiPjwvcGF0aD4KPC9zdmc+',
+      label: 'SMS Template',
+    }],
   }
   return services;
 }
