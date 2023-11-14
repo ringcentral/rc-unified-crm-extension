@@ -46,21 +46,27 @@ export default () => {
     const elementContainerStyle = {
         padding: '2px 20px'
     }
+    const contentRowStyle = {
+        display: 'flex',
+        width: '100%'
+    }
     const labelStyle = {
-        color: '#2f2f2f',
-        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
-        fontSize: '13px'
+        fontSize: '0.8rem',
+        fontWeight: '700',
+        fontFamily: 'Lato,Helvetica,Arial,sans-serif',
+        lineHeight: '16px',
+        color: '#666666'
     }
     const contentStyle = {
         color: '#97979',
-        marginLeft: '15px',
         fontFamily: 'Lato, Helvetica, Arial, sans-serif',
         fontSize: '14px'
     }
     const dividerStyle = {
         right: '4%',
         margin: '0% 8%',
-        width: '92%'
+        width: '92%',
+        marginBottom: '10px'
     }
     const noteStyle = {
         right: '7%',
@@ -125,8 +131,7 @@ export default () => {
                 setCountdown(c => { return c - 1; });
             }, 1000);
         }
-        if(!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger)
-        {
+        if (!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger) {
             stopCountDown();
         }
         if (!logEvents[0].additionalLogInfo) {
@@ -137,7 +142,7 @@ export default () => {
         setCustomSubject('');
         switch (logEvents[0].logProps.logType) {
             case 'Call':
-                setDirection(` (${logEvents[0].logProps.logInfo.direction})`);
+                setDirection(logEvents[0].logProps.logInfo.direction);
                 setContactName(logEvents[0].logProps.contactName);
                 setPhoneNumber(logEvents[0].logProps.logInfo.direction === 'Inbound' ? logEvents[0].logProps.logInfo.from.phoneNumber : logEvents[0].logProps.logInfo.to.phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
@@ -236,7 +241,7 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText style={titleStyle} >Sync {logType} Log</RcText>
+                            <RcText style={titleStyle} >{logType} details</RcText>
                             <RcButton
                                 onClick={onSubmission}
                                 variant="plain"
@@ -245,28 +250,25 @@ export default () => {
                                 Save{countdownFinished ? '' : `(${countdown})`}
                             </RcButton>
                         </div>
-                        <div style={elementContainerStyle}>
-                            <RcText style={labelStyle} >Phone No.:</RcText>
-                            <RcText style={contentStyle} variant='body1'>{phoneNumber}{direction}</RcText>
+                        <RcDivider color="action.grayDark" style={dividerStyle} />
+                        <div style={contentRowStyle}>
+                            <div style={elementContainerStyle}>
+                                <RcText style={labelStyle} >Phone number</RcText>
+                                <RcText style={contentStyle} variant='body1'>{phoneNumber}</RcText>
+                            </div>
+                            {direction && <div style={elementContainerStyle}>
+                                <RcText style={labelStyle} >Direction</RcText>
+                                <RcText style={contentStyle} variant='body1'>{direction}</RcText>
+                            </div>}
                         </div>
-                        <RcDivider style={dividerStyle} />
                         <div style={elementContainerStyle}>
-                            <RcText style={labelStyle} >Contact:</RcText>
+                            <RcText style={labelStyle} >{logType == 'Call' ? 'Call time and duration' : 'Message time'}</RcText>
+                            <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {logType == 'Call' ? `(${duration})` : ''}</RcText>
+                        </div>
+                        <div style={elementContainerStyle}>
+                            <RcText style={labelStyle} >Contact name</RcText>
                             <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
                         </div>
-                        <RcDivider style={dividerStyle} />
-                        <div style={elementContainerStyle}>
-                            <RcText style={labelStyle} >Time:</RcText>
-                            <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime}</RcText>
-                        </div>
-                        <RcDivider style={dividerStyle} />
-                        {logType === 'Call' &&
-                            <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >Duration:</RcText>
-                                <RcText style={contentStyle} variant='body1'>{duration}</RcText>
-                            </div>
-                        }
-                        <RcDivider style={dividerStyle} />
                         {logType === 'Call' &&
                             <div style={elementContainerStyle}>
                                 <RcCheckbox
