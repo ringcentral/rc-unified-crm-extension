@@ -29,6 +29,7 @@ let registered = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
+let crmUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
 
@@ -151,6 +152,13 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+            // get crm user info
+            crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
+            if (!!crmUserInfo) {
+              const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
+              crmUserInfo = crmUserInfoResponse;
+              await chrome.storage.local.set({ crmUserInfo });
+            }
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -404,6 +412,7 @@ window.addEventListener('message', async (e) => {
                     logType: 'Call',
                     logInfo: data.body.call,
                     contactName: callMatchedContact.name,
+                    crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
                   additionalLogInfo: callLogAdditionalInfo,

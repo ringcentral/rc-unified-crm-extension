@@ -46,6 +46,31 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.status(500).send(e);
     }
 })
+app.get('/crmUserInfo', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findOne({
+                where: {
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
+                }
+            });
+            if (!!!user) {
+                res.status(400).send('unknown user');
+            }
+            res.status(200).send({ name: user.name });
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(500).send(e);
+    }
+})
 app.get('/hostname', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
