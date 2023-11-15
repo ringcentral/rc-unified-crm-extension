@@ -63,10 +63,7 @@ export default () => {
         fontSize: '14px'
     }
     const dividerStyle = {
-        right: '4%',
-        margin: '0% 8%',
-        width: '92%',
-        marginBottom: '10px'
+        margin: '0px 0px 10px',
     }
     const noteStyle = {
         right: '7%',
@@ -88,7 +85,6 @@ export default () => {
     const [isLoading, setLoading] = useState(false);
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
-    const [useCustomSubject, setUseCustomSubject] = useState(false);
     const [customSubject, setCustomSubject] = useState('');
     const [countdown, setCountdown] = useState(20);
     const [countdownFinished, setCountdownFinished] = useState(false);
@@ -138,10 +134,9 @@ export default () => {
             setAdditionalSubmission(null);
         }
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
-        setUseCustomSubject(false);
-        setCustomSubject('');
         switch (logEvents[0].logProps.logType) {
             case 'Call':
+                setCustomSubject(`${logEvents[0].logProps.logInfo.direction} call from ${logEvents[0].logProps.logInfo.direction === 'Inbound' ? `${logEvents[0].logProps.contactName} to ${logEvents[0].logProps.crmUserInfo.name}` : `${logEvents[0].logProps.crmUserInfo.name} to ${logEvents[0].logProps.contactName}`}`);
                 setDirection(logEvents[0].logProps.logInfo.direction);
                 setContactName(logEvents[0].logProps.contactName);
                 setPhoneNumber(logEvents[0].logProps.logInfo.direction === 'Inbound' ? logEvents[0].logProps.logInfo.from.phoneNumber : logEvents[0].logProps.logInfo.to.phoneNumber);
@@ -186,9 +181,7 @@ export default () => {
         try {
             stopCountDown();
             setLoading(true);
-            if (useCustomSubject) {
-                logInfo['customSubject'] = customSubject;
-            }
+            logInfo['customSubject'] = customSubject;
             await addLog({
                 logType,
                 logInfo,
@@ -215,11 +208,6 @@ export default () => {
 
     function onChangeNote(e) {
         setNote(e.target.value);
-        stopCountDown();
-    }
-
-    function onChangeCustomSubjectCheckBox(e) {
-        setUseCustomSubject(e.target.checked);
         stopCountDown();
     }
 
@@ -269,23 +257,12 @@ export default () => {
                             <RcText style={labelStyle} >Contact name</RcText>
                             <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
                         </div>
-                        {logType === 'Call' &&
-                            <div style={elementContainerStyle}>
-                                <RcCheckbox
-                                    label="Custom log subject"
-                                    onChange={onChangeCustomSubjectCheckBox}
-                                    disableRipple
-                                />
-                            </div>
-                        }
-                        {useCustomSubject &&
-                            <RcTextarea
-                                style={noteStyle}
-                                label='Custom subject'
-                                onChange={onChangeCustomSubject}
-                                value={customSubject}
-                            />
-                        }
+                        <RcTextarea
+                            style={noteStyle}
+                            label='Activity title'
+                            onChange={onChangeCustomSubject}
+                            value={customSubject}
+                        />
                         {logType === 'Call' &&
                             <RcTextarea
                                 style={noteStyle}
