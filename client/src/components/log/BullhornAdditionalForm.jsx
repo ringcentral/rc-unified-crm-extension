@@ -5,7 +5,6 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
     const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState('');
 
     useEffect(() => {
-        additionalFormInfo.value = additionalFormInfo.value.sort((a, b) => a.title > b.title ? 1 : -1)
         chrome.storage.local.get({ bullhornDefaultActionCode: '' },
             (items => {
                 if (items.bullhornDefaultActionCode && additionalFormInfo.value.some(i => i.title === items.bullhornDefaultActionCode)) {

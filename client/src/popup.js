@@ -4,11 +4,10 @@ const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openCont
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
-const { apiKeyLogin, showCRMLoginStatusDot } = require('./core/auth');
+const { apiKeyLogin } = require('./core/auth');
 const moment = require('moment');
 const { openDB } = require('idb');
 const {
-  trackFirstTimeSetup,
   identify,
   group,
   trackPage,
@@ -30,6 +29,7 @@ let registered = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
+let crmUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
 
@@ -141,15 +141,6 @@ window.addEventListener('message', async (e) => {
               type: 'rc-adapter-register-third-party-service',
               service: getServiceConfig(platformName)
             }, '*');
-            const isFirstTime = await chrome.storage.local.get('isFirstTime');
-            if (isObjectEmpty(isFirstTime)) {
-              trackFirstTimeSetup();
-              await chrome.storage.local.set({ isFirstTime: false });
-              // show welcome page when first-time open the extension
-              // window.postMessage({
-              //   type: 'rc-show-first-time-welcome'
-              // }, '*');
-            }
           }
           break;
         case 'rc-login-status-notify':
@@ -161,6 +152,13 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+            // get crm user info
+            crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
+            if (!!crmUserInfo) {
+              const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
+              crmUserInfo = crmUserInfoResponse;
+              await chrome.storage.local.set({ crmUserInfo });
+            }
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -286,40 +284,6 @@ window.addEventListener('message', async (e) => {
           if (data.path !== '/') {
             trackPage(data.path);
           }
-          const contentDocument = document.querySelector("#rc-widget-adapter-frame").contentWindow.document;
-          if (data.path.includes('/settings')) {
-            // Hack: change auto log wording
-            const changeWordingList = contentDocument.querySelectorAll('.SettingsPanel_content > .Line_root > .IconField_wrapper > .IconField_content > span');
-            for (const changeWordingNode of changeWordingList) {
-              if (changeWordingNode.innerHTML.includes('calls')) {
-                changeWordingNode.innerHTML = 'Auto pop up call logging page after call';
-              }
-              if (changeWordingNode.innerHTML.includes('messages')) {
-                changeWordingNode.innerHTML = 'Auto pop up SMS logging page';
-              }
-            }
-
-            // Hack: show login status
-            showCRMLoginStatusDot();
-          }
-          // Hack: inject a button to open sms template
-          if (data.path.includes('/conversations/') || data.path === '/composeText') {
-            const buttonContainer = contentDocument.querySelector('.MessageInput_supportAttachment');
-            const textField = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_textField');
-            const attachmentButton = contentDocument.querySelector('.MessageInput_supportAttachment > .MessageInput_attachmentIcon');
-            textField.style.marginLeft = '60px';
-            const newButtonParent = attachmentButton.cloneNode(true);
-            buttonContainer.appendChild(newButtonParent);
-            newButtonParent.style.left = '30px';
-            newButton = newButtonParent.querySelector('button');
-            newButton.removeChild(newButton.querySelector('.attachment'))
-            newButton.innerHTML = '<svg viewBox="-3 -3 30 30"><path d="M3 10h11v2H3v-2zm0-2h11V6H3v2zm0 8h7v-2H3v2zm15.01-3.13.71-.71c.39-.39 1.02-.39 1.41 0l.71.71c.39.39.39 1.02 0 1.41l-.71.71-2.12-2.12zm-.71.71-5.3 5.3V21h2.12l5.3-5.3-2.12-2.12z"></path></svg>'
-            newButton.onclick = () => {
-              window.postMessage({
-                type: 'rc-select-sms-template'
-              }, '*');
-            }
-          }
           break;
         case 'rc-post-message-request':
           switch (data.path) {
@@ -415,9 +379,11 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger':
               if (data.body.triggerType) {
+                // Sync events
                 if (data.body.triggerType === 'callLogSync') {
                   break;
                 }
+                // Presence events, but not hang up event
                 if (data.body.triggerType === 'presenceUpdate' && data.body.call.result !== 'Disconnected') {
                   break;
                 }
@@ -446,9 +412,11 @@ window.addEventListener('message', async (e) => {
                     logType: 'Call',
                     logInfo: data.body.call,
                     contactName: callMatchedContact.name,
+                    crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
-                  additionalLogInfo: callLogAdditionalInfo
+                  additionalLogInfo: callLogAdditionalInfo,
+                  triggerType: data.body.triggerType
                 }, '*')
               }
               // response to widget
@@ -554,6 +522,11 @@ window.addEventListener('message', async (e) => {
               for (const setting of extensionUserSettings) {
                 trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
+              break;
+            case '/sms-template-button-click':
+              window.postMessage({
+                type: 'rc-select-sms-template'
+              }, '*');
               break;
             default:
               break;
@@ -665,17 +638,20 @@ function getServiceConfig(serviceName) {
 
     // show auth/unauth button in ringcentral widgets
     authorizationPath: '/authorize',
-    authorizedTitle: 'Unauthorize',
-    unauthorizedTitle: 'Authorize',
+    authorizedTitle: 'Logout',
+    unauthorizedTitle: 'Connect',
+    showAuthRedDot: true,
     authorized: false,
     authorizedAccount: '',
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',
     callLogEntityMatcherPath: '/callLogger/match',
+    callLoggerAutoSettingLabel: 'Auto pop up call logging page after call',
 
     messageLoggerPath: '/messageLogger',
     messageLogEntityMatcherPath: '/messageLogger/match',
+    messageLoggerAutoSettingLabel: 'Auto pop up SMS logging page',
 
     feedbackPath: '/feedback',
     settingsPath: '/settings',
@@ -689,6 +665,15 @@ function getServiceConfig(serviceName) {
         value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value ?? false)
       }
     ],
+
+    // SMS template button
+    buttonEventPath: '/sms-template-button-click',
+    buttons: [{
+      id: 'sms-template-button',
+      type: 'smsToolbar',
+      icon: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSItMyAtMyAzMCAzMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTSAtMi45MjUgNS40MzUgTCAxNS4wODcgNS40MzUgTCAxNS4wODcgOS4xNSBMIC0yLjkyNSA5LjE1IEwgLTIuOTI1IDUuNDM1IFogTSAtMi45MjUgMS43MTkgTCAxNS4wODcgMS43MTkgTCAxNS4wODcgLTEuOTk1IEwgLTIuOTI1IC0xLjk5NSBMIC0yLjkyNSAxLjcxOSBaIE0gLTIuOTI1IDE2LjU3OSBMIDguNTM3IDE2LjU3OSBMIDguNTM3IDEyLjg2NiBMIC0yLjkyNSAxMi44NjYgTCAtMi45MjUgMTYuNTc5IFogTSAyMS42NTIgMTAuNzY1IEwgMjIuODE1IDkuNDQ3IEMgMjMuNDU0IDguNzI0IDI0LjQ4NiA4LjcyNCAyNS4xMjUgOS40NDcgTCAyNi4yODcgMTAuNzY1IEMgMjYuOTI1IDExLjQ4OSAyNi45MjUgMTIuNjYxIDI2LjI4NyAxMy4zODYgTCAyNS4xMjUgMTQuNzA0IEwgMjEuNjUyIDEwLjc2NSBaIE0gMjAuNDkgMTIuMDg1IEwgMTEuODEyIDIxLjkzIEwgMTEuODEyIDI1Ljg2OCBMIDE1LjI4NCAyNS44NjggTCAyMy45NjMgMTYuMDIyIEwgMjAuNDkgMTIuMDg1IFoiIHN0eWxlPSIiPjwvcGF0aD4KPC9zdmc+',
+      label: 'SMS Template',
+    }],
   }
   return services;
 }

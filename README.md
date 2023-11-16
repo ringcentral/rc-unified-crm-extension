@@ -4,7 +4,7 @@
 
 ## Looking for user documentation?
 
-Access our end user [documentation](./) through the project's Github pages. 
+Access our end user [documentation](https://ringcentral.github.io/rc-unified-crm-extension/) through the project's Github pages. 
 
 ## Contributing to the Unified CRM extension
 

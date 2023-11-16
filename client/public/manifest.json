@@ -1,7 +1,7 @@
 {
   "name": "RingCentral CRM Extension",
   "description": "A RingCentral extension for CRM platforms",
-  "version": "0.7.3",
+  "version": "0.7.5",
   "permissions": [
     "storage",
     "alarms",
@@ -61,7 +61,7 @@
     "open_in_tab": false
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' ; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self' 'wasm-unsafe-eval'"
   },
   "manifest_version": 3,
   "icons": {
