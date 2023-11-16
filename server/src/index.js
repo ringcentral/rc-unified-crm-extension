@@ -8,7 +8,7 @@ const { MessageLogModel } = require('./models/messageLogModel');
 const cors = require('cors')
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
-const { addCallLog, addMessageLog, getCallLog } = require('./core/log');
+const { addCallLog, addMessageLog, getCallLog, updateCallLog } = require('./core/log');
 const { getContact } = require('./core/contact');
 
 async function initDB() {
@@ -284,6 +284,23 @@ app.post('/callLog', async function (req, res) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, logId } = await addCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+});
+app.patch('/callLog', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const { successful } = await updateCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful });
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');

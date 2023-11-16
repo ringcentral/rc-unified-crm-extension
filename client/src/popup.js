@@ -1,5 +1,5 @@
 const auth = require('./core/auth');
-const { checkLog } = require('./core/log');
+const { checkLog, updateLog } = require('./core/log');
 const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
@@ -381,6 +381,16 @@ window.addEventListener('message', async (e) => {
               if (data.body.triggerType) {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
+                  if (!!data.body.call.recording) {
+                    console.log('call recording updating...');
+                    await updateLog(
+                      {
+                        logType: 'Call',
+                        sessionId: data.body.call.sessionId,
+                        recordingLink: data.body.call.recording.link
+                      });
+                    console.log('call recording update done');
+                  }
                   break;
                 }
                 // Presence events, but not hang up event

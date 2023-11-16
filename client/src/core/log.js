@@ -59,6 +59,21 @@ async function checkLog({ logType, sessionIds }) {
     }
 }
 
+async function updateLog({logType, sessionId, recordingLink}){
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    if (!!rcUnifiedCrmExtJwt) {
+        switch (logType) {
+            case 'Call':
+                const patchBody = {
+                    sessionId,
+                    recordingLink
+                }
+                const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
+                // return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
+        }
+    }
+}
+
 async function cacheCallNote({ sessionId, note }) {
     let noteToCache = {};
     noteToCache[sessionId] = note;
@@ -77,5 +92,6 @@ async function getCachedNote({ sessionId }) {
 
 exports.addLog = addLog;
 exports.checkLog = checkLog;
+exports.updateLog = updateLog;
 exports.cacheCallNote = cacheCallNote;
 exports.getCachedNote = getCachedNote;
