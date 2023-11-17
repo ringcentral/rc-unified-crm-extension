@@ -6,6 +6,10 @@ The Unified CRM extension is frequently updated with fixes and feature enhanceme
 
 In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
 
+## "I don't see an 'Authorize' or 'Connect' button to login to my CRM"
+
+In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. The Unified CRM extension will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch the CRM extension from any other domain, you will not see an Authorize or Connect button. 
+
 ## Unable to find contact
 
 One of the most common challenges arises from phone calls for which a correspondong contact record in the CRM cannot be found. However, you know for sure the contact exists.
