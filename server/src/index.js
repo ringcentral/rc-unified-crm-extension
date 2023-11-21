@@ -51,7 +51,6 @@ app.get('/crmUserInfo', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            console.log(unAuthData);
             const user = await UserModel.findOne({
                 where: {
                     id: unAuthData.id,

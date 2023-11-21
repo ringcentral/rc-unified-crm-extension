@@ -182,6 +182,18 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
+            // Case: when log page is open and recording link is updated
+            if (!logInfo.recording?.link) {
+                const recordingSessionId = `rec-link-${logInfo.sessionId}`;
+                const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                if (!!existingCallRecording[recordingSessionId]) {
+                    logInfo['recording'] = {
+                        link: existingCallRecording[recordingSessionId].recordingLink
+                    }
+                    await chrome.storage.local.remove(recordingSessionId);
+                    console.log('call recording update done');
+                }
+            }
             await addLog({
                 logType,
                 logInfo,

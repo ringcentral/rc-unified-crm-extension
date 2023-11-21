@@ -152,12 +152,15 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            // get crm user info
-            crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
-            if (!!crmUserInfo) {
-              const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
-              crmUserInfo = crmUserInfoResponse;
-              await chrome.storage.local.set({ crmUserInfo });
+            if(!!rcUnifiedCrmExtJwt)
+            {
+              // get crm user info
+              crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
+              if (!!crmUserInfo) {
+                const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
+                crmUserInfo = crmUserInfoResponse;
+                await chrome.storage.local.set({ crmUserInfo });
+              }
             }
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
@@ -383,13 +386,13 @@ window.addEventListener('message', async (e) => {
                 if (data.body.triggerType === 'callLogSync') {
                   if (!!data.body.call.recording) {
                     console.log('call recording updating...');
+                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link }});
                     await updateLog(
                       {
                         logType: 'Call',
                         sessionId: data.body.call.sessionId,
                         recordingLink: data.body.call.recording.link
                       });
-                    console.log('call recording update done');
                   }
                   break;
                 }

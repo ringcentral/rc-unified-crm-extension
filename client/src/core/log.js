@@ -59,7 +59,7 @@ async function checkLog({ logType, sessionIds }) {
     }
 }
 
-async function updateLog({logType, sessionId, recordingLink}){
+async function updateLog({ logType, sessionId, recordingLink }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
@@ -69,7 +69,14 @@ async function updateLog({logType, sessionId, recordingLink}){
                     recordingLink
                 }
                 const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
-                // return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
+                if (callLogRes.data.successful) {
+                    const recordingSessionId = `rec-link-${sessionId}`;
+                    const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                    if (!!existingCallRecording[recordingSessionId]) {
+                        await chrome.storage.local.remove(recordingSessionId);
+                    }
+                    console.log('call recording update done');
+                }
         }
     }
 }
