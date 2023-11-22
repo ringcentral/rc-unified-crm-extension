@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { UserModel } = require('../models/userModel');
-const { CallLogModel } = require('../models/callLogModel');
 const Op = require('sequelize').Op;
 const moment = require('moment');
 const url = require('url');
