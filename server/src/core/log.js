@@ -79,7 +79,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     break;
             }
             await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink });
-            return { successful: false };
+            return { successful: true };
         }
         return { successful: false };
     } catch (e) {

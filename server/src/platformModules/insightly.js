@@ -155,6 +155,34 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.EVENT_ID;
 }
 
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+    const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
+    const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let logBody = getLogRes.data.DETAILS;
+    if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+        logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+    }
+    else {
+        logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+    }
+
+    const putBody = {
+        EVENT_ID: existingInsightlyLogId,
+        DETAILS: logBody
+    }
+    const putLogRes = await axios.put(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
+        putBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+}
+
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const postBody = {
         TITLE: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}` : `to ${contactInfo.name}`}`,
@@ -341,6 +369,7 @@ exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.unAuthorize = unAuthorize;

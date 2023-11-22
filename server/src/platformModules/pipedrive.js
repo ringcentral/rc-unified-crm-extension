@@ -123,7 +123,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] ${callLog.recording.link}</p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc
@@ -135,6 +135,31 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             headers: { 'Authorization': authHeader }
         });
     return addLogRes.data.data.id;
+}
+
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+    const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let logBody = getLogRes.data.data.note;
+    if (logBody.includes('<p><span>[Created via]')) {
+        logBody = logBody.replace('<p><span>[Created via]', `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p><p><span>[Created via]`);
+    }
+    else {
+        logBody += `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p>`;
+    }
+    const putBody = {
+        note: logBody
+    }
+    const putLogRes = await axios.put(
+        `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
+        putBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
@@ -210,6 +235,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.unAuthorize = unAuthorize;

@@ -8,7 +8,6 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
-    const platformInfo = await chrome.storage.local.get('platform-info');
     const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
@@ -22,6 +21,12 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 if (addCallLogRes.data.successful) {
                     showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
                     trackSyncCallLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId, hasNote: note !== '' });
+                    // check for remaining recording link
+                    const recordingSessionId = `rec-link-${logInfo.sessionId}`;
+                    const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                    if (!!existingCallRecording[recordingSessionId]) {
+                        await updateLog({ logType: 'Call', sessionId: logInfo.sessionId, recordingLink: existingCallRecording[recordingSessionId].recordingLink})
+                    }
                 }
                 else {
                     showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
