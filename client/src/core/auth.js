@@ -35,6 +35,7 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
             ['rcUnifiedCrmExtJwt']: res.data
         });
         trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
+        return res.data;
     }
     catch (e) {
         console.log(e);
@@ -63,6 +64,7 @@ async function onAuthCallback(callbackUri) {
         ['rcUnifiedCrmExtJwt']: res.data
     });
     trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
+    return res.data;
 }
 
 async function unAuthorize(rcUnifiedCrmExtJwt) {
@@ -80,14 +82,17 @@ async function unAuthorize(rcUnifiedCrmExtJwt) {
 
 async function checkAuth() {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    setAuth(!!rcUnifiedCrmExtJwt);
+    // get crm user info
+    const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
+    setAuth(!!rcUnifiedCrmExtJwt, crmUserInfo?.name);
     return !!rcUnifiedCrmExtJwt;
 }
 
-function setAuth(auth) {
+function setAuth(auth, accountName) {
     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
         type: 'rc-adapter-update-authorization-status',
-        authorized: auth
+        authorized: auth,
+        authorizedAccount: accountName ?? ''
     });
 }
 

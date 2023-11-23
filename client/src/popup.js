@@ -152,16 +152,7 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            if(!!rcUnifiedCrmExtJwt)
-            {
-              // get crm user info
-              crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
-              if (!!crmUserInfo) {
-                const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
-                crmUserInfo = crmUserInfoResponse;
-                await chrome.storage.local.set({ crmUserInfo });
-              }
-            }
+            await getCRMUserInfo();
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -386,7 +377,7 @@ window.addEventListener('message', async (e) => {
                 if (data.body.triggerType === 'callLogSync') {
                   if (!!data.body.call.recording) {
                     console.log('call recording updating...');
-                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link }});
+                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
                     await updateLog(
                       {
                         logType: 'Call',
@@ -571,7 +562,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       }, '*');
     }
     else if (request.platform === 'thirdParty') {
-      auth.onAuthCallback(request.callbackUri);
+      await auth.onAuthCallback(request.callbackUri);
+      await getCRMUserInfo();
     }
     sendResponse({ result: 'ok' });
   }
@@ -623,6 +615,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
+    await getCRMUserInfo();
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'
@@ -642,6 +635,20 @@ function handleThirdPartyOAuthWindow(oAuthUri) {
     type: 'openThirdPartyAuthWindow',
     oAuthUri
   });
+}
+
+async function getCRMUserInfo() {
+  const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+  if (!!rcUnifiedCrmExtJwt) {  
+    // get crm user info
+    crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
+    if (!!crmUserInfo) {
+      const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
+      crmUserInfo = crmUserInfoResponse;
+      await chrome.storage.local.set({ crmUserInfo });
+      auth.setAuth(true, crmUserInfo.name);
+    }
+  }
 }
 
 function getServiceConfig(serviceName) {
