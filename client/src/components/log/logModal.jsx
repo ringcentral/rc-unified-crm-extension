@@ -46,6 +46,9 @@ export default () => {
     const elementContainerStyle = {
         padding: '2px 20px'
     }
+    const contentContainerStyle = {
+        width: '100%'
+    }
     const contentRowStyle = {
         display: 'flex',
         width: '100%'
@@ -65,10 +68,11 @@ export default () => {
     const dividerStyle = {
         margin: '0px 0px 10px',
     }
+    const inputAreaContainerStyle ={
+        padding: '0px 20px'
+    }
     const noteStyle = {
-        right: '7%',
-        margin: '2% 14%',
-        width: '86%'
+        width: '100%'
     }
 
     const [platform, setPlatform] = useState('');
@@ -251,74 +255,80 @@ export default () => {
                             </RcButton>
                         </div>
                         <RcDivider color="action.grayDark" style={dividerStyle} />
-                        <div style={contentRowStyle}>
-                            <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >Phone number</RcText>
-                                <RcText style={contentStyle} variant='body1'>{phoneNumber}</RcText>
+                        <div style={contentContainerStyle}>
+                            <div style={contentRowStyle}>
+                                <div style={elementContainerStyle}>
+                                    <RcText style={labelStyle} >Phone number</RcText>
+                                    <RcText style={contentStyle} variant='body1'>{phoneNumber}</RcText>
+                                </div>
+                                {direction && <div style={elementContainerStyle}>
+                                    <RcText style={labelStyle} >Direction</RcText>
+                                    <RcText style={contentStyle} variant='body1'>{direction}</RcText>
+                                </div>}
                             </div>
-                            {direction && <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >Direction</RcText>
-                                <RcText style={contentStyle} variant='body1'>{direction}</RcText>
-                            </div>}
+                            <div style={elementContainerStyle}>
+                                <RcText style={labelStyle} >{logType == 'Call' ? 'Call time and duration' : 'Message time'}</RcText>
+                                <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {logType == 'Call' ? `(${duration})` : ''}</RcText>
+                            </div>
+                            <div style={elementContainerStyle}>
+                                <RcText style={labelStyle} >Contact name</RcText>
+                                <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
+                            </div>
+                            <div style={inputAreaContainerStyle}>
+                                <RcTextarea
+                                    style={noteStyle}
+                                    label='Activity title'
+                                    onChange={onChangeCustomSubject}
+                                    value={customSubject}
+                                />
+                            </div>
+                            {logType === 'Call' &&
+                                <div style={inputAreaContainerStyle}>
+                                    <RcTextarea
+                                        style={noteStyle}
+                                        label='Note'
+                                        onChange={onChangeNote}
+                                        value={note}
+                                    />
+                                </div>
+                            }
+                            {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                                <div style={elementContainerStyle}>
+                                    <PipedriveAdditionalForm
+                                        additionalFormInfo={additionalFormInfo}
+                                        setSubmission={setAdditionalSubmission}
+                                        style={labelStyle}
+                                    />
+                                </div>
+                            }
+                            {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                                <div style={elementContainerStyle}>
+                                    <InsightlyAdditionalForm
+                                        additionalFormInfo={additionalFormInfo}
+                                        setSubmission={setAdditionalSubmission}
+                                        style={labelStyle}
+                                    />
+                                </div>
+                            }
+                            {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                                <div style={elementContainerStyle}>
+                                    <ClioAdditionalForm
+                                        additionalFormInfo={additionalFormInfo}
+                                        setSubmission={setAdditionalSubmission}
+                                        style={labelStyle}
+                                    />
+                                </div>
+                            }
+                            {platform === 'bullhorn' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                                <div style={elementContainerStyle}>
+                                    <BullhornAdditionalForm
+                                        additionalFormInfo={additionalFormInfo}
+                                        setSubmission={setAdditionalSubmission}
+                                        style={labelStyle}
+                                    />
+                                </div>
+                            }
                         </div>
-                        <div style={elementContainerStyle}>
-                            <RcText style={labelStyle} >{logType == 'Call' ? 'Call time and duration' : 'Message time'}</RcText>
-                            <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {logType == 'Call' ? `(${duration})` : ''}</RcText>
-                        </div>
-                        <div style={elementContainerStyle}>
-                            <RcText style={labelStyle} >Contact name</RcText>
-                            <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
-                        </div>
-                        <RcTextarea
-                            style={noteStyle}
-                            label='Activity title'
-                            onChange={onChangeCustomSubject}
-                            value={customSubject}
-                        />
-                        {logType === 'Call' &&
-                            <RcTextarea
-                                style={noteStyle}
-                                label='Note'
-                                onChange={onChangeNote}
-                                value={note}
-                            />
-                        }
-                        {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                            <div style={elementContainerStyle}>
-                                <PipedriveAdditionalForm
-                                    additionalFormInfo={additionalFormInfo}
-                                    setSubmission={setAdditionalSubmission}
-                                    style={labelStyle}
-                                />
-                            </div>
-                        }
-                        {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                            <div style={elementContainerStyle}>
-                                <InsightlyAdditionalForm
-                                    additionalFormInfo={additionalFormInfo}
-                                    setSubmission={setAdditionalSubmission}
-                                    style={labelStyle}
-                                />
-                            </div>
-                        }
-                        {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                            <div style={elementContainerStyle}>
-                                <ClioAdditionalForm
-                                    additionalFormInfo={additionalFormInfo}
-                                    setSubmission={setAdditionalSubmission}
-                                    style={labelStyle}
-                                />
-                            </div>
-                        }
-                        {platform === 'bullhorn' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                            <div style={elementContainerStyle}>
-                                <BullhornAdditionalForm
-                                    additionalFormInfo={additionalFormInfo}
-                                    setSubmission={setAdditionalSubmission}
-                                    style={labelStyle}
-                                />
-                            </div>
-                        }
                     </div>
                 )
             }
