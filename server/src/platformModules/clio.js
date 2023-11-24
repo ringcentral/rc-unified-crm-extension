@@ -164,6 +164,35 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return communicationId;
 }
 
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let logBody = getLogRes.data.data.body;
+    if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+        logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+    }
+    else {
+        logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+    }
+
+    const patchBody = {
+        data: {
+            body: logBody
+        }
+    }
+    const patchLogRes = await axios.patch(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
+        patchBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+}
+
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const sender = message.direction == 'Outbound' ?
         {
@@ -262,6 +291,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.unAuthorize = unAuthorize;

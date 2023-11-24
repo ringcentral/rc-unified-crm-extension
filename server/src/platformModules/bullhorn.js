@@ -86,7 +86,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const commentAction = additionalSubmission.commentAction ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
     const putBody = {
-        comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Recording link</b>: ${callLog.recording.link}</li>` : ''}</ul>`,
+        comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: commentAction,
         personReference: {
             id: contactInfo.id
@@ -109,6 +109,36 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         }
     }
     return addLogRes.data.changedEntityId;
+}
+
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+    const existingBullhornLogId = existingCallLog.thirdPartyLogId;
+    let getLogRes
+    try {
+        getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            getLogRes = await axios.get(
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+        }
+    }
+    let logBody = getLogRes.data.data.comments;
+    if (logBody.includes('</ul>')) {
+        logBody = logBody.replace('</ul>', `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a></ul>`);
+    }
+    else {
+        logBody += `<b>Call recording link</b>: <a src=${recordingLink}>open</a>`;
+    }
+    // I dunno, Bullhorn just uses POST as PATCH
+    const postBody = {
+        comments: logBody
+    }
+    const postLogRes = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+        postBody);
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
@@ -209,6 +239,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.unAuthorize = unAuthorize;

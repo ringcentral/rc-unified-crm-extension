@@ -8,7 +8,6 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
-    const platformInfo = await chrome.storage.local.get('platform-info');
     const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
@@ -22,6 +21,12 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                 if (addCallLogRes.data.successful) {
                     showNotification({ level: 'success', message: 'call log added', ttl: 3000 });
                     trackSyncCallLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId, hasNote: note !== '' });
+                    // check for remaining recording link
+                    const recordingSessionId = `rec-link-${logInfo.sessionId}`;
+                    const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                    if (!!existingCallRecording[recordingSessionId]) {
+                        await updateLog({ logType: 'Call', sessionId: logInfo.sessionId, recordingLink: existingCallRecording[recordingSessionId].recordingLink})
+                    }
                 }
                 else {
                     showNotification({ level: 'warning', message: addCallLogRes.data.message, ttl: 3000 });
@@ -59,6 +64,28 @@ async function checkLog({ logType, sessionIds }) {
     }
 }
 
+async function updateLog({ logType, sessionId, recordingLink }) {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    if (!!rcUnifiedCrmExtJwt) {
+        switch (logType) {
+            case 'Call':
+                const patchBody = {
+                    sessionId,
+                    recordingLink
+                }
+                const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
+                if (callLogRes.data.successful) {
+                    const recordingSessionId = `rec-link-${sessionId}`;
+                    const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                    if (!!existingCallRecording[recordingSessionId]) {
+                        await chrome.storage.local.remove(recordingSessionId);
+                    }
+                    console.log('call recording update done');
+                }
+        }
+    }
+}
+
 async function cacheCallNote({ sessionId, note }) {
     let noteToCache = {};
     noteToCache[sessionId] = note;
@@ -77,5 +104,6 @@ async function getCachedNote({ sessionId }) {
 
 exports.addLog = addLog;
 exports.checkLog = checkLog;
+exports.updateLog = updateLog;
 exports.cacheCallNote = cacheCallNote;
 exports.getCachedNote = getCachedNote;

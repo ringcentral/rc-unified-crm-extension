@@ -52,6 +52,42 @@ async function addCallLog({ platform, userId, incomingData }) {
     }
 }
 
+async function updateCallLog({ platform, userId, incomingData }) {
+    try {
+        const existingCallLog = await CallLogModel.findOne({
+            where: {
+                sessionId: incomingData.sessionId
+            }
+        });
+        if (existingCallLog) {
+            const platformModule = require(`../platformModules/${platform}`);
+            const user = await UserModel.findByPk(userId);
+            if (!user || !user.accessToken) {
+                return { successful: false, message: `Cannot find user with id: ${userId}` };
+            }
+            const authType = platformModule.getAuthType();
+            let authHeader = '';
+            switch (authType) {
+                case 'oauth':
+                    const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+                    await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    authHeader = `Bearer ${user.accessToken}`;
+                    break;
+                case 'apiKey':
+                    const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                    authHeader = `Basic ${basicAuth}`;
+                    break;
+            }
+            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink });
+            return { successful: true };
+        }
+        return { successful: false };
+    } catch (e) {
+        console.log(e);
+        return { successful: false };
+    }
+}
+
 async function addMessageLog({ platform, userId, incomingData }) {
     try {
         if (incomingData.logInfo.messages.length === 0) {
@@ -148,6 +184,7 @@ async function getCallLog({ sessionIds }) {
 // }
 
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
 // exports.getMessageLogs = getMessageLogs;
