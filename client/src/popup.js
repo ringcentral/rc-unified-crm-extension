@@ -375,7 +375,8 @@ window.addEventListener('message', async (e) => {
               if (data.body.triggerType) {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
-                  if (!!data.body.call.recording) {
+                  // TODO: remove redtail restriction after redtail is accessible
+                  if (!!data.body.call.recording && platformInfo.platformName != 'redtail') {
                     console.log('call recording updating...');
                     await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
                     await updateLog(
