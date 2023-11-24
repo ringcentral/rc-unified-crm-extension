@@ -372,7 +372,8 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/callLogger':
-              if (data.body.triggerType) {
+              // data.body.call?.to?.phoneNumber?.length > 4 to distinguish extension from external number
+              if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
                   // TODO: remove redtail restriction after redtail is accessible
