@@ -376,7 +376,9 @@ window.addEventListener('message', async (e) => {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
                   // TODO: remove redtail restriction after redtail is accessible
-                  if (!!data.body.call.recording && platformInfo.platformName != 'redtail') {
+                  const platformInfo = await chrome.storage.local.get('platform-info');
+                  platformName = platformInfo['platform-info'].platformName;
+                  if (!!data.body.call.recording && platformName != 'redtail') {
                     console.log('call recording updating...');
                     await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
                     await updateLog(
@@ -640,7 +642,7 @@ function handleThirdPartyOAuthWindow(oAuthUri) {
 
 async function getCRMUserInfo() {
   const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-  if (!!rcUnifiedCrmExtJwt) {  
+  if (!!rcUnifiedCrmExtJwt) {
     // get crm user info
     crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
     if (!!crmUserInfo) {
