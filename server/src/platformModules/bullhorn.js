@@ -130,7 +130,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
         logBody = logBody.replace('</ul>', `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a></ul>`);
     }
     else {
-        logBody += `<b>Call recording link</b>: <a src=${recordingLink}>open</a>`;
+        logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
