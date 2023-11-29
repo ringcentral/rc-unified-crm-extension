@@ -376,19 +376,14 @@ window.addEventListener('message', async (e) => {
               if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
-                  // TODO: remove redtail restriction after redtail is accessible
-                  const platformInfo = await chrome.storage.local.get('platform-info');
-                  platformName = platformInfo['platform-info'].platformName;
-                  if (!!data.body.call.recording && platformName != 'redtail') {
-                    console.log('call recording updating...');
-                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
-                    await updateLog(
-                      {
-                        logType: 'Call',
-                        sessionId: data.body.call.sessionId,
-                        recordingLink: data.body.call.recording.link
-                      });
-                  }
+                  console.log('call recording updating...');
+                  await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
+                  await updateLog(
+                    {
+                      logType: 'Call',
+                      sessionId: data.body.call.sessionId,
+                      recordingLink: data.body.call.recording.link
+                    });
                   break;
                 }
                 // Presence events, but not hang up event

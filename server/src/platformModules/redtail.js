@@ -82,7 +82,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const linkedNotes = note ?? '';
     const descriptionNotes = note ? `\n\nAgent notes: ${note}` : '';
-    const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
+    const callRecordingDetail = callLog.recording ? `\nCall recording link: <a target="_blank" href=${callLog.recording.link}>open</a>` : "";
     const postBody = {
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         description: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.<br>${descriptionNotes}<br>${callRecordingDetail}<br><em> Created via: <a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em>`,
@@ -123,6 +123,33 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             headers: { 'Authorization': overrideAuthHeader }
         });
     return completeLogRes.data.activity.id;
+}
+
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const existingRedtailLogId = existingCallLog.thirdPartyLogId;
+    const getLogRes = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    let logBody = getLogRes.data.activity.description;
+    if (logBody.includes('<em> Created via:')) {
+        logBody = logBody.replace('<em> Created via:', `Call recording link: <a target="_blank" href=${recordingLink}>open</a><br/><em> Created via:`);
+    }
+    else {
+        logBody += `Call recording link: <a target="_blank" href=${recordingLink}>open</a>`;
+    }
+
+    const putBody = {
+        description: logBody
+    }
+    const putLogRes = await axios.patch(
+        `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
+        putBody,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
@@ -193,6 +220,7 @@ exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
 exports.addCallLog = addCallLog;
+exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.unAuthorize = unAuthorize;
