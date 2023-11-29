@@ -81,6 +81,11 @@ export default () => {
             setRecommend('');
             setUserName(e.data.props.userName);
             setUserEmail(e.data.props.userEmail);
+            if(e.data.props.platformName)
+            {
+                // eg. insightly -> Insightly
+                setPlatform(e.data.props.platformName.charAt(0).toUpperCase() + e.data.props.platformName.slice(1));
+            }
         }
     }
     useEffect(() => {
