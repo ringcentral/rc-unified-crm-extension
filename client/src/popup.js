@@ -32,6 +32,9 @@ let rcUserInfo = {};
 let crmUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
+// trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
+let leadingSMSCallReady = false;
+let trailingSMSLogInfo = [];
 
 const errorLogWebhookUrl = "https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQ0NDY2MTc3IiwiaWQiOiIyMDc4MDgxMDUxIn0.NnAUGG4stGsPz8mhNsy6Qo2yosX0ydk58Dv70fmbugc";
 import axios from 'axios';
@@ -109,25 +112,21 @@ window.addEventListener('message', async (e) => {
           // get call on active call updated event
           if (data.connectionStatus === 'connectionStatus-connected') { // connectionStatus-connected, connectionStatus-disconnected
             await auth.checkAuth();
-          }
-          // Hack: add a feedback button
-          if (!document.querySelector('.Adapter_header .header_feedback_button')) {
-            const headerElement = document.querySelector('.Adapter_header');
-            const feedbackButtonElement = document.createElement('div');
-            headerElement.appendChild(feedbackButtonElement);
-            feedbackButtonElement.className = 'header_feedback_button';
-            feedbackButtonElement.style = "position: absolute;right: 5px;top: 5px; width: 24px;cursor: pointer;";
-            feedbackButtonElement.innerHTML = '<svg class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiBox-root css-uqopch" focusable="false" aria-hidden="true" viewBox="0 0 24 24" data-testid="FeedbackIcon"><path fill="#2559E4" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 12h-2v-2h2v2zm0-4h-2V6h2v4z"></path></svg>';
-            feedbackButtonElement.onclick = () => {
-              window.postMessage({
-                type: 'rc-feedback-open',
-                props: {
-                  userName: rcUserInfo.rcUserName,
-                  userEmail: rcUserInfo.rcUserEmail
-                }
-              }, '*');
-              trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
-            }
+
+            RCAdapter.showFeedback({
+              onFeedback: function () {
+                // add your codes here to show your feedback form
+                window.postMessage({
+                  type: 'rc-feedback-open',
+                  props: {
+                    userName: rcUserInfo.rcUserName,
+                    userEmail: rcUserInfo.rcUserEmail,
+                    platformName: platformName
+                  }
+                }, '*');
+                trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
+              },
+            });
           }
           break;
         case 'rc-adapter-pushAdapterState':
@@ -416,6 +415,7 @@ window.addEventListener('message', async (e) => {
                 window.postMessage({
                   type: 'rc-log-modal',
                   platform: platformName,
+                  isAccumulative: false,
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
@@ -458,36 +458,50 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              const isTrailing = !data.body.redirect;
+              if (isTrailing) {
+                if (!leadingSMSCallReady) {
+                  trailingSMSLogInfo.push(data.body.conversation);
+                  break;
+                }
+              }
+              else {
+                leadingSMSCallReady = false;
+              }
               const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
               const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
               if (!data.body.correspondentEntity) {
                 break;
               }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-              const { matched: messageContactMatched, message: messageContactMatchMessage, contactInfo: messageMatchedContact, additionalLogInfo: messageLogAdditionalLogInfo } = await getContact({
-                phoneNumber: data.body.conversation.correspondents[0].phoneNumber
-              });
-              const existingMessageLog = await chrome.storage.local.get(data.body.conversation.conversationLogId);
-              if (!messageContactMatched) {
-                showNotification({ level: 'warning', message: messageContactMatchMessage, ttl: 3000 });
+              let getContactMatchResult = null;
+              if (!isTrailing) {
+                getContactMatchResult = await getContact({
+                  phoneNumber: data.body.conversation.correspondents[0].phoneNumber
+                });
               }
-              else if (isObjectEmpty(existingMessageLog)) {
+              if (!isTrailing && !getContactMatchResult.matched) {
+                showNotification({ level: 'warning', message: getContactMatchResult.message, ttl: 3000 });
+              }
+              else {
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
                   platform: platformName,
+                  isTrailing,
+                  trailingSMSLogInfo,
                   logProps: {
                     logType: 'Message',
                     logInfo: data.body.conversation,
-                    contactName: messageMatchedContact.name,
+                    contactName: getContactMatchResult.contactInfo.name,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
                     isToday
                   },
-                  additionalLogInfo: messageLogAdditionalLogInfo
+                  additionalLogInfo: getContactMatchResult.additionalLogInfo
                 }, '*');
-              }
-              else {
-                showNotification({ level: 'warning', message: 'Message log already exists', ttl: 3000 });
+                if (!isTrailing) {
+                  leadingSMSCallReady = true;
+                }
               }
               // response to widget
               responseMessage(
@@ -499,7 +513,13 @@ window.addEventListener('message', async (e) => {
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/messageLogger/match':
-              const localMessageLogs = await chrome.storage.local.get(data.body.conversationLogIds);
+              let localMessageLogs = {};
+              for (const conversationLogId of data.body.conversationLogIds) {
+                const savedMessageLogRecord = await chrome.storage.local.get(conversationLogId);
+                if (!!savedMessageLogRecord && !isObjectEmpty(savedMessageLogRecord)) {
+                  localMessageLogs[conversationLogId] = [{ id: 'dummyId' }]
+                }
+              }
               responseMessage(
                 data.requestId,
                 {
@@ -519,7 +539,8 @@ window.addEventListener('message', async (e) => {
                 type: 'rc-feedback-open',
                 props: {
                   userName: rcUserInfo.rcUserName,
-                  userEmail: rcUserInfo.rcUserEmail
+                  userEmail: rcUserInfo.rcUserEmail,
+                  platformName: platformName
                 }
               }, '*');
               trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
@@ -601,7 +622,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
         type: 'rc-feedback-open',
         props: {
           userName: rcUserInfo?.rcUserName,
-          userEmail: rcUserInfo?.rcUserEmail
+          userEmail: rcUserInfo?.rcUserEmail,
+          platformName: platformName
         }
       }, '*');
       trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });

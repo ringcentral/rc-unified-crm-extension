@@ -18,6 +18,7 @@ import ClioAdditionalForm from './ClioAdditionalForm';
 import BullhornAdditionalForm from './BullhornAdditionalForm';
 
 const logEvents = [];
+let trailingLogInfo = [];
 let countdownIntervalId = '';
 
 export default () => {
@@ -68,7 +69,7 @@ export default () => {
     const dividerStyle = {
         margin: '0px 0px 10px',
     }
-    const inputAreaContainerStyle ={
+    const inputAreaContainerStyle = {
         padding: '0px 20px'
     }
     const noteStyle = {
@@ -97,13 +98,18 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        const { type, platform, logProps, additionalLogInfo, triggerType } = e.data
+        const { type, platform, trailingSMSLogInfo, isTrailing, logProps, additionalLogInfo, triggerType } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
-            // no trigger type means manual trigger
-            logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
-            await setupModal();
-            setLoading(false);
+            if (isTrailing) {
+                trailingLogInfo.push(logProps.logInfo);
+            }
+            else {
+                // no trigger type means manual trigger
+                logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
+                await setupModal();
+                trailingLogInfo = trailingSMSLogInfo;
+            }
         }
         if (type === 'rc-log-modal-loading-on') {
             setLoading(true);
@@ -202,9 +208,25 @@ export default () => {
                 logType,
                 logInfo,
                 isToday,
+                isMain: true,
                 note,
                 additionalSubmission
             });
+            await chrome.storage.local.set({ [logInfo.conversationLogId]: logInfo.conversationLogId });
+            if (trailingLogInfo.length > 0) {
+                for (const extraLogInfo of trailingLogInfo) {
+                    await addLog({
+                        logType,
+                        logInfo: extraLogInfo,
+                        isToday: false,
+                        isMain: false,
+                        note,
+                        additionalSubmission
+                    });
+                    await chrome.storage.local.set({ [extraLogInfo.conversationLogId]: extraLogInfo.conversationLogId });
+                }
+                trailingLogInfo = [];
+            }
         }
         catch (e) {
             console.log(e);
@@ -274,14 +296,16 @@ export default () => {
                                 <RcText style={labelStyle} >Contact name</RcText>
                                 <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
                             </div>
-                            <div style={inputAreaContainerStyle}>
-                                <RcTextarea
-                                    style={noteStyle}
-                                    label='Activity title'
-                                    onChange={onChangeCustomSubject}
-                                    value={customSubject}
-                                />
-                            </div>
+                            {logType === 'Call' &&
+                                <div style={inputAreaContainerStyle}>
+                                    <RcTextarea
+                                        style={noteStyle}
+                                        label='Activity title'
+                                        onChange={onChangeCustomSubject}
+                                        value={customSubject}
+                                    />
+                                </div>
+                            }
                             {logType === 'Call' &&
                                 <div style={inputAreaContainerStyle}>
                                     <RcTextarea

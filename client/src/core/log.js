@@ -4,7 +4,7 @@ import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, isToday, note, additionalSubmission }) {
+async function addLog({ logType, logInfo, isToday, isMain, note, additionalSubmission }) {
     let dataToLog = {};
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
@@ -39,8 +39,11 @@ async function addLog({ logType, logInfo, isToday, note, additionalSubmission })
                         dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
                         await chrome.storage.local.set(dataToLog);
                     }
-                    showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
-                    trackSyncMessageLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
+                    if(isMain)
+                    {
+                        showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
+                        trackSyncMessageLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });
+                    }
                 }
                 break;
         }
