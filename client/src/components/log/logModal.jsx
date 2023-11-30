@@ -76,6 +76,15 @@ export default () => {
         width: '100%'
     }
 
+    const loadingTextStyle = {
+        position: 'absolute',
+        width: '100%',
+        textAlign: 'center',
+        top: '48%',
+        fontWeight: 'bold',
+        fontSize: '13px'
+    }
+
     const [platform, setPlatform] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [note, setNote] = useState('');
@@ -88,11 +97,14 @@ export default () => {
     const [dateTime, setDateTime] = useState('');
     const [duration, setDuration] = useState('');
     const [isLoading, setLoading] = useState(false);
+    const [loadingCount, setLoadingCount] = useState(-1);
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
     const [customSubject, setCustomSubject] = useState('');
     const [countdown, setCountdown] = useState(20);
     const [countdownFinished, setCountdownFinished] = useState(false);
+    const [messageLogCount, setMessageLogCount] = useState(0);
+    const [messageStartDate, setMessageStartDate] = useState('');
 
     async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
@@ -101,14 +113,31 @@ export default () => {
         const { type, platform, trailingSMSLogInfo, isTrailing, logProps, additionalLogInfo, triggerType } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
-            if (isTrailing) {
-                trailingLogInfo.push(logProps.logInfo);
-            }
-            else {
-                // no trigger type means manual trigger
-                logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
-                await setupModal();
-                trailingLogInfo = trailingSMSLogInfo;
+            switch (logProps.logType) {
+                case 'Call':
+                    // no trigger type means manual trigger
+                    logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
+                    await setupModal();
+                    break;
+                case 'Message':
+                    if (isTrailing) {
+                        trailingLogInfo.push(logProps.logInfo);
+                        setMessageLogCount(messageLogCount + logProps.logInfo.messages.length);
+                        setMessageStartDate(logProps.logInfo.date);
+                    }
+                    else {
+                        // no trigger type means manual trigger
+                        logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
+                        await setupModal();
+                        trailingLogInfo = trailingSMSLogInfo;
+                        let messageCount = logProps.logInfo.messages.length;
+                        for (const trailingLog of trailingSMSLogInfo) {
+                            messageCount += trailingLog.messages.length;
+                            setMessageStartDate(trailingLog.date);
+                        }
+                        setMessageLogCount(messageCount);
+                    }
+                    break;
             }
         }
         if (type === 'rc-log-modal-loading-on') {
@@ -204,6 +233,7 @@ export default () => {
                     console.log('call recording update done');
                 }
             }
+            let loggedMessageCount = 0;
             await addLog({
                 logType,
                 logInfo,
@@ -212,6 +242,10 @@ export default () => {
                 note,
                 additionalSubmission
             });
+            if (logType === 'Message') {
+                loggedMessageCount += logInfo.messages.length;
+                setLoadingCount(loggedMessageCount);
+            }
             await chrome.storage.local.set({ [logInfo.conversationLogId]: logInfo.conversationLogId });
             if (trailingLogInfo.length > 0) {
                 for (const extraLogInfo of trailingLogInfo) {
@@ -223,9 +257,12 @@ export default () => {
                         note,
                         additionalSubmission
                     });
+                    loggedMessageCount += extraLogInfo.messages.length;
+                    setLoadingCount(loggedMessageCount);
                     await chrome.storage.local.set({ [extraLogInfo.conversationLogId]: extraLogInfo.conversationLogId });
                 }
                 trailingLogInfo = [];
+                setLoadingCount(-1);
             }
         }
         catch (e) {
@@ -260,6 +297,10 @@ export default () => {
             {
                 isOpen && (
                     <div style={modalStyle}>
+                        {loadingCount >= 0 &&
+                            <div style={loadingTextStyle}>
+                                {loadingCount}/{messageLogCount}
+                            </div>}
                         <div style={topBarStyle}>
                             <RcIconButton
                                 onClick={closeModal}
@@ -288,10 +329,12 @@ export default () => {
                                     <RcText style={contentStyle} variant='body1'>{direction}</RcText>
                                 </div>}
                             </div>
-                            <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >{logType == 'Call' ? 'Call time and duration' : 'Message time'}</RcText>
-                                <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {logType == 'Call' ? `(${duration})` : ''}</RcText>
-                            </div>
+                            {logType === 'Call' &&
+                                <div style={elementContainerStyle}>
+                                    <RcText style={labelStyle} >Call time and duration</RcText>
+                                    <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {duration}</RcText>
+                                </div>
+                            }
                             <div style={elementContainerStyle}>
                                 <RcText style={labelStyle} >Contact name</RcText>
                                 <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
@@ -314,6 +357,14 @@ export default () => {
                                         onChange={onChangeNote}
                                         value={note}
                                     />
+                                </div>
+                            }
+                            {logType === 'Message' &&
+                                <div style={elementContainerStyle}>
+                                    <RcText style={labelStyle} >Message log summary</RcText>
+                                    <RcText style={contentStyle} variant='body1'>Started on {moment(messageStartDate).format('YYYY/MM/DD')}</RcText>
+                                    <RcText style={contentStyle} variant='body1'>Ended on {moment(dateTime).format('YYYY/MM/DD')}</RcText>
+                                    <RcText style={contentStyle} variant='body1'>Total: {messageLogCount} messages</RcText>
                                 </div>
                             }
                             {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&

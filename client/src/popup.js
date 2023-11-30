@@ -453,6 +453,12 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
+              const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
+              if(!isToday && !!data.body.conversation.conversationLogMatches && data.body.conversation.conversationLogMatches.length > 0)
+              {
+                break;
+              }
               const isTrailing = !data.body.redirect;
               if (isTrailing) {
                 if (!leadingSMSCallReady) {
@@ -462,10 +468,8 @@ window.addEventListener('message', async (e) => {
               }
               else {
                 leadingSMSCallReady = false;
-              }
-              const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
-              const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
-              if (!data.body.correspondentEntity) {
+                trailingSMSLogInfo = [];
+              }if (!data.body.correspondentEntity) {
                 break;
               }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
