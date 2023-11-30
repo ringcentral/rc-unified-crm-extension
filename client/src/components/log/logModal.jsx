@@ -64,7 +64,8 @@ export default () => {
     const contentStyle = {
         color: '#97979',
         fontFamily: 'Lato, Helvetica, Arial, sans-serif',
-        fontSize: '14px'
+        fontSize: '14px',
+        paddingLeft: '3px'
     }
     const dividerStyle = {
         margin: '0px 0px 10px',
@@ -131,6 +132,7 @@ export default () => {
                         await setupModal();
                         trailingLogInfo = trailingSMSLogInfo;
                         let messageCount = logProps.logInfo.messages.length;
+                        setMessageStartDate(logProps.logInfo.date);
                         for (const trailingLog of trailingSMSLogInfo) {
                             messageCount += trailingLog.messages.length;
                             setMessageStartDate(trailingLog.date);
@@ -308,7 +310,7 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText style={titleStyle} >{logType} details</RcText>
+                            <RcText style={titleStyle} >{logType === 'Call' ? logType : 'Conversation'} details</RcText>
                             <RcButton
                                 onClick={onSubmission}
                                 variant="plain"
