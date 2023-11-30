@@ -114,6 +114,7 @@ export default () => {
         const { type, platform, trailingSMSLogInfo, isTrailing, logProps, additionalLogInfo, triggerType } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
+            setLoadingCount(-1);
             switch (logProps.logType) {
                 case 'Call':
                     // no trigger type means manual trigger

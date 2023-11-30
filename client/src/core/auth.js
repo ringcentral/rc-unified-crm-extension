@@ -34,6 +34,7 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         await chrome.storage.local.set({
             ['rcUnifiedCrmExtJwt']: res.data
         });
+        await getCRMUserInfo();
         trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
         return res.data;
     }
@@ -96,9 +97,24 @@ function setAuth(auth, accountName) {
     });
 }
 
+async function getCRMUserInfo() {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    if (!!rcUnifiedCrmExtJwt) {
+      // get crm user info
+      crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
+      if (!!crmUserInfo) {
+        const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
+        crmUserInfo = crmUserInfoResponse;
+        await chrome.storage.local.set({ crmUserInfo });
+        setAuth(true, crmUserInfo.name);
+      }
+    }
+  }
+
 exports.submitPlatformSelection = submitPlatformSelection;
 exports.apiKeyLogin = apiKeyLogin;
 exports.onAuthCallback = onAuthCallback;
 exports.unAuthorize = unAuthorize;
 exports.checkAuth = checkAuth;
 exports.setAuth = setAuth;
+exports.getCRMUserInfo = getCRMUserInfo;

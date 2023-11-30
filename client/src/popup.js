@@ -29,7 +29,6 @@ let registered = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
-let crmUserInfo = {};
 let extensionUserSettings = null;
 let incomingCallContactInfo = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
@@ -151,7 +150,7 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            await getCRMUserInfo();
+            await auth.getCRMUserInfo();
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -406,6 +405,8 @@ window.addEventListener('message', async (e) => {
                 showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
               }
               else {
+                // get crm user info
+                const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
@@ -455,11 +456,10 @@ window.addEventListener('message', async (e) => {
             case '/messageLogger':
               const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
               const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
-              if(!isToday && !!data.body.conversation.conversationLogMatches && data.body.conversation.conversationLogMatches.length > 0)
-              {
+              if (!isToday && !!data.body.conversation.conversationLogMatches && data.body.conversation.conversationLogMatches.length > 0) {
                 break;
               }
-              const isTrailing = !data.body.redirect;
+              const isTrailing = !data.body.redirect && data.body.triggerType !== 'auto';
               if (isTrailing) {
                 if (!leadingSMSCallReady) {
                   trailingSMSLogInfo.push(data.body.conversation);
@@ -469,8 +469,6 @@ window.addEventListener('message', async (e) => {
               else {
                 leadingSMSCallReady = false;
                 trailingSMSLogInfo = [];
-              }if (!data.body.correspondentEntity) {
-                break;
               }
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
               let getContactMatchResult = null;
@@ -496,7 +494,8 @@ window.addEventListener('message', async (e) => {
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
                     isToday
                   },
-                  additionalLogInfo: getContactMatchResult.additionalLogInfo
+                  additionalLogInfo: getContactMatchResult.additionalLogInfo,
+                  triggerType: data.body.triggerType === 'auto'
                 }, '*');
                 if (!isTrailing) {
                   leadingSMSCallReady = true;
@@ -587,7 +586,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
     else if (request.platform === 'thirdParty') {
       await auth.onAuthCallback(request.callbackUri);
-      await getCRMUserInfo();
+      await auth.getCRMUserInfo();
     }
     sendResponse({ result: 'ok' });
   }
@@ -640,7 +639,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
-    await getCRMUserInfo();
+    await auth.getCRMUserInfo();
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'
@@ -662,19 +661,6 @@ function handleThirdPartyOAuthWindow(oAuthUri) {
   });
 }
 
-async function getCRMUserInfo() {
-  const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-  if (!!rcUnifiedCrmExtJwt) {
-    // get crm user info
-    crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
-    if (!!crmUserInfo) {
-      const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
-      crmUserInfo = crmUserInfoResponse;
-      await chrome.storage.local.set({ crmUserInfo });
-      auth.setAuth(true, crmUserInfo.name);
-    }
-  }
-}
 
 function getServiceConfig(serviceName) {
   const services = {
