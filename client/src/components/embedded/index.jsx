@@ -61,11 +61,23 @@ function App() {
     }, []);
 
     function updatePos() {
+        const yOffset = 100;
+        const threshold = 80;
+        const boundary = document.querySelector('.react-draggable').getBoundingClientRect();
         const setTransform = localStorage.getItem('rcQuickAccessButtonTransform');
         if (setTransform) {
-            const xPos = setTransform.split('translate(')[1].split('px,')[0];
-            const yPos = setTransform.split('px, ')[1].split('px')[0];
-            setPos({ x: Number(xPos), y: Number(yPos) });
+            const xPos = Number(setTransform.split('translate(')[1].split('px,')[0]);
+            let yPos = Number(setTransform.split('px, ')[1].split('px')[0]);
+            if (boundary.y < threshold) {
+                yPos = threshold + yOffset - window.innerHeight;
+            }
+            if (boundary.y > window.innerHeight - threshold) {
+                yPos = threshold;
+            }
+            if (yPos > threshold || yPos < threshold + yOffset - window.innerHeight) {
+                yPos = 0;
+            }
+            setPos({ x: xPos, y: yPos });
         }
     }
 
