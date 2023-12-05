@@ -3,7 +3,7 @@
 RingCentral's Unified CRM extention for Google Chrome and Microsoft Edge is available via the Chrome web store. Installation is quick and easy if you are accustom to installing browser extensions. Click the web store button below to get started. 
 
 <figure markdown>
-  [![Google Chrome Web store](img/chrome-web-store.png)](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh)
+  [![Google Chrome Web store](img/chrome-web-store.png)](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh)
   <figcaption>Install the extension now</figcaption>
 </figure>
 
@@ -14,7 +14,7 @@ RingCentral's Unified CRM extention for Google Chrome and Microsoft Edge is avai
 
 ### Google Chrome
 
-The Unified CRM extension was initially architected for Google Chrome, and is therefore installed easily from the [Google Chrome web store](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh). Click the "Add to Chrome" button to install the extension instantly. Then, consult the instructions specific to your CRM.
+The Unified CRM extension was initially architected for Google Chrome, and is therefore installed easily from the [Google Chrome web store](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh). Click the "Add to Chrome" button to install the extension instantly. Then, consult the instructions specific to your CRM.
 
 ![Web Store Install](img/web-store-install.png)
 
@@ -30,7 +30,7 @@ Microsoft Edge supports most Chrome extensions. To install them, however, you wi
 
     ![Allow extensions from other stores](img/edge-allow-ext.png){ style="max-width: 250px"}
 
-3. Navigate to the [Unified CRM extension](https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh) in the Chrome web store and select "Add to Chrome."
+3. Navigate to the [Unified CRM extension](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh) in the Chrome web store and select "Add to Chrome."
 
 4. Follow any additional prompts to complete the installation process. 
 
