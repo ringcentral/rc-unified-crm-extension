@@ -348,17 +348,20 @@ window.addEventListener('message', async (e) => {
                 // query on 3rd party API to get the matched contact info and return
                 const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
                 if (contactMatched) {
-                  matchedContacts[contactPhoneNumber] = [{
-                    id: contactInfo.id,
-                    type: platformName,
-                    name: contactInfo.name,
-                    phoneNumbers: [
-                      {
-                        phoneNumber: contactPhoneNumber,
-                        phoneType: 'direct'
-                      }
-                    ]
-                  }];
+                  matchedContacts[contactPhoneNumber] = [];
+                  for (var contactInfoItem of contactInfo) {
+                    matchedContacts[contactPhoneNumber].push({
+                      id: contactInfoItem.id,
+                      type: platformName,
+                      name: contactInfoItem.name,
+                      phoneNumbers: [
+                        {
+                          phoneNumber: contactPhoneNumber,
+                          phoneType: 'direct'
+                        }
+                      ]
+                    });
+                  }
                 }
               }
               // return matched contact object with phone number as key
@@ -415,7 +418,7 @@ window.addEventListener('message', async (e) => {
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
-                    contactName: callMatchedContact.name,
+                    contacts: callMatchedContact,
                     crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
