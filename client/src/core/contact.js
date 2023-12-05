@@ -11,14 +11,31 @@ async function getContact({ phoneNumber }) {
     const { overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 } =
         await chrome.storage.local.get({ overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' });
     const overridingFormats = [];
-    if(overridingPhoneNumberFormat) overridingFormats.push(overridingPhoneNumberFormat);
-    if(overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
-    if(overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
+    if (overridingPhoneNumberFormat) overridingFormats.push(overridingPhoneNumberFormat);
+    if (overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
+    if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
     if (!!rcUnifiedCrmExtJwt) {
-        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
+        const contactRes = await axios.get(`${config.serverUrl}/contactV2?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
         const platformModule = await getModule();
         const additionalLogInfo = platformModule.getContactAdditionalInfo(contactRes);
         return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact, additionalLogInfo };
+    }
+    else {
+        return { matched: false, message: 'Please go to Settings and authorize CRM platform', contactInfo: null };
+    }
+}
+
+async function createContact({ phoneNumber, newContactName }) {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    if (!!rcUnifiedCrmExtJwt) {
+        const contactRes = await axios.post(
+            `${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}`,
+            {
+                phoneNumber,
+                newContactName
+            }
+            );
+        return { matched: contactRes.data.successful, contactInfo: contactRes.data.contact };
     }
     else {
         return { matched: false, message: 'Please go to Settings and authorize CRM platform', contactInfo: null };
@@ -97,6 +114,7 @@ async function getModule() {
 }
 
 exports.getContact = getContact;
+exports.createContact = createContact;
 exports.showIncomingCallContactInfo = showIncomingCallContactInfo;
 exports.showInCallContactInfo = showInCallContactInfo;
 exports.openContactPage = openContactPage;

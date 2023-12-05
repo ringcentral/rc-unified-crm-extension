@@ -4,7 +4,7 @@ import {
 } from '@ringcentral/juno';
 import React, { useEffect, useState } from 'react';
 
-export default ({ selectionItems, presetSelection, onSelected, label, style }) => {
+export default ({ selectionItems, presetSelection, onSelected, label, style, notShowNone = false }) => {
     const [selection, setSelection] = useState(presetSelection);
 
     function onChange(event) {
@@ -13,8 +13,11 @@ export default ({ selectionItems, presetSelection, onSelected, label, style }) =
     }
     function getItems(items) {
         const itemElements = items.map(i => { return <RcMenuItem key={i.value} value={i.value}>{i.display}</RcMenuItem > });
-        // Preset to first item, add additional item as none/null
-        itemElements.push(<RcMenuItem key='none' value='none'>none</RcMenuItem >);
+        if(!notShowNone)
+        {
+            // Preset to first item, add additional item as none/null
+            itemElements.push(<RcMenuItem key='none' value='none'>none</RcMenuItem >);
+        }
         return itemElements;
     }
 
@@ -28,6 +31,7 @@ export default ({ selectionItems, presetSelection, onSelected, label, style }) =
                 label={label}
                 onChange={onChange}
                 value={selection}
+                fullWidth
             >
                 {getItems(selectionItems)}
             </RcSelect>

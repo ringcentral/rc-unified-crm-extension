@@ -1,17 +1,19 @@
 import {
     RcTextarea,
+    RcTextField,
     RcText,
     RcLoading,
     RcIconButton,
     RcDivider,
-    RcCheckbox,
     RcButton,
 } from '@ringcentral/juno';
 import { ChevronLeft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
+import { createContact } from '../../core/contact';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
+import DropdownList from '../dropdownList';
 import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
@@ -20,6 +22,7 @@ import BullhornAdditionalForm from './BullhornAdditionalForm';
 const logEvents = [];
 let trailingLogInfo = [];
 let countdownIntervalId = '';
+let crmUserName = '';
 
 export default () => {
     const modalStyle = {
@@ -92,12 +95,15 @@ export default () => {
     const [logType, setLogType] = useState('');
     const [logInfo, setLogInfo] = useState(null);
     const [isToday, setIsToday] = useState(null);
-    const [contactName, setContactName] = useState('');
+    const [matchedContacts, setMatchedContacts] = useState([]);
+    const [selectedContact, setSelectedContact] = useState('');
+    const [newContactName, setNewContactName] = useState('');
     const [direction, setDirection] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [dateTime, setDateTime] = useState('');
     const [duration, setDuration] = useState('');
     const [isLoading, setLoading] = useState(false);
+    const [isActivityTitleEdited, setIsActivityTitleEdited] = useState(false);
     const [loadingCount, setLoadingCount] = useState(-1);
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
     const [additionalSubmission, setAdditionalSubmission] = useState(null);
@@ -158,6 +164,7 @@ export default () => {
         setLogInfo(logEvents[0].logProps.logInfo);
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
+        setNewContactName('');
         setLogType(logEvents[0].logProps.logType);
         if (logEvents[0].logProps.autoLog) {
             let { autoLogCountdown } = await chrome.storage.local.get(
@@ -176,22 +183,26 @@ export default () => {
             setAdditionalSubmission(null);
         }
         setAdditionalFormInfo(logEvents[0].additionalLogInfo);
+        const contactOptions = logEvents[0].logProps.contacts.map(c => { return { value: c.name, display: c.name } });
+        contactOptions.push({ value: 'createPlaceholderContact', display: 'Create placeholder contact...' });
         switch (logEvents[0].logProps.logType) {
             case 'Call':
-                setCustomSubject(`${logEvents[0].logProps.logInfo.direction} call from ${logEvents[0].logProps.logInfo.direction === 'Inbound' ? `${logEvents[0].logProps.contactName} to ${logEvents[0].logProps.crmUserInfo.name}` : `${logEvents[0].logProps.crmUserInfo.name} to ${logEvents[0].logProps.contactName}`}`);
+                setMatchedContacts(contactOptions);
                 setDirection(logEvents[0].logProps.logInfo.direction);
-                setContactName(logEvents[0].logProps.contactName);
+                setSelectedContact(contactOptions[0].value);
                 setPhoneNumber(logEvents[0].logProps.logInfo.direction === 'Inbound' ? logEvents[0].logProps.logInfo.from.phoneNumber : logEvents[0].logProps.logInfo.to.phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
                 setDuration(secondsToHourMinuteSecondString(logEvents[0].logProps.logInfo.duration));
                 break;
             case 'Message':
+                setMatchedContacts(contactOptions);
                 setDirection('');
-                setContactName(logEvents[0].logProps.contactName);
+                setSelectedContact(contactOptions[0].value);
                 setPhoneNumber(logEvents[0].logProps.logInfo.correspondents[0].phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
                 break;
         }
+        crmUserName = logEvents[0].logProps.crmUserInfo.name;
     }
 
     useEffect(() => {
@@ -213,6 +224,18 @@ export default () => {
         console.log(`Auto log countdown: ${countdown}`)
     }, [countdown])
 
+    useEffect(() => {
+        if (isActivityTitleEdited) {
+            return;
+        }
+        if (selectedContact === 'createPlaceholderContact') {
+            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${newContactName} to ${crmUserName}` : `${crmUserName} to ${newContactName}`}`);
+        }
+        else {
+            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${selectedContact} to ${crmUserName}` : `${crmUserName} to ${selectedContact}`}`);
+        }
+    }, [selectedContact, logInfo, newContactName])
+
     // any editing action would stop countdown
     function stopCountDown() {
         setCountdownFinished(true);
@@ -224,6 +247,16 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
+            logInfo['selectedContact'] = selectedContact;
+            let newCreatedContactId = '';
+            if(!!newContactName)
+            {
+                const createContactResp = await createContact({
+                    phoneNumber,
+                    newContactName
+                })
+                newCreatedContactId = createContactResp.contactInfo.id;
+            }
             // Case: when log page is open and recording link is updated
             if (!logInfo.recording?.link) {
                 const recordingSessionId = `rec-link-${logInfo.sessionId}`;
@@ -243,7 +276,8 @@ export default () => {
                 isToday,
                 isMain: true,
                 note,
-                additionalSubmission
+                additionalSubmission,
+                overridingContactId: newCreatedContactId
             });
             if (logType === 'Message') {
                 loggedMessageCount += logInfo.messages.length;
@@ -251,6 +285,10 @@ export default () => {
             }
             await chrome.storage.local.set({ [logInfo.conversationLogId]: logInfo.conversationLogId });
             if (trailingLogInfo.length > 0) {
+                // in case of trailing SMS requests creating to create duplicated new contacts
+                if (logInfo['newContactName']) {
+                    delete logInfo['newContactName'];
+                }
                 for (const extraLogInfo of trailingLogInfo) {
                     await addLog({
                         logType,
@@ -291,6 +329,17 @@ export default () => {
 
     function onChangeCustomSubject(e) {
         setCustomSubject(e.target.value);
+        setIsActivityTitleEdited(true);
+        stopCountDown();
+    }
+
+    function onChangeSelectedContact(selection) {
+        setSelectedContact(selection);
+        stopCountDown();
+    }
+
+    function onChangeNewContactName(e) {
+        setNewContactName(e.target.value);
         stopCountDown();
     }
 
@@ -339,9 +388,27 @@ export default () => {
                                 </div>
                             }
                             <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >Contact name</RcText>
-                                <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
+                                <DropdownList
+                                    key='key'
+                                    style={{ width: '100%' }}
+                                    label='Contact'
+                                    selectionItems={matchedContacts}
+                                    presetSelection={selectedContact}
+                                    onSelected={onChangeSelectedContact}
+                                    notShowNone={true}
+                                />
                             </div>
+                            {selectedContact === 'createPlaceholderContact' &&
+                                <div style={elementContainerStyle}>
+                                    <RcTextField
+                                        label='New contact name'
+                                        placeholder='Enter new contact name...'
+                                        fullWidth
+                                        value={newContactName}
+                                        onChange={onChangeNewContactName}
+                                    />
+                                </div>
+                            }
                             {logType === 'Call' &&
                                 <div style={inputAreaContainerStyle}>
                                     <RcTextarea
