@@ -16,9 +16,7 @@ async function getContact({ phoneNumber }) {
     if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
     if (!!rcUnifiedCrmExtJwt) {
         const contactRes = await axios.get(`${config.serverUrl}/contactV2?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
-        const platformModule = await getModule();
-        const additionalLogInfo = platformModule.getContactAdditionalInfo(contactRes);
-        return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact, additionalLogInfo };
+        return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact };
     }
     else {
         return { matched: false, message: 'Please go to Settings and authorize CRM platform', contactInfo: null };

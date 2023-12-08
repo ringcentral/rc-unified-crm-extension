@@ -34,23 +34,16 @@ async function addCallLog({ platform, userId, incomingData }) {
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
         const overridingContactId = incomingData.overridingContactId;
         let contactInfo = null;
-        const maxRetryAttempts = 5;
-        contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
-        // use case: create new contact - multiple tries to wait for contact to be created on CRM
-        if (overridingContactId) {
-            let retryCount = 0;
-            while(contactInfo == null)
-            {
-                retryCount++;
-                if (retryCount > maxRetryAttempts) {
-                    break;
-                }
-                await new Promise(resolve => setTimeout(resolve, 10000));
-                contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
-            }
+        if (!!overridingContactId) {
+            contactInfo = {
+                overridingContactId
+            };
         }
-        if (contactInfo == null) {
-            return { successful: false, message: `Contact not found for number ${contactNumber}` };
+        else {
+            contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
+            if (contactInfo == null) {
+                return { successful: false, message: `Contact not found for number ${contactNumber}` };
+            }
         }
         const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset, contactNumber });
         await CallLogModel.create({

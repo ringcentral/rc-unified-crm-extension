@@ -106,12 +106,12 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             type: 'User'
         } :
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         }
     const receiver = callLog.direction === 'Outbound' ?
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         } :
         {
@@ -331,7 +331,7 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberToQuery,
-                    matters
+                    additionalInfo: { matters }
                 })
             }
         }
@@ -359,6 +359,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             headers: { 'Authorization': authHeader }
         }
     );
+    console.log(`Contact created with id: ${personInfo.data.data.id} and name: ${personInfo.data.data.name}`)
     return {
         id: personInfo.data.data.id,
         name: personInfo.data.data.name

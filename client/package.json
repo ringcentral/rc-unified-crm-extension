@@ -17,7 +17,7 @@
   },
   "homepage": "./",
   "dependencies": {
-    "@ringcentral/juno": "^2.20.1",
+    "@ringcentral/juno": "^2.35.0",
     "@ringcentral/juno-icon": "^1.15.0",
     "@segment/analytics-next": "^1.49.1",
     "axios": "^1.1.2",
@@ -26,7 +26,8 @@
     "moment": "^2.29.4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-draggable": "^4.4.5"
+    "react-draggable": "^4.4.5",
+    "styled-components": "^5.3.3"
   },
   "devDependencies": {
     "esbuild": "^0.15.9",
