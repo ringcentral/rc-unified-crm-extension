@@ -112,6 +112,16 @@ const NewContactNameInput = styled(RcTextField)`
 }
 `;
 
+const ContactWarningMessage = styled(RcText)`
+background: #ffeeba;
+font-size: 11px;
+padding: 7px;
+border-radius: 4px;
+height: auto;
+text-wrap: wrap;
+line-height: 15px;
+`;
+
 const labelStyle = {
     fontSize: '0.8rem',
     fontWeight: '700',
@@ -429,17 +439,29 @@ export default () => {
                                     <Content variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {duration}</Content>
                                 </ElementContainer>
                             }
-                            <ElementContainer>
-                                <DropdownList
-                                    key='key'
-                                    style={{ width: '100%' }}
-                                    label='Contact'
-                                    selectionItems={matchedContacts}
-                                    presetSelection={selectedContact}
-                                    onSelected={onChangeSelectedContact}
-                                    notShowNone={true}
-                                />
-                            </ElementContainer>
+                            {matchedContacts.length === 1 &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>No contact found. Please provide a name, and a placeholder contact will be made for you.</ContactWarningMessage>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length > 2 &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>Multiple contacts found. Please select the contact to associate this activity with.</ContactWarningMessage>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length > 1 &&
+                                <ElementContainer>
+                                    <DropdownList
+                                        key='key'
+                                        style={{ width: '100%' }}
+                                        label='Contact'
+                                        selectionItems={matchedContacts}
+                                        presetSelection={selectedContact}
+                                        onSelected={onChangeSelectedContact}
+                                        notShowNone={true}
+                                    />
+                                </ElementContainer>
+                            }
                             {selectedContact === 'createPlaceholderContact' &&
                                 <ElementContainer>
                                     <NewContactNameInput

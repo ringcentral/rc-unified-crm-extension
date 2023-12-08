@@ -32,7 +32,13 @@ async function createContact({ phoneNumber, newContactName }) {
                 phoneNumber,
                 newContactName
             }
-            );
+        );
+        // force trigger contact matcher
+        document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+            type: 'rc-adapter-trigger-contact-match',
+            phoneNumbers: [phoneNumber],
+        }, '*');
+        await chrome.storage.local.set({ tempContactMatchTask: { contactId: contactRes.data.contact.id, phoneNumber, contactName: newContactName } });
         return { matched: contactRes.data.successful, contactInfo: contactRes.data.contact };
     }
     else {
@@ -45,7 +51,7 @@ async function showIncomingCallContactInfo({ phoneNumber }) {
     const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber });
     if (contactMatched) {
         const platformModule = await getModule();
-        const infoToShow = platformModule.getIncomingCallContactInfo(contactInfo);
+        const infoToShow = platformModule.getIncomingCallContactInfo(contactInfo[0]);
         const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.IncomingCallPanel_userInfo');
         if (incomingCallUserPanelDOM && infoToShow.company) {
             const companyDiv = document.createElement('div');

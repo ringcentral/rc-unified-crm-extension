@@ -331,7 +331,7 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberToQuery,
-                    additionalInfo: { matters }
+                    additionalInfo: matters ? { matters } : null
                 })
             }
         }

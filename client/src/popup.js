@@ -340,27 +340,47 @@ window.addEventListener('message', async (e) => {
             case '/contacts/match':
               noShowNotification = true;
               let matchedContacts = {};
-              for (const contactPhoneNumber of data.body.phoneNumbers) {
-                // skip contact with just extension number
-                if (!contactPhoneNumber.startsWith('+')) {
-                  continue;
-                }
-                // query on 3rd party API to get the matched contact info and return
-                const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
-                if (contactMatched) {
-                  matchedContacts[contactPhoneNumber] = [];
-                  for (var contactInfoItem of contactInfo) {
-                    matchedContacts[contactPhoneNumber].push({
-                      id: contactInfoItem.id,
+              if (data.body.phoneNumbers.length === 1) {
+                const { tempContactMatchTask } = await chrome.storage.local.get({ tempContactMatchTask: null });
+                if (!!tempContactMatchTask) {
+                  matchedContacts[tempContactMatchTask.phoneNumber] = [
+                    {
+                      id: tempContactMatchTask.id,
                       type: platformName,
-                      name: contactInfoItem.name,
+                      name: tempContactMatchTask.contactName,
                       phoneNumbers: [
                         {
-                          phoneNumber: contactPhoneNumber,
+                          phoneNumber: tempContactMatchTask.phoneNumber,
                           phoneType: 'direct'
                         }
                       ]
-                    });
+                    }
+                  ];
+                }
+              }
+              else {
+                for (const contactPhoneNumber of data.body.phoneNumbers) {
+                  // skip contact with just extension number
+                  if (!contactPhoneNumber.startsWith('+')) {
+                    continue;
+                  }
+                  // query on 3rd party API to get the matched contact info and return
+                  const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
+                  if (contactMatched) {
+                    matchedContacts[contactPhoneNumber] = [];
+                    for (var contactInfoItem of contactInfo) {
+                      matchedContacts[contactPhoneNumber].push({
+                        id: contactInfoItem.id,
+                        type: platformName,
+                        name: contactInfoItem.name,
+                        phoneNumbers: [
+                          {
+                            phoneNumber: contactPhoneNumber,
+                            phoneType: 'direct'
+                          }
+                        ]
+                      });
+                    }
                   }
                 }
               }
