@@ -1,6 +1,6 @@
 const auth = require('./core/auth');
 const { checkLog, updateLog } = require('./core/log');
-const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openContactPage } = require('./core/contact');
+const { getContact, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
@@ -30,7 +30,6 @@ let platform = null;
 let platformName = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
-let incomingCallContactInfo = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
 let leadingSMSCallReady = false;
 let trailingSMSLogInfo = [];
@@ -225,7 +224,6 @@ window.addEventListener('message', async (e) => {
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
             trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
-            showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
@@ -253,9 +251,8 @@ window.addEventListener('message', async (e) => {
             chrome.runtime.sendMessage({
               type: 'openPopupWindow'
             });
-            incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from.phoneNumber });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-              openContactPage({ incomingCallContactInfo });
+              openContactPage({ phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
           break;
@@ -356,6 +353,7 @@ window.addEventListener('message', async (e) => {
                       ]
                     }
                   ];
+                  await chrome.storage.local.remove('tempContactMatchTask');
                 }
               }
               else {

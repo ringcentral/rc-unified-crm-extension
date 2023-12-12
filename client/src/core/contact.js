@@ -10,7 +10,7 @@ async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 } =
         await chrome.storage.local.get({ overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' });
-    const overridingFormats = [];
+    const overridingFormats = ['+1**********'];
     if (overridingPhoneNumberFormat) overridingFormats.push(overridingPhoneNumberFormat);
     if (overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
     if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
@@ -46,48 +46,9 @@ async function createContact({ phoneNumber, newContactName }) {
     }
 }
 
-// Hack: directly modify DOM element
-async function showIncomingCallContactInfo({ phoneNumber }) {
+async function openContactPage({ phoneNumber }) {
     const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber });
-    if (contactMatched) {
-        const platformModule = await getModule();
-        const infoToShow = platformModule.getIncomingCallContactInfo(contactInfo[0]);
-        const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.IncomingCallPanel_userInfo');
-        if (incomingCallUserPanelDOM && infoToShow.company) {
-            const companyDiv = document.createElement('div');
-            companyDiv.innerHTML = infoToShow.company;
-            companyDiv.style = 'font-size: 12px';
-            incomingCallUserPanelDOM.appendChild(companyDiv);
-        }
-        if (incomingCallUserPanelDOM && infoToShow.title) {
-            const titleDiv = document.createElement('div');
-            titleDiv.innerHTML = infoToShow.title;
-            titleDiv.style = 'font-size: 12px';
-            incomingCallUserPanelDOM.appendChild(titleDiv);
-        }
-        return infoToShow;
-    }
-    return null;
-}
-
-function showInCallContactInfo({ incomingCallContactInfo }) {
-    const incomingCallUserPanelDOM = document.querySelector("#rc-widget-adapter-frame").contentWindow.document.querySelector('.ActiveCallPanel_userInfo');
-    if (incomingCallContactInfo?.company) {
-        const companyDiv = document.createElement('div');
-        companyDiv.innerHTML = incomingCallContactInfo.company;
-        companyDiv.style = 'font-size: 12px';
-        incomingCallUserPanelDOM.appendChild(companyDiv);
-    }
-    if (incomingCallContactInfo?.title) {
-        const titleDiv = document.createElement('div');
-        titleDiv.innerHTML = incomingCallContactInfo.title;
-        titleDiv.style = 'font-size: 12px';
-        incomingCallUserPanelDOM.appendChild(titleDiv);
-    }
-}
-
-async function openContactPage({ incomingCallContactInfo }) {
-    if (!!!incomingCallContactInfo?.id) {
+    if (!contactMatched) {
         return;
     }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -98,7 +59,7 @@ async function openContactPage({ incomingCallContactInfo }) {
         platformInfo['platform-info'].hostname = hostnameRes.data;
         await chrome.storage.local.set(platformInfo);
     }
-    platformModule.openContactPage(platformInfo['platform-info'].hostname, incomingCallContactInfo);
+    platformModule.openContactPage(platformInfo['platform-info'].hostname, contactInfo[0]);
 }
 
 async function getModule() {
@@ -119,6 +80,4 @@ async function getModule() {
 
 exports.getContact = getContact;
 exports.createContact = createContact;
-exports.showIncomingCallContactInfo = showIncomingCallContactInfo;
-exports.showInCallContactInfo = showInCallContactInfo;
 exports.openContactPage = openContactPage;
