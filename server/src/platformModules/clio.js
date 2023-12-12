@@ -200,12 +200,12 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             type: 'User'
         } :
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         }
     const receiver = message.direction == 'Outbound' ?
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         } :
         {
