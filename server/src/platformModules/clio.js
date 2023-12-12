@@ -287,22 +287,17 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
 
 async function getContactV2({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
-    if (overridingFormat) {
-        const formats = overridingFormat.split(',');
-        for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-            if (phoneNumberObj.valid) {
-                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format;
-                for (const numberBit of phoneNumberWithoutCountryCode) {
-                    formattedNumber = formattedNumber.replace('*', numberBit);
-                }
-                numberToQueryArray.push(formattedNumber);
+    const formats = overridingFormat.split(',');
+    for (var format of formats) {
+        const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+        if (phoneNumberObj.valid) {
+            const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+            let formattedNumber = format;
+            for (const numberBit of phoneNumberWithoutCountryCode) {
+                formattedNumber = formattedNumber.replace('*', numberBit);
             }
+            numberToQueryArray.push(formattedNumber);
         }
-    }
-    else {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     }
     const foundContacts = [];
     for (var numberToQuery of numberToQueryArray) {

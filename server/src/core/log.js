@@ -36,7 +36,9 @@ async function addCallLog({ platform, userId, incomingData }) {
         let contactInfo = null;
         if (!!overridingContactId) {
             contactInfo = {
-                overridingContactId
+                overridingContactId,
+                type: incomingData.contactType ?? "",
+                name: incomingData.contactName ?? ""
             };
         }
         else {

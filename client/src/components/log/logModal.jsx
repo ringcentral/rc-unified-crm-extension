@@ -222,7 +222,7 @@ export default () => {
         if (!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger) {
             stopCountDown();
         }
-        const contactOptions = logEvents[0].logProps.contacts.map(c => { return { value: c.name, display: c.name, additionalFormInfo: c.additionalInfo } });
+        const contactOptions = logEvents[0].logProps.contacts.map(c => { return { value: c.id, display: c.type ? `[${c.type}] ${c.name}` : c.name, type: c.type ?? "", name: c.name, additionalFormInfo: c.additionalInfo } });
         contactOptions.push({ value: 'createPlaceholderContact', display: 'Create placeholder contact...' });
         setAdditionalFormInfo(contactOptions[0].additionalFormInfo);
         switch (logEvents[0].logProps.logType) {
@@ -271,7 +271,7 @@ export default () => {
             setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${newContactName} to ${crmUserName}` : `${crmUserName} to ${newContactName}`}`);
         }
         else {
-            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${selectedContact} to ${crmUserName}` : `${crmUserName} to ${selectedContact}`}`);
+            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${matchedContacts.find(c => c.value === selectedContact)?.name} to ${crmUserName}` : `${crmUserName} to ${matchedContacts.find(c => c.value === selectedContact)?.name}`}`);
         }
     }, [selectedContact, logInfo, newContactName])
 
@@ -295,7 +295,6 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
-            logInfo['selectedContact'] = selectedContact;
             let newCreatedContactId = '';
             if (!!newContactName) {
                 const createContactResp = await createContact({
@@ -303,6 +302,9 @@ export default () => {
                     newContactName
                 })
                 newCreatedContactId = createContactResp.contactInfo.id;
+            }
+            else {
+                newCreatedContactId = selectedContact;
             }
             // Case: when log page is open and recording link is updated
             if (!logInfo.recording?.link) {
@@ -324,7 +326,9 @@ export default () => {
                 isMain: true,
                 note,
                 additionalSubmission,
-                overridingContactId: newCreatedContactId
+                overridingContactId: newCreatedContactId,
+                contactType: matchedContacts.find(c => c.value === selectedContact)?.type,
+                contactName: matchedContacts.find(c => c.value === selectedContact)?.name
             });
             if (logType === 'Message') {
                 loggedMessageCount += logInfo.messages.length;

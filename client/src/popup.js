@@ -337,24 +337,22 @@ window.addEventListener('message', async (e) => {
             case '/contacts/match':
               noShowNotification = true;
               let matchedContacts = {};
-              if (data.body.phoneNumbers.length === 1) {
-                const { tempContactMatchTask } = await chrome.storage.local.get({ tempContactMatchTask: null });
-                if (!!tempContactMatchTask) {
-                  matchedContacts[tempContactMatchTask.phoneNumber] = [
-                    {
-                      id: tempContactMatchTask.id,
-                      type: platformName,
-                      name: tempContactMatchTask.contactName,
-                      phoneNumbers: [
-                        {
-                          phoneNumber: tempContactMatchTask.phoneNumber,
-                          phoneType: 'direct'
-                        }
-                      ]
-                    }
-                  ];
-                  await chrome.storage.local.remove('tempContactMatchTask');
-                }
+              const { tempContactMatchTask } = await chrome.storage.local.get({ tempContactMatchTask: null });
+              if (data.body.phoneNumbers.length === 1 && !!tempContactMatchTask) {
+                matchedContacts[tempContactMatchTask.phoneNumber] = [
+                  {
+                    id: tempContactMatchTask.id,
+                    type: platformName,
+                    name: tempContactMatchTask.contactName,
+                    phoneNumbers: [
+                      {
+                        phoneNumber: tempContactMatchTask.phoneNumber,
+                        phoneType: 'direct'
+                      }
+                    ]
+                  }
+                ];
+                await chrome.storage.local.remove('tempContactMatchTask');
               }
               else {
                 for (const contactPhoneNumber of data.body.phoneNumbers) {
@@ -394,7 +392,7 @@ window.addEventListener('message', async (e) => {
               // data.body.call?.to?.phoneNumber?.length > 4 to distinguish extension from external number
               if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
                 // Sync events
-                if (data.body.triggerType === 'callLogSync') {
+                if (data.body.triggerType === 'callLogSync' && !!data.body.call?.recording?.link) {
                   console.log('call recording updating...');
                   await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
                   await updateLog(
@@ -586,7 +584,7 @@ window.addEventListener('message', async (e) => {
   }
   catch (e) {
     console.log(e)
-    if (e.response && e.response.data && !noShowNotification) {
+    if (e.response && e.response.data && !noShowNotification && typeof e.response.data === 'string') {
       showNotification({ level: 'warning', message: e.response.data, ttl: 5000 });
     }
     else {

@@ -2,12 +2,12 @@ import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
 export default ({ additionalFormInfo, setSubmission, style }) => {
-    const org = additionalFormInfo.find(f => f.label === 'Organisation');
-    const opportunity = additionalFormInfo.find(f => f.label === 'Opportunity');
-    const project = additionalFormInfo.find(f => f.label === 'Project');
-    const [orgSelection, setOrgSelection] = useState(org?.value && org.value.length > 0 ? org.value[0].id : null);
-    const [opportunitySelection, setOpportunitySelection] = useState(opportunity?.value && opportunity.value.length > 0 ? opportunity.value[0].id : null);
-    const [projectSelection, setProjectSelection] = useState(project?.value && project.value.length > 0 ? project.value[0].id : null);
+    const orgs = additionalFormInfo.links.filter(f => f.label === 'Organisation');
+    const opportunities = additionalFormInfo.links.filter(f => f.label === 'Opportunity');
+    const projects = additionalFormInfo.links.filter(f => f.label === 'Project');
+    const [orgSelection, setOrgSelection] = useState(orgs.length > 0 ? orgs[0].id : null);
+    const [opportunitySelection, setOpportunitySelection] = useState(opportunities.length > 0 ? opportunities[0].id : null);
+    const [projectSelection, setProjectSelection] = useState(projects.length > 0 ? projects[0].id : null);
 
     useEffect(() => {
         setSubmission({
@@ -19,11 +19,11 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
 
     return (
         <div>
-            {org?.value && org.value.length > 0 && <DropdownList
+            {orgs.length > 0 && <DropdownList
                 key='Organisation'
                 style={style}
                 label='Organisation'
-                selectionItems={org.value.map(d => { return { value: d.id, display: d.title } })}
+                selectionItems={orgs.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={orgSelection}
                 onSelected={(selection) => {
                     setOrgSelection(selection);
@@ -33,11 +33,11 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
                         projectSelection
                     })
                 }} />}
-            {opportunity?.value && opportunity.value.length > 0 && <DropdownList
+            {opportunities.length > 0 && <DropdownList
                 key='Opportunity'
                 style={style}
                 label='Opportunity'
-                selectionItems={opportunity.value.map(d => { return { value: d.id, display: d.title } })}
+                selectionItems={opportunities.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={opportunitySelection}
                 onSelected={(selection) => {
                     setOpportunitySelection(selection);
@@ -47,11 +47,11 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
                         projectSelection
                     });
                 }} />}
-            {project?.value && project.value.length > 0 && <DropdownList
+            {projects.length > 0 && <DropdownList
                 key='Project'
                 style={style}
                 label='Project'
-                selectionItems={project.value.map(d => { return { value: d.id, display: d.title } })}
+                selectionItems={projects.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={projectSelection}
                 onSelected={(selection) => {
                     setProjectSelection(selection);
