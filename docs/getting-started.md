@@ -7,9 +7,6 @@ RingCentral's Unified CRM extention for Google Chrome and Microsoft Edge is avai
   <figcaption>Install the extension now</figcaption>
 </figure>
 
-
-
-
 ## Installing the browser plugin
 
 ### Google Chrome
@@ -46,10 +43,10 @@ The process of connecting the Unified CRM extension to your CRM is more or less 
 
 Each CRM may have a slightly different approach in order to install the extension fully. Consult the CRM-specific documentation to setup and configure your CRM below.
 
-* [Connect and setup Bullhorn](../bullhorn/)
-* [Connect and setup Clio](../clio/)
-* [Connect and setup Insightly](../insightly/)
-* [Connect and setup Pipedrive](../pipedrive/)
-* [Connect and setup Redtail CRM](../redtail/)
+* [Connect and setup Bullhorn](./bullhorn.md)
+* [Connect and setup Clio](./clio.md)
+* [Connect and setup Insightly](./insightly.md)
+* [Connect and setup Pipedrive](./pipedrive.md)
+* [Connect and setup Redtail CRM](./redtail.md)
 
 

@@ -6,7 +6,7 @@ RingCentral's integration with Bullhorn helps streamline communications with can
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started/) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/afbdQD0y4Yo?si=UKcBw2BP4pj2adNc" title="Unified CRM extension for Bullhorn - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
