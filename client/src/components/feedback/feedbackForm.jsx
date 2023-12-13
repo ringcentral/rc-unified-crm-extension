@@ -107,10 +107,6 @@ export default () => {
         setRecommend(e.target.value);
         setIsSubmitEnabled(e.target.value !== '' && feedback !== '' && platform !== '');
     }
-    function onChangePlatform(e) {
-        setPlatform(e.target.value);
-        setIsSubmitEnabled(e.target.value !== '' && feedback !== '' && recommend !== '');
-    }
 
     function closeModal() {
         setIsOpen(false);
@@ -166,19 +162,6 @@ export default () => {
                             <RcTypography style={{ position: 'absolute', left: '10px' }} variant='caption1'>Not likely at all</RcTypography>
                             <RcTypography style={{ position: 'absolute', right: '10px' }} variant='caption1'>Extremely likely</RcTypography>
                         </div>
-                        <RcTypography style={labelStyle} >What CRM are you connecting to?</RcTypography>
-
-                        <RcFormControl style={platformRadioGroupStyle}>
-                            <RcRadioGroup row value={platform} onChange={onChangePlatform}>
-                                <RcRadio size='xsmall' label="Clio" value="Clio" />
-                                <RcRadio size='xsmall' label="Bullhorn" value="Bullhorn" />
-                                <RcRadio size='xsmall' label="Insightly" value="Insightly" />
-                                <RcRadio size='xsmall' label="Pipedrive" value="Pipedrive" />
-                                <RcRadio size='xsmall' label="Redtail" value="Redtail" />
-                                <RcRadio size='xsmall' label="Other" value="Other" />
-                            </RcRadioGroup>
-                        </RcFormControl>
-
                         <RcTypography style={labelStyle} >Please share your feedback in the space below.</RcTypography>
                         <RcTextarea
                             style={noteAreaStyle}
