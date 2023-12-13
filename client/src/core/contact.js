@@ -10,8 +10,8 @@ async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 } =
         await chrome.storage.local.get({ overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' });
-    const overridingFormats = ['+1**********'];
-    if (overridingPhoneNumberFormat) overridingFormats.push(overridingPhoneNumberFormat);
+    const overridingFormats = [];
+    if (overridingPhoneNumberFormat) { overridingFormats.push('+1**********'); overridingFormats.push(overridingPhoneNumberFormat); }
     if (overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
     if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
     if (!!rcUnifiedCrmExtJwt) {
