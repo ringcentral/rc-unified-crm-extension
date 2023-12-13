@@ -6,7 +6,7 @@ RingCentral's integration with Insightly helps streamline communications between
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started/) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -43,6 +43,6 @@ And with that, you will be connected to Insightly and ready to begin using the i
 
 Insightly's contact lookup method is very strict. As a result, if the phone numbers in Insightly are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Insightly, is to go our [advanced settings](../configuration/#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Insightly, is to go our [advanced settings](./configuration.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
 
 Making this change will improve your experience with the extension considerably. 
