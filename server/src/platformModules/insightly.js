@@ -427,30 +427,26 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
     return foundContacts;
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    if (newContactType === '') {
+        return null;
+    }
+    const postBody = {
+        PHONE: phoneNumber.replace(' ', '+'),
+        FIRST_NAME: newContactName.split(' ')[0],
+        LAST_NAME: newContactName.split(' ')[1] ?? 'Lead'
+    }
     const personInfo = await axios.post(
-        `https://${user.hostname}/api/v4/contacts.json`,
-        {
-            data: {
-                name: newContactName,
-                type: 'Person',
-                phone_numbers: [
-                    {
-                        name: "Work",
-                        number: phoneNumber,
-                        default_number: true
-                    }
-                ],
-            }
-        },
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${newContactType}s`,
+        postBody,
         {
             headers: { 'Authorization': authHeader }
         }
     );
-    console.log(`Contact created with id: ${personInfo.data.data.id} and name: ${personInfo.data.data.name}`)
+    console.log(`${newContactType} created with id: ${newContactType === 'Contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID} and name: ${personInfo.data.FIRST_NAME} ${personInfo.data.LAST_NAME}`)
     return {
-        id: personInfo.data.data.id,
-        name: personInfo.data.data.name
+        id: newContactType === 'Contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID,
+        name: `${personInfo.data.FIRST_NAME} ${personInfo.data.LAST_NAME}`
     }
 }
 
@@ -546,4 +542,5 @@ exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;
+exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

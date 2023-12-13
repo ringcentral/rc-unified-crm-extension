@@ -266,7 +266,7 @@ app.post('/contact', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName });
+            const { successful, message, contact } = await createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
             res.status(200).send({ successful, message, contact });
         }
         else {

@@ -1,6 +1,7 @@
 import {
     RcSelect,
-    RcMenuItem
+    RcMenuItem,
+    RcListItemText
 } from '@ringcentral/juno';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -20,7 +21,10 @@ export default ({ selectionItems, presetSelection, onSelected, label, style, not
         event.target.value === 'none' ? onSelected(null) : onSelected(event.target.value);
     }
     function getItems(items) {
-        const itemElements = items.map(i => { return <RcMenuItem key={i.value} value={i.value}>{i.display}</RcMenuItem > });
+        const hasSecondaryDisplay = items[0].secondaryDisplay != '';
+        const itemElements = hasSecondaryDisplay ?
+            items.map(i => { return <RcMenuItem key={i.value} value={i.value}><RcListItemText primary={i.display} secondary={i.secondaryDisplay} /></RcMenuItem > }) :
+            items.map(i => { return <RcMenuItem key={i.value} value={i.value}>{i.display}</RcMenuItem > });
         if (!notShowNone) {
             // Preset to first item, add additional item as none/null
             itemElements.push(<RcMenuItem key='none' value='none'>none</RcMenuItem >);

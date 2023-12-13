@@ -23,14 +23,15 @@ async function getContact({ phoneNumber }) {
     }
 }
 
-async function createContact({ phoneNumber, newContactName }) {
+async function createContact({ phoneNumber, newContactName, newContactType }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         const contactRes = await axios.post(
             `${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}`,
             {
                 phoneNumber,
-                newContactName
+                newContactName,
+                newContactType
             }
         );
         // force trigger contact matcher

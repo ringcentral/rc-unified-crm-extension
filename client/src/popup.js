@@ -392,15 +392,17 @@ window.addEventListener('message', async (e) => {
               // data.body.call?.to?.phoneNumber?.length > 4 to distinguish extension from external number
               if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
                 // Sync events
-                if (data.body.triggerType === 'callLogSync' && !!data.body.call?.recording?.link) {
-                  console.log('call recording updating...');
-                  await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
-                  await updateLog(
-                    {
-                      logType: 'Call',
-                      sessionId: data.body.call.sessionId,
-                      recordingLink: data.body.call.recording.link
-                    });
+                if (data.body.triggerType === 'callLogSync') {
+                  if (!!data.body.call?.recording?.link) {
+                    console.log('call recording updating...');
+                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
+                    await updateLog(
+                      {
+                        logType: 'Call',
+                        sessionId: data.body.call.sessionId,
+                        recordingLink: data.body.call.recording.link
+                      });
+                  }
                   break;
                 }
                 // Presence events, but not hang up event

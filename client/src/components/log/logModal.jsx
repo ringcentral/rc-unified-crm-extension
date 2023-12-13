@@ -9,7 +9,7 @@ import {
 } from '@ringcentral/juno';
 import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
 import { createContact } from '../../core/contact';
 import moment from 'moment';
@@ -19,12 +19,7 @@ import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
 import BullhornAdditionalForm from './BullhornAdditionalForm';
-
-const logEvents = [];
-let trailingLogInfo = [];
-let countdownIntervalId = '';
-let crmUserName = '';
-let additionalSubmission = null;
+import config from '../../config';
 
 const ModalContainer = styled.div`
 height: 100%;
@@ -130,6 +125,12 @@ const labelStyle = {
     color: '#666666'
 }
 
+const logEvents = [];
+let trailingLogInfo = [];
+let countdownIntervalId = '';
+let crmUserName = '';
+let additionalSubmission = null;
+
 export default () => {
 
     const [platform, setPlatform] = useState('');
@@ -141,6 +142,7 @@ export default () => {
     const [matchedContacts, setMatchedContacts] = useState([]);
     const [selectedContact, setSelectedContact] = useState('');
     const [newContactName, setNewContactName] = useState('');
+    const [newContactType, setNewContactType] = useState('');
     const [direction, setDirection] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [dateTime, setDateTime] = useState('');
@@ -167,7 +169,7 @@ export default () => {
                 case 'Call':
                     // no trigger type means manual trigger
                     logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
-                    await setupModal();
+                    await setupModal({ crmPlatform: platform });
                     break;
                 case 'Message':
                     if (isTrailing) {
@@ -199,7 +201,7 @@ export default () => {
         }
     }
 
-    async function setupModal() {
+    async function setupModal({ crmPlatform }) {
         clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logEvents[0].logProps.logInfo.sessionId });
         setIsOpen(true);
@@ -208,6 +210,12 @@ export default () => {
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
         setNewContactName('');
+        if (!!config.platformsWithDifferentContactType[crmPlatform]) {
+            setNewContactType(config.platformsWithDifferentContactType[crmPlatform][0]);
+        }
+        else {
+            setNewContactType('');
+        }
         setLogType(logEvents[0].logProps.logType);
         if (logEvents[0].logProps.autoLog) {
             let { autoLogCountdown } = await chrome.storage.local.get(
@@ -222,7 +230,16 @@ export default () => {
         if (!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger) {
             stopCountDown();
         }
-        const contactOptions = logEvents[0].logProps.contacts.map(c => { return { value: c.id, display: c.type ? `[${c.type}] ${c.name}` : c.name, type: c.type ?? "", name: c.name, additionalFormInfo: c.additionalInfo } });
+        const contactOptions = logEvents[0].logProps.contacts.map(c => {
+            return {
+                value: c.id,
+                display: c.name, 
+                type: c.type ?? "",
+                secondaryDisplay: c.type ? `${c.type} - ${c.id}` : "",
+                name: c.name,
+                additionalFormInfo: c.additionalInfo
+            }
+        });
         contactOptions.push({ value: 'createPlaceholderContact', display: 'Create placeholder contact...' });
         setAdditionalFormInfo(contactOptions[0].additionalFormInfo);
         switch (logEvents[0].logProps.logType) {
@@ -299,7 +316,8 @@ export default () => {
             if (!!newContactName) {
                 const createContactResp = await createContact({
                     phoneNumber,
-                    newContactName
+                    newContactName,
+                    newContactType
                 })
                 newCreatedContactId = createContactResp.contactInfo.id;
             }
@@ -327,8 +345,8 @@ export default () => {
                 note,
                 additionalSubmission,
                 overridingContactId: newCreatedContactId,
-                contactType: matchedContacts.find(c => c.value === selectedContact)?.type,
-                contactName: matchedContacts.find(c => c.value === selectedContact)?.name
+                contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
+                contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
             });
             if (logType === 'Message') {
                 loggedMessageCount += logInfo.messages.length;
@@ -339,6 +357,9 @@ export default () => {
                 // in case of trailing SMS requests creating to create duplicated new contacts
                 if (logInfo['newContactName']) {
                     delete logInfo['newContactName'];
+                }
+                if (logInfo['newContactType']) {
+                    delete logInfo['newContactType'];
                 }
                 for (const extraLogInfo of trailingLogInfo) {
                     await addLog({
@@ -391,6 +412,10 @@ export default () => {
 
     function onChangeNewContactName(e) {
         setNewContactName(e.target.value);
+        stopCountDown();
+    }
+    function onChangeNewContactType(e) {
+        setNewContactType(e);
         stopCountDown();
     }
 
@@ -475,6 +500,19 @@ export default () => {
                                         value={newContactName}
                                         onChange={onChangeNewContactName}
                                         required
+                                    />
+                                </ElementContainer>
+                            }
+                            {selectedContact === 'createPlaceholderContact' && !!config.platformsWithDifferentContactType[platform] && 
+                                <ElementContainer>
+                                    <DropdownList
+                                        key='key'
+                                        style={{ width: '100%' }}
+                                        label='Contact type'
+                                        selectionItems={config.platformsWithDifferentContactType[platform].map(t => { return { value: t, display: t } })}
+                                        presetSelection={newContactType}
+                                        onSelected={onChangeNewContactType}
+                                        notShowNone={true}
                                     />
                                 </ElementContainer>
                             }

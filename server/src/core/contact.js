@@ -66,7 +66,7 @@ async function getContactV2({ platform, userId, phoneNumber, overridingFormat })
     }
 }
 
-async function createContact({ platform, userId, phoneNumber, newContactName }){
+async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }){
     try {
         let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
@@ -86,7 +86,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName }){
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName });
+        const contactInfo = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
         if (contactInfo != null) {
             return { successful: true, message: '', contact: contactInfo };
         }
