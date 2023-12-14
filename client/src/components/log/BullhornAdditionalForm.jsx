@@ -7,14 +7,14 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
     useEffect(() => {
         chrome.storage.local.get({ bullhornDefaultActionCode: '' },
             (items => {
-                if (items.bullhornDefaultActionCode && additionalFormInfo.value.some(i => i.title === items.bullhornDefaultActionCode)) {
+                if (items.bullhornDefaultActionCode && additionalFormInfo.actions.some(i => i.title === items.bullhornDefaultActionCode)) {
                     setAdditionalDropdownSelection(items.bullhornDefaultActionCode);
                     setSubmission({ commentAction: items.bullhornDefaultActionCode })
                 }
                 else {
-                    console.log(additionalFormInfo.value[0].id)
-                    setAdditionalDropdownSelection(additionalFormInfo.value[0].id);
-                    setSubmission({ commentAction: additionalFormInfo.value[0].id });
+                    console.log(additionalFormInfo.actions[0].id)
+                    setAdditionalDropdownSelection(additionalFormInfo.actions[0].id);
+                    setSubmission({ commentAction: additionalFormInfo.actions[0].id });
                 }
             }));
     }, [])
@@ -24,7 +24,7 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
             key='key'
             style={style}
             label={additionalFormInfo.label}
-            selectionItems={additionalFormInfo.value.map(d => { return { value: d.id, display: d.title } })}
+            selectionItems={additionalFormInfo.actions.map(d => { return { value: d.id, display: d.title } })}
             presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
