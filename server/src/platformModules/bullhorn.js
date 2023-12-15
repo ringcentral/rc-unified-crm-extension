@@ -282,22 +282,74 @@ async function getContactV2({ user, phoneNumber }) {
     return matchedContactInfo;
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
-    const postBody = {
-        name: newContactName,
-        phone: phoneNumber.replace(' ', '+')
-    }
-    const candidateInfo = await axios.put(
-        `${user.platformAdditionalInfo.restUrl}entity/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        postBody,
-        {
-            headers: { 'Authorization': authHeader }
-        }
-    );
-    console.log(`Candidate created with id: ${candidateInfo.data.data.id} and name: ${newContactName}`)
-    return {
-        id: candidateInfo.data.data.id,
-        name: newContactName
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    switch (newContactType) {
+        case 'Candidate':
+            const candidatePostBody = {
+                name: newContactName,
+                firstName: newContactName.split(' ')[0],
+                lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
+                phone: phoneNumber.replace(' ', '+')
+            }
+            const candidateInfo = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                candidatePostBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            );
+            console.log(`Candidate created with id: ${candidateInfo.data.changedEntityId} and name: ${newContactName}`)
+            return {
+                id: candidateInfo.data.changedEntityId,
+                name: newContactName
+            }
+        case 'Contact':
+            let companyId = 0;
+            const companyInfo = await axios.post(
+                `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name`,
+                {
+                    query: "name:RingCentral_ExtensionCRM_Placeholder_Company"
+                },
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            )
+            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_ExtensionCRM_Placeholder_Company') {
+                companyId = companyInfo.data.data[0].id;
+            }
+            else {
+                const createCompany = await axios.put(
+                    `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                    {
+                        name: "RingCentral_ExtensionCRM_Placeholder_Company"
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    }
+                )
+                companyId = createCompany.data.changedEntityId;
+            }
+            const contactPostBody = {
+                name: newContactName,
+                firstName: newContactName.split(' ')[0],
+                lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
+                phone: phoneNumber.replace(' ', '+'),
+                clientCorporation: {
+                    id: companyId
+                }
+            }
+            const contactInfo = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                contactPostBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            );
+            console.log(`Contact created with id: ${contactInfo.data.changedEntityId} and name: ${newContactName}`)
+            return {
+                id: contactInfo.data.changedEntityId,
+                name: newContactName
+            }
     }
 }
 
