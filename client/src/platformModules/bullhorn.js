@@ -1,23 +1,5 @@
-function getContactAdditionalInfo(contactRes) {
-    if (contactRes.data.contact && contactRes.data.contact.commentActionList) {
-        return {
-            label: 'Note action',
-            value: contactRes.data.contact.commentActionList
-        }
-    }
-
-    return null;
-}
-
-function getIncomingCallContactInfo(contactInfo) {
-    return {
-        id: contactInfo.id,
-        contactType: contactInfo.contactType
-    }
-}
-
 function openContactPage(hostname, incomingCallContactInfo) {
-    openBullhornContactPage({ contactType: incomingCallContactInfo.contactType, contactId: incomingCallContactInfo.id });
+    openBullhornContactPage({ contactType: incomingCallContactInfo.type, contactId: incomingCallContactInfo.id });
 }
 
 async function openBullhornContactPage({ contactType, contactId }) {
@@ -29,6 +11,4 @@ async function openBullhornContactPage({ contactType, contactId }) {
     }
 }
 
-exports.getContactAdditionalInfo = getContactAdditionalInfo;
-exports.getIncomingCallContactInfo = getIncomingCallContactInfo;
 exports.openContactPage = openContactPage;

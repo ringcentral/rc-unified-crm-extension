@@ -1,6 +1,6 @@
 const auth = require('./core/auth');
 const { checkLog, updateLog } = require('./core/log');
-const { getContact, showIncomingCallContactInfo, showInCallContactInfo, openContactPage } = require('./core/contact');
+const { getContact, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
@@ -30,7 +30,6 @@ let platform = null;
 let platformName = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
-let incomingCallContactInfo = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
 let leadingSMSCallReady = false;
 let trailingSMSLogInfo = [];
@@ -225,7 +224,6 @@ window.addEventListener('message', async (e) => {
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
             trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
-            showInCallContactInfo({ incomingCallContactInfo });
           }
           break;
         case 'rc-call-end-notify':
@@ -253,9 +251,8 @@ window.addEventListener('message', async (e) => {
             chrome.runtime.sendMessage({
               type: 'openPopupWindow'
             });
-            incomingCallContactInfo = await showIncomingCallContactInfo({ phoneNumber: data.call.from.phoneNumber });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-              openContactPage({ incomingCallContactInfo });
+              openContactPage({ phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
           break;
@@ -340,25 +337,47 @@ window.addEventListener('message', async (e) => {
             case '/contacts/match':
               noShowNotification = true;
               let matchedContacts = {};
-              for (const contactPhoneNumber of data.body.phoneNumbers) {
-                // skip contact with just extension number
-                if (!contactPhoneNumber.startsWith('+')) {
-                  continue;
-                }
-                // query on 3rd party API to get the matched contact info and return
-                const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
-                if (contactMatched) {
-                  matchedContacts[contactPhoneNumber] = [{
-                    id: contactInfo.id,
+              const { tempContactMatchTask } = await chrome.storage.local.get({ tempContactMatchTask: null });
+              if (data.body.phoneNumbers.length === 1 && !!tempContactMatchTask) {
+                matchedContacts[tempContactMatchTask.phoneNumber] = [
+                  {
+                    id: tempContactMatchTask.id,
                     type: platformName,
-                    name: contactInfo.name,
+                    name: tempContactMatchTask.contactName,
                     phoneNumbers: [
                       {
-                        phoneNumber: contactPhoneNumber,
+                        phoneNumber: tempContactMatchTask.phoneNumber,
                         phoneType: 'direct'
                       }
                     ]
-                  }];
+                  }
+                ];
+                await chrome.storage.local.remove('tempContactMatchTask');
+              }
+              else {
+                for (const contactPhoneNumber of data.body.phoneNumbers) {
+                  // skip contact with just extension number
+                  if (!contactPhoneNumber.startsWith('+')) {
+                    continue;
+                  }
+                  // query on 3rd party API to get the matched contact info and return
+                  const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
+                  if (contactMatched) {
+                    matchedContacts[contactPhoneNumber] = [];
+                    for (var contactInfoItem of contactInfo) {
+                      matchedContacts[contactPhoneNumber].push({
+                        id: contactInfoItem.id,
+                        type: platformName,
+                        name: contactInfoItem.name,
+                        phoneNumbers: [
+                          {
+                            phoneNumber: contactPhoneNumber,
+                            phoneType: 'direct'
+                          }
+                        ]
+                      });
+                    }
+                  }
                 }
               }
               // return matched contact object with phone number as key
@@ -374,14 +393,16 @@ window.addEventListener('message', async (e) => {
               if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
                 // Sync events
                 if (data.body.triggerType === 'callLogSync') {
-                  console.log('call recording updating...');
-                  await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
-                  await updateLog(
-                    {
-                      logType: 'Call',
-                      sessionId: data.body.call.sessionId,
-                      recordingLink: data.body.call.recording.link
-                    });
+                  if (!!data.body.call?.recording?.link) {
+                    console.log('call recording updating...');
+                    await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
+                    await updateLog(
+                      {
+                        logType: 'Call',
+                        sessionId: data.body.call.sessionId,
+                        recordingLink: data.body.call.recording.link
+                      });
+                  }
                   break;
                 }
                 // Presence events, but not hang up event
@@ -397,7 +418,7 @@ window.addEventListener('message', async (e) => {
                 logType: 'Call',
                 sessionIds: data.body.call.sessionId
               });
-              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact, additionalLogInfo: callLogAdditionalInfo } = await getContact({ phoneNumber: contactPhoneNumber });
+              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
               if (singleCallLog[data.body.call.sessionId].matched) {
                 showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
               }
@@ -415,11 +436,10 @@ window.addEventListener('message', async (e) => {
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
-                    contactName: callMatchedContact.name,
+                    contacts: callMatchedContact,
                     crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },
-                  additionalLogInfo: callLogAdditionalInfo,
                   triggerType: data.body.triggerType
                 }, '*')
               }
@@ -566,7 +586,7 @@ window.addEventListener('message', async (e) => {
   }
   catch (e) {
     console.log(e)
-    if (e.response && e.response.data && !noShowNotification) {
+    if (e.response && e.response.data && !noShowNotification && typeof e.response.data === 'string') {
       showNotification({ level: 'warning', message: e.response.data, ttl: 5000 });
     }
     else {
@@ -694,6 +714,10 @@ function getServiceConfig(serviceName) {
       {
         name: 'Open contact web page from incoming call',
         value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value ?? false)
+      },
+      {
+        name: 'Open contact web page after creating it',
+        value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it')?.value ?? true)
       }
     ],
 

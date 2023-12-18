@@ -106,12 +106,12 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             type: 'User'
         } :
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         }
     const receiver = callLog.direction === 'Outbound' ?
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         } :
         {
@@ -143,7 +143,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
-    if (additionalSubmission.logTimeEntry === undefined || additionalSubmission.logTimeEntry) {
+    if (additionalSubmission?.logTimeEntry === undefined || additionalSubmission.logTimeEntry) {
         const addTimerBody = {
             data: {
                 communication: {
@@ -200,12 +200,12 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             type: 'User'
         } :
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         }
     const receiver = message.direction == 'Outbound' ?
         {
-            id: contactInfo.id,
+            id: contactInfo.overridingContactId ?? contactInfo.id,
             type: 'Contact'
         } :
         {
@@ -285,6 +285,80 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     return null;
 }
 
+async function getContactV2({ user, authHeader, phoneNumber, overridingFormat }) {
+    const numberToQueryArray = [];
+    if (overridingFormat === '') {
+        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    }
+    else {
+        const formats = overridingFormat.split(',');
+        for (var format of formats) {
+            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+            if (phoneNumberObj.valid) {
+                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                let formattedNumber = format;
+                for (const numberBit of phoneNumberWithoutCountryCode) {
+                    formattedNumber = formattedNumber.replace('*', numberBit);
+                }
+                numberToQueryArray.push(formattedNumber);
+            }
+        }
+    }
+    const foundContacts = [];
+    for (var numberToQuery of numberToQueryArray) {
+        const personInfo = await axios.get(
+            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        if (personInfo.data.data.length > 0) {
+            for (var result of personInfo.data.data) {
+                const matterInfo = await axios.get(
+                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
+                foundContacts.push({
+                    id: result.id,
+                    name: result.name,
+                    title: result.title ?? "",
+                    company: result.company?.name ?? "",
+                    phone: numberToQuery,
+                    additionalInfo: matters ? { matters } : null
+                })
+            }
+        }
+    }
+    return foundContacts;
+}
+
+async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+    const personInfo = await axios.post(
+        `https://${user.hostname}/api/v4/contacts.json`,
+        {
+            data: {
+                name: newContactName,
+                type: 'Person',
+                phone_numbers: [
+                    {
+                        name: "Work",
+                        number: phoneNumber,
+                        default_number: true
+                    }
+                ],
+            }
+        },
+        {
+            headers: { 'Authorization': authHeader }
+        }
+    );
+    console.log(`Contact created with id: ${personInfo.data.data.id} and name: ${personInfo.data.data.name}`)
+    return {
+        id: personInfo.data.data.id,
+        name: personInfo.data.data.name
+    }
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
@@ -294,4 +368,6 @@ exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
+exports.getContactV2 = getContactV2;
+exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

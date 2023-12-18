@@ -86,10 +86,10 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const commentAction = additionalSubmission.commentAction ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
     const putBody = {
-        comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
+        comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: commentAction,
         personReference: {
-            id: contactInfo.id
+            id: contactInfo.overridingContactId ?? contactInfo.id
         }
     }
     let addLogRes;
@@ -234,6 +234,125 @@ async function refreshSessionToken(user) {
 }
 
 
+async function getContactV2({ user, phoneNumber }) {
+    let commentActionListResponse;
+    try {
+        commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+        }
+    }
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, title: a } });
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    const matchedContactInfo = [];
+    // check for Contact
+    const contactPersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        {
+            query: `phone:${phoneNumberWithoutCountryCode}`
+        });
+    for (const result of contactPersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Contact',
+            additionalInfo: commentActionList?.length > 0 ? { actions: commentActionList } : null
+        });
+    }
+    // check for Candidate
+    const candidatePersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        {
+            query: `phone:${phoneNumberWithoutCountryCode}`
+        });
+    for (const result of candidatePersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Candidate',
+            additionalInfo: commentActionList?.length > 0 ? { actions: commentActionList } : null
+        });
+    }
+    return matchedContactInfo;
+}
+
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    switch (newContactType) {
+        case 'Candidate':
+            const candidatePostBody = {
+                name: newContactName,
+                firstName: newContactName.split(' ')[0],
+                lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
+                phone: phoneNumber.replace(' ', '+')
+            }
+            const candidateInfo = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                candidatePostBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            );
+            console.log(`Candidate created with id: ${candidateInfo.data.changedEntityId} and name: ${newContactName}`)
+            return {
+                id: candidateInfo.data.changedEntityId,
+                name: newContactName
+            }
+        case 'Contact':
+            let companyId = 0;
+            const companyInfo = await axios.post(
+                `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name`,
+                {
+                    query: "name:RingCentral_ExtensionCRM_Placeholder_Company"
+                },
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            )
+            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_ExtensionCRM_Placeholder_Company') {
+                companyId = companyInfo.data.data[0].id;
+            }
+            else {
+                const createCompany = await axios.put(
+                    `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                    {
+                        name: "RingCentral_ExtensionCRM_Placeholder_Company"
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    }
+                )
+                companyId = createCompany.data.changedEntityId;
+            }
+            const contactPostBody = {
+                name: newContactName,
+                firstName: newContactName.split(' ')[0],
+                lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
+                phone: phoneNumber.replace(' ', '+'),
+                clientCorporation: {
+                    id: companyId
+                }
+            }
+            const contactInfo = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                contactPostBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                }
+            );
+            console.log(`Contact created with id: ${contactInfo.data.changedEntityId} and name: ${newContactName}`)
+            return {
+                id: contactInfo.data.changedEntityId,
+                name: newContactName
+            }
+    }
+}
+
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
@@ -242,4 +361,6 @@ exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
+exports.getContactV2 = getContactV2;
+exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

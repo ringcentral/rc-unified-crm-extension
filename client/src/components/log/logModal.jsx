@@ -1,90 +1,137 @@
 import {
     RcTextarea,
+    RcTextField,
     RcText,
     RcLoading,
     RcIconButton,
     RcDivider,
-    RcCheckbox,
     RcButton,
 } from '@ringcentral/juno';
+import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
+import { createContact, openContactPageById } from '../../core/contact';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
+import DropdownList from '../dropdownList';
 import PipedriveAdditionalForm from './PipedriveAdditionalForm';
 import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
 import BullhornAdditionalForm from './BullhornAdditionalForm';
+import config from '../../config';
+
+const ModalContainer = styled.div`
+height: 100%;
+width: 100%;
+position: absolute;
+z-index: 100;
+background: rgb(255 255 255);
+display: flex;
+justify-content: flex-start;
+flex-direction: column;
+align-items: flex-start;
+overflow: hidden auto;
+`;
+
+const TopBar = styled.div`
+display: flex;
+justify-content: space-between;
+width: 100%;
+align-items: center;
+`;
+
+const Title = styled(RcText)`
+color: #2f2f2f;
+font-size: 20px;
+`;
+
+const ElementContainer = styled.div`
+padding: 3px 20px;
+`;
+
+const ContentContainer = styled.div`
+width: 100%;
+`;
+
+const ContentRow = styled.div`
+display: flex;
+width: 100%;
+`;
+
+const Label = styled(RcText)`
+font-size: 0.8rem;
+font-weight: 700;
+font-family: Lato, Helvetica, Arial, sans-serif;
+line-height: 16px;
+color: #666666;
+`;
+
+const Content = styled(RcText)`
+color: #97979;
+font-family: Lato, Helvetica, Arial, sans-serif;
+font-size: 14px;
+padding-left: 3px;
+`;
+
+const Divider = styled(RcDivider)`
+margin: 0px 0px 10px;
+`;
+
+const InputAreaContainer = styled.div`
+padding: 3px 20px;
+`;
+
+const Note = styled(RcTextarea)`
+width: 100%;
+.RcTextFieldInput-root textarea {
+    font-size: 14px;
+    line-height: 18px;
+    padding: 3px;
+}
+`;
+
+const LoadingText = styled.p`
+position: absolute;
+width: 100%;
+text-align: center;
+top: 48%;
+font-weight: bold;
+font-size: 13px;
+`;
+
+const NewContactNameInput = styled(RcTextField)`
+.RcTextFieldInput-root input{
+    font-size: 14px;
+    padding: 3px;
+}
+`;
+
+const ContactWarningMessage = styled(RcText)`
+background: #ffeeba;
+font-size: 11px;
+padding: 7px;
+border-radius: 4px;
+height: auto;
+text-wrap: wrap;
+line-height: 15px;
+`;
+
+const labelStyle = {
+    fontSize: '0.8rem',
+    fontWeight: '700',
+    fontFamily: 'Lato,Helvetica,Arial,sans-serif',
+    lineHeight: '16px',
+    color: '#666666'
+}
 
 const logEvents = [];
 let trailingLogInfo = [];
 let countdownIntervalId = '';
+let crmUserName = '';
+let additionalSubmission = null;
 
 export default () => {
-    const modalStyle = {
-        height: '100%',
-        width: '100%',
-        position: 'absolute',
-        zIndex: '100',
-        background: 'rgb(255 255 255)',
-        display: 'flex',
-        justifyContent: 'flex-start',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        overflow: 'hidden auto'
-    };
-    const topBarStyle = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        width: '100%',
-        alignItems: 'center'
-    }
-    const titleStyle = {
-        color: '#2f2f2f',
-        fontSize: '20px'
-    }
-    const elementContainerStyle = {
-        padding: '2px 20px'
-    }
-    const contentContainerStyle = {
-        width: '100%'
-    }
-    const contentRowStyle = {
-        display: 'flex',
-        width: '100%'
-    }
-    const labelStyle = {
-        fontSize: '0.8rem',
-        fontWeight: '700',
-        fontFamily: 'Lato,Helvetica,Arial,sans-serif',
-        lineHeight: '16px',
-        color: '#666666'
-    }
-    const contentStyle = {
-        color: '#97979',
-        fontFamily: 'Lato, Helvetica, Arial, sans-serif',
-        fontSize: '14px',
-        paddingLeft: '3px'
-    }
-    const dividerStyle = {
-        margin: '0px 0px 10px',
-    }
-    const inputAreaContainerStyle = {
-        padding: '0px 20px'
-    }
-    const noteStyle = {
-        width: '100%'
-    }
-
-    const loadingTextStyle = {
-        position: 'absolute',
-        width: '100%',
-        textAlign: 'center',
-        top: '48%',
-        fontWeight: 'bold',
-        fontSize: '13px'
-    }
 
     const [platform, setPlatform] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -92,15 +139,18 @@ export default () => {
     const [logType, setLogType] = useState('');
     const [logInfo, setLogInfo] = useState(null);
     const [isToday, setIsToday] = useState(null);
-    const [contactName, setContactName] = useState('');
+    const [matchedContacts, setMatchedContacts] = useState([]);
+    const [selectedContact, setSelectedContact] = useState('');
+    const [newContactName, setNewContactName] = useState('');
+    const [newContactType, setNewContactType] = useState('');
     const [direction, setDirection] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [dateTime, setDateTime] = useState('');
     const [duration, setDuration] = useState('');
     const [isLoading, setLoading] = useState(false);
+    const [isActivityTitleEdited, setIsActivityTitleEdited] = useState(false);
     const [loadingCount, setLoadingCount] = useState(-1);
     const [additionalFormInfo, setAdditionalFormInfo] = useState([]);
-    const [additionalSubmission, setAdditionalSubmission] = useState(null);
     const [customSubject, setCustomSubject] = useState('');
     const [countdown, setCountdown] = useState(20);
     const [countdownFinished, setCountdownFinished] = useState(false);
@@ -111,15 +161,15 @@ export default () => {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        const { type, platform, trailingSMSLogInfo, isTrailing, logProps, additionalLogInfo, triggerType } = e.data
+        const { type, platform, trailingSMSLogInfo, isTrailing, logProps, triggerType } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
             setLoadingCount(-1);
             switch (logProps.logType) {
                 case 'Call':
                     // no trigger type means manual trigger
-                    logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
-                    await setupModal();
+                    logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
+                    await setupModal({ crmPlatform: platform });
                     break;
                 case 'Message':
                     if (isTrailing) {
@@ -129,7 +179,7 @@ export default () => {
                     }
                     else {
                         // no trigger type means manual trigger
-                        logEvents.push({ type, logProps, additionalLogInfo, isManualTrigger: !!!triggerType });
+                        logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
                         await setupModal();
                         trailingLogInfo = trailingSMSLogInfo;
                         let messageCount = logProps.logInfo.messages.length;
@@ -151,13 +201,21 @@ export default () => {
         }
     }
 
-    async function setupModal() {
+    async function setupModal({ crmPlatform }) {
         clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logEvents[0].logProps.logInfo.sessionId });
         setIsOpen(true);
+        crmUserName = logEvents[0].logProps.crmUserInfo.name;
         setLogInfo(logEvents[0].logProps.logInfo);
         setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
+        setNewContactName('');
+        if (!!config.platformsWithDifferentContactType[crmPlatform]) {
+            setNewContactType(config.platformsWithDifferentContactType[crmPlatform][0]);
+        }
+        else {
+            setNewContactType('');
+        }
         setLogType(logEvents[0].logProps.logType);
         if (logEvents[0].logProps.autoLog) {
             let { autoLogCountdown } = await chrome.storage.local.get(
@@ -172,22 +230,31 @@ export default () => {
         if (!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger) {
             stopCountDown();
         }
-        if (!logEvents[0].additionalLogInfo) {
-            setAdditionalSubmission(null);
-        }
-        setAdditionalFormInfo(logEvents[0].additionalLogInfo);
+        const contactOptions = logEvents[0].logProps.contacts.map(c => {
+            return {
+                value: c.id,
+                display: c.name,
+                type: c.type ?? "",
+                secondaryDisplay: c.type ? `${c.type} - ${c.id}` : "",
+                name: c.name,
+                additionalFormInfo: c.additionalInfo
+            }
+        });
+        contactOptions.push({ value: 'createPlaceholderContact', display: 'Create placeholder contact...' });
+        setAdditionalFormInfo(contactOptions[0].additionalFormInfo);
         switch (logEvents[0].logProps.logType) {
             case 'Call':
-                setCustomSubject(`${logEvents[0].logProps.logInfo.direction} call from ${logEvents[0].logProps.logInfo.direction === 'Inbound' ? `${logEvents[0].logProps.contactName} to ${logEvents[0].logProps.crmUserInfo.name}` : `${logEvents[0].logProps.crmUserInfo.name} to ${logEvents[0].logProps.contactName}`}`);
+                setMatchedContacts(contactOptions);
                 setDirection(logEvents[0].logProps.logInfo.direction);
-                setContactName(logEvents[0].logProps.contactName);
+                setSelectedContact(contactOptions[0].value);
                 setPhoneNumber(logEvents[0].logProps.logInfo.direction === 'Inbound' ? logEvents[0].logProps.logInfo.from.phoneNumber : logEvents[0].logProps.logInfo.to.phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
                 setDuration(secondsToHourMinuteSecondString(logEvents[0].logProps.logInfo.duration));
                 break;
             case 'Message':
+                setMatchedContacts(contactOptions);
                 setDirection('');
-                setContactName(logEvents[0].logProps.contactName);
+                setSelectedContact(contactOptions[0].value);
                 setPhoneNumber(logEvents[0].logProps.logInfo.correspondents[0].phoneNumber);
                 setDateTime(moment(logEvents[0].logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
                 break;
@@ -213,6 +280,27 @@ export default () => {
         console.log(`Auto log countdown: ${countdown}`)
     }, [countdown])
 
+    useEffect(() => {
+        if (isActivityTitleEdited) {
+            return;
+        }
+        if (selectedContact === 'createPlaceholderContact') {
+            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${newContactName} to ${crmUserName}` : `${crmUserName} to ${newContactName}`}`);
+        }
+        else {
+            setCustomSubject(`${logInfo?.direction} call from ${logInfo?.direction === 'Inbound' ? `${matchedContacts.find(c => c.value === selectedContact)?.name} to ${crmUserName}` : `${crmUserName} to ${matchedContacts.find(c => c.value === selectedContact)?.name}`}`);
+        }
+    }, [selectedContact, logInfo, newContactName])
+
+    useEffect(() => {
+        if (selectedContact === 'createPlaceholderContact') {
+            setAdditionalFormInfo(null);
+        }
+        else {
+            setAdditionalFormInfo(matchedContacts.find(m => m.value == selectedContact)?.additionalFormInfo);
+        }
+    }, [selectedContact]);
+
     // any editing action would stop countdown
     function stopCountDown() {
         setCountdownFinished(true);
@@ -224,6 +312,18 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
+            let newCreatedContactId = '';
+            if (!!newContactName) {
+                const createContactResp = await createContact({
+                    phoneNumber,
+                    newContactName,
+                    newContactType
+                })
+                newCreatedContactId = createContactResp.contactInfo.id;
+            }
+            else {
+                newCreatedContactId = selectedContact;
+            }
             // Case: when log page is open and recording link is updated
             if (!logInfo.recording?.link) {
                 const recordingSessionId = `rec-link-${logInfo.sessionId}`;
@@ -243,7 +343,10 @@ export default () => {
                 isToday,
                 isMain: true,
                 note,
-                additionalSubmission
+                additionalSubmission,
+                overridingContactId: newCreatedContactId,
+                contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
+                contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
             });
             if (logType === 'Message') {
                 loggedMessageCount += logInfo.messages.length;
@@ -251,6 +354,13 @@ export default () => {
             }
             await chrome.storage.local.set({ [logInfo.conversationLogId]: logInfo.conversationLogId });
             if (trailingLogInfo.length > 0) {
+                // in case of trailing SMS requests creating to create duplicated new contacts
+                if (logInfo['newContactName']) {
+                    delete logInfo['newContactName'];
+                }
+                if (logInfo['newContactType']) {
+                    delete logInfo['newContactType'];
+                }
                 for (const extraLogInfo of trailingLogInfo) {
                     await addLog({
                         logType,
@@ -266,6 +376,12 @@ export default () => {
                 }
                 trailingLogInfo = [];
                 setLoadingCount(-1);
+            }
+            if (!!newContactName) {
+                const { extensionUserSettings } = await chrome.storage.local.get({ extensionUserSettings: null });
+                if (extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it') == null) || extensionUserSettings.find(e => e.name === 'Open contact web page after creating it').value) {
+                    openContactPageById({ id: newCreatedContactId, type: newContactType });
+                }
             }
         }
         catch (e) {
@@ -291,7 +407,26 @@ export default () => {
 
     function onChangeCustomSubject(e) {
         setCustomSubject(e.target.value);
+        setIsActivityTitleEdited(true);
         stopCountDown();
+    }
+
+    function onChangeSelectedContact(selection) {
+        setSelectedContact(selection);
+        stopCountDown();
+    }
+
+    function onChangeNewContactName(e) {
+        setNewContactName(e.target.value);
+        stopCountDown();
+    }
+    function onChangeNewContactType(e) {
+        setNewContactType(e);
+        stopCountDown();
+    }
+
+    function updateAdditionalSubmission(submission) {
+        additionalSubmission = submission;
     }
 
     return (
@@ -299,115 +434,158 @@ export default () => {
             <RcLoading loading={isLoading} />
             {
                 isOpen && (
-                    <div style={modalStyle}>
+                    <ModalContainer>
                         {loadingCount >= 0 &&
-                            <div style={loadingTextStyle}>
+                            <LoadingText>
                                 {loadingCount}/{messageLogCount}
-                            </div>}
-                        <div style={topBarStyle}>
+                            </LoadingText>}
+                        <TopBar>
                             <RcIconButton
                                 onClick={closeModal}
                                 symbol={ChevronLeft}
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText style={titleStyle} >{logType === 'Call' ? logType : 'Conversation'} details</RcText>
+                            <Title>{logType === 'Call' ? logType : 'Conversation'} details</Title>
                             <RcButton
                                 onClick={onSubmission}
                                 variant="plain"
                                 style={{ paddingRight: '10px' }}
+                                disabled={selectedContact === 'createPlaceholderContact' && newContactName === ''}
                             >
                                 Save{countdownFinished ? '' : `(${countdown})`}
                             </RcButton>
-                        </div>
-                        <RcDivider color="action.grayDark" style={dividerStyle} />
-                        <div style={contentContainerStyle}>
-                            <div style={contentRowStyle}>
-                                <div style={elementContainerStyle}>
-                                    <RcText style={labelStyle} >Phone number</RcText>
-                                    <RcText style={contentStyle} variant='body1'>{phoneNumber}</RcText>
-                                </div>
-                                {direction && <div style={elementContainerStyle}>
-                                    <RcText style={labelStyle} >Direction</RcText>
-                                    <RcText style={contentStyle} variant='body1'>{direction}</RcText>
-                                </div>}
-                            </div>
+                        </TopBar>
+                        <Divider color="action.grayDark" />
+                        <ContentContainer>
+                            <ContentRow>
+                                <ElementContainer>
+                                    <Label >Phone number</Label>
+                                    <Content variant='body1'>{phoneNumber}</Content>
+                                </ElementContainer>
+                                {direction && <ElementContainer>
+                                    <Label >Direction</Label>
+                                    <Content variant='body1'>{direction}</Content>
+                                </ElementContainer>}
+                            </ContentRow>
                             {logType === 'Call' &&
-                                <div style={elementContainerStyle}>
-                                    <RcText style={labelStyle} >Call time and duration</RcText>
-                                    <RcText style={contentStyle} variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {duration}</RcText>
-                                </div>
+                                <ElementContainer>
+                                    <Label >Call time and duration</Label>
+                                    <Content variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {duration}</Content>
+                                </ElementContainer>
                             }
-                            <div style={elementContainerStyle}>
-                                <RcText style={labelStyle} >Contact name</RcText>
-                                <RcText style={contentStyle} variant='body1'>{contactName}</RcText>
-                            </div>
+                            {matchedContacts.length === 1 &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>No contact found. Please provide a name, and a placeholder contact will be made for you.</ContactWarningMessage>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length > 2 &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>Multiple contacts found. Please select the contact to associate this activity with.</ContactWarningMessage>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length > 1 &&
+                                <ElementContainer>
+                                    <DropdownList
+                                        key='key'
+                                        style={{ width: '100%' }}
+                                        label='Contact'
+                                        selectionItems={matchedContacts}
+                                        presetSelection={selectedContact}
+                                        onSelected={onChangeSelectedContact}
+                                        notShowNone={true}
+                                    />
+                                </ElementContainer>
+                            }
+                            {selectedContact === 'createPlaceholderContact' &&
+                                <ElementContainer>
+                                    <NewContactNameInput
+                                        label='New contact name'
+                                        placeholder='Enter new contact name...'
+                                        fullWidth
+                                        value={newContactName}
+                                        onChange={onChangeNewContactName}
+                                        required
+                                    />
+                                </ElementContainer>
+                            }
+                            {selectedContact === 'createPlaceholderContact' && !!config.platformsWithDifferentContactType[platform] &&
+                                <ElementContainer>
+                                    <DropdownList
+                                        key='key'
+                                        style={{ width: '100%' }}
+                                        label='Contact type'
+                                        selectionItems={config.platformsWithDifferentContactType[platform].map(t => { return { value: t, display: t } })}
+                                        presetSelection={newContactType}
+                                        onSelected={onChangeNewContactType}
+                                        notShowNone={true}
+                                    />
+                                </ElementContainer>
+                            }
                             {logType === 'Call' &&
-                                <div style={inputAreaContainerStyle}>
-                                    <RcTextarea
-                                        style={noteStyle}
+                                <InputAreaContainer>
+                                    <Note
                                         label='Activity title'
                                         onChange={onChangeCustomSubject}
                                         value={customSubject}
                                     />
-                                </div>
+                                </InputAreaContainer>
                             }
                             {logType === 'Call' &&
-                                <div style={inputAreaContainerStyle}>
-                                    <RcTextarea
-                                        style={noteStyle}
+                                <InputAreaContainer>
+                                    <Note
                                         label='Note'
                                         onChange={onChangeNote}
                                         value={note}
                                     />
-                                </div>
+                                </InputAreaContainer>
                             }
                             {logType === 'Message' &&
-                                <div style={elementContainerStyle}>
-                                    <RcText style={labelStyle} >Message log summary</RcText>
-                                    <RcText style={contentStyle} variant='body1'>Started on {moment(messageStartDate).format('YYYY/MM/DD')}</RcText>
-                                    <RcText style={contentStyle} variant='body1'>Ended on {moment(dateTime).format('YYYY/MM/DD')}</RcText>
-                                    <RcText style={contentStyle} variant='body1'>Total: {messageLogCount} messages</RcText>
-                                </div>
+                                <ElementContainer>
+                                    <Label >Message log summary</Label>
+                                    <Content variant='body1'>Started on {moment(messageStartDate).format('YYYY/MM/DD')}</Content>
+                                    <Content variant='body1'>Ended on {moment(dateTime).format('YYYY/MM/DD')}</Content>
+                                    <Content variant='body1'>Total: {messageLogCount} messages</Content>
+                                </ElementContainer>
                             }
                             {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                                <div style={elementContainerStyle}>
+                                <ElementContainer>
                                     <PipedriveAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
-                                        setSubmission={setAdditionalSubmission}
+                                        setSubmission={updateAdditionalSubmission}
                                         style={labelStyle}
                                     />
-                                </div>
+                                </ElementContainer>
                             }
                             {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                                <div style={elementContainerStyle}>
+                                <ElementContainer>
                                     <InsightlyAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
-                                        setSubmission={setAdditionalSubmission}
+                                        setSubmission={updateAdditionalSubmission}
                                         style={labelStyle}
                                     />
-                                </div>
+                                </ElementContainer>
                             }
                             {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                                <div style={elementContainerStyle}>
+                                <ElementContainer>
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
-                                        setSubmission={setAdditionalSubmission}
+                                        setSubmission={updateAdditionalSubmission}
                                         style={labelStyle}
                                     />
-                                </div>
+                                </ElementContainer>
                             }
                             {platform === 'bullhorn' && additionalFormInfo && additionalFormInfo.length !== 0 &&
-                                <div style={elementContainerStyle}>
+                                <ElementContainer>
                                     <BullhornAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
-                                        setSubmission={setAdditionalSubmission}
+                                        setSubmission={updateAdditionalSubmission}
                                         style={labelStyle}
                                     />
-                                </div>
+                                </ElementContainer>
                             }
-                        </div>
-                    </div>
+                        </ContentContainer>
+                    </ModalContainer>
                 )
             }
         </div>

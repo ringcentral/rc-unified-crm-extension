@@ -9,7 +9,7 @@ const cors = require('cors')
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const { addCallLog, addMessageLog, getCallLog, updateCallLog } = require('./core/log');
-const { getContact } = require('./core/contact');
+const { getContact, getContactV2, createContact } = require('./core/contact');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -250,6 +250,40 @@ app.get('/contact', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            res.status(200).send({ successful, message, contact });
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+});
+app.post('/contact', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const { successful, message, contact } = await createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
+            res.status(200).send({ successful, message, contact });
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+});
+app.get('/contactV2', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const { successful, message, contact } = await getContactV2({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, message, contact });
         }
         else {

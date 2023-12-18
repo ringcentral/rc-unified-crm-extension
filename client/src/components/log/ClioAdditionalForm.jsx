@@ -3,11 +3,11 @@ import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
 export default ({ additionalFormInfo, setSubmission, style }) => {
-    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo.value[0].id);
+    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo.matters[0].id);
     const [logTimeEntry, setLogTimeEntry] = useState(true);
 
     useEffect(() => {
-        setSubmission({ matterId: additionalFormInfo.value[0].id, logTimeEntry })
+        setSubmission({ matterId: additionalFormInfo.matters[0].id, logTimeEntry })
     }, [])
 
     useEffect(() => {
@@ -19,8 +19,8 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
             <DropdownList
                 key='key'
                 style={style}
-                label={additionalFormInfo.label}
-                selectionItems={additionalFormInfo.value.map(d => { return { value: d.id, display: d.title } })}
+                label="Sync to matter"
+                selectionItems={additionalFormInfo.matters.map(d => { return { value: d.id, display: d.title } })}
                 presetSelection={additionalDropdownSelection}
                 onSelected={(selection) => {
                     setAdditionalDropdownSelection(selection);
@@ -29,7 +29,7 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
                 label="Log time entry"
                 defaultChecked={true}
                 onChange={(event) => {
-                    setLogTimeEntry(event.target.checked, logTimeEntry);
+                    setLogTimeEntry(event.target.checked);
                 }}
                 disableRipple
             />
