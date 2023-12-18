@@ -11,7 +11,7 @@ import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
 import { addLog, getCachedNote } from '../../core/log';
-import { createContact } from '../../core/contact';
+import { createContact, openContactPageById } from '../../core/contact';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
 import DropdownList from '../dropdownList';
@@ -233,7 +233,7 @@ export default () => {
         const contactOptions = logEvents[0].logProps.contacts.map(c => {
             return {
                 value: c.id,
-                display: c.name, 
+                display: c.name,
                 type: c.type ?? "",
                 secondaryDisplay: c.type ? `${c.type} - ${c.id}` : "",
                 name: c.name,
@@ -377,6 +377,12 @@ export default () => {
                 trailingLogInfo = [];
                 setLoadingCount(-1);
             }
+            if (!!newContactName) {
+                const { extensionUserSettings } = await chrome.storage.local.get({ extensionUserSettings: null });
+                if (extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it') == null) || extensionUserSettings.find(e => e.name === 'Open contact web page after creating it').value) {
+                    openContactPageById({ id: newCreatedContactId, type: newContactType });
+                }
+            }
         }
         catch (e) {
             console.log(e);
@@ -503,7 +509,7 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {selectedContact === 'createPlaceholderContact' && !!config.platformsWithDifferentContactType[platform] && 
+                            {selectedContact === 'createPlaceholderContact' && !!config.platformsWithDifferentContactType[platform] &&
                                 <ElementContainer>
                                     <DropdownList
                                         key='key'

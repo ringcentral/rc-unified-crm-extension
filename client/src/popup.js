@@ -714,6 +714,10 @@ function getServiceConfig(serviceName) {
       {
         name: 'Open contact web page from incoming call',
         value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value ?? false)
+      },
+      {
+        name: 'Open contact web page after creating it',
+        value: !!extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it')?.value ?? true)
       }
     ],
 

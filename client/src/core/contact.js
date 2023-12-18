@@ -63,6 +63,18 @@ async function openContactPage({ phoneNumber }) {
     platformModule.openContactPage(platformInfo['platform-info'].hostname, contactInfo[0]);
 }
 
+async function openContactPageById({ id, type }) {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    const platformModule = await getModule();
+    let platformInfo = await chrome.storage.local.get('platform-info');
+    if (platformInfo['platform-info'].hostname === 'temp') {
+        const hostnameRes = await axios.get(`${config.serverUrl}/hostname?jwtToken=${rcUnifiedCrmExtJwt}`);
+        platformInfo['platform-info'].hostname = hostnameRes.data;
+        await chrome.storage.local.set(platformInfo);
+    }
+    platformModule.openContactPage(platformInfo['platform-info'].hostname, { id, type });
+}
+
 async function getModule() {
     const platformInfo = await chrome.storage.local.get('platform-info');
     switch (platformInfo['platform-info'].platformName) {
@@ -82,3 +94,4 @@ async function getModule() {
 exports.getContact = getContact;
 exports.createContact = createContact;
 exports.openContactPage = openContactPage;
+exports.openContactPageById = openContactPageById;
