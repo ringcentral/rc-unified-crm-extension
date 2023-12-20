@@ -60,7 +60,9 @@ async function openContactPage({ phoneNumber }) {
         platformInfo['platform-info'].hostname = hostnameRes.data;
         await chrome.storage.local.set(platformInfo);
     }
-    platformModule.openContactPage(platformInfo['platform-info'].hostname, contactInfo[0]);
+    for (const c of contactInfo) {
+        platformModule.openContactPage(platformInfo['platform-info'].hostname, c);
+    }
 }
 
 async function openContactPageById({ id, type }) {
