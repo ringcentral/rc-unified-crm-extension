@@ -2,6 +2,8 @@
 
 The following content is intended for the every-day user of the Unified CRM extension. It describes all of the major features provided by the extension, and how to address common needs users have.
 
+[Release notes](./release-notes.md)
+
 ## Accessing the extension to make calls
 
 The Unified CRM extension makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
@@ -48,19 +50,13 @@ The Unified CRM extension can be configured to log calls automatically so that y
 * **Auto pop up call logging page after call**. This determines if you will be prompted to enter notes or not. 
 * **Auto log with countdown**. This determines how long the extension will wait for you to begin entering notes before logging the call automatically. 
 
-**Creating contact records prior to logging calls**
-
-Calls can currently only logged if a contact record in the CRM can be found with the associated phone number. If you find that you cannot log a call we recommend you do the following:
-
-* Log into your CRM
-* Create a contact record
-* Associate with that contact the phone number as it appears in your RingCentral call history. This is typically in the following format: `+1 (###) ###-####`.
+*Remember: calls from unknown contact won't trigger auto pop up nor auto log. For those calls, users can only manually log them along with the action to create new contacts for them.*
 
 **How do you know if a contact record has been found?**
 
 You will know if a contact record has been found if you see a contact's name in the call history tab of the Unified CRM extension. If you see a phone number only, chances are a contact record could not be found. 
 
-*Remember: you can only log calls if a contact record for that phone call can be found.*
+*Pro tip: you can still log the call as long as you fill in a contact name in the call log form for the extension to create a placeholder contact and then log the call against it*
 
 **Limitations**
 
@@ -72,7 +68,7 @@ Using the embedded phone provided by the Unified CRM extension one can easily se
 
 There are two ways to change your status:
 
-* Click the presence indicator in the upper-lefthand corner of the embedded dialer
+* Click the presence indicator in the upper-left corner of the embedded dialer
 
      ![Change presence](img/presence.png)
 
