@@ -12,9 +12,12 @@ In order to determine which CRM to connect to, you need to launch the extension 
 
 ## Unable to find contact
 
-One of the most common challenges arises from phone calls for which a correspondong contact record in the CRM cannot be found. However, you know for sure the contact exists.
+One of the most common challenges arises from phone calls for which a corresponding contact record in the CRM cannot be found. However, you know for sure the contact exists.
 
-When this happens it is almost certainly related to a failed lookup of the contact based on the given phone number. A lookup can fail in some CRMs if the phone number stored in the CRM does not EXACTLY match the phone number as seen in the Unified CRM extension. This is due to limitations in the connected CRMs' APIs. 
+When this happens it is almost certainly related to a failed lookup of the contact based on the given phone number. A lookup can fail in some CRMs:
+
+1.  If the phone number stored in the CRM does not EXACTLY match the phone number as seen in the Unified CRM extension. This is due to limitations in the connected CRMs' APIs. 
+2.  If you have just created it and the CRM server usually doesn't reflect the change immediately. Some CRMs have refresh clock to update all changes every X seconds/minutes. So if it's just created and can be seen on CRM webpages, please wait for a couple of minutes and it should then be fetched to the extension.
 
 There are two ways to fix the issue:
 
