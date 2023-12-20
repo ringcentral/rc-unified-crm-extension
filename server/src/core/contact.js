@@ -54,7 +54,7 @@ async function getContactV2({ platform, userId, phoneNumber, overridingFormat })
                 break;
         }
         const contactInfo = await platformModule.getContactV2({ user, authHeader, phoneNumber, overridingFormat });
-        if (contactInfo != null) {
+        if (contactInfo != null && contactInfo.length > 0) {
             return { successful: true, message: '', contact: contactInfo };
         }
         else {
