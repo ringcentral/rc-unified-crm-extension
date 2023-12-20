@@ -13,7 +13,17 @@ const Select = styled(RcSelect)`
 }
 `;
 
-export default ({ selectionItems, presetSelection, onSelected, label, style, notShowNone = false }) => {
+const Container = styled.div`
+font-size: 0.8rem;
+font-weight: 700;
+font-family: Lato, Helvetica, Arial, sans-serif;
+line-height: 16px;
+color: #666666;
+padding: 3px 0px;
+width: 100%;
+`;
+
+export default ({ selectionItems, presetSelection, onSelected, label, notShowNone: notShowNoneAsOption = false }) => {
     const [selection, setSelection] = useState(presetSelection);
 
     function onChange(event) {
@@ -25,7 +35,7 @@ export default ({ selectionItems, presetSelection, onSelected, label, style, not
         const itemElements = hasSecondaryDisplay ?
             items.map(i => { return <RcMenuItem key={i.value} value={i.value}><RcListItemText primary={i.display} secondary={i.secondaryDisplay} /></RcMenuItem > }) :
             items.map(i => { return <RcMenuItem key={i.value} value={i.value}>{i.display}</RcMenuItem > });
-        if (!notShowNone) {
+        if (!notShowNoneAsOption) {
             // Preset to first item, add additional item as none/null
             itemElements.push(<RcMenuItem key='none' value='none'>none</RcMenuItem >);
         }
@@ -37,7 +47,7 @@ export default ({ selectionItems, presetSelection, onSelected, label, style, not
     }, [presetSelection])
 
     return (
-        <div style={style}>
+        <Container>
             <Select
                 label={label}
                 onChange={onChange}
@@ -46,6 +56,6 @@ export default ({ selectionItems, presetSelection, onSelected, label, style, not
             >
                 {getItems(selectionItems)}
             </Select>
-        </div>
+        </Container>
     );
 }

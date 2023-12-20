@@ -41,11 +41,6 @@ width: 100%;
 align-items: center;
 `;
 
-const Title = styled(RcText)`
-color: #2f2f2f;
-font-size: 20px;
-`;
-
 const ElementContainer = styled.div`
 padding: 3px 20px;
 `;
@@ -116,14 +111,6 @@ height: auto;
 text-wrap: wrap;
 line-height: 15px;
 `;
-
-const labelStyle = {
-    fontSize: '0.8rem',
-    fontWeight: '700',
-    fontFamily: 'Lato,Helvetica,Arial,sans-serif',
-    lineHeight: '16px',
-    color: '#666666'
-}
 
 const logEvents = [];
 let trailingLogInfo = [];
@@ -446,7 +433,10 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <Title>{logType === 'Call' ? logType : 'Conversation'} details</Title>
+                            <RcText
+                                variant='title1'
+                            >{logType === 'Call' ? logType : 'Conversation'} details
+                            </RcText>
                             <RcButton
                                 onClick={onSubmission}
                                 variant="plain"
@@ -456,7 +446,7 @@ export default () => {
                                 Save{countdownFinished ? '' : `(${countdown})`}
                             </RcButton>
                         </TopBar>
-                        <Divider color="action.grayDark" />
+                        <Divider size='bold' color="action.grayDark" />
                         <ContentContainer>
                             <ContentRow>
                                 <ElementContainer>
@@ -488,7 +478,6 @@ export default () => {
                                 <ElementContainer>
                                     <DropdownList
                                         key='key'
-                                        style={{ width: '100%' }}
                                         label='Contact'
                                         selectionItems={matchedContacts}
                                         presetSelection={selectedContact}
@@ -513,7 +502,6 @@ export default () => {
                                 <ElementContainer>
                                     <DropdownList
                                         key='key'
-                                        style={{ width: '100%' }}
                                         label='Contact type'
                                         selectionItems={config.platformsWithDifferentContactType[platform].map(t => { return { value: t, display: t } })}
                                         presetSelection={newContactType}
@@ -553,7 +541,6 @@ export default () => {
                                     <PipedriveAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
-                                        style={labelStyle}
                                     />
                                 </ElementContainer>
                             }
@@ -562,7 +549,6 @@ export default () => {
                                     <InsightlyAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
-                                        style={labelStyle}
                                     />
                                 </ElementContainer>
                             }
@@ -571,7 +557,6 @@ export default () => {
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
-                                        style={labelStyle}
                                     />
                                 </ElementContainer>
                             }
@@ -580,7 +565,6 @@ export default () => {
                                     <BullhornAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
-                                        style={labelStyle}
                                     />
                                 </ElementContainer>
                             }

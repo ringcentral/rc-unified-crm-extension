@@ -1,7 +1,7 @@
 import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
-export default ({ additionalFormInfo, setSubmission, style }) => {
+export default ({ additionalFormInfo, setSubmission }) => {
     const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState('');
 
     useEffect(() => {
@@ -22,7 +22,6 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
     return (
         <DropdownList
             key='key'
-            style={style}
             label={additionalFormInfo.label}
             selectionItems={additionalFormInfo.actions.map(d => { return { value: d.id, display: d.title } })}
             presetSelection={additionalDropdownSelection}

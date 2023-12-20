@@ -1,7 +1,7 @@
 import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
-export default ({ additionalFormInfo, setSubmission, style }) => {
+export default ({ additionalFormInfo, setSubmission }) => {
     const orgs = additionalFormInfo.links.filter(f => f.label === 'Organisation');
     const opportunities = additionalFormInfo.links.filter(f => f.label === 'Opportunity');
     const projects = additionalFormInfo.links.filter(f => f.label === 'Project');
@@ -21,7 +21,6 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
         <div>
             {orgs.length > 0 && <DropdownList
                 key='Organisation'
-                style={style}
                 label='Organisation'
                 selectionItems={orgs.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={orgSelection}
@@ -35,7 +34,6 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
                 }} />}
             {opportunities.length > 0 && <DropdownList
                 key='Opportunity'
-                style={style}
                 label='Opportunity'
                 selectionItems={opportunities.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={opportunitySelection}
@@ -49,7 +47,6 @@ export default ({ additionalFormInfo, setSubmission, style }) => {
                 }} />}
             {projects.length > 0 && <DropdownList
                 key='Project'
-                style={style}
                 label='Project'
                 selectionItems={projects.map(d => { return { value: d.id, display: d.name } })}
                 presetSelection={projectSelection}
