@@ -34,6 +34,19 @@ And with that, you will be connected to Clio and ready to begin using the integr
 
 Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Clio, is to go our [advanced settings](./configuration.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Clio, is to go to [advanced settings](./configuration.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
 
-Making this change will improve your experience with the extension considerably. 
+Making this change will improve your experience with the extension considerably. Here are a few things to bear in mind:
+
+* Every phone number format you add results in another search request to Clio, which could lead to performance issues.
+* Searches are performed using each of the formats in order. The first phone number that is found will stop the search process. So place the formats that are most likely to yield results first in order. 
+
+### Improving contact lookup speeds
+
+Ideally, phone numbers in Clio would all be stored using the E.164 format standard. This would eliminate the need to resort to searching using different formats. Therefore, one thing you can do within your company is socialise with Clio users the value of storing phone numbers in a specific format. 
+
+!!! tip "Use Zapier to automatically format phone numbers"
+    Zapier is a great automation tool that can help your organization [reformat phone numbers to E.164](https://zapier.com/apps/clio/integrations/formatter/1481647/format-numbers-for-new-clio-contacts-with-formatter-by-zapier) for all new contacts moving forward.
+    ![Clio number formatter Zap](img/clio-zapier.png)
+
+Finally, you can improve performance by going back to existing contacts and updating their phone numbers. This can be a laborious process, but will yield the best results in the long term. 
