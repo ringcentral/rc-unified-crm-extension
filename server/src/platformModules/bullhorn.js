@@ -253,7 +253,7 @@ async function getContactV2({ user, phoneNumber }) {
     const contactPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of contactPersonInfo.data.data) {
         matchedContactInfo.push({
@@ -268,7 +268,7 @@ async function getContactV2({ user, phoneNumber }) {
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of candidatePersonInfo.data.data) {
         matchedContactInfo.push({
@@ -308,20 +308,21 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             const companyInfo = await axios.post(
                 `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name`,
                 {
-                    query: "name:RingCentral_ExtensionCRM_Placeholder_Company"
+                    query: "name:RingCentral_CRM_Extension_Placeholder_Company"
                 },
                 {
                     headers: { 'Authorization': authHeader }
                 }
             )
-            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_ExtensionCRM_Placeholder_Company') {
+            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_CRM_Extension_Placeholder_Company') {
                 companyId = companyInfo.data.data[0].id;
             }
             else {
                 const createCompany = await axios.put(
                     `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
                     {
-                        name: "RingCentral_ExtensionCRM_Placeholder_Company"
+                        name: "RingCentral_CRM_Extension_Placeholder_Company",
+                        companyDescription: "<strong><span style=\"color: rgb(231,76,60);\">This is a placeholder company for RingCentral CRM Extension to create new contacts under. Further actions need to be done to relocate new contacts from this company to a real company.</span></strong>"
                     },
                     {
                         headers: { 'Authorization': authHeader }
