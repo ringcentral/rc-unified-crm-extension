@@ -422,7 +422,7 @@ window.addEventListener('message', async (e) => {
               if (singleCallLog[data.body.call.sessionId].matched) {
                 showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
               }
-              else if (!callContactMatched) {
+              else if (!callContactMatched && !!data.body.triggerType) {
                 showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
               }
               else {
@@ -436,7 +436,7 @@ window.addEventListener('message', async (e) => {
                   logProps: {
                     logType: 'Call',
                     logInfo: data.body.call,
-                    contacts: callMatchedContact,
+                    contacts: callMatchedContact ?? [],
                     crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
                   },

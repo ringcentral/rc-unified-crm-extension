@@ -253,7 +253,7 @@ async function getContactV2({ user, phoneNumber }) {
     const contactPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}`
         });
     for (const result of contactPersonInfo.data.data) {
         matchedContactInfo.push({

@@ -469,6 +469,11 @@ export default () => {
                                     <ContactWarningMessage>No contact found. Please provide a name, and a placeholder contact will be made for you.</ContactWarningMessage>
                                 </ElementContainer>
                             }
+                            {matchedContacts.length === 1 && (platform === 'clio' || platform === 'insightly') &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>If the contact already exists on {platform}. Please refer to "Unable to find contact" section on https://ringcentral.github.io/rc-unified-crm-extension/support/</ContactWarningMessage>
+                                </ElementContainer>
+                            }
                             {matchedContacts.length > 2 &&
                                 <ElementContainer>
                                     <ContactWarningMessage>Multiple contacts found. Please select the contact to associate this activity with.</ContactWarningMessage>
