@@ -32,11 +32,13 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         setAuth(true);
         showNotification({ level: 'success', message: 'Successfully authorized.', ttl: 3000 });
         await chrome.storage.local.set({
-            ['rcUnifiedCrmExtJwt']: res.data
+            ['rcUnifiedCrmExtJwt']: res.data.jwtToken
         });
-        await getCRMUserInfo();
+        const crmUserInfo = { name: res.data.name };
+        await chrome.storage.local.set({ crmUserInfo });
+        setAuth(true, crmUserInfo.name);
         trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
-        return res.data;
+        return res.data.jwtToken;
     }
     catch (e) {
         console.log(e);
@@ -59,13 +61,15 @@ async function onAuthCallback(callbackUri) {
         oauthCallbackUrl = `${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`;
     }
     const res = await axios.get(oauthCallbackUrl);
-    setAuth(true);
+    const crmUserInfo = { name: res.data.name };
+    await chrome.storage.local.set({ crmUserInfo });
+    setAuth(true, crmUserInfo.name);
     showNotification({ level: 'success', message: 'Successfully authorized.', ttl: 3000 });
     await chrome.storage.local.set({
-        ['rcUnifiedCrmExtJwt']: res.data
+        ['rcUnifiedCrmExtJwt']: res.data.jwtToken
     });
     trackCrmLogin({ rcAccountId: rcUserInfo.rcAccountId });
-    return res.data;
+    return res.data.jwtToken;
 }
 
 async function unAuthorize(rcUnifiedCrmExtJwt) {
@@ -97,24 +101,9 @@ function setAuth(auth, accountName) {
     });
 }
 
-async function getCRMUserInfo() {
-    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    if (!!rcUnifiedCrmExtJwt) {
-      // get crm user info
-      crmUserInfo = (await chrome.storage.local.get({ crmUserInfo: null }));
-      if (!!crmUserInfo) {
-        const { data: crmUserInfoResponse } = await axios.get(`${config.serverUrl}/crmUserInfo?jwtToken=${rcUnifiedCrmExtJwt}`);
-        crmUserInfo = crmUserInfoResponse;
-        await chrome.storage.local.set({ crmUserInfo });
-        setAuth(true, crmUserInfo.name);
-      }
-    }
-  }
-
 exports.submitPlatformSelection = submitPlatformSelection;
 exports.apiKeyLogin = apiKeyLogin;
 exports.onAuthCallback = onAuthCallback;
 exports.unAuthorize = unAuthorize;
 exports.checkAuth = checkAuth;
 exports.setAuth = setAuth;
-exports.getCRMUserInfo = getCRMUserInfo;

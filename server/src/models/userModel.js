@@ -7,9 +7,6 @@ exports.UserModel = sequelize.define('users', {
     type: Sequelize.STRING,
     primaryKey: true,
   },
-  name: {
-    type: Sequelize.STRING,
-  },
   hostname: {
     type: Sequelize.STRING,
   },

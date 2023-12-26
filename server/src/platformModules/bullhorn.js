@@ -84,7 +84,7 @@ async function unAuthorize({ id }) {
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const commentAction = additionalSubmission.commentAction ?? '';
-    const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
+    const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
         comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: commentAction,
@@ -143,7 +143,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const commentAction = additionalSubmission.commentAction ?? '';
-    const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
+    const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
         comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
         action: commentAction,

@@ -60,7 +60,7 @@ app.get('/crmUserInfo', async function (req, res) {
             if (!!!user) {
                 res.status(400).send('unknown user');
             }
-            res.status(200).send({ name: user.name });
+            res.status(200).send({ name: '' });
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -159,7 +159,7 @@ app.get('/oauth-callback', async function (req, res) {
             rcUserNumber: req.query.rcUserNumber.toString(),
             platform: platform
         });
-        res.status(200).send(jwtToken);
+        res.status(200).send({ jwtToken, name: userInfo.name });
     }
     catch (e) {
         console.log(e);
@@ -197,7 +197,7 @@ app.post('/apiKeyLogin', async function (req, res) {
             rcUserNumber: req.body.rcUserNumber.toString(),
             platform: platform
         });
-        res.status(200).send(jwtToken);
+        res.status(200).send({ jwtToken, name: userInfo.name });
     }
     catch (e) {
         console.log(e);

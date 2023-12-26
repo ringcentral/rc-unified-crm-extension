@@ -149,7 +149,6 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            await auth.getCRMUserInfo();
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -606,7 +605,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
     else if (request.platform === 'thirdParty') {
       await auth.onAuthCallback(request.callbackUri);
-      await auth.getCRMUserInfo();
     }
     sendResponse({ result: 'ok' });
   }
@@ -659,7 +657,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
-    await auth.getCRMUserInfo();
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'

@@ -324,6 +324,10 @@ export default () => {
                 }
             }
             let loggedMessageCount = 0;
+            const { crmUserInfo } = await chrome.storage.local.get({ crmUserInfo: null });
+            if (!!crmUserInfo && !!crmUserInfo.name) {
+                additionalSubmission['crmUserName'] = crmUserInfo.name;
+            }
             await addLog({
                 logType,
                 logInfo,
