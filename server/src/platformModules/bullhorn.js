@@ -322,7 +322,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
                     {
                         name: "RingCentral_CRM_Extension_Placeholder_Company",
-                        companyDescription: "<strong><span style=\"color: rgb(231,76,60);\">This is a placeholder company for RingCentral CRM Extension to create new contacts under. Further actions need to be done to relocate new contacts from this company to a real company.</span></strong>"
+                        companyDescription: "<strong><span style=\"color: rgb(231,76,60);\">This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records. </span></strong>"
                     },
                     {
                         headers: { 'Authorization': authHeader }

@@ -6,6 +6,7 @@ import {
     RcIconButton,
     RcDivider,
     RcButton,
+    RcLink,
 } from '@ringcentral/juno';
 import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
@@ -470,12 +471,12 @@ export default () => {
                             }
                             {matchedContacts.length === 1 &&
                                 <ElementContainer>
-                                    <ContactWarningMessage>No contact found. Please provide a name, and a placeholder contact will be made for you.</ContactWarningMessage>
+                                    <ContactWarningMessage>No contact found. Enter a name to have a placeholder contact made for you.</ContactWarningMessage>
                                 </ElementContainer>
                             }
                             {matchedContacts.length === 1 && (platform === 'clio' || platform === 'insightly') &&
                                 <ElementContainer>
-                                    <ContactWarningMessage>If the contact already exists on {platform}. Please refer to "Unable to find contact" section on https://ringcentral.github.io/rc-unified-crm-extension/support/</ContactWarningMessage>
+                                    <ContactWarningMessage>If the contact already exists.  consult our <RcLink variant="caption1" target='_blank' href='https://ringcentral.github.io/rc-unified-crm-extension/support/'>{platform} documentation</RcLink> to fix.</ContactWarningMessage>
                                 </ElementContainer>
                             }
                             {matchedContacts.length > 2 &&
