@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { UserModel } = require('../models/userModel');
-const Op = require('sequelize').Op;
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
