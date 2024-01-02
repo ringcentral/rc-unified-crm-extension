@@ -168,7 +168,7 @@ export default () => {
                     else {
                         // no trigger type means manual trigger
                         logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
-                        await setupModal();
+                        await setupModal({ crmPlatform: platform });
                         trailingLogInfo = trailingSMSLogInfo;
                         let messageCount = logProps.logInfo.messages.length;
                         setMessageStartDate(logProps.logInfo.date);
