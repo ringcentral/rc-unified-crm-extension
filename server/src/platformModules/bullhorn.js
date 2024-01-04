@@ -188,7 +188,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     personInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
@@ -204,7 +204,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     personInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
@@ -252,7 +252,7 @@ async function getContactV2({ user, phoneNumber }) {
     const contactPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of contactPersonInfo.data.data) {
         matchedContactInfo.push({
@@ -267,7 +267,7 @@ async function getContactV2({ user, phoneNumber }) {
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of candidatePersonInfo.data.data) {
         matchedContactInfo.push({
