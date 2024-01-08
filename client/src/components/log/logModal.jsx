@@ -117,7 +117,7 @@ const logEvents = [];
 let trailingLogInfo = [];
 let countdownIntervalId = '';
 let crmUserName = '';
-let additionalSubmission = null;
+let additionalSubmission = {};
 
 export default () => {
 
