@@ -212,4 +212,13 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       pipedriveCallbackUri
     });
   }
+  if (request.type === 'notifyToReconnectCRM') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: '/images/logo32.png',
+      title: `Please re-login with your CRM account`,
+      message: "There might be a change to your CRM login, please go to setting page and Logout then Connect your CRM account again. Sorry for the inconvenience.",
+      priority: 1
+    });
+  }
 });
