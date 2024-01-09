@@ -6,3 +6,7 @@
 - Feature: Now support multiple matched contacts in call logging. Users can select target contact if it's a multiple match case
 - New setting - "Open contact web page after creating it": Auto open placeholder contact page so that users can do further editing more easily
 - UI: Polished the looking of some UIs
+
+## 0.8.1
+
+- Fix: Sign up button now opens RingCentral plan page
