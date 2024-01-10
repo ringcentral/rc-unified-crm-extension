@@ -36,7 +36,6 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
 async function getContactV2({ platform, userId, phoneNumber, overridingFormat }) {
     try {
         let user = await UserModel.findByPk(userId);
-        console.log(user)
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }

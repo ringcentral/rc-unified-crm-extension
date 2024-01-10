@@ -124,7 +124,18 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
+        const overridingContactId = incomingData.overridingContactId;
+        let contactInfo = null;
+        if (!!overridingContactId) {
+            contactInfo = {
+                overridingContactId,
+                type: incomingData.contactType ?? "",
+                name: incomingData.contactName ?? ""
+            };
+        }
+        else{     
+               contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
+        }
         if (contactInfo == null) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
@@ -174,7 +185,7 @@ async function getCallLog({ sessionIds }) {
                 sessionId
             }
         });
-        logs[sessionId] = { matched: callLog != null };
+        logs[sessionId] = { matched: callLog != null, logId: callLog?.thirdPartyLogId };
     }
     return { successful: true, logs };
 }
