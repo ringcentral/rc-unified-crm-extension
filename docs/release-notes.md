@@ -10,3 +10,8 @@
 ## 0.8.1
 
 - Fix: Sign up button now opens RingCentral plan page
+
+## 0.8.2
+
+- Fix: Message conversation log page open issue
+- Feature: Clicking log button for a logged call will open corresponding contact/log page

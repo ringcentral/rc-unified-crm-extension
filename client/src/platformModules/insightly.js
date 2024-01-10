@@ -7,4 +7,9 @@ function openContactPage(hostname, incomingCallContactInfo) {
     }
 }
 
+function openLogPage({ hostname, logId, contactType }) {
+    window.open(`https://${hostname}/list/${contactType}/?blade=/details/Event/${logId}`);
+}
+
 exports.openContactPage = openContactPage;
+exports.openLogPage = openLogPage;

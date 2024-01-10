@@ -300,17 +300,17 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
-            let newCreatedContactId = '';
+            let overridingContactId = '';
             if (!!newContactName) {
                 const createContactResp = await createContact({
                     phoneNumber,
                     newContactName,
                     newContactType
                 })
-                newCreatedContactId = createContactResp.contactInfo.id;
+                overridingContactId = createContactResp.contactInfo.id;
             }
             else {
-                newCreatedContactId = selectedContact;
+                overridingContactId = selectedContact;
             }
             // Case: when log page is open and recording link is updated
             if (!logInfo.recording?.link) {
@@ -336,7 +336,7 @@ export default () => {
                 isMain: true,
                 note,
                 additionalSubmission,
-                overridingContactId: newCreatedContactId,
+                overridingContactId,
                 contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
                 contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
             });
@@ -360,7 +360,8 @@ export default () => {
                         isToday: false,
                         isMain: false,
                         note,
-                        additionalSubmission
+                        additionalSubmission,
+                        overridingContactId
                     });
                     loggedMessageCount += extraLogInfo.messages.length;
                     setLoadingCount(loggedMessageCount);
@@ -372,7 +373,7 @@ export default () => {
             if (!!newContactName) {
                 const { extensionUserSettings } = await chrome.storage.local.get({ extensionUserSettings: null });
                 if (extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it') == null) || extensionUserSettings.find(e => e.name === 'Open contact web page after creating it').value) {
-                    openContactPageById({ id: newCreatedContactId, type: newContactType });
+                    openContactPageById({ id: overridingContactId, type: newContactType });
                 }
             }
         }
@@ -567,6 +568,7 @@ export default () => {
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
+                                        logType={logType}
                                     />
                                 </ElementContainer>
                             }
