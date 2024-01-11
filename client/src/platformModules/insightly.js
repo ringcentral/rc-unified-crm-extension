@@ -10,6 +10,10 @@ function openContactPage(hostname, incomingCallContactInfo) {
 function openLogPage({ hostname, logId, contactType }) {
     window.open(`https://${hostname}/list/${contactType}/?blade=/details/Event/${logId}`);
 }
+async function onUnauthorize(){
+
+}
 
 exports.openContactPage = openContactPage;
 exports.openLogPage = openLogPage;
+exports.onUnauthorize = onUnauthorize;

@@ -2,6 +2,11 @@ import axios from 'axios';
 import config from '../config.json';
 import { showNotification } from '../lib/util';
 import { trackCrmLogin, trackCrmLogout } from '../lib/analytics'
+import pipedriveModule from '../platformModules/pipedrive.js';
+import insightlyModule from '../platformModules/insightly.js';
+import clioModule from '../platformModules/clio.js';
+import redtailModule from '../platformModules/redtail';
+import bullhornModule from '../platformModules/bullhorn';
 
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({
@@ -76,6 +81,8 @@ async function unAuthorize(rcUnifiedCrmExtJwt) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
+        const platformModule = await getModule();
+        await platformModule.onUnauthorize();
         trackCrmLogout({ rcAccountId: rcUserInfo.rcAccountId })
     }
     catch (e) {
@@ -99,6 +106,22 @@ function setAuth(auth, accountName) {
         authorized: auth,
         authorizedAccount: accountName ?? ''
     });
+}
+
+async function getModule() {
+    const platformInfo = await chrome.storage.local.get('platform-info');
+    switch (platformInfo['platform-info'].platformName) {
+        case 'pipedrive':
+            return pipedriveModule;
+        case 'insightly':
+            return insightlyModule;
+        case 'clio':
+            return clioModule;
+        case 'redtail':
+            return redtailModule;
+        case 'bullhorn':
+            return bullhornModule;
+    }
 }
 
 exports.submitPlatformSelection = submitPlatformSelection;
