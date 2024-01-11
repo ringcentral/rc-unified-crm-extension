@@ -274,6 +274,14 @@ window.addEventListener('message', async (e) => {
           if (data.path !== '/') {
             trackPage(data.path);
           }
+          if (!!data.path) {
+            if (data.path.startsWith('/conversations/')) {
+              window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
+            }
+            else if(data.path.startsWith('/calls/active/')){
+              window.postMessage({ type: 'rc-expandable-call-note-open' }, '*');
+            }
+          }
           break;
         case 'rc-post-message-request':
           switch (data.path) {
