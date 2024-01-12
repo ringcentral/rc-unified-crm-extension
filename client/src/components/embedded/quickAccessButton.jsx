@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RcIconButton } from '@ringcentral/juno';
-import { Dialer, RcCloudContact } from '@ringcentral/juno-icon';
+import activeLogo from '../../images/activeLogo.svg';
+import defaultLogo from '../../images/defaultLogo.svg';
 
 function QuickAccessButton(
     {
@@ -11,10 +12,10 @@ function QuickAccessButton(
     const [showDialer, setShowDialer] = useState(false);
     return (
         <RcIconButton
-            symbol={showDialer ? Dialer : RcCloudContact} 
+            symbol={showDialer ? activeLogo : defaultLogo}
             variant="contained"
             size='large'
-            style={{ padding: '0px', background: '#066FAC' }}
+            style={showDialer ? { padding: '0px', background: '#FF7A00' } : { padding: '0px', background: '#FFFFFF' }}
             onClick={() => {
                 chrome.runtime.sendMessage({ type: "openPopupWindow" });
             }}

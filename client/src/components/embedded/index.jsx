@@ -3,7 +3,7 @@ import QuickAccessButton from './quickAccessButton';
 import { RcButton, RcIconButton } from '@ringcentral/juno';
 import SetupButton from './setupButton';
 import Draggable from 'react-draggable';
-import DragImage from '../../images/dragImage_blue.png';
+import DragImage from '../../images/dragImage_orange.png';
 import { ArrowUp2, ArrowDown2 } from '@ringcentral/juno-icon';
 import { isObjectEmpty } from '../../lib/util';
 import Navigator from './navigator';
@@ -37,7 +37,7 @@ const navigatorBadgeStyle = {
     position: 'absolute',
     top: '-4px',
     right: '20px',
-    background: '#066fac',
+    background: '#FF7A00',
     borderRadius: ' 50%',
     height: '16px',
     width: '16px',

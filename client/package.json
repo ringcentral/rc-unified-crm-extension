@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.15.9",
-    "esbuild-copy-static-files": "^0.1.0"
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-plugin-svgr": "^1.1.0"
   }
 }
