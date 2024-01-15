@@ -405,6 +405,7 @@ export default () => {
     }
 
     function onChangeSelectedContact(selection) {
+        updateAdditionalSubmission({});
         setSelectedContact(selection);
         stopCountDown();
     }

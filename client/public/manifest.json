@@ -13,6 +13,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
@@ -34,6 +35,7 @@
         "/c2d/*"
       ],
       "matches": [
+        "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
