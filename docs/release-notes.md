@@ -15,3 +15,10 @@
 
 - Fix: Message conversation log page open issue
 - Feature: Clicking log button for a logged call will open corresponding contact/log page
+
+## 0.8.3
+
+- Change: Updated logo icon
+- Fix: SMS log issue in multiple contacts matched case
+- Fix: In-call note button will disappear if user opens message conversation so to not cover SMS send button
+- Bullhorn: Clear user session info when log out
