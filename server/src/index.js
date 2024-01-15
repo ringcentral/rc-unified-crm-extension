@@ -168,6 +168,11 @@ app.get('/oauth-callback', async function (req, res) {
 })
 app.get('/oauth-callbackV2', async function (req, res) {
     try {
+        if(req.query.callbackUri === 'undefined')
+        {
+            res.status(400).send('missing callbackUri');
+            return;
+        }
         const platform = req.query.state.split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
