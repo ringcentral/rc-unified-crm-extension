@@ -407,6 +407,7 @@ export default () => {
     function onChangeSelectedContact(selection) {
         updateAdditionalSubmission({});
         setSelectedContact(selection);
+        setAdditionalFormInfo(matchedContacts.find(m => m.value == selection)?.additionalFormInfo);
         stopCountDown();
     }
 
