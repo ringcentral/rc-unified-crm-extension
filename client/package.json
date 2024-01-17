@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-client",
-  "version": "0.7.7",
+  "version": "0.8.3",
   "description": "![image](https://user-images.githubusercontent.com/7036536/190325756-35ef367d-1557-4833-84aa-b09f5d6717ab.png)",
   "main": "background.js",
   "scripts": {
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.15.9",
-    "esbuild-copy-static-files": "^0.1.0"
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-plugin-svgr": "^1.1.0"
   }
 }

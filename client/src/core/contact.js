@@ -34,6 +34,12 @@ async function createContact({ phoneNumber, newContactName, newContactType }) {
                 newContactType
             }
         );
+        if (!!!contactRes.data?.successful && contactRes.data?.message === 'Failed to create contact.') {
+            await chrome.runtime.sendMessage(
+                {
+                    type: 'notifyToReconnectCRM'
+                })
+        }
         // force trigger contact matcher
         document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
             type: 'rc-adapter-trigger-contact-match',

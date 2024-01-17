@@ -41,8 +41,10 @@ export default () => {
         }
         if (e.data.type === 'rc-expandable-call-note-open') {
             setIsOpen(true);
-            setNote('');
-            setSessionId(e.data.sessionId);
+            if(!!e.data.sessionId){
+                setNote('');
+                setSessionId(e.data.sessionId);
+            }
         }
         if (e.data.type === 'rc-expandable-call-note-terminate') {
             setIsDrawerOpen(false);

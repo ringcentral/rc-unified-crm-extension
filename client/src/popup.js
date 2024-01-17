@@ -1,5 +1,5 @@
 const auth = require('./core/auth');
-const { checkLog, updateLog } = require('./core/log');
+const { checkLog, openLog, updateLog } = require('./core/log');
 const { getContact, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
@@ -28,6 +28,7 @@ window.__ON_RC_POPUP_WINDOW = 1;
 let registered = false;
 let platform = null;
 let platformName = '';
+let platformHostname = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
@@ -132,6 +133,7 @@ window.addEventListener('message', async (e) => {
           if (!registered) {
             const platformInfo = await chrome.storage.local.get('platform-info');
             platformName = platformInfo['platform-info'].platformName;
+            platformHostname = platformInfo['platform-info'].hostname;
             platform = config.platforms[platformName];
             registered = true;
             document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
@@ -149,7 +151,6 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-            await auth.getCRMUserInfo();
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -272,6 +273,14 @@ window.addEventListener('message', async (e) => {
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
             trackPage(data.path);
+          }
+          if (!!data.path) {
+            if (data.path.startsWith('/conversations/')) {
+              window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
+            }
+            else if(data.path.startsWith('/calls/active/')){
+              window.postMessage({ type: 'rc-expandable-call-note-open' }, '*');
+            }
           }
           break;
         case 'rc-post-message-request':
@@ -420,28 +429,37 @@ window.addEventListener('message', async (e) => {
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
               if (singleCallLog[data.body.call.sessionId].matched) {
-                showNotification({ level: 'warning', message: 'Call log already exists', ttl: 3000 });
-              }
-              else if (!callContactMatched) {
-                showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
+                if (config.platforms[platformName].canOpenLogPage) {
+                  for (const c of callMatchedContact) {
+                    openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                  }
+                }
+                else {
+                  openContactPage({ phoneNumber: contactPhoneNumber });
+                }
               }
               else {
-                // get crm user info
-                const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
-                // add your codes here to log call to your service
-                window.postMessage({
-                  type: 'rc-log-modal',
-                  platform: platformName,
-                  isAccumulative: false,
-                  logProps: {
-                    logType: 'Call',
-                    logInfo: data.body.call,
-                    contacts: callMatchedContact,
-                    crmUserInfo,
-                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
-                  },
-                  triggerType: data.body.triggerType
-                }, '*')
+                if (!callContactMatched && !!data.body.triggerType) {
+                  showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
+                }
+                else {
+                  // get crm user info
+                  const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
+                  // add your codes here to log call to your service
+                  window.postMessage({
+                    type: 'rc-log-modal',
+                    platform: platformName,
+                    isAccumulative: false,
+                    logProps: {
+                      logType: 'Call',
+                      logInfo: data.body.call,
+                      contacts: callMatchedContact ?? [],
+                      crmUserInfo,
+                      autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                    },
+                    triggerType: data.body.triggerType
+                  }, '*')
+                }
               }
               // response to widget
               responseMessage(
@@ -501,6 +519,8 @@ window.addEventListener('message', async (e) => {
                 showNotification({ level: 'warning', message: getContactMatchResult.message, ttl: 3000 });
               }
               else {
+                // get crm user info
+                const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
                 // add your codes here to log call to your service
                 window.postMessage({
                   type: 'rc-log-modal',
@@ -511,6 +531,8 @@ window.addEventListener('message', async (e) => {
                     logType: 'Message',
                     logInfo: data.body.conversation,
                     contactName: getContactMatchResult.contactInfo.name,
+                    contacts: getContactMatchResult.contactInfo ?? [],
+                    crmUserInfo,
                     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
                     isToday
                   },
@@ -606,7 +628,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
     else if (request.platform === 'thirdParty') {
       await auth.onAuthCallback(request.callbackUri);
-      await auth.getCRMUserInfo();
     }
     sendResponse({ result: 'ok' });
   }
@@ -659,7 +680,6 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
-    await auth.getCRMUserInfo();
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'

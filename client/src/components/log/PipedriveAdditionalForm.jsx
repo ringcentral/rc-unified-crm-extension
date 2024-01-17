@@ -6,7 +6,8 @@ export default ({ additionalFormInfo, setSubmission }) => {
 
     useEffect(() => {
         setSubmission({ dealId: additionalFormInfo.deals[0].id })
-    }, [])
+        setAdditionalDropdownSelection(additionalFormInfo.deals[0].id);
+    }, [additionalFormInfo])
 
     return (
         <DropdownList
@@ -16,7 +17,7 @@ export default ({ additionalFormInfo, setSubmission }) => {
             presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
-                selection ? setSubmission({ dealId: selection }) : setSubmission(null);
+                selection ? setSubmission({ dealId: selection }) : setSubmission({});
             }} />
     );
 }

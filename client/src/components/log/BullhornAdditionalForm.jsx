@@ -27,7 +27,7 @@ export default ({ additionalFormInfo, setSubmission }) => {
             presetSelection={additionalDropdownSelection}
             onSelected={(selection) => {
                 setAdditionalDropdownSelection(selection);
-                selection ? setSubmission({ commentAction: selection }) : setSubmission(null);
+                selection ? setSubmission({ commentAction: selection }) : setSubmission({});
             }} />
     );
 }

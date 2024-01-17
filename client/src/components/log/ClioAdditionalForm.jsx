@@ -2,7 +2,7 @@ import { RcCheckbox } from '@ringcentral/juno';
 import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
-export default ({ additionalFormInfo, setSubmission }) => {
+export default ({ additionalFormInfo, setSubmission, logType }) => {
     const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo.matters[0].id);
     const [logTimeEntry, setLogTimeEntry] = useState(true);
 
@@ -24,14 +24,15 @@ export default ({ additionalFormInfo, setSubmission }) => {
                 onSelected={(selection) => {
                     setAdditionalDropdownSelection(selection);
                 }} />
-            <RcCheckbox
-                label="Log time entry"
-                defaultChecked={true}
-                onChange={(event) => {
-                    setLogTimeEntry(event.target.checked);
-                }}
-                disableRipple
-            />
+            {logType === 'Call' &&
+                <RcCheckbox
+                    label="Log time entry"
+                    defaultChecked={true}
+                    onChange={(event) => {
+                        setLogTimeEntry(event.target.checked);
+                    }}
+                    disableRipple
+                />}
         </div>
     );
 }

@@ -170,7 +170,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const postBody = {
         user_id: user.id,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${contactInfo.name}(${message.to[0].phoneNumber})`,
-        person_id: contactInfo.id,
+        person_id: contactInfo.overridingContactId ?? contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
         note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,

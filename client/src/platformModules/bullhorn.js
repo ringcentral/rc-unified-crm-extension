@@ -11,4 +11,10 @@ async function openBullhornContactPage({ contactType, contactId }) {
     }
 }
 
+async function onUnauthorize(){
+    await chrome.storage.local.remove('crm_extension_bullhornUsername');
+    await chrome.storage.local.remove('crm_extension_bullhorn_user_urls');
+}
+
 exports.openContactPage = openContactPage;
+exports.onUnauthorize = onUnauthorize;

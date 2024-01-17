@@ -15,3 +15,5 @@ server/serverless-deploy/*
 client/dist.zip
 client/src/config.json
 /server/test.js
+/devFlow.puml
+/devGuideDraft.md

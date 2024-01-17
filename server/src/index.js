@@ -166,6 +166,62 @@ app.get('/oauth-callback', async function (req, res) {
         res.status(400).send(e);
     }
 })
+app.get('/oauth-callbackV2', async function (req, res) {
+    try {
+        if(req.query.callbackUri === 'undefined')
+        {
+            res.status(400).send('missing callbackUri');
+            return;
+        }
+        const platform = req.query.state.split('platform=')[1];
+        const hostname = req.query.hostname;
+        const tokenUrl = req.query.tokenUrl;
+        if (!platform) {
+            throw 'missing platform name';
+        }
+        const platformModule = require(`./platformModules/${platform}`);
+        const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
+        const oauthApp = oauth.getOAuthApp(oauthInfo);
+        let overridingHeader = null;
+        let overridingQuery = null;
+        if (platform === 'bullhorn') {
+            overridingQuery = {
+                grant_type: 'authorization_code',
+                code: req.query.callbackUri.split('code=')[1],
+                client_id: oauthInfo.clientId,
+                client_secret: oauthInfo.clientSecret,
+                redirect_uri: oauthInfo.redirectUri
+            };
+            overridingHeader = {
+                Authorization: ''
+            };
+        }
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, { query: overridingQuery, headers: overridingHeader });
+        const userInfo = await platformModule.getUserInfo({ authHeader: `Bearer ${accessToken}`, tokenUrl: tokenUrl, apiUrl: req.query.apiUrl, username: req.query.username });
+        await platformModule.saveUserOAuthInfo({
+            id: userInfo.id,
+            name: userInfo.name,
+            hostname,
+            accessToken,
+            refreshToken,
+            tokenExpiry: expires,
+            rcUserNumber: req.query.rcUserNumber.toString(),
+            timezoneName: userInfo.timezoneName,
+            timezoneOffset: userInfo.timezoneOffset,
+            additionalInfo: userInfo.additionalInfo
+        });
+        const jwtToken = jwt.generateJwt({
+            id: userInfo.id.toString(),
+            rcUserNumber: req.query.rcUserNumber.toString(),
+            platform: platform
+        });
+        res.status(200).send({ jwtToken, name: userInfo.name });
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+})
 app.post('/apiKeyLogin', async function (req, res) {
     try {
         const platform = req.body.platform;
@@ -198,6 +254,44 @@ app.post('/apiKeyLogin', async function (req, res) {
             platform: platform
         });
         res.status(200).send(jwtToken);
+    }
+    catch (e) {
+        console.log(e);
+        res.status(400).send(e);
+    }
+})
+app.post('/apiKeyLoginV2', async function (req, res) {
+    try {
+        const platform = req.body.platform;
+        const apiKey = req.body.apiKey;
+        const hostname = req.body.hostname;
+        const additionalInfo = req.body.additionalInfo;
+        if (!platform) {
+            throw 'missing platform name';
+        }
+        if (!apiKey) {
+            throw 'missing api key';
+        }
+        const platformModule = require(`./platformModules/${platform}`);
+        const basicAuth = platformModule.getBasicAuth({ apiKey });
+        const userInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
+        await platformModule.saveApiKeyUserInfo({
+            id: userInfo.id,
+            name: userInfo.name,
+            hostname,
+            apiKey,
+            additionalInfo,
+            rcUserNumber: req.body.rcUserNumber.toString(),
+            timezoneName: userInfo.timezoneName,
+            timezoneOffset: userInfo.timezoneOffset,
+            additionalInfo: userInfo.additionalInfo
+        });
+        const jwtToken = jwt.generateJwt({
+            id: userInfo.id.toString(),
+            rcUserNumber: req.body.rcUserNumber.toString(),
+            platform: platform
+        });
+        res.status(200).send({ jwtToken, name: userInfo.name });
     }
     catch (e) {
         console.log(e);

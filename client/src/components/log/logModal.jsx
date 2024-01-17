@@ -6,6 +6,7 @@ import {
     RcIconButton,
     RcDivider,
     RcButton,
+    RcLink,
 } from '@ringcentral/juno';
 import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
@@ -116,7 +117,7 @@ const logEvents = [];
 let trailingLogInfo = [];
 let countdownIntervalId = '';
 let crmUserName = '';
-let additionalSubmission = null;
+let additionalSubmission = {};
 
 export default () => {
 
@@ -167,7 +168,7 @@ export default () => {
                     else {
                         // no trigger type means manual trigger
                         logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
-                        await setupModal();
+                        await setupModal({ crmPlatform: platform });
                         trailingLogInfo = trailingSMSLogInfo;
                         let messageCount = logProps.logInfo.messages.length;
                         setMessageStartDate(logProps.logInfo.date);
@@ -299,17 +300,17 @@ export default () => {
             stopCountDown();
             setLoading(true);
             logInfo['customSubject'] = customSubject;
-            let newCreatedContactId = '';
+            let overridingContactId = '';
             if (!!newContactName) {
                 const createContactResp = await createContact({
                     phoneNumber,
                     newContactName,
                     newContactType
                 })
-                newCreatedContactId = createContactResp.contactInfo.id;
+                overridingContactId = createContactResp.contactInfo.id;
             }
             else {
-                newCreatedContactId = selectedContact;
+                overridingContactId = selectedContact;
             }
             // Case: when log page is open and recording link is updated
             if (!logInfo.recording?.link) {
@@ -324,6 +325,10 @@ export default () => {
                 }
             }
             let loggedMessageCount = 0;
+            const { crmUserInfo } = await chrome.storage.local.get({ crmUserInfo: null });
+            if (!!crmUserInfo && !!crmUserInfo.name) {
+                additionalSubmission['crmUserName'] = crmUserInfo.name;
+            }
             await addLog({
                 logType,
                 logInfo,
@@ -331,7 +336,7 @@ export default () => {
                 isMain: true,
                 note,
                 additionalSubmission,
-                overridingContactId: newCreatedContactId,
+                overridingContactId,
                 contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
                 contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
             });
@@ -355,7 +360,8 @@ export default () => {
                         isToday: false,
                         isMain: false,
                         note,
-                        additionalSubmission
+                        additionalSubmission,
+                        overridingContactId
                     });
                     loggedMessageCount += extraLogInfo.messages.length;
                     setLoadingCount(loggedMessageCount);
@@ -367,7 +373,7 @@ export default () => {
             if (!!newContactName) {
                 const { extensionUserSettings } = await chrome.storage.local.get({ extensionUserSettings: null });
                 if (extensionUserSettings && (extensionUserSettings.find(e => e.name === 'Open contact web page after creating it') == null) || extensionUserSettings.find(e => e.name === 'Open contact web page after creating it').value) {
-                    openContactPageById({ id: newCreatedContactId, type: newContactType });
+                    openContactPageById({ id: overridingContactId, type: newContactType });
                 }
             }
         }
@@ -399,7 +405,9 @@ export default () => {
     }
 
     function onChangeSelectedContact(selection) {
+        updateAdditionalSubmission({});
         setSelectedContact(selection);
+        setAdditionalFormInfo(matchedContacts.find(m => m.value == selection)?.additionalFormInfo);
         stopCountDown();
     }
 
@@ -466,7 +474,12 @@ export default () => {
                             }
                             {matchedContacts.length === 1 &&
                                 <ElementContainer>
-                                    <ContactWarningMessage>No contact found. Please provide a name, and a placeholder contact will be made for you.</ContactWarningMessage>
+                                    <ContactWarningMessage>No contact found. Enter a name to have a placeholder contact made for you.</ContactWarningMessage>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length === 1 && (platform === 'clio' || platform === 'insightly') &&
+                                <ElementContainer>
+                                    <ContactWarningMessage>If the contact already exists.  consult our <RcLink variant="caption1" target='_blank' href='https://ringcentral.github.io/rc-unified-crm-extension/support/'>{platform} documentation</RcLink> to fix.</ContactWarningMessage>
                                 </ElementContainer>
                             }
                             {matchedContacts.length > 2 &&
@@ -557,6 +570,7 @@ export default () => {
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
+                                        logType={logType}
                                     />
                                 </ElementContainer>
                             }

@@ -1,6 +1,5 @@
 const axios = require('axios');
 const { UserModel } = require('../models/userModel');
-const Op = require('sequelize').Op;
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
@@ -84,7 +83,7 @@ async function unAuthorize({ id }) {
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const commentAction = additionalSubmission.commentAction ?? '';
-    const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
+    const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
         comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: commentAction,
@@ -143,7 +142,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const commentAction = additionalSubmission.commentAction ?? '';
-    const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `from ${user.name} to ${contactInfo.name}` : `from ${contactInfo.name} to ${user.name}`}`;
+    const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
         comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
         action: commentAction,
@@ -189,7 +188,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     personInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
@@ -205,7 +204,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     personInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     if (personInfo.data.data.length > 0) {
         const result = personInfo.data.data[0];
@@ -253,7 +252,7 @@ async function getContactV2({ user, phoneNumber }) {
     const contactPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of contactPersonInfo.data.data) {
         matchedContactInfo.push({
@@ -268,7 +267,7 @@ async function getContactV2({ user, phoneNumber }) {
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
         {
-            query: `phone:${phoneNumberWithoutCountryCode}`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         });
     for (const result of candidatePersonInfo.data.data) {
         matchedContactInfo.push({
@@ -308,20 +307,21 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             const companyInfo = await axios.post(
                 `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name`,
                 {
-                    query: "name:RingCentral_ExtensionCRM_Placeholder_Company"
+                    query: "name:RingCentral_CRM_Extension_Placeholder_Company"
                 },
                 {
                     headers: { 'Authorization': authHeader }
                 }
             )
-            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_ExtensionCRM_Placeholder_Company') {
+            if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_CRM_Extension_Placeholder_Company') {
                 companyId = companyInfo.data.data[0].id;
             }
             else {
                 const createCompany = await axios.put(
                     `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
                     {
-                        name: "RingCentral_ExtensionCRM_Placeholder_Company"
+                        name: "RingCentral_CRM_Extension_Placeholder_Company",
+                        companyDescription: "<strong><span style=\"color: rgb(231,76,60);\">This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records. </span></strong>"
                     },
                     {
                         headers: { 'Authorization': authHeader }

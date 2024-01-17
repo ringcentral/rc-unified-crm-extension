@@ -7,10 +7,10 @@ exports.UserModel = sequelize.define('users', {
     type: Sequelize.STRING,
     primaryKey: true,
   },
-  name: {
+  hostname: {
     type: Sequelize.STRING,
   },
-  hostname: {
+  name: {
     type: Sequelize.STRING,
   },
   timezoneName: {
@@ -24,7 +24,7 @@ exports.UserModel = sequelize.define('users', {
   },
   // in apiKey auth, accessToken will be API key
   accessToken: {
-    type: Sequelize.STRING(500),
+    type: Sequelize.STRING(1000),
   },
   refreshToken: {
     type: Sequelize.STRING,

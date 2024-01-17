@@ -17,7 +17,7 @@ async function openPopupWindow() {
     }
   }
   // const redirectUri = chrome.identity.getRedirectURL('redirect.html'); //  set this when oauth with chrome.identity.launchWebAuthFlow
-  const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${config.rcServer}&redirectUri=${config.redirectUri}&enableAnalytics=1&showSignUpButton=1&clientId=${config.clientId}&appVersion=${packageJson.version}&userAgent=RingCentral CRM Extension&enableNoiseReductionSetting=1`;
+  const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${config.rcServer}&redirectUri=${config.redirectUri}&enableAnalytics=1&showSignUpButton=1&clientId=${config.clientId}&appVersion=${packageJson.version}&userAgent=RingCentral CRM Extension&disableNoiseReduction=false`;
   const popup = await chrome.windows.create({
     url: popupUri,
     type: 'popup',
@@ -210,6 +210,15 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     chrome.runtime.sendMessage({
       type: 'pipedriveCallbackUri',
       pipedriveCallbackUri
+    });
+  }
+  if (request.type === 'notifyToReconnectCRM') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: '/images/logo32.png',
+      title: `Please re-login with your CRM account`,
+      message: "There might be a change to your CRM login, please go to setting page and Logout then Connect your CRM account again. Sorry for the inconvenience.",
+      priority: 1
     });
   }
 });

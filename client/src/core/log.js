@@ -2,6 +2,11 @@ import axios from 'axios';
 import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
+import pipedriveModule from '../platformModules/pipedrive.js';
+import insightlyModule from '../platformModules/insightly.js';
+import clioModule from '../platformModules/clio.js';
+import redtailModule from '../platformModules/redtail';
+import bullhornModule from '../platformModules/bullhorn';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, isToday, isMain, note, additionalSubmission, overridingContactId, contactType, contactName }) {
@@ -33,7 +38,7 @@ async function addLog({ logType, logInfo, isToday, isMain, note, additionalSubmi
                 }
                 break;
             case 'Message':
-                const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactType });
+                const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, overridingContactId, contactType });
                 if (messageLogRes.data.successful) {
                     if (!isToday) {
                         dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
@@ -64,6 +69,11 @@ async function checkLog({ logType, sessionIds }) {
     else {
         return { successful: false, message: 'Please go to Settings and authorize CRM platform' };
     }
+}
+
+function openLog({ platform, hostname, logId, contactType }) {
+    const platformModule = getModule({ platform });
+    platformModule.openLogPage({ hostname, logId, contactType });
 }
 
 async function updateLog({ logType, sessionId, recordingLink }) {
@@ -103,9 +113,24 @@ async function getCachedNote({ sessionId }) {
         return cachedNote[sessionId];
     }
 }
+function getModule({ platform }) {
+    switch (platform) {
+        case 'pipedrive':
+            return pipedriveModule;
+        case 'insightly':
+            return insightlyModule;
+        case 'clio':
+            return clioModule;
+        case 'redtail':
+            return redtailModule;
+        case 'bullhorn':
+            return bullhornModule;
+    }
+}
 
 exports.addLog = addLog;
 exports.checkLog = checkLog;
+exports.openLog = openLog;
 exports.updateLog = updateLog;
 exports.cacheCallNote = cacheCallNote;
 exports.getCachedNote = getCachedNote;
