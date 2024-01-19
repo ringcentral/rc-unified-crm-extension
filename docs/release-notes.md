@@ -22,3 +22,7 @@
 - Fix: SMS log issue in multiple contacts matched case
 - Fix: In-call note button will disappear if user opens message conversation so to not cover SMS send button
 - Bullhorn: Clear user session info when log out
+
+## 0.8.4
+
+- Fix: Pipedrive deal mismatch issue
