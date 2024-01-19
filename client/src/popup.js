@@ -275,7 +275,7 @@ window.addEventListener('message', async (e) => {
             trackPage(data.path);
           }
           if (!!data.path) {
-            if (data.path.startsWith('/conversations/')) {
+            if (data.path.startsWith('/conversations/') || data.path.startsWith('/composeText')) {
               window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
             }
             else if(data.path.startsWith('/calls/active/')){
