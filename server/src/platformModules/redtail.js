@@ -163,7 +163,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         repeats: 'never',
         linked_contacts: [
             {
-                contact_id: contactInfo.id
+                contact_id:  contactInfo.overridingContactId ?? contactInfo.id
             }
         ]
     }

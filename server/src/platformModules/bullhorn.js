@@ -144,10 +144,10 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const commentAction = additionalSubmission.commentAction ?? '';
     const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
-        comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactInfo.phone}</li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
+        comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactNumber}</li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
         action: commentAction,
         personReference: {
-            id: contactInfo.id
+            id: contactInfo.overridingContactId ?? contactInfo.id
         }
     }
     let addLogRes;

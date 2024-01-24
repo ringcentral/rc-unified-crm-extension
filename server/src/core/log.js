@@ -133,8 +133,8 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 name: incomingData.contactName ?? ""
             };
         }
-        else{     
-               contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
+        else {
+            contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
         }
         if (contactInfo == null) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
@@ -156,7 +156,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
             if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
                 recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
             }
-            const logId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
+            const logId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset, contactNumber });
             await MessageLogModel.create({
                 id: message.id.toString(),
                 platform,
