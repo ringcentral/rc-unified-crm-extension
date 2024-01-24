@@ -268,7 +268,12 @@ window.addEventListener('message', async (e) => {
           }
           break;
         case 'rc-callLogger-auto-log-notify':
+          await chrome.storage.local.set({ rc_callLogger_auto_log_notify: data.autoLog });
           trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: 'auto-call-log', status: data.autoLog });
+          break;
+        case 'rc-messageLogger-auto-log-notify':
+          await chrome.storage.local.set({ rc_messageLogger_auto_log_notify: data.autoLog });
+          trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: 'auto-message-log', status: data.autoLog });
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
@@ -278,7 +283,7 @@ window.addEventListener('message', async (e) => {
             if (data.path.startsWith('/conversations/') || data.path.startsWith('/composeText')) {
               window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
             }
-            else if(data.path.startsWith('/calls/active/')){
+            else if (data.path.startsWith('/calls/active/')) {
               window.postMessage({ type: 'rc-expandable-call-note-open' }, '*');
             }
           }
@@ -492,6 +497,11 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              const { rc_messageLogger_auto_log_notify: messageAutoLogOn } = await chrome.storage.local.get({ rc_messageLogger_auto_log_notify: false });
+              if(!messageAutoLogOn && data.body.triggerType === 'auto')
+              {
+                break;
+              }
               const messageLogDateInfo = data.body.conversation.conversationLogId.split('/'); // 2052636401630275685/11/10/2022
               const isToday = moment(`${messageLogDateInfo[3]}.${messageLogDateInfo[1]}.${messageLogDateInfo[2]}`).isSame(new Date(), 'day');
               if (!isToday && !!data.body.conversation.conversationLogMatches && data.body.conversation.conversationLogMatches.length > 0) {

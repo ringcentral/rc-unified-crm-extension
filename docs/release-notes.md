@@ -26,3 +26,7 @@
 ## 0.8.4
 
 - Fix: Pipedrive deal mismatch issue
+
+## 0.8.5
+
+- Fix: Bullhorn and Redtail SMS message log issue
