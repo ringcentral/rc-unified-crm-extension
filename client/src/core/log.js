@@ -9,8 +9,7 @@ import redtailModule from '../platformModules/redtail';
 import bullhornModule from '../platformModules/bullhorn';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, isToday, isMain, note, additionalSubmission, overridingContactId, contactType, contactName }) {
-    let dataToLog = {};
+async function addLog({ logType, logInfo, isMain, note, additionalSubmission, overridingContactId, contactType, contactName }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
     const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
@@ -40,10 +39,6 @@ async function addLog({ logType, logInfo, isToday, isMain, note, additionalSubmi
             case 'Message':
                 const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, overridingContactId, contactType, contactName });
                 if (messageLogRes.data.successful) {
-                    if (!isToday) {
-                        dataToLog[logInfo.conversationLogId] = { id: messageLogRes.data.logIds }
-                        await chrome.storage.local.set(dataToLog);
-                    }
                     if (isMain) {
                         showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
                         trackSyncMessageLog({ rcAccountId: rcUserInfo.rcUserInfo.rcAccountId });

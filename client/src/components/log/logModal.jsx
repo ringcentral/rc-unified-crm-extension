@@ -126,7 +126,6 @@ export default () => {
     const [note, setNote] = useState('');
     const [logType, setLogType] = useState('');
     const [logInfo, setLogInfo] = useState(null);
-    const [isToday, setIsToday] = useState(null);
     const [matchedContacts, setMatchedContacts] = useState([]);
     const [selectedContact, setSelectedContact] = useState('');
     const [newContactName, setNewContactName] = useState('');
@@ -195,7 +194,6 @@ export default () => {
         setIsOpen(true);
         crmUserName = logEvents[0].logProps.crmUserInfo.name;
         setLogInfo(logEvents[0].logProps.logInfo);
-        setIsToday(logEvents[0].logProps.isToday);
         setNote(cachedNote);
         setNewContactName('');
         if (!!config.platformsWithDifferentContactType[crmPlatform]) {
@@ -332,7 +330,6 @@ export default () => {
             await addLog({
                 logType,
                 logInfo,
-                isToday,
                 isMain: true,
                 note,
                 additionalSubmission,
@@ -357,7 +354,6 @@ export default () => {
                     await addLog({
                         logType,
                         logInfo: extraLogInfo,
-                        isToday: false,
                         isMain: false,
                         note,
                         additionalSubmission,
