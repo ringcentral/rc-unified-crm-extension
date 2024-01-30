@@ -241,6 +241,7 @@ window.addEventListener('message', async (e) => {
           if (data.call.telephonyStatus === 'CallConnected') {
             trackConnectedCall({ rcAccountId: rcUserInfo?.rcAccountId });
           }
+          break;
         case "rc-active-call-notify":
           if (data.call.telephonyStatus === 'CallConnected') {
             window.postMessage({ type: 'rc-expandable-call-note-open', sessionId: data.call.sessionId }, '*');
