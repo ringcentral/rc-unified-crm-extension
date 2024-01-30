@@ -152,11 +152,11 @@ export default () => {
         if (type === 'rc-log-modal') {
             setPlatform(platform);
             setLoadingCount(-1);
+            crmUserName = logProps.crmUserInfo.name;
             switch (logProps.logType) {
                 case 'Call':
                     // no trigger type means manual trigger
-                    logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
-                    await setupModal({ crmPlatform: platform });
+                    await setupModal({ crmPlatform: platform, logProps, isManualTrigger: !!!triggerType });
                     break;
                 case 'Message':
                     if (isTrailing) {
@@ -166,8 +166,7 @@ export default () => {
                     }
                     else {
                         // no trigger type means manual trigger
-                        logEvents.push({ type, logProps, isManualTrigger: !!!triggerType });
-                        await setupModal({ crmPlatform: platform });
+                        await setupModal({ crmPlatform: platform, logProps, isManualTrigger: !!!triggerType });
                         trailingLogInfo = trailingSMSLogInfo;
                         let messageCount = logProps.logInfo.messages.length;
                         setMessageStartDate(logProps.logInfo.date);
@@ -188,12 +187,11 @@ export default () => {
         }
     }
 
-    async function setupModal({ crmPlatform }) {
+    async function setupModal({ crmPlatform, logProps, isManualTrigger }) {
         clearInterval(countdownIntervalId);
-        const cachedNote = await getCachedNote({ sessionId: logEvents[0].logProps.logInfo.sessionId });
+        const cachedNote = await getCachedNote({ sessionId: logProps.logInfo.sessionId });
         setIsOpen(true);
-        crmUserName = logEvents[0].logProps.crmUserInfo.name;
-        setLogInfo(logEvents[0].logProps.logInfo);
+        setLogInfo(logProps.logInfo);
         setNote(cachedNote);
         setNewContactName('');
         if (!!config.platformsWithDifferentContactType[crmPlatform]) {
@@ -202,8 +200,8 @@ export default () => {
         else {
             setNewContactType('');
         }
-        setLogType(logEvents[0].logProps.logType);
-        if (logEvents[0].logProps.autoLog) {
+        setLogType(logProps.logType);
+        if (logProps.autoLog) {
             let { autoLogCountdown } = await chrome.storage.local.get(
                 { autoLogCountdown: '20' }
             );
@@ -213,10 +211,10 @@ export default () => {
                 setCountdown(c => { return c - 1; });
             }, 1000);
         }
-        if (!logEvents[0].logProps.autoLog || logEvents[0].isManualTrigger) {
+        if (!logProps.autoLog || isManualTrigger) {
             stopCountDown();
         }
-        const contactOptions = logEvents[0].logProps.contacts.map(c => {
+        const contactOptions = logProps.contacts.map(c => {
             return {
                 value: c.id,
                 display: c.name,
@@ -228,21 +226,21 @@ export default () => {
         });
         contactOptions.push({ value: 'createPlaceholderContact', display: 'Create placeholder contact...' });
         setAdditionalFormInfo(contactOptions[0].additionalFormInfo);
-        switch (logEvents[0].logProps.logType) {
+        switch (logProps.logType) {
             case 'Call':
                 setMatchedContacts(contactOptions);
-                setDirection(logEvents[0].logProps.logInfo.direction);
+                setDirection(logProps.logInfo.direction);
                 setSelectedContact(contactOptions[0].value);
-                setPhoneNumber(logEvents[0].logProps.logInfo.direction === 'Inbound' ? logEvents[0].logProps.logInfo.from.phoneNumber : logEvents[0].logProps.logInfo.to.phoneNumber);
-                setDateTime(moment(logEvents[0].logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
-                setDuration(secondsToHourMinuteSecondString(logEvents[0].logProps.logInfo.duration));
+                setPhoneNumber(logProps.logInfo.direction === 'Inbound' ? logProps.logInfo.from.phoneNumber : logProps.logInfo.to.phoneNumber);
+                setDateTime(moment(logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
+                setDuration(secondsToHourMinuteSecondString(logProps.logInfo.duration));
                 break;
             case 'Message':
                 setMatchedContacts(contactOptions);
                 setDirection('');
                 setSelectedContact(contactOptions[0].value);
-                setPhoneNumber(logEvents[0].logProps.logInfo.correspondents[0].phoneNumber);
-                setDateTime(moment(logEvents[0].logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
+                setPhoneNumber(logProps.logInfo.correspondents[0].phoneNumber);
+                setDateTime(moment(logProps.logInfo.messages[0].lastModifiedTime).format('YYYY-MM-DD hh:mm:ss A'));
                 break;
         }
     }
