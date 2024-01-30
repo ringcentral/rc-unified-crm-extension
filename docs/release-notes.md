@@ -30,3 +30,8 @@
 ## 0.8.5
 
 - Fix: Bullhorn and Redtail SMS message log issue
+
+## 0.8.6
+
+- Fix: Incoming call contact pop up called twice issue
+- Fix: Log event mixed up issue
