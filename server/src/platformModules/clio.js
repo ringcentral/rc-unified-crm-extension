@@ -164,25 +164,46 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return communicationId;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
-    const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
         {
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.data.body;
-    if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-        logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+    let patchBody = {};
+    if (!!recordingLink) {
+        const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
+        if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+            logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+        }
+        else {
+            logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+        }
+
+        patchBody = {
+            data: {
+                body: logBody
+            }
+        }
     }
     else {
-        logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
-    }
+        let stringToReplace = '';
+        if (logBody.includes('\n[Call recording link]')) {
+            stringToReplace = logBody.split('\n[Call recording link]')[0].split('Note: ')[1];
+        }
+        else {
+            stringToReplace = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
+        }
 
-    const patchBody = {
-        data: {
-            body: logBody
+        logBody = logBody.replace(stringToReplace, note);
+
+        patchBody = {
+            data: {
+                subject: logInfo.customSubject,
+                body: logBody
+            }
         }
     }
     const patchLogRes = await axios.patch(
@@ -237,6 +258,26 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             headers: { 'Authorization': authHeader }
         });
     return addLogRes.data.data.id;
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const formattedLogId = callLogId.split('.')[0];
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+        console.log(getLogRes.data.data.body)
+    const note = getLogRes.data.data.body.includes('[Call recording link]') ?
+        getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
+        getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
+    return {
+        subject: getLogRes.data.data.subject,
+        note,
+        additionalSubmission: {
+            matterId: getLogRes.data.data.matter?.id
+        }
+    }
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -366,6 +407,7 @@ exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
+exports.getCallLog = getCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;

@@ -89,7 +89,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink });
+            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, logInfo: incomingData.logInfo, note: incomingData.note, timezoneOffset: user.timezoneOffset });
             return { successful: true };
         }
         return { successful: false };
@@ -176,7 +176,25 @@ async function addMessageLog({ platform, userId, incomingData }) {
     }
 }
 
-async function getCallLog({ sessionIds }) {
+async function getCallLog({ userId, sessionIds, platform }) {
+    const platformModule = require(`../platformModules/${platform}`);
+    const user = await UserModel.findByPk(userId);
+    if (!user || !user.accessToken) {
+        return { successful: false, message: `Cannot find user with id: ${userId}` };
+    }
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+            await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
     const sessionIdsArray = sessionIds.split(',');
     let logs = {};
     for (const sessionId of sessionIdsArray) {
@@ -185,7 +203,12 @@ async function getCallLog({ sessionIds }) {
                 sessionId
             }
         });
-        logs[sessionId] = { matched: callLog != null, logId: callLog?.thirdPartyLogId };
+        if (!!!callLog) {
+            logs[sessionId] = { matched: false };
+            continue;
+        }
+        const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+        logs[sessionId] = { matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog };
     }
     return { successful: true, logs };
 }

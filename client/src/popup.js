@@ -1,11 +1,10 @@
 const auth = require('./core/auth');
-const { checkLog, openLog, updateLog } = require('./core/log');
+const { checkLog, openLog, getLog, updateLog } = require('./core/log');
 const { getContact, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
 const { apiKeyLogin } = require('./core/auth');
-const moment = require('moment');
 const { openDB } = require('idb');
 const {
   identify,
@@ -28,14 +27,12 @@ window.__ON_RC_POPUP_WINDOW = 1;
 let registered = false;
 let platform = null;
 let platformName = '';
-let platformHostname = '';
 let rcUserInfo = {};
 let extensionUserSettings = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
 let leadingSMSCallReady = false;
 let trailingSMSLogInfo = [];
 
-const errorLogWebhookUrl = "https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQ0NDY2MTc3IiwiaWQiOiIyMDc4MDgxMDUxIn0.NnAUGG4stGsPz8mhNsy6Qo2yosX0ydk58Dv70fmbugc";
 import axios from 'axios';
 
 async function checkC2DCollision() {
@@ -162,18 +159,14 @@ window.addEventListener('message', async (e) => {
             else if (!rcUnifiedCrmExtJwt) {
               showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
             }
-            let stepperLog = '';
             try {
               const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
-              stepperLog += `extId: ${extId}; `
               const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
               const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
-              stepperLog += `rcInfo extId: ${rcInfo.value.cachedData.extensionInfo.id}; `
               const userInfoResponse = await getUserInfo({
                 extensionId: rcInfo.value.cachedData.extensionInfo.id,
                 accountId: rcInfo.value.cachedData.extensionInfo.account.id
               });
-              stepperLog += `userInfoResponse: ${userInfoResponse}; `
               rcUserInfo = {
                 rcUserName: rcInfo.value.cachedData.extensionInfo.name,
                 rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
@@ -181,7 +174,6 @@ window.addEventListener('message', async (e) => {
                 rcAccountId: userInfoResponse.accountId,
                 rcExtensionId: userInfoResponse.extensionId
               };
-              stepperLog += `rcUserInfo: ${rcUserInfo}; `
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
               identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.rcExtensionId });
               group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
@@ -189,11 +181,6 @@ window.addEventListener('message', async (e) => {
             catch (e) {
               identify({ platformName });
               group({ platformName });
-              await axios.post(errorLogWebhookUrl, {
-                activity: "Error Log",
-                title: "Log",
-                text: stepperLog
-              });
             }
           }
 
@@ -434,24 +421,37 @@ window.addEventListener('message', async (e) => {
                 sessionIds: data.body.call.sessionId
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
+              // get crm user info
+              const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
               if (singleCallLog[data.body.call.sessionId].matched) {
-                if (config.platforms[platformName].canOpenLogPage) {
-                  for (const c of callMatchedContact) {
-                    openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
-                  }
-                }
-                else {
-                  openContactPage({ phoneNumber: contactPhoneNumber });
-                }
+                // if (config.platforms[platformName].canOpenLogPage) {
+                //   for (const c of callMatchedContact) {
+                //     openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                //   }
+                // }
+                // else {
+                //   openContactPage({ phoneNumber: contactPhoneNumber });
+                // }
+                window.postMessage({
+                  type: 'rc-log-modal',
+                  platform: platformName,
+                  isAccumulative: false,
+                  logProps: {
+                    logType: 'Call',
+                    logInfo: data.body.call,
+                    contacts: callMatchedContact ?? [],
+                    crmUserInfo,
+                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                  },
+                  triggerType: data.body.triggerType,
+                  existingCallLog: singleCallLog[data.body.call.sessionId].logData
+                }, '*')
               }
               else {
                 if (!callContactMatched && !!data.body.triggerType) {
                   showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
                 }
-                else {
-                  // get crm user info
-                  const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
-                  // add your codes here to log call to your service
+                else {// add your codes here to log call to your service
                   window.postMessage({
                     type: 'rc-log-modal',
                     platform: platformName,
@@ -499,8 +499,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/messageLogger':
               const { rc_messageLogger_auto_log_notify: messageAutoLogOn } = await chrome.storage.local.get({ rc_messageLogger_auto_log_notify: false });
-              if(!messageAutoLogOn && data.body.triggerType === 'auto')
-              {
+              if (!messageAutoLogOn && data.body.triggerType === 'auto') {
                 break;
               }
               const isTrailing = !data.body.redirect && data.body.triggerType !== 'auto';

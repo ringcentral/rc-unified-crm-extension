@@ -66,28 +66,49 @@ async function checkLog({ logType, sessionIds }) {
     }
 }
 
+async function getLog({ logType, sessionId }) {
+    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+    if (!!rcUnifiedCrmExtJwt) {
+        switch (logType) {
+            case 'Call':
+                const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionIds=${[sessionId]}`);
+                return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
+        }
+    }
+    else {
+        return { successful: false, message: 'Please go to Settings and authorize CRM platform' };
+    }
+}
+
 function openLog({ platform, hostname, logId, contactType }) {
     const platformModule = getModule({ platform });
     platformModule.openLogPage({ hostname, logId, contactType });
 }
 
-async function updateLog({ logType, sessionId, recordingLink }) {
+async function updateLog({ logType, sessionId, recordingLink, logInfo, note }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
                 const patchBody = {
                     sessionId,
-                    recordingLink
+                    recordingLink,
+                    logInfo,
+                    note
                 }
                 const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
                 if (callLogRes.data.successful) {
-                    const recordingSessionId = `rec-link-${sessionId}`;
-                    const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
-                    if (!!existingCallRecording[recordingSessionId]) {
-                        await chrome.storage.local.remove(recordingSessionId);
+                    if (!!recordingLink) {
+                        const recordingSessionId = `rec-link-${sessionId}`;
+                        const existingCallRecording = await chrome.storage.local.get(recordingSessionId);
+                        if (!!existingCallRecording[recordingSessionId]) {
+                            await chrome.storage.local.remove(recordingSessionId);
+                        }
+                        console.log('call recording update done');
                     }
-                    console.log('call recording update done');
+                    else {
+                        showNotification({ level: 'success', message: 'call log updated', ttl: 3000 });
+                    }
                 }
         }
     }
@@ -125,6 +146,7 @@ function getModule({ platform }) {
 
 exports.addLog = addLog;
 exports.checkLog = checkLog;
+exports.getLog = getLog;
 exports.openLog = openLog;
 exports.updateLog = updateLog;
 exports.cacheCallNote = cacheCallNote;

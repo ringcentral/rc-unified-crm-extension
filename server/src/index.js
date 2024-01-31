@@ -168,8 +168,7 @@ app.get('/oauth-callback', async function (req, res) {
 })
 app.get('/oauth-callbackV2', async function (req, res) {
     try {
-        if(req.query.callbackUri === 'undefined')
-        {
+        if (req.query.callbackUri === 'undefined') {
             res.status(400).send('missing callbackUri');
             return;
         }
@@ -393,7 +392,8 @@ app.get('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
-            const { successful, logs } = await getCallLog({ sessionIds: req.query.sessionIds });
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const { successful, logs } = await getCallLog({ userId, sessionIds: req.query.sessionIds, platform });
             res.status(200).send({ successful, logs });
         }
         else {

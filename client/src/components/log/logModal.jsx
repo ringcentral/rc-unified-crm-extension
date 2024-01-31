@@ -11,7 +11,7 @@ import {
 import styled from 'styled-components';
 import { ChevronLeft } from '@ringcentral/juno-icon';
 import React, { useState, useEffect } from 'react';
-import { addLog, getCachedNote } from '../../core/log';
+import { addLog, updateLog, getCachedNote } from '../../core/log';
 import { createContact, openContactPageById } from '../../core/contact';
 import moment from 'moment';
 import { secondsToHourMinuteSecondString } from '../../lib/util';
@@ -143,20 +143,22 @@ export default () => {
     const [countdownFinished, setCountdownFinished] = useState(false);
     const [messageLogCount, setMessageLogCount] = useState(0);
     const [messageStartDate, setMessageStartDate] = useState('');
+    const [isExisting, setIsExisting] = useState(false);
 
     async function onEvent(e) {
         if (!e || !e.data || !e.data.type) {
             return;
         }
-        const { type, platform, trailingSMSLogInfo, isTrailing, logProps, triggerType } = e.data
+        const { type, platform, trailingSMSLogInfo, isTrailing, logProps, triggerType, existingCallLog } = e.data
         if (type === 'rc-log-modal') {
             setPlatform(platform);
+            setIsExisting(!!existingCallLog);
             setLoadingCount(-1);
             crmUserName = logProps.crmUserInfo.name;
             switch (logProps.logType) {
                 case 'Call':
                     // no trigger type means manual trigger
-                    await setupModal({ crmPlatform: platform, logProps, isManualTrigger: !!!triggerType });
+                    await setupModal({ crmPlatform: platform, logProps, isManualTrigger: !!!triggerType, existingCallLog });
                     break;
                 case 'Message':
                     if (isTrailing) {
@@ -187,10 +189,11 @@ export default () => {
         }
     }
 
-    async function setupModal({ crmPlatform, logProps, isManualTrigger }) {
+    async function setupModal({ crmPlatform, logProps, isManualTrigger, existingCallLog }) {
         clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logProps.logInfo.sessionId });
         setIsOpen(true);
+        setIsActivityTitleEdited(false);
         setLogInfo(logProps.logInfo);
         setNote(cachedNote);
         setNewContactName('');
@@ -234,6 +237,11 @@ export default () => {
                 setPhoneNumber(logProps.logInfo.direction === 'Inbound' ? logProps.logInfo.from.phoneNumber : logProps.logInfo.to.phoneNumber);
                 setDateTime(moment(logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
                 setDuration(secondsToHourMinuteSecondString(logProps.logInfo.duration));
+                if(!!existingCallLog)
+                {
+                    setNote(existingCallLog.note);
+                    setCustomSubject(existingCallLog.subject);
+                }
                 break;
             case 'Message':
                 setMatchedContacts(contactOptions);
@@ -325,16 +333,26 @@ export default () => {
             if (!!crmUserInfo && !!crmUserInfo.name) {
                 additionalSubmission['crmUserName'] = crmUserInfo.name;
             }
-            await addLog({
-                logType,
-                logInfo,
-                isMain: true,
-                note,
-                additionalSubmission,
-                overridingContactId,
-                contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
-                contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
-            });
+            if (isExisting) {
+                await updateLog({
+                    logType,
+                    logInfo,
+                    note,
+                    sessionId: logInfo.sessionId
+                });
+            }
+            else {
+                await addLog({
+                    logType,
+                    logInfo,
+                    isMain: true,
+                    note,
+                    additionalSubmission,
+                    overridingContactId,
+                    contactType: matchedContacts.find(c => c.value === selectedContact)?.type ?? newContactType,
+                    contactName: matchedContacts.find(c => c.value === selectedContact)?.name ?? newContactName
+                });
+            }
             if (logType === 'Message') {
                 loggedMessageCount += logInfo.messages.length;
                 setLoadingCount(loggedMessageCount);
@@ -436,7 +454,7 @@ export default () => {
                             />
                             <RcText
                                 variant='title1'
-                            >{logType === 'Call' ? logType : 'Conversation'} details
+                            >{logType === 'Call' ? logType : 'Conversation'} details{isExisting ? ' (edit)' : ''}
                             </RcText>
                             <RcButton
                                 onClick={onSubmission}
@@ -564,6 +582,7 @@ export default () => {
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
                                         logType={logType}
+                                        isExisting={isExisting}
                                     />
                                 </ElementContainer>
                             }
