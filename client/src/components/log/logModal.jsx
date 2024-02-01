@@ -190,6 +190,7 @@ export default () => {
     async function setupModal({ crmPlatform, logProps, isManualTrigger }) {
         clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logProps.logInfo.sessionId });
+        setIsActivityTitleEdited(false);
         setIsOpen(true);
         setLogInfo(logProps.logInfo);
         setNote(cachedNote);
