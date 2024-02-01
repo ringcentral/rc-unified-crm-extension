@@ -24,6 +24,16 @@ export default ({ additionalFormInfo, setSubmission, logType }) => {
         }
     }, [logTimeEntry, additionalDropdownSelection])
 
+    useEffect(() => {
+        if (additionalFormInfo != null) {
+            setSubmission({ matterId: additionalDropdownSelection, logTimeEntry });
+            setAdditionalDropdownSelection(additionalFormInfo.matters[0].id);
+        }
+        else {
+            setSubmission({});
+        }
+    }, [additionalFormInfo])
+
     return (
         <div>
             {additionalFormInfo != null &&

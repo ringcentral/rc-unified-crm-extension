@@ -10,12 +10,24 @@ export default ({ additionalFormInfo, setSubmission }) => {
     const [projectSelection, setProjectSelection] = useState(projects.length > 0 ? projects[0].id : null);
 
     useEffect(() => {
-        setSubmission({
-            orgSelection,
-            opportunitySelection,
-            projectSelection
-        });
-    }, []);
+        if(additionalFormInfo != null)
+        {
+            setSubmission({
+                orgSelection: additionalFormInfo.links.filter(f => f.label === 'Organisation')[0].id,
+                opportunitySelection: additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0].id,
+                projectSelection: additionalFormInfo.links.filter(f => f.label === 'Project')[0].id
+            });
+            setOrgSelection(additionalFormInfo.links.filter(f => f.label === 'Organisation')[0].id);
+            setOpportunitySelection(additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0].id);
+            setProjectSelection(additionalFormInfo.links.filter(f => f.label === 'Project')[0].id);
+        }
+        else{
+            setSubmission({});
+            setOrgSelection(null);
+            setOpportunitySelection(null);
+            setProjectSelection(null);
+        }
+    }, [additionalFormInfo]);
 
     return (
         <div>
