@@ -12,7 +12,6 @@ export default ({ additionalFormInfo, setSubmission }) => {
                     setSubmission({ commentAction: items.bullhornDefaultActionCode })
                 }
                 else {
-                    console.log(additionalFormInfo.actions[0].id)
                     setAdditionalDropdownSelection(additionalFormInfo.actions[0].id);
                     setSubmission({ commentAction: additionalFormInfo.actions[0].id });
                 }
