@@ -267,7 +267,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-        console.log(getLogRes.data.data.body)
     const note = getLogRes.data.data.body.includes('[Call recording link]') ?
         getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
         getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
