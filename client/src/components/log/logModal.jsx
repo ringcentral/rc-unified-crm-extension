@@ -238,8 +238,7 @@ export default () => {
                 setPhoneNumber(logProps.logInfo.direction === 'Inbound' ? logProps.logInfo.from.phoneNumber : logProps.logInfo.to.phoneNumber);
                 setDateTime(moment(logProps.logInfo.startTime).format('YYYY-MM-DD hh:mm:ss A'));
                 setDuration(secondsToHourMinuteSecondString(logProps.logInfo.duration));
-                if(!!existingCallLog)
-                {
+                if (!!existingCallLog) {
                     setNote(existingCallLog.note);
                     setCustomSubject(existingCallLog.subject);
                 }
@@ -484,22 +483,28 @@ export default () => {
                                     <Content variant='body1'>{moment(dateTime).isSame(moment(), 'day') ? moment(dateTime).format('hh:mm:ss A') : dateTime} {duration}</Content>
                                 </ElementContainer>
                             }
-                            {matchedContacts.length === 1 &&
+                            {isExisting && matchedContacts.length === 2 &&
+                                <ElementContainer>
+                                    <Label >Contact</Label>
+                                    <Content variant='body1'>{matchedContacts[0].name}</Content>
+                                </ElementContainer>
+                            }
+                            {matchedContacts.length === 1 && !isExisting &&
                                 <ElementContainer>
                                     <ContactWarningMessage>No contact found. Enter a name to have a placeholder contact made for you.</ContactWarningMessage>
                                 </ElementContainer>
                             }
-                            {matchedContacts.length === 1 && (platform === 'clio' || platform === 'insightly') &&
+                            {matchedContacts.length === 1 && (platform === 'clio' || platform === 'insightly') && !isExisting &&
                                 <ElementContainer>
                                     <ContactWarningMessage>If the contact already exists.  consult our <RcLink variant="caption1" target='_blank' href='https://ringcentral.github.io/rc-unified-crm-extension/support/'>{platform} documentation</RcLink> to fix.</ContactWarningMessage>
                                 </ElementContainer>
                             }
-                            {matchedContacts.length > 2 &&
+                            {matchedContacts.length > 2 && !isExisting &&
                                 <ElementContainer>
                                     <ContactWarningMessage>Multiple contacts found. Please select the contact to associate this activity with.</ContactWarningMessage>
                                 </ElementContainer>
                             }
-                            {matchedContacts.length > 1 &&
+                            {matchedContacts.length > 1 && !isExisting &&
                                 <ElementContainer>
                                     <DropdownList
                                         key='key'
@@ -561,7 +566,7 @@ export default () => {
                                     <Content variant='body1'>Total: {messageLogCount} messages</Content>
                                 </ElementContainer>
                             }
-                            {platform === 'pipedrive' &&
+                            {platform === 'pipedrive' && !isExisting &&
                                 <ElementContainer>
                                     <PipedriveAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
@@ -569,7 +574,7 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'insightly' &&
+                            {platform === 'insightly' && !isExisting &&
                                 <ElementContainer>
                                     <InsightlyAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
@@ -577,17 +582,16 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'clio' &&
+                            {platform === 'clio' && !isExisting &&
                                 <ElementContainer>
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
                                         setSubmission={updateAdditionalSubmission}
                                         logType={logType}
-                                        isExisting={isExisting}
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'bullhorn' &&
+                            {platform === 'bullhorn' && !isExisting &&
                                 <ElementContainer>
                                     <BullhornAdditionalForm
                                         additionalFormInfo={additionalFormInfo}

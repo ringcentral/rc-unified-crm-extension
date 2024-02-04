@@ -2,12 +2,12 @@ import { RcCheckbox } from '@ringcentral/juno';
 import DropdownList from '../dropdownList';
 import React, { useState, useEffect } from 'react';
 
-export default ({ additionalFormInfo, setSubmission, logType, isExisting }) => {
-    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo.matters[0].id);
+export default ({ additionalFormInfo, setSubmission, logType }) => {
+    const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo?.matters != null ? additionalFormInfo.matters[0].id : null);
     const [logTimeEntry, setLogTimeEntry] = useState(true);
 
     useEffect(() => {
-        setSubmission({ matterId: additionalFormInfo.matters[0].id, logTimeEntry })
+        setSubmission({ matterId: additionalFormInfo?.matters != null ? additionalFormInfo.matters[0].id : null, logTimeEntry })
     }, [])
 
     useEffect(() => {
@@ -16,23 +16,25 @@ export default ({ additionalFormInfo, setSubmission, logType, isExisting }) => {
 
     return (
         <div>
-            <DropdownList
-                key='key'
-                label="Sync to matter"
-                selectionItems={additionalFormInfo.matters.map(d => { return { value: d.id, display: d.title } })}
-                presetSelection={additionalDropdownSelection}
-                onSelected={(selection) => {
-                    setAdditionalDropdownSelection(selection);
-                }} />
-            {logType === 'Call' && !isExisting &&
-                <RcCheckbox
-                    label="Log time entry"
-                    defaultChecked={true}
-                    onChange={(event) => {
-                        setLogTimeEntry(event.target.checked);
-                    }}
-                    disableRipple
-                />}
+            {additionalFormInfo?.matters != null && <div>
+                <DropdownList
+                    key='key'
+                    label="Sync to matter"
+                    selectionItems={additionalFormInfo.matters.map(d => { return { value: d.id, display: d.title } })}
+                    presetSelection={additionalDropdownSelection}
+                    onSelected={(selection) => {
+                        setAdditionalDropdownSelection(selection);
+                    }} />
+                {logType === 'Call' &&
+                    <RcCheckbox
+                        label="Log time entry"
+                        defaultChecked={true}
+                        onChange={(event) => {
+                            setLogTimeEntry(event.target.checked);
+                        }}
+                        disableRipple
+                    />}
+            </div>}
         </div>
     );
 }
