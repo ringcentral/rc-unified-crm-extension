@@ -35,3 +35,7 @@
 
 - Fix: Incoming call contact pop up called twice issue
 - Fix: Log event mixed up issue
+
+## 0.8.7
+
+- Fix: Call disposition not cleared if opening under a contact without disposition options

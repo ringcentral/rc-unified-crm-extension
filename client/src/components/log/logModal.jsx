@@ -192,6 +192,7 @@ export default () => {
     async function setupModal({ crmPlatform, logProps, isManualTrigger, existingCallLog }) {
         clearInterval(countdownIntervalId);
         const cachedNote = await getCachedNote({ sessionId: logProps.logInfo.sessionId });
+        setIsActivityTitleEdited(false);
         setIsOpen(true);
         setIsActivityTitleEdited(false);
         setLogInfo(logProps.logInfo);
@@ -560,7 +561,7 @@ export default () => {
                                     <Content variant='body1'>Total: {messageLogCount} messages</Content>
                                 </ElementContainer>
                             }
-                            {platform === 'pipedrive' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            {platform === 'pipedrive' &&
                                 <ElementContainer>
                                     <PipedriveAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
@@ -568,7 +569,7 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'insightly' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            {platform === 'insightly' &&
                                 <ElementContainer>
                                     <InsightlyAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
@@ -576,7 +577,7 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'clio' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            {platform === 'clio' &&
                                 <ElementContainer>
                                     <ClioAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
@@ -586,7 +587,7 @@ export default () => {
                                     />
                                 </ElementContainer>
                             }
-                            {platform === 'bullhorn' && additionalFormInfo && additionalFormInfo.length !== 0 &&
+                            {platform === 'bullhorn' &&
                                 <ElementContainer>
                                     <BullhornAdditionalForm
                                         additionalFormInfo={additionalFormInfo}
