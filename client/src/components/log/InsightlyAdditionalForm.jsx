@@ -13,13 +13,13 @@ export default ({ additionalFormInfo, setSubmission }) => {
         if(additionalFormInfo != null)
         {
             setSubmission({
-                orgSelection: additionalFormInfo.links.filter(f => f.label === 'Organisation')[0].id,
-                opportunitySelection: additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0].id,
-                projectSelection: additionalFormInfo.links.filter(f => f.label === 'Project')[0].id
+                orgSelection: additionalFormInfo.links.filter(f => f.label === 'Organisation')[0]?.id,
+                opportunitySelection: additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0]?.id,
+                projectSelection: additionalFormInfo.links.filter(f => f.label === 'Project')[0]?.id
             });
-            setOrgSelection(additionalFormInfo.links.filter(f => f.label === 'Organisation')[0].id);
-            setOpportunitySelection(additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0].id);
-            setProjectSelection(additionalFormInfo.links.filter(f => f.label === 'Project')[0].id);
+            setOrgSelection(additionalFormInfo.links.filter(f => f.label === 'Organisation')[0]?.id);
+            setOpportunitySelection(additionalFormInfo.links.filter(f => f.label === 'Opportunity')[0]?.id);
+            setProjectSelection(additionalFormInfo.links.filter(f => f.label === 'Project')[0]?.id);
         }
         else{
             setSubmission({});
