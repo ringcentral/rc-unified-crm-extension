@@ -5,7 +5,6 @@ const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
 const { apiKeyLogin } = require('./core/auth');
-const moment = require('moment');
 const { openDB } = require('idb');
 const {
   identify,
