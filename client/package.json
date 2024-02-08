@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-client",
-  "version": "0.8.8",
+  "version": "0.8.9",
   "description": "![image](https://user-images.githubusercontent.com/7036536/190325756-35ef367d-1557-4833-84aa-b09f5d6717ab.png)",
   "main": "background.js",
   "scripts": {
