@@ -16,17 +16,21 @@ export default ({ additionalFormInfo, setSubmission }) => {
                     setSubmission({ commentAction: additionalFormInfo.actions[0].id });
                 }
             }));
-    }, [])
+    }, [additionalFormInfo])
 
     return (
-        <DropdownList
-            key='key'
-            label={additionalFormInfo.label}
-            selectionItems={additionalFormInfo.actions.map(d => { return { value: d.id, display: d.title } })}
-            presetSelection={additionalDropdownSelection}
-            onSelected={(selection) => {
-                setAdditionalDropdownSelection(selection);
-                selection ? setSubmission({ commentAction: selection }) : setSubmission({});
-            }} />
+        <div>
+            {additionalFormInfo != null &&
+                <DropdownList
+                    key='key'
+                    label='Note actions'
+                    selectionItems={additionalFormInfo.actions.map(d => { return { value: d.id, display: d.title } })}
+                    presetSelection={additionalDropdownSelection}
+                    onSelected={(selection) => {
+                        setAdditionalDropdownSelection(selection);
+                        selection ? setSubmission({ commentAction: selection }) : setSubmission({});
+                    }} />
+            }
+        </div>
     );
 }
