@@ -77,7 +77,7 @@ async function unAuthorize({ id }) {
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
-    const noteDetail = note ? `\n\nAgent notes: ${note}` : '';
+    const noteDetail = `\n\nAgent notes: ${note}`;
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         TITLE: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
@@ -155,7 +155,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.EVENT_ID;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
     const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
     const getLogRes = await axios.get(
@@ -164,16 +164,32 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.DETAILS;
-    if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-        logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+    let logSubject = '';
+    if (!!recordingLink) {
+        if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+            logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+        }
+        else {
+            logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+        }
     }
     else {
-        logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+        let originalNote = '';
+        if (logBody.includes('\n[Call recording link]')) {
+            originalNote = logBody.split('\n[Call recording link]')[0].split('Agent notes: ')[1];
+        }
+        else {
+            originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Agent notes: ')[1];
+        }
+
+        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
+        logSubject = logInfo.customSubject;
     }
 
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
-        DETAILS: logBody
+        DETAILS: logBody,
+        TITLE: logSubject === '' ? null : logSubject
     }
     const putLogRes = await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
@@ -220,6 +236,21 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             });
     }
     return addLogRes.data.EVENT_ID;
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${callLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const note = getLogRes.data.DETAILS.includes('[Call recording link]') ?
+        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n[Call recording link]')[0] :
+        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n\n--- Created via RingCentral CRM Extension')[0];
+    return {
+        subject: getLogRes.data.TITLE,
+        note
+    }
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -336,7 +367,7 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
             const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
             if (phoneNumberObj.valid) {
                 const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format.replaceAll(' ', '');
+                let formattedNumber = format.startsWith(' ') ? format.replace(' ', '') : format;
                 for (const numberBit of phoneNumberWithoutCountryCode) {
                     formattedNumber = formattedNumber.replace('*', numberBit);
                 }
@@ -548,6 +579,7 @@ exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
