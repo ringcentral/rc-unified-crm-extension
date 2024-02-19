@@ -10,9 +10,6 @@ exports.UserModel = sequelize.define('users', {
   hostname: {
     type: Sequelize.STRING,
   },
-  name: {
-    type: Sequelize.STRING,
-  },
   timezoneName: {
     type: Sequelize.STRING,
   },
