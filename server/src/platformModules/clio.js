@@ -189,15 +189,15 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
     }
     else {
-        let stringToReplace = '';
+        let originalNote = '';
         if (logBody.includes('\n[Call recording link]')) {
-            stringToReplace = logBody.split('\n[Call recording link]')[0].split('Note: ')[1];
+            originalNote = logBody.split('\n[Call recording link]')[0].split('Note: ')[1];
         }
         else {
-            stringToReplace = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
+            originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
         }
 
-        logBody = logBody.replace(stringToReplace, note);
+        logBody = logBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
 
         patchBody = {
             data: {
