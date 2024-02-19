@@ -4,15 +4,35 @@ import React, { useState, useEffect } from 'react';
 
 export default ({ additionalFormInfo, setSubmission, logType }) => {
     const [additionalDropdownSelection, setAdditionalDropdownSelection] = useState(additionalFormInfo?.matters != null ? additionalFormInfo.matters[0].id : null);
-    const [logTimeEntry, setLogTimeEntry] = useState(true);
+    const [logTimeEntry, setLogTimeEntry] = useState(additionalFormInfo != null ? true : null);
 
     useEffect(() => {
-        setSubmission({ matterId: additionalFormInfo?.matters != null ? additionalFormInfo.matters[0].id : null, logTimeEntry })
+        if (additionalFormInfo != null) {
+            setSubmission({ matterId: additionalFormInfo.matters[0].id, logTimeEntry: true })
+        }
+        else {
+            setSubmission({});
+        }
     }, [])
 
     useEffect(() => {
-        setSubmission({ matterId: additionalDropdownSelection, logTimeEntry });
+        if (additionalFormInfo != null) {
+            setSubmission({ matterId: additionalDropdownSelection, logTimeEntry: logTimeEntry == null ? true: logTimeEntry });
+        }
+        else {
+            setSubmission({});
+        }
     }, [logTimeEntry, additionalDropdownSelection])
+
+    useEffect(() => {
+        if (additionalFormInfo != null) {
+            setSubmission({ matterId: additionalFormInfo.matters[0].id, logTimeEntry: true });
+            setAdditionalDropdownSelection(additionalFormInfo.matters[0].id);
+        }
+        else {
+            setSubmission({});
+        }
+    }, [additionalFormInfo])
 
     return (
         <div>
