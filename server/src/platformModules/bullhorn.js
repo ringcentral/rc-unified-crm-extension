@@ -110,7 +110,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.changedEntityId;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     try {
@@ -125,11 +125,21 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
         }
     }
     let logBody = getLogRes.data.data.comments;
-    if (logBody.includes('</ul>')) {
-        logBody = logBody.replace('</ul>', `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a></ul>`);
+    // case: recording link update
+    if (!!recordingLink) {
+        if (logBody.includes('</ul>')) {
+            logBody = logBody.replace('</ul>', `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a></ul>`);
+        }
+        else {
+            logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
+        }
     }
+    // case: normal update
     else {
-        logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
+        // replace note
+        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br/>${note}<br/><br/>`)
+        // replace subject
+        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], logInfo.customSubject ?? '');
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
@@ -167,6 +177,27 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         }
     }
     return addLogRes.data.changedEntityId;
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    let getLogRes
+    try {
+        getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            getLogRes = await axios.get(
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+        }
+    }
+    const logBody = getLogRes.data.data.comments;
+    const note = logBody.split('<b>Call details</b>')[0].replaceAll('<br>', '');
+    return {
+        subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
+        note
+    }
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -360,6 +391,7 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
