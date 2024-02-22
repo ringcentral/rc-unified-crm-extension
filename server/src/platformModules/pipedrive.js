@@ -137,7 +137,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.data.id;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
@@ -145,14 +145,27 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.data.note;
-    if (logBody.includes('<p><span>[Created via]')) {
-        logBody = logBody.replace('<p><span>[Created via]', `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p><p><span>[Created via]`);
+    // case: update recording
+    if (!!recordingLink) {
+        if (logBody.includes('<p><span>[Created via]')) {
+            logBody = logBody.replace('<p><span>[Created via]', `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p><p><span>[Created via]`);
+        }
+        else {
+            logBody += `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p>`;
+        }
     }
+    // case: normal update -> TODO: refactor with Regex replace
     else {
-        logBody += `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p>`;
+        if (logBody.includes('<p>[Call recording link]')) {
+            logBody = logBody.replace(logBody.split('</p><p>[Note] ')[1].split(''), `</p><p>[Note] ${note}</p>`);
+        }
+        else {
+
+        }
     }
     const putBody = {
-        note: logBody
+        note: logBody,
+        subject: logInfo.customSubject ?? existingCallLog.subject,
     }
     const putLogRes = await axios.put(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
@@ -186,6 +199,21 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         });
     return addLogRes.data.data.id;
 }
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/v1/activities/${callLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const logBody = getLogRes.data.data.note;
+    const note = logBody.split('<p>[Note] ')[1].split('</p>')[0];
+    return {
+        subject: getLogRes.data.data.subject,
+        note
+    }
+}
+
 
 async function getContact({ user, authHeader, phoneNumber }) {
     phoneNumber = phoneNumber.replace(' ', '+')
@@ -302,6 +330,7 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
