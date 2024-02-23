@@ -1,5 +1,6 @@
 import axios from 'axios';
 import config from '../config.json';
+import analytics from '../lib/analytics';
 import pipedriveModule from '../platformModules/pipedrive.js';
 import insightlyModule from '../platformModules/insightly.js';
 import clioModule from '../platformModules/clio.js';
@@ -46,6 +47,7 @@ async function createContact({ phoneNumber, newContactName, newContactType }) {
             phoneNumbers: [phoneNumber],
         }, '*');
         await chrome.storage.local.set({ tempContactMatchTask: { contactId: contactRes.data.contact.id, phoneNumber, contactName: newContactName } });
+        analytics.createNewContact();
         return { matched: contactRes.data.successful, contactInfo: contactRes.data.contact };
     }
     else {
