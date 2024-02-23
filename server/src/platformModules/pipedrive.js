@@ -144,6 +144,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+    let putBody = {};
     let logBody = getLogRes.data.data.note;
     // case: update recording
     if (!!recordingLink) {
@@ -153,19 +154,18 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         else {
             logBody += `<p>[Call recording link] <a target="_blank" href=${recordingLink}>open</a></p>`;
         }
+        putBody = {
+            note: logBody
+        }
     }
-    // case: normal update -> TODO: refactor with Regex replace
+    // case: normal update
     else {
-        if (logBody.includes('<p>[Call recording link]')) {
-            logBody = logBody.replace(logBody.split('</p><p>[Note] ')[1].split(''), `</p><p>[Note] ${note}</p>`);
+        const originalNote = logBody.split('</p><p>[Note] ')[1].split('</p>')[0];
+        logBody = logBody.replace(`</p><p>[Note] ${originalNote}</p>`, `</p><p>[Note] ${note}</p>`);
+        putBody = {
+            note: logBody,
+            subject: logInfo?.customSubject ?? existingCallLog.subject,
         }
-        else {
-
-        }
-    }
-    const putBody = {
-        note: logBody,
-        subject: logInfo.customSubject ?? existingCallLog.subject,
     }
     const putLogRes = await axios.put(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
