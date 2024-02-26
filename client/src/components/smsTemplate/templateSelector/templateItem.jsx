@@ -38,6 +38,7 @@ export default ({
         setNativeValue(textArea, message);
         textArea.dispatchEvent(new Event('input', { bubbles: true }))  // to mimic user type event
         setIsOpen(false);
+        window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
     }
 
     return (
