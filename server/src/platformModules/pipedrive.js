@@ -180,6 +180,8 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const timeUtc = moment(message.creationTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
+    const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
+    const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
     const postBody = {
         user_id: user.id,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${contactInfo.name}(${message.to[0].phoneNumber})`,
@@ -189,7 +191,8 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
         done: true,
         due_date: dateUtc,
-        due_time: timeUtc
+        due_time: timeUtc,
+        type: hasSMSType ? 'SMS' : 'Call'
     }
     const addLogRes = await axios.post(
         `https://${user.hostname}/v1/activities`,

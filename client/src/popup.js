@@ -396,7 +396,8 @@ window.addEventListener('message', async (e) => {
                             phoneNumber: contactPhoneNumber,
                             phoneType: 'direct'
                           }
-                        ]
+                        ],
+                        entityType: platformName
                       });
                     }
                   }
