@@ -1,49 +1,32 @@
-import { AnalyticsBrowser } from '@segment/analytics-next'
 import manifest from '../../public/manifest.json';
 import config from '../config.json';
+import mixpanel from 'mixpanel-browser';
 
-const analytics = AnalyticsBrowser.load({ writeKey: config.segmentKey });
+mixpanel.init(config.mixpanelToken);
+
 const appName = 'RingCentral CRM Extension';
 const version = manifest.version;
 
+exports.reset = function reset() {
+    mixpanel.reset();
+}
+
 exports.identify = function identify({ platformName, rcAccountId, extensionId }) {
-    const identifyTraits = {
-        crmPlatform: platformName,
+    mixpanel.identify(extensionId);
+    mixpanel.people.set({
+        platformName,
         rcAccountId,
         version
-    };
-    analytics.identify(extensionId, identifyTraits, {
-        integrations: {
-            All: true,
-            Mixpanel: true,
-        }
     });
 }
 
-exports.group = function group({ platformName, rcAccountId }) {
-    analytics.group(rcAccountId, {
-        crmPlatform: platformName,
-        version
-    }, {
-        integrations: {
-            All: true,
-            Mixpanel: true,
-        }
-    });
+exports.group = function group({ rcAccountId }) {
+    mixpanel.add_group('rcAccountId', rcAccountId);
+    mixpanel.set_group('rcAccountId', rcAccountId);
 }
 
 function track(event, properties = {}) {
-    const trackProps = {
-        appName: appName,
-        version,
-        ...properties,
-    };
-    analytics.track(event, trackProps, {
-        integrations: {
-            All: true,
-            Mixpanel: true,
-        },
-    });
+    mixpanel.track(event, { appName, version, ...properties });
 }
 
 exports.trackPage = function page(name, properties = {}) {
@@ -51,17 +34,19 @@ exports.trackPage = function page(name, properties = {}) {
         const pathSegments = name.split('/');
         const rootPath = `/${pathSegments[1]}`;
         const childPath = name.split(rootPath)[1];
-        analytics.page(rootPath, {
-            appName: appName,
-            version,
-            childPath,
-            ...properties,
-        }, {
-            integrations: {
-                All: true,
-                Mixpanel: true,
+        mixpanel.track_pageview(
+            {
+                appName,
+                version,
+                path: window.location.pathname,
+                childPath,
+                search: window.location.search,
+                url: window.location.href,
+                ...properties
             },
-        });
+            {
+                event_name: `Viewed ${rootPath}`
+            });
     }
     catch (e) {
         console.log(e)
@@ -74,98 +59,88 @@ exports.trackFirstTimeSetup = function trackFirstTimeSetup() {
         appName
     });
 }
-exports.trackRcLogin = function trackRcLogin({ rcAccountId }) {
+exports.trackRcLogin = function trackRcLogin() {
     track('Login with RingCentral account', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackRcLogout = function trackRcLogout({ rcAccountId }) {
+exports.trackRcLogout = function trackRcLogout() {
     track('Logout with RingCentral account', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackCrmLogin = function trackCrmLogin({ rcAccountId }) {
+exports.trackCrmLogin = function trackCrmLogin() {
     track('Login with CRM account', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackCrmLogout = function trackCrmLogout({ rcAccountId }) {
+exports.trackCrmLogout = function trackCrmLogout() {
     track('Logout with CRM account', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackPlacedCall = function trackPlacedCall({ rcAccountId }) {
+exports.trackPlacedCall = function trackPlacedCall() {
     track('A new call placed', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackAnsweredCall = function trackAnsweredCall({ rcAccountId }) {
+exports.trackAnsweredCall = function trackAnsweredCall() {
     track('A new call answered', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackConnectedCall = function trackConnectedCall({ rcAccountId }) {
+exports.trackConnectedCall = function trackConnectedCall() {
     track('A new call connected', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackCallEnd = function trackCallEnd({ rcAccountId, durationInSeconds }) {
+exports.trackCallEnd = function trackCallEnd({ durationInSeconds }) {
     track('A call is ended', {
         durationInSeconds,
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackSentSMS = function trackSentSMS({ rcAccountId }) {
+exports.trackSentSMS = function trackSentSMS() {
     track('A new SMS sent', {
-        appName,
-        rcAccountId
+        appName
     });
 }
-exports.trackSyncCallLog = function trackSyncCallLog({ rcAccountId, hasNote }) {
+exports.trackSyncCallLog = function trackSyncCallLog({ hasNote }) {
     track('Sync call log', {
         hasNote,
-        appName,
-        rcAccountId
+        appName
     })
 }
-exports.trackSyncMessageLog = function trackSyncMessageLog({ rcAccountId }) {
+exports.trackSyncMessageLog = function trackSyncMessageLog() {
     track('Sync message log', {
-        appName,
-        rcAccountId
+        appName
     })
 }
-exports.trackEditSettings = function trackEditSettings({ rcAccountId, changedItem, status }) {
+exports.trackEditSettings = function trackEditSettings({ changedItem, status }) {
     track('Edit settings', {
         changedItem,
         status,
-        appName,
-        rcAccountId
+        appName
     })
 }
 
-exports.trackCreateMeeting = function trackCreateMeeting({ rcAccountId }) {
+exports.trackCreateMeeting = function trackCreateMeeting() {
     track('Create meeting', {
-        appName,
-        rcAccountId
+        appName
     })
 }
-exports.trackOpenFeedback = function trackOpenFeedback({ rcAccountId }) {
+exports.trackOpenFeedback = function trackOpenFeedback() {
     track('Open feedback', {
-        appName,
-        rcAccountId
+        appName
     })
 }
-exports.trackSubmitFeedback = function trackSubmitFeedback({ rcAccountId }) {
+exports.trackSubmitFeedback = function trackSubmitFeedback() {
     track('Submit feedback', {
-        appName,
-        rcAccountId
+        appName
+    })
+}
+exports.createNewContact = function createNewContact() {
+    track('Create a new contact', {
+        appName
     })
 }

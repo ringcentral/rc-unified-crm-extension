@@ -8,6 +8,7 @@ const { apiKeyLogin } = require('./core/auth');
 const { openDB } = require('idb');
 const {
   identify,
+  reset,
   group,
   trackPage,
   trackRcLogin,
@@ -32,6 +33,7 @@ let extensionUserSettings = null;
 // trailing SMS logs need to know if leading SMS log is ready and page is open. The waiting is for getContact call
 let leadingSMSCallReady = false;
 let trailingSMSLogInfo = [];
+let firstTimeLogoutAbsorbed = false;
 
 import axios from 'axios';
 
@@ -120,7 +122,7 @@ window.addEventListener('message', async (e) => {
                     platformName: platformName
                   }
                 }, '*');
-                trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
+                trackOpenFeedback();
               },
             });
           }
@@ -175,27 +177,44 @@ window.addEventListener('message', async (e) => {
                 rcExtensionId: userInfoResponse.extensionId
               };
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
-              identify({ platformName, rcAccountId: rcUserInfo?.rcAccountId, extensionId: rcUserInfo?.rcExtensionId });
-              group({ platformName, rcAccountId: rcUserInfo?.rcAccountId });
+              reset();
+              identify({ extensionId: rcUserInfo?.rcExtensionId });
+              group({ rcAccountId: rcUserInfo?.rcAccountId });
             }
             catch (e) {
-              identify({ platformName });
-              group({ platformName });
+              reset();
+              console.error(e);
             }
           }
 
           let { rcLoginStatus } = await chrome.storage.local.get('rcLoginStatus');
-          if (rcLoginStatus === false || !rcLoginStatus || isObjectEmpty(rcLoginStatus)) {
+          // case 1: fresh login
+          if (rcLoginStatus === null) {
             if (data.loggedIn) {
-              trackRcLogin({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackRcLogin();
               rcLoginStatus = true;
               await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
             }
           }
+          // case 2: login status changed
           else {
-            if (!data.loggedIn) {
-              trackRcLogout({ rcAccountId: rcUserInfo?.rcAccountId });
-              rcLoginStatus = false;
+            // case 2.1: logged in
+            if (data.loggedIn && !rcLoginStatus) {
+              trackRcLogin();
+              rcLoginStatus = true;
+              await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
+            }
+            // case 2.2: logged out
+            if (!data.loggedIn && rcLoginStatus) {
+              // first time open the extension, it'll somehow send a logout event anyway
+              if (!firstTimeLogoutAbsorbed) {
+                firstTimeLogoutAbsorbed = true;
+              }
+              else {
+                trackRcLogout();
+                rcLoginStatus = false;
+                await chrome.storage.local.set({ ['rcLoginStatus']: rcLoginStatus });
+              }
             }
           }
           window.postMessage({
@@ -206,27 +225,27 @@ window.addEventListener('message', async (e) => {
           handleRCOAuthWindow(data.oAuthUri);
           break;
         case 'rc-call-init-notify':
-          trackPlacedCall({ rcAccountId: rcUserInfo?.rcAccountId });
+          trackPlacedCall();
           break;
         case 'rc-call-start-notify':
           // get call when a incoming call is accepted or a outbound call is connected
           if (data.call.direction === 'Inbound') {
-            trackAnsweredCall({ rcAccountId: rcUserInfo?.rcAccountId });
+            trackAnsweredCall();
           }
           break;
         case 'rc-call-end-notify':
           // get call on call end event
           const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-          trackCallEnd({ rcAccountId: rcUserInfo?.rcAccountId, durationInSeconds: callDurationInSeconds });
+          trackCallEnd({ durationInSeconds: callDurationInSeconds });
           break;
         case 'rc-ringout-call-notify':
           // get call on active call updated event
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             const callDurationInSeconds = (data.call.endTime - data.call.startTime) / 1000;
-            trackCallEnd({ rcAccountId: rcUserInfo?.rcAccountId, durationInSeconds: callDurationInSeconds });
+            trackCallEnd({ durationInSeconds: callDurationInSeconds });
           }
           if (data.call.telephonyStatus === 'CallConnected') {
-            trackConnectedCall({ rcAccountId: rcUserInfo?.rcAccountId });
+            trackConnectedCall();
           }
           break;
         case "rc-active-call-notify":
@@ -248,20 +267,20 @@ window.addEventListener('message', async (e) => {
         case 'rc-analytics-track':
           switch (data.event) {
             case 'SMS: SMS sent successfully':
-              trackSentSMS({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackSentSMS();
               break;
             case 'Meeting Scheduled':
-              trackCreateMeeting({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackCreateMeeting();
               break;
           }
           break;
         case 'rc-callLogger-auto-log-notify':
           await chrome.storage.local.set({ rc_callLogger_auto_log_notify: data.autoLog });
-          trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: 'auto-call-log', status: data.autoLog });
+          trackEditSettings({ changedItem: 'auto-call-log', status: data.autoLog });
           break;
         case 'rc-messageLogger-auto-log-notify':
           await chrome.storage.local.set({ rc_messageLogger_auto_log_notify: data.autoLog });
-          trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: 'auto-message-log', status: data.autoLog });
+          trackEditSettings({ changedItem: 'auto-message-log', status: data.autoLog });
           break;
         case 'rc-route-changed-notify':
           if (data.path !== '/') {
@@ -351,7 +370,8 @@ window.addEventListener('message', async (e) => {
                         phoneNumber: tempContactMatchTask.phoneNumber,
                         phoneType: 'direct'
                       }
-                    ]
+                    ],
+                    entityType: platformName
                   }
                 ];
                 await chrome.storage.local.remove('tempContactMatchTask');
@@ -587,13 +607,13 @@ window.addEventListener('message', async (e) => {
                   platformName: platformName
                 }
               }, '*');
-              trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
+              trackOpenFeedback();
               break;
             case '/settings':
               extensionUserSettings = data.body.settings;
               await chrome.storage.local.set({ extensionUserSettings });
               for (const setting of extensionUserSettings) {
-                trackEditSettings({ rcAccountId: rcUserInfo?.rcAccountId, changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
+                trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
               break;
             case '/sms-template-button-click':
@@ -669,7 +689,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
           platformName: platformName
         }
       }, '*');
-      trackOpenFeedback({ rcAccountId: rcUserInfo?.rcAccountId });
+      trackOpenFeedback();
     }
     else {
       document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
