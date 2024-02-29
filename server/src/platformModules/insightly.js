@@ -164,7 +164,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.DETAILS;
-    let logSubject = '';
+    let logSubject = getLogRes.data.TITLE;
     if (!!recordingLink) {
         if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
             logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
@@ -189,7 +189,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
         DETAILS: logBody,
-        TITLE: logSubject === '' ? null : logSubject
+        TITLE: logSubject
     }
     const putLogRes = await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
