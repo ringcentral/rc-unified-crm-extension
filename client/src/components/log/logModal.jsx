@@ -55,6 +55,10 @@ display: flex;
 width: 100%;
 `;
 
+const Title = styled(RcText)`
+font-size: 1.13rem;
+`;
+
 const Label = styled(RcText)`
 font-size: 0.8rem;
 font-weight: 700;
@@ -452,10 +456,10 @@ export default () => {
                                 color='action.primary'
                                 size='medium'
                             />
-                            <RcText
+                            <Title
                                 variant='title1'
                             >{logType === 'Call' ? logType : 'Conversation'} details{isExisting ? ' (edit)' : ''}
-                            </RcText>
+                            </Title>
                             <RcButton
                                 onClick={onSubmission}
                                 variant="plain"
@@ -465,7 +469,7 @@ export default () => {
                                 Save{countdownFinished ? '' : `(${countdown})`}
                             </RcButton>
                         </TopBar>
-                        <Divider size='bold' color="action.grayDark" />
+                        <Divider size='medium' color="#e8e9ed" />
                         <ContentContainer>
                             <ContentRow>
                                 <ElementContainer>
