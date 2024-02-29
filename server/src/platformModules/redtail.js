@@ -125,7 +125,7 @@ async function addCallLog({ user, contactInfo, callLog, note }) {
     return completeLogRes.data.activity.id;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
@@ -134,14 +134,30 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
             headers: { 'Authorization': overrideAuthHeader }
         });
     let logBody = getLogRes.data.activity.description;
-    if (logBody.includes('<em> Created via:')) {
-        logBody = logBody.replace('<em> Created via:', `Call recording link: <a target="_blank" href=${recordingLink}>open</a><br/><em> Created via:`);
+    let logSubject = getLogRes.data.activity.subject;
+    if (!!recordingLink) {
+        if (logBody.includes('<em> Created via:')) {
+            logBody = logBody.replace('<em> Created via:', `Call recording link: <a target="_blank" href=${recordingLink}>open</a><br/><em> Created via:`);
+        }
+        else {
+            logBody += `Call recording link: <a target="_blank" href=${recordingLink}>open</a>`;
+        }
     }
     else {
-        logBody += `Call recording link: <a target="_blank" href=${recordingLink}>open</a>`;
+        let originalNote = '';
+        if (logBody.includes('Call recording link:')) {
+            originalNote = logBody.split('Agent notes: ')[1].split('<br><br>Call recording link:')[0];
+        }
+        else {
+            originalNote = logBody.split('Agent notes: ')[1].split('<br><br><em> Created via:')[0];
+        }
+
+        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
+        logSubject = logInfo.customSubject;
     }
 
     const putBody = {
+        subject: logSubject,
         description: logBody
     }
     const putLogRes = await axios.patch(
@@ -153,7 +169,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink 
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const overrideAuthHeader = getAuthader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const postBody = {
         subject: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`}`,
         description: `${!!message.subject ? `[Message] ${message.subject}` : ''}<br><br><em> Created via: <a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em>`,
@@ -163,7 +179,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         repeats: 'never',
         linked_contacts: [
             {
-                contact_id:  contactInfo.overridingContactId ?? contactInfo.id
+                contact_id: contactInfo.overridingContactId ?? contactInfo.id
             }
         ]
     }
@@ -182,6 +198,23 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             headers: { 'Authorization': overrideAuthHeader }
         });
     return completeLogRes.data.activity.id;
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const getLogRes = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/activities/${callLogId}`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    const logBody = getLogRes.data.activity.description;
+    const note = logBody.includes('Call recording link:') ?
+        logBody?.split('Agent notes: ')[1]?.split('<br><br>Call recording link:')[0] :
+        logBody?.split('Agent notes: ')[1]?.split('<br><br><em> Created via:')[0];
+    return {
+        subject: getLogRes.data.activity.subject,
+        note
+    }
 }
 
 async function getContact({ user, phoneNumber }) {
@@ -270,6 +303,7 @@ exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
