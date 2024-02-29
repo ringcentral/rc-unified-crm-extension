@@ -411,6 +411,16 @@ window.addEventListener('message', async (e) => {
                 }
               );
               break;
+            case '/contacts/view':
+              window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
+              await openContactPage({ phoneNumber: data.body.phoneNumbers[0].phoneNumber });
+              window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
+              responseMessage(
+                data.requestId,
+                {
+                  data: callLogMatchData
+                });
+              break;
             case '/callLogger':
               // data.body.call?.to?.phoneNumber?.length > 4 to distinguish extension from external number
               if (data.body.triggerType && data.body.call?.to?.phoneNumber?.length > 4) {
@@ -737,6 +747,7 @@ function getServiceConfig(serviceName) {
   const services = {
     name: serviceName,
     contactMatchPath: '/contacts/match',
+    viewMatchedContactPath: '/contacts/view',
 
     // show auth/unauth button in ringcentral widgets
     authorizationPath: '/authorize',
