@@ -445,28 +445,34 @@ window.addEventListener('message', async (e) => {
               // get crm user info
               const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
               if (singleCallLog[data.body.call.sessionId].matched) {
-                // if (config.platforms[platformName].canOpenLogPage) {
-                //   for (const c of callMatchedContact) {
-                //     openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
-                //   }
-                // }
-                // else {
-                //   openContactPage({ phoneNumber: contactPhoneNumber });
-                // }
-                window.postMessage({
-                  type: 'rc-log-modal',
-                  platform: platformName,
-                  isAccumulative: false,
-                  logProps: {
-                    logType: 'Call',
-                    logInfo: data.body.call,
-                    contacts: callMatchedContact ?? [],
-                    crmUserInfo,
-                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
-                  },
-                  triggerType: data.body.triggerType,
-                  existingCallLog: singleCallLog[data.body.call.sessionId].logData
-                }, '*')
+                switch (data.body.triggerType) {
+                  case 'editLog':
+                    window.postMessage({
+                      type: 'rc-log-modal',
+                      platform: platformName,
+                      isAccumulative: false,
+                      logProps: {
+                        logType: 'Call',
+                        logInfo: data.body.call,
+                        contacts: callMatchedContact ?? [],
+                        crmUserInfo,
+                        autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                      },
+                      triggerType: data.body.triggerType,
+                      existingCallLog: singleCallLog[data.body.call.sessionId].logData
+                    }, '*')
+                    break;
+                  case 'viewLog':
+                    if (config.platforms[platformName].canOpenLogPage) {
+                      for (const c of callMatchedContact) {
+                        openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                      }
+                    }
+                    else {
+                      openContactPage({ phoneNumber: contactPhoneNumber });
+                    }
+                    break;
+                }
               }
               else {
                 if (!callContactMatched && !!data.body.triggerType) {
