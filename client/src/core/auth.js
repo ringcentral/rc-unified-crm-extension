@@ -51,6 +51,18 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
     }
 }
 
+function sendMessageAsync(tabId, message) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, message, response => {
+            if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+            } else {
+                resolve(response);
+            }
+        });
+    });
+}
+
 async function onAuthCallback(callbackUri) {
     const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
     const rcUserNumber = rcUserInfo.rcUserNumber;
@@ -60,7 +72,14 @@ async function onAuthCallback(callbackUri) {
     if (platformInfo['platform-info'].platformName === 'bullhorn') {
         const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
         const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
-        oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${crm_extension_bullhornUsername}`;
+        if (crm_extension_bullhornUsername == null) {
+            const activeTab = await new Promise(resolve => chrome.tabs.query({ active: true }, tabs => resolve(tabs.find(t => t.url.includes('https://app.bullhornstaffing.com/')))));
+            const bullhornUsernameResponse = await sendMessageAsync(activeTab.id, { action: "fetchBullhornUsername" });
+            oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${bullhornUsernameResponse.bullhornUsername}`;
+        }
+        else {
+            oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${crm_extension_bullhornUsername}`;
+        }
     }
     else {
         oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`;

@@ -72,10 +72,15 @@ chrome.runtime.onMessage.addListener(
       });
     }
     if (request.action === 'pipedriveAltAuthDone') {
-
       console.log('pipedriveAltAuthDone')
       const rcStepper = window.document.querySelector('#rc-stepper');
       rcStepper.innerHTML = '(3/3) Setup finished. You can close this page now.';
+    }
+    if (request.action === 'fetchBullhornUsername') {
+      const decodedCookie = decodeURIComponent(window.document.cookie);
+      const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
+      sendResponse({ bullhornUsername });
+      return;
     }
     sendResponse('ok');
   }
@@ -100,6 +105,19 @@ async function RenderQuickAccessButton() {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+async function fetchBullhornUserinfo() {
+  const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+  let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
+  if (!crm_extension_bullhornUsername || !crm_extension_bullhorn_user_urls) {
+    const decodedCookie = decodeURIComponent(window.document.cookie);
+    const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
+    await chrome.storage.local.set({ crm_extension_bullhornUsername: bullhornUsername });
+    const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsername}`);
+    await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
+  }
+  return { crm_extension_bullhornUsername, crm_extension_bullhorn_user_urls };
+}
+
 async function Initialize() {
   if (window.location.hostname.includes('pipedrive.com')) {
     let { c2dDelay } = await chrome.storage.local.get(
@@ -111,14 +129,8 @@ async function Initialize() {
     const delayInMilliSec = Number(c2dDelay) * 1000;
     await delay(delayInMilliSec);
   }
-  const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
-  let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
-  if (window.location.hostname.includes('bullhornstaffing.com') && (!crm_extension_bullhornUsername || !crm_extension_bullhorn_user_urls)) {
-    const decodedCookie = decodeURIComponent(window.document.cookie);
-    const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
-    await chrome.storage.local.set({ crm_extension_bullhornUsername: bullhornUsername });
-    const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsername}`);
-    await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
+  if (window.location.hostname.includes('bullhornstaffing.com')) {
+    await fetchBullhornUserinfo();
   }
   const { renderQuickAccessButton } = await chrome.storage.local.get({ renderQuickAccessButton: true });
   if (window.self === window.top && renderQuickAccessButton) {
