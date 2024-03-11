@@ -93,6 +93,90 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
+async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    const numberToQueryArray = [];
+    if (overridingFormat === '') {
+        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    }
+    else {
+        const formats = overridingFormat.split(',');
+        for (var format of formats) {
+            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+            if (phoneNumberObj.valid) {
+                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                let formattedNumber = format;
+                for (const numberBit of phoneNumberWithoutCountryCode) {
+                    formattedNumber = formattedNumber.replace('*', numberBit);
+                }
+                numberToQueryArray.push(formattedNumber);
+            }
+        }
+    }
+    const foundContacts = [];
+    for (var numberToQuery of numberToQueryArray) {
+        const personInfo = await axios.get(
+            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        if (personInfo.data.data.length > 0) {
+            for (var result of personInfo.data.data) {
+                const matterInfo = await axios.get(
+                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
+                const associatedMatterInfo = await axios.get(
+                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { id: m.matter.id, title: m.matter.display_number } }) : null;
+                let returnedMatters = [];
+                returnedMatters = returnedMatters.concat(matters ?? []);
+                returnedMatters = returnedMatters.concat(associatedMatters ?? []);
+                foundContacts.push({
+                    id: result.id,
+                    name: result.name,
+                    title: result.title ?? "",
+                    company: result.company?.name ?? "",
+                    phone: numberToQuery,
+                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters } : null
+                })
+            }
+        }
+    }
+    return foundContacts;
+}
+
+async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+    const personInfo = await axios.post(
+        `https://${user.hostname}/api/v4/contacts.json`,
+        {
+            data: {
+                name: newContactName,
+                type: 'Person',
+                phone_numbers: [
+                    {
+                        name: "Work",
+                        number: phoneNumber,
+                        default_number: true
+                    }
+                ],
+            }
+        },
+        {
+            headers: { 'Authorization': authHeader }
+        }
+    );
+    
+    return {
+        id: personInfo.data.data.id,
+        name: personInfo.data.data.name
+    }
+}
+
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const sender = callLog.direction === 'Outbound' ?
         {
@@ -270,90 +354,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
         additionalSubmission: {
             matterId: getLogRes.data.data.matter?.id
         }
-    }
-}
-
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    const numberToQueryArray = [];
-    if (overridingFormat === '') {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
-    }
-    else {
-        const formats = overridingFormat.split(',');
-        for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-            if (phoneNumberObj.valid) {
-                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format;
-                for (const numberBit of phoneNumberWithoutCountryCode) {
-                    formattedNumber = formattedNumber.replace('*', numberBit);
-                }
-                numberToQueryArray.push(formattedNumber);
-            }
-        }
-    }
-    const foundContacts = [];
-    for (var numberToQuery of numberToQueryArray) {
-        const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        if (personInfo.data.data.length > 0) {
-            for (var result of personInfo.data.data) {
-                const matterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
-                const associatedMatterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { id: m.matter.id, title: m.matter.display_number } }) : null;
-                let returnedMatters = [];
-                returnedMatters = returnedMatters.concat(matters ?? []);
-                returnedMatters = returnedMatters.concat(associatedMatters ?? []);
-                foundContacts.push({
-                    id: result.id,
-                    name: result.name,
-                    title: result.title ?? "",
-                    company: result.company?.name ?? "",
-                    phone: numberToQuery,
-                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters } : null
-                })
-            }
-        }
-    }
-    return foundContacts;
-}
-
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
-    const personInfo = await axios.post(
-        `https://${user.hostname}/api/v4/contacts.json`,
-        {
-            data: {
-                name: newContactName,
-                type: 'Person',
-                phone_numbers: [
-                    {
-                        name: "Work",
-                        number: phoneNumber,
-                        default_number: true
-                    }
-                ],
-            }
-        },
-        {
-            headers: { 'Authorization': authHeader }
-        }
-    );
-    console.log(`Contact created with id: ${personInfo.data.data.id} and name: ${personInfo.data.data.name}`)
-    return {
-        id: personInfo.data.data.id,
-        name: personInfo.data.data.name
     }
 }
 

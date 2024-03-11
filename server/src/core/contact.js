@@ -3,7 +3,12 @@ const { UserModel } = require('../models/userModel');
 
 async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
     try {
-        let user = await UserModel.findByPk(userId);
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
@@ -34,9 +39,14 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
     }
 }
 
-async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }){
+async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }) {
     try {
-        let user = await UserModel.findByPk(userId);
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }

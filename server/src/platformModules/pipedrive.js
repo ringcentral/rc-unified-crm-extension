@@ -106,6 +106,70 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
+async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    phoneNumber = phoneNumber.replace(' ', '+')
+    // without + is an extension, we don't want to search for that
+    if (!phoneNumber.includes('+')) {
+        return null;
+    }
+    const phoneNumberObj = parsePhoneNumber(phoneNumber);
+    let phoneNumberWithoutCountryCode = phoneNumber;
+    if (phoneNumberObj.valid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    }
+    const personInfo = await axios.get(
+        `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const matchedContacts = [];
+    if (personInfo.data.data.items.length === 0) {
+        return matchedContacts;
+    }
+    else {
+        for (const person of personInfo.data.data.items) {
+            const dealsResponse = await axios.get(
+                `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            const relatedDeals = dealsResponse.data.data ?
+                dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } })
+                : null;
+            matchedContacts.push(formatContact(person.item, relatedDeals));
+        }
+    }
+    return matchedContacts;
+}
+
+function formatContact(rawContactInfo, relatedDeals) {
+    return {
+        id: rawContactInfo.id,
+        name: rawContactInfo.name,
+        phone: rawContactInfo.phones[0],
+        organization: rawContactInfo.organization?.name ?? '',
+        additionalInfo: relatedDeals ? { deals: relatedDeals } : null
+
+    }
+}
+
+async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+    const postBody = {
+        name: newContactName,
+        phone: phoneNumber
+    }
+    const createContactRes = await axios.post(
+        `https://${user.hostname}/v1/persons`,
+        postBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    return {
+        id: createContactRes.data.data.id,
+        name: createContactRes.data.data.name
+    }
+}
+
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
@@ -209,71 +273,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
     return {
         subject: getLogRes.data.data.subject,
         note
-    }
-}
-
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    phoneNumber = phoneNumber.replace(' ', '+')
-    // without + is an extension, we don't want to search for that
-    if (!phoneNumber.includes('+')) {
-        return null;
-    }
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.valid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-    }
-    const personInfo = await axios.get(
-        `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const matchedContacts = [];
-    if (personInfo.data.data.items.length === 0) {
-        return matchedContacts;
-    }
-    else {
-        for (const person of personInfo.data.data.items) {
-            const dealsResponse = await axios.get(
-                `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-            const relatedDeals = dealsResponse.data.data ?
-                dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } })
-                : null;
-            matchedContacts.push(formatContact(person.item, relatedDeals));
-        }
-    }
-    return matchedContacts;
-}
-
-function formatContact(rawContactInfo, relatedDeals) {
-    return {
-        id: rawContactInfo.id,
-        name: rawContactInfo.name,
-        phone: rawContactInfo.phones[0],
-        organization: rawContactInfo.organization?.name ?? '',
-        additionalInfo: relatedDeals ? { deals: relatedDeals } : null
-
-    }
-}
-
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
-    const postBody = {
-        name: newContactName,
-        phone: phoneNumber
-    }
-    const createContactRes = await axios.post(
-        `https://${user.hostname}/v1/persons`,
-        postBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    console.log(`Contact created with id: ${createContactRes.data.data.id} and name: ${createContactRes.data.data.name}`)
-    return {
-        id: createContactRes.data.data.id,
-        name: createContactRes.data.data.name
     }
 }
 

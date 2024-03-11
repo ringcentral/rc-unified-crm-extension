@@ -78,6 +78,54 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
+async function getContact({ user, phoneNumber }) {
+    const matchedContacts = [];
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    phoneNumber = phoneNumber.replace(' ', '+')
+    const phoneNumberObj = parsePhoneNumber(phoneNumber);
+    let phoneNumberWithoutCountryCode = phoneNumber;
+    if (phoneNumberObj.valid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    }
+    const personInfo = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    for (let rawPersonInfo of personInfo.data.contacts) {
+        rawPersonInfo['phoneNumber'] = phoneNumber;
+        matchedContacts.push(formatContact(rawPersonInfo));
+    }
+    return matchedContacts;
+}
+
+async function createContact({ user, phoneNumber, newContactName }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    const personInfo = await axios.post(
+        `${process.env.REDTAIL_API_SERVER}/contacts`,
+        {
+            type: 'Crm::Contact::Individual',
+            first_name: newContactName.split(' ').length > 1 ? newContactName.split(' ')[0] : '',
+            last_name: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : newContactName.split(' ')[0],
+            phones: [
+                {
+                    phone_type: 6,
+                    number: phoneNumberObj.number.significant,
+                    country_code: phoneNumberObj.countryCode
+                }
+            ]
+        },
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        }
+    );
+    return {
+        id: personInfo.data.contact.id,
+        name: `${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`
+    }
+}
+
 async function addCallLog({ user, contactInfo, callLog, note }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const linkedNotes = note ?? '';
@@ -225,56 +273,6 @@ function formatContact(rawContactInfo) {
         title: rawContactInfo.job_title ?? ""
     }
 }
-
-async function getContact({ user, phoneNumber }) {
-    const matchedContacts = [];
-    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    phoneNumber = phoneNumber.replace(' ', '+')
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.valid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-    }
-    const personInfo = await axios.get(
-        `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
-        {
-            headers: { 'Authorization': overrideAuthHeader }
-        });
-    for (let rawPersonInfo of personInfo.data.contacts) {
-        rawPersonInfo['phoneNumber'] = phoneNumber;
-        matchedContacts.push(formatContact(rawPersonInfo));
-    }
-    return matchedContacts;
-}
-
-async function createContact({ user, phoneNumber, newContactName }) {
-    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-    const personInfo = await axios.post(
-        `${process.env.REDTAIL_API_SERVER}/contacts`,
-        {
-            type: 'Crm::Contact::Individual',
-            first_name: newContactName.split(' ').length > 1 ? newContactName.split(' ')[0] : '',
-            last_name: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : newContactName.split(' ')[0],
-            phones: [
-                {
-                    phone_type: 6,
-                    number: phoneNumberObj.number.significant,
-                    country_code: phoneNumberObj.countryCode
-                }
-            ]
-        },
-        {
-            headers: { 'Authorization': overrideAuthHeader }
-        }
-    );
-    console.log(`Contact created with id: ${personInfo.data.contact.id} and name: ${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`)
-    return {
-        id: personInfo.data.contact.id,
-        name: `${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`
-    }
-}
-
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
