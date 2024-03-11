@@ -23,7 +23,7 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         const hostname = platformInfo['platform-info'].hostname;
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
         const rcUserNumber = rcUserInfo.rcUserNumber;
-        const res = await axios.post(`${config.serverUrl}/apiKeyLoginV2?state=platform=${platformName}`, {
+        const res = await axios.post(`${config.serverUrl}/apiKeyLogin?state=platform=${platformName}`, {
             apiKey,
             platform: platformName,
             hostname,
@@ -60,10 +60,10 @@ async function onAuthCallback(callbackUri) {
     if (platformInfo['platform-info'].platformName === 'bullhorn') {
         const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
         const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
-        oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${crm_extension_bullhornUsername}`;
+        oauthCallbackUrl = `${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${crm_extension_bullhornUsername}`;
     }
     else {
-        oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`;
+        oauthCallbackUrl = `${config.serverUrl}/oauth-callback?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}`;
     }
     const res = await axios.get(oauthCallbackUrl);
     const crmUserInfo = { name: res.data.name };

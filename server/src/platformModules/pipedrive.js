@@ -217,51 +217,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-
-async function getContact({ user, authHeader, phoneNumber }) {
-    phoneNumber = phoneNumber.replace(' ', '+')
-    // without + is an extension, we don't want to search for that
-    if (!phoneNumber.includes('+')) {
-        return null;
-    }
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.valid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-    }
-    const personInfo = await axios.get(
-        `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone&limit=1`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    if (personInfo.data.data.items.length === 0) {
-        return null;
-    }
-    else {
-        let result = personInfo.data.data.items[0].item;
-        const dealsResponse = await axios.get(
-            `https://${user.hostname}/v1/persons/${personInfo.data.data.items[0].item.id}/deals?status=open`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        const relatedDeals = dealsResponse.data.data ?
-            dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } })
-            : null;
-        return formatContact(result, relatedDeals);
-    }
-}
-
-function formatContact(rawContactInfo, relatedDeals) {
-    return {
-        id: rawContactInfo.id,
-        name: rawContactInfo.name,
-        phone: rawContactInfo.phones[0],
-        organization: rawContactInfo.organization?.name ?? '',
-        relatedDeals
-    }
-}
-
-async function getContactV2({ user, authHeader, phoneNumber, overridingFormat }) {
+async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
     if (!phoneNumber.includes('+')) {
@@ -291,13 +247,13 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
             const relatedDeals = dealsResponse.data.data ?
                 dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } })
                 : null;
-            matchedContacts.push(formatContactV2(person.item, relatedDeals));
+            matchedContacts.push(formatContact(person.item, relatedDeals));
         }
     }
     return matchedContacts;
 }
 
-function formatContactV2(rawContactInfo, relatedDeals) {
+function formatContact(rawContactInfo, relatedDeals) {
     return {
         id: rawContactInfo.id,
         name: rawContactInfo.name,
@@ -335,6 +291,5 @@ exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
-exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

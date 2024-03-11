@@ -281,52 +281,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
-    if (overridingFormat) {
-        const formats = overridingFormat.split(',');
-        for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-            if (phoneNumberObj.valid) {
-                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format;
-                for (const numberBit of phoneNumberWithoutCountryCode) {
-                    formattedNumber = formattedNumber.replace('*', numberBit);
-                }
-                numberToQueryArray.push(formattedNumber);
-            }
-        }
-    }
-    else {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
-    }
-    for (var numberToQuery of numberToQueryArray) {
-        const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        if (personInfo.data.data.length > 0) {
-            let result = personInfo.data.data[0];
-            const matterInfo = await axios.get(
-                `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-            const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
-            return {
-                id: result.id,
-                name: result.name,
-                title: result.title ?? "",
-                company: result.company?.name ?? "",
-                phone: numberToQuery,
-                matters
-            }
-        }
-    }
-    return null;
-}
-
-async function getContactV2({ user, authHeader, phoneNumber, overridingFormat }) {
-    const numberToQueryArray = [];
     if (overridingFormat === '') {
         numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     }
@@ -418,6 +372,5 @@ exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getContact = getContact;
-exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

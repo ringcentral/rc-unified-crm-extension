@@ -200,56 +200,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    let commentActionListResponse;
-    try {
-        commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
-    }
-    catch (e) {
-        if (e.response.status === 401) {
-            user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
-        }
-    }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, title: a } });
-    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-    let personInfo;
-    // check for Contact
-    personInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-        {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
-        });
-    if (personInfo.data.data.length > 0) {
-        const result = personInfo.data.data[0];
-        return {
-            id: result.id,
-            name: result.name,
-            phone: result.phone,
-            contactType: 'Contact',
-            commentActionList
-        }
-    }
-    // check for Candidate
-    personInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
-        {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
-        });
-    if (personInfo.data.data.length > 0) {
-        const result = personInfo.data.data[0];
-        return {
-            id: result.id,
-            name: result.name,
-            phone: result.phone,
-            contactType: 'Candidate',
-            commentActionList
-        }
-    }
-    return null;
-}
-
 async function refreshSessionToken(user) {
     const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
     const { BhRestToken, restUrl } = userLoginResponse.data;
@@ -264,7 +214,7 @@ async function refreshSessionToken(user) {
 }
 
 
-async function getContactV2({ user, phoneNumber }) {
+async function getContact({ user, phoneNumber }) {
     let commentActionListResponse;
     try {
         commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
@@ -393,6 +343,5 @@ exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
-exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

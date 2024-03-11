@@ -217,26 +217,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-async function getContact({ user, phoneNumber }) {
-    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    phoneNumber = phoneNumber.replace(' ', '+')
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    let phoneNumberWithoutCountryCode = phoneNumber;
-    if (phoneNumberObj.valid) {
-        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-    }
-    const personInfo = await axios.get(
-        `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
-        {
-            headers: { 'Authorization': overrideAuthHeader }
-        });
-    if (personInfo.data.contacts.length === 0) {
-        return null;
-    }
-    const rawPersonInfo = personInfo.data.contacts[0];
-    rawPersonInfo['phoneNumber'] = phoneNumber;
-    return formatContact(rawPersonInfo);
-}
 function formatContact(rawContactInfo) {
     return {
         id: rawContactInfo.id,
@@ -246,7 +226,7 @@ function formatContact(rawContactInfo) {
     }
 }
 
-async function getContactV2({ user, phoneNumber }) {
+async function getContact({ user, phoneNumber }) {
     const matchedContacts = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     phoneNumber = phoneNumber.replace(' ', '+')
@@ -305,6 +285,5 @@ exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
-exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

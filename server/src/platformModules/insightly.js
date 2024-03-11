@@ -254,106 +254,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    if (overridingFormat) {
-        const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-        if (phoneNumberObj.valid) {
-            const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-            phoneNumber = overridingFormat;
-            for (const numberBit of phoneNumberWithoutCountryCode) {
-                phoneNumber = phoneNumber.replace('*', numberBit);
-            }
-        }
-    }
-    else {
-        phoneNumber = phoneNumber.replace(' ', '+')
-        const phoneNumberObj = parsePhoneNumber(phoneNumber);
-        if (phoneNumberObj.valid) {
-            phoneNumber = phoneNumberObj.number.significant;
-        }
-    }
-    // try Contact by PHONE
-    let personInfo = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE&field_value=${phoneNumber}&brief=false&top=1`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    let contactType = 'contactPhone';
-    if (personInfo.data.length === 0) {
-        // try Contact by PHONE_MOBILE
-        personInfo = await axios.get(
-            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=PHONE_MOBILE&field_value=${phoneNumber}&brief=false&top=1`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        contactType = 'contactMobile';
-        if (personInfo.data.length === 0) {
-            // try Lead by PHONE
-            personInfo = await axios.get(
-                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${phoneNumber}&brief=false&top=1`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-            contactType = 'leadPhone';
-            if (personInfo.data.length === 0) {
-                // try Lead by MOBILE
-                personInfo = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=MOBILE&field_value=${phoneNumber}&brief=false&top=1`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                contactType = 'leadMobile';
-                if (personInfo.data.length === 0) {
-                    return null;
-                }
-            }
-        }
-    }
-    const rawPersonInfo = personInfo.data[0];
-    rawPersonInfo.linkData = [];
-    for (const link of rawPersonInfo.LINKS) {
-        switch (link.LINK_OBJECT_NAME) {
-            case 'Organisation':
-                const orgRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                rawPersonInfo.linkData.push({
-                    label: link.LINK_OBJECT_NAME,
-                    name: orgRes.data.ORGANISATION_NAME,
-                    id: orgRes.data.ORGANISATION_ID
-                })
-                break;
-            case 'Opportunity':
-                const opportunityRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                rawPersonInfo.linkData.push({
-                    label: link.LINK_OBJECT_NAME,
-                    name: opportunityRes.data.OPPORTUNITY_NAME,
-                    id: opportunityRes.data.OPPORTUNITY_ID
-                })
-                break;
-            case 'Project':
-                const projectRes = await axios.get(
-                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                rawPersonInfo.linkData.push({
-                    label: link.LINK_OBJECT_NAME,
-                    name: projectRes.data.PROJECT_NAME,
-                    id: projectRes.data.PROJECT_ID
-                })
-                break;
-        }
-    }
-    return formatContact(rawPersonInfo, contactType);
-}
-
-async function getContactV2({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
     if (overridingFormat === '') {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -461,7 +361,7 @@ async function getContactV2({ user, authHeader, phoneNumber, overridingFormat })
                     break;
             }
         }
-        foundContacts.push(formatContactV2(singlePersonInfo));
+        foundContacts.push(formatContact(singlePersonInfo));
     }
     return foundContacts;
 }
@@ -489,48 +389,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-function formatContact(rawContactInfo, contactType) {
-    switch (contactType) {
-        case 'contactPhone':
-            return {
-                id: rawContactInfo.CONTACT_ID,
-                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
-                phone: rawContactInfo.PHONE,
-                title: rawContactInfo.TITLE,
-                links: rawContactInfo.linkData,
-                type: contactType
-            };
-        case 'contactMobile':
-            return {
-                id: rawContactInfo.CONTACT_ID,
-                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
-                phone: rawContactInfo.PHONE_MOBILE,
-                title: rawContactInfo.TITLE,
-                links: rawContactInfo.linkData,
-                type: contactType
-            };
-        case 'leadPhone':
-            return {
-                id: rawContactInfo.LEAD_ID,
-                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
-                phone: rawContactInfo.PHONE,
-                title: rawContactInfo.TITLE,
-                links: rawContactInfo.linkData,
-                type: contactType
-            };
-        case 'leadMobile':
-            return {
-                id: rawContactInfo.LEAD_ID,
-                name: `${rawContactInfo.FIRST_NAME} ${rawContactInfo.LAST_NAME}`,
-                phone: rawContactInfo.MOBILE,
-                title: rawContactInfo.TITLE,
-                links: rawContactInfo.linkData,
-                type: contactType
-            };
-    }
-}
-
-function formatContactV2(rawContactInfo) {
+function formatContact(rawContactInfo) {
     switch (rawContactInfo.contactType) {
         case 'contactPhone':
             return {
@@ -581,6 +440,5 @@ exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
-exports.getContactV2 = getContactV2;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

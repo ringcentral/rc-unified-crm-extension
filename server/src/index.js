@@ -8,8 +8,8 @@ const { MessageLogModel } = require('./models/messageLogModel');
 const cors = require('cors')
 const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
-const { addCallLog, addMessageLog, getCallLog, updateCallLog } = require('./core/log');
-const { getContact, getContactV2, createContact } = require('./core/contact');
+const logCore = require('./core/log');
+const contactCore = require('./core/contact');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -91,57 +91,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 })
 app.get('/oauth-callback', async function (req, res) {
-    try {
-        const platform = req.query.state.split('platform=')[1];
-        const hostname = req.query.hostname;
-        const tokenUrl = req.query.tokenUrl;
-        if (!platform) {
-            throw 'missing platform name';
-        }
-        const platformModule = require(`./platformModules/${platform}`);
-        const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
-        const oauthApp = oauth.getOAuthApp(oauthInfo);
-        let overridingHeader = null;
-        let overridingQuery = null;
-        if (platform === 'bullhorn') {
-            overridingQuery = {
-                grant_type: 'authorization_code',
-                code: req.query.callbackUri.split('code=')[1],
-                client_id: oauthInfo.clientId,
-                client_secret: oauthInfo.clientSecret,
-                redirect_uri: oauthInfo.redirectUri
-            };
-            overridingHeader = {
-                Authorization: ''
-            };
-        }
-        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, { query: overridingQuery, headers: overridingHeader });
-        const userInfo = await platformModule.getUserInfo({ authHeader: `Bearer ${accessToken}`, tokenUrl: tokenUrl, apiUrl: req.query.apiUrl, username: req.query.username });
-        await platformModule.saveUserOAuthInfo({
-            id: userInfo.id,
-            name: userInfo.name,
-            hostname,
-            accessToken,
-            refreshToken,
-            tokenExpiry: expires,
-            rcUserNumber: req.query.rcUserNumber.toString(),
-            timezoneName: userInfo.timezoneName,
-            timezoneOffset: userInfo.timezoneOffset,
-            additionalInfo: userInfo.additionalInfo
-        });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            rcUserNumber: req.query.rcUserNumber.toString(),
-            platform: platform
-        });
-        res.status(200).send(jwtToken);
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-})
-app.get('/oauth-callbackV2', async function (req, res) {
     try {
         if (req.query.callbackUri === 'undefined') {
             res.status(400).send('missing callbackUri');
@@ -227,44 +176,6 @@ app.post('/apiKeyLogin', async function (req, res) {
             rcUserNumber: req.body.rcUserNumber.toString(),
             platform: platform
         });
-        res.status(200).send(jwtToken);
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-})
-app.post('/apiKeyLoginV2', async function (req, res) {
-    try {
-        const platform = req.body.platform;
-        const apiKey = req.body.apiKey;
-        const hostname = req.body.hostname;
-        const additionalInfo = req.body.additionalInfo;
-        if (!platform) {
-            throw 'missing platform name';
-        }
-        if (!apiKey) {
-            throw 'missing api key';
-        }
-        const platformModule = require(`./platformModules/${platform}`);
-        const basicAuth = platformModule.getBasicAuth({ apiKey });
-        const userInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
-        await platformModule.saveApiKeyUserInfo({
-            id: userInfo.id,
-            name: userInfo.name,
-            hostname,
-            apiKey,
-            additionalInfo,
-            rcUserNumber: req.body.rcUserNumber.toString(),
-            timezoneName: userInfo.timezoneName,
-            timezoneOffset: userInfo.timezoneOffset,
-            additionalInfo: userInfo.additionalInfo
-        });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            rcUserNumber: req.body.rcUserNumber.toString(),
-            platform: platform
-        });
         res.status(200).send({ jwtToken, name: userInfo.name });
     }
     catch (e) {
@@ -317,7 +228,7 @@ app.get('/contact', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await getContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            const { successful, message, contact } = await contactCore.getContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, message, contact });
         }
         else {
@@ -334,24 +245,7 @@ app.post('/contact', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
-            res.status(200).send({ successful, message, contact });
-        }
-        else {
-            res.status(400).send('Please go to Settings and authorize CRM platform');
-        }
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-});
-app.get('/contactV2', async function (req, res) {
-    try {
-        const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await getContactV2({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            const { successful, message, contact } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
             res.status(200).send({ successful, message, contact });
         }
         else {
@@ -368,7 +262,7 @@ app.get('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, logs } = await getCallLog({ userId, sessionIds: req.query.sessionIds, platform });
+            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform });
             res.status(200).send({ successful, logs });
         }
         else {
@@ -385,7 +279,7 @@ app.post('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId } = await addCallLog({ platform, userId, incomingData: req.body });
+            const { successful, message, logId } = await logCore.addCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
         }
         else {
@@ -402,7 +296,7 @@ app.patch('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful } = await updateCallLog({ platform, userId, incomingData: req.body });
+            const { successful } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful });
         }
         else {
@@ -419,7 +313,7 @@ app.post('/messageLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logIds } = await addMessageLog({ platform, userId, incomingData: req.body });
+            const { successful, message, logIds } = await logCore.addMessageLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logIds });
         }
         else {
