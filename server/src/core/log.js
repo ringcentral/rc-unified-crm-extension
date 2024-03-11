@@ -14,7 +14,12 @@ async function addCallLog({ platform, userId, incomingData }) {
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         const note = incomingData.note;
-        const user = await UserModel.findByPk(userId);
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
@@ -23,7 +28,7 @@ async function addCallLog({ platform, userId, incomingData }) {
         switch (authType) {
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-                await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -55,12 +60,54 @@ async function addCallLog({ platform, userId, incomingData }) {
             thirdPartyLogId: logId,
             userId
         });
-        console.log(`added call log: ${incomingData.logInfo.sessionId}`);
+        console.log(`added call log: ${logId}`);
         return { successful: true, logId };
     } catch (e) {
         console.log(e);
         return { successful: false };
     }
+}
+
+async function getCallLog({ userId, sessionIds, platform }) {
+    const platformModule = require(`../platformModules/${platform}`);
+    let user = await UserModel.findOne({
+        where: {
+            id: userId,
+            platform
+        }
+    });
+    if (!user || !user.accessToken) {
+        return { successful: false, message: `Cannot find user with id: ${userId}` };
+    }
+    const authType = platformModule.getAuthType();
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+            user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
+    const sessionIdsArray = sessionIds.split(',');
+    let logs = {};
+    for (const sessionId of sessionIdsArray) {
+        const callLog = await CallLogModel.findOne({
+            where: {
+                sessionId
+            }
+        });
+        if (!!!callLog) {
+            logs[sessionId] = { matched: false };
+            continue;
+        }
+        const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+        logs[sessionId] = { matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog };
+    }
+    return { successful: true, logs };
 }
 
 async function updateCallLog({ platform, userId, incomingData }) {
@@ -72,7 +119,12 @@ async function updateCallLog({ platform, userId, incomingData }) {
         });
         if (existingCallLog) {
             const platformModule = require(`../platformModules/${platform}`);
-            const user = await UserModel.findByPk(userId);
+            let user = await UserModel.findOne({
+                where: {
+                    id: userId,
+                    platform
+                }
+            });
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Cannot find user with id: ${userId}` };
             }
@@ -81,7 +133,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             switch (authType) {
                 case 'oauth':
                     const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-                    await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
                 case 'apiKey':
@@ -90,6 +142,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     break;
             }
             await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, logInfo: incomingData.logInfo, note: incomingData.note, timezoneOffset: user.timezoneOffset });
+            console.log(`updated call log: ${existingCallLog}`);
             return { successful: true };
         }
         return { successful: false };
@@ -107,7 +160,12 @@ async function addMessageLog({ platform, userId, incomingData }) {
         const platformModule = require(`../platformModules/${platform}`);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
-        const user = await UserModel.findByPk(userId);
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
@@ -116,7 +174,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         switch (authType) {
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-                await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -164,7 +222,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 thirdPartyLogId: logId,
                 userId
             });
-            console.log(`added message log: ${message.id}`);
+            console.log(`added message log: ${logId}`);
             logIds.push(logId);
         }
         console.log(`logged ${logIds.length} messages.`);
@@ -176,60 +234,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     }
 }
 
-async function getCallLog({ userId, sessionIds, platform }) {
-    const platformModule = require(`../platformModules/${platform}`);
-    const user = await UserModel.findByPk(userId);
-    if (!user || !user.accessToken) {
-        return { successful: false, message: `Cannot find user with id: ${userId}` };
-    }
-    const authType = platformModule.getAuthType();
-    let authHeader = '';
-    switch (authType) {
-        case 'oauth':
-            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-            await oauth.checkAndRefreshAccessToken(oauthApp, user);
-            authHeader = `Bearer ${user.accessToken}`;
-            break;
-        case 'apiKey':
-            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
-            authHeader = `Basic ${basicAuth}`;
-            break;
-    }
-    const sessionIdsArray = sessionIds.split(',');
-    let logs = {};
-    for (const sessionId of sessionIdsArray) {
-        const callLog = await CallLogModel.findOne({
-            where: {
-                sessionId
-            }
-        });
-        if (!!!callLog) {
-            logs[sessionId] = { matched: false };
-            continue;
-        }
-        const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-        logs[sessionId] = { matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog };
-    }
-    return { successful: true, logs };
-}
-
-// async function getMessageLogs(platform, messageId) {
-//     const messageLog = await MessageLogModel.findOne({
-//         where: {
-//             platform,
-//             id: messageId
-//         }
-//     });
-//     if (callLog) {
-//         return { successful: true, logId: callLog.thirdPartyLogId };
-//     }
-//     else {
-//         return { successful: false, message: `cannot find message log for messageId: ${messageId}` };
-//     }
-// }
-
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
 exports.getCallLog = getCallLog;
-// exports.getMessageLogs = getMessageLogs;
