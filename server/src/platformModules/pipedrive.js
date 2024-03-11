@@ -5,6 +5,8 @@ const Op = require('sequelize').Op;
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
+const crmName = 'pipedrive';
+
 function getAuthType() {
     return 'oauth';
 }
@@ -43,7 +45,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             [Op.and]: [
                 {
                     id,
-                    platform: 'pipedrive'
+                    platform: crmName
                 }
             ]
         }
@@ -70,7 +72,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             hostname: hostname == 'temp' ? `${additionalInfo.companyDomain}.pipedrive.com` : hostname,
             timezoneName,
             timezoneOffset,
-            platform: 'pipedrive',
+            platform: crmName,
             accessToken,
             refreshToken,
             tokenExpiry,
@@ -80,14 +82,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
     }
 }
 
-async function unAuthorize({ id }) {
-    const user = await UserModel.findOne(
-        {
-            where: {
-                id,
-                platform: 'pipedrive'
-            }
-        });
+async function unAuthorize({ user }) {
     const revokeUrl = 'https://oauth.pipedrive.com/oauth/revoke';
     const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
     const refreshTokenParams = new url.URLSearchParams({

@@ -4,6 +4,8 @@ const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
+const crmName = 'redtail';
+
 function getAuthType() {
     return 'apiKey';
 }
@@ -41,7 +43,7 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             [Op.and]: [
                 {
                     id,
-                    platform: 'redtail'
+                    platform: crmName
                 }
             ]
         }
@@ -64,18 +66,16 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             hostname,
             timezoneName,
             timezoneOffset,
-            platform: 'redtail',
+            platform: crmName,
             accessToken: additionalInfo.userResponse.user_key,
             rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
 }
-async function unAuthorize({ id }) {
-    const user = await UserModel.findByPk(id);
-    if (user) {
-        await user.destroy();
-    }
+
+async function unAuthorize({ user }) {
+    await user.destroy();
 }
 
 async function addCallLog({ user, contactInfo, callLog, note }) {

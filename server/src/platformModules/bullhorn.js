@@ -3,6 +3,8 @@ const { UserModel } = require('../models/userModel');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
+const crmName = 'bullhorn';
+
 function getAuthType() {
     return 'oauth';
 }
@@ -35,8 +37,32 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
     };
 }
 
+function getOverridingOAuthOption({ code }) {
+    return {
+        query: {
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.BULLHORN_CLIENT_ID,
+            client_secret: process.env.BULLHORN_CLIENT_SECRET,
+            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+        },
+        headers: {
+            Authorization: ''
+        }
+    }
+}
+
 async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
-    const existingUser = await UserModel.findByPk(id);
+    const existingUser = await UserModel.findOne({
+        where: {
+            [Op.and]: [
+                {
+                    id,
+                    platform: crmName
+                }
+            ]
+        }
+    });
     if (existingUser) {
         await existingUser.update(
             {
@@ -59,7 +85,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             hostname,
             timezoneName,
             timezoneOffset,
-            platform: 'bullhorn',
+            platform: crmName,
             accessToken,
             refreshToken,
             tokenExpiry,
@@ -69,15 +95,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
     }
 }
 
-
-async function unAuthorize({ id }) {
-    const user = await UserModel.findOne(
-        {
-            where: {
-                id,
-                platform: 'bullhorn'
-            }
-        });
+async function unAuthorize({ user }) {
     await user.destroy();
 }
 
@@ -213,7 +231,6 @@ async function refreshSessionToken(user) {
     return user;
 }
 
-
 async function getContact({ user, phoneNumber }) {
     let commentActionListResponse;
     try {
@@ -336,6 +353,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
+exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;

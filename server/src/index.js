@@ -29,17 +29,39 @@ const app = express();
 app.use(bodyParser.json())
 
 app.use(cors({
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST', 'PATCH']
 }));
 
 app.get('/is-alive', (req, res) => { res.send(`OK`); });
+// TODO
 app.get('/init-db', async (req, res) => {
     await initDB();
     res.send(`OK`);
 });
+// TODO
 app.get('/pipedrive-redirect', function (req, res) {
     try {
         res.sendFile(path.join(__dirname, 'pipedriveRedirect/redirect.html'));
+    }
+    catch (e) {
+        console.log(e);
+        res.status(500).send(e);
+    }
+})
+// TODO
+app.delete('/pipedrive-redirect', async function (req, res) {
+    try {
+        const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
+        if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
+            const platformModule = require(`./platformModules/pipedrive`);
+            await platformModule.unAuthorize({ id: req.body.user_id });
+            await UserModel.destroy({
+                where: {
+                    id: req.body.user_id,
+                    platform: 'pipedrive'
+                }
+            });
+        }
     }
     catch (e) {
         console.log(e);
@@ -71,25 +93,6 @@ app.get('/hostname', async function (req, res) {
         res.status(500).send(e);
     }
 })
-app.delete('/pipedrive-redirect', async function (req, res) {
-    try {
-        const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
-        if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
-            const platformModule = require(`./platformModules/pipedrive`);
-            await platformModule.unAuthorize({ id: req.body.user_id });
-            await UserModel.destroy({
-                where: {
-                    id: req.body.user_id,
-                    platform: 'pipedrive'
-                }
-            });
-        }
-    }
-    catch (e) {
-        console.log(e);
-        res.status(500).send(e);
-    }
-})
 app.get('/oauth-callback', async function (req, res) {
     try {
         if (req.query.callbackUri === 'undefined') {
@@ -104,22 +107,14 @@ app.get('/oauth-callback', async function (req, res) {
         }
         const platformModule = require(`./platformModules/${platform}`);
         const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
-        const oauthApp = oauth.getOAuthApp(oauthInfo);
-        let overridingHeader = null;
-        let overridingQuery = null;
-        if (platform === 'bullhorn') {
-            overridingQuery = {
-                grant_type: 'authorization_code',
-                code: req.query.callbackUri.split('code=')[1],
-                client_id: oauthInfo.clientId,
-                client_secret: oauthInfo.clientSecret,
-                redirect_uri: oauthInfo.redirectUri
-            };
-            overridingHeader = {
-                Authorization: ''
-            };
+
+        // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
+        let overridingOAuthOption = null;
+        if (platformModule.getOverridingOAuthOption != null) {
+            overridingOAuthOption = platformModule.getOverridingOAuthOption({ code: req.query.callbackUri.split('code=')[1] });
         }
-        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, { query: overridingQuery, headers: overridingHeader });
+        const oauthApp = oauth.getOAuthApp(oauthInfo);
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, overridingOAuthOption);
         const userInfo = await platformModule.getUserInfo({ authHeader: `Bearer ${accessToken}`, tokenUrl: tokenUrl, apiUrl: req.query.apiUrl, username: req.query.username });
         await platformModule.saveUserOAuthInfo({
             id: userInfo.id,
@@ -183,7 +178,6 @@ app.post('/apiKeyLogin', async function (req, res) {
         res.status(400).send(e);
     }
 })
-
 app.post('/unAuthorize', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
@@ -200,7 +194,7 @@ app.post('/unAuthorize', async function (req, res) {
                 return;
             }
             const platformModule = require(`./platformModules/${unAuthData.platform}`);
-            await platformModule.unAuthorize({ id: unAuthData.id });
+            await platformModule.unAuthorize({ user: userToLogout });
             res.status(200).send();
         }
         else {

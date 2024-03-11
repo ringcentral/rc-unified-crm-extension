@@ -4,6 +4,8 @@ const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
+const crmName = 'insightly';
+
 function getAuthType() {
     return 'apiKey';
 }
@@ -11,7 +13,6 @@ function getAuthType() {
 function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
-
 
 async function getUserInfo({ user, authHeader, additionalInfo }) {
     additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
@@ -38,7 +39,7 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             [Op.and]: [
                 {
                     id,
-                    platform: 'insightly'
+                    platform: crmName
                 }
             ]
         }
@@ -61,7 +62,7 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             hostname,
             timezoneName,
             timezoneOffset,
-            platform: 'insightly',
+            platform: crmName,
             accessToken: apiKey,
             rcUserNumber,
             platformAdditionalInfo: additionalInfo
@@ -69,11 +70,8 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
     }
 }
 
-async function unAuthorize({ id }) {
-    const user = await UserModel.findByPk(id);
-    if (user) {
-        await user.destroy();
-    }
+async function unAuthorize({ user }) {
+    await user.destroy();
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {

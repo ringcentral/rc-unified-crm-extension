@@ -8,6 +8,22 @@ import clioModule from '../platformModules/clio.js';
 import redtailModule from '../platformModules/redtail';
 import bullhornModule from '../platformModules/bullhorn';
 
+async function getModule() {
+    const platformInfo = await chrome.storage.local.get('platform-info');
+    switch (platformInfo['platform-info'].platformName) {
+        case 'pipedrive':
+            return pipedriveModule;
+        case 'insightly':
+            return insightlyModule;
+        case 'clio':
+            return clioModule;
+        case 'redtail':
+            return redtailModule;
+        case 'bullhorn':
+            return bullhornModule;
+    }
+}
+
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({
         ['platform-info']: platform
@@ -105,22 +121,6 @@ function setAuth(auth, accountName) {
         authorized: auth,
         authorizedAccount: accountName ?? ''
     });
-}
-
-async function getModule() {
-    const platformInfo = await chrome.storage.local.get('platform-info');
-    switch (platformInfo['platform-info'].platformName) {
-        case 'pipedrive':
-            return pipedriveModule;
-        case 'insightly':
-            return insightlyModule;
-        case 'clio':
-            return clioModule;
-        case 'redtail':
-            return redtailModule;
-        case 'bullhorn':
-            return bullhornModule;
-    }
 }
 
 exports.submitPlatformSelection = submitPlatformSelection;

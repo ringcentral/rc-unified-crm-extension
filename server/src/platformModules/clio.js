@@ -5,6 +5,8 @@ const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
+const crmName = 'clio';
+
 function getAuthType() {
     return 'oauth';
 }
@@ -40,7 +42,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             [Op.and]: [
                 {
                     id,
-                    platform: 'clio'
+                    platform: crmName
                 }
             ]
         }
@@ -67,7 +69,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             hostname,
             timezoneName,
             timezoneOffset,
-            platform: 'clio',
+            platform: crmName,
             accessToken,
             refreshToken,
             tokenExpiry,
@@ -77,15 +79,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
     }
 }
 
-
-async function unAuthorize({ id }) {
-    const user = await UserModel.findOne(
-        {
-            where: {
-                id,
-                platform: 'clio'
-            }
-        });
+async function unAuthorize({ user }) {
     const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
