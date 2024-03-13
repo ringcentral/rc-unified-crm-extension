@@ -115,19 +115,17 @@ app.get('/oauth-callback', async function (req, res) {
         }
         const oauthApp = oauth.getOAuthApp(oauthInfo);
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, overridingOAuthOption);
-        const userInfo = await platformModule.getUserInfo({ authHeader: `Bearer ${accessToken}`, tokenUrl: tokenUrl, apiUrl: req.query.apiUrl, username: req.query.username });
-        await platformModule.saveUserOAuthInfo({
-            id: userInfo.id,
-            name: userInfo.name,
+        const userInfo = await platformModule.saveUserInfo({ 
+            authHeader: `Bearer ${accessToken}`, 
+            tokenUrl: tokenUrl, 
+            apiUrl: req.query.apiUrl, 
+            username: req.query.username,
             hostname,
             accessToken,
             refreshToken,
             tokenExpiry: expires,
             rcUserNumber: req.query.rcUserNumber.toString(),
-            timezoneName: userInfo.timezoneName,
-            timezoneOffset: userInfo.timezoneOffset,
-            additionalInfo: userInfo.additionalInfo
-        });
+         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             rcUserNumber: req.query.rcUserNumber.toString(),
@@ -154,18 +152,13 @@ app.post('/apiKeyLogin', async function (req, res) {
         }
         const platformModule = require(`./platformModules/${platform}`);
         const basicAuth = platformModule.getBasicAuth({ apiKey });
-        const userInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
-        await platformModule.saveApiKeyUserInfo({
-            id: userInfo.id,
-            name: userInfo.name,
+        const userInfo = await platformModule.saveUserInfo({
+            authHeader: `Basic ${basicAuth}`,
             hostname,
             apiKey,
-            additionalInfo,
             rcUserNumber: req.body.rcUserNumber.toString(),
-            timezoneName: userInfo.timezoneName,
-            timezoneOffset: userInfo.timezoneOffset,
-            additionalInfo: userInfo.additionalInfo
-        });
+            additionalInfo
+         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             rcUserNumber: req.body.rcUserNumber.toString(),

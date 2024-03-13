@@ -18,7 +18,7 @@ function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
 
-async function getUserInfo({ user, authHeader, additionalInfo }) {
+async function saveUserInfo({ hostname, rcUserNumber, additionalInfo }) {
     const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
     const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
     const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
@@ -28,16 +28,10 @@ async function getUserInfo({ user, authHeader, additionalInfo }) {
     });
     additionalInfo['userResponse'] = authResponse.data.authenticated_user;
     delete additionalInfo.password;
-    return {
-        id: additionalInfo.username,
-        name: additionalInfo.username,
-        timezoneName: '',
-        timezoneOffset: null,
-        additionalInfo
-    }
-}
-
-async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const id = additionalInfo.username;
+    const name = additionalInfo.username;
+    const timezoneName = '';
+    const timezoneOffset = null;
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -71,6 +65,10 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
+    }
+    return {
+        id,
+        name
     }
 }
 
@@ -276,8 +274,7 @@ function formatContact(rawContactInfo) {
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
-exports.getUserInfo = getUserInfo;
-exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

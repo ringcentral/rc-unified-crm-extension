@@ -20,23 +20,16 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ authHeader }) {
+async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
     const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
         headers: {
             'Authorization': authHeader
         }
     });
-    return {
-        id: userInfoResponse.data.data.id.toString(),
-        name: userInfoResponse.data.data.name,
-        timezoneName: userInfoResponse.data.data.time_zone,
-        timezoneOffset: 0,  //TODO: find timezone offset from timezone name/code
-        additionalInfo: {
-        }
-    };
-}
-
-async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const id = userInfoResponse.data.data.id.toString();
+    const name = userInfoResponse.data.data.name;
+    const timezoneName = userInfoResponse.data.data.time_zone;
+    const timezoneOffset = 0;  //TODO: find timezone offset from timezone name/code
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -77,8 +70,11 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             platformAdditionalInfo: additionalInfo
         });
     }
+    return {
+        id,
+        name
+    };
 }
-
 async function unAuthorize({ user }) {
     const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
     const accessTokenParams = new url.URLSearchParams({
@@ -170,7 +166,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             headers: { 'Authorization': authHeader }
         }
     );
-    
+
     return {
         id: personInfo.data.data.id,
         name: personInfo.data.data.name
@@ -359,8 +355,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
-exports.saveUserOAuthInfo = saveUserOAuthInfo;
-exports.getUserInfo = getUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;

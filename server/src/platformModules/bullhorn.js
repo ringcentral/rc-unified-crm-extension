@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { UserModel } = require('../models/userModel');
+const Op = require('sequelize').Op;
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
@@ -18,41 +19,15 @@ function getOauthInfo({ tokenUrl }) {
     }
 }
 
-async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
+async function saveUserInfo({ authHeader, tokenUrl, apiUrl, username, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
     const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
     const { BhRestToken: bhRestToken, restUrl } = userLoginResponse.data;
     const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
     const userData = userInfoResponse.data.data[0];
-    const utcTimeOffset = userData.timeZoneOffsetEST - 5 * 60;
-    return {
-        id: `${userData.id.toString()}-bullhorn`,
-        name: userData.name,
-        timezoneOffset: utcTimeOffset,
-        additionalInfo: {
-            tokenUrl,
-            restUrl,
-            loginUrl: apiUrl,
-            bhRestToken
-        }
-    };
-}
-
-function getOverridingOAuthOption({ code }) {
-    return {
-        query: {
-            grant_type: 'authorization_code',
-            code,
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            client_secret: process.env.BULLHORN_CLIENT_SECRET,
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
-        },
-        headers: {
-            Authorization: ''
-        }
-    }
-}
-
-async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const id = `${userData.id.toString()}-bullhorn`;
+    const name = userData.name;
+    const timezoneOffset = userData.timeZoneOffsetEST - 5 * 60;
+    const timezoneName = '';
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -74,7 +49,12 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
                 refreshToken,
                 tokenExpiry,
                 rcUserNumber,
-                platformAdditionalInfo: additionalInfo
+                platformAdditionalInfo: {
+                    tokenUrl,
+                    restUrl,
+                    loginUrl: apiUrl,
+                    bhRestToken
+                }
             }
         );
     }
@@ -90,8 +70,32 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             refreshToken,
             tokenExpiry,
             rcUserNumber,
-            platformAdditionalInfo: additionalInfo
+            platformAdditionalInfo: {
+                tokenUrl,
+                restUrl,
+                loginUrl: apiUrl,
+                bhRestToken
+            }
         });
+    }
+    return {
+        id,
+        name
+    };
+}
+
+function getOverridingOAuthOption({ code }) {
+    return {
+        query: {
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.BULLHORN_CLIENT_ID,
+            client_secret: process.env.BULLHORN_CLIENT_SECRET,
+            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+        },
+        headers: {
+            Authorization: ''
+        }
     }
 }
 
@@ -352,8 +356,7 @@ async function refreshSessionToken(user) {
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
-exports.saveUserOAuthInfo = saveUserOAuthInfo;
-exports.getUserInfo = getUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

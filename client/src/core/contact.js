@@ -16,7 +16,7 @@ async function getContact({ phoneNumber }) {
     if (overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
     if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
     if (!!rcUnifiedCrmExtJwt) {
-        const contactRes = await axios.get(`${config.serverUrl}/contactV2?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
+        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
         return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact };
     }
     else {

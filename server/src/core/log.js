@@ -142,7 +142,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     break;
             }
             await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, logInfo: incomingData.logInfo, note: incomingData.note, timezoneOffset: user.timezoneOffset });
-            console.log(`updated call log: ${existingCallLog}`);
+            console.log(`updated call log: ${existingCallLog.id}`);
             return { successful: true };
         }
         return { successful: false };

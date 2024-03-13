@@ -14,7 +14,7 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function getUserInfo({ user, authHeader, additionalInfo }) {
+async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additionalInfo }) {
     additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
     const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
@@ -23,17 +23,10 @@ async function getUserInfo({ user, authHeader, additionalInfo }) {
     });;
     // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
     // We use UTC here for now
+    const id = userInfoResponse.data.USER_ID.toString();
+    const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
     const timezoneOffset = null;
-    return {
-        id: userInfoResponse.data.USER_ID.toString(),
-        name: `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`,
-        timezoneName: userInfoResponse.data.TIMEZONE_ID,
-        timezoneOffset,
-        additionalInfo
-    };
-}
-
-async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const timezoneName= userInfoResponse.data.TIMEZONE_ID;
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -68,6 +61,10 @@ async function saveApiKeyUserInfo({ id, name, hostname, apiKey, rcUserNumber, ti
             platformAdditionalInfo: additionalInfo
         });
     }
+    return {
+        id,
+        name
+    };
 }
 
 async function unAuthorize({ user }) {
@@ -429,8 +426,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
-exports.getUserInfo = getUserInfo;
-exports.saveApiKeyUserInfo = saveApiKeyUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

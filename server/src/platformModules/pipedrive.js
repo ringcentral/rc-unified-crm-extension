@@ -20,26 +20,16 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ authHeader }) {
+async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
             'Authorization': authHeader
         }
     });
-    return {
-        id: userInfoResponse.data.data.id.toString(),
-        name: userInfoResponse.data.data.name,
-        timezoneName: userInfoResponse.data.data.timezone_name,
-        timezoneOffset: userInfoResponse.data.data.timezone_offset,
-        additionalInfo: {
-            companyId: userInfoResponse.data.data.company_id,
-            companyName: userInfoResponse.data.data.company_name,
-            companyDomain: userInfoResponse.data.data.company_domain,
-        }
-    };
-}
-
-async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const id = userInfoResponse.data.data.id.toString();
+    const name = userInfoResponse.data.data.name;
+    const timezoneName = userInfoResponse.data.data.timezone_name;
+    const timezoneOffset = userInfoResponse.data.data.timezone_offset;
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -54,14 +44,18 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
         await existingUser.update(
             {
                 name,
-                hostname: hostname == 'temp' ? `${additionalInfo.companyDomain}.pipedrive.com` : hostname,
+                hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
                 timezoneName,
                 timezoneOffset,
                 accessToken,
                 refreshToken,
                 tokenExpiry,
                 rcUserNumber,
-                platformAdditionalInfo: additionalInfo
+                platformAdditionalInfo: {
+                    companyId: userInfoResponse.data.data.company_id,
+                    companyName: userInfoResponse.data.data.company_name,
+                    companyDomain: userInfoResponse.data.data.company_domain,
+                }
             }
         );
     }
@@ -69,7 +63,7 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
         await UserModel.create({
             id,
             name,
-            hostname: hostname == 'temp' ? `${additionalInfo.companyDomain}.pipedrive.com` : hostname,
+            hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
             timezoneName,
             timezoneOffset,
             platform: crmName,
@@ -77,9 +71,21 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             refreshToken,
             tokenExpiry,
             rcUserNumber,
-            platformAdditionalInfo: additionalInfo
+            platformAdditionalInfo: {
+                companyId: userInfoResponse.data.data.company_id,
+                companyName: userInfoResponse.data.data.company_name,
+                companyDomain: userInfoResponse.data.data.company_domain,
+            }
         });
     }
+    return {
+        id,
+        name
+    };
+}
+
+async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+
 }
 
 async function unAuthorize({ user }) {
@@ -278,8 +284,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
-exports.saveUserOAuthInfo = saveUserOAuthInfo;
-exports.getUserInfo = getUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

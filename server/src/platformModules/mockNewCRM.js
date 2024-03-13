@@ -7,9 +7,10 @@ const { parsePhoneNumber } = require('awesome-phonenumber');
 const crmName = 'testCRM';
 
 function getAuthType() {
-    return 'oauth';
+    return 'oauth'; // Return either 'oauth' OR 'apiKey'
 }
 
+// For OAuth
 function getOauthInfo() {
     return {
         clientId: process.env.TEST_CLIENT_ID,
@@ -19,7 +20,13 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ authHeader }) {
+// For API Key
+function getBasicAuth({ apiKey }) {
+    return Buffer.from(`${apiKey}:`).toString('base64');
+}
+
+async function getUserInfo({ user, authHeader, additionalInfo }) {
+    // API call to get logged in user info
     const userInfoResponse = await axios.get('https://api.crm.com/user/me', {
         headers: {
             'Authorization': authHeader
@@ -28,8 +35,8 @@ async function getUserInfo({ authHeader }) {
     return {
         id: userInfoResponse.data.id,
         name: userInfoResponse.data.name,
-        timezoneName: userInfoResponse.data.time_zone,  // Optional if you want to log with regards to the user's timezone
-        timezoneOffset: userInfoResponse.data.time_zone_offset,  // Optional if you want to log with regards to the user's timezone
+        timezoneName: userInfoResponse.data.time_zone,  // Optional. Whether or not you want to log with regards to the user's timezone
+        timezoneOffset: userInfoResponse.data.time_zone_offset,  // Optional. Whether or not you want to log with regards to the user's timezone
         additionalInfo: {
         }
     };
@@ -263,6 +270,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
+exports.getBasicAuth = getBasicAuth;
 exports.saveUserOAuthInfo = saveUserOAuthInfo;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
