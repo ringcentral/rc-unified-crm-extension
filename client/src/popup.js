@@ -397,7 +397,9 @@ window.addEventListener('message', async (e) => {
                             phoneType: 'direct'
                           }
                         ],
-                        entityType: platformName
+                        entityType: platformName,
+                        additionalInfo: contactInfo.additionalInfo,
+                        additionalInfo1: "1"
                       });
                     }
                   }
@@ -489,19 +491,60 @@ window.addEventListener('message', async (e) => {
                   showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
                 }
                 else {// add your codes here to log call to your service
-                  window.postMessage({
-                    type: 'rc-log-modal',
-                    platform: platformName,
-                    isAccumulative: false,
-                    logProps: {
-                      logType: 'Call',
-                      logInfo: data.body.call,
-                      contacts: callMatchedContact ?? [],
-                      crmUserInfo,
-                      autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                  // window.postMessage({
+                  //   type: 'rc-log-modal',
+                  //   platform: platformName,
+                  //   isAccumulative: false,
+                  //   logProps: {
+                  //     logType: 'Call',
+                  //     logInfo: data.body.call,
+                  //     contacts: callMatchedContact ?? [],
+                  //     crmUserInfo,
+                  //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
+                  //   },
+                  //   triggerType: data.body.triggerType
+                  // }, '*')
+
+                  // Get call data: data.body.call
+                  const contactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
+                  const contactList = contactInfo.map(c => { return { id: c.id, name: c.name } });
+                  contactList.push({
+                    id: 'createNewContact',
+                    name: 'Create new contact...'
+                  });
+                  const activityTitle = data.body.call.direction === 'Inbound' ?
+                    `Inbound call from ${contactList[0].name}` :
+                    `Outbound call to ${contactList[0].name}`;
+                  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                    type: 'rc-adapter-update-call-log-page',
+                    page: {
+                      pageTitle: `Save to ${platformName}`, // optional
+                      saveButtonLabel: 'Save', // optional
+                      fields: [{
+                        id: 'contact',
+                        label: 'Contact',
+                        type: 'input.choice',
+                        choices: contactList,
+                        value: contactList[0].id,
+                      }, {
+                        id: 'activityTitle',
+                        label: 'Activity title',
+                        type: 'input.text',
+                        value: activityTitle,
+                      }, {
+                        id: 'note',
+                        label: 'Note',
+                        type: 'input.text',
+                        value: '',
+                      }],
                     },
-                    triggerType: data.body.triggerType
-                  }, '*')
+                  }, '*');
+
+                  // navigate to call log page
+                  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                    type: 'rc-adapter-navigate-to',
+                    path: `/log/call/${data.body.call.sessionId}`,
+                  }, '*');
                 }
               }
               // response to widget
@@ -512,6 +555,49 @@ window.addEventListener('message', async (e) => {
                 }
               );
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
+              break;
+            case '/callLogger/inputChanged':
+              console.log(data); // get input changed data in here: data.body.input
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-post-message-response',
+                responseId: data.requestId,
+                response: { data: 'ok' },
+              }, '*');
+              // Get call data: data.body.call
+              const updatedContactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
+              const updatedContactList = updatedContactInfo.map(c => { return { id: c.id, name: c.name } });
+              updatedContactList.push({
+                id: 'createNewContact',
+                name: 'Create new contact...'
+              });
+              const updatedContact = updatedContactList.find(c => c.id === data.body.input.contact);
+              const updatedActivityTitle = data.body.call.direction === 'Inbound' ?
+                `Inbound call from ${updatedContact.name}` :
+                `Outbound call to ${updatedContact.name}`;
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-update-call-log-page',
+                page: {
+                  pageTitle: `Save to ${platformName}`, // optional
+                  saveButtonLabel: 'Save', // optional
+                  fields: [{
+                    id: 'contact',
+                    label: 'Contact',
+                    type: 'input.choice',
+                    choices: updatedContactList,
+                    value: updatedContact.id,
+                  }, {
+                    id: 'activityTitle',
+                    label: 'Activity title',
+                    type: 'input.text',
+                    value: updatedActivityTitle,
+                  }, {
+                    id: 'note',
+                    label: 'Note',
+                    type: 'input.text',
+                    value: '',
+                  }],
+                },
+              }, '*');
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
@@ -759,6 +845,7 @@ function getServiceConfig(serviceName) {
 
     // Enable call log sync feature
     callLoggerPath: '/callLogger',
+    callLogPageInputChangedEventPath: '/callLogger/inputChanged',
     callLogEntityMatcherPath: '/callLogger/match',
     callLoggerAutoSettingLabel: 'Auto pop up call logging page after call',
 
