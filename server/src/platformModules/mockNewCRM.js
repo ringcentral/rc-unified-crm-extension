@@ -25,24 +25,21 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function getUserInfo({ user, authHeader, additionalInfo }) {
+// For params, if OAuth, then accessToken, refreshToken, tokenExpiry; If apiKey, then apiKey
+async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
     // API call to get logged in user info
     const userInfoResponse = await axios.get('https://api.crm.com/user/me', {
         headers: {
             'Authorization': authHeader
         }
     });
-    return {
-        id: userInfoResponse.data.id,
-        name: userInfoResponse.data.name,
-        timezoneName: userInfoResponse.data.time_zone,  // Optional. Whether or not you want to log with regards to the user's timezone
-        timezoneOffset: userInfoResponse.data.time_zone_offset,  // Optional. Whether or not you want to log with regards to the user's timezone
-        additionalInfo: {
-        }
-    };
-}
 
-async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
+    const id = userInfoResponse.data.id;
+    const name = userInfoResponse.data.name;
+    const timezoneName = userInfoResponse.data.time_zone ?? ''; // Optional. Whether or not you want to log with regards to the user's timezone
+    const timezoneOffset = userInfoResponse.data.time_zone_offset ?? null; // Optional. Whether or not you want to log with regards to the user's timezone
+
+    // Save user info in DB
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -56,7 +53,6 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
     if (existingUser) {
         await existingUser.update(
             {
-                name,
                 hostname,
                 timezoneName,
                 timezoneOffset,
@@ -71,7 +67,6 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
     else {
         await UserModel.create({
             id,
-            name,
             hostname,
             timezoneName,
             timezoneOffset,
@@ -83,6 +78,10 @@ async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken
             platformAdditionalInfo: additionalInfo
         });
     }
+    return {
+        id,
+        name
+    };
 }
 
 async function unAuthorize({ user }) {
@@ -90,6 +89,7 @@ async function unAuthorize({ user }) {
     const revokeBody = {
         token: user.accessToken
     }
+    // Some platform may require revoking tokens
     const accessTokenRevokeRes = await axios.post(
         revokeUrl,
         revokeBody,
@@ -271,8 +271,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getBasicAuth = getBasicAuth;
-exports.saveUserOAuthInfo = saveUserOAuthInfo;
-exports.getUserInfo = getUserInfo;
+exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;

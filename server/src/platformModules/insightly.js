@@ -39,7 +39,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additi
     });
     if (existingUser) {
         await existingUser.update({
-            name,
             hostname,
             timezoneName,
             timezoneOffset,
@@ -51,7 +50,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additi
     else {
         await UserModel.create({
             id,
-            name,
             hostname,
             timezoneName,
             timezoneOffset,

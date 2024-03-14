@@ -43,7 +43,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     if (existingUser) {
         await existingUser.update(
             {
-                name,
                 hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
                 timezoneName,
                 timezoneOffset,
@@ -62,7 +61,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     else {
         await UserModel.create({
             id,
-            name,
             hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
             timezoneName,
             timezoneOffset,
