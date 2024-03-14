@@ -70,11 +70,13 @@ async function onAuthCallback(callbackUri) {
     const hostname = platformInfo['platform-info'].hostname;
     let oauthCallbackUrl = '';
     if (platformInfo['platform-info'].platformName === 'bullhorn') {
-        const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
-        const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
+        let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
+        let { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
         if (crm_extension_bullhornUsername == null) {
             const activeTab = await new Promise(resolve => chrome.tabs.query({ active: true }, tabs => resolve(tabs.find(t => t.url.includes('https://app.bullhornstaffing.com/')))));
             const bullhornUsernameResponse = await sendMessageAsync(activeTab.id, { action: "fetchBullhornUsername" });
+            const { data: crm_extension_bullhorn_user_urls } = await axios.get(`https://rest.bullhornstaffing.com/rest-services/loginInfo?username=${bullhornUsernameResponse.bullhornUsername}`);
+            await chrome.storage.local.set({ crm_extension_bullhorn_user_urls });
             oauthCallbackUrl = `${config.serverUrl}/oauth-callbackV2?callbackUri=${callbackUri}&rcUserNumber=${rcUserNumber}&hostname=${hostname}&tokenUrl=${crm_extension_bullhorn_user_urls.oauthUrl}/token&apiUrl=${crm_extension_bullhorn_user_urls.restUrl}&username=${bullhornUsernameResponse.bullhornUsername}`;
         }
         else {
