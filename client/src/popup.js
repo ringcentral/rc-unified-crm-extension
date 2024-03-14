@@ -398,8 +398,7 @@ window.addEventListener('message', async (e) => {
                           }
                         ],
                         entityType: platformName,
-                        additionalInfo: contactInfo.additionalInfo,
-                        additionalInfo1: "1"
+                        additionalInfo: contactInfoItem.additionalInfo
                       });
                     }
                   }
@@ -507,7 +506,7 @@ window.addEventListener('message', async (e) => {
 
                   // Get call data: data.body.call
                   const contactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
-                  const contactList = contactInfo.map(c => { return { id: c.id, name: c.name } });
+                  const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, additionalInfo: c.additionalInfo } });
                   contactList.push({
                     id: 'createNewContact',
                     name: 'Create new contact...'
@@ -536,6 +535,12 @@ window.addEventListener('message', async (e) => {
                         label: 'Note',
                         type: 'input.text',
                         value: '',
+                      }, {
+                        id: 'matter',
+                        label: 'Matter',
+                        type: 'input.choice',
+                        choices: contactList[0]?.additionalInfo?.matters ?? [{ id: 'none', name: 'None' }],
+                        value: contactList[0]?.additionalInfo?.matters[0]?.id ?? 'none',
                       }],
                     },
                   }, '*');
@@ -595,6 +600,12 @@ window.addEventListener('message', async (e) => {
                     label: 'Note',
                     type: 'input.text',
                     value: '',
+                  }, {
+                    id: 'matter',
+                    label: 'Matter',
+                    type: 'input.choice',
+                    choices: updatedContact?.additionalInfo?.matters ?? [{ id: 'none', name: 'None' }],
+                    value: updatedContact?.additionalInfo?.matters[0]?.id,
                   }],
                 },
               }, '*');

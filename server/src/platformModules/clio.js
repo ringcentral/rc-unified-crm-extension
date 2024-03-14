@@ -120,13 +120,13 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, title: m.display_number } }) : null;
+                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { id: m.id, name: m.display_number } }) : null;
                 const associatedMatterInfo = await axios.get(
                     `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { id: m.matter.id, title: m.matter.display_number } }) : null;
+                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { id: m.matter.id, name: m.matter.display_number } }) : null;
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
                 returnedMatters = returnedMatters.concat(associatedMatters ?? []);
