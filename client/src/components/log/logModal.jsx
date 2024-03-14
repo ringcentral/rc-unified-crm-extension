@@ -21,6 +21,7 @@ import InsightlyAdditionalForm from './InsightlyAdditionalForm';
 import ClioAdditionalForm from './ClioAdditionalForm';
 import BullhornAdditionalForm from './BullhornAdditionalForm';
 import config from '../../config';
+import { cacheCallNote } from '../../core/log';
 
 const ModalContainer = styled.div`
 height: 100%;
@@ -390,6 +391,7 @@ export default () => {
 
     function onChangeNote(e) {
         setNote(e.target.value);
+        cacheCallNote({ sessionId: logInfo.sessionId, note: e.target.value });
         stopCountDown();
     }
 
