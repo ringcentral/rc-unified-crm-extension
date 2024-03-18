@@ -9,10 +9,13 @@ import redtailModule from '../platformModules/redtail';
 import bullhornModule from '../platformModules/bullhorn';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, isMain, note, additionalSubmission, overridingContactId, contactType, contactName }) {
+async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmission, overridingContactId, contactType, contactName }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
-    const rcUserInfo = await chrome.storage.local.get('rcUserInfo');
+    if(!!subject)
+    {
+        logInfo['customSubject'] = subject;
+    }
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
@@ -85,7 +88,7 @@ function openLog({ platform, hostname, logId, contactType }) {
     platformModule.openLogPage({ hostname, logId, contactType });
 }
 
-async function updateLog({ logType, sessionId, recordingLink, logInfo, note }) {
+async function updateLog({ logType, sessionId, recordingLink, subject, note }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
@@ -93,7 +96,7 @@ async function updateLog({ logType, sessionId, recordingLink, logInfo, note }) {
                 const patchBody = {
                     sessionId,
                     recordingLink,
-                    logInfo,
+                    subject,
                     note
                 }
                 const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
@@ -129,6 +132,7 @@ async function getCachedNote({ sessionId }) {
         return cachedNote[sessionId];
     }
 }
+
 function getModule({ platform }) {
     switch (platform) {
         case 'pipedrive':

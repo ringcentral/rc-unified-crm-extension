@@ -31,11 +31,11 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
             return { successful: true, message: '', contact: contactInfo };
         }
         else {
-            return { successful: false, message: '' };
+            return { successful: false, message: 'Cannot find contact' };
         }
     } catch (e) {
         console.log(e);
-        return { successful: false, message: `Failed to get contact.` };
+        return { successful: false, message: 'Failed to get contact.' };
     }
 }
 

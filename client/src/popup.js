@@ -1,11 +1,12 @@
 const auth = require('./core/auth');
-const { checkLog, openLog, getLog, updateLog } = require('./core/log');
-const { getContact, openContactPage } = require('./core/contact');
+const { checkLog, openLog, addLog, updateLog, getCachedNote, cacheCallNote } = require('./core/log');
+const { getContact, createContact, openContactPage } = require('./core/contact');
 const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
 const { apiKeyLogin } = require('./core/auth');
 const { openDB } = require('idb');
+const logPage = require('./components/logPage');
 const {
   identify,
   reset,
@@ -398,6 +399,7 @@ window.addEventListener('message', async (e) => {
                           }
                         ],
                         entityType: platformName,
+                        contactType: contactInfoItem.type,
                         additionalInfo: contactInfoItem.additionalInfo
                       });
                     }
@@ -453,96 +455,16 @@ window.addEventListener('message', async (e) => {
                 sessionIds: data.body.call.sessionId
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
-              // get crm user info
-              const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
-              if (singleCallLog[data.body.call.sessionId].matched) {
-                switch (data.body.triggerType) {
-                  case 'editLog':
-                    window.postMessage({
-                      type: 'rc-log-modal',
-                      platform: platformName,
-                      isAccumulative: false,
-                      logProps: {
-                        logType: 'Call',
-                        logInfo: data.body.call,
-                        contacts: callMatchedContact ?? [],
-                        crmUserInfo,
-                        autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
-                      },
-                      triggerType: data.body.triggerType,
-                      existingCallLog: singleCallLog[data.body.call.sessionId].logData
-                    }, '*')
-                    break;
-                  case 'viewLog':
-                    if (config.platforms[platformName].canOpenLogPage) {
-                      for (const c of callMatchedContact) {
-                        openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
-                      }
-                    }
-                    else {
-                      openContactPage({ phoneNumber: contactPhoneNumber });
-                    }
-                    break;
-                }
-              }
-              else {
-                if (!callContactMatched && !!data.body.triggerType) {
-                  showNotification({ level: 'warning', message: callLogContactMatchMessage, ttl: 3000 });
-                }
-                else {// add your codes here to log call to your service
-                  // window.postMessage({
-                  //   type: 'rc-log-modal',
-                  //   platform: platformName,
-                  //   isAccumulative: false,
-                  //   logProps: {
-                  //     logType: 'Call',
-                  //     logInfo: data.body.call,
-                  //     contacts: callMatchedContact ?? [],
-                  //     crmUserInfo,
-                  //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value
-                  //   },
-                  //   triggerType: data.body.triggerType
-                  // }, '*')
-
-                  // Get call data: data.body.call
+              switch (data.body.triggerType) {
+                case 'createLog':
+                  const cachedNote = await getCachedNote({ sessionId: data.body.call.sessionId });
+                case 'editLog':
+                  // add your codes here to log call to your service
                   const contactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
-                  const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, additionalInfo: c.additionalInfo } });
-                  contactList.push({
-                    id: 'createNewContact',
-                    name: 'Create new contact...'
-                  });
-                  const activityTitle = data.body.call.direction === 'Inbound' ?
-                    `Inbound call from ${contactList[0].name}` :
-                    `Outbound call to ${contactList[0].name}`;
+                  const page = logPage.getLogPageRender({ triggerType: data.body.triggerType, platformName, callDirection: data.body.call.direction, contactInfo, callLog: singleCallLog[data.body.call.sessionId]?.logData ?? { note: cachedNote } });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
-                    page: {
-                      pageTitle: `Save to ${platformName}`, // optional
-                      saveButtonLabel: 'Save', // optional
-                      fields: [{
-                        id: 'contact',
-                        label: 'Contact',
-                        type: 'input.choice',
-                        choices: contactList,
-                        value: contactList[0].id,
-                      }, {
-                        id: 'activityTitle',
-                        label: 'Activity title',
-                        type: 'input.text',
-                        value: activityTitle,
-                      }, {
-                        id: 'note',
-                        label: 'Note',
-                        type: 'input.text',
-                        value: '',
-                      }, {
-                        id: 'matter',
-                        label: 'Matter',
-                        type: 'input.choice',
-                        choices: contactList[0]?.additionalInfo?.matters ?? [{ id: 'none', name: 'None' }],
-                        value: contactList[0]?.additionalInfo?.matters[0]?.id ?? 'none',
-                      }],
-                    },
+                    page,
                   }, '*');
 
                   // navigate to call log page
@@ -550,7 +472,57 @@ window.addEventListener('message', async (e) => {
                     type: 'rc-adapter-navigate-to',
                     path: `/log/call/${data.body.call.sessionId}`,
                   }, '*');
-                }
+                  break;
+                case 'viewLog':
+                  if (config.platforms[platformName].canOpenLogPage) {
+                    for (const c of callMatchedContact) {
+                      openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                    }
+                  }
+                  else {
+                    openContactPage({ phoneNumber: contactPhoneNumber });
+                  }
+                  break;
+                case 'logForm':
+                  let additionalSubmission = {};
+                  for (const f of config.platforms[platformName].additionalFields) {
+                    if (data.body.input[`contact.${f.name}`] != "none") {
+                      additionalSubmission[f.name] = data.body.input[`contact.${f.name}`];
+                    }
+                  }
+                  switch (data.body.input.triggerType) {
+                    case 'createLog':
+                      let newContactInfo = {};
+                      if (data.body.input.contact === 'createNewContact') {
+                        const newContactResp = await createContact({
+                          phoneNumber: contactPhoneNumber,
+                          newContactName: data.body.input.contactName,
+                          newContactType: data.body.input.contactType
+                        });
+                        newContactInfo = newContactResp.contactInfo;
+                      }
+                      await addLog(
+                        {
+                          logType: 'Call',
+                          logInfo: data.body.call,
+                          isMain: true,
+                          note: data.body.input?.note ?? "",
+                          subject: data.body.input['contact.activityTitle'] ?? "",
+                          additionalSubmission,
+                          overridingContactId: newContactInfo?.id ?? data.body.input?.contact,
+                          contactType: data.body.input?.contactType
+                        });
+                      break;
+                    case 'editLog':
+                      await updateLog({
+                        logType: 'Call',
+                        sessionId: data.body.call.sessionId,
+                        subject: data.body.input['contact.activityTitle'] ?? "",
+                        note: data.body.input?.note ?? "",
+                      });
+                      break;
+                  }
+                  break;
               }
               // response to widget
               responseMessage(
@@ -568,47 +540,16 @@ window.addEventListener('message', async (e) => {
                 responseId: data.requestId,
                 response: { data: 'ok' },
               }, '*');
-              // Get call data: data.body.call
-              const updatedContactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
-              const updatedContactList = updatedContactInfo.map(c => { return { id: c.id, name: c.name } });
-              updatedContactList.push({
-                id: 'createNewContact',
-                name: 'Create new contact...'
+              const page = logPage.getUpdatedLogPageRender({ updateData: data.body });
+              await cacheCallNote({
+                sessionId: data.body.call.sessionId,
+                note: data.body.input?.note ?? ''
               });
-              const updatedContact = updatedContactList.find(c => c.id === data.body.input.contact);
-              const updatedActivityTitle = data.body.call.direction === 'Inbound' ?
-                `Inbound call from ${updatedContact.name}` :
-                `Outbound call to ${updatedContact.name}`;
-              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                type: 'rc-adapter-update-call-log-page',
-                page: {
-                  pageTitle: `Save to ${platformName}`, // optional
-                  saveButtonLabel: 'Save', // optional
-                  fields: [{
-                    id: 'contact',
-                    label: 'Contact',
-                    type: 'input.choice',
-                    choices: updatedContactList,
-                    value: updatedContact.id,
-                  }, {
-                    id: 'activityTitle',
-                    label: 'Activity title',
-                    type: 'input.text',
-                    value: updatedActivityTitle,
-                  }, {
-                    id: 'note',
-                    label: 'Note',
-                    type: 'input.text',
-                    value: '',
-                  }, {
-                    id: 'matter',
-                    label: 'Matter',
-                    type: 'input.choice',
-                    choices: updatedContact?.additionalInfo?.matters ?? [{ id: 'none', name: 'None' }],
-                    value: updatedContact?.additionalInfo?.matters[0]?.id,
-                  }],
-                },
-              }, '*');
+              await
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-update-call-log-page',
+                  page
+                }, '*');
               break;
             case '/callLogger/match':
               let callLogMatchData = {};

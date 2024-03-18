@@ -26,7 +26,7 @@ async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additi
     const id = userInfoResponse.data.USER_ID.toString();
     const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
     const timezoneOffset = null;
-    const timezoneName= userInfoResponse.data.TIMEZONE_ID;
+    const timezoneName = userInfoResponse.data.TIMEZONE_ID;
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
@@ -136,7 +136,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     }
     const foundContacts = [];
     for (let singlePersonInfo of rawContacts) {
-        singlePersonInfo.linkData = [];
+        singlePersonInfo.additionalInfo = {};
         for (const link of singlePersonInfo.LINKS) {
             switch (link.LINK_OBJECT_NAME) {
                 case 'Organisation':
@@ -145,11 +145,13 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    singlePersonInfo.linkData.push({
-                        label: link.LINK_OBJECT_NAME,
+                    if (!!!singlePersonInfo.additionalInfo.organisation) {
+                        singlePersonInfo.additionalInfo.organisation = [];
+                    }
+                    singlePersonInfo.additionalInfo.organisation.push({
                         name: orgRes.data.ORGANISATION_NAME,
                         id: orgRes.data.ORGANISATION_ID
-                    })
+                    });
                     break;
                 case 'Opportunity':
                     const opportunityRes = await axios.get(
@@ -157,11 +159,13 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    singlePersonInfo.linkData.push({
-                        label: link.LINK_OBJECT_NAME,
+                    if (!!!singlePersonInfo.additionalInfo.opportunity) {
+                        singlePersonInfo.additionalInfo.opportunity = [];
+                    }
+                    singlePersonInfo.additionalInfo.opportunity.push({
                         name: opportunityRes.data.OPPORTUNITY_NAME,
                         id: opportunityRes.data.OPPORTUNITY_ID
-                    })
+                    });
                     break;
                 case 'Project':
                     const projectRes = await axios.get(
@@ -169,11 +173,13 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    singlePersonInfo.linkData.push({
-                        label: link.LINK_OBJECT_NAME,
+                    if (!!!singlePersonInfo.additionalInfo.project) {
+                        singlePersonInfo.additionalInfo.project = [];
+                    }
+                    singlePersonInfo.additionalInfo.project.push({
                         name: projectRes.data.PROJECT_NAME,
                         id: projectRes.data.PROJECT_ID
-                    })
+                    });
                     break;
             }
         }
@@ -190,7 +196,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE,
                 title: rawContactInfo.TITLE,
-                additionalInfo: rawContactInfo.linkData.length > 0 ? { links: rawContactInfo.linkData } : null,
+                additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
             };
         case 'contactMobile':
@@ -199,7 +205,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE_MOBILE,
                 title: rawContactInfo.TITLE,
-                additionalInfo: rawContactInfo.linkData.length > 0 ? { links: rawContactInfo.linkData } : null,
+                additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
             };
         case 'leadPhone':
@@ -208,7 +214,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE,
                 title: rawContactInfo.TITLE,
-                additionalInfo: rawContactInfo.linkData.length > 0 ? { links: rawContactInfo.linkData } : null,
+                additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'
             };
         case 'leadMobile':
@@ -217,7 +223,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.MOBILE,
                 title: rawContactInfo.TITLE,
-                additionalInfo: rawContactInfo.linkData.length > 0 ? { links: rawContactInfo.linkData } : null,
+                additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'
             };
     }
@@ -273,36 +279,36 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             });
         if (additionalSubmission != null) {
             // add org link
-            if (additionalSubmission.orgSelection != null) {
+            if (additionalSubmission.organization != null) {
                 await axios.post(
                     `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Organisation',
-                        LINK_OBJECT_ID: additionalSubmission.orgSelection
+                        LINK_OBJECT_ID: additionalSubmission.organization
                     },
                     {
                         headers: { 'Authorization': authHeader }
                     });
             }
             // add opportunity link
-            if (additionalSubmission.opportunitySelection != null) {
+            if (additionalSubmission.opportunity != null) {
                 await axios.post(
                     `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Opportunity',
-                        LINK_OBJECT_ID: additionalSubmission.opportunitySelection
+                        LINK_OBJECT_ID: additionalSubmission.opportunity
                     },
                     {
                         headers: { 'Authorization': authHeader }
                     });
             }
             // add org link
-            if (additionalSubmission.projectSelection != null) {
+            if (additionalSubmission.project != null) {
                 await axios.post(
                     `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
                     {
                         LINK_OBJECT_NAME: 'Project',
-                        LINK_OBJECT_ID: additionalSubmission.projectSelection
+                        LINK_OBJECT_ID: additionalSubmission.project
                     },
                     {
                         headers: { 'Authorization': authHeader }
@@ -324,7 +330,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.EVENT_ID;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
     const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
     const getLogRes = await axios.get(
@@ -352,7 +358,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
-        logSubject = logInfo.customSubject;
+        logSubject = subject;
     }
 
     const putBody = {
@@ -366,6 +372,28 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${callLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const note = getLogRes.data.DETAILS.includes('[Call recording link]') ?
+        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n[Call recording link]')[0] :
+        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n\n--- Created via RingCentral CRM Extension')[0];
+    const contactRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${getLogRes.data.LINKS[0].LINK_OBJECT_NAME}s/${getLogRes.data.LINKS[0].LINK_OBJECT_ID}`,
+        {
+            headers: { 'Authorization': authHeader }
+        }
+    );
+    return {
+        subject: getLogRes.data.TITLE,
+        note,
+        contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`
+    }
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
@@ -405,21 +433,6 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             });
     }
     return addLogRes.data.EVENT_ID;
-}
-
-async function getCallLog({ user, callLogId, authHeader }) {
-    const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${callLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const note = getLogRes.data.DETAILS.includes('[Call recording link]') ?
-        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n[Call recording link]')[0] :
-        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n\n--- Created via RingCentral CRM Extension')[0];
-    return {
-        subject: getLogRes.data.TITLE,
-        note
-    }
 }
 
 exports.getAuthType = getAuthType;

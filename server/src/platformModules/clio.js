@@ -236,7 +236,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return communicationId;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
@@ -273,7 +273,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
         patchBody = {
             data: {
-                subject: logInfo.customSubject,
+                subject: subject,
                 body: logBody
             }
         }
@@ -335,19 +335,25 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 async function getCallLog({ user, callLogId, authHeader }) {
     const formattedLogId = callLogId.split('.')[0];
     const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter`,
+        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers`,
         {
             headers: { 'Authorization': authHeader }
         });
     const note = getLogRes.data.data.body.includes('[Call recording link]') ?
         getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
         getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
+    const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
+        getLogRes.data.data.senders[0].id :
+        getLogRes.data.data.receivers[0].id;
+    const contactRes = await axios.get(
+        `https://${user.hostname}/api/v4/contacts/${contactId}.json?fields=name`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
     return {
         subject: getLogRes.data.data.subject,
         note,
-        additionalSubmission: {
-            matterId: getLogRes.data.data.matter?.id
-        }
+        contactName: contactRes.data.data.name
     }
 }
 

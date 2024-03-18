@@ -141,7 +141,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, logInfo: incomingData.logInfo, note: incomingData.note, timezoneOffset: user.timezoneOffset });
+            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, timezoneOffset: user.timezoneOffset });
             console.log(`updated call log: ${existingCallLog.id}`);
             return { successful: true };
         }
