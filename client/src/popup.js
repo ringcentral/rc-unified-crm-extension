@@ -496,8 +496,8 @@ window.addEventListener('message', async (e) => {
                       if (data.body.input.contact === 'createNewContact') {
                         const newContactResp = await createContact({
                           phoneNumber: contactPhoneNumber,
-                          newContactName: data.body.input.contactName,
-                          newContactType: data.body.input.contactType
+                          newContactName: data.body.input.newContactName,
+                          newContactType: data.body.input.newContactType
                         });
                         newContactInfo = newContactResp.contactInfo;
                       }
@@ -510,7 +510,8 @@ window.addEventListener('message', async (e) => {
                           subject: data.body.input['contact.activityTitle'] ?? "",
                           additionalSubmission,
                           overridingContactId: newContactInfo?.id ?? data.body.input?.contact,
-                          contactType: data.body.input?.contactType
+                          contactType: data.body.input?.newContactType ?? '',
+                          contactName: data.body.input?.newContactName ?? ''
                         });
                       break;
                     case 'editLog':
