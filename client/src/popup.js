@@ -461,7 +461,7 @@ window.addEventListener('message', async (e) => {
                 case 'editLog':
                   // add your codes here to log call to your service
                   const contactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
-                  const page = logPage.getLogPageRender({ triggerType: data.body.triggerType, platformName, callDirection: data.body.call.direction, contactInfo, callLog: singleCallLog[data.body.call.sessionId]?.logData ?? { note: cachedNote } });
+                  const page = logPage.getCallLogPageRender({ triggerType: data.body.triggerType, platformName, callDirection: data.body.call.direction, contactInfo, callLog: singleCallLog[data.body.call.sessionId]?.logData ?? { note: cachedNote } });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
                     page,
@@ -485,7 +485,8 @@ window.addEventListener('message', async (e) => {
                   break;
                 case 'logForm':
                   let additionalSubmission = {};
-                  for (const f of config.platforms[platformName].additionalFields) {
+                  const additionalFields = config.platforms[platformName].additionalFields ?? [];
+                  for (const f of additionalFields) {
                     if (data.body.input[`contact.${f.name}`] != "none") {
                       additionalSubmission[f.name] = data.body.input[`contact.${f.name}`];
                     }
@@ -541,7 +542,7 @@ window.addEventListener('message', async (e) => {
                 responseId: data.requestId,
                 response: { data: 'ok' },
               }, '*');
-              const page = logPage.getUpdatedLogPageRender({ updateData: data.body });
+              const page = logPage.getUpdatedCallLogPageRender({ updateData: data.body });
               await cacheCallNote({
                 sessionId: data.body.call.sessionId,
                 note: data.body.input?.note ?? ''
@@ -600,25 +601,35 @@ window.addEventListener('message', async (e) => {
                 showNotification({ level: 'warning', message: getContactMatchResult.message, ttl: 3000 });
               }
               else {
-                // get crm user info
-                const { crmUserInfo } = (await chrome.storage.local.get({ crmUserInfo: null }));
                 // add your codes here to log call to your service
-                window.postMessage({
-                  type: 'rc-log-modal',
-                  platform: platformName,
-                  isTrailing,
-                  trailingSMSLogInfo,
-                  logProps: {
-                    logType: 'Message',
-                    logInfo: data.body.conversation,
-                    contactName: getContactMatchResult.contactInfo.name,
-                    contacts: getContactMatchResult.contactInfo ?? [],
-                    crmUserInfo,
-                    autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
-                  },
-                  additionalLogInfo: getContactMatchResult.additionalLogInfo,
-                  triggerType: data.body.triggerType === 'auto'
+                const contactInfo = data.body.conversation.correspondents;
+                const page = logPage.getMessageLogPageRender({ platformName, contactInfo });
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-update-call-log-page',
+                  page,
                 }, '*');
+
+                // navigate to message log page
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-navigate-to',
+                  path: `/log/message/${data.body.conversation.conversationLogId}`,
+                }, '*');
+                // window.postMessage({
+                //   type: 'rc-log-modal',
+                //   platform: platformName,
+                //   isTrailing,
+                //   trailingSMSLogInfo,
+                //   logProps: {
+                //     logType: 'Message',
+                //     logInfo: data.body.conversation,
+                //     contactName: getContactMatchResult.contactInfo.name,
+                //     contacts: getContactMatchResult.contactInfo ?? [],
+                //     crmUserInfo,
+                //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
+                //   },
+                //   additionalLogInfo: getContactMatchResult.additionalLogInfo,
+                //   triggerType: data.body.triggerType === 'auto'
+                // }, '*');
                 if (!isTrailing) {
                   leadingSMSCallReady = true;
                 }
@@ -631,6 +642,8 @@ window.addEventListener('message', async (e) => {
                 }
               );
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
+              break;
+            case '/messageLogger/inputChanged':
               break;
             case '/messageLogger/match':
               let localMessageLogs = {};
@@ -803,6 +816,7 @@ function getServiceConfig(serviceName) {
     callLoggerAutoSettingLabel: 'Auto pop up call logging page after call',
 
     messageLoggerPath: '/messageLogger',
+    messagesLogPageInputChangedEventPath: '/messageLogger/inputChanged',
     messageLogEntityMatcherPath: '/messageLogger/match',
     messageLoggerAutoSettingLabel: 'Auto pop up SMS logging page',
 

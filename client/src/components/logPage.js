@@ -1,6 +1,6 @@
 const config = require('../config.json')
 
-function getLogPageRender({ triggerType, platformName, callDirection, contactInfo, callLog }) {
+function getCallLogPageRender({ triggerType, platformName, callDirection, contactInfo, callLog }) {
     // format contact list
     const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
     const defaultActivityTitle = callDirection === 'Inbound' ?
@@ -13,7 +13,7 @@ function getLogPageRender({ triggerType, platformName, callDirection, contactInf
     });
     switch (triggerType) {
         case 'createLog':
-            const additionalChoiceFields = config.platforms[platformName].additionalFields.filter(f => f.type === 'choice');
+            const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'choice') ?? [];
             const additionalFields = additionalChoiceFields.map(f => {
                 return {
                     id: `contact.${f.name}`,
@@ -24,10 +24,31 @@ function getLogPageRender({ triggerType, platformName, callDirection, contactInf
                     visible: !!contactList[0]?.additionalInfo?.hasOwnProperty(f.name)
                 }
             });
+            const warningMessage = [];
+            if(contactList.length > 2)
+            {
+                warningMessage.push({
+                    id: 'warning',
+                    type: 'admonition.warn', // "admonition.warn","admonition.info"
+                    text: "Multiple contacts found. Please select the contact to associate this activity with.",
+                });
+            }
+            else if(contactList.length === 1)
+            {
+                warningMessage.push({
+                    id: 'warning',
+                    type: 'admonition.warn', // "admonition.warn","admonition.info"
+                    text: "No contact found. Enter a name to have a placeholder contact made for you.",
+                });
+            }
+            {
+
+            }
             page = {
                 pageTitle: `Save to ${platformName}`, // optional
                 saveButtonLabel: 'Save', // optional
                 fields: [
+                    ...warningMessage,
                     {
                         id: 'contact',
                         label: 'Contact',
@@ -135,7 +156,7 @@ function getLogPageRender({ triggerType, platformName, callDirection, contactInf
     return page;
 }
 
-function getUpdatedLogPageRender({ updateData }) {
+function getUpdatedCallLogPageRender({ updateData }) {
     const updatedFieldKey = updateData.key;
     let page = updateData.page;
     // update target field value
@@ -154,8 +175,8 @@ function getUpdatedLogPageRender({ updateData }) {
                 if (c.id.endsWith('activityTitle')) {
                     if (!page.activityTitleManuallyEdited) {
                         c.value = page.fields.find(f => f.id === 'contact.activityTitle').value.startsWith('Inbound') ?
-                            `Inbound call from ${newContactNameField.value ?? contact.name}` :
-                            `Outbound call to ${newContactNameField.value ?? contact.name}`;
+                            `Inbound call from ${newContactNameField.value === '' ?? contact.name}` :
+                            `Outbound call to ${newContactNameField.value === '' ?? contact.name}`;
                     }
                 }
                 else {
@@ -181,5 +202,61 @@ function getUpdatedLogPageRender({ updateData }) {
     return page;
 }
 
-exports.getLogPageRender = getLogPageRender;
-exports.getUpdatedLogPageRender = getUpdatedLogPageRender;
+function getMessageLogPageRender({ platformName,contactInfo, isTrailing, trailingSMSLogInfo }) {
+    // format contact list
+    const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
+    const additionalChoiceFields = config.platforms[platformName].additionalFields.filter(f => f.type === 'choice');
+    const additionalFields = additionalChoiceFields.map(f => {
+        return {
+            id: `contact.${f.name}`,
+            label: f.label,
+            type: 'input.choice',
+            choices: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? [...contactList[0].additionalInfo[f.name], { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }],
+            value: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? contactList[0].additionalInfo[f.name][0].id : 'none',
+            visible: !!contactList[0]?.additionalInfo?.hasOwnProperty(f.name)
+        }
+    });
+    const page = {
+        pageTitle: `Save to ${platformName}`, // optional
+        saveButtonLabel: 'Save', // optional
+        fields: [
+            {
+                id: 'contact',
+                label: 'Contact',
+                type: 'input.choice',
+                choices: contactList,
+                value: contactList[0].id,
+            },
+            {
+                id: 'newContactName',
+                label: 'New contact name',
+                type: 'input.string',
+                value: '',
+                required: contactList.length === 1,
+                visible: contactList.length === 1
+            },
+            {
+                id: 'contactType',
+                label: '',
+                type: 'input.string',
+                value: contactList[0]?.type ?? '',
+                visible: false
+            },
+            {
+                id: 'newContactType',
+                label: 'Contact type',
+                type: 'input.choice',
+                choices: config.platformsWithDifferentContactType[platformName]?.map(t => { return { id: t, name: t } }) ?? [],
+                value: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
+                visible: !!config.platformsWithDifferentContactType[platformName] && contactList[0].id === 'createNewContact'
+            },
+            ...additionalFields
+        ],
+        activityTitleManuallyEdited: false
+    }
+    return page;
+}
+
+exports.getCallLogPageRender = getCallLogPageRender;
+exports.getUpdatedCallLogPageRender = getUpdatedCallLogPageRender;
+exports.getMessageLogPageRender = getMessageLogPageRender;
