@@ -112,7 +112,7 @@ async function getContact({ user, phoneNumber }) {
             commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
         }
     }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, title: a } });
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, name: a } });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
@@ -128,7 +128,7 @@ async function getContact({ user, phoneNumber }) {
             name: result.name,
             phone: result.phone,
             type: 'Contact',
-            additionalInfo: commentActionList?.length > 0 ? { actions: commentActionList } : null
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
     // check for Candidate
@@ -143,7 +143,7 @@ async function getContact({ user, phoneNumber }) {
             name: result.name,
             phone: result.phone,
             type: 'Candidate',
-            additionalInfo: commentActionList?.length > 0 ? { actions: commentActionList } : null
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
     return matchedContactInfo;
@@ -220,11 +220,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
-    const commentAction = additionalSubmission.commentAction ?? '';
+    const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `from ${additionalSubmission.crmUserName} to ${contactInfo.name}` : `from ${contactInfo.name} to ${additionalSubmission.crmUserName}`}`;
     const putBody = {
         comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
-        action: commentAction,
+        action: noteActions,
         personReference: {
             id: contactInfo.overridingContactId ?? contactInfo.id
         }
@@ -248,7 +248,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.changedEntityId;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     try {
@@ -277,7 +277,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // replace note
         logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br/>${note}<br/><br/>`)
         // replace subject
-        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], logInfo.customSubject ?? '');
+        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject ?? '');
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
@@ -321,20 +321,22 @@ async function getCallLog({ user, callLogId, authHeader }) {
     let getLogRes
     try {
         getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
         }
     }
     const logBody = getLogRes.data.data.comments;
     const note = logBody.split('<b>Call details</b>')[0].replaceAll('<br>', '');
+    const contact = getLogRes.data.data.clientContacts.total > 0 ? getLogRes.data.data.clientContacts.data[0] : getLogRes.data.data.candidates.data[0];
     return {
         subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
-        note
+        note,
+        contactName: `${contact.firstName} ${contact.lastName}`
     }
 }
 

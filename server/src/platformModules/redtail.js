@@ -169,7 +169,7 @@ async function addCallLog({ user, contactInfo, callLog, note }) {
     return completeLogRes.data.activity.id;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
@@ -197,7 +197,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
-        logSubject = logInfo.customSubject;
+        logSubject = subject ?? '';
     }
 
     const putBody = {
@@ -249,7 +249,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const getLogRes = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/activities/${callLogId}`,
         {
-            headers: { 'Authorization': overrideAuthHeader }
+            headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
         });
     const logBody = getLogRes.data.activity.description;
     const note = logBody.includes('Call recording link:') ?
@@ -257,7 +257,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
         logBody?.split('Agent notes: ')[1]?.split('<br><br><em> Created via:')[0];
     return {
         subject: getLogRes.data.activity.subject,
-        note
+        note,
+        contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,
     }
 }
 

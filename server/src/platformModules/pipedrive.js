@@ -138,7 +138,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                     headers: { 'Authorization': authHeader }
                 });
             const relatedDeals = dealsResponse.data.data ?
-                dealsResponse.data.data.map(d => { return { id: d.id, title: d.title } })
+                dealsResponse.data.data.map(d => { return { id: d.id, name: d.title } })
                 : null;
             matchedContacts.push(formatContact(person.item, relatedDeals));
         }
@@ -175,7 +175,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
-    const dealId = additionalSubmission ? additionalSubmission.dealId : '';
+    const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
@@ -200,7 +200,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     return addLogRes.data.data.id;
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
@@ -227,7 +227,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         logBody = logBody.replace(`</p><p>[Note] ${originalNote}</p>`, `</p><p>[Note] ${note}</p>`);
         putBody = {
             note: logBody,
-            subject: logInfo?.customSubject ?? existingCallLog.subject,
+            subject: subject ?? existingCallLog.subject,
         }
     }
     const putLogRes = await axios.put(
@@ -274,9 +274,13 @@ async function getCallLog({ user, callLogId, authHeader }) {
         });
     const logBody = getLogRes.data.data.note;
     const note = logBody.split('<p>[Note] ')[1].split('</p>')[0];
+    const relatedContact = getLogRes.data.related_objects.person;
+    const contactKeys = Object.keys(relatedContact);
+    const contactName = relatedContact[contactKeys[0]].name;
     return {
         subject: getLogRes.data.data.subject,
-        note
+        note,
+        contactName
     }
 }
 
