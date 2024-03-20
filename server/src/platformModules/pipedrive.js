@@ -138,7 +138,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                     headers: { 'Authorization': authHeader }
                 });
             const relatedDeals = dealsResponse.data.data ?
-                dealsResponse.data.data.map(d => { return { id: d.id, name: d.title } })
+                dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
                 : null;
             matchedContacts.push(formatContact(person.item, relatedDeals));
         }

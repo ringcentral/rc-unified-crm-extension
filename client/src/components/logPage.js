@@ -2,207 +2,270 @@ const config = require('../config.json')
 
 function getCallLogPageRender({ triggerType, platformName, callDirection, contactInfo, callLog }) {
     // format contact list
-    const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
+    const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.contactType, description: c.contactType ? `${c.contactType} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
     const defaultActivityTitle = callDirection === 'Inbound' ?
-        `Inbound call from ${contactList[0]?.name ?? ''}` :
-        `Outbound call to ${contactList[0]?.name ?? ''}`;
+        `Inbound call from ${contactList[0]?.title ?? ''}` :
+        `Outbound call to ${contactList[0]?.title ?? ''}`;
     // add option to create new contact
     contactList.push({
-        id: 'createNewContact',
-        name: 'Create new contact...'
+        const: 'createNewContact',
+        title: 'Create new contact...'
     });
     switch (triggerType) {
         case 'createLog':
-            const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'choice') ?? [];
-            const additionalFields = additionalChoiceFields.map(f => {
-                return {
-                    id: `contact.${f.name}`,
-                    label: f.label,
-                    type: 'input.choice',
-                    choices: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? [...contactList[0].additionalInfo[f.name], { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }],
-                    value: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? contactList[0].additionalInfo[f.name][0].id : 'none',
-                    visible: !!contactList[0]?.additionalInfo?.hasOwnProperty(f.name)
+            let additionalFields = {};
+            let additionalFieldsValue = {};
+            for (const f of additionalChoiceFields) {
+                if (!contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                    continue;
                 }
-            });
-            const warningMessage = [];
-            if(contactList.length > 2)
-            {
-                warningMessage.push({
-                    id: 'warning',
-                    type: 'admonition.warn', // "admonition.warn","admonition.info"
-                    text: "Multiple contacts found. Please select the contact to associate this activity with.",
-                });
+                additionalFields[f.const] = {
+                    title: f.title,
+                    type: 'string',
+                    oneOf: [...contactList[0].additionalInfo[f.const], { const: 'none', title: 'None' }],
+                    associationField: true
+                }
+                additionalFieldsValue[f.const] = contactList[0].additionalInfo[f.const][0].const;
             }
-            else if(contactList.length === 1)
-            {
-                warningMessage.push({
-                    id: 'warning',
-                    type: 'admonition.warn', // "admonition.warn","admonition.info"
-                    text: "No contact found. Enter a name to have a placeholder contact made for you.",
-                });
+            let warningField = {};
+            if (contactList.length > 2) {
+                warningField = {
+                    warning: {
+                        type: 'string',
+                        description: "Multiple contacts found. Please select the contact to associate this activity with.",
+                    }
+                };
             }
-            {
-
+            else if (contactList.length === 1) {
+                warningMessage = {
+                    warning: {
+                        type: 'string',
+                        description: "No contact found. Enter a name to have a placeholder contact made for you.",
+                    }
+                };
+            }
+            let requiredFieldNames = [];
+            if (contactList.length === 1) { requiredFieldNames = ['newContactName'] };
+            let newContactWidget = {
+                newContactName: {
+                    "ui:widget": "hidden",
+                },
+                newContactType: {
+                    "ui:widget": "hidden",
+                }
+            }
+            if (contactList[0].const === 'createNewContact') {
+                if (!!config.platformsWithDifferentContactType[platformName]) {
+                    newContactWidget.newContactType = {};
+                }
+                newContactWidget.newContactName = {
+                    "ui:placeholder": 'Enter name...',
+                };
             }
             page = {
-                pageTitle: `Save to ${platformName}`, // optional
-                saveButtonLabel: 'Save', // optional
-                fields: [
-                    ...warningMessage,
-                    {
-                        id: 'contact',
-                        label: 'Contact',
-                        type: 'input.choice',
-                        choices: contactList,
-                        value: contactList[0].id,
+                title: `Save to ${platformName}`, // optional
+                schema: {
+                    type: 'object',
+                    required: [],
+                    properties: {
+                        ...warningField,
+                        contact: {
+                            title: 'Contact',
+                            type: 'string',
+                            oneOf: contactList
+                        },
+                        newContactName: {
+                            title: 'New contact name',
+                            type: 'string',
+                        },
+                        contactType: {
+                            title: '',
+                            type: 'string'
+                        },
+                        triggerType: {
+                            title: '',
+                            type: 'string'
+                        },
+                        newContactType: {
+                            title: 'Contact type',
+                            type: 'string',
+                            oneOf: config.platformsWithDifferentContactType[platformName]?.map(t => { return { const: t, title: t } }) ?? [],
+                        },
+                        activityTitle: {
+                            title: 'Activity title',
+                            type: 'string',
+                            manuallyEdited: false
+                        },
+                        note: {
+                            title: 'Note',
+                            type: 'string'
+                        },
+                        ...additionalFields
+                    }
+                },
+                uiSchema: {
+                    warning: {
+                        "ui:field": "admonition", // or typography to show raw text
+                        "ui:severity": "warning", // "warning", "info", "error", "success"
                     },
-                    {
-                        id: 'newContactName',
-                        label: 'New contact name',
-                        type: 'input.string',
-                        value: '',
-                        required: contactList.length === 1,
-                        visible: contactList.length === 1
+                    contactType: {
+                        "ui:widget": "hidden",
                     },
-                    {
-                        id: 'contactType',
-                        label: '',
-                        type: 'input.string',
-                        value: contactList[0]?.type ?? '',
-                        visible: false
+                    triggerType: {
+                        "ui:widget": "hidden",
                     },
-                    {
-                        id: 'newContactType',
-                        label: 'Contact type',
-                        type: 'input.choice',
-                        choices: config.platformsWithDifferentContactType[platformName]?.map(t => { return { id: t, name: t } }) ?? [],
-                        value: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
-                        visible: !!config.platformsWithDifferentContactType[platformName] && contactList[0].id === 'createNewContact'
+                    note: {
+                        "ui:placeholder": 'Enter note...',
+                        "ui:widget": "textarea",
                     },
-                    {
-                        id: 'triggerType',
-                        label: '',
-                        type: 'input.string',
-                        value: triggerType,
-                        visible: false
+                    submitButtonOptions: {
+                        submitText: 'Save',
                     },
-                    {
-                        id: 'contact.activityTitle',
-                        label: 'Activity title',
-                        type: 'input.string',
-                        value: callLog?.subject ?? defaultActivityTitle,
-                    },
-                    {
-                        id: 'note',
-                        label: 'Note',
-                        type: 'input.text',
-                        value: callLog?.note ?? '',
-                    },
-                    ...additionalFields
-                ],
-                activityTitleManuallyEdited: false
+                    ...newContactWidget
+                },
+                formData: {
+                    contact: contactList[0].const,
+                    newContactType: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
+                    newContactName: '',
+                    contactType: contactList[0]?.type ?? '',
+                    activityTitle: callLog?.subject ?? defaultActivityTitle,
+                    note: callLog?.note ?? '',
+                    triggerType,
+                    ...additionalFieldsValue
+                }
             }
             break;
         case 'editLog':
             page = {
-                pageTitle: 'Edit log', // optional
-                saveButtonLabel: 'Update', // optional
-                fields: [
-                    {
-                        id: 'contact',
-                        label: 'Contact',
-                        type: 'input.string',
-                        value: callLog.contactName,
-                    },
-                    {
-                        id: 'newContactName',
-                        label: 'New contact name',
-                        type: 'input.string',
-                        value: '',
-                        required: contactList.length === 1,
-                        visible: contactList.length === 1
-                    },
-                    {
-                        id: 'contactType',
-                        label: '',
-                        type: 'input.string',
-                        value: contactList[0]?.type ?? '',
-                        visible: false
-                    },
-                    {
-                        id: 'triggerType',
-                        label: '',
-                        type: 'input.string',
-                        value: triggerType,
-                        visible: false
-                    },
-                    {
-                        id: 'contact.activityTitle',
-                        label: 'Activity title',
-                        type: 'input.string',
-                        value: callLog?.subject ?? defaultActivityTitle,
-                    },
-                    {
-                        id: 'note',
-                        label: 'Note',
-                        type: 'input.text',
-                        value: callLog?.note ?? '',
+                title: `Edit log`, // optional
+                schema: {
+                    type: 'object',
+                    required: ['activityTitle'],
+                    properties: {
+                        contact: {
+                            title: 'Contact',
+                            type: 'string',
+                            oneOf: contactList,
+                            readOnly: true
+                        },
+                        activityTitle: {
+                            title: 'Activity title',
+                            type: 'string'
+                        },
+                        note: {
+                            title: 'Note',
+                            type: 'string'
+                        }
                     }
-                ],
-                activityTitleManuallyEdited: false
+                },
+                uiSchema: {
+                    note: {
+                        "ui:placeholder": 'Enter note...',
+                        "ui:widget": "textarea",
+                    },
+                    submitButtonOptions: {
+                        submitText: 'Update',
+                    }
+                },
+                formData: {
+                    contact: contactList[0].const,
+                    activityTitle: callLog?.subject ?? '',
+                    triggerType,
+                    note: callLog?.note ?? ''
+                }
             }
             break;
     }
     return page;
 }
 
-function getUpdatedCallLogPageRender({ updateData }) {
-    const updatedFieldKey = updateData.key;
+function getUpdatedCallLogPageRender({ platformName, updateData }) {
+    const updatedFieldKey = updateData.keys[0];
     let page = updateData.page;
     // update target field value
-    page.fields.find(field => field.id === updatedFieldKey).value = updateData.input[updatedFieldKey];
-    let newContactNameField = page.fields.find(f => f.id === 'newContactName');
+    page.formData = updateData.formData;
+    const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'selection') ?? [];
     switch (updatedFieldKey) {
         case 'contact':
-            const contact = page.fields.find(f => f.id === 'contact').choices.find(c => c.id === updateData.input[updateData.key]);
-            if (contact.id === 'createNewContact') {
-                newContactNameField.required = true;
-                newContactNameField.visible = true;
+            const contact = page.schema.properties.contact.oneOf.find(c => c.const === page.formData.contact);
+            // New contact fields
+            if (contact.const === 'createNewContact') {
+                if (!!config.platformsWithDifferentContactType[platformName]) {
+                    page.uiSchema.newContactType = {};
+                }
+                page.uiSchema.newContactName = {
+                    "ui:placeholder": 'Enter name...',
+                };
+                page.schema.required = ['newContactName'];
+                if (!page.schema.properties.activityTitle.manuallyEdited) {
+                    page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
+                        'Inbound call from ' :
+                        'Outbound call to ';
+                }
             }
-            page.fields.find(f => f.id === 'contactType').value = contact.type;
-            const contactDependentComponents = page.fields.filter(c => c.id.startsWith('contact.'));
-            for (let c of contactDependentComponents) {
-                if (c.id.endsWith('activityTitle')) {
-                    if (!page.activityTitleManuallyEdited) {
-                        c.value = page.fields.find(f => f.id === 'contact.activityTitle').value.startsWith('Inbound') ?
-                            `Inbound call from ${newContactNameField.value === '' ?? contact.name}` :
-                            `Outbound call to ${newContactNameField.value === '' ?? contact.name}`;
-                    }
+            else {
+                page.uiSchema.newContactType = {
+                    "ui:widget": "hidden",
+                };
+                page.uiSchema.newContactName = {
+                    "ui:widget": "hidden",
+                };
+                page.schema.required = [];
+                if (!page.schema.properties.activityTitle.manuallyEdited) {
+                    page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
+                    `Inbound call from ${contact.title}` :
+                    `Outbound call to ${contact.title}`;
                 }
-                else {
-                    const choices = !!contact.additionalInfo ? contact.additionalInfo[c.id.split('contact.')[1]] : null;
-                    c.choices = choices ? [...choices, { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }]
-                    c.value = c.choices[0].id;
-                    c.visible = c.choices.length > 1;
+            }
+            page.formData.contactType = contact.type;
+
+            // Additional fields
+            const allAssociationFields = Object.keys(page.schema.properties);
+            for (const af of allAssociationFields) {
+                if (!!page.schema.properties[af].associationField) {
+                    delete page.schema.properties[af];
+                    delete page.formData[af];
                 }
+            }
+            let additionalFields = {};
+            let additionalFieldsValue = {};
+            for (const f of additionalChoiceFields) {
+                if (!contact?.additionalInfo?.hasOwnProperty(f.const)) {
+                    continue;
+                }
+                additionalFields[f.const] = {
+                    title: f.title,
+                    type: 'string',
+                    oneOf: [...contact.additionalInfo[f.const], { const: 'none', title: 'None' }],
+                    associationField: true
+                }
+                additionalFieldsValue[f.const] = contact.additionalInfo[f.const][0].const;
+            }
+            page.schema.properties = {
+                ...page.schema.properties,
+                ...additionalFields
+            }
+            page.formData = {
+                ...page.formData,
+                ...additionalFieldsValue
             }
             break;
         case 'newContactName':
-            const activityField = page.fields.find(f => f.id === 'contact.activityTitle');
-            if (!page.activityTitleManuallyEdited) {
-                activityField.value = activityField.value.startsWith('Inbound') ?
-                    `Inbound call from ${newContactNameField.value}` :
-                    `Outbound call to ${newContactNameField.value}`;
+            if (!page.schema.properties.activityTitle.manuallyEdited) {
+                page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
+                    `Inbound call from ${page.formData.newContactName}` :
+                    `Outbound call to ${page.formData.newContactName}`;
             }
             break;
-        case 'contact.activityTitle':
-            page.activityTitleManuallyEdited = true;
+        case 'activityTitle':
+            page.schema.properties.activityTitle.manuallyEdited = true;
             break;
     }
     return page;
 }
 
-function getMessageLogPageRender({ platformName,contactInfo, isTrailing, trailingSMSLogInfo }) {
+function getMessageLogPageRender({ platformName, contactInfo, isTrailing, trailingSMSLogInfo }) {
     // format contact list
     const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
     const additionalChoiceFields = config.platforms[platformName].additionalFields.filter(f => f.type === 'choice');
@@ -211,7 +274,7 @@ function getMessageLogPageRender({ platformName,contactInfo, isTrailing, trailin
             id: `contact.${f.name}`,
             label: f.label,
             type: 'input.choice',
-            choices: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? [...contactList[0].additionalInfo[f.name], { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }],
+            oneOf: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? [...contactList[0].additionalInfo[f.name], { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }],
             value: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? contactList[0].additionalInfo[f.name][0].id : 'none',
             visible: !!contactList[0]?.additionalInfo?.hasOwnProperty(f.name)
         }
@@ -224,7 +287,7 @@ function getMessageLogPageRender({ platformName,contactInfo, isTrailing, trailin
                 id: 'contact',
                 label: 'Contact',
                 type: 'input.choice',
-                choices: contactList,
+                oneOf: contactList,
                 value: contactList[0].id,
             },
             {
@@ -246,13 +309,12 @@ function getMessageLogPageRender({ platformName,contactInfo, isTrailing, trailin
                 id: 'newContactType',
                 label: 'Contact type',
                 type: 'input.choice',
-                choices: config.platformsWithDifferentContactType[platformName]?.map(t => { return { id: t, name: t } }) ?? [],
+                oneOf: config.platformsWithDifferentContactType[platformName]?.map(t => { return { id: t, name: t } }) ?? [],
                 value: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
                 visible: !!config.platformsWithDifferentContactType[platformName] && contactList[0].id === 'createNewContact'
             },
             ...additionalFields
-        ],
-        activityTitleManuallyEdited: false
+        ]
     }
     return page;
 }

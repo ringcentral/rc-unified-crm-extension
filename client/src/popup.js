@@ -487,18 +487,18 @@ window.addEventListener('message', async (e) => {
                   let additionalSubmission = {};
                   const additionalFields = config.platforms[platformName].additionalFields ?? [];
                   for (const f of additionalFields) {
-                    if (data.body.input[`contact.${f.name}`] != "none") {
-                      additionalSubmission[f.name] = data.body.input[`contact.${f.name}`];
+                    if (data.body.formData[f.const] != "none") {
+                      additionalSubmission[f.const] = data.body.formData[f.const];
                     }
                   }
-                  switch (data.body.input.triggerType) {
+                  switch (data.body.formData.triggerType) {
                     case 'createLog':
                       let newContactInfo = {};
-                      if (data.body.input.contact === 'createNewContact') {
+                      if (data.body.formData.contact === 'createNewContact') {
                         const newContactResp = await createContact({
                           phoneNumber: contactPhoneNumber,
-                          newContactName: data.body.input.newContactName,
-                          newContactType: data.body.input.newContactType
+                          newContactName: data.body.formData.newContactName,
+                          newContactType: data.body.formData.newContactType
                         });
                         newContactInfo = newContactResp.contactInfo;
                       }
@@ -507,20 +507,20 @@ window.addEventListener('message', async (e) => {
                           logType: 'Call',
                           logInfo: data.body.call,
                           isMain: true,
-                          note: data.body.input?.note ?? "",
-                          subject: data.body.input['contact.activityTitle'] ?? "",
+                          note: data.body.formData?.note ?? "",
+                          subject: data.body.formData?.activityTitle ?? "",
                           additionalSubmission,
-                          overridingContactId: newContactInfo?.id ?? data.body.input?.contact,
-                          contactType: data.body.input?.newContactType ?? '',
-                          contactName: data.body.input?.newContactName ?? ''
+                          overridingContactId: newContactInfo?.id ?? data.body.formData?.contact,
+                          contactType: data.body.formData?.newContactType ?? '',
+                          contactName: data.body.formData?.newContactName ?? ''
                         });
                       break;
                     case 'editLog':
                       await updateLog({
                         logType: 'Call',
                         sessionId: data.body.call.sessionId,
-                        subject: data.body.input['contact.activityTitle'] ?? "",
-                        note: data.body.input?.note ?? "",
+                        subject: data.body.formData?.activityTitle ?? "",
+                        note: data.body.formData?.note ?? "",
                       });
                       break;
                   }
@@ -536,16 +536,16 @@ window.addEventListener('message', async (e) => {
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/callLogger/inputChanged':
-              console.log(data); // get input changed data in here: data.body.input
+              console.log(data); // get input changed data in here: data.body.formData
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-post-message-response',
                 responseId: data.requestId,
                 response: { data: 'ok' },
               }, '*');
-              const page = logPage.getUpdatedCallLogPageRender({ updateData: data.body });
+              const page = logPage.getUpdatedCallLogPageRender({ platformName, updateData: data.body });
               await cacheCallNote({
                 sessionId: data.body.call.sessionId,
-                note: data.body.input?.note ?? ''
+                note: data.body.formData?.note ?? ''
               });
               await
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({

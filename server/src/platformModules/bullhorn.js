@@ -112,7 +112,7 @@ async function getContact({ user, phoneNumber }) {
             commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
         }
     }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { id: a, name: a } });
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];

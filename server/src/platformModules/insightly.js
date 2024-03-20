@@ -149,8 +149,8 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         singlePersonInfo.additionalInfo.organisation = [];
                     }
                     singlePersonInfo.additionalInfo.organisation.push({
-                        name: orgRes.data.ORGANISATION_NAME,
-                        id: orgRes.data.ORGANISATION_ID
+                        title: orgRes.data.ORGANISATION_NAME,
+                        const: orgRes.data.ORGANISATION_ID
                     });
                     break;
                 case 'Opportunity':
@@ -163,8 +163,8 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         singlePersonInfo.additionalInfo.opportunity = [];
                     }
                     singlePersonInfo.additionalInfo.opportunity.push({
-                        name: opportunityRes.data.OPPORTUNITY_NAME,
-                        id: opportunityRes.data.OPPORTUNITY_ID
+                        title: opportunityRes.data.OPPORTUNITY_NAME,
+                        const: opportunityRes.data.OPPORTUNITY_ID
                     });
                     break;
                 case 'Project':
@@ -177,8 +177,8 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                         singlePersonInfo.additionalInfo.project = [];
                     }
                     singlePersonInfo.additionalInfo.project.push({
-                        name: projectRes.data.PROJECT_NAME,
-                        id: projectRes.data.PROJECT_ID
+                        title: projectRes.data.PROJECT_NAME,
+                        const: projectRes.data.PROJECT_ID
                     });
                     break;
             }
