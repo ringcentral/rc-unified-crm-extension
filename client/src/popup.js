@@ -485,7 +485,7 @@ window.addEventListener('message', async (e) => {
                   break;
                 case 'logForm':
                   let additionalSubmission = {};
-                  const additionalFields = config.platforms[platformName].additionalFields ?? [];
+                  const additionalFields = config.platforms[platformName].page?.callLog?.additionalFields ?? [];
                   for (const f of additionalFields) {
                     if (data.body.formData[f.const] != "none") {
                       additionalSubmission[f.const] = data.body.formData[f.const];
@@ -507,20 +507,20 @@ window.addEventListener('message', async (e) => {
                           logType: 'Call',
                           logInfo: data.body.call,
                           isMain: true,
-                          note: data.body.formData?.note ?? "",
-                          subject: data.body.formData?.activityTitle ?? "",
+                          note: data.body.formData.note ?? "",
+                          subject: data.body.formData.activityTitle ?? "",
                           additionalSubmission,
-                          overridingContactId: newContactInfo?.id ?? data.body.formData?.contact,
-                          contactType: data.body.formData?.newContactType ?? '',
-                          contactName: data.body.formData?.newContactName ?? ''
+                          overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                          contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
+                          contactName: data.body.formData.newContactName ?? ''
                         });
                       break;
                     case 'editLog':
                       await updateLog({
                         logType: 'Call',
                         sessionId: data.body.call.sessionId,
-                        subject: data.body.formData?.activityTitle ?? "",
-                        note: data.body.formData?.note ?? "",
+                        subject: data.body.formData.activityTitle ?? "",
+                        note: data.body.formData.note ?? "",
                       });
                       break;
                   }
@@ -545,7 +545,7 @@ window.addEventListener('message', async (e) => {
               const page = logPage.getUpdatedCallLogPageRender({ platformName, updateData: data.body });
               await cacheCallNote({
                 sessionId: data.body.call.sessionId,
-                note: data.body.formData?.note ?? ''
+                note: data.body.formData.note ?? ''
               });
               await
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({

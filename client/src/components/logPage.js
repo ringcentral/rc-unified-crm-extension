@@ -2,7 +2,8 @@ const config = require('../config.json')
 
 function getCallLogPageRender({ triggerType, platformName, callDirection, contactInfo, callLog }) {
     // format contact list
-    const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalCheckBoxFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.contactType, description: c.contactType ? `${c.contactType} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
     const defaultActivityTitle = callDirection === 'Inbound' ?
         `Inbound call from ${contactList[0]?.title ?? ''}` :
@@ -17,7 +18,7 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
             let additionalFields = {};
             let additionalFieldsValue = {};
             for (const f of additionalChoiceFields) {
-                if (!contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                if (f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
                     continue;
                 }
                 additionalFields[f.const] = {
@@ -27,6 +28,17 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                     associationField: true
                 }
                 additionalFieldsValue[f.const] = contactList[0].additionalInfo[f.const][0].const;
+            }
+            for (const f of additionalCheckBoxFields) {
+                if (f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                    continue;
+                }
+                additionalFields[f.const] = {
+                    title: f.title,
+                    type: 'boolean',
+                    associationField: false
+                }
+                additionalFieldsValue[f.const] = f.defaultValue;
             }
             let warningField = {};
             if (contactList.length > 2) {
@@ -67,7 +79,7 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                 title: `Save to ${platformName}`, // optional
                 schema: {
                     type: 'object',
-                    required: [],
+                    required: requiredFieldNames,
                     properties: {
                         ...warningField,
                         contact: {
@@ -108,6 +120,9 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                     warning: {
                         "ui:field": "admonition", // or typography to show raw text
                         "ui:severity": "warning", // "warning", "info", "error", "success"
+                    },
+                    activityTitle: {
+                        "ui:placeholder": 'Enter title...',
                     },
                     contactType: {
                         "ui:widget": "hidden",
@@ -185,7 +200,8 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
     let page = updateData.page;
     // update target field value
     page.formData = updateData.formData;
-    const additionalChoiceFields = config.platforms[platformName].additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalCheckBoxFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     switch (updatedFieldKey) {
         case 'contact':
             const contact = page.schema.properties.contact.oneOf.find(c => c.const === page.formData.contact);
@@ -214,8 +230,8 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
                 page.schema.required = [];
                 if (!page.schema.properties.activityTitle.manuallyEdited) {
                     page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
-                    `Inbound call from ${contact.title}` :
-                    `Outbound call to ${contact.title}`;
+                        `Inbound call from ${contact.title}` :
+                        `Outbound call to ${contact.title}`;
                 }
             }
             page.formData.contactType = contact.type;
@@ -231,16 +247,27 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
             let additionalFields = {};
             let additionalFieldsValue = {};
             for (const f of additionalChoiceFields) {
-                if (!contact?.additionalInfo?.hasOwnProperty(f.const)) {
+                if (f.contactDependent && !contact?.additionalInfo?.hasOwnProperty(f.const)) {
                     continue;
                 }
                 additionalFields[f.const] = {
                     title: f.title,
                     type: 'string',
                     oneOf: [...contact.additionalInfo[f.const], { const: 'none', title: 'None' }],
-                    associationField: true
+                    associationField: f.contactDependent
                 }
                 additionalFieldsValue[f.const] = contact.additionalInfo[f.const][0].const;
+            }
+            for (const f of additionalCheckBoxFields) {
+                if (f.contactDependent && !contact?.additionalInfo?.hasOwnProperty(f.const)) {
+                    continue;
+                }
+                additionalFields[f.const] = {
+                    title: f.title,
+                    type: 'boolean',
+                    associationField: f.contactDependent
+                }
+                additionalFieldsValue[f.const] = f.defaultValue;
             }
             page.schema.properties = {
                 ...page.schema.properties,
@@ -268,7 +295,7 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
 function getMessageLogPageRender({ platformName, contactInfo, isTrailing, trailingSMSLogInfo }) {
     // format contact list
     const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
-    const additionalChoiceFields = config.platforms[platformName].additionalFields.filter(f => f.type === 'choice');
+    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields.filter(f => f.type === 'choice');
     const additionalFields = additionalChoiceFields.map(f => {
         return {
             id: `contact.${f.name}`,
