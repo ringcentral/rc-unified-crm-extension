@@ -456,15 +456,15 @@ window.addEventListener('message', async (e) => {
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
               switch (data.body.triggerType) {
+                // createLog and editLog share the same page
                 case 'createLog':
                   const cachedNote = await getCachedNote({ sessionId: data.body.call.sessionId });
                 case 'editLog':
                   // add your codes here to log call to your service
-                  const contactInfo = data.body.call.direction === 'Inbound' ? data.body.call.fromMatches : data.body.call.toMatches;
-                  const page = logPage.getCallLogPageRender({ triggerType: data.body.triggerType, platformName, callDirection: data.body.call.direction, contactInfo, callLog: singleCallLog[data.body.call.sessionId]?.logData ?? { note: cachedNote } });
+                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: singleCallLog[data.body.call.sessionId]?.logData?.subject, note: cachedNote });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
-                    page,
+                    page: callPage,
                   }, '*');
 
                   // navigate to call log page
@@ -537,21 +537,21 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger/inputChanged':
               console.log(data); // get input changed data in here: data.body.formData
-              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                type: 'rc-post-message-response',
-                responseId: data.requestId,
-                response: { data: 'ok' },
-              }, '*');
-              const page = logPage.getUpdatedCallLogPageRender({ platformName, updateData: data.body });
               await cacheCallNote({
                 sessionId: data.body.call.sessionId,
                 note: data.body.formData.note ?? ''
               });
-              await
-                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                  type: 'rc-adapter-update-call-log-page',
-                  page
-                }, '*');
+              const page = logPage.getUpdatedLogPageRender({ platformName, updateData: data.body });
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-update-call-log-page',
+                page
+              }, '*');
+              responseMessage(
+                data.requestId,
+                {
+                  data: 'ok'
+                }
+              );
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
@@ -575,6 +575,47 @@ window.addEventListener('message', async (e) => {
                 });
               break;
             case '/messageLogger':
+              if (data.body.triggerType === 'logForm') {
+                let additionalSubmission = {};
+                const additionalFields = config.platforms[platformName].page?.messageLog?.additionalFields ?? [];
+                for (const f of additionalFields) {
+                  if (data.body.formData[f.const] != "none") {
+                    additionalSubmission[f.const] = data.body.formData[f.const];
+                  }
+                }
+                let newContactInfo = {};
+                if (data.body.formData.contact === 'createNewContact') {
+                  const newContactResp = await createContact({
+                    phoneNumber: data.body.conversation.correspondents[0].phoneNumber,
+                    newContactName: data.body.formData.newContactName,
+                    newContactType: data.body.formData.newContactType
+                  });
+                  newContactInfo = newContactResp.contactInfo;
+                }
+                await addLog({
+                  logType: 'Message',
+                  logInfo: data.body.conversation,
+                  isMain: data.body.redirect,
+                  note: '',
+                  additionalSubmission,
+                  overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                  contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
+                  contactName: data.body.formData.newContactName ?? ''
+                });
+                for (const trailingConversations of trailingSMSLogInfo) {
+                  await addLog({
+                    logType: 'Message',
+                    logInfo: trailingConversations,
+                    isMain: data.body.redirect,
+                    note: '',
+                    additionalSubmission,
+                    overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                    contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
+                    contactName: data.body.formData.newContactName ?? ''
+                  });
+                }
+                break;
+              }
               const { rc_messageLogger_auto_log_notify: messageAutoLogOn } = await chrome.storage.local.get({ rc_messageLogger_auto_log_notify: false });
               if (!messageAutoLogOn && data.body.triggerType === 'auto') {
                 break;
@@ -597,42 +638,36 @@ window.addEventListener('message', async (e) => {
                   phoneNumber: data.body.conversation.correspondents[0].phoneNumber
                 });
               }
-              if (!isTrailing && !getContactMatchResult.matched) {
-                showNotification({ level: 'warning', message: getContactMatchResult.message, ttl: 3000 });
-              }
-              else {
-                // add your codes here to log call to your service
-                const contactInfo = data.body.conversation.correspondents;
-                const page = logPage.getMessageLogPageRender({ platformName, contactInfo });
-                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                  type: 'rc-adapter-update-call-log-page',
-                  page,
-                }, '*');
+              // add your codes here to log call to your service
+              const messagePage = logPage.getLogPageRender({ logType: 'Message', triggerType: data.body.triggerType, platformName, direction: '', contactInfo: getContactMatchResult.contactInfo ?? [] });
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-update-messages-log-page',
+                page: messagePage
+              }, '*');
 
-                // navigate to message log page
-                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                  type: 'rc-adapter-navigate-to',
-                  path: `/log/message/${data.body.conversation.conversationLogId}`,
-                }, '*');
-                // window.postMessage({
-                //   type: 'rc-log-modal',
-                //   platform: platformName,
-                //   isTrailing,
-                //   trailingSMSLogInfo,
-                //   logProps: {
-                //     logType: 'Message',
-                //     logInfo: data.body.conversation,
-                //     contactName: getContactMatchResult.contactInfo.name,
-                //     contacts: getContactMatchResult.contactInfo ?? [],
-                //     crmUserInfo,
-                //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
-                //   },
-                //   additionalLogInfo: getContactMatchResult.additionalLogInfo,
-                //   triggerType: data.body.triggerType === 'auto'
-                // }, '*');
-                if (!isTrailing) {
-                  leadingSMSCallReady = true;
-                }
+              // navigate to message log page
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-navigate-to',
+                path: `/log/messages/${data.body.conversation.conversationId}`, // conversation id that you received from message logger event
+              }, '*');
+              // window.postMessage({
+              //   type: 'rc-log-modal',
+              //   platform: platformName,
+              //   isTrailing,
+              //   trailingSMSLogInfo,
+              //   logProps: {
+              //     logType: 'Message',
+              //     logInfo: data.body.conversation,
+              //     contactName: getContactMatchResult.contactInfo.name,
+              //     contacts: getContactMatchResult.contactInfo ?? [],
+              //     crmUserInfo,
+              //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
+              //   },
+              //   additionalLogInfo: getContactMatchResult.additionalLogInfo,
+              //   triggerType: data.body.triggerType === 'auto'
+              // }, '*');
+              if (!isTrailing) {
+                leadingSMSCallReady = true;
               }
               // response to widget
               responseMessage(
@@ -644,6 +679,17 @@ window.addEventListener('message', async (e) => {
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/messageLogger/inputChanged':
+              const updatedPage = logPage.getUpdatedLogPageRender({ logType: 'Message', platformName, updateData: data.body });
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-update-messages-log-page',
+                page: updatedPage
+              }, '*');
+              responseMessage(
+                data.requestId,
+                {
+                  data: 'ok'
+                }
+              );
               break;
             case '/messageLogger/match':
               let localMessageLogs = {};

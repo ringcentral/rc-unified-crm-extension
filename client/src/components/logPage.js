@@ -1,20 +1,55 @@
 const config = require('../config.json')
 
-function getCallLogPageRender({ triggerType, platformName, callDirection, contactInfo, callLog }) {
+function getLogPageRender({ logType, triggerType, platformName, direction, contactInfo, subject, note }) {
+    const additionalChoiceFields = logType === 'Call' ?
+        config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [] :
+        config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalCheckBoxFields = logType === 'Call' ?
+        config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [] :
+        config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     // format contact list
-    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
-    const additionalCheckBoxFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.contactType, description: c.contactType ? `${c.contactType} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
-    const defaultActivityTitle = callDirection === 'Inbound' ?
-        `Inbound call from ${contactList[0]?.title ?? ''}` :
-        `Outbound call to ${contactList[0]?.title ?? ''}`;
+    const defaultActivityTitle = direction === 'Inbound' ?
+        `Inbound ${logType} from ${contactList[0]?.title ?? ''}` :
+        `Outbound ${logType} to ${contactList[0]?.title ?? ''}`;
     // add option to create new contact
     contactList.push({
         const: 'createNewContact',
         title: 'Create new contact...'
     });
+    let callSchemas = {};
+    let callUISchemas = {};
+    let callFormData = {};
+    if (logType === 'Call') {
+        callSchemas = {
+            activityTitle: {
+                title: 'Activity title',
+                type: 'string',
+                manuallyEdited: false
+            },
+            note: {
+                title: 'Note',
+                type: 'string'
+            }
+        }
+        callUISchemas = {
+            activityTitle: {
+                "ui:placeholder": 'Enter title...',
+            },
+            note: {
+                "ui:placeholder": 'Enter note...',
+                "ui:widget": "textarea",
+            }
+        }
+        callFormData = {
+            activityTitle: subject ?? defaultActivityTitle,
+            note: note ?? '',
+        }
+    }
+    let page = {};
     switch (triggerType) {
         case 'createLog':
+        case 'manual':
             let additionalFields = {};
             let additionalFieldsValue = {};
             for (const f of additionalChoiceFields) {
@@ -104,15 +139,7 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                             type: 'string',
                             oneOf: config.platformsWithDifferentContactType[platformName]?.map(t => { return { const: t, title: t } }) ?? [],
                         },
-                        activityTitle: {
-                            title: 'Activity title',
-                            type: 'string',
-                            manuallyEdited: false
-                        },
-                        note: {
-                            title: 'Note',
-                            type: 'string'
-                        },
+                        ...callSchemas,
                         ...additionalFields
                     }
                 },
@@ -121,22 +148,16 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                         "ui:field": "admonition", // or typography to show raw text
                         "ui:severity": "warning", // "warning", "info", "error", "success"
                     },
-                    activityTitle: {
-                        "ui:placeholder": 'Enter title...',
-                    },
                     contactType: {
                         "ui:widget": "hidden",
                     },
                     triggerType: {
                         "ui:widget": "hidden",
                     },
-                    note: {
-                        "ui:placeholder": 'Enter note...',
-                        "ui:widget": "textarea",
-                    },
                     submitButtonOptions: {
                         submitText: 'Save',
                     },
+                    ...callUISchemas,
                     ...newContactWidget
                 },
                 formData: {
@@ -144,9 +165,8 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                     newContactType: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
                     newContactName: '',
                     contactType: contactList[0]?.type ?? '',
-                    activityTitle: callLog?.subject ?? defaultActivityTitle,
-                    note: callLog?.note ?? '',
                     triggerType,
+                    ...callFormData,
                     ...additionalFieldsValue
                 }
             }
@@ -185,9 +205,9 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
                 },
                 formData: {
                     contact: contactList[0].const,
-                    activityTitle: callLog?.subject ?? '',
+                    activityTitle: subject ?? '',
                     triggerType,
-                    note: callLog?.note ?? ''
+                    note: note ?? ''
                 }
             }
             break;
@@ -195,13 +215,17 @@ function getCallLogPageRender({ triggerType, platformName, callDirection, contac
     return page;
 }
 
-function getUpdatedCallLogPageRender({ platformName, updateData }) {
+function getUpdatedLogPageRender({ logType, platformName, updateData }) {
     const updatedFieldKey = updateData.keys[0];
     let page = updateData.page;
     // update target field value
     page.formData = updateData.formData;
-    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
-    const additionalCheckBoxFields = config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
+    const additionalChoiceFields = logType === 'Call' ?
+        config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [] :
+        config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
+    const additionalCheckBoxFields = logType === 'Call' ?
+        config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [] :
+        config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     switch (updatedFieldKey) {
         case 'contact':
             const contact = page.schema.properties.contact.oneOf.find(c => c.const === page.formData.contact);
@@ -214,7 +238,7 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
                     "ui:placeholder": 'Enter name...',
                 };
                 page.schema.required = ['newContactName'];
-                if (!page.schema.properties.activityTitle.manuallyEdited) {
+                if (!!page.schema.properties.activityTitle && !page.schema.properties.activityTitle?.manuallyEdited) {
                     page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
                         'Inbound call from ' :
                         'Outbound call to ';
@@ -228,7 +252,7 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
                     "ui:widget": "hidden",
                 };
                 page.schema.required = [];
-                if (!page.schema.properties.activityTitle.manuallyEdited) {
+                if (!!page.schema.properties.activityTitle && !page.schema.properties.activityTitle?.manuallyEdited) {
                     page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
                         `Inbound call from ${contact.title}` :
                         `Outbound call to ${contact.title}`;
@@ -279,7 +303,7 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
             }
             break;
         case 'newContactName':
-            if (!page.schema.properties.activityTitle.manuallyEdited) {
+            if (!!page.schema.properties.activityTitle && !page.schema.properties.activityTitle.manuallyEdited) {
                 page.formData.activityTitle = page.formData.activityTitle.startsWith('Inbound') ?
                     `Inbound call from ${page.formData.newContactName}` :
                     `Outbound call to ${page.formData.newContactName}`;
@@ -292,60 +316,5 @@ function getUpdatedCallLogPageRender({ platformName, updateData }) {
     return page;
 }
 
-function getMessageLogPageRender({ platformName, contactInfo, isTrailing, trailingSMSLogInfo }) {
-    // format contact list
-    const contactList = contactInfo.map(c => { return { id: c.id, name: c.name, type: c.contactType, description: c.contactType ?? '', additionalInfo: c.additionalInfo } });
-    const additionalChoiceFields = config.platforms[platformName].page?.callLog?.additionalFields.filter(f => f.type === 'choice');
-    const additionalFields = additionalChoiceFields.map(f => {
-        return {
-            id: `contact.${f.name}`,
-            label: f.label,
-            type: 'input.choice',
-            oneOf: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? [...contactList[0].additionalInfo[f.name], { id: 'none', name: 'None' }] : [{ id: 'none', name: 'None' }],
-            value: contactList[0]?.additionalInfo?.hasOwnProperty(f.name) ? contactList[0].additionalInfo[f.name][0].id : 'none',
-            visible: !!contactList[0]?.additionalInfo?.hasOwnProperty(f.name)
-        }
-    });
-    const page = {
-        pageTitle: `Save to ${platformName}`, // optional
-        saveButtonLabel: 'Save', // optional
-        fields: [
-            {
-                id: 'contact',
-                label: 'Contact',
-                type: 'input.choice',
-                oneOf: contactList,
-                value: contactList[0].id,
-            },
-            {
-                id: 'newContactName',
-                label: 'New contact name',
-                type: 'input.string',
-                value: '',
-                required: contactList.length === 1,
-                visible: contactList.length === 1
-            },
-            {
-                id: 'contactType',
-                label: '',
-                type: 'input.string',
-                value: contactList[0]?.type ?? '',
-                visible: false
-            },
-            {
-                id: 'newContactType',
-                label: 'Contact type',
-                type: 'input.choice',
-                oneOf: config.platformsWithDifferentContactType[platformName]?.map(t => { return { id: t, name: t } }) ?? [],
-                value: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
-                visible: !!config.platformsWithDifferentContactType[platformName] && contactList[0].id === 'createNewContact'
-            },
-            ...additionalFields
-        ]
-    }
-    return page;
-}
-
-exports.getCallLogPageRender = getCallLogPageRender;
-exports.getUpdatedCallLogPageRender = getUpdatedCallLogPageRender;
-exports.getMessageLogPageRender = getMessageLogPageRender;
+exports.getLogPageRender = getLogPageRender;
+exports.getUpdatedLogPageRender = getUpdatedLogPageRender;
