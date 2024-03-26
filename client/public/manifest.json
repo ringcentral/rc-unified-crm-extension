@@ -1,7 +1,7 @@
 {
   "name": "RingCentral CRM Extension",
   "description": "A RingCentral extension for CRM platforms",
-  "version": "0.8.11",
+  "version": "0.8.12",
   "permissions": [
     "storage",
     "alarms",
@@ -15,6 +15,7 @@
       "matches": [
         "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
+        "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
@@ -37,6 +38,7 @@
       "matches": [
         "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
+        "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
