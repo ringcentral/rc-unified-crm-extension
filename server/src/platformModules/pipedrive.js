@@ -82,10 +82,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     };
 }
 
-async function saveUserOAuthInfo({ id, name, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, timezoneName, timezoneOffset, additionalInfo }) {
-
-}
-
 async function unAuthorize({ user }) {
     const revokeUrl = 'https://oauth.pipedrive.com/oauth/revoke';
     const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
@@ -176,7 +172,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
-    const orgId = contactInfo.organization ? contactInfo.organization.id : '';
+    const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.overridingContactId ?? contactInfo.id}`, { headers: { 'Authorization': authHeader } });
+    const orgId = personResponse.data.data.org_id?.value ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
     const postBody = {
@@ -239,7 +236,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-    const dealId = additionalSubmission ? additionalSubmission.dealId : '';
+    const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const timeUtc = moment(message.creationTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');

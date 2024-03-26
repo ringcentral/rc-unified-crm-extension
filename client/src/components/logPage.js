@@ -8,7 +8,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
     // format contact list
-    const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.contactType, description: c.contactType ? `${c.contactType} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
+    const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.type, description: c.type ? `${c.type} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
     const defaultActivityTitle = direction === 'Inbound' ?
         `Inbound ${logType} from ${contactList[0]?.title ?? ''}` :
         `Outbound ${logType} to ${contactList[0]?.title ?? ''}`;
@@ -130,6 +130,10 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                             title: '',
                             type: 'string'
                         },
+                        contactName: {
+                            title: '',
+                            type: 'string'
+                        },
                         triggerType: {
                             title: '',
                             type: 'string'
@@ -151,6 +155,9 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                     contactType: {
                         "ui:widget": "hidden",
                     },
+                    contactName: {
+                        "ui:widget": "hidden",
+                    },
                     triggerType: {
                         "ui:widget": "hidden",
                     },
@@ -165,6 +172,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                     newContactType: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
                     newContactName: '',
                     contactType: contactList[0]?.type ?? '',
+                    contactName: contactList[0]?.title ?? '',
                     triggerType,
                     ...callFormData,
                     ...additionalFieldsValue
@@ -245,6 +253,8 @@ function getUpdatedLogPageRender({ logType, platformName, updateData }) {
                 }
             }
             else {
+                page.formData.newContactName = '';
+                page.formData.newContactType = '';
                 page.uiSchema.newContactType = {
                     "ui:widget": "hidden",
                 };
@@ -259,6 +269,7 @@ function getUpdatedLogPageRender({ logType, platformName, updateData }) {
                 }
             }
             page.formData.contactType = contact.type;
+            page.formData.contactName = contact.title;
 
             // Additional fields
             const allAssociationFields = Object.keys(page.schema.properties);

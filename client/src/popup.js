@@ -455,13 +455,15 @@ window.addEventListener('message', async (e) => {
                 sessionIds: data.body.call.sessionId
               });
               const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
+              let note = '';
               switch (data.body.triggerType) {
                 // createLog and editLog share the same page
                 case 'createLog':
-                  const cachedNote = await getCachedNote({ sessionId: data.body.call.sessionId });
+                  note = await getCachedNote({ sessionId: data.body.call.sessionId });
                 case 'editLog':
+                  note = singleCallLog[data.body.call.sessionId]?.logData?.note ?? '';
                   // add your codes here to log call to your service
-                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: singleCallLog[data.body.call.sessionId]?.logData?.subject, note: cachedNote });
+                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: singleCallLog[data.body.call.sessionId]?.logData?.subject, note });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
                     page: callPage,
@@ -512,7 +514,7 @@ window.addEventListener('message', async (e) => {
                           additionalSubmission,
                           overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
                           contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
-                          contactName: data.body.formData.newContactName ?? ''
+                          contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
                         });
                       break;
                     case 'editLog':
@@ -576,6 +578,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/messageLogger':
               if (data.body.triggerType === 'logForm') {
+                window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
                 let additionalSubmission = {};
                 const additionalFields = config.platforms[platformName].page?.messageLog?.additionalFields ?? [];
                 for (const f of additionalFields) {
@@ -584,36 +587,41 @@ window.addEventListener('message', async (e) => {
                   }
                 }
                 let newContactInfo = {};
-                if (data.body.formData.contact === 'createNewContact') {
-                  const newContactResp = await createContact({
-                    phoneNumber: data.body.conversation.correspondents[0].phoneNumber,
-                    newContactName: data.body.formData.newContactName,
-                    newContactType: data.body.formData.newContactType
-                  });
-                  newContactInfo = newContactResp.contactInfo;
-                }
-                await addLog({
-                  logType: 'Message',
-                  logInfo: data.body.conversation,
-                  isMain: data.body.redirect,
-                  note: '',
-                  additionalSubmission,
-                  overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
-                  contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
-                  contactName: data.body.formData.newContactName ?? ''
-                });
-                for (const trailingConversations of trailingSMSLogInfo) {
+                if (data.body.redirect) {
+                  if (data.body.formData.contact === 'createNewContact') {
+                    const newContactResp = await createContact({
+                      phoneNumber: data.body.conversation.correspondents[0].phoneNumber,
+                      newContactName: data.body.formData.newContactName,
+                      newContactType: data.body.formData.newContactType
+                    });
+                    newContactInfo = newContactResp.contactInfo;
+                  }
                   await addLog({
                     logType: 'Message',
-                    logInfo: trailingConversations,
-                    isMain: data.body.redirect,
+                    logInfo: data.body.conversation,
+                    isMain: true,
                     note: '',
                     additionalSubmission,
                     overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
                     contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
-                    contactName: data.body.formData.newContactName ?? ''
+                    contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
                   });
                 }
+                else {
+                  for (const trailingConversations of trailingSMSLogInfo) {
+                    await addLog({
+                      logType: 'Message',
+                      logInfo: trailingConversations,
+                      isMain: false,
+                      note: '',
+                      additionalSubmission,
+                      overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                      contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
+                      contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
+                    });
+                  }
+                }
+                window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
                 break;
               }
               const { rc_messageLogger_auto_log_notify: messageAutoLogOn } = await chrome.storage.local.get({ rc_messageLogger_auto_log_notify: false });
@@ -650,22 +658,6 @@ window.addEventListener('message', async (e) => {
                 type: 'rc-adapter-navigate-to',
                 path: `/log/messages/${data.body.conversation.conversationId}`, // conversation id that you received from message logger event
               }, '*');
-              // window.postMessage({
-              //   type: 'rc-log-modal',
-              //   platform: platformName,
-              //   isTrailing,
-              //   trailingSMSLogInfo,
-              //   logProps: {
-              //     logType: 'Message',
-              //     logInfo: data.body.conversation,
-              //     contactName: getContactMatchResult.contactInfo.name,
-              //     contacts: getContactMatchResult.contactInfo ?? [],
-              //     crmUserInfo,
-              //     autoLog: !!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Auto log with countdown')?.value,
-              //   },
-              //   additionalLogInfo: getContactMatchResult.additionalLogInfo,
-              //   triggerType: data.body.triggerType === 'auto'
-              // }, '*');
               if (!isTrailing) {
                 leadingSMSCallReady = true;
               }

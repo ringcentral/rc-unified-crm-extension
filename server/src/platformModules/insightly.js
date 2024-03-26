@@ -399,7 +399,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const postBody = {
         TITLE: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}` : `to ${contactInfo.name}`}`,
-        DETAILS: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+        DETAILS: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         START_DATE_UTC: moment(message.creationTime).utc(),
         END_DATE_UTC: moment(message.creationTime).utc()
     }
@@ -410,7 +410,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             headers: { 'Authorization': authHeader }
         });
     // add linked contact to log
-    if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile') {
+    if (contactInfo.type === 'contactPhone' || contactInfo.type === 'contactMobile' || contactInfo.type === 'Contact') {
         await axios.post(
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
@@ -421,7 +421,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
                 headers: { 'Authorization': authHeader }
             });
     }
-    else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile') {
+    else if (contactInfo.type === 'leadPhone' || contactInfo.type === 'leadMobile' || contactInfo.type === 'Lead') {
         await axios.post(
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
