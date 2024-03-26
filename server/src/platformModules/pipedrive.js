@@ -113,7 +113,8 @@ async function unAuthorize({ id }) {
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.dealId : '';
-    const orgId = contactInfo.organization ? contactInfo.organization.id : '';
+    const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.overridingContactId ?? contactInfo.id}`, { headers: { 'Authorization': authHeader } });
+    const orgId = personResponse.data.data.org_id?.value ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
     const postBody = {

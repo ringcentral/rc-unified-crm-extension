@@ -15,6 +15,7 @@
       "matches": [
         "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
+        "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
@@ -37,6 +38,7 @@
       "matches": [
         "https://*.labs.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
+        "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
         "https://*.insightly.com/*",
         "https://*.clio.com/*",
