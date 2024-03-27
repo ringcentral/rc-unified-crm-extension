@@ -7,6 +7,7 @@ const { getUserInfo } = require('./lib/rcAPI');
 const { apiKeyLogin } = require('./core/auth');
 const { openDB } = require('idb');
 const logPage = require('./components/logPage');
+const authPage = require('./components/authPage');
 const {
   identify,
   reset,
@@ -27,6 +28,7 @@ const {
 window.__ON_RC_POPUP_WINDOW = 1;
 
 let registered = false;
+let crmAuthed = false;
 let platform = null;
 let platformName = '';
 let rcUserInfo = {};
@@ -151,6 +153,7 @@ window.addEventListener('message', async (e) => {
           if (data.loggedIn) {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+            crmAuthed = !!rcUnifiedCrmExtJwt;
             // Juuuuuust for Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
@@ -160,7 +163,7 @@ window.addEventListener('message', async (e) => {
               );
             }
             else if (!rcUnifiedCrmExtJwt) {
-              showNotification({ level: 'warning', message: 'Please authorize CRM platform account via More Menu (right most on top bar) -> Settings.', ttl: 10000 });
+              showNotification({ level: 'warning', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
             }
             try {
               const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
@@ -297,9 +300,14 @@ window.addEventListener('message', async (e) => {
           }
           break;
         case 'rc-post-message-request':
+          if (!crmAuthed && (data.path.startsWith('/contact') || data.path.startsWith('/call') || data.path.startsWith('/message'))) {
+            showNotification({ level: 'warning', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
+            break;
+          }
           switch (data.path) {
             case '/authorize':
               const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
+              crmAuthed = !!rcUnifiedCrmExtJwt;
               if (!rcUnifiedCrmExtJwt) {
                 switch (platform.authType) {
                   case 'oauth':
@@ -342,7 +350,15 @@ window.addEventListener('message', async (e) => {
                     handleThirdPartyOAuthWindow(authUri);
                     break;
                   case 'apiKey':
-                    window.postMessage({ type: 'rc-apiKey-input-modal', platform: platform.name }, '*');
+                    const authPageRender = authPage.getAuthPageRender({ platformName });
+                    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                      type: 'rc-adapter-navigate-to',
+                      path: `/customized/${authPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
+                    }, '*');
+                    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                      type: 'rc-adapter-register-customized-page',
+                      page: authPageRender
+                    });
                     break;
                 }
               }
@@ -355,6 +371,14 @@ window.addEventListener('message', async (e) => {
                   data: 'OK'
                 }
               );
+              break;
+            case '/customizedPage/inputChanged':
+              console.log(data); // get input changed data in here: data.body.input
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-post-message-response',
+                responseId: data.requestId,
+                response: { data: 'ok' },
+              }, '*');
               break;
             case '/contacts/match':
               noShowNotification = true;
@@ -723,10 +747,17 @@ window.addEventListener('message', async (e) => {
                 trackEditSettings({ changedItem: setting.name.replaceAll(' ', '-'), status: setting.value });
               }
               break;
-            case '/sms-template-button-click':
-              window.postMessage({
-                type: 'rc-select-sms-template'
-              }, '*');
+            case '/custom-button-click':
+              switch (data.body.button.id) {
+                case 'sms-template-button':
+                  window.postMessage({
+                    type: 'rc-select-sms-template'
+                  }, '*');
+                  break;
+                case 'authPage':
+                  await auth.apiKeyLogin({ username: data.body.button.formData.username, password: data.body.button.formData.password });
+                  break;
+              }
               break;
             default:
               break;
@@ -836,6 +867,8 @@ function handleThirdPartyOAuthWindow(oAuthUri) {
 function getServiceConfig(serviceName) {
   const services = {
     name: serviceName,
+    customizedPageInputChangedEventPath: '/customizedPage/inputChanged',
+    // buttonEventPath: '/button-click',
     contactMatchPath: '/contacts/match',
     viewMatchedContactPath: '/contacts/view',
 
@@ -876,7 +909,7 @@ function getServiceConfig(serviceName) {
     ],
 
     // SMS template button
-    buttonEventPath: '/sms-template-button-click',
+    buttonEventPath: '/custom-button-click',
     buttons: [{
       fill: 'rgba(102, 102, 102, 0.88)',
       id: 'sms-template-button',
