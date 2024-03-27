@@ -14,7 +14,7 @@ exports.reset = function reset() {
 exports.identify = function identify({ platformName, rcAccountId, extensionId }) {
     mixpanel.identify(extensionId);
     mixpanel.people.set({
-        platformName,
+        crmPlatform: platformName,
         rcAccountId,
         version
     });
