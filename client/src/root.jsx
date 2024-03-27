@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
-import LogModal from './components/log/logModal';
+import Loading from './components/loading';
 import ExpandableNote from './components/note/expandableNote';
 import FeedbackForm from './components/feedback/feedbackForm';
 import Notification from './components/notification';
@@ -12,12 +12,12 @@ import { RcThemeProvider } from '@ringcentral/juno';
 function App() {
     return (
         <RcThemeProvider>
+            <Loading />
             <InsightlyAuth />
             <RedtailAuth />
             <ExpandableNote />
             <FeedbackForm />
             <Notification />
-            <LogModal />
             <SMSTemplate />
         </RcThemeProvider>
     )
