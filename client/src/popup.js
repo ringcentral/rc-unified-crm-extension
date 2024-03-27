@@ -180,7 +180,7 @@ window.addEventListener('message', async (e) => {
               };
               await chrome.storage.local.set({ ['rcUserInfo']: rcUserInfo });
               reset();
-              identify({ extensionId: rcUserInfo?.rcExtensionId });
+              identify({ extensionId: rcUserInfo?.rcExtensionId, rcAccountId: rcUserInfo?.rcAccountId, platformName });
               group({ rcAccountId: rcUserInfo?.rcAccountId });
             }
             catch (e) {
