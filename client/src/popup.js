@@ -300,7 +300,7 @@ window.addEventListener('message', async (e) => {
           }
           break;
         case 'rc-post-message-request':
-          if (!crmAuthed && (data.path.startsWith('/contact') || data.path.startsWith('/call') || data.path.startsWith('/message'))) {
+          if (!crmAuthed && (data.path === '/callLogger' || data.path === '/messageLogger')) {
             showNotification({ level: 'warning', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
             break;
           }
@@ -363,7 +363,9 @@ window.addEventListener('message', async (e) => {
                 }
               }
               else {
+                window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
                 await auth.unAuthorize(rcUnifiedCrmExtJwt);
+                window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               }
               responseMessage(
                 data.requestId,
@@ -373,7 +375,6 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/customizedPage/inputChanged':
-              console.log(data); // get input changed data in here: data.body.input
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-post-message-response',
                 responseId: data.requestId,
@@ -755,7 +756,14 @@ window.addEventListener('message', async (e) => {
                   }, '*');
                   break;
                 case 'authPage':
-                  await auth.apiKeyLogin({ username: data.body.button.formData.username, password: data.body.button.formData.password });
+                  window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
+                  const returnedToken = await auth.apiKeyLogin({ apiKey: data.body.button.formData.apiKey ?? 'apiKey', username: data.body.button.formData.username, password: data.body.button.formData.password });
+                  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                    type: 'rc-adapter-navigate-to',
+                    path: 'goBack',
+                  }, '*');
+                  crmAuthed = !!returnedToken;
+                  window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
                   break;
               }
               break;
