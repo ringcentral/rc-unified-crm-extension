@@ -227,7 +227,8 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         action: noteActions,
         personReference: {
             id: contactInfo.overridingContactId ?? contactInfo.id
-        }
+        },
+        dateAdded: callLog.startTime
     }
     let addLogRes;
     try {
@@ -296,7 +297,8 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         action: noteActions,
         personReference: {
             id: contactInfo.overridingContactId ?? contactInfo.id
-        }
+        },
+        dateAdded: message.creationTime
     }
     let addLogRes;
     try {
