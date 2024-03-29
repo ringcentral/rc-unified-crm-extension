@@ -8,6 +8,7 @@ const { apiKeyLogin } = require('./core/auth');
 const { openDB } = require('idb');
 const logPage = require('./components/logPage');
 const authPage = require('./components/authPage');
+const feedbackPage = require('./components/feedbackPage');
 const {
   identify,
   reset,
@@ -116,14 +117,14 @@ window.addEventListener('message', async (e) => {
 
             RCAdapter.showFeedback({
               onFeedback: function () {
-                // add your codes here to show your feedback form
-                window.postMessage({
-                  type: 'rc-feedback-open',
-                  props: {
-                    userName: rcUserInfo.rcUserName,
-                    userEmail: rcUserInfo.rcUserEmail,
-                    platformName: platformName
-                  }
+                const feedbackPageRender = feedbackPage.getFeedbackPageRender();
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-register-customized-page',
+                  page: feedbackPageRender
+                });
+                document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                  type: 'rc-adapter-navigate-to',
+                  path: `/customized/${feedbackPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
                 }, '*');
                 trackOpenFeedback();
               },
@@ -352,13 +353,13 @@ window.addEventListener('message', async (e) => {
                   case 'apiKey':
                     const authPageRender = authPage.getAuthPageRender({ platformName });
                     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                      type: 'rc-adapter-navigate-to',
-                      path: `/customized/${authPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
-                    }, '*');
-                    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                       type: 'rc-adapter-register-customized-page',
                       page: authPageRender
                     });
+                    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                      type: 'rc-adapter-navigate-to',
+                      path: `/customized/${authPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
+                    }, '*');
                     break;
                 }
               }
@@ -730,14 +731,14 @@ window.addEventListener('message', async (e) => {
                 responseId: data.requestId,
                 response: { data: 'ok' },
               }, '*');
-              // add your codes here to show your feedback form
-              window.postMessage({
-                type: 'rc-feedback-open',
-                props: {
-                  userName: rcUserInfo.rcUserName,
-                  userEmail: rcUserInfo.rcUserEmail,
-                  platformName: platformName
-                }
+              const feedbackPageRender = feedbackPage.getFeedbackPageRender();
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-register-customized-page',
+                page: feedbackPageRender
+              });
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-navigate-to',
+                path: `/customized/${feedbackPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
               }, '*');
               trackOpenFeedback();
               break;
@@ -765,6 +766,16 @@ window.addEventListener('message', async (e) => {
                   const returnedToken = await auth.apiKeyLogin({ apiKey: data.body.button.formData.apiKey, apiUrl: data.body.button.formData.apiUrl, username: data.body.button.formData.username, password: data.body.button.formData.password });
                   crmAuthed = !!returnedToken;
                   window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
+                  break;
+                case 'feedbackPage':
+                  const feedbackText = encodeURIComponent(data.body.button.formData.feedback);
+                  const platformNameInUrl = platformName.charAt(0).toUpperCase() + platformName.slice(1)
+                  const formUrl = `https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227=${data.body.button.formData.score}&entry.2052354973=${platformNameInUrl}&entry.844920872=${feedbackText}&entry.1467064016=${rcUserInfo.rcUserName}&entry.1822789675=${rcUserInfo.rcUserEmail}`;
+                  window.open(formUrl, '_blank');
+                  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                    type: 'rc-adapter-navigate-to',
+                    path: 'goBack',
+                  }, '*');
                   break;
               }
               break;
@@ -829,13 +840,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   else if (request.type === 'navigate') {
     if (request.path === '/feedback') {
-      window.postMessage({
-        type: 'rc-feedback-open',
-        props: {
-          userName: rcUserInfo?.rcUserName,
-          userEmail: rcUserInfo?.rcUserEmail,
-          platformName: platformName
-        }
+      const feedbackPageRender = feedbackPage.getFeedbackPageRender();
+      document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+        type: 'rc-adapter-register-customized-page',
+        page: feedbackPageRender
+      });
+      document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+        type: 'rc-adapter-navigate-to',
+        path: `/customized/${feedbackPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
       }, '*');
       trackOpenFeedback();
     }
