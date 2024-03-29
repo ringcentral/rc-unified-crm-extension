@@ -1,5 +1,3 @@
-const config = require('../config.json')
-
 function getFeedbackPageRender() {
     return {
         id: 'feedbackPage',

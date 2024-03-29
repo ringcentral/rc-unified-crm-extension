@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Loading from './components/loading';
 import ExpandableNote from './components/note/expandableNote';
-import Notification from './components/notification';
 import SMSTemplate from './components/smsTemplate';
 import { RcThemeProvider } from '@ringcentral/juno';
 
@@ -11,7 +10,6 @@ function App() {
         <RcThemeProvider>
             <Loading />
             <ExpandableNote />
-            <Notification />
             <SMSTemplate />
         </RcThemeProvider>
     )
