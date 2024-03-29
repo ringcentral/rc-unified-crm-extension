@@ -40,7 +40,7 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         const { rcUserInfo } = await chrome.storage.local.get('rcUserInfo');
         const rcUserNumber = rcUserInfo.rcUserNumber;
         const res = await axios.post(`${config.serverUrl}/apiKeyLogin?state=platform=${platformName}`, {
-            apiKey,
+            apiKey: apiKey ?? 'apiKey',
             platform: platformName,
             hostname,
             rcUserNumber,
@@ -59,6 +59,10 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         await chrome.storage.local.set({ crmUserInfo });
         setAuth(true, crmUserInfo.name);
         trackCrmLogin();
+        document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+          type: 'rc-adapter-navigate-to',
+          path: 'goBack',
+        }, '*');
         return res.data.jwtToken;
     }
     catch (e) {

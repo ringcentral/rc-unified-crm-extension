@@ -755,13 +755,14 @@ window.addEventListener('message', async (e) => {
                     type: 'rc-select-sms-template'
                   }, '*');
                   break;
+                case 'insightlyGetApiKey':
+                  const platformInfo = await chrome.storage.local.get('platform-info');
+                  const hostname = platformInfo['platform-info'].hostname;
+                  window.open(`https://${hostname}/Users/UserSettings`);
+                  break;
                 case 'authPage':
                   window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-                  const returnedToken = await auth.apiKeyLogin({ apiKey: data.body.button.formData.apiKey ?? 'apiKey', username: data.body.button.formData.username, password: data.body.button.formData.password });
-                  document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-                    type: 'rc-adapter-navigate-to',
-                    path: 'goBack',
-                  }, '*');
+                  const returnedToken = await auth.apiKeyLogin({ apiKey: data.body.button.formData.apiKey, apiUrl: data.body.button.formData.apiUrl, username: data.body.button.formData.username, password: data.body.button.formData.password });
                   crmAuthed = !!returnedToken;
                   window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
                   break;
@@ -797,7 +798,8 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       }, '*');
     }
     else if (request.platform === 'thirdParty') {
-      await auth.onAuthCallback(request.callbackUri);
+      const returnedToken = await auth.onAuthCallback(request.callbackUri);
+      crmAuthed = !!returnedToken;
     }
     sendResponse({ result: 'ok' });
   }
