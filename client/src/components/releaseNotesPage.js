@@ -13,25 +13,29 @@ function getReleaseNotesPageRender({ platformName, registeredVersion }) {
         const platformNotes = releaseNotes[config.version][platformName] ?? [];
         const allNotes = globalNotes.concat(platformNotes);
         const allTypes = allNotes.map(n => { return n.type }).filter((value, index, array) => { return array.indexOf(value) === index; });
-        let notesRender = {};
-        let notesUiSchema = {};
-        let sectionsCount = 0;
-        for(const t of allTypes){
+        let notesRender = [];
+        let notesUiSchema = [];
+        for (const t of allTypes) {
             const targetNotes = allNotes.filter(n => { return n.type === t });
-            let description = '';
-            for (const n of targetNotes) {
-                description += n.description + '\n';
-            }
-            notesRender[sectionsCount.toString()] = {
+            notesRender.push({
                 type: 'string',
-                title: t,
-                default: description
+                description: t
+            });
+            notesUiSchema.push({
+                "ui:field": "typography",
+                "ui:variant": "body2", // "caption1", "caption2", "body1", "body2", "subheading2", "subheading1", "title2", "title1"
+            });
+            for (const n of targetNotes) {
+                notesRender.push({
+                    type: 'string',
+                    description: n.description
+                })
+                notesUiSchema.push({
+                    "ui:field": "typography",
+                    "ui:variant": "body1", // "caption1", "caption2", "body1", "body2", "subheading2", "subheading1", "title2", "title1"
+                    "ui:style": { margin: '-15px 0px 0px 20px' }
+                });
             }
-            notesUiSchema[sectionsCount.toString()] = {
-                "ui:widget": "textarea",
-                "ui:readonly": true
-            }
-            sectionsCount++;
         }
         return {
             id: 'releaseNotesPage',
