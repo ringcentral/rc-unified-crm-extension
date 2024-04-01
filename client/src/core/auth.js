@@ -1,28 +1,8 @@
 import axios from 'axios';
 import config from '../config.json';
 import { showNotification } from '../lib/util';
-import { trackCrmLogin, trackCrmLogout } from '../lib/analytics'
-import pipedriveModule from '../platformModules/pipedrive.js';
-import insightlyModule from '../platformModules/insightly.js';
-import clioModule from '../platformModules/clio.js';
-import redtailModule from '../platformModules/redtail';
-import bullhornModule from '../platformModules/bullhorn';
-
-async function getModule() {
-    const platformInfo = await chrome.storage.local.get('platform-info');
-    switch (platformInfo['platform-info'].platformName) {
-        case 'pipedrive':
-            return pipedriveModule;
-        case 'insightly':
-            return insightlyModule;
-        case 'clio':
-            return clioModule;
-        case 'redtail':
-            return redtailModule;
-        case 'bullhorn':
-            return bullhornModule;
-    }
-}
+import { trackCrmLogin, trackCrmLogout } from '../lib/analytics';
+import moduleMapper from '../platformModules/moduleMapper';
 
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({
@@ -60,8 +40,8 @@ async function apiKeyLogin({ apiKey, apiUrl, username, password }) {
         setAuth(true, crmUserInfo.name);
         trackCrmLogin();
         document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-          type: 'rc-adapter-navigate-to',
-          path: 'goBack',
+            type: 'rc-adapter-navigate-to',
+            path: 'goBack',
         }, '*');
         return res.data.jwtToken;
     }
@@ -77,6 +57,7 @@ async function onAuthCallback(callbackUri) {
     const platformInfo = await chrome.storage.local.get('platform-info');
     const hostname = platformInfo['platform-info'].hostname;
     let oauthCallbackUrl = '';
+    // Unique: Bullhorn
     if (platformInfo['platform-info'].platformName === 'bullhorn') {
         const { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
         const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
@@ -97,10 +78,10 @@ async function onAuthCallback(callbackUri) {
     return res.data.jwtToken;
 }
 
-async function unAuthorize(rcUnifiedCrmExtJwt) {
+async function unAuthorize({ platformName, rcUnifiedCrmExtJwt }) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
-        const platformModule = await getModule();
+        const platformModule = moduleMapper.getModule({ platformName });
         await platformModule.onUnauthorize();
         trackCrmLogout()
     }

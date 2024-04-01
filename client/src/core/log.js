@@ -2,18 +2,13 @@ import axios from 'axios';
 import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
-import pipedriveModule from '../platformModules/pipedrive.js';
-import insightlyModule from '../platformModules/insightly.js';
-import clioModule from '../platformModules/clio.js';
-import redtailModule from '../platformModules/redtail';
-import bullhornModule from '../platformModules/bullhorn';
+import moduleMapper from '../platformModules/moduleMapper';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmission, overridingContactId, contactType, contactName }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
-    if(!!subject)
-    {
+    if (!!subject) {
         logInfo['customSubject'] = subject;
     }
     if (!!rcUnifiedCrmExtJwt) {
@@ -83,8 +78,8 @@ async function getLog({ logType, sessionId }) {
     }
 }
 
-function openLog({ platform, hostname, logId, contactType }) {
-    const platformModule = getModule({ platform });
+async function openLog({ platformName, hostname, logId, contactType }) {
+    const platformModule = await moduleMapper.getModule({ platformName });
     platformModule.openLogPage({ hostname, logId, contactType });
 }
 
@@ -130,21 +125,6 @@ async function getCachedNote({ sessionId }) {
     }
     else {
         return cachedNote[sessionId];
-    }
-}
-
-function getModule({ platform }) {
-    switch (platform) {
-        case 'pipedrive':
-            return pipedriveModule;
-        case 'insightly':
-            return insightlyModule;
-        case 'clio':
-            return clioModule;
-        case 'redtail':
-            return redtailModule;
-        case 'bullhorn':
-            return bullhornModule;
     }
 }
 

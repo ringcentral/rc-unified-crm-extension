@@ -119,6 +119,7 @@ async function fetchBullhornUserinfo() {
 }
 
 async function Initialize() {
+  // Unique: Pipedrive
   if (window.location.hostname.includes('pipedrive.com')) {
     let { c2dDelay } = await chrome.storage.local.get(
       { c2dDelay: '3' }
@@ -140,7 +141,7 @@ async function Initialize() {
 }
 
 Initialize();
-
+// Unique: Pipedrive
 if (window.location.pathname === '/pipedrive-redirect') {
   chrome.runtime.sendMessage({ type: "openPopupWindowOnPipedriveDirectPage", platform: 'pipedrive', hostname: 'temp' });
   const rcStepper = window.document.querySelector('#rc-stepper');

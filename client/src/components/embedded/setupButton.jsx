@@ -16,6 +16,7 @@ function SetupButton({
                 onClick={() => {
                     setIsSetup(true);
                     chrome.runtime.sendMessage({ type: "openPopupWindow" });
+                    // Unique: Pipedrive
                     if(window.location.origin.includes('pipedrive'))
                     {
                         window.open('https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57');

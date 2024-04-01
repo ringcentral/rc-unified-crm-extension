@@ -18,6 +18,7 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 async function checkAndRefreshAccessToken(oauthApp, user) {
     const dateNow = new Date();
     if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
+        // Unique: Bullhorn
         if (user.platform === 'bullhorn') {
             await bullhornTokenRefresh(oauthApp, user);
         }

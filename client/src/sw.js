@@ -42,6 +42,7 @@ async function registerPlatform(tabUrl) {
     }
   }
   if (platformName === '') {
+    // Unique: Pipedrive
     if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
       platformName = 'pipedrive';
       hostname = 'temp';

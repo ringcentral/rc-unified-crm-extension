@@ -156,7 +156,7 @@ window.addEventListener('message', async (e) => {
             document.getElementById('rc-widget').style.zIndex = 0;
             const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
             crmAuthed = !!rcUnifiedCrmExtJwt;
-            // Juuuuuust for Pipedrive
+            // Unique: Pipedrive
             if (platformName === 'pipedrive' && !(await auth.checkAuth())) {
               chrome.runtime.sendMessage(
                 {
@@ -279,7 +279,7 @@ window.addEventListener('message', async (e) => {
               type: 'openPopupWindow'
             });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-              openContactPage({ phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
+              openContactPage({ platformName, phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
           break;
@@ -327,9 +327,11 @@ window.addEventListener('message', async (e) => {
                 switch (platform.authType) {
                   case 'oauth':
                     let authUri;
+                    // Unique: Pipedrive
                     if (platformName === 'pipedrive') {
                       authUri = config.platforms.pipedrive.redirectUri;
                     }
+                    // Unique: Bullhorn
                     else if (platformName === 'bullhorn') {
                       let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
                       if (crm_extension_bullhorn_user_urls?.oauthUrl) {
@@ -379,7 +381,7 @@ window.addEventListener('message', async (e) => {
               }
               else {
                 window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-                await auth.unAuthorize(rcUnifiedCrmExtJwt);
+                auth.unAuthorize({ platformName, rcUnifiedCrmExtJwt });
                 window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               }
               responseMessage(
@@ -456,7 +458,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/contacts/view':
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-              await openContactPage({ phoneNumber: data.body.phoneNumbers[0].phoneNumber });
+              openContactPage({ platformName, phoneNumber: data.body.phoneNumbers[0].phoneNumber });
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               responseMessage(
                 data.requestId,
@@ -518,11 +520,11 @@ window.addEventListener('message', async (e) => {
                 case 'viewLog':
                   if (config.platforms[platformName].canOpenLogPage) {
                     for (const c of callMatchedContact) {
-                      openLog({ platform: platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                      openLog({ platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
                     }
                   }
                   else {
-                    openContactPage({ phoneNumber: contactPhoneNumber });
+                    openContactPage({ platformName, phoneNumber: contactPhoneNumber });
                   }
                   break;
                 case 'logForm':
@@ -828,6 +830,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     }
     sendResponse({ result: 'ok' });
   }
+  // Unique: Pipedrive
   else if (request.type === 'pipedriveCallbackUri' && !(await auth.checkAuth())) {
     await auth.onAuthCallback(`${request.pipedriveCallbackUri}&state=platform=pipedrive`);
     console.log('pipedriveAltAuthDone')

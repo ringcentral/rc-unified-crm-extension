@@ -24,7 +24,7 @@ function getHashValue(string, secretKey) {
         `${string}:${secretKey}`
     ).digest('hex');
 }
-
+initDB();
 const app = express();
 app.use(bodyParser.json())
 
@@ -33,12 +33,7 @@ app.use(cors({
 }));
 
 app.get('/is-alive', (req, res) => { res.send(`OK`); });
-// TODO
-app.get('/init-db', async (req, res) => {
-    await initDB();
-    res.send(`OK`);
-});
-// TODO
+// Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
     try {
         res.sendFile(path.join(__dirname, 'pipedriveRedirect/redirect.html'));
@@ -48,7 +43,7 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.status(500).send(e);
     }
 })
-// TODO
+// Unique: Pipedrive
 app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');

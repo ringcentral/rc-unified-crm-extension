@@ -29,7 +29,7 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     const id = userInfoResponse.data.data.id.toString();
     const name = userInfoResponse.data.data.name;
     const timezoneName = userInfoResponse.data.data.time_zone;
-    const timezoneOffset = 0;  //TODO: find timezone offset from timezone name/code
+    const timezoneOffset = 0;
     const existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [

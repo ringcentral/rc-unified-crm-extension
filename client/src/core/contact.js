@@ -1,11 +1,7 @@
 import axios from 'axios';
 import config from '../config.json';
 import analytics from '../lib/analytics';
-import pipedriveModule from '../platformModules/pipedrive.js';
-import insightlyModule from '../platformModules/insightly.js';
-import clioModule from '../platformModules/clio.js';
-import redtailModule from '../platformModules/redtail';
-import bullhornModule from '../platformModules/bullhorn';
+import moduleMapper from '../platformModules/moduleMapper';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -55,13 +51,13 @@ async function createContact({ phoneNumber, newContactName, newContactType }) {
     }
 }
 
-async function openContactPage({ phoneNumber }) {
+async function openContactPage({ platformName, phoneNumber }) {
     const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber });
     if (!contactMatched) {
         return;
     }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    const platformModule = await getModule();
+    const platformModule = moduleMapper.getModule({ platformName });
     let platformInfo = await chrome.storage.local.get('platform-info');
     if (platformInfo['platform-info'].hostname === 'temp') {
         const hostnameRes = await axios.get(`${config.serverUrl}/hostname?jwtToken=${rcUnifiedCrmExtJwt}`);
@@ -73,35 +69,6 @@ async function openContactPage({ phoneNumber }) {
     }
 }
 
-async function openContactPageById({ id, type }) {
-    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    const platformModule = await getModule();
-    let platformInfo = await chrome.storage.local.get('platform-info');
-    if (platformInfo['platform-info'].hostname === 'temp') {
-        const hostnameRes = await axios.get(`${config.serverUrl}/hostname?jwtToken=${rcUnifiedCrmExtJwt}`);
-        platformInfo['platform-info'].hostname = hostnameRes.data;
-        await chrome.storage.local.set(platformInfo);
-    }
-    platformModule.openContactPage(platformInfo['platform-info'].hostname, { id, type });
-}
-
-async function getModule() {
-    const platformInfo = await chrome.storage.local.get('platform-info');
-    switch (platformInfo['platform-info'].platformName) {
-        case 'pipedrive':
-            return pipedriveModule;
-        case 'insightly':
-            return insightlyModule;
-        case 'clio':
-            return clioModule;
-        case 'redtail':
-            return redtailModule;
-        case 'bullhorn':
-            return bullhornModule;
-    }
-}
-
 exports.getContact = getContact;
 exports.createContact = createContact;
 exports.openContactPage = openContactPage;
-exports.openContactPageById = openContactPageById;

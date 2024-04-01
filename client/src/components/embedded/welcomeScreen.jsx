@@ -38,32 +38,20 @@ export default () => {
     useEffect(() => {
         let platformName = '';
         const hostname = window.location.hostname;
-        if (hostname.includes('pipedrive')) {
-            platformName = 'pipedrive';
+        const platforms = Object.keys(config.platforms);
+        for (const p of platforms) {
+            if (hostname.includes(config.platforms[p].urlIdentifier)) {
+                platformName = p;
+                break;
+            }
         }
-        else if (hostname.includes('insightly')) {
-            platformName = 'insightly';
-        }
-        else if (hostname.includes('clio')) {
-            platformName = 'clio';
-        }
-        else if (hostname.includes('bullhorn')) {
-            platformName = 'bullhorn';
-        }
-        else if (hostname.includes('redtailtechnology')) {
-            platformName = 'redtail';
-        }
-
         checkFirstTime();
         async function checkFirstTime() {
             const isFirstTime = await chrome.storage.local.get('isFirstTime');
             if (isObjectEmpty(isFirstTime) && platformName !== '') {
                 setIsOpen(true);
-                setDocLink(config.welcomeMessage[platformName].docLink);
-                setVideoLink(config.welcomeMessage[platformName].VideoLink);
-                console.log(platformName);
-                console.log(config.welcomeMessage[platformName].docLink);
-                console.log(config.welcomeMessage[platformName].VideoLink);
+                setDocLink(config.platforms[platformName].embedded.welcomePage.docLink);
+                setVideoLink(config.platforms[platformName].embedded.welcomePage.VideoLink);
                 await chrome.storage.local.set({ isFirstTime: false });
                 trackFirstTimeSetup();
             }
