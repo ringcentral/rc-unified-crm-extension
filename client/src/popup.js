@@ -225,16 +225,18 @@ window.addEventListener('message', async (e) => {
           }
           // Check version and show release notes
           const registeredVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
-          const releaseNotesPageRender = releaseNotesPage.getReleaseNotesPageRender({ platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
-          if (!!releaseNotesPageRender) {
-            document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-              type: 'rc-adapter-register-customized-page',
-              page: releaseNotesPageRender
-            });
-            document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
-              type: 'rc-adapter-navigate-to',
-              path: `/customized/${releaseNotesPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
-            }, '*');
+          if (!!registeredVersionInfo[['rc-crm-extension-version']]) {
+            const releaseNotesPageRender = releaseNotesPage.getReleaseNotesPageRender({ platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
+            if (!!releaseNotesPageRender) {
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-register-customized-page',
+                page: releaseNotesPageRender
+              });
+              document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+                type: 'rc-adapter-navigate-to',
+                path: `/customized/${releaseNotesPageRender.id}`, // '/meeting', '/dialer', '//history', '/settings'
+              }, '*');
+            }
           }
           await chrome.storage.local.set({
             ['rc-crm-extension-version']: config.version
@@ -463,7 +465,7 @@ window.addEventListener('message', async (e) => {
               responseMessage(
                 data.requestId,
                 {
-                  data: callLogMatchData
+                  data: 'ok'
                 });
               break;
             case '/callLogger':
@@ -580,7 +582,6 @@ window.addEventListener('message', async (e) => {
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               break;
             case '/callLogger/inputChanged':
-              console.log(data); // get input changed data in here: data.body.formData
               await cacheCallNote({
                 sessionId: data.body.call.sessionId,
                 note: data.body.formData.note ?? ''

@@ -2,7 +2,7 @@ import axios from 'axios';
 import config from '../config.json';
 import { showNotification } from '../lib/util';
 import { trackCrmLogin, trackCrmLogout } from '../lib/analytics';
-import moduleMapper from '../platformModules/moduleMapper';
+import moduleMapper from '../moduleMapper';
 
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({
@@ -81,7 +81,7 @@ async function onAuthCallback(callbackUri) {
 async function unAuthorize({ platformName, rcUnifiedCrmExtJwt }) {
     try {
         await axios.post(`${config.serverUrl}/unAuthorize?jwtToken=${rcUnifiedCrmExtJwt}`);
-        const platformModule = moduleMapper.getModule({ platformName });
+        const platformModule = await import(`../platformModules/${platformName}.js`);
         await platformModule.onUnauthorize();
         trackCrmLogout()
     }

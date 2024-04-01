@@ -31,7 +31,7 @@
     "styled-components": "^5.3.3"
   },
   "devDependencies": {
-    "esbuild": "^0.15.9",
+    "esbuild": "^0.20.2",
     "esbuild-copy-static-files": "^0.1.0",
     "esbuild-plugin-svgr": "^1.1.0"
   }

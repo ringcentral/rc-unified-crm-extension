@@ -1,7 +1,7 @@
 import axios from 'axios';
 import config from '../config.json';
 import analytics from '../lib/analytics';
-import moduleMapper from '../platformModules/moduleMapper';
+import moduleMapper from '../moduleMapper';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
@@ -57,7 +57,7 @@ async function openContactPage({ platformName, phoneNumber }) {
         return;
     }
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    const platformModule = moduleMapper.getModule({ platformName });
+    const platformModule = await import(`../platformModules/${platformName}.js`);
     let platformInfo = await chrome.storage.local.get('platform-info');
     if (platformInfo['platform-info'].hostname === 'temp') {
         const hostnameRes = await axios.get(`${config.serverUrl}/hostname?jwtToken=${rcUnifiedCrmExtJwt}`);

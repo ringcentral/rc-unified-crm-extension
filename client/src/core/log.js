@@ -2,7 +2,7 @@ import axios from 'axios';
 import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
-import moduleMapper from '../platformModules/moduleMapper';
+import moduleMapper from '../moduleMapper';
 
 // Input {id} = sessionId from RC
 async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmission, overridingContactId, contactType, contactName }) {
@@ -79,7 +79,7 @@ async function getLog({ logType, sessionId }) {
 }
 
 async function openLog({ platformName, hostname, logId, contactType }) {
-    const platformModule = await moduleMapper.getModule({ platformName });
+    const platformModule = await import(`../platformModules/${platformName}.js`);
     platformModule.openLogPage({ hostname, logId, contactType });
 }
 
