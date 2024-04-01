@@ -505,7 +505,9 @@ window.addEventListener('message', async (e) => {
                 case 'createLog':
                   note = await getCachedNote({ sessionId: data.body.call.sessionId });
                 case 'editLog':
-                  note = singleCallLog[data.body.call.sessionId]?.logData?.note ?? '';
+                  if (!!singleCallLog[data.body.call.sessionId]?.logData?.note) {
+                    note = singleCallLog[data.body.call.sessionId]?.logData?.note;
+                  }
                   // add your codes here to log call to your service
                   const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: singleCallLog[data.body.call.sessionId]?.logData?.subject, note });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
@@ -556,7 +558,7 @@ window.addEventListener('message', async (e) => {
                           note: data.body.formData.note ?? "",
                           subject: data.body.formData.activityTitle ?? "",
                           additionalSubmission,
-                          overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                          contactId: newContactInfo?.id ?? data.body.formData.contact,
                           contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
                           contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
                         });
@@ -645,7 +647,7 @@ window.addEventListener('message', async (e) => {
                     isMain: true,
                     note: '',
                     additionalSubmission,
-                    overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                    contactId: newContactInfo?.id ?? data.body.formData.contact,
                     contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
                     contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
                   });
@@ -658,7 +660,7 @@ window.addEventListener('message', async (e) => {
                       isMain: false,
                       note: '',
                       additionalSubmission,
-                      overridingContactId: newContactInfo?.id ?? data.body.formData.contact,
+                      contactId: newContactInfo?.id ?? data.body.formData.contact,
                       contactType: data.body.formData.newContactName === '' ? data.body.formData.contactType : data.body.formData.newContactType,
                       contactName: data.body.formData.newContactName === '' ? data.body.formData.contactName : data.body.formData.newContactName
                     });

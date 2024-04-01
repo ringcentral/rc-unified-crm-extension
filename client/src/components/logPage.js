@@ -4,9 +4,12 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
     const additionalChoiceFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
-    const additionalCheckBoxFields = logType === 'Call' ?
+        const additionalCheckBoxFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
+        const additionalInputFields = logType === 'Call' ?
+        config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'inputField') ?? [] :
+        config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'inputField') ?? [];
     // format contact list
     const contactList = contactInfo.map(c => { return { const: c.id, title: c.name, type: c.type, description: c.type ? `${c.type} - ${c.id}` : '', additionalInfo: c.additionalInfo } });
     const defaultActivityTitle = direction === 'Inbound' ?
@@ -53,27 +56,38 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
             let additionalFields = {};
             let additionalFieldsValue = {};
             for (const f of additionalChoiceFields) {
-                if (f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                if (!!f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
                     continue;
                 }
                 additionalFields[f.const] = {
                     title: f.title,
                     type: 'string',
                     oneOf: [...contactList[0].additionalInfo[f.const], { const: 'none', title: 'None' }],
-                    associationField: true
+                    associationField: !!f.contactDependent
                 }
                 additionalFieldsValue[f.const] = contactList[0].additionalInfo[f.const][0].const;
             }
             for (const f of additionalCheckBoxFields) {
-                if (f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                if (!!f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
                     continue;
                 }
                 additionalFields[f.const] = {
                     title: f.title,
                     type: 'boolean',
-                    associationField: false
+                    associationField: !!f.contactDependent
                 }
-                additionalFieldsValue[f.const] = f.defaultValue;
+                additionalFieldsValue[f.const] = f.defaultValue ?? false;
+            }
+            for (const f of additionalInputFields) {
+                if (!!f.contactDependent && !contactList[0]?.additionalInfo?.hasOwnProperty(f.const)) {
+                    continue;
+                }
+                additionalFields[f.const] = {
+                    title: f.title,
+                    type: 'string',
+                    associationField: !!f.contactDependent
+                }
+                additionalFieldsValue[f.const] = f.defaultValue ?? '';
             }
             let warningField = {};
             if (contactList.length > 2) {

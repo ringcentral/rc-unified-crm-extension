@@ -1,7 +1,6 @@
 import axios from 'axios';
 import config from '../config.json';
 import analytics from '../lib/analytics';
-import moduleMapper from '../moduleMapper';
 
 async function getContact({ phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');

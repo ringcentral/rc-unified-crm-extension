@@ -29,9 +29,6 @@ exports.UserModel = sequelize.define('users', {
   tokenExpiry: {
     type: Sequelize.DATE
   },
-  rcUserNumber: {
-    type: Sequelize.STRING,
-  },
   platformAdditionalInfo: {
     type: Sequelize.JSON
   }

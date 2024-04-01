@@ -20,7 +20,7 @@ function getOauthInfo() {
     }
 }
 
-async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
     const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
         headers: {
             'Authorization': authHeader
@@ -49,7 +49,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                rcUserNumber,
                 platformAdditionalInfo: additionalInfo
             }
         );
@@ -64,7 +63,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
             accessToken,
             refreshToken,
             tokenExpiry,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -172,18 +170,26 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+    console.log(user);
+    console.log(contactInfo);
+    console.log(authHeader);
+    console.log(callLog);
+    console.log(note);
+    console.log(additionalSubmission);
+    console.log(timezoneOffset);
+    console.log(contactNumber);
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
             type: 'User'
         } :
         {
-            id: contactInfo.overridingContactId ?? contactInfo.id,
+            id: contactInfo.id,
             type: 'Contact'
         }
     const receiver = callLog.direction === 'Outbound' ?
         {
-            id: contactInfo.overridingContactId ?? contactInfo.id,
+            id: contactInfo.id,
             type: 'Contact'
         } :
         {
@@ -293,12 +299,12 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             type: 'User'
         } :
         {
-            id: contactInfo.overridingContactId ?? contactInfo.id,
+            id: contactInfo.id,
             type: 'Contact'
         }
     const receiver = message.direction == 'Outbound' ?
         {
-            id: contactInfo.overridingContactId ?? contactInfo.id,
+            id: contactInfo.id,
             type: 'Contact'
         } :
         {

@@ -129,6 +129,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
     return;
   }
+  // Unique: Pipedrive
   if (request.type === "openPopupWindowOnPipedriveDirectPage") {
     await openPopupWindow();
     chrome.tabs.sendMessage(sender.tab.id, { action: 'needCallbackUri' })
@@ -139,12 +140,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
     return;
   }
+  // Unique: Pipedrive
   if (request.type === "popupWindowRequestPipedriveCallbackUri") {
     chrome.runtime.sendMessage({
       type: 'pipedriveCallbackUri',
       pipedriveCallbackUri
     });
   }
+  // Unique: Pipedrive
   if (request.type === 'pipedriveAltAuthDone') {
     chrome.tabs.sendMessage(pipedriveInstallationTabId, { action: 'pipedriveAltAuthDone' });
     console.log('pipedriveAltAuthDone')
@@ -198,6 +201,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse(cachedClickToXRequest);
     cachedClickToXRequest = null;
   }
+  // Unique: Pipedrive
   if (request.type === 'pipedriveCallbackUri') {
     pipedriveCallbackUri = request.callbackUri;
     console.log('pipedrive callback uri: ', request.callbackUri);

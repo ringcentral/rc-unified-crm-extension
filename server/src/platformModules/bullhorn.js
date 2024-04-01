@@ -19,7 +19,7 @@ function getOauthInfo({ tokenUrl }) {
     }
 }
 
-async function saveUserInfo({ authHeader, tokenUrl, apiUrl, username, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ authHeader, tokenUrl, apiUrl, username, hostname, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
     const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
     const { BhRestToken: bhRestToken, restUrl } = userLoginResponse.data;
     const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
@@ -47,7 +47,6 @@ async function saveUserInfo({ authHeader, tokenUrl, apiUrl, username, hostname, 
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                rcUserNumber,
                 platformAdditionalInfo: {
                     tokenUrl,
                     restUrl,
@@ -67,7 +66,6 @@ async function saveUserInfo({ authHeader, tokenUrl, apiUrl, username, hostname, 
             accessToken,
             refreshToken,
             tokenExpiry,
-            rcUserNumber,
             platformAdditionalInfo: {
                 tokenUrl,
                 restUrl,
@@ -226,7 +224,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: noteActions,
         personReference: {
-            id: contactInfo.overridingContactId ?? contactInfo.id
+            id: contactInfo.id
         },
         dateAdded: callLog.startTime
     }
@@ -296,7 +294,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactNumber}</li><li><b>${message.direction === 'Outbound' ? `Sender phone number</b>: ${message.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${message.to[0].phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
         action: noteActions,
         personReference: {
-            id: contactInfo.overridingContactId ?? contactInfo.id
+            id: contactInfo.id
         },
         dateAdded: message.creationTime
     }

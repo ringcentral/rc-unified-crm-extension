@@ -65,17 +65,20 @@ chrome.runtime.onMessage.addListener(
         minimized: false,
       }, '*');
     }
+    // Unique: Pipedrive
     if (request.action === 'needCallbackUri') {
       chrome.runtime.sendMessage({
         type: 'pipedriveCallbackUri',
         callbackUri: window.location.href
       });
     }
+    // Unique: Pipedrive
     if (request.action === 'pipedriveAltAuthDone') {
       console.log('pipedriveAltAuthDone')
       const rcStepper = window.document.querySelector('#rc-stepper');
       rcStepper.innerHTML = '(3/3) Setup finished. You can close this page now.';
     }
+    // Unique: Bullhorn
     if (request.action === 'fetchBullhornUsername') {
       const decodedCookie = decodeURIComponent(window.document.cookie);
       const bullhornUsername = decodedCookie.split('"username":"')[1].split('","masterUserId')[0];
@@ -105,6 +108,7 @@ async function RenderQuickAccessButton() {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+// Unique: Bullhorn
 async function fetchBullhornUserinfo() {
   const { crm_extension_bullhornUsername } = await chrome.storage.local.get({ crm_extension_bullhornUsername: null });
   let { crm_extension_bullhorn_user_urls } = await chrome.storage.local.get({ crm_extension_bullhorn_user_urls: null });
@@ -130,6 +134,7 @@ async function Initialize() {
     const delayInMilliSec = Number(c2dDelay) * 1000;
     await delay(delayInMilliSec);
   }
+  // Unique: Bullhorn
   if (window.location.hostname.includes('bullhornstaffing.com')) {
     await fetchBullhornUserinfo();
   }
@@ -148,6 +153,7 @@ if (window.location.pathname === '/pipedrive-redirect') {
   rcStepper.innerHTML = '(2/3) Please sign in on the extension with your RingCentral account. If nothing happens, please try refreshing this page and wait for a few seconds.';
 }
 
+// Unique: Insightly
 if (document.readyState !== 'loading') {
   registerInsightlyApiKey();
 } else {
@@ -156,6 +162,7 @@ if (document.readyState !== 'loading') {
   });
 }
 
+// Unique: Insightly
 function registerInsightlyApiKey() {
   if (window.location.pathname === '/Users/UserSettings' && window.location.hostname.includes('insightly.com')) {
     const insightlyApiKey = document.querySelector('#apikey').innerHTML;

@@ -2,7 +2,6 @@ import axios from 'axios';
 import config from '../config.json';
 import { showNotification } from '../lib/util';
 import { trackCrmLogin, trackCrmLogout } from '../lib/analytics';
-import moduleMapper from '../moduleMapper';
 
 async function submitPlatformSelection(platform) {
     await chrome.storage.local.set({

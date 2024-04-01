@@ -26,7 +26,7 @@ function getBasicAuth({ apiKey }) {
 }
 
 // For params, if OAuth, then accessToken, refreshToken, tokenExpiry; If apiKey, then apiKey
-async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
     // API call to get logged in user info
     const userInfoResponse = await axios.get('https://api.crm.com/user/me', {
         headers: {
@@ -59,7 +59,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                rcUserNumber,
                 platformAdditionalInfo: additionalInfo
             }
         );
@@ -74,7 +73,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
             accessToken,
             refreshToken,
             tokenExpiry,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }

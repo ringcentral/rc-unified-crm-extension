@@ -14,7 +14,7 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ authHeader, hostname, apiKey, additionalInfo }) {
     additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
     const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
@@ -43,7 +43,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additi
             timezoneName,
             timezoneOffset,
             accessToken: apiKey,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -55,7 +54,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, rcUserNumber, additi
             timezoneOffset,
             platform: crmName,
             accessToken: apiKey,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -272,7 +270,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'contact',
-                LINK_OBJECT_ID: contactInfo.overridingContactId ?? contactInfo.id
+                LINK_OBJECT_ID: contactInfo.id
             },
             {
                 headers: { 'Authorization': authHeader }
@@ -321,7 +319,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'lead',
-                LINK_OBJECT_ID: contactInfo.overridingContactId ?? contactInfo.id
+                LINK_OBJECT_ID: contactInfo.id
             },
             {
                 headers: { 'Authorization': authHeader }
@@ -415,7 +413,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'contact',
-                LINK_OBJECT_ID: contactInfo.overridingContactId ?? contactInfo.id
+                LINK_OBJECT_ID: contactInfo.id
             },
             {
                 headers: { 'Authorization': authHeader }
@@ -426,7 +424,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
             {
                 LINK_OBJECT_NAME: 'lead',
-                LINK_OBJECT_ID: contactInfo.overridingContactId ?? contactInfo.id
+                LINK_OBJECT_ID: contactInfo.id
             },
             {
                 headers: { 'Authorization': authHeader }

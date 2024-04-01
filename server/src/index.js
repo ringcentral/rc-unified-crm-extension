@@ -118,8 +118,7 @@ app.get('/oauth-callback', async function (req, res) {
             hostname,
             accessToken,
             refreshToken,
-            tokenExpiry: expires,
-            rcUserNumber: req.query.rcUserNumber.toString(),
+            tokenExpiry: expires
          });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
@@ -151,7 +150,6 @@ app.post('/apiKeyLogin', async function (req, res) {
             authHeader: `Basic ${basicAuth}`,
             hostname,
             apiKey,
-            rcUserNumber: req.body.rcUserNumber.toString(),
             additionalInfo
          });
         const jwtToken = jwt.generateJwt({

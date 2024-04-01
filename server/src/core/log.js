@@ -10,10 +10,6 @@ async function addCallLog({ platform, userId, incomingData }) {
         if (existingCallLog) {
             return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
         }
-        const platformModule = require(`../platformModules/${platform}`);
-        const callLog = incomingData.logInfo;
-        const additionalSubmission = incomingData.additionalSubmission;
-        const note = incomingData.note;
         let user = await UserModel.findOne({
             where: {
                 id: userId,
@@ -23,6 +19,10 @@ async function addCallLog({ platform, userId, incomingData }) {
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
+        const platformModule = require(`../platformModules/${platform}`);
+        const callLog = incomingData.logInfo;
+        const additionalSubmission = incomingData.additionalSubmission;
+        const note = incomingData.note;
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -37,21 +37,15 @@ async function addCallLog({ platform, userId, incomingData }) {
                 break;
         }
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
-        const overridingContactId = incomingData.overridingContactId;
-        let contactInfo = null;
-        if (!!overridingContactId) {
-            contactInfo = {
-                overridingContactId,
-                type: incomingData.contactType ?? "",
-                name: incomingData.contactName ?? ""
-            };
+        const contactId = incomingData.contactId;
+        if (!!!contactId) {
+            return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
-        else {
-            contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
-            if (contactInfo == null) {
-                return { successful: false, message: `Contact not found for number ${contactNumber}` };
-            }
-        }
+        const contactInfo = {
+            id: contactId,
+            type: incomingData.contactType ?? "",
+            name: incomingData.contactName ?? ""
+        };
         const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset, contactNumber });
         await CallLogModel.create({
             id: incomingData.logInfo.id,
@@ -182,21 +176,15 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const overridingContactId = incomingData.overridingContactId;
-        let contactInfo = null;
-        if (!!overridingContactId) {
-            contactInfo = {
-                overridingContactId,
-                type: incomingData.contactType ?? "",
-                name: incomingData.contactName ?? ""
-            };
-        }
-        else {
-            contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber: contactNumber, overridingFormat: incomingData.overridingFormat });
-        }
-        if (contactInfo == null) {
+        const contactId = incomingData.contactId;
+        if (!!!contactId) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
+        const contactInfo = {
+            id: contactId,
+            type: incomingData.contactType ?? "",
+            name: incomingData.contactName ?? ""
+        };
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
         const existingMessages = await MessageLogModel.findAll({
             where: {

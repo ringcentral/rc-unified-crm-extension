@@ -18,7 +18,7 @@ function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
 
-async function saveUserInfo({ hostname, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ hostname, additionalInfo }) {
     const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
     const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
     const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
@@ -48,7 +48,6 @@ async function saveUserInfo({ hostname, rcUserNumber, additionalInfo }) {
             timezoneName,
             timezoneOffset,
             accessToken: additionalInfo.userResponse.user_key,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -60,7 +59,6 @@ async function saveUserInfo({ hostname, rcUserNumber, additionalInfo }) {
             timezoneOffset,
             platform: crmName,
             accessToken: additionalInfo.userResponse.user_key,
-            rcUserNumber,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -136,7 +134,7 @@ async function addCallLog({ user, contactInfo, callLog, note }) {
         repeats: 'never',
         linked_contacts: [
             {
-                contact_id: contactInfo.overridingContactId ?? contactInfo.id
+                contact_id: contactInfo.id
             }
         ]
     }
@@ -223,7 +221,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         repeats: 'never',
         linked_contacts: [
             {
-                contact_id: contactInfo.overridingContactId ?? contactInfo.id
+                contact_id: contactInfo.id
             }
         ]
     }

@@ -20,7 +20,7 @@ function getOauthInfo() {
     }
 }
 
-async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, rcUserNumber, additionalInfo }) {
+async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
             'Authorization': authHeader
@@ -49,7 +49,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                rcUserNumber,
                 platformAdditionalInfo: {
                     companyId: userInfoResponse.data.data.company_id,
                     companyName: userInfoResponse.data.data.company_name,
@@ -68,7 +67,6 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
             accessToken,
             refreshToken,
             tokenExpiry,
-            rcUserNumber,
             platformAdditionalInfo: {
                 companyId: userInfoResponse.data.data.company_id,
                 companyName: userInfoResponse.data.data.company_name,
@@ -172,7 +170,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
-    const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.overridingContactId ?? contactInfo.id}`, { headers: { 'Authorization': authHeader } });
+    const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
     const orgId = personResponse.data.data.org_id?.value ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
@@ -180,7 +178,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         user_id: user.id,
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         duration: callLog.duration,    // secs
-        person_id: contactInfo.overridingContactId ?? contactInfo.id,
+        person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
         note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
@@ -245,7 +243,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const postBody = {
         user_id: user.id,
         subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${contactInfo.name}(${message.to[0].phoneNumber})`,
-        person_id: contactInfo.overridingContactId ?? contactInfo.id,
+        person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
         note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
