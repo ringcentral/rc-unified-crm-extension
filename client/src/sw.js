@@ -34,28 +34,22 @@ async function registerPlatform(tabUrl) {
   const url = new URL(tabUrl);
   let platformName = '';
   let hostname = url.hostname;
-  if (hostname.includes('pipedrive')) {
-    platformName = 'pipedrive';
+  const platforms = Object.keys(config.platforms);
+  for (const p of platforms) {
+    if (hostname.includes(config.platforms[p].urlIdentifier)) {
+      platformName = p;
+      break;
+    }
   }
-  else if (hostname.includes('insightly')) {
-    platformName = 'insightly';
-  }
-  else if (hostname.includes('clio')) {
-    platformName = 'clio';
-  }
-  else if (hostname.includes('bullhorn')) {
-    platformName = 'bullhorn';
-  }
-  else if (hostname.includes('redtailtechnology')) {
-    platformName = 'redtail';
-  }
-  else if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
-    platformName = 'pipedrive';
-    hostname = 'temp';
-    chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
-  }
-  else {
-    return false;
+  if (platformName === '') {
+    if ((hostname.includes('ngrok') || hostname.includes('labs.ringcentral')) && url.pathname === '/pipedrive-redirect') {
+      platformName = 'pipedrive';
+      hostname = 'temp';
+      chrome.tabs.sendMessage(tab.id, { action: 'needCallbackUri' })
+    }
+    else {
+      return false;
+    }
   }
   await chrome.storage.local.set({
     ['platform-info']: { platformName, hostname }

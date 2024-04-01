@@ -199,9 +199,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, logInfo, note }) {
-    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const existingLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
-        `https://api.crm.com/activity/${existingClioLogId}`,
+        `https://api.crm.com/activity/${existingLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -243,7 +243,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
     }
     const patchLogRes = await axios.patch(
-        `https://api.crm.com/activity/${existingClioLogId}`,
+        `https://api.crm.com/activity/${existingLogId}`,
         patchBody,
         {
             headers: { 'Authorization': authHeader }
