@@ -170,14 +170,6 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
-    console.log(user);
-    console.log(contactInfo);
-    console.log(authHeader);
-    console.log(callLog);
-    console.log(note);
-    console.log(additionalSubmission);
-    console.log(timezoneOffset);
-    console.log(contactNumber);
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
