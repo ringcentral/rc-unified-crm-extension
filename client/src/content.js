@@ -98,7 +98,7 @@ function Root() {
 }
 
 async function RenderQuickAccessButton() {
-  if (!window.location.hostname.includes('ringcentral.')) {
+  if (window.location.hostname.includes('labs.ringcentral.com') || !window.location.hostname.includes('ringcentral.')) {
     const rootElement = window.document.createElement('root');
     rootElement.id = 'rc-crm-extension-quick-access-button';
     window.document.body.appendChild(rootElement);
