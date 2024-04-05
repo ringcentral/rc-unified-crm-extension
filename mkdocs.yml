@@ -12,6 +12,7 @@ theme:
   name: material
   features:
       - navigation.path
+      - navigation.expand
 #      - navigation.sections
       - search.sharing
       - search.highlight
@@ -58,6 +59,6 @@ nav:
    - 'Insightly': insightly.md
    - 'Pipedrive': pipedrive.md
    - 'Redtail CRM': redtail.md
-- 'Configuration options': configuration.md
 - 'User guide': user-guide.md
+- 'Configuration options': configuration.md
 - 'Support and troubleshooting': support.md
