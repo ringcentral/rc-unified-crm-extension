@@ -363,6 +363,7 @@ window.addEventListener('message', async (e) => {
                       authUri = `${platform.authUrl}?` +
                         `response_type=code` +
                         `&client_id=${platform.clientId}` +
+                        `${!!platform.scopes ? `&scope=${platform.scopes}` : ''}` +
                         `&state=platform=${platform.name}` +
                         '&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
                     }

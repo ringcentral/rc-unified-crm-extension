@@ -94,7 +94,9 @@ app.get('/oauth-callback', async function (req, res) {
             res.status(400).send('missing callbackUri');
             return;
         }
-        const platform = req.query.state.split('platform=')[1];
+        const platform = req.query.state ?
+            req.query.state.split('platform=')[1] :
+            decodeURIComponent(req.originalUrl.split('state=')[1].split('&')[0]).split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
         if (!platform) {
@@ -108,18 +110,19 @@ app.get('/oauth-callback', async function (req, res) {
         if (platformModule.getOverridingOAuthOption != null) {
             overridingOAuthOption = platformModule.getOverridingOAuthOption({ code: req.query.callbackUri.split('code=')[1] });
         }
+        console.log(overridingOAuthOption)
         const oauthApp = oauth.getOAuthApp(oauthInfo);
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, overridingOAuthOption);
-        const userInfo = await platformModule.saveUserInfo({ 
-            authHeader: `Bearer ${accessToken}`, 
-            tokenUrl: tokenUrl, 
-            apiUrl: req.query.apiUrl, 
+        const userInfo = await platformModule.saveUserInfo({
+            authHeader: `Bearer ${accessToken}`,
+            tokenUrl: tokenUrl,
+            apiUrl: req.query.apiUrl,
             username: req.query.username,
             hostname,
             accessToken,
             refreshToken,
             tokenExpiry: expires
-         });
+        });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             rcUserNumber: req.query.rcUserNumber.toString(),
@@ -151,7 +154,7 @@ app.post('/apiKeyLogin', async function (req, res) {
             hostname,
             apiKey,
             additionalInfo
-         });
+        });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             rcUserNumber: req.body.rcUserNumber.toString(),

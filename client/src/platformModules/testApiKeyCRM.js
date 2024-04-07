@@ -1,5 +1,5 @@
 function openContactPage(hostname, incomingCallContactInfo) {
-    window.open(`https://developers.ringcentral.com/`);
+    window.open(`https://${hostname}?contactId=${incomingCallContactInfo.id}`);
 }
 async function onUnauthorize(){
 
