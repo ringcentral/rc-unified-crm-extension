@@ -110,7 +110,6 @@ app.get('/oauth-callback', async function (req, res) {
         if (platformModule.getOverridingOAuthOption != null) {
             overridingOAuthOption = platformModule.getOverridingOAuthOption({ code: req.query.callbackUri.split('code=')[1] });
         }
-        console.log(overridingOAuthOption)
         const oauthApp = oauth.getOAuthApp(oauthInfo);
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, overridingOAuthOption);
         const userInfo = await platformModule.saveUserInfo({

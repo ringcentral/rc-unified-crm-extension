@@ -1,27 +1,72 @@
 {
-    "serverUrl": "",
+    "serverUrl": "https://xxxx.ngrok.io",
     "platforms": {
-        "pipedrive": {
-            "name": "pipedrive",
-            "authType": "oauth",
-            "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
-            "clientId": ""
-        },
-        "insightly": {
-            "name": "insightly",
-            "authType": "apiKey"
-        },
-        "clio": {
-            "name": "clio",
-            "authType": "oauth",
-            "authUrl": "https://app.clio.com/oauth/authorize",
-            "clientId": ""
+        "testCRM": {
+            "urlIdentifier": "developers.ringcentral.com",
+            "name": "testCRM",
+            "authType": "apiKey",
+            "canOpenLogPage": false,
+            "page": {
+                "auth": {
+                    "title": "test CRM",
+                    "content": [
+                        {
+                            "const": "apiKey",
+                            "title": "apiKey",
+                            "type": "string",
+                            "required": true
+                        }
+                    ]
+                },
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "testSelection",
+                            "title": "Test Selection",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "testInput",
+                            "title": "Test Input",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "testSelection",
+                            "title": "Test Selection",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embedded": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            }
         }
     },
-    "segmentKey": "",
     "clientId": "",
-    "rcServer": "https://platform.devtest.ringcentral.com",
+    "rcServer": "https://platform.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
-    "version": "",
-    "releaseNote": ""
+    "version": "0.0.1",
+    "welcomeMessage": {
+        "testApiKeyCRM": {
+            "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+            "VideoLink": "https://youtu.be"
+        }
+    },
+    "platformsWithDifferentContactType": {
+        "testCRM": [
+            "TestContactType",
+            "Contact"
+        ]
+    }
 }

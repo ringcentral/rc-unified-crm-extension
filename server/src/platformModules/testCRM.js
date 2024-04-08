@@ -4,7 +4,7 @@ const Op = require('sequelize').Op;
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
-const crmName = 'zoho';
+const crmName = 'testCRM';
 
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
@@ -14,34 +14,39 @@ let mockCallLog = null;
 let mockMessageLog = null;
 
 function getAuthType() {
-    return 'oauth'; // Return either 'oauth' OR 'apiKey'
+    return 'apiKey'; // Return either 'oauth' OR 'apiKey'
 }
 
-function getOauthInfo() {
-    return {
-        clientId: process.env.ZOHO_CLIENT_ID,
-        clientSecret: process.env.ZOHO_CLIENT_SECRET,
-        accessTokenUri: process.env.ZOHO_TOKEN_URI,
-        redirectUri: process.env.ZOHO_REDIRECT_URI
-    }
+function getBasicAuth({ apiKey }) {
+    return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-// CASE: If Auth server requires CLIENT_ID in token exchange request
-function getOverridingOAuthOption({ code }) {
-    return {
-        query: {
-            grant_type: 'authorization_code',
-            code,
-            client_id: process.env.ZOHO_CLIENT_ID,
-            client_secret: process.env.ZOHO_CLIENT_SECRET,
-            redirect_uri: process.env.ZOHO_REDIRECT_URI,
-        },
-        headers: {
-            Authorization: ''
-        }
-    }
-}
-exports.getOverridingOAuthOption = getOverridingOAuthOption;
+// CASE: If using OAuth
+// function getOauthInfo() {
+//     return {
+//         clientId: process.env.TEST_CRM_CLIENT_ID,
+//         clientSecret: process.env.TEST_CRM_CLIENT_SECRET,
+//         accessTokenUri: process.env.TEST_CRM_TOKEN_URI,
+//         redirectUri: process.env.TEST_CRM_REDIRECT_URI
+//     }
+// }
+
+// CASE: If using OAuth and Auth server requires CLIENT_ID in token exchange request
+// function getOverridingOAuthOption({ code }) {
+//     return {
+//         query: {
+//             grant_type: 'authorization_code',
+//             code,
+//             client_id: process.env.TEST_OAUTH_CRM_CLIENT_ID,
+//             client_secret: process.env.TEST_OAUTH_CRM_CLIENT_SECRET,
+//             redirect_uri: process.env.TEST_OAUTH_CRM_REDIRECT_URI,
+//         },
+//         headers: {
+//             Authorization: ''
+//         }
+//     }
+// }
+// exports.getOverridingOAuthOption = getOverridingOAuthOption;
 
 
 // For params, if OAuth, then accessToken, refreshToken, tokenExpiry; If apiKey, then apiKey
@@ -49,9 +54,9 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
     // ------------------------------------------------------
     // ---TODO.1: Implement API call to retrieve user info---
     // ------------------------------------------------------
-    console.log(authHeader);
+
     // API call to get logged in user info
-    // const userInfoResponse = await axios.get('https://api.monday.com/v2/me', {
+    // const userInfoResponse = await axios.get('https://api.crm.com/user/me', {
     //     headers: {
     //         'Authorization': authHeader
     //     }
@@ -88,8 +93,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
                 timezoneName,
                 timezoneOffset,
                 accessToken: apiKey,
-                // refreshToken,
-                // tokenExpiry,
                 platformAdditionalInfo: additionalInfo
             }
         );
@@ -102,8 +105,6 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
             timezoneOffset,
             platform: crmName,
             accessToken: apiKey,
-            // refreshToken,
-            // tokenExpiry,
             platformAdditionalInfo: additionalInfo
         });
     }
@@ -126,7 +127,7 @@ async function unAuthorize({ user }) {
     //     revokeUrl,
     //     revokeBody,
     //     {
-    //         headers: { 'Authorization': `Bearer ${user.accessToken}` }
+    //         headers: { 'Authorization': `Basic ${getBasicAuth({ apiKey: user.accessToken })}` }
     //     });
     await user.destroy();
 }
@@ -138,6 +139,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
 
     const numberToQueryArray = [];
     numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    // You can use parsePhoneNumber functions to further parse the phone number
     const foundContacts = [];
     // for (var numberToQuery of numberToQueryArray) {
     //     const personInfo = await axios.get(
@@ -160,7 +162,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
         foundContacts.push(mockContact);
     }
     console.log(`found contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
-    return foundContacts;
+    return foundContacts;  //[{id, name, phone, additionalInfo}]
 }
 
 async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
@@ -180,7 +182,9 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
-    console.log(`adding call log... \n\n${JSON.stringify(callLog, null, 2)}`);
+    console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
+    console.log(`with note... \n${note}`);
+    console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
     mockCallLog = {
         id: 'testCallLogId',
         subject: callLog.customSubject,
@@ -188,7 +192,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         contactName: contactInfo.name
     }
     const addLogRes = {
-        data:{
+        data: {
             id: mockCallLog.id
         }
     }
@@ -344,7 +348,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 
 exports.getAuthType = getAuthType;
-exports.getOauthInfo = getOauthInfo;
+exports.getBasicAuth = getBasicAuth;
 exports.saveUserInfo = saveUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
