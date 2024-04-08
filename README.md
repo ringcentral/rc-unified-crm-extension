@@ -37,7 +37,7 @@ To quickly understand the overall flow, let's start with a speedy setup for `tes
 
 ##### Setup client
 
-1. Under `client` folder, rename `config-copy.json`, to `config.json`
+1. Under `client/src` folder, rename `config-copy.json`, to `config.json`
 2. Fill in `config.json` values
    1. serverUrl: ngrok url
    2. clientId: `Client ID`
@@ -48,4 +48,13 @@ To quickly understand the overall flow, let's start with a speedy setup for `tes
 1. Open Chrome, and go to https://developers.ringcentral.com
 2. Open chrome://extensions/, and `Load unpacked` to load `dist` folder
 3. Login with your RingCentral Account
-4. Go to `Settings` tab and connect to `testCRM`
+4. Go to `Settings` tab and connect to `testCRM`, and input any string as api key then `Save`
+5. Now it's authorized by mock data so that we can keep going
+6. Go to `Phone` tab and make a call, then you'll see its record in `Calls` tab.
+7. Click `+` button to log this call, as it's an unknown contact, it'll pop up a form for you to create a new contact and log this call under it. Fill in the form and `Save`
+8. Click `Edit log` and you can edit subject and note
+9. Make another call to the same number, then `+` to log it, you'll see a slightly different form when there's already a matched contact that you can choose, and also 2 additional example fields (dropdown list + input field). Fill in some data, `Save` and check console log.
+10. Got to `Settings` and disconnect from `testCRM`
+
+#### Add your own CRM platform
+
