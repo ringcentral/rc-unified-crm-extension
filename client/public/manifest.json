@@ -13,7 +13,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.labs.ringcentral.com/*",
+        "https://*.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
         "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
@@ -36,7 +36,7 @@
         "/c2d/*"
       ],
       "matches": [
-        "https://*.labs.ringcentral.com/*",
+        "https://*.ringcentral.com/*",
         "https://*.ngrok-free.app/*",
         "https://lite-http-tunnel-s52m.onrender.com/*",
         "https://*.pipedrive.com/*",
