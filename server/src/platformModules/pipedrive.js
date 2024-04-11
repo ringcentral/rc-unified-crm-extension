@@ -269,9 +269,12 @@ async function getCallLog({ user, callLogId, authHeader }) {
         });
     const logBody = getLogRes.data.data.note;
     const note = logBody.split('<p>[Note] ')[1].split('</p>')[0];
-    const relatedContact = getLogRes.data.related_objects.person;
-    const contactKeys = Object.keys(relatedContact);
-    const contactName = relatedContact[contactKeys[0]].name;
+    const relatedContact = getLogRes.data.related_objects?.person;
+    let contactName = 'Unknown';
+    if (!!relatedContact) {
+        const contactKeys = Object.keys(relatedContact);
+        contactName = relatedContact[contactKeys[0]].name;
+    }
     return {
         subject: getLogRes.data.data.subject,
         note,

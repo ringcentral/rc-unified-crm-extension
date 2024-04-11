@@ -4,10 +4,10 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
     const additionalChoiceFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
-        const additionalCheckBoxFields = logType === 'Call' ?
+    const additionalCheckBoxFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'checkbox') ?? [];
-        const additionalInputFields = logType === 'Call' ?
+    const additionalInputFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'inputField') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'inputField') ?? [];
     // format contact list
@@ -117,7 +117,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                 }
             }
             if (contactList[0].const === 'createNewContact') {
-                if (!!config.platformsWithDifferentContactType[platformName]) {
+                if (!!config.platforms[platformName].contactTypes) {
                     newContactWidget.newContactType = {};
                 }
                 newContactWidget.newContactName = {
@@ -155,7 +155,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                         newContactType: {
                             title: 'Contact type',
                             type: 'string',
-                            oneOf: config.platformsWithDifferentContactType[platformName]?.map(t => { return { const: t, title: t } }) ?? [],
+                            oneOf: config.platforms[platformName].contactTypes?.map(t => { return { const: t, title: t } }) ?? [],
                         },
                         ...callSchemas,
                         ...additionalFields
@@ -183,7 +183,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
                 },
                 formData: {
                     contact: contactList[0].const,
-                    newContactType: config.platformsWithDifferentContactType[platformName]?.[0] ?? '',
+                    newContactType: config.platforms[platformName].contactTypes ? config.platforms[platformName].contactTypes[0] : '',
                     newContactName: '',
                     contactType: contactList[0]?.type ?? '',
                     contactName: contactList[0]?.title ?? '',
@@ -253,7 +253,7 @@ function getUpdatedLogPageRender({ logType, platformName, updateData }) {
             const contact = page.schema.properties.contact.oneOf.find(c => c.const === page.formData.contact);
             // New contact fields
             if (contact.const === 'createNewContact') {
-                if (!!config.platformsWithDifferentContactType[platformName]) {
+                if (!!config.platforms[platformName].contactTypes) {
                     page.uiSchema.newContactType = {};
                 }
                 page.uiSchema.newContactName = {

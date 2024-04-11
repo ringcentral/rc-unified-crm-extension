@@ -5,7 +5,14 @@
             "urlIdentifier": "developers.ringcentral.com",
             "name": "testCRM",
             "authType": "apiKey",
+            "authUrl": "https://oauth.xxxxxx.com/oauth/authorize",
+            "clientId": "",
+            "redirectUri": "https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect",
             "canOpenLogPage": false,
+            "contactTypes": [
+                "TestContactType",
+                "Contact"
+            ],
             "page": {
                 "auth": {
                     "title": "test CRM",
@@ -53,20 +60,8 @@
             }
         }
     },
-    "clientId": "",
+    "rcClientId": "",
     "rcServer": "https://platform.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
-    "version": "0.0.1",
-    "welcomeMessage": {
-        "testApiKeyCRM": {
-            "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
-            "VideoLink": "https://youtu.be"
-        }
-    },
-    "platformsWithDifferentContactType": {
-        "testCRM": [
-            "TestContactType",
-            "Contact"
-        ]
-    }
+    "version": "0.0.1"
 }

@@ -18,8 +18,7 @@ const extensionNumber = '224';
 beforeAll(async () => {
     for (const platform of platforms) {
         await UserModel.create({
-            id: `${userId}-${platform.name}`,
-            name: 'userName',
+            id: userId,
             hostname: platform.hostname,
             platform: platform.name,
             rcUserNumber,
@@ -33,7 +32,8 @@ afterAll(async () => {
     for (const platform of platforms) {
         await UserModel.destroy({
             where: {
-                id: `${userId}-${platform.name}`
+                id: userId,
+                platform: platform.name
             }
         })
     }
@@ -55,7 +55,6 @@ describe('contact tests', () => {
 
             // Assert
             expect(res.status).toEqual(400);
-            console.log(res);
             expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
         });
     });
@@ -82,12 +81,12 @@ describe('contact tests', () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
-                    id: `${userId}-${platform.name}`,
+                    id: userId,
                     rcUserNumber,
                     platform: platform.name
                 });
                 const platformGetContactScope = nock(platform.domain)
-                    .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone&limit=1`)
+                    .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone`)
                     .once()
                     .reply(200, {
                         data: {
@@ -101,7 +100,7 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${unknownPhoneNumber.replace('+', ' ')}. Please create a contact on CRM website with  17206789820.`);
+                expect(res.body.message).toEqual('Cannot find contact');
 
                 // Clean up
                 platformGetContactScope.done();
@@ -111,7 +110,7 @@ describe('contact tests', () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
-                    id: `${userId}-${platform.name}`,
+                    id: userId,
                     rcUserNumber,
                     platform: platform.name
                 });
@@ -122,19 +121,19 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact for phone number: ${extensionNumber}. Please create a contact on CRM website with 224.`);
+                expect(res.body.message).toEqual(`Cannot find contact`);
             }
         });
         test('known contact - successful', async () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
-                    id: `${userId}-${platform.name}`,
+                    id: userId,
                     rcUserNumber,
                     platform: platform.name
                 });
                 const platformGetContactScope = nock(platform.domain)
-                    .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone&limit=1`)
+                    .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone`)
                     .once()
                     .reply(200, {
                         data: {

@@ -7,6 +7,7 @@
         "domain": "https://test.pipedrive.com",
         "callLogPath": "/v1/activities",
         "messageLogPath": "/v1/activities",
+        "activityTypesPath": "/v1/activityTypes",
         "contactPath": "/v1/persons",
         "oauthDomain": "https://oauth.pipedrive.com",
         "oauthTokenPath": "/oauth/token",

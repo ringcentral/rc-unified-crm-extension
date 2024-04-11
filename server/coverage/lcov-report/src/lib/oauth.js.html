@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">17.39% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>6/12</span>
+                <span class='fraction'>4/23</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">66.66% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/6</span>
+                <span class='fraction'>0/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/2</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">17.39% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>6/12</span>
+                <span class='fraction'>4/23</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -93,12 +93,30 @@
 <a name='L28'></a><a href='#L28'>28</a>
 <a name='L29'></a><a href='#L29'>29</a>
 <a name='L30'></a><a href='#L30'>30</a>
-<a name='L31'></a><a href='#L31'>31</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -110,8 +128,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -120,15 +143,27 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span></td><td class="text"><pre class="prettyprint lang-js">const ClientOAuth2 = require('client-oauth2');
+const axios = require('axios');
 &nbsp;
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
-function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri, redirectUri, scopes }) {
-    return new ClientOAuth2({
+function <span class="fstat-no" title="function not covered" >getOAuthApp(</span>{ clientId, clientSecret, accessTokenUri, authorizationUri, redirectUri, scopes }) {
+<span class="cstat-no" title="statement not covered" >    return new ClientOAuth2({</span>
         clientId: clientId,
         clientSecret: clientSecret,
         accessTokenUri: accessTokenUri,
@@ -139,18 +174,34 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 }
 &nbsp;
 &nbsp;
-async function checkAndRefreshAccessToken(oauthApp, user) {
-    const dateNow = new Date();
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (user &amp;&amp; user.accessToken &amp;&amp; user.refreshToken &amp;&amp; <span class="branch-3 cbranch-no" title="branch not covered" >user.tokenExpiry &lt; dateNow)</span> {
-        const token = <span class="cstat-no" title="statement not covered" >oauthApp.createToken(user.accessToken, user.refreshToken);</span>
-        const { accessToken, refreshToken, expires } = <span class="cstat-no" title="statement not covered" >await token.refresh();</span>
-<span class="cstat-no" title="statement not covered" >        user.accessToken = accessToken;</span>
-<span class="cstat-no" title="statement not covered" >        user.refreshToken = refreshToken;</span>
-<span class="cstat-no" title="statement not covered" >        user.tokenExpiry = expires;</span>
-<span class="cstat-no" title="statement not covered" >        await user.save();</span>
+async function <span class="fstat-no" title="function not covered" >checkAndRefreshAccessToken(</span>oauthApp, user) {
+    const dateNow = <span class="cstat-no" title="statement not covered" >new Date();</span>
+<span class="cstat-no" title="statement not covered" >    if (user &amp;&amp; user.accessToken &amp;&amp; user.refreshToken &amp;&amp; user.tokenExpiry &lt; dateNow) {</span>
+        // Unique: Bullhorn
+<span class="cstat-no" title="statement not covered" >        if (user.platform === 'bullhorn') {</span>
+<span class="cstat-no" title="statement not covered" >            await bullhornTokenRefresh(oauthApp, user);</span>
+        }
+        else {
+            const token = <span class="cstat-no" title="statement not covered" >oauthApp.createToken(user.accessToken, user.refreshToken);</span>
+            const { accessToken, refreshToken, expires } = <span class="cstat-no" title="statement not covered" >await token.refresh();</span>
+<span class="cstat-no" title="statement not covered" >            user.accessToken = accessToken;</span>
+<span class="cstat-no" title="statement not covered" >            user.refreshToken = refreshToken;</span>
+<span class="cstat-no" title="statement not covered" >            user.tokenExpiry = expires;</span>
+<span class="cstat-no" title="statement not covered" >            await user.save();</span>
+        }
     }
+<span class="cstat-no" title="statement not covered" >    return user;</span>
 }
 &nbsp;
+async function <span class="fstat-no" title="function not covered" >bullhornTokenRefresh(</span>oauthApp, user) {
+    const refreshUrl = <span class="cstat-no" title="statement not covered" >`${oauthApp.options.accessTokenUri}?grant_type=refresh_token&amp;refresh_token=${user.refreshToken}&amp;client_id=${oauthApp.options.clientId}&amp;client_secret=${oauthApp.options.clientSecret}`;</span>
+    const refreshResponse = <span class="cstat-no" title="statement not covered" >await axios.post(refreshUrl);</span>
+<span class="cstat-no" title="statement not covered" >    user.accessToken = refreshResponse.data.access_token;</span>
+<span class="cstat-no" title="statement not covered" >    user.refreshToken = refreshResponse.data.refresh_token;</span>
+    const date = <span class="cstat-no" title="statement not covered" >new Date();</span>
+<span class="cstat-no" title="statement not covered" >    user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshResponse.data.expires_in);</span>
+<span class="cstat-no" title="statement not covered" >    await user.save();</span>
+}
 &nbsp;
 exports.checkAndRefreshAccessToken = checkAndRefreshAccessToken;
 exports.getOAuthApp = getOAuthApp;</pre></td></tr></table></pre>
@@ -160,7 +211,7 @@ exports.getOAuthApp = getOAuthApp;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2022-12-14T06:11:18.082Z
+                at 2024-04-11T08:01:17.724Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
