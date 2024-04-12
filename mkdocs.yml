@@ -60,4 +60,5 @@ nav:
    - 'Redtail CRM': redtail.md
 - 'Configuration options': configuration.md
 - 'User guide': user-guide.md
+- 'Developer guide': developers.md
 - 'Support and troubleshooting': support.md
