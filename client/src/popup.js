@@ -251,9 +251,6 @@ window.addEventListener('message', async (e) => {
           }
           break;
         case "rc-active-call-notify":
-          if (data.call.telephonyStatus === 'CallConnected') {
-            window.postMessage({ type: 'rc-expandable-call-note-open', sessionId: data.call.sessionId }, '*');
-          }
           if (data.call.telephonyStatus === 'NoCall' && data.call.terminationType === 'final') {
             window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
           }
