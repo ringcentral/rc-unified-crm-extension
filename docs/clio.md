@@ -24,7 +24,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 4. Click the "Authorize" button. 
 
-5. A window will be opened prompting you to enter your Bullhorn username and password. Login to Bullhorn. 
+5. A window will be opened prompting you to enter your Clio username and password. Login to Clio. 
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Clio. If you are connected, the button next to Clio will say, "unauthorize."
 
