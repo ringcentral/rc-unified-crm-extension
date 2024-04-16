@@ -7,7 +7,6 @@
             "authType": "apiKey",
             "authUrl": "https://oauth.xxxxxx.com/oauth/authorize",
             "clientId": "",
-            "redirectUri": "https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect",
             "canOpenLogPage": false,
             "contactTypes": [
                 "TestContactType",
@@ -55,6 +54,49 @@
             "embedded": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            }
+        },
+        "clio": {
+            "urlIdentifier": "app.clio.com",
+            "name": "clio",
+            "authType": "oauth",
+            "authUrl": "https://app.clio.com/oauth/authorize",
+            "clientId": "",
+            "canOpenLogPage": false,
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "logTimeEntry",
+                            "title": "Log time entry",
+                            "type": "checkbox",
+                            "contactDependent": false,
+                            "defaultValue": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embedded": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
                     "VideoLink": "https://youtu.be/pQgdsAR1UCI"
                 }
             }
