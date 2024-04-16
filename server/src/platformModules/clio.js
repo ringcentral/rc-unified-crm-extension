@@ -285,28 +285,20 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-    const sender = message.direction == 'Outbound' ?
-        {
-            id: user.id,
-            type: 'User'
-        } :
-        {
-            id: contactInfo.id,
-            type: 'Contact'
-        }
-    const receiver = message.direction == 'Outbound' ?
-        {
-            id: contactInfo.id,
-            type: 'Contact'
-        } :
-        {
-            id: user.id,
-            type: 'User'
-        }
+    const sender =
+    {
+        id: contactInfo.id,
+        type: 'Contact'
+    }
+    const receiver =
+    {
+        id: user.id,
+        type: 'User'
+    }
     const postBody = {
         data: {
-            subject: `[SMS] ${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
-            body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            subject: `SMS conversation with ${contactNumber} - ${moment(message.creationTime).format('YY/MM/DD')}`,
+            body: `\n[Messages]:\n${moment(message.creationTime).format('hh:mm A')}(${message.direction}):${message.subject}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(message.creationTime).toISOString(),
             senders: [sender],
@@ -355,6 +347,32 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
+
+async function updateMessageLog({ user, existingMessageLog, message, authHeader }) {
+    const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let logBody = getLogRes.data.data.body;
+    let patchBody = {};
+    const originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0];
+    logBody = logBody.replace(originalNote, `${originalNote}\n${moment(message.creationTime).format('hh:mm A')}(${message.direction}):${message.subject}`);
+
+    patchBody = {
+        data: {
+            body: logBody
+        }
+    }
+    const patchLogRes = await axios.patch(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
+        patchBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+}
+
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.saveUserInfo = saveUserInfo;
@@ -362,6 +380,7 @@ exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getContact = getContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

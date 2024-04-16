@@ -202,16 +202,31 @@ async function addMessageLog({ platform, userId, incomingData }) {
             if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
                 recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
             }
-            const logId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset, contactNumber });
-            await MessageLogModel.create({
-                id: message.id.toString(),
-                platform,
-                conversationId: incomingData.logInfo.conversationId,
-                thirdPartyLogId: logId,
-                userId
+            const existingSameDateMessageLog = await MessageLogModel.findOne({
+                where: {
+                    conversationId: incomingData.logInfo.conversationId,
+                    date: incomingData.logInfo.date
+                }
             });
-            console.log(`added message log: ${logId}`);
-            logIds.push(logId);
+            let crmLogId = ''
+            if (!!existingSameDateMessageLog) {
+                await platformModule.updateMessageLog({ user, existingMessageLog: existingSameDateMessageLog, message, authHeader });
+                crmLogId = existingSameDateMessageLog.thirdPartyLogId;
+            }
+            else {
+                crmLogId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset, contactNumber });
+            }
+            const createdMessageLog =
+                await MessageLogModel.create({
+                    id: message.id.toString(),
+                    platform,
+                    conversationId: incomingData.logInfo.conversationId,
+                    thirdPartyLogId: crmLogId,
+                    userId,
+                    date: incomingData.logInfo.date
+                });
+            console.log(`added message log: ${createdMessageLog.id}`);
+            logIds.push(createdMessageLog.id);
         }
         console.log(`logged ${logIds.length} messages.`);
         return { successful: true, logIds };

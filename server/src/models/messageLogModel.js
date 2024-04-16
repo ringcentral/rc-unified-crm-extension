@@ -13,6 +13,9 @@ exports.MessageLogModel = sequelize.define('messageLogs', {
     conversationId: {
         type: Sequelize.STRING,
     },
+    date:{
+        type: Sequelize.DATEONLY,
+    },
     thirdPartyLogId: {
         type: Sequelize.STRING,
     },
