@@ -42,8 +42,10 @@ export default () => {
         if (e.data.type === 'rc-expandable-call-note-open') {
             setIsOpen(true);
             if(!!e.data.sessionId){
-                setNote('');
                 setSessionId(e.data.sessionId);
+            }
+            else{
+                setNote('');
             }
         }
         if (e.data.type === 'rc-expandable-call-note-terminate') {
