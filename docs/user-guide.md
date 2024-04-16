@@ -2,8 +2,6 @@
 
 The following content is intended for the every-day user of the Unified CRM extension. It describes all of the major features provided by the extension, and how to address common needs users have.
 
-[Release notes](./release-notes.md)
-
 ## Accessing the extension to make calls
 
 The Unified CRM extension makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.

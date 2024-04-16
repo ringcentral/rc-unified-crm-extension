@@ -1,3 +1,7 @@
+---
+hide:
+  - navigation
+---
 # Unified CRM extension for Google Chrome and Microsoft Edge
 
 RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a browser plugin that helps connect your RingCentral account to a number of different CRM services. It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track calls and engage with customers.

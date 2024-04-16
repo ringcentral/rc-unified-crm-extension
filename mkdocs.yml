@@ -12,7 +12,9 @@ theme:
   name: material
   features:
       - navigation.path
-#      - navigation.sections
+      - navigation.sections
+      - navigation.expand
+      - navigation.tabs
       - search.sharing
       - search.highlight
   palette:
@@ -51,14 +53,22 @@ copyright: "2023 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md
-- 'Installation': getting-started.md
-- 'Connecting to your CRM': 
-   - 'Bullhorn': bullhorn.md
-   - 'Clio': clio.md
-   - 'Insightly': insightly.md
-   - 'Pipedrive': pipedrive.md
-   - 'Redtail CRM': redtail.md
-- 'Configuration options': configuration.md
-- 'User guide': user-guide.md
-- 'Developer guide': developers.md
-- 'Support and troubleshooting': support.md
+- 'Installation':
+  - 'Download': getting-started.md
+  - 'Connecting to your CRM': 
+     - 'Bullhorn': bullhorn.md
+     - 'Clio': clio.md
+     - 'Insightly': insightly.md
+     - 'Pipedrive': pipedrive.md
+     - 'Redtail CRM': redtail.md
+- 'User Guide':
+  - 'Using the Chrome extension': user-guide.md
+  - 'Configuration options': configuration.md
+- 'Developer guide':
+  - 'Introduction': developers/index.md
+  - 'Quick start': developers/quick-start.md
+  - 'Custom adapters': developers/adapters.md
+- 'Support':
+  - 'Troubleshooting': support.md
+  - 'Feedback': feedback.md
+  - 'Release notes': release-notes.md
