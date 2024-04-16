@@ -112,6 +112,10 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
         id,
         name
     };
+
+    //---------------------------------------------------------------------------------------------------
+    //---CHECK.1: Open db.sqlite (might need to install certain viewer) to check if user info is saved---
+    //---------------------------------------------------------------------------------------------------
 }
 
 async function unAuthorize({ user }) {
@@ -130,6 +134,10 @@ async function unAuthorize({ user }) {
     //         headers: { 'Authorization': `Basic ${getBasicAuth({ apiKey: user.accessToken })}` }
     //     });
     await user.destroy();
+
+    //--------------------------------------------------------------
+    //---CHECK.2: Open db.sqlite to check if user info is removed---
+    //--------------------------------------------------------------
 }
 
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -162,6 +170,9 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
         foundContacts.push(mockContact);
     }
     console.log(`found contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
+    //-----------------------------------------------------
+    //---CHECK.3: In console, if contact info is printed---
+    //-----------------------------------------------------
     return foundContacts;  //[{id, name, phone, additionalInfo}]
 }
 
@@ -196,6 +207,9 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
             id: mockCallLog.id
         }
     }
+    //----------------------------------------------------------------------------
+    //---CHECK.4: Open db.sqlite and CRM website to check if call log is saved ---
+    //----------------------------------------------------------------------------
     return addLogRes.data.id;
 }
 
@@ -215,6 +229,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note: mockCallLog.note
     }
 
+    //-------------------------------------------------------------------------------------
+    //---CHECK.5: In extension, for a logged call, click edit to see if info is fetched ---
+    //-------------------------------------------------------------------------------------
     return {
         subject: getLogRes.subject,
         note: getLogRes.note,
@@ -255,6 +272,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             id: mockCallLog.id
         }
     }
+    //-----------------------------------------------------------------------------------------
+    //---CHECK.6: In extension, for a logged call, click edit to see if info can be updated ---
+    //-----------------------------------------------------------------------------------------
     return patchLogRes.data.id;
 }
 
@@ -285,6 +305,9 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             id: mockMessageLog.id
         }
     }
+    //---------------------------------------------------------------------------------
+    //---CHECK.7: Open db.sqlite and CRM website to check if message logs are saved ---
+    //---------------------------------------------------------------------------------
     return addLogRes.data.id;
 }
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
@@ -340,6 +363,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     }
 
+    //--------------------------------------------------------------------------------
+    //---CHECK.8: In extension, try create a new contact against an unknown number ---
+    //--------------------------------------------------------------------------------
     return {
         id: contactInfoRes.id,
         name: contactInfoRes.name

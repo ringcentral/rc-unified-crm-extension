@@ -13,13 +13,6 @@ provider:
   timeout: 30 # maximum value allowed by api gateway
   environment: ${file(./env.yml)}
   profile: unifiedCrmExtension
-  tags:
-    Department: dev
-    Owner: dakong
-    Stage: production
-    Environment: rc-unified-crm-extension
-    Team: int-xmn
-    Name: rc-unified-crm-extension
   vpc:
     securityGroupIds:
       - Ref: LambdaSecurityGroup

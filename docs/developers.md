@@ -146,26 +146,48 @@ And that's it. You have successfully built and deployed your own RingCentral/CRM
 
 *This framework is in beta, please create Github issues or contact da.kong@ringcentral.com if you encounter any problem*
 
-It's recommended to apply changes to 3 mock files to build up your CRM support.
+*It's recommended to apply changes to following mock files to build up your CRM support.*
 
 ##### CRM module on server side
 
-(following TODOs in sequence)
+Please follow TODO and CHECK in comments.
+
+Convenient tools:
+
+1. `moment`: It parses, validates, manipulates and displays dates and times
+2. `awesome-phonenumber`: It parses phone numbers
 
 ##### CRM module on client side
 
-(just few self-explanatory content)
+Not much here, just have the functions open contact/log pages.
 
 ##### CRM config on client side
 
-(go through each object/field that needs explanation)
+Most fields are self-explanatory. Some may need extra explanation:
 
-(authType - only support 'oauth' and 'apiKey')
+1. `name`: need to be the same as `crmName` in server script
+2. `canOpenLogPage`: if CRM supports dedicated log view page, set this to true and use `openLogPage` function in client script to open it
+3. `page`: `auth` page is only needed when it's `apiKey` auth
+4. `additionalFields`: if `contactDependent` is set to false, then it won't be changed if contact selection is changed.
+5. `embedded`: set up a welcome page that show first time open info
+6. `authUrl` and `clientId` are only for `oauth`
 
-(authUrl, clientId, redirectUri - ONLY for 'oauth')
+##### Working example - Clio (OAuth)
 
-(canOpenLogPage - Some CRMs don't have dedicated activity page therefore cannot be opened. It'd open contact page instead)
+`Clio` is used as a working example. Here's how to try it
 
-(contactDependent - Whether this field would change accordingly when selected contact is changed, in multi match cases)
+1. Create a `Clio manage` account
+2. Register as a Clio developer and create an app
+3. In `config.json`, copy Clio app's `clientId` over
+4. Refer to https://ringcentral.github.io/rc-unified-crm-extension/clio/ on how it works
 
-(embedded - welcomePage that only shows when user first time open crm page)
+## Deploy
+
+We provide server config file for AWS deployment under `serverless-deploy` folder (supported by [serverless framework](https://www.serverless.com/)). 
+
+1. Rename `sample.env.yml` to `env.yml` and fill in required fields.
+2. Rename `sample.serverless.yml` to `serverless.yml`.
+3. Open a terminal and `cd server`
+4. `npm run build` then `npm run deploy`
+
+*OR, if you want to deploy it to other platform. Run `npm run build` and you'll get built out folder in `serverless-deploy`, then you can deploy it to elsewhere*

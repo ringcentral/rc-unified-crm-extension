@@ -2,10 +2,12 @@ function openContactPage(hostname, incomingCallContactInfo) {
     //-----------------------------------
     //------TODO: Open contact page------
     //-----------------------------------
-    
+
+    console.log(`hostname: ${hostname}`)
+    console.log(`contact info: ${incomingCallContactInfo}`)
     // window.open(`https://${hostname}?contactId=${incomingCallContactInfo.id}`);
 }
-async function onUnauthorize(){
+async function onUnauthorize() {
 
 }
 
