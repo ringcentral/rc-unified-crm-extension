@@ -210,7 +210,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (!!existingSameDateMessageLog) {
-                await platformModule.updateMessageLog({ user, existingMessageLog: existingSameDateMessageLog, message, authHeader });
+                await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
             }
             else {
