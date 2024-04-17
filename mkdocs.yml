@@ -74,6 +74,7 @@ nav:
   - 'Adapter config': developers/config.md
   - 'Client-side callbacks': developers/client.md
   - 'Adapter server': developers/server.md
+  - 'Build and deployment': developers/deploy.md
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md

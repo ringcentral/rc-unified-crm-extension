@@ -18,10 +18,12 @@ The Unified CRM integration framework is build on top of [RingCentral Embeddable
 * Listen to call recordings.
 * Access and listen to voicemail. 
 
-Each CRM supported by this framework is required to implement what is referred to as an "adapter." Each adapter implements two different components:
+Each CRM supported by this framework is required to implement what is referred to as an "adapter." Each adapter implements the following components:
 
-* A Javascript plugin that implements CRM-specific functionality that is invoked by the front-end client. This plugin is then packaged with the framework and RingCentral Embeddable as a Google Chrome extension. 
-* A small server that implements a prescribed interface that is invoked by the front-end client to perform more complex interactions with the CRM. 
+* A configuration file, or manifest that defines basic metadata and provides a no-code interface for defining common user interactions. 
+* A set of client-side callbacks written in Javascript that is packaged with the Chrome extension and invoked in response to specific UI events.
+* A server that implements a prescribed interface that is invoked by the front-end client to perform more complex interactions with the CRM. 
 
 In this guide, you will learn how to build, package and distribute an adapter for a CRM.
 
+[Checkout the Quick Start](quick-start.md){ .md-button .md-button--primary }

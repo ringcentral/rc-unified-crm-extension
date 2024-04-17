@@ -14,6 +14,7 @@ There a number of behaviors that are triggered in response to key events associa
 
 * **Triggering event**: call received
 * **Callback input parameters**: 
+    * `hostname` = The hostname of the CRM that will form the base of the formulated URL 
     * `incomingCallContactInfo` = a hash summarizing the associated contact record
 
 ### Incoming call contact info
