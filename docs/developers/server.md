@@ -7,7 +7,15 @@ Each adapter will be configured to communicate with the corresponding server for
 !!! hint "The included sample server will save you time"
     The sample server that comes bundled with this developer framework handles a lot of the mundane and predictable work for you. To save time, we encourage you to implement your adapter in Javascript as well. 
 
-### Loading a contact record
+## OpenAPI specification
+
+TODO - provide link to OpenAPI spec file
+
+## JWT token
+
+TODO - what is it, how is it constructed, how is it accessed and decoded
+
+## Loading a contact record
 
 A critical function performed by the server is looking up a contact record in the target CRM given a phone number, and returning a list of matches for that phone number. In addition, the framework will transmit a list of alternative phone number formats to search for. 
 
@@ -16,12 +24,12 @@ A critical function performed by the server is looking up a contact record in th
 	
 	As a workaround, the CRM framework allows users to specify additional phone number formats that they typically store phone numbers in. This list of phone numbers is transmitted to the adapter's server, so that the associated adapter can search for a contact using multiple phone number formats until one is found.
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: GET
 * HTTP endpoint: `<server base URL>/contact`
 
-#### Request parameters
+### Request parameters
 
 | Name               | Description                                                                                            |
 |--------------------|--------------------------------------------------------------------------------------------------------|
@@ -29,7 +37,7 @@ A critical function performed by the server is looking up a contact record in th
 | `phoneNumber`      | The phone number in E.164 format that should be searched for in the associated CRM.                    |
 | `overridingFormat` | A comma-delimitted list of phone number formats that should be used when searching the associated CRM. |
 
-#### Response
+### Response
 
 The server should return an ARRAY of possible matches for the given phone number. 
 
@@ -39,9 +47,13 @@ The server should return an ARRAY of possible matches for the given phone number
 | `name`           | The full name of the contact in the target CRM.                   |
 | `phone`          | The phone number of the contact as stored in the CRM.             |
 | `organization`   | The company name or affiliation of the contact in the target CRM. |
-| `additionalInfo` | TBD                                                                  |
+| `additionalInfo` | TODO                                                                  |
 
-**Example**
+#### Additional info
+
+TODO
+
+### Example
 
 ```js
 [
@@ -74,16 +86,16 @@ The server should return an ARRAY of possible matches for the given phone number
     {!> server/src/platformModules/pipedrive.js [ln:107-141]!}
     ```
 
-### Creating a placeholder contact
+## Creating a placeholder contact
 
 In the event that no contact could be found with an associated phone number, then the client application will prompt a user to create a placeholder contact. If the user elects to create a placeholder contact, then this interface on the server will be invoked. 
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: POST
 * HTTP endpoint: `<server base URL>/contact`
 
-#### Request parameters
+### Request parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
@@ -92,14 +104,14 @@ In the event that no contact could be found with an associated phone number, the
 | `newContactName` | The name of the contact that will be created.                                   |
 | `newContactType` | The type of contact that will be created.                                       |
 
-#### Response
+### Response
 
 | Name   | Description                                              |
 |--------|----------------------------------------------------------|
 | `id`   | The ID of the newly created contact in the target CRM.   |
 | `name` | The name of the newly created contact in the target CRM. |
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
@@ -111,28 +123,28 @@ In the event that no contact could be found with an associated phone number, the
     {!> server/src/platformModules/pipedrive.js [ln:154-169]!}
     ```
 
-### Logging an SMS message/conversation
+## Logging an SMS message/conversation
 
 TODO
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: POST
 * HTTP endpoint: `<server base URL>/messageLog`
 
-#### Request parameters
+### Request parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
 
-#### Response
+### Response
 
-| Name  | Description |
-|-------|-------------|
-| `foo` | bar         |
+| Name   | Description |
+|--------|-------------|
+| `TODO` | TODO        |
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
@@ -144,28 +156,28 @@ TODO
     {!> server/src/platformModules/pipedrive.js [ln:236-262]!}
     ```
 
-### Loading a log for a phone call
+## Loading a log for a phone call
 
 TODO
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: GET
 * HTTP endpoint: `<server base URL>/callLog`
 
-#### Request parameters
+### Request parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
 
-#### Response
+### Response
 
 | Name  | Description |
 |-------|-------------|
-| `foo` | bar         |
+| `TODO` | TODO         |
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
@@ -177,28 +189,28 @@ TODO
     {!> server/src/platformModules/pipedrive.js [ln:154-169]!}
     ```
 
-### Logging a new phone call
+## Logging a new phone call
 
 TODO
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: POST
 * HTTP endpoint: `<server base URL>/callLog`
 
-#### Request parameters
+### Request parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
 
-#### Response
+### Response
 
-| Name  | Description |
-|-------|-------------|
-| `foo` | bar         |
+| Name   | Description |
+|--------|-------------|
+| `TODO` | TODO        |
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
@@ -210,28 +222,28 @@ TODO
     {!> server/src/platformModules/pipedrive.js [ln:264-283]!}
     ```
 
-### Updating the log for a phone call
+## Updating the log for a phone call
 
 TODO
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: PATCH
 * HTTP endpoint: `<server base URL>/callLog`
 
-#### Request parameters
+### Request parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
 
-#### Response
+### Response
 
-| Name  | Description |
-|-------|-------------|
-| `foo` | Bar         |
+| Name   | Description |
+|--------|-------------|
+| `TODO` | TODO        |
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
@@ -243,7 +255,7 @@ TODO
     {!> server/src/platformModules/pipedrive.js [ln:198-234]!}
     ```
 
-### Unauthorizing users
+## Unauthorizing users
 
 The framework will automatically present to a user the controls they need to connect or disconnect from a CRM. In the event that a user is logged in, a "Logout" button will be made available to them. 
 
@@ -251,12 +263,12 @@ The framework will automatically present to a user the controls they need to con
 
 When this logout button is clicked, the CRM extension will call the server to deauthorize the current user in the corresponding CRM. In so doing, the adapter should revoke the user's access token for the CRM, and ensure it is properly disposed of..
 
-#### Endpoint
+### Endpoint
 
 * HTTP method: POST
 * HTTP endpoint: `<server base URL>/unAuthorize`
 
-#### Request parameters
+### Request parameters
 
 | Parameter  | Description                                                                     |
 |------------|---------------------------------------------------------------------------------|
@@ -275,7 +287,7 @@ The server then needs to lookup the [User](https://github.com/ringcentral/rc-uni
 
 Finally, now that you have in your context the full user record, your adapter will need to make the necessary API calls to deauthorize the user's session with the associated CRM. 
 
-#### Sample code
+### Sample code
 
 === "Sample adapter"
     ```js
