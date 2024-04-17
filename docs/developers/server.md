@@ -113,7 +113,7 @@ In the event that no contact could be found with an associated phone number, the
 
 ### Logging an SMS message/conversation
 
-Foo
+TODO
 
 #### Endpoint
 
@@ -146,7 +146,7 @@ Foo
 
 ### Loading a log for a phone call
 
-Foo
+TODO
 
 #### Endpoint
 
@@ -179,7 +179,7 @@ Foo
 
 ### Logging a new phone call
 
-Foo
+TODO
 
 #### Endpoint
 
@@ -212,7 +212,7 @@ Foo
 
 ### Updating the log for a phone call
 
-Foo
+TODO
 
 #### Endpoint
 

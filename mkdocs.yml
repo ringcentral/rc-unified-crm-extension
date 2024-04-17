@@ -72,7 +72,7 @@ nav:
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
   - 'Adapter config': developers/config.md
-  - 'Adapter client': developers/client.md
+  - 'Client-side callbacks': developers/client.md
   - 'Adapter server': developers/server.md
 - 'Support':
   - 'Troubleshooting': support.md
