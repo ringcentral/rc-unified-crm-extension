@@ -70,7 +70,9 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
-  - 'Custom adapters': developers/adapters.md
+  - 'Adapter config': developers/config.md
+  - 'Adapter client': developers/client.md
+  - 'Adapter server': developers/server.md
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md
