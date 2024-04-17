@@ -71,9 +71,16 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
-  - 'Adapter config': developers/config.md
-  - 'Client-side callbacks': developers/client.md
-  - 'Adapter server': developers/server.md
+  - 'Client':
+    - 'Configuration': developers/config.md
+    - 'Callbacks': developers/client.md
+  - 'Server': 
+    - 'Overview and interfaces': developers/server.md
+    - 'Contact matching': developers/contact-matching.md
+    - 'Logging phone calls': developers/logging-calls.md
+    - 'Logging SMS': developers/logging-sms.md
+    - 'Placeholder contacts': developers/placeholder-contacts.md
+    - 'Unauthorizing users': developers/unauthorization.md
   - 'Build and deployment': developers/deploy.md
 - 'Support':
   - 'Troubleshooting': support.md
