@@ -1,6 +1,8 @@
-# Developer Quick start
+# Get started building a custom CRM adapter
 
-Bundled with the Unified CRM integration framework is a sample adapter. This quick start will guide you through the process of configuring and building an instance of the framework using this sample adapter. The sample adapter does not actually connect to a CRM. Without modification, the sample adapter does not do anything. Instead, it serves as a template for the adapter you will eventually build. 
+The Unified CRM integration framework help developers connect the embedded RingCentral client application that comes bundled with the Unified CRM extension to a variety of CRMs. Connectivity to each CRM is handled by an "adapter."
+
+This quick start will guide you through the process of configuring and building an instance of the framework using the sample adapter that comes bundled in the framework. This sample adapter does not actually connect to a CRM, and without modification it basically does nothing. Instead, it serves as a template for the [custom adapter](adapters.md) you will eventually build. 
 
 Let's begin.
 
@@ -115,57 +117,3 @@ Now that we are "connected" to the CRM, let's try out a few features.
 
 And that's it. You have successfully built and deployed your own RingCentral/CRM integration. Now, let's learn how to customize your adapter to actually integrate with a CRM provider. 
 
-<<<<<<< HEAD:docs/developers/quick-start.md
-=======
-## Build a custom CRM adapter
-
-#### Add your own CRM platform
-
-*This framework is in beta, please create Github issues or contact da.kong@ringcentral.com if you encounter any problem*
-
-*It's recommended to apply changes to following mock files to build up your CRM support.*
-
-##### CRM module on server side
-
-Please follow TODO and CHECK in comments.
-
-Convenient tools:
-
-1. `moment`: It parses, validates, manipulates and displays dates and times
-2. `awesome-phonenumber`: It parses phone numbers
-
-##### CRM module on client side
-
-Not much here, just have the functions open contact/log pages.
-
-##### CRM config on client side
-
-Most fields are self-explanatory. Some may need extra explanation:
-
-1. `name`: need to be the same as `crmName` in server script
-2. `canOpenLogPage`: if CRM supports dedicated log view page, set this to true and use `openLogPage` function in client script to open it
-3. `page`: `auth` page is only needed when it's `apiKey` auth
-4. `additionalFields`: if `contactDependent` is set to false, then it won't be changed if contact selection is changed.
-5. `embedded`: set up a welcome page that show first time open info
-6. `authUrl` and `clientId` are only for `oauth`
-
-##### Working example - Clio (OAuth)
-
-`Clio` is used as a working example. Here's how to try it
-
-1. Create a `Clio manage` account
-2. Register as a Clio developer and create an app
-3. In `config.json`, copy Clio app's `clientId` over
-4. Refer to https://ringcentral.github.io/rc-unified-crm-extension/clio/ on how it works
-
-## Deploy
-
-We provide server config file for AWS deployment under `serverless-deploy` folder (supported by [serverless framework](https://www.serverless.com/)). 
-
-1. Rename `sample.env.yml` to `env.yml` and fill in required fields.
-2. Rename `sample.serverless.yml` to `serverless.yml`.
-3. Open a terminal and `cd server`
-4. `npm run build` then `npm run deploy`
-
-*OR, if you want to deploy it to other platform. Run `npm run build` and you'll get built out folder in `serverless-deploy`, then you can deploy it to elsewhere*
->>>>>>> 483f12556023819c39acf988cc678fa3a31cd74f:docs/developers.md

@@ -47,9 +47,12 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
-#  - glightbox
+  - mdx_include
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
 
-copyright: "2023 RingCentral, Inc. All rights reserved."
+copyright: "2023-2024 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md

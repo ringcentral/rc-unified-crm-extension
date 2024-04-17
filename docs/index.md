@@ -42,7 +42,7 @@ RingCentral currently supports the following CRMs using the Unified CRM extensio
 
 Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
 
-**Are you a developer? Build support for your own CRM**
+## Are you a developer? Build support for your own CRM
 
-The Unified CRM extension is built on top of an [open source framework](https://github.com/ringcentral/rc-unified-crm-extension), and can be used by third-party developers to create a custom CRM integration more easily than building one from scratch. Visit our github page to learn how to build and contribute support for additional CRMs. 
+The Unified CRM extension is built on top of an [open source framework](https://github.com/ringcentral/rc-unified-crm-extension), and can be used by third-party developers to [create a custom CRM integration](developers/index.md) more easily than building one from scratch. Visit our github page to learn how to build and contribute support for additional CRMs. 
 
