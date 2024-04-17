@@ -34,7 +34,7 @@ And with that, you will be connected to Clio and ready to begin using the integr
 
 Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Clio, is to go to [advanced settings](./configuration.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Clio, is to go to [advanced settings](./users/settings.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
 
 Making this change will improve your experience with the extension considerably. Here are a few things to bear in mind:
 

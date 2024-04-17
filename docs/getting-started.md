@@ -3,7 +3,7 @@
 RingCentral's Unified CRM extention for Google Chrome and Microsoft Edge is available via the Chrome web store. Installation is quick and easy if you are accustom to installing browser extensions. Click the web store button below to get started. 
 
 <figure markdown>
-  [![Google Chrome Web store](img/chrome-web-store.png)](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh)
+  [![Google Chrome Web store](img/chrome-web-store.png)](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh){ .md-button .download-button }
   <figcaption>Install the extension now</figcaption>
 </figure>
 

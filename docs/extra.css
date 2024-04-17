@@ -5,7 +5,13 @@
     color: #066fac;
     text-decoration: underline;
 }
-
+.download-button {
+    color: #CCC !important;
+    border-radius: 10px !important;
+}
+.md-main {
+    padding-bottom: 50px
+}
 :root {
     --md-primary-fg-color: #002755;
 }

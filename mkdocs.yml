@@ -12,8 +12,9 @@ theme:
   name: material
   features:
       - navigation.path
+      - navigation.sections
       - navigation.expand
-#      - navigation.sections
+      - navigation.tabs
       - search.sharing
       - search.highlight
   palette:
@@ -46,19 +47,35 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
-#  - glightbox
+  - mdx_include
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
 
-copyright: "2023 RingCentral, Inc. All rights reserved."
+copyright: "2023-2024 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md
-- 'Installation': getting-started.md
-- 'Connecting to your CRM': 
-   - 'Bullhorn': bullhorn.md
-   - 'Clio': clio.md
-   - 'Insightly': insightly.md
-   - 'Pipedrive': pipedrive.md
-   - 'Redtail CRM': redtail.md
-- 'User guide': user-guide.md
-- 'Configuration options': configuration.md
-- 'Support and troubleshooting': support.md
+- 'Installation':
+  - 'Download': getting-started.md
+  - 'Connecting to your CRM': 
+     - 'Bullhorn': bullhorn.md
+     - 'Clio': clio.md
+     - 'Insightly': insightly.md
+     - 'Pipedrive': pipedrive.md
+     - 'Redtail CRM': redtail.md
+- 'User Guide':
+  - 'Core features': users/core-features.md
+  - 'Logging calls': users/logging.md
+  - 'Settings': users/settings.md
+- 'Developer guide':
+  - 'Introduction': developers/index.md
+  - 'Quick start': developers/quick-start.md
+  - 'Adapter config': developers/config.md
+  - 'Client-side callbacks': developers/client.md
+  - 'Adapter server': developers/server.md
+  - 'Build and deployment': developers/deploy.md
+- 'Support':
+  - 'Troubleshooting': support.md
+  - 'Feedback': feedback.md
+  - 'Release notes': release-notes.md
