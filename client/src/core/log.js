@@ -1,4 +1,5 @@
 import axios from 'axios';
+import moment from 'moment';
 import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
@@ -34,12 +35,20 @@ async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmi
                 }
                 break;
             case 'Message':
+                if (moment(logInfo.date).diff(new Date(), 'days') < -1) {
+                    const isLogged = await chrome.storage.local.get(`rc-crm-conversation-log-${logInfo.conversationLogId}`);
+                    if (isLogged[`rc-crm-conversation-log-${logInfo.conversationLogId}`]?.logged) {
+                        console.log(`skipping logged conversation on date ${logInfo.date}`)
+                        break;
+                    }
+                }
                 const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactId, contactType, contactName });
                 if (messageLogRes.data.successful) {
                     if (isMain) {
                         showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
                         trackSyncMessageLog();
                     }
+                    await chrome.storage.local.set({ [`rc-crm-conversation-log-${logInfo.conversationLogId}`]: { logged: true } });
                 }
                 break;
         }

@@ -295,10 +295,30 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         id: user.id,
         type: 'User'
     }
+    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=name', {
+        headers: {
+            'Authorization': authHeader
+        }
+    });
+    const userName = userInfoResponse.data.data.name;
+    const logBody =
+        '\nConversation summary\n' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+        'Participants\n' +
+        `    ${userName}\n` +
+        `    ${contactInfo.name}\n` +
+        '\nConversation(1 messages)\n' +
+        'BEGIN\n' +
+        '------------\n' +
+        `${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n` +
+        '------------\n' +
+        'END\n\n' +
+        '--- Created via RingCentral CRM Extension';
     const postBody = {
         data: {
-            subject: `SMS conversation with ${contactNumber} - ${moment(message.creationTime).format('YY/MM/DD')}`,
-            body: `\n[Messages]:\n${moment(message.creationTime).format('hh:mm A')}(${message.direction}):${message.subject}\n\n--- Created via RingCentral CRM Extension`,
+            subject: `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`,
+            body: logBody,
             type: 'PhoneCommunication',
             received_at: moment(message.creationTime).toISOString(),
             senders: [sender],
@@ -310,8 +330,8 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             ]
         }
     }
-    if (additionalSubmission && additionalSubmission.matterId) {
-        postBody.data['matter'] = { id: additionalSubmission.matterId };
+    if (additionalSubmission && additionalSubmission.matters) {
+        postBody.data['matter'] = { id: additionalSubmission.matters };
     }
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v4/communications.json`,
@@ -348,17 +368,30 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 
-async function updateMessageLog({ user, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
         {
             headers: { 'Authorization': authHeader }
         });
+    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=name', {
+        headers: {
+            'Authorization': authHeader
+        }
+    });
+    const userName = userInfoResponse.data.data.name;
     let logBody = getLogRes.data.data.body;
     let patchBody = {};
-    const originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0];
-    logBody = logBody.replace(originalNote, `${originalNote}\n${moment(message.creationTime).format('hh:mm A')}(${message.direction}):${message.subject}`);
+    const originalNote = logBody.split('------------\nEND')[0];
+    const newMessageLog =
+        `${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n`;
+    logBody = logBody.replace(originalNote, `${originalNote}\n${newMessageLog}`);
+
+    const regex = RegExp('Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
 
     patchBody = {
         data: {
