@@ -65,8 +65,9 @@ nav:
      - 'Pipedrive': pipedrive.md
      - 'Redtail CRM': redtail.md
 - 'User Guide':
-  - 'Using the Chrome extension': user-guide.md
-  - 'Configuration options': configuration.md
+  - 'Core features': users/core-features.md
+  - 'Logging calls': users/logging.md
+  - 'Settings': users/settings.md
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md

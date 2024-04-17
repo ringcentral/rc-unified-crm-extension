@@ -4,7 +4,7 @@
 
 The Unified CRM integration framework help developers connect the embedded RingCentral client application that comes bundled with the Unified CRM extension to a variety of CRMs. Connectivity to each CRM is handled by an "adapter."
 
-This quick start will guide you through the process of configuring and building an instance of the framework using the sample adapter that comes bundled in the framework. This sample adapter does not actually connect to a CRM, and without modification it basically does nothing. Instead, it serves as a template for the [custom adapter](adapters.md) you will eventually build. 
+This quick start will guide you through the process of configuring and building an instance of the framework using the sample adapter that comes bundled in the framework. This sample adapter does not actually connect to a CRM, and without modification it basically does nothing. Instead, it serves as a template for the custom adapter you will eventually build. 
 
 Let's begin.
 

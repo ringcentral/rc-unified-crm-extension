@@ -1,8 +1,8 @@
-# Configuration options
+# Settings and preferences
 
 The Unified CRM extension provides numerous options so that end-users can customize their specific settings and experience. 
 
-*Please note that currently all options are user-specific. We do not currently support account-wide configuration options.*
+*Please note that currently all options are user-specific. Account-wide configuration options are not supported.*
 
 Below you will find information on the various ways in which the CRM extension can be configured and customized. You can access all of these options from the Settings page accessed from the More menu. 
 
@@ -11,7 +11,7 @@ Below you will find information on the various ways in which the CRM extension c
 RingCentral customers may sometimes have multiple devices or ways of initiating a phone call. To better control what device you use for placing calls, from the Settings screen select "Calling." Then, select the device you prefer to use. Options include the following:
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-dialer.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-dialer.png){ style="max-width:300px" }
   <figcaption>The settings screen for changing your preferred device for placing calls</figcaption>
 </figure>
 
@@ -27,7 +27,7 @@ RingCentral customers may sometimes have multiple devices or ways of initiating 
 To customize your default country and area code, from the Settings screen select "Region." Then enter your preferred defaults. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-region.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-region.png){ style="max-width:300px" }
   <figcaption>The settings screen for modifying your locale</figcaption>
 </figure>
 
@@ -36,7 +36,7 @@ To customize your default country and area code, from the Settings screen select
 To customize your preferred input and output devices, e.g. headphones, laptop speakers, etc, from the Settings screen select "Audio." Then select your preferred default devices. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-audio.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-audio.png){ style="max-width:300px" }
   <figcaption>The settings screen for customizing audio devices</figcaption>
 </figure>
 
@@ -45,7 +45,7 @@ To customize your preferred input and output devices, e.g. headphones, laptop sp
 The term "call-pop" refers to opening a page about an incoming caller automatically so that the person making (or receiving) the call can see all of the relevant information about that person prior to answering the phone. You can easily toggle this feature on and off using this toggle. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-callpop.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-callpop.png){ style="max-width:300px" }
   <figcaption>The settings screen for toggling call-pop</figcaption>
 </figure>
 
@@ -55,7 +55,7 @@ The term "call-pop" refers to opening a page about an incoming caller automatica
 Many end users would like confidence in knowing that every call they place or receive is logged properly in the CRM they are connected to. Furthermore, users also want to be prompted to capture notes about a call immediately upon a call ending. To automatically be prompted to enter and save notes relating to a call that has just ended, enable "Prompt to enter notes when calls end" from the Settings page. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-autolog.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-autolog.png){ style="max-width:300px" }
   <figcaption>The settings screen to enable prompting the user to enter notes after a call</figcaption>
 </figure>
 
@@ -64,7 +64,7 @@ Many end users would like confidence in knowing that every call they place or re
 As with phone calls, many end users would like to reliably capture the SMS messages transmitted to contacts. To be prompted automatically to enter notes upon sending an SMS, enable "Prompt to enter notes after sending SMS" from the Settings page. 
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-sms.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-sms.png){ style="max-width:300px" }
   <figcaption>The settings screen to enable prompting the user to enter notes after sending an SMS</figcaption>
 </figure>
 
@@ -73,7 +73,7 @@ As with phone calls, many end users would like to reliably capture the SMS messa
 Sometimes users may not be present at their computer when a call is received, yet they still wish to record the call was received and possibly that the call was never responded to. To ensure all calls are captured whether you are present or not, enable "Auto-log save delay."
 
 <figure markdown>
-  ![Setting your preferred phone device](img/settings-countdown.png){ style="max-width:300px" }
+  ![Setting your preferred phone device](../img/settings-countdown.png){ style="max-width:300px" }
   <figcaption>The settings screen for automatically logging a call after set number of seconds</figcaption>
 </figure>
 
@@ -95,14 +95,14 @@ Most users will not need to access these advanced configuration options. However
 To access advanced settings, in your browser, navigate to "Manage Extensions," or just "Extensions." From there locate "RingCentral CRM extension" and click "Show Details."
 
 <figure markdown>
-  ![Setting your preferred phone device](img/extension-details.png){ style="max-width:400px" }
+  ![Setting your preferred phone device](../img/extension-details.png){ style="max-width:400px" }
   <figcaption>An excerpt from the extension details page for the Unified CRM extension</figcaption>
 </figure>
 
 Then scroll down near to the bottom and click "Extension options" to open the dialog below.
 
 <figure markdown>
-  ![Setting your preferred phone device](img/extension-options.png){ style="max-width:400px" }
+  ![Setting your preferred phone device](../img/extension-options.png){ style="max-width:400px" }
   <figcaption>Unified CRM extension options. Users may see a slightly different set of options depending upon the version they are using.</figcaption>
 </figure>
 
