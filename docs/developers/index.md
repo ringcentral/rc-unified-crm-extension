@@ -1,5 +1,7 @@
 # Integrating with CRMs using the Unified CRM extension framework
 
+{! docs/developers/beta_notice.inc !}
+
 Welcome to RingCentral's Unified CRM integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework is centered around enabling the following user interactions common to many CRM integrations:
 
 * **Embedded phone**. Injecting a phone into the CRM for a fully-integrated communications experience.
