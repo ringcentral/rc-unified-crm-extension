@@ -27,7 +27,7 @@ Welcome to RingCentral's Unified CRM integration framework. Using this framework
 
 ## Architectural overview
 
-Each CRM supported by this framework is required to implement what is referred to as an "adapter." Adapters help broker communications between the client application (the dialer and primary user interface associated with the Unified CRM Chrome extension). 
+Each CRM supported by this framework is required to implement what is referred to as an "adapter." Adapters help broker communications between the client application (the dialer and primary user interface) and the CRM being integrated with. 
 
 ![Adapter architecture diagram](../img/adapter-arch.png)
 
