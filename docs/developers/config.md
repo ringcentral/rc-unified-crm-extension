@@ -6,8 +6,8 @@ Each adapter provides a configuration that in some ways also acts as a manifest 
 
 * Provide CRM connectivity and authorization details
 * Define custom fields for:
-  * call logging and disposition
-  * SMS and messagig logging
+    * call logging and disposition
+    * SMS and messagig logging
 * Customize the "Connect to CRM" or authorization screen
 * Define custom contact record types/categories
 * Customize the welcome screen for a given CRM
