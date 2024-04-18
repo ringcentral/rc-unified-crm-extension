@@ -24,7 +24,8 @@ The following hash is sent to the callback as an input parameter.
 ```js
 {
   id: '1234829292',
-  TODO - fill in
+  name: 'John Doe',
+  phone: '+11234567890'
 }
 ```
 
