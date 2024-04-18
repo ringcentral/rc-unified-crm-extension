@@ -64,7 +64,7 @@ nav:
      - 'Insightly': insightly.md
      - 'Pipedrive': pipedrive.md
      - 'Redtail CRM': redtail.md
-- 'User Guide':
+- 'User guide':
   - 'Core features': users/core-features.md
   - 'Logging calls': users/logging.md
   - 'Settings': users/settings.md
