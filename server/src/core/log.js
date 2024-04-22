@@ -87,7 +87,7 @@ async function getCallLog({ userId, sessionIds, platform }) {
             break;
     }
     const sessionIdsArray = sessionIds.split(',');
-    let logs = {};
+    let logs = [];
     for (const sessionId of sessionIdsArray) {
         const callLog = await CallLogModel.findOne({
             where: {
@@ -95,11 +95,11 @@ async function getCallLog({ userId, sessionIds, platform }) {
             }
         });
         if (!!!callLog) {
-            logs[sessionId] = { matched: false };
+            logs.push({ sessionId, matched: false });
             continue;
         }
         const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-        logs[sessionId] = { matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog };
+        logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog });
     }
     return { successful: true, logs };
 }
@@ -137,7 +137,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             }
             await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, timezoneOffset: user.timezoneOffset });
             console.log(`updated call log: ${existingCallLog.id}`);
-            return { successful: true };
+            return { successful: true, logId: existingCallLog.thirdPartyLogId };
         }
         return { successful: false };
     } catch (e) {

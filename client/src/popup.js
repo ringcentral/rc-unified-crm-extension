@@ -495,7 +495,7 @@ window.addEventListener('message', async (e) => {
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
-              const { callLogs: singleCallLog } = await checkLog({
+              const { callLogs: fetchedCallLogs } = await checkLog({
                 logType: 'Call',
                 sessionIds: data.body.call.sessionId
               });
@@ -506,11 +506,11 @@ window.addEventListener('message', async (e) => {
                 case 'createLog':
                   note = await getCachedNote({ sessionId: data.body.call.sessionId });
                 case 'editLog':
-                  if (!!singleCallLog[data.body.call.sessionId]?.logData?.note) {
-                    note = singleCallLog[data.body.call.sessionId]?.logData?.note;
+                  if (!!fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logData?.note) {
+                    note = fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId).logData.note;
                   }
                   // add your codes here to log call to your service
-                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: singleCallLog[data.body.call.sessionId]?.logData?.subject, note });
+                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logData?.subject, note });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
                     page: callPage,
@@ -525,7 +525,7 @@ window.addEventListener('message', async (e) => {
                 case 'viewLog':
                   if (config.platforms[platformName].canOpenLogPage) {
                     for (const c of callMatchedContact) {
-                      openLog({ platformName, hostname: platformHostname, logId: singleCallLog[data.body.call.sessionId].logId, contactType: c.type });
+                      openLog({ platformName, hostname: platformHostname, logId: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logId, contactType: c.type });
                     }
                   }
                   else {
@@ -606,8 +606,8 @@ window.addEventListener('message', async (e) => {
               const { successful, callLogs, message: checkLogMessage } = await checkLog({ logType: 'Call', sessionIds: data.body.sessionIds.toString() });
               if (successful) {
                 for (const sessionId of data.body.sessionIds) {
-                  const correspondingLog = callLogs[sessionId];
-                  if (correspondingLog.matched) {
+                  const correspondingLog = callLogs.find(l => l.sessionId === sessionId);
+                  if (!!correspondingLog?.matched) {
                     callLogMatchData[sessionId] = [{ id: sessionId, note: '' }];
                   }
                 }

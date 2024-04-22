@@ -278,8 +278,8 @@ app.patch('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful });
+            const { successful, logId } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, logId });
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
