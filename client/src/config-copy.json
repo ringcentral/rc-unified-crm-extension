@@ -27,14 +27,14 @@
                 "callLog": {
                     "additionalFields": [
                         {
-                            "const": "testSelection",
-                            "title": "Test Selection",
+                            "const": "associatedDeal",
+                            "title": "Deals",
                             "type": "selection",
                             "contactDependent": true
                         },
                         {
-                            "const": "testInput",
-                            "title": "Test Input",
+                            "const": "address",
+                            "title": "Address",
                             "type": "inputField",
                             "contactDependent": false
                         }
@@ -43,8 +43,8 @@
                 "messageLog": {
                     "additionalFields": [
                         {
-                            "const": "testSelection",
-                            "title": "Test Selection",
+                            "const": "associatedDeal",
+                            "title": "Deals",
                             "type": "selection",
                             "contactDependent": true
                         }
@@ -98,6 +98,95 @@
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
                     "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            }
+        },"insightly": {
+            "urlIdentifier": "insightly.com",
+            "name": "insightly",
+            "authType": "apiKey",
+            "canOpenLogPage": true,
+            "contactTypes": [
+                "Lead",
+                "Contact"
+            ],
+            "page": {
+                "auth": {
+                    "title": "Insightly",
+                    "warning": "To manually connect, please go to Insightly User Settings and then copy info in API section over.",
+                    "content": [
+                        {
+                            "const": "insightlyGetApiKey",
+                            "title": "Get API Key",
+                            "type": "string",
+                            "uiSchema": {
+                                "ui:field": "button",
+                                "ui:variant": "contained",
+                                "ui:fullWidth": true
+                            }
+                        },
+                        {
+                            "const": "apiKey",
+                            "title": "apiKey",
+                            "type": "string",
+                            "required": true
+                        },
+                        {
+                            "const": "apiUrl",
+                            "title": "apiUrl",
+                            "type": "string",
+                            "required": true
+                        }
+                    ]
+                },
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "organization",
+                            "title": "Organisation",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "project",
+                            "title": "Project",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "organization",
+                            "title": "Organisation",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "project",
+                            "title": "Project",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embedded": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
+                    "VideoLink": "https://youtu.be/5hWvVI12UAc"
                 }
             }
         }

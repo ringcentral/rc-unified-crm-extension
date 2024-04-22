@@ -339,18 +339,18 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         type: newContactType,
         phone: phoneNumber,
         additionalInfo: {
-            testSelection: [
+            associatedDeal: [
                 {
-                    const: '1',
-                    title: 'Selection 1'
+                    const: 'csA351',
+                    title: 'Christmas special A351'
                 },
                 {
-                    const: '2',
-                    title: 'Selection 2'
+                    const: 'eA22',
+                    title: 'Easter A22'
                 },
                 {
-                    const: '3',
-                    title: 'Selection 3'
+                    const: 'aC92',
+                    title: 'Anniversary C92'
                 }
             ]
         }
