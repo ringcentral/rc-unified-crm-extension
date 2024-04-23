@@ -53,17 +53,19 @@ There are a number of pages within the Unified CRM client application that often
 
 === "Sample adapter"
 
-```js
-{!> client/src/config-copy.json [ln:16-26] !}
-```
+    ```js
+    {!> client/src/config-copy.json [ln:16-26] !}
+    ```
 
 === "Insightly adapter"
 
-![Auth page](../img/auth-page-example.png)
+    ```js
+    {!> client/src/config-copy.json [ln:113-140] !}
+    ```
 
-```js
-<!--{!> client/src/config-copy.json [ln:113-140] !}-->
-```
+#### Example custom auth page
+
+![Auth page](../img/auth-page-example.png)
 
 ### Adding custom fields to logging forms
 
@@ -84,6 +86,7 @@ For each page, you will define an array of `additionalFields`. Each additional f
 #### Custom call log fields
 
 Set up associated deals as dropdown options:
+
 1. Christmas special A351
 2. Easter A22
 3. Anniversary C92
