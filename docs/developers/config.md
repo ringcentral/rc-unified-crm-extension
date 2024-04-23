@@ -41,7 +41,7 @@ Currently welcome pages are relatively simple, providing developers with the abi
 {! client/src/config-copy.json [ln:54-59] !}
 ```
 
-## Customing pages within the client application
+## Customizing pages within the client application
 
 There are a number of pages within the Unified CRM client application that often need to be customized in some way for the corresponding CRM. Those pages are:
 
@@ -57,11 +57,12 @@ There are a number of pages within the Unified CRM client application that often
 {!> client/src/config-copy.json [ln:16-26] !}
 ```
 
-=== "Pipedrive adapter"
+=== "Insightly adapter"
+
+![Auth page](../img/auth-page-example.png)
 
 ```js
-TODO - show a working example of a custom auth screen
-<!--{!> client/src/config-copy.json [ln:16-26] !}-->
+<!--{!> client/src/config-copy.json [ln:113-140] !}-->
 ```
 
 ### Adding custom fields to logging forms
@@ -82,7 +83,12 @@ For each page, you will define an array of `additionalFields`. Each additional f
 
 #### Custom call log fields
 
-TODO provide realistic example
+Set up associated deals as dropdown options:
+1. Christmas special A351
+2. Easter A22
+3. Anniversary C92
+
+and address as free input field.
 
 ```js
 {! client/src/config-copy.json [ln:27-42] !}
@@ -90,7 +96,7 @@ TODO provide realistic example
 
 #### Custom SMS log fields
 
-TODO provide realistic example
+Set up associated deals the same as call log
 
 ```js
 {! client/src/config-copy.json [ln:43-52] !}
