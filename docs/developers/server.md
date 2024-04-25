@@ -35,7 +35,7 @@ Using this information, developers can fetch any access token they may have stor
 
 The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environment variable as the secret to encode the token. To decode a token, we recommend using a third party library accordingly.
 
-=== Javascript
+=== "Javascript"
 
     ```js
 	const { verify } = require('jsonwebtoken');
@@ -48,7 +48,7 @@ The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environm
     }
     ```
 
-=== PHP
+=== "PHP"
 
     ```php
 	use Firebase\JWT\JWT;
