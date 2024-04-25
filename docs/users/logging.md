@@ -9,6 +9,33 @@ One of the central features of the Unified CRM extension is the ability to autom
 
 If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
 
+## Logging calls when no contact is found
+
+In order for a call to be logged properly, a contact record within the connected CRM must exist and be associated with the phone call. Calls are matched to a contact via the phone number associated with the call.
+
+When no contact can be found associated with a given phone number, the Unified CRM extension makes it easy to create a placeholder contact associated with the corresponding phone number. To create a placeholder contact, provide the name of the contact and the extension will do the rest. 
+
+<figure markdown>
+  ![Logging calls](../img/no-contacts.png)
+  <figcaption>Creating a placeholder contact in the connected CRM</figcaption>
+</figure>
+
+It is the intention for someone to edit the placeholder contact after the call has been logged, to make sure all the correct and appropriate information about the contact has been captured. 
+
+!!! tip "What if no contact was found, when a contact is known to exist?"
+    Sometimes a contact is not found, even though one knows for a fact that the contact exists. This happens with some CRMs whose search mechanisms are overly strict. You can address this through [advanced settings](settings.md#phone-number-formats).
+	
+## Logging calls when multiple possible contacts found
+
+When logging calls, a call must be associated with one and only contact record. But what happens if more than one contact in the CRM shares the same phone number? This is common when communicating with multiple employees from the same company, as it is not uncommon for the incoming phone number of two employees in the same building to present incoming phone numbers of their company's main company number. 
+
+When multiple contacts are found, users are given an opportunity to disambiguate and select the correct contact record. This is done via a pull-down menu on the call logging screen. 
+
+<figure markdown>
+  ![Logging calls](../img/multi-contacts.png)
+  <figcaption>Disambiguating between contacts when multiple matches are found in the connected CRM</figcaption>
+</figure>
+
 ## Automatically logging calls
 
 The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.

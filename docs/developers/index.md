@@ -2,23 +2,36 @@
 
 {! docs/developers/beta_notice.inc !}
 
-Welcome to RingCentral's Unified CRM integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework is centered around enabling the following user interactions common to many CRM integrations:
+Welcome to RingCentral's Unified CRM integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework is centered around enabling the following features common to many CRM integrations:
 
 * **Embedded phone**. Injecting a phone into the CRM for a fully-integrated communications experience.
 * **Call pop**. Automatically opening up a contact record when a call is received.
 * **Logging calls**. Capturing and storing call notes in an activity record linked to an associated contact in the CRM.
 
-The Unified CRM integration framework is build on top of [RingCentral Embeddable](https://ringcentral.github.io/ringcentral-embeddable/), which itself provides the following capabilities via its unified communications client:
+<div id="powered-by-embeddable" markdown>
 
-* Make and receive phone calls.
-* Send and receive SMS.
-* Read and send team chat messages. 
-* Search your RingCentral address book.
-* View a history of past calls.
-* Listen to call recordings.
-* Access and listen to voicemail. 
+!!! info "Powered by RingCentral Embeddable"
+    ![RingCentral Embeddable](../img/embeddable.png){ align=right }
+	
+	The Unified CRM integration framework is build on top of [RingCentral Embeddable](https://ringcentral.github.io/ringcentral-embeddable/), which itself provides the following capabilities via its unified communications client:
 
-Each CRM supported by this framework is required to implement what is referred to as an "adapter." Each adapter implements the following components:
+    * Make and receive phone calls.
+    * Send and receive SMS.
+    * Read and send team chat messages. 
+    * Search your RingCentral address book.
+    * View a history of past calls.
+    * Listen to call recordings.
+    * Access and listen to voicemail. 
+
+</div>
+
+## Architectural overview
+
+Each CRM supported by this framework is required to implement what is referred to as an "adapter." Adapters help broker communications between the client application (the dialer and primary user interface) and the CRM being integrated with. 
+
+![Adapter architecture diagram](../img/adapter-arch.png)
+
+Each adapter implements the following components:
 
 * A configuration file, or manifest that defines basic metadata and provides a no-code interface for defining common user interactions. 
 * A set of client-side callbacks written in Javascript that is packaged with the Chrome extension and invoked in response to specific UI events.
