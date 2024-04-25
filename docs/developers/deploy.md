@@ -58,13 +58,13 @@ Technically your adapter's server could be deployed anywhere. You could host it 
 
 ### Server environment variables
 
-| Variable                        | Description |
-|---------------------------------|-------------|
-| `APP_SERVER`                    | Url for your backend server        |
-| `APP_SERVER_SECRET_KEY`         | Key to create secret toke between your server and client        |
-| `TEST_CRM_CLIENT_ID`            | If CRM uses OAuth, it should be the client id for OAuth        |
-| `TEST_CRM_CLIENT_SECRET`        | If CRM uses OAuth, it should be the client secret for OAuth        |
-| `TEST_CRM_ACCESS_TOKEN_URI`     | If CRM uses OAuth, it should access token url for OAuth        |
-| `TEST_CRM_REDIRECT_URI`         | You can use the default redirect uri, or change it to yours        |
-| `DATABASE_URL`                  | Url for your database, the default one is for local sqlite database        |
+| Variable                    | Description                                                         |
+|-----------------------------|---------------------------------------------------------------------|
+| `APP_SERVER`                | URL for your backend server                                         |
+| `APP_SERVER_SECRET_KEY`     | Key to create secret toke between your server and client            |
+| `TEST_CRM_CLIENT_ID`        | If CRM uses OAuth, it should be the client ID for OAuth             |
+| `TEST_CRM_CLIENT_SECRET`    | If CRM uses OAuth, it should be the client secret for OAuth         |
+| `TEST_CRM_ACCESS_TOKEN_URI` | If CRM uses OAuth, it should access token url for OAuth             |
+| `TEST_CRM_REDIRECT_URI`     | You can use the default redirect URI, or change it to yours         |
+| `DATABASE_URL`              | URL for your database, the default one is for local sqlite database |
 
