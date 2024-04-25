@@ -31,6 +31,11 @@ When logging calls, a call must be associated with one and only contact record. 
 
 When multiple contacts are found, users are given an opportunity to disambiguate and select the correct contact record. This is done via a pull-down menu on the call logging screen. 
 
+<figure markdown>
+  ![Logging calls](../img/multi-contacts.png)
+  <figcaption>Disambiguating between contacts when multiple matches are found in the connected CRM</figcaption>
+</figure>
+
 ## Automatically logging calls
 
 The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.
