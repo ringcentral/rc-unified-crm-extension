@@ -60,14 +60,11 @@ Technically your adapter's server could be deployed anywhere. You could host it 
 
 | Variable                        | Description |
 |---------------------------------|-------------|
-| `APP_SERVER`                    | TODO        |
-| `APP_SERVER_SECRET_KEY`         | TODO        |
-| `TSET_CRM_CLIENT_ID`            | TODO        |
-| `TSET_CRM_CLIENT_SECRET`        | TODO        |
-| `TSET_CRM_ACCESS_TOKEN_URI`     | TODO        |
-| `TSET_CRM_REDIRECT_URI`         | TODO        |
-| `HASH_KEY`                      | TODO        |
-| `DATABASE_URL`                  | TODO        |
-| `RINGCENTRAL_DATABASE_USERNAME` | TODO        |
-| `RINGCENTRAL_DATABASE_PASSWORD` | TODO        |
+| `APP_SERVER`                    | Url for your backend server        |
+| `APP_SERVER_SECRET_KEY`         | Key to create secret toke between your server and client        |
+| `TEST_CRM_CLIENT_ID`            | If CRM uses OAuth, it should be the client id for OAuth        |
+| `TEST_CRM_CLIENT_SECRET`        | If CRM uses OAuth, it should be the client secret for OAuth        |
+| `TEST_CRM_ACCESS_TOKEN_URI`     | If CRM uses OAuth, it should access token url for OAuth        |
+| `TEST_CRM_REDIRECT_URI`         | You can use the default redirect uri, or change it to yours        |
+| `DATABASE_URL`                  | Url for your database, the default one is for local sqlite database        |
 
