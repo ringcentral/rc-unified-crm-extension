@@ -19,11 +19,48 @@ Each server will need to implement each of the following interfaces:
 
 ## JWT token
 
-TODO - what is it, how is it constructed, how is it accessed and decoded
+The frontend client helps to maintain a user's current authentication context, and transmits to the server with every API call a `jwtToken` parameter that encodes the data associated with the user making the current request. A JWT token, once decoded looks like this:
+
+```js
+{
+  id: "<User ID in CRM>",
+  rcUserNumber: "<RC Extension ID>",
+  platform: "<the CRM being integrated with>"
+}
+```
+
+Using this information, developers can fetch any access token they may have stored for that user to access the associated CRM's API. 
+
+### Decoding JWT tokens
+
+The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environment variable as the secret to encode the token. To decode a token, we recommend using a third party library accordingly.
+
+=== Javascript
+
+    ```js
+	const { verify } = require('jsonwebtoken');
+    function decodeJwt(token) {
+      try {
+        return verify(token, process.env.APP_SERVER_SECRET_KEY);
+      } catch (e) {
+        return null;
+      }
+    }
+    ```
+
+=== PHP
+
+    ```php
+	use Firebase\JWT\JWT;
+    use Firebase\JWT\Key;
+	$decoded = JWT::decode($jwt, new Key( $_ENV["APP_SERVER_SECRET_KEY"], 'HS256'));
+	```
 
 ## OpenAPI specification
 
-TODO - provide link to OpenAPI spec file
+To assist developers in implementing their CRM adapter server, an OpenAPI specification has been produced that defines the input and output of that server and its various endpoints. 
+
+[Download the OpenAPI specification](../crm-server-openapi.json)
 
 
 
