@@ -41,7 +41,9 @@ async function bullhornTokenRefresh(oauthApp, user) {
     const date = new Date();
     user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshResponse.data.expires_in);
     await user.save();
+    return user;
 }
 
 exports.checkAndRefreshAccessToken = checkAndRefreshAccessToken;
+exports.bullhornTokenRefresh = bullhornTokenRefresh;
 exports.getOAuthApp = getOAuthApp;

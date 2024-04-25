@@ -62,11 +62,23 @@ async function getContactV2({ platform, userId, phoneNumber, overridingFormat })
         }
     } catch (e) {
         console.log(e);
+        // Hack: bullhorn tokens sometimes expiry silently, we want to try and refresh it if API call fails.
+        if (platform === 'bullhorn') {
+            let user = await UserModel.findByPk(userId);
+            const platformModule = require(`../platformModules/${platform}`);
+            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+            user = await oauth.bullhornTokenRefresh(oauthApp, user);
+            const authHeader = `Bearer ${user.accessToken}`;
+            const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber, overridingFormat });
+            if (contactInfo != null) {
+                return { successful: true, message: '', contact: contactInfo };
+            }
+        }
         return { successful: false, message: `Failed to get contact.` };
     }
 }
 
-async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }){
+async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }) {
     try {
         let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
