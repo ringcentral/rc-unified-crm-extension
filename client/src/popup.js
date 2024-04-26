@@ -178,7 +178,6 @@ window.addEventListener('message', async (e) => {
               rcUserInfo = {
                 rcUserName: rcInfo.value.cachedData.extensionInfo.name,
                 rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
-                rcUserNumber: data.loginNumber,
                 rcAccountId: userInfoResponse.accountId,
                 rcExtensionId: userInfoResponse.extensionId
               };
