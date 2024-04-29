@@ -1,5 +1,8 @@
+let timerId = '';
+
 // Saves options to chrome.storage
 const saveOptions = () => {
+    const customCrmConfigUrl = document.getElementById('customCrmConfigUrl').value;
     const region = document.getElementById('region').value;
     const c2dDelay = document.getElementById('c2dDelay').value;
     const autoLogCountdown = document.getElementById('autoLogCountdown').value;
@@ -10,24 +13,29 @@ const saveOptions = () => {
     const overridingPhoneNumberFormat3 = document.getElementById('overridingPhoneNumberFormat3').value;
 
     chrome.storage.local.set(
-        { selectedRegion: region, c2dDelay, autoLogCountdown, bullhornDefaultActionCode, renderQuickAccessButton, overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 },
+        { customCrmConfigUrl, selectedRegion: region, c2dDelay, autoLogCountdown, bullhornDefaultActionCode, renderQuickAccessButton, overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 },
         () => {
             // Update status to let user know options were saved.
             const status = document.getElementById('status');
+            status.style = 'color: black'
             status.textContent = 'Options saved.';
-            setTimeout(() => {
+            timerId = setTimeout(() => {
                 status.textContent = '';
             }, 750);
         }
     );
+    if (customCrmConfigUrl !== '') {
+        setupConfig({ customCrmConfigUrl });
+    }
 };
 
 // Restores select box and checkbox state using the preferences
 // stored in chrome.storage.
 const restoreOptions = () => {
     chrome.storage.local.get(
-        { selectedRegion: 'US', c2dDelay: '0', autoLogCountdown: '20', bullhornDefaultActionCode: '', renderQuickAccessButton: true, overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' },
+        { customCrmConfigUrl: '', selectedRegion: 'US', c2dDelay: '0', autoLogCountdown: '20', bullhornDefaultActionCode: '', renderQuickAccessButton: true, overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' },
         (items) => {
+            document.getElementById('customCrmConfigUrl').value = items.customCrmConfigUrl;
             document.getElementById('region').value = items.selectedRegion;
             document.getElementById('c2dDelay').value = items.c2dDelay;
             document.getElementById('autoLogCountdown').value = items.autoLogCountdown;
@@ -39,5 +47,23 @@ const restoreOptions = () => {
         }
     );
 };
+
+async function setupConfig({ customCrmConfigUrl }) {
+    try {
+        const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
+        if (customCrmConfigJson) {
+            await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
+        }
+    }
+    catch (e) {
+        clearTimeout(timerId);
+        // Update status to let user know options were saved.
+        const status = document.getElementById('status');
+        status.textContent = 'Config file error';
+        status.style = 'color: red';
+        await chrome.storage.local.remove('customCrmConfig');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('save').addEventListener('click', saveOptions);

@@ -1,7 +1,6 @@
-const config = require('../config.json')
 const releaseNotes = require('../../../releaseNotes.json')
 
-function getReleaseNotesPageRender({ platformName, registeredVersion }) {
+function getReleaseNotesPageRender({ config, platformName, registeredVersion }) {
     const registeredVersionNumbers = registeredVersion.split('.').map(v => parseInt(v));
     const currentVersionNumbers = config.version.split('.').map(v => parseInt(v));
     if (!!releaseNotes[config.version] &&

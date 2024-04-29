@@ -10,6 +10,7 @@ const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
+const testCrmConfig = require('./testCrmConfig.json');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -31,6 +32,10 @@ app.use(bodyParser.json())
 app.use(cors({
     methods: ['GET', 'POST', 'PATCH']
 }));
+
+app.get('/testCrmConfig', (req, res) => {
+    res.json(testCrmConfig);
+})
 
 app.get('/is-alive', (req, res) => { res.send(`OK`); });
 // Unique: Pipedrive
@@ -124,7 +129,6 @@ app.get('/oauth-callback', async function (req, res) {
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
-            rcUserNumber: req.query.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });
@@ -156,7 +160,6 @@ app.post('/apiKeyLogin', async function (req, res) {
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
-            rcUserNumber: req.body.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });

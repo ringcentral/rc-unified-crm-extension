@@ -1,0 +1,62 @@
+{
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
+    "platforms": {
+        "testCRM": {
+            "urlIdentifier": "*developers.ringcentral.com*",
+            "name": "testCRM",
+            "authType": "apiKey",
+            "clientId": "",
+            "canOpenLogPage": false,
+            "contactTypes": [
+                "TestContactType",
+                "Contact"
+            ],
+            "page": {
+                "auth": {
+                    "title": "test CRM",
+                    "content": [
+                        {
+                            "const": "apiKey",
+                            "title": "apiKey",
+                            "type": "string",
+                            "required": true
+                        }
+                    ]
+                },
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "address",
+                            "title": "Address",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embedded": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            }
+        }
+    },
+    "version": "0.8.13"
+}
