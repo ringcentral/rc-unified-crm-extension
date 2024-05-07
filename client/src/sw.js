@@ -28,6 +28,16 @@ async function openPopupWindow() {
   await chrome.storage.local.set({
     popupWindowId: popup.id,
   });
+  try {
+    const { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: config.defaultCrmConfigUrl });
+    const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
+    if (customCrmConfigJson) {
+      await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
+    }
+  }
+  catch (e) {
+    // ignore
+  }
   return false;
 }
 

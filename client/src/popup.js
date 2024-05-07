@@ -174,7 +174,7 @@ window.addEventListener('message', async (e) => {
               );
             }
             else if (!rcUnifiedCrmExtJwt) {
-              showNotification({ level: 'warning', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
+              showNotification({ level: 'danger', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
             }
             try {
               const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;

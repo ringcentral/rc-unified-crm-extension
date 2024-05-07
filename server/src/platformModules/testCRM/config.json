@@ -1,5 +1,6 @@
 {
     "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
+    "author": "RingCentral Labs",
     "platforms": {
         "testCRM": {
             "urlIdentifier": "*developers.ringcentral.com*",
@@ -50,7 +51,7 @@
                     ]
                 }
             },
-            "embedded": {
+            "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
                     "VideoLink": "https://youtu.be/pQgdsAR1UCI"

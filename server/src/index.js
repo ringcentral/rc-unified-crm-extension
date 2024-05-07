@@ -10,7 +10,6 @@ const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
-const testCrmConfig = require('./testCrmConfig.json');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -33,8 +32,25 @@ app.use(cors({
     methods: ['GET', 'POST', 'PATCH']
 }));
 
-app.get('/testCrmConfig', (req, res) => {
-    res.json(testCrmConfig);
+app.get('/crmConfig', (req, res) => {
+    try {
+        if(!!!req.query.platformName)
+        {
+            const defaultCrmConfig = require('./platformModules/config.json');
+            res.json(defaultCrmConfig);
+            return;
+        }
+        const crmConfig = require(`./platformModules/${req.query.platformName}/config.json`);
+        if (!!crmConfig) {
+            res.json(crmConfig);
+        }
+        else {
+            res.status(400).send('Platform not found');
+        }
+    }
+    catch (e) {
+        res.status(400).send('Platform not found');
+    }
 })
 
 app.get('/is-alive', (req, res) => { res.send(`OK`); });

@@ -51,7 +51,7 @@
                     ]
                 }
             },
-            "embedded": {
+            "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
                     "VideoLink": "https://youtu.be/pQgdsAR1UCI"
@@ -94,7 +94,7 @@
                     ]
                 }
             },
-            "embedded": {
+            "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
                     "VideoLink": "https://youtu.be/pQgdsAR1UCI"
@@ -183,7 +183,7 @@
                     ]
                 }
             },
-            "embedded": {
+            "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
                     "VideoLink": "https://youtu.be/5hWvVI12UAc"
