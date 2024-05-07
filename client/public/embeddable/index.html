@@ -362,9 +362,9 @@
                     Config
                   </button>
                   <div class="version-select">
-                    <select id="version-select" title="version">
-                      <option value="latest">latest</option>
-                      <option value="2.x">2.x-beta</option>
+                    <select id="version-select" title="Version">
+                      <option value="latest">Version: latest</option>
+                      <option value="2.x">Version: 2.x-beta</option>
                     </select>
                   </div>
                 </div>
@@ -582,7 +582,7 @@
       if (defaultVersion !== 'latest' && defaultVersion !== '2.x') {
         var defaultOption = window.document.createElement('option');
         defaultOption.value = defaultVersion;
-        defaultOption.innerText = defaultVersion;
+        defaultOption.innerText = 'Version: ' + defaultVersion;
         versionSelect.appendChild(defaultOption);
       }
       versionSelect.value = currentVersion;
@@ -648,7 +648,7 @@
     var widgetAppBasePath = getWidgetBasePath(false);
     (function () {
       var rcs = document.createElement('script');
-      rcs.src = widgetAppBasePath + '/adapter.js?notification=1&disableGlip=false&multipleTabsSupport=1&enablePopup=1&enableRingtoneSettings=1';
+      rcs.src = widgetAppBasePath + '/adapter.js?notification=1&disableGlip=false&multipleTabsSupport=1&enablePopup=1&enableRingtoneSettings=1&enableSMSTemplate=1';
       var rcs0 = document.getElementsByTagName('script')[0];
       rcs0.parentNode.insertBefore(rcs, rcs0);
     })();
