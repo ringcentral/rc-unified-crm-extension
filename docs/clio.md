@@ -30,11 +30,48 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to Clio and ready to begin using the integration. 
 
-## Tailoring your configuration
+## Setting up phone number matching to properly match contacts
 
 Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Clio, is to go to [advanced settings](./users/settings.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Clio, is to go to [advanced settings](./users/settings.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your practice. 
+
+Navigate to the Unified CRM Chrome extension's advanced settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any number. Any other character used in the format string will be interpretted literally. 
+
+Let's look at a few examples. First, consider the following format string:
+
+    (***) ***-****
+	
+| Phone number     | Does it match? |
+|------------------|----------------|
+| (555) 123-2334   | Yes            |
+| (555)123-2334    | No             |
+| 1 (555) 123-2334 | No             |
+| 555-123-2334     | No             |
+
+Now, let's look at one more example. Consider the format string:
+
+    1 (***) ***-****
+	
+| Phone number      | Does it match? |
+|-------------------|----------------|
+| 1 (555) 123-2334  | Yes            |
+| +1 (555) 123-2334 | No             |
+| (555) 123-2334    | No             |
+| 555-123-2334      | No             |
+
+We have found the following formats are commonly used among customers (feel free to copy and paste them into advanced settings):
+
+* `(***) ***-****`
+* `***-***-****`
+* `***.***.****`
+* `1 (***) ***-****`
+
+Select or enter up to three different formats used by your practice. When you are done, the advanced settings form may look something like this:
+
+![Advanced settings with format options](img/adv-settings-formats.png)
+
+!!! tip "The E.164 format is used by default. You do not need to specify the format `1**********`."
 
 Making this change will improve your experience with the extension considerably. Here are a few things to bear in mind:
 
