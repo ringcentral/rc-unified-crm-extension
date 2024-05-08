@@ -51,7 +51,7 @@ The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environm
 
 To assist developers in implementing their CRM adapter server, an OpenAPI specification has been produced that defines the input and output of that server and its various endpoints. 
 
-[Download the OpenAPI specification](../crm-server-openapi.json)
+[Download the OpenAPI specification](openapi.md)
 
 
 
