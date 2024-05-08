@@ -63,11 +63,11 @@ TODO
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM.js [ln:143-177]!}
+    {!> server/src/platformModules/testCRM/index.js [ln:143-177]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive.js [ln:107-141]!}
+    {!> server/src/platformModules/pipedrive/index.js [ln:107-141]!}
     ```
 

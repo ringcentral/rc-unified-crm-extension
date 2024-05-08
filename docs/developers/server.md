@@ -2,7 +2,7 @@
 
 {! docs/developers/beta_notice.inc !}
 
-Each adapter will be configured to communicate with the corresponding server for that adapter. While the [sample server](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/server/src/platformModules/testCRM.js) that is provided through this framework is implemented in Javascript, you are free to implement your server in whatever language you prefer -- provided that it implements the interface properly. 
+Each adapter will be configured to communicate with the corresponding server for that adapter. While the [sample server](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/server/src/platformModules/testCRM/index.js) that is provided through this framework is implemented in Javascript, you are free to implement your server in whatever language you prefer -- provided that it implements the interface properly. 
 
 ## Interfaces
 
