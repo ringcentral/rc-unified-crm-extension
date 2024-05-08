@@ -1,10 +1,11 @@
 const { isObjectEmpty } = require('./lib/util');
-const config = require('./config.json');
+let config = require('./config.json');
 const packageJson = require('../package.json');
 
 let pipedriveInstallationTabId;
 let pipedriveCallbackUri;
 let cachedClickToXRequest;
+
 async function openPopupWindow() {
   console.log('open popup');
   const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
@@ -17,7 +18,7 @@ async function openPopupWindow() {
     }
   }
   // const redirectUri = chrome.identity.getRedirectURL('redirect.html'); //  set this when oauth with chrome.identity.launchWebAuthFlow
-  const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=${config.rcServer}&redirectUri=${config.redirectUri}&enableAnalytics=1&showSignUpButton=1&clientId=${config.rcClientId}&appVersion=${packageJson.version}&userAgent=RingCentral CRM Extension&disableNoiseReduction=false`;
+  const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=https://platform.ringcentral.com&redirectUri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html&enableAnalytics=1&showSignUpButton=1&clientId=3rJq9BxcTCm-I7CFcY19ew&appVersion=${packageJson.version}&userAgent=RingCentral CRM Extension&disableNoiseReduction=false`;
   const popup = await chrome.windows.create({
     url: popupUri,
     type: 'popup',
@@ -27,16 +28,32 @@ async function openPopupWindow() {
   await chrome.storage.local.set({
     popupWindowId: popup.id,
   });
+  try {
+    const { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: config.defaultCrmConfigUrl });
+    const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
+    if (customCrmConfigJson) {
+      await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
+    }
+  }
+  catch (e) {
+    // ignore
+  }
   return false;
 }
 
 async function registerPlatform(tabUrl) {
   const url = new URL(tabUrl);
-  let platformName = '';
   let hostname = url.hostname;
+  const { customCrmConfig } = await chrome.storage.local.get({ customCrmConfig: null });
+  if (!!customCrmConfig) {
+    config = customCrmConfig;
+  }
+  let platformName = '';
   const platforms = Object.keys(config.platforms);
   for (const p of platforms) {
-    if (hostname.includes(config.platforms[p].urlIdentifier)) {
+    // identify crm website
+    const urlRegex = new RegExp(config.platforms[p].urlIdentifier.replace('*', '.*'));
+    if (urlRegex.test(url.href)) {
       platformName = p;
       break;
     }

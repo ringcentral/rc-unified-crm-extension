@@ -1,0 +1,258 @@
+{
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
+    "author": "RingCentral Labs",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+    "platforms": {
+        "pipedrive": {
+            "urlIdentifier": "pipedrive.com",
+            "name": "pipedrive",
+            "authType": "oauth",
+            "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
+            "clientId": "5d4736e322561f57",
+            "redirectUri": "https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect",
+            "canOpenLogPage": false,
+            "contactPageUrl":"https://{hostname}/person/{contactId}",
+            "logPageUrl":"https://{hostname}/activities/{logId}",
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "deals",
+                            "title": "Deal",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "deals",
+                            "title": "Deal",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/pipedrive/",
+                    "VideoLink": "https://youtu.be/Hu0qC13HDkQ"
+                }
+            }
+        },
+        "insightly": {
+            "urlIdentifier": "insightly.com",
+            "name": "insightly",
+            "authType": "apiKey",
+            "canOpenLogPage": true,
+            "contactPageUrl":"https://{hostname}/list/{contactType}/?blade=/details/{contactType}/{contactId}",
+            "logPageUrl":"https://{hostname}/list/{contactType}/?blade=/details/Event/{logId}",
+            "contactTypes": [
+                "Lead",
+                "Contact"
+            ],
+            "page": {
+                "auth": {
+                    "title": "Insightly",
+                    "warning": "To manually connect, please go to Insightly User Settings and then copy info in API section over.",
+                    "content": [
+                        {
+                            "const": "insightlyGetApiKey",
+                            "title": "Get API Key",
+                            "type": "string",
+                            "uiSchema": {
+                                "ui:field": "button",
+                                "ui:variant": "contained",
+                                "ui:fullWidth": true
+                            }
+                        },
+                        {
+                            "const": "apiKey",
+                            "title": "apiKey",
+                            "type": "string",
+                            "required": true
+                        },
+                        {
+                            "const": "apiUrl",
+                            "title": "apiUrl",
+                            "type": "string",
+                            "required": true
+                        }
+                    ]
+                },
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "organization",
+                            "title": "Organisation",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "project",
+                            "title": "Project",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "organization",
+                            "title": "Organisation",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "project",
+                            "title": "Project",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
+                    "VideoLink": "https://youtu.be/5hWvVI12UAc"
+                }
+            }
+        },
+        "clio": {
+            "urlIdentifier": "app.clio.com",
+            "name": "clio",
+            "authType": "oauth",
+            "authUrl": "https://app.clio.com/oauth/authorize",
+            "clientId": "JxK4GglGRoZnWoKA4sSLoXa5PHA2E6Mjisv3iIMY",
+            "canOpenLogPage": false,
+            "contactPageUrl":"https://{hostname}/nc/#/contacts/{contactId}",
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "logTimeEntry",
+                            "title": "Log time entry",
+                            "type": "checkbox",
+                            "contactDependent": false,
+                            "defaultValue": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            },
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
+                    "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            }
+        },
+        "redtail": {
+            "urlIdentifier": "crm.redtailtechnology.com",
+            "name": "redtail",
+            "authType": "apiKey",
+            "canOpenLogPage": true,
+            "contactPageUrl":"https://{hostname}/contacts/{contactId}",
+            "logPageUrl":"https://{hostname}/activities/{logId}",
+            "page": {
+                "auth": {
+                    "title": "Redtail",
+                    "content": [
+                        {
+                            "const": "username",
+                            "title": "username",
+                            "type": "string",
+                            "required": true
+                        },
+                        {
+                            "const": "password",
+                            "title": "password",
+                            "type": "string",
+                            "required": true,
+                            "uiSchema": {
+                                "ui:widget": "password"
+                            }
+                        }
+                    ]
+                }
+            },
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/redtail/",
+                    "VideoLink": "https://youtu.be/1pbpbEvp5uQ"
+                }
+            }
+        },
+        "bullhorn": {
+            "urlIdentifier": "app.bullhornstaffing.com",
+            "name": "bullhorn",
+            "authType": "oauth",
+            "clientId": "5a1ff851-6b1c-454d-8501-826502e6fc76",
+            "canOpenLogPage": false,
+            "contactTypes": [
+                "Candidate",
+                "Contact"
+            ],
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "noteActions",
+                            "title": "Note action",
+                            "type": "selection",
+                            "contactDependent": false
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "noteActions",
+                            "title": "Note action",
+                            "type": "selection",
+                            "contactDependent": false
+                        }
+                    ]
+                }
+            },
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
+                    "VideoLink": "https://youtu.be/afbdQD0y4Yo"
+                }
+            }
+        }
+    },
+    "version": "0.8.13"
+}

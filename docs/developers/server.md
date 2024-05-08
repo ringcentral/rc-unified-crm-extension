@@ -24,12 +24,11 @@ The frontend client helps to maintain a user's current authentication context, a
 ```js
 {
   id: "<User ID in CRM>",
-  rcUserNumber: "<RC Extension ID>",
   platform: "<the CRM being integrated with>"
 }
 ```
 
-Using this information, developers can fetch any access token they may have stored for that user to access the associated CRM's API. 
+With this information, server can validate and identify users so to perform API actions under their accounts on CRM platforms. 
 
 ### Decoding JWT tokens
 
@@ -47,14 +46,6 @@ The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environm
       }
     }
     ```
-
-=== "PHP"
-
-    ```php
-	use Firebase\JWT\JWT;
-    use Firebase\JWT\Key;
-	$decoded = JWT::decode($jwt, new Key( $_ENV["APP_SERVER_SECRET_KEY"], 'HS256'));
-	```
 
 ## OpenAPI specification
 

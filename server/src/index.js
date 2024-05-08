@@ -32,6 +32,27 @@ app.use(cors({
     methods: ['GET', 'POST', 'PATCH']
 }));
 
+app.get('/crmConfig', (req, res) => {
+    try {
+        if(!!!req.query.platformName)
+        {
+            const defaultCrmConfig = require('./platformModules/config.json');
+            res.json(defaultCrmConfig);
+            return;
+        }
+        const crmConfig = require(`./platformModules/${req.query.platformName}/config.json`);
+        if (!!crmConfig) {
+            res.json(crmConfig);
+        }
+        else {
+            res.status(400).send('Platform not found');
+        }
+    }
+    catch (e) {
+        res.status(400).send('Platform not found');
+    }
+})
+
 app.get('/is-alive', (req, res) => { res.send(`OK`); });
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
@@ -124,7 +145,6 @@ app.get('/oauth-callback', async function (req, res) {
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
-            rcUserNumber: req.query.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });
@@ -156,7 +176,6 @@ app.post('/apiKeyLogin', async function (req, res) {
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
-            rcUserNumber: req.body.rcUserNumber.toString(),
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });

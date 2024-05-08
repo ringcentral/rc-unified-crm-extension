@@ -1,6 +1,4 @@
-const config = require('../config.json')
-
-function getLogPageRender({ logType, triggerType, platformName, direction, contactInfo, subject, note }) {
+function getLogPageRender({config, logType, triggerType, platformName, direction, contactInfo, subject, note }) {
     const additionalChoiceFields = logType === 'Call' ?
         config.platforms[platformName].page?.callLog?.additionalFields?.filter(f => f.type === 'selection') ?? [] :
         config.platforms[platformName].page?.messageLog?.additionalFields?.filter(f => f.type === 'selection') ?? [];
@@ -237,7 +235,7 @@ function getLogPageRender({ logType, triggerType, platformName, direction, conta
     return page;
 }
 
-function getUpdatedLogPageRender({ logType, platformName, updateData }) {
+function getUpdatedLogPageRender({config, logType, platformName, updateData }) {
     const updatedFieldKey = updateData.keys[0];
     let page = updateData.page;
     // update target field value

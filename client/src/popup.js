@@ -1,7 +1,6 @@
 const auth = require('./core/auth');
 const { checkLog, openLog, addLog, updateLog, getCachedNote, cacheCallNote } = require('./core/log');
 const { getContact, createContact, openContactPage } = require('./core/contact');
-const config = require('./config.json');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
 const { apiKeyLogin } = require('./core/auth');
@@ -29,6 +28,7 @@ const {
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
+let config = require('./config.json');
 let registered = false;
 let crmAuthed = false;
 let platform = null;
@@ -69,6 +69,15 @@ async function checkC2DCollision() {
 }
 
 checkC2DCollision();
+
+async function getCustomConfig() {
+  const { customCrmConfig } = await chrome.storage.local.get({ customCrmConfig: null });
+  if (!!customCrmConfig) {
+    config = customCrmConfig;
+  }
+}
+
+getCustomConfig();
 
 // Interact with RingCentral Embeddable Voice:
 window.addEventListener('message', async (e) => {
@@ -178,7 +187,6 @@ window.addEventListener('message', async (e) => {
               rcUserInfo = {
                 rcUserName: rcInfo.value.cachedData.extensionInfo.name,
                 rcUserEmail: rcInfo.value.cachedData.extensionInfo.contact.email,
-                rcUserNumber: data.loginNumber,
                 rcAccountId: userInfoResponse.accountId,
                 rcExtensionId: userInfoResponse.extensionId
               };
@@ -226,7 +234,7 @@ window.addEventListener('message', async (e) => {
           // Check version and show release notes
           const registeredVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
           if (!!registeredVersionInfo[['rc-crm-extension-version']]) {
-            const releaseNotesPageRender = releaseNotesPage.getReleaseNotesPageRender({ platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
+            const releaseNotesPageRender = releaseNotesPage.getReleaseNotesPageRender({ config, platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
             if (!!releaseNotesPageRender) {
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-register-customized-page',
@@ -281,7 +289,7 @@ window.addEventListener('message', async (e) => {
               type: 'openPopupWindow'
             });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-              openContactPage({ platformName, phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
+              openContactPage({ config, platformName, phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
           break;
@@ -370,7 +378,7 @@ window.addEventListener('message', async (e) => {
                     handleThirdPartyOAuthWindow(authUri);
                     break;
                   case 'apiKey':
-                    const authPageRender = authPage.getAuthPageRender({ platformName });
+                    const authPageRender = authPage.getAuthPageRender({ config, platformName });
                     document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                       type: 'rc-adapter-register-customized-page',
                       page: authPageRender
@@ -461,7 +469,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/contacts/view':
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-              openContactPage({ platformName, phoneNumber: data.body.phoneNumbers[0].phoneNumber });
+              openContactPage({ config, platformName, phoneNumber: data.body.phoneNumbers[0].phoneNumber });
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               responseMessage(
                 data.requestId,
@@ -510,7 +518,7 @@ window.addEventListener('message', async (e) => {
                     note = fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId).logData.note;
                   }
                   // add your codes here to log call to your service
-                  const callPage = logPage.getLogPageRender({ logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logData?.subject, note });
+                  const callPage = logPage.getLogPageRender({ config, logType: 'Call', triggerType: data.body.triggerType, platformName, direction: data.body.call.direction, contactInfo: callMatchedContact ?? [], subject: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logData?.subject, note });
                   document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-update-call-log-page',
                     page: callPage,
@@ -525,11 +533,11 @@ window.addEventListener('message', async (e) => {
                 case 'viewLog':
                   if (config.platforms[platformName].canOpenLogPage) {
                     for (const c of callMatchedContact) {
-                      openLog({ platformName, hostname: platformHostname, logId: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logId, contactType: c.type });
+                      openLog({ config, platformName, hostname: platformHostname, logId: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logId, contactType: c.type });
                     }
                   }
                   else {
-                    openContactPage({ platformName, phoneNumber: contactPhoneNumber });
+                    openContactPage({ config, platformName, phoneNumber: contactPhoneNumber });
                   }
                   break;
                 case 'logForm':
@@ -589,7 +597,7 @@ window.addEventListener('message', async (e) => {
                 sessionId: data.body.call.sessionId,
                 note: data.body.formData.note ?? ''
               });
-              const page = logPage.getUpdatedLogPageRender({ platformName, updateData: data.body });
+              const page = logPage.getUpdatedLogPageRender({ config, platformName, updateData: data.body });
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-update-call-log-page',
                 page
@@ -691,7 +699,7 @@ window.addEventListener('message', async (e) => {
                   });
                 }
                 // add your codes here to log call to your service
-                const messagePage = logPage.getLogPageRender({ logType: 'Message', triggerType: data.body.triggerType, platformName, direction: '', contactInfo: getContactMatchResult.contactInfo ?? [] });
+                const messagePage = logPage.getLogPageRender({ config, logType: 'Message', triggerType: data.body.triggerType, platformName, direction: '', contactInfo: getContactMatchResult.contactInfo ?? [] });
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                   type: 'rc-adapter-update-messages-log-page',
                   page: messagePage
@@ -716,7 +724,7 @@ window.addEventListener('message', async (e) => {
               );
               break;
             case '/messageLogger/inputChanged':
-              const updatedPage = logPage.getUpdatedLogPageRender({ logType: 'Message', platformName, updateData: data.body });
+              const updatedPage = logPage.getUpdatedLogPageRender({ config, logType: 'Message', platformName, updateData: data.body });
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-update-messages-log-page',
                 page: updatedPage
@@ -880,10 +888,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
   }
   else if (request.type === 'insightlyAuth') {
-    await apiKeyLogin({
+    const returnedToken = await apiKeyLogin({
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
+    crmAuthed = !!returnedToken;
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'

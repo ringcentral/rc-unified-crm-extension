@@ -57309,6 +57309,12 @@ class Adapter extends AdapterCore/* default */.Z {
       onFeedback();
     });
   }
+  createSMSTemplate(displayName, text) {
+    return this._requestWithPostMessage('/create-sms-template', {
+      displayName,
+      text
+    });
+  }
   get showCurrentCallBtn() {
     return this._widgetCurrentPath.indexOf('/calls/active') === -1 && this.showDuration;
   }
@@ -57401,7 +57407,8 @@ const {
   showSignUpButton,
   defaultDirection,
   defaultAutoLogCallEnabled,
-  defaultAutoLogMessageEnabled
+  defaultAutoLogMessageEnabled,
+  enableSMSTemplate
 } = parseCallbackUri(paramsUri);
 function obj2uri(obj) {
   if (!obj) {
@@ -57462,6 +57469,7 @@ const appUri = `${appUrl}?${obj2uri({
   showSignUpButton,
   defaultAutoLogCallEnabled,
   defaultAutoLogMessageEnabled,
+  enableSMSTemplate,
   _t: Date.now()
 })}`;
 function init() {
