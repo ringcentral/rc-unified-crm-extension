@@ -86,9 +86,12 @@ async function getLog({ logType, sessionId }) {
     }
 }
 
-async function openLog({ platformName, hostname, logId, contactType }) {
-    const platformModule = await import(`../platformModules/${platformName}.js`);
-    platformModule.openLogPage({ hostname, logId, contactType });
+async function openLog({ config, platformName, hostname, logId, contactType }) {
+    const logPageUrl = config.platforms[platformName].logPageUrl
+        .replace('{hostname}', hostname)
+        .replaceAll('{logId}', logId)
+        .replaceAll('{contactType}', contactType);
+    window.open(logPageUrl);
 }
 
 async function updateLog({ logType, sessionId, recordingLink, subject, note }) {

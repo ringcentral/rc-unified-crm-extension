@@ -1,5 +1,5 @@
-function openContactPage(hostname, incomingCallContactInfo) {
-    openBullhornContactPage({ contactType: incomingCallContactInfo.type, contactId: incomingCallContactInfo.id });
+function openContactPage(config, hostname, incomingCallContactInfo) {
+    openBullhornContactPage({ config, contactType: incomingCallContactInfo.type, contactId: incomingCallContactInfo.id });
 }
 
 async function openBullhornContactPage({ contactType, contactId }) {

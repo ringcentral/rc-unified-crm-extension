@@ -174,7 +174,7 @@ window.addEventListener('message', async (e) => {
               );
             }
             else if (!rcUnifiedCrmExtJwt) {
-              showNotification({ level: 'danger', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
+              showNotification({ level: 'warning', message: 'Please authorize CRM platform account via Settings.', ttl: 10000 });
             }
             try {
               const extId = JSON.parse(localStorage.getItem('sdk-rc-widgetplatform')).owner_id;
@@ -289,7 +289,7 @@ window.addEventListener('message', async (e) => {
               type: 'openPopupWindow'
             });
             if (!!extensionUserSettings && extensionUserSettings.find(e => e.name === 'Open contact web page from incoming call')?.value) {
-              openContactPage({ platformName, phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
+              openContactPage({ config, platformName, phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
           break;
@@ -469,7 +469,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/contacts/view':
               window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-              openContactPage({ platformName, phoneNumber: data.body.phoneNumbers[0].phoneNumber });
+              openContactPage({ config, platformName, phoneNumber: data.body.phoneNumbers[0].phoneNumber });
               window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               responseMessage(
                 data.requestId,
@@ -533,11 +533,11 @@ window.addEventListener('message', async (e) => {
                 case 'viewLog':
                   if (config.platforms[platformName].canOpenLogPage) {
                     for (const c of callMatchedContact) {
-                      openLog({ platformName, hostname: platformHostname, logId: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logId, contactType: c.type });
+                      openLog({ config, platformName, hostname: platformHostname, logId: fetchedCallLogs.find(l => l.sessionId == data.body.call.sessionId)?.logId, contactType: c.type });
                     }
                   }
                   else {
-                    openContactPage({ platformName, phoneNumber: contactPhoneNumber });
+                    openContactPage({ config, platformName, phoneNumber: contactPhoneNumber });
                   }
                   break;
                 case 'logForm':
@@ -888,10 +888,11 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     sendResponse({ result: 'ok' });
   }
   else if (request.type === 'insightlyAuth') {
-    await apiKeyLogin({
+    const returnedToken = await apiKeyLogin({
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });
+    crmAuthed = !!returnedToken;
     window.postMessage({ type: 'rc-apiKey-input-modal-close', platform: platform.name }, '*');
     chrome.runtime.sendMessage({
       type: 'openPopupWindow'
