@@ -1,11 +1,10 @@
 import axios from 'axios';
 import moment from 'moment';
-import config from '../config.json';
 import { isObjectEmpty, showNotification } from '../lib/util';
 import { trackSyncCallLog, trackSyncMessageLog } from '../lib/analytics';
 
 // Input {id} = sessionId from RC
-async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmission, contactId, contactType, contactName }) {
+async function addLog({ serverUrl, logType, logInfo, isMain, subject, note, additionalSubmission, contactId, contactType, contactName }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat } = await chrome.storage.local.get({ overridingPhoneNumberFormat: '' });
     if (!!subject) {
@@ -14,7 +13,7 @@ async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmi
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
-                const addCallLogRes = await axios.post(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactId, contactType, contactName });
+                const addCallLogRes = await axios.post(`${serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, note, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactId, contactType, contactName });
                 // force call log matcher check
                 document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                     type: 'rc-adapter-trigger-call-logger-match',
@@ -42,7 +41,7 @@ async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmi
                         break;
                     }
                 }
-                const messageLogRes = await axios.post(`${config.serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactId, contactType, contactName });
+                const messageLogRes = await axios.post(`${serverUrl}/messageLog?jwtToken=${rcUnifiedCrmExtJwt}`, { logInfo, additionalSubmission, overridingFormat: overridingPhoneNumberFormat, contactId, contactType, contactName });
                 if (messageLogRes.data.successful) {
                     if (isMain) {
                         showNotification({ level: 'success', message: 'message log added', ttl: 3000 });
@@ -58,26 +57,12 @@ async function addLog({ logType, logInfo, isMain, subject, note, additionalSubmi
     }
 }
 
-async function checkLog({ logType, sessionIds }) {
+async function getLog({ serverUrl, logType, sessionIds }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
             case 'Call':
-                const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionIds=${sessionIds}`);
-                return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
-        }
-    }
-    else {
-        return { successful: false, message: 'Please go to Settings and authorize CRM platform' };
-    }
-}
-
-async function getLog({ logType, sessionId }) {
-    const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
-    if (!!rcUnifiedCrmExtJwt) {
-        switch (logType) {
-            case 'Call':
-                const callLogRes = await axios.get(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionIds=${[sessionId]}`);
+                const callLogRes = await axios.get(`${serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}&sessionIds=${sessionIds}`);
                 return { successful: callLogRes.data.successful, callLogs: callLogRes.data.logs };
         }
     }
@@ -94,7 +79,7 @@ async function openLog({ config, platformName, hostname, logId, contactType }) {
     window.open(logPageUrl);
 }
 
-async function updateLog({ logType, sessionId, recordingLink, subject, note }) {
+async function updateLog({ serverUrl, logType, sessionId, recordingLink, subject, note }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         switch (logType) {
@@ -105,7 +90,7 @@ async function updateLog({ logType, sessionId, recordingLink, subject, note }) {
                     subject,
                     note
                 }
-                const callLogRes = await axios.patch(`${config.serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
+                const callLogRes = await axios.patch(`${serverUrl}/callLog?jwtToken=${rcUnifiedCrmExtJwt}`, patchBody);
                 if (callLogRes.data.successful) {
                     if (!!recordingLink) {
                         const recordingSessionId = `rec-link-${sessionId}`;
@@ -140,7 +125,6 @@ async function getCachedNote({ sessionId }) {
 }
 
 exports.addLog = addLog;
-exports.checkLog = checkLog;
 exports.getLog = getLog;
 exports.openLog = openLog;
 exports.updateLog = updateLog;

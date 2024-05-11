@@ -1,5 +1,5 @@
 const auth = require('./core/auth');
-const { checkLog, openLog, addLog, updateLog, getCachedNote, cacheCallNote } = require('./core/log');
+const { getLog, openLog, addLog, updateLog, getCachedNote, cacheCallNote } = require('./core/log');
 const { getContact, createContact, openContactPage } = require('./core/contact');
 const { responseMessage, isObjectEmpty, showNotification } = require('./lib/util');
 const { getUserInfo } = require('./lib/rcAPI');
@@ -28,7 +28,7 @@ const {
 
 window.__ON_RC_POPUP_WINDOW = 1;
 
-let config = require('./config.json');
+let config = {};
 let registered = false;
 let crmAuthed = false;
 let platform = null;
@@ -181,6 +181,7 @@ window.addEventListener('message', async (e) => {
               const indexDB = await openDB(`rc-widget-storage-${extId}`, 2);
               const rcInfo = await indexDB.get('keyvaluepairs', 'dataFetcherV2-storageData');
               const userInfoResponse = await getUserInfo({
+                serverUrl: config.serverUrl,
                 extensionId: rcInfo.value.cachedData.extensionInfo.id,
                 accountId: rcInfo.value.cachedData.extensionInfo.account.id
               });
@@ -392,7 +393,7 @@ window.addEventListener('message', async (e) => {
               }
               else {
                 window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-                auth.unAuthorize({ platformName, rcUnifiedCrmExtJwt });
+                auth.unAuthorize({ serverUrl: config.serverUrl, platformName, rcUnifiedCrmExtJwt });
                 window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
               }
               responseMessage(
@@ -437,7 +438,7 @@ window.addEventListener('message', async (e) => {
                     continue;
                   }
                   // query on 3rd party API to get the matched contact info and return
-                  const { matched: contactMatched, contactInfo } = await getContact({ phoneNumber: contactPhoneNumber });
+                  const { matched: contactMatched, contactInfo } = await getContact({ serverUrl: config.serverUrl, phoneNumber: contactPhoneNumber });
                   if (contactMatched) {
                     matchedContacts[contactPhoneNumber] = [];
                     for (var contactInfoItem of contactInfo) {
@@ -487,6 +488,7 @@ window.addEventListener('message', async (e) => {
                     await chrome.storage.local.set({ ['rec-link-' + data.body.call.sessionId]: { recordingLink: data.body.call.recording.link } });
                     await updateLog(
                       {
+                        serverUrl: config.serverUrl,
                         logType: 'Call',
                         sessionId: data.body.call.sessionId,
                         recordingLink: data.body.call.recording.link
@@ -503,11 +505,12 @@ window.addEventListener('message', async (e) => {
               const contactPhoneNumber = data.body.call.direction === 'Inbound' ?
                 data.body.call.from.phoneNumber :
                 data.body.call.to.phoneNumber;
-              const { callLogs: fetchedCallLogs } = await checkLog({
+              const { callLogs: fetchedCallLogs } = await getLog({
+                serverUrl: config.serverUrl,
                 logType: 'Call',
                 sessionIds: data.body.call.sessionId
               });
-              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ phoneNumber: contactPhoneNumber });
+              const { matched: callContactMatched, message: callLogContactMatchMessage, contactInfo: callMatchedContact } = await getContact({ serverUrl: config.serverUrl, phoneNumber: contactPhoneNumber });
               let note = '';
               switch (data.body.triggerType) {
                 // createLog and editLog share the same page
@@ -553,6 +556,7 @@ window.addEventListener('message', async (e) => {
                       let newContactInfo = {};
                       if (data.body.formData.contact === 'createNewContact') {
                         const newContactResp = await createContact({
+                          serverUrl: config.serverUrl,
                           phoneNumber: contactPhoneNumber,
                           newContactName: data.body.formData.newContactName,
                           newContactType: data.body.formData.newContactType
@@ -561,6 +565,7 @@ window.addEventListener('message', async (e) => {
                       }
                       await addLog(
                         {
+                          serverUrl: config.serverUrl,
                           logType: 'Call',
                           logInfo: data.body.call,
                           isMain: true,
@@ -574,6 +579,7 @@ window.addEventListener('message', async (e) => {
                       break;
                     case 'editLog':
                       await updateLog({
+                        serverUrl: config.serverUrl,
                         logType: 'Call',
                         sessionId: data.body.call.sessionId,
                         subject: data.body.formData.activityTitle ?? "",
@@ -611,7 +617,7 @@ window.addEventListener('message', async (e) => {
               break;
             case '/callLogger/match':
               let callLogMatchData = {};
-              const { successful, callLogs, message: checkLogMessage } = await checkLog({ logType: 'Call', sessionIds: data.body.sessionIds.toString() });
+              const { successful, callLogs, message: getLogMessage } = await getLog({ serverUrl: config.serverUrl, logType: 'Call', sessionIds: data.body.sessionIds.toString() });
               if (successful) {
                 for (const sessionId of data.body.sessionIds) {
                   const correspondingLog = callLogs.find(l => l.sessionId === sessionId);
@@ -621,7 +627,7 @@ window.addEventListener('message', async (e) => {
                 }
               }
               else {
-                showNotification({ level: 'warning', message: checkLogMessage, ttl: 3000 });
+                showNotification({ level: 'warning', message: getLogMessage, ttl: 3000 });
                 break;
               }
               responseMessage(
@@ -644,6 +650,7 @@ window.addEventListener('message', async (e) => {
                   let newContactInfo = {};
                   if (data.body.formData.contact === 'createNewContact') {
                     const newContactResp = await createContact({
+                      serverUrl: config.serverUrl,
                       phoneNumber: data.body.conversation.correspondents[0].phoneNumber,
                       newContactName: data.body.formData.newContactName,
                       newContactType: data.body.formData.newContactType
@@ -651,6 +658,7 @@ window.addEventListener('message', async (e) => {
                     newContactInfo = newContactResp.contactInfo;
                   }
                   await addLog({
+                    serverUrl: config.serverUrl,
                     logType: 'Message',
                     logInfo: data.body.conversation,
                     isMain: true,
@@ -662,6 +670,7 @@ window.addEventListener('message', async (e) => {
                   });
                   for (const trailingConversations of trailingSMSLogInfo) {
                     await addLog({
+                      serverUrl: config.serverUrl,
                       logType: 'Message',
                       logInfo: trailingConversations,
                       isMain: false,
@@ -695,6 +704,7 @@ window.addEventListener('message', async (e) => {
                 let getContactMatchResult = null;
                 if (!isTrailing) {
                   getContactMatchResult = await getContact({
+                    serverUrl: config.serverUrl,
                     phoneNumber: data.body.conversation.correspondents[0].phoneNumber
                   });
                 }
@@ -790,7 +800,7 @@ window.addEventListener('message', async (e) => {
                   break;
                 case 'authPage':
                   window.postMessage({ type: 'rc-log-modal-loading-on' }, '*');
-                  const returnedToken = await auth.apiKeyLogin({ apiKey: data.body.button.formData.apiKey, apiUrl: data.body.button.formData.apiUrl, username: data.body.button.formData.username, password: data.body.button.formData.password });
+                  const returnedToken = await auth.apiKeyLogin({ serverUrl: config.serverUrl, apiKey: data.body.button.formData.apiKey, apiUrl: data.body.button.formData.apiUrl, username: data.body.button.formData.username, password: data.body.button.formData.password });
                   crmAuthed = !!returnedToken;
                   window.postMessage({ type: 'rc-log-modal-loading-off' }, '*');
                   break;
@@ -836,14 +846,14 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
       }, '*');
     }
     else if (request.platform === 'thirdParty') {
-      const returnedToken = await auth.onAuthCallback(request.callbackUri);
+      const returnedToken = await auth.onAuthCallback({ serverUrl: config.serverUrl, callbackUri: request.callbackUri });
       crmAuthed = !!returnedToken;
     }
     sendResponse({ result: 'ok' });
   }
   // Unique: Pipedrive
   else if (request.type === 'pipedriveCallbackUri' && !(await auth.checkAuth())) {
-    await auth.onAuthCallback(`${request.pipedriveCallbackUri}&state=platform=pipedrive`);
+    await auth.onAuthCallback({ serverUrl: config.serverUrl, callbackUri: `${request.pipedriveCallbackUri}&state=platform=pipedrive` });
     console.log('pipedriveAltAuthDone')
     chrome.runtime.sendMessage(
       {

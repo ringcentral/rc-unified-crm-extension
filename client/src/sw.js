@@ -1,7 +1,8 @@
 const { isObjectEmpty } = require('./lib/util');
-let config = require('./config.json');
+const baseConfig = require('./config.json');
 const packageJson = require('../package.json');
 
+let config;
 let pipedriveInstallationTabId;
 let pipedriveCallbackUri;
 let cachedClickToXRequest;
@@ -29,7 +30,7 @@ async function openPopupWindow() {
     popupWindowId: popup.id,
   });
   try {
-    const { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: config.defaultCrmConfigUrl });
+    const { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: baseConfig.defaultCrmConfigUrl });
     const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
     if (customCrmConfigJson) {
       await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });

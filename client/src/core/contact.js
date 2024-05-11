@@ -1,8 +1,7 @@
 import axios from 'axios';
-import config from '../config.json';
 import analytics from '../lib/analytics';
 
-async function getContact({ phoneNumber }) {
+async function getContact({ serverUrl, phoneNumber }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     const { overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 } =
         await chrome.storage.local.get({ overridingPhoneNumberFormat: '', overridingPhoneNumberFormat2: '', overridingPhoneNumberFormat3: '' });
@@ -11,7 +10,7 @@ async function getContact({ phoneNumber }) {
     if (overridingPhoneNumberFormat2) overridingFormats.push(overridingPhoneNumberFormat2);
     if (overridingPhoneNumberFormat3) overridingFormats.push(overridingPhoneNumberFormat3);
     if (!!rcUnifiedCrmExtJwt) {
-        const contactRes = await axios.get(`${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
+        const contactRes = await axios.get(`${serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}&phoneNumber=${phoneNumber}&overridingFormat=${overridingFormats.toString()}`);
         return { matched: contactRes.data.successful, message: contactRes.data.message, contactInfo: contactRes.data.contact };
     }
     else {
@@ -19,11 +18,11 @@ async function getContact({ phoneNumber }) {
     }
 }
 
-async function createContact({ phoneNumber, newContactName, newContactType }) {
+async function createContact({serverUrl, phoneNumber, newContactName, newContactType }) {
     const { rcUnifiedCrmExtJwt } = await chrome.storage.local.get('rcUnifiedCrmExtJwt');
     if (!!rcUnifiedCrmExtJwt) {
         const contactRes = await axios.post(
-            `${config.serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}`,
+            `${serverUrl}/contact?jwtToken=${rcUnifiedCrmExtJwt}`,
             {
                 phoneNumber,
                 newContactName,
