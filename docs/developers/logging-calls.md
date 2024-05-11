@@ -33,12 +33,12 @@ Below you will find more information about each of these interfaces.
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM.js [ln:179-214]!}
+    {!> server/src/platformModules/testCRM/index.js [ln:179-214]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive.js [ln:264-283]!}
+    {!> server/src/platformModules/pipedrive/index.js [ln:264-283]!}
     ```
 
 ## Loading a log for a phone call
@@ -66,12 +66,12 @@ TODO
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM.js [ln:313-373]!}
+    {!> server/src/platformModules/testCRM/index.js [ln:313-373]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive.js [ln:154-169]!}
+    {!> server/src/platformModules/pipedrive/index.js [ln:154-169]!}
     ```
 
 ## Updating the log for a phone call
@@ -99,10 +99,10 @@ TODO
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM.js [ln:242-279]!}
+    {!> server/src/platformModules/testCRM/index.js [ln:242-279]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive.js [ln:198-234]!}
+    {!> server/src/platformModules/pipedrive/index.js [ln:198-234]!}
     ```

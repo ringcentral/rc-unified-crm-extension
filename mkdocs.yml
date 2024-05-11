@@ -51,6 +51,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.emoji:
+       emoji_index: !!python/name:material.extensions.emoji.twemoji 
+       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 copyright: "2023-2024 RingCentral, Inc. All rights reserved."
 
@@ -84,6 +87,7 @@ nav:
     - 'Logging SMS': developers/logging-sms.md
     - 'Placeholder contacts': developers/placeholder-contacts.md
     - 'Unauthorizing users': developers/unauthorization.md
+    - 'OpenAPI specification': developers/openapi.md
   - 'Build and deployment': developers/deploy.md
 - 'Support':
   - 'Troubleshooting': support.md

@@ -25,10 +25,10 @@ The Unified CRM extension allows users to log in their CRM all forms of communic
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM.js [ln:281-312]!}
+    {!> server/src/platformModules/testCRM/index.js [ln:281-312]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive.js [ln:236-262]!}
+    {!> server/src/platformModules/pipedrive/index.js [ln:236-262]!}
     ```
