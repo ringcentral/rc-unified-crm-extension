@@ -19,7 +19,7 @@ async function addCallLog({ platform, userId, incomingData }) {
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
-        const platformModule = require(`../platformModules/${platform}`);
+        const platformModule = require(`../adapters/${platform}`);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         const note = incomingData.note;
@@ -63,7 +63,7 @@ async function addCallLog({ platform, userId, incomingData }) {
 }
 
 async function getCallLog({ userId, sessionIds, platform }) {
-    const platformModule = require(`../platformModules/${platform}`);
+    const platformModule = require(`../adapters/${platform}`);
     let user = await UserModel.findOne({
         where: {
             id: userId,
@@ -112,7 +112,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             }
         });
         if (existingCallLog) {
-            const platformModule = require(`../platformModules/${platform}`);
+            const platformModule = require(`../adapters/${platform}`);
             let user = await UserModel.findOne({
                 where: {
                     id: userId,
@@ -151,7 +151,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         if (incomingData.logInfo.messages.length === 0) {
             return { successful: false, message: 'no message to log.' }
         }
-        const platformModule = require(`../platformModules/${platform}`);
+        const platformModule = require(`../adapters/${platform}`);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
         let user = await UserModel.findOne({

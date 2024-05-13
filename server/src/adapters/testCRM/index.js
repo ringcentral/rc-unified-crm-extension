@@ -1,10 +1,6 @@
 const axios = require('axios');
-const { UserModel } = require('../../models/userModel');
-const Op = require('sequelize').Op;
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
-const crmName = 'testCRM';
 
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
@@ -50,7 +46,7 @@ function getBasicAuth({ apiKey }) {
 
 
 // For params, if OAuth, then accessToken, refreshToken, tokenExpiry; If apiKey, then apiKey
-async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
+async function getUserInfo({ authHeader, additionalInfo }) {
     // ------------------------------------------------------
     // ---TODO.1: Implement API call to retrieve user info---
     // ------------------------------------------------------
@@ -73,44 +69,13 @@ async function saveUserInfo({ authHeader, hostname, apiKey, accessToken, refresh
     const id = mockUserInfoResponse.data.id;
     const name = mockUserInfoResponse.data.name;
     const timezoneName = mockUserInfoResponse.data.time_zone ?? ''; // Optional. Whether or not you want to log with regards to the user's timezone
-    const timezoneOffset = mockUserInfoResponse.data.time_zone_offset ?? null; // Optional. Whether or not you want to log with regards to the user's timezone. It will need to be converted to a format that CRM platform uses
-
-    // Save user info in DB
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform: crmName
-                }
-            ]
-        }
-    });
-    if (existingUser) {
-        await existingUser.update(
-            {
-                hostname,
-                timezoneName,
-                timezoneOffset,
-                accessToken: apiKey,
-                platformAdditionalInfo: additionalInfo
-            }
-        );
-    }
-    else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform: crmName,
-            accessToken: apiKey,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
+    const timezoneOffset = mockUserInfoResponse.data.time_zone_offset ?? null; // Optional. Whether or not you want to log with regards to the user's timezone. It will need to be converted to a format that CRM platform uses,
     return {
         id,
-        name
+        name,
+        timezoneName,
+        timezoneOffset,
+        platformAdditionalInfo: {}
     };
 
     //---------------------------------------------------------------------------------------------------
@@ -375,7 +340,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
-exports.saveUserInfo = saveUserInfo;
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;

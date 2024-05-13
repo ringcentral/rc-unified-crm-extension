@@ -899,6 +899,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
   else if (request.type === 'insightlyAuth') {
     const returnedToken = await apiKeyLogin({
+      serverUrl: config.serverUrl,
       apiKey: request.apiKey,
       apiUrl: request.apiUrl
     });

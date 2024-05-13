@@ -6,10 +6,10 @@ const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const cors = require('cors')
-const oauth = require('./lib/oauth');
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
+const authCore = require('./core/auth');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -34,13 +34,12 @@ app.use(cors({
 
 app.get('/crmConfig', (req, res) => {
     try {
-        if(!!!req.query.platformName)
-        {
-            const defaultCrmConfig = require('./platformModules/config.json');
+        if (!!!req.query.platformName) {
+            const defaultCrmConfig = require('./adapters/config.json');
             res.json(defaultCrmConfig);
             return;
         }
-        const crmConfig = require(`./platformModules/${req.query.platformName}/config.json`);
+        const crmConfig = require(`./adapters/${req.query.platformName}/config.json`);
         if (!!crmConfig) {
             res.json(crmConfig);
         }
@@ -57,7 +56,7 @@ app.get('/is-alive', (req, res) => { res.send(`OK`); });
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
     try {
-        res.sendFile(path.join(__dirname, 'pipedriveRedirect/redirect.html'));
+        res.sendFile(path.join(__dirname, 'adapters/pipedrive/redirect.html'));
     }
     catch (e) {
         console.log(e);
@@ -69,7 +68,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
         if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
-            const platformModule = require(`./platformModules/pipedrive`);
+            const platformModule = require(`./adapters/pipedrive`);
             await platformModule.unAuthorize({ id: req.body.user_id });
             await UserModel.destroy({
                 where: {
@@ -123,25 +122,13 @@ app.get('/oauth-callback', async function (req, res) {
         if (!platform) {
             throw 'missing platform name';
         }
-        const platformModule = require(`./platformModules/${platform}`);
-        const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
-
-        // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
-        let overridingOAuthOption = null;
-        if (platformModule.getOverridingOAuthOption != null) {
-            overridingOAuthOption = platformModule.getOverridingOAuthOption({ code: req.query.callbackUri.split('code=')[1] });
-        }
-        const oauthApp = oauth.getOAuthApp(oauthInfo);
-        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(req.query.callbackUri, overridingOAuthOption);
-        const userInfo = await platformModule.saveUserInfo({
-            authHeader: `Bearer ${accessToken}`,
-            tokenUrl: tokenUrl,
-            apiUrl: req.query.apiUrl,
-            username: req.query.username,
+        const userInfo = await authCore.onOAuthCallback({
+            platform,
             hostname,
-            accessToken,
-            refreshToken,
-            tokenExpiry: expires
+            tokenUrl,
+            callbackUri: req.query.callbackUri,
+            apiUrl: req.query.apiUrl,
+            username: req.query.username
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
@@ -166,14 +153,7 @@ app.post('/apiKeyLogin', async function (req, res) {
         if (!apiKey) {
             throw 'missing api key';
         }
-        const platformModule = require(`./platformModules/${platform}`);
-        const basicAuth = platformModule.getBasicAuth({ apiKey });
-        const userInfo = await platformModule.saveUserInfo({
-            authHeader: `Basic ${basicAuth}`,
-            hostname,
-            apiKey,
-            additionalInfo
-        });
+        const userInfo = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             platform: platform
@@ -200,7 +180,7 @@ app.post('/unAuthorize', async function (req, res) {
                 res.status(400).send('unknown user');
                 return;
             }
-            const platformModule = require(`./platformModules/${unAuthData.platform}`);
+            const platformModule = require(`./adapters/${unAuthData.platform}`);
             await platformModule.unAuthorize({ user: userToLogout });
             res.status(200).send();
         }

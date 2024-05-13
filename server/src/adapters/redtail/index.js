@@ -18,7 +18,7 @@ function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
 
-async function saveUserInfo({ hostname, additionalInfo }) {
+async function getUserInfo({ authHeader, additionalInfo }) {
     const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
     const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
     const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
@@ -32,39 +32,13 @@ async function saveUserInfo({ hostname, additionalInfo }) {
     const name = additionalInfo.username;
     const timezoneName = '';
     const timezoneOffset = null;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform: crmName
-                }
-            ]
-        }
-    });
-    if (existingUser) {
-        await existingUser.update({
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            accessToken: additionalInfo.userResponse.user_key,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
-    else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform: crmName,
-            accessToken: additionalInfo.userResponse.user_key,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
     return {
         id,
-        name
+        name,
+        timezoneName,
+        timezoneOffset,
+        overridingApiKey: additionalInfo.userResponse.user_key,
+        platformAdditionalInfo: additionalInfo
     }
 }
 
@@ -271,7 +245,7 @@ function formatContact(rawContactInfo) {
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
-exports.saveUserInfo = saveUserInfo;
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

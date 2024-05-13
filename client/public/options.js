@@ -24,9 +24,7 @@ const saveOptions = () => {
             }, 750);
         }
     );
-    if (customCrmConfigUrl !== '') {
-        setupConfig({ customCrmConfigUrl });
-    }
+    setupConfig({ customCrmConfigUrl });
 };
 
 // Restores select box and checkbox state using the preferences
@@ -50,6 +48,10 @@ const restoreOptions = () => {
 
 async function setupConfig({ customCrmConfigUrl }) {
     try {
+        await chrome.storage.local.remove('customCrmConfig');
+        if(customCrmConfigUrl === '') {
+            return;
+        }
         const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
         if (customCrmConfigJson) {
             await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });

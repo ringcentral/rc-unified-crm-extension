@@ -30,7 +30,11 @@ async function openPopupWindow() {
     popupWindowId: popup.id,
   });
   try {
-    const { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: baseConfig.defaultCrmConfigUrl });
+    let { customCrmConfigUrl } = await chrome.storage.local.get({ customCrmConfigUrl: null });
+    if (!!customCrmConfigUrl || customCrmConfigUrl === '') {
+      customCrmConfigUrl = baseConfig.defaultCrmConfigUrl;
+      await chrome.storage.local.set({ customCrmConfigUrl });
+    }
     const customCrmConfigJson = await (await fetch(customCrmConfigUrl)).json();
     if (customCrmConfigJson) {
       await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
@@ -107,6 +111,8 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 });
 
 chrome.alarms.onAlarm.addListener(async () => {
+  const { customCrmConfig } = await chrome.storage.local.get({ customCrmConfig: null });
+  config = customCrmConfig;
   const { loginWindowInfo } = await chrome.storage.local.get('loginWindowInfo');
   if (!loginWindowInfo) {
     return;

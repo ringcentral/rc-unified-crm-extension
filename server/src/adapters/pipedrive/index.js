@@ -1,11 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
-const { UserModel } = require('../../models/userModel');
-const Op = require('sequelize').Op;
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
-const crmName = 'pipedrive';
 
 function getAuthType() {
     return 'oauth';
@@ -20,7 +16,7 @@ function getOauthInfo() {
     }
 }
 
-async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
+async function getUserInfo({ authHeader }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
             'Authorization': authHeader
@@ -30,53 +26,16 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     const name = userInfoResponse.data.data.name;
     const timezoneName = userInfoResponse.data.data.timezone_name;
     const timezoneOffset = userInfoResponse.data.data.timezone_offset;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform: crmName
-                }
-            ]
-        }
-    });
-    if (existingUser) {
-        await existingUser.update(
-            {
-                hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
-                timezoneName,
-                timezoneOffset,
-                accessToken,
-                refreshToken,
-                tokenExpiry,
-                platformAdditionalInfo: {
-                    companyId: userInfoResponse.data.data.company_id,
-                    companyName: userInfoResponse.data.data.company_name,
-                    companyDomain: userInfoResponse.data.data.company_domain,
-                }
-            }
-        );
-    }
-    else {
-        await UserModel.create({
-            id,
-            hostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : hostname,
-            timezoneName,
-            timezoneOffset,
-            platform: crmName,
-            accessToken,
-            refreshToken,
-            tokenExpiry,
-            platformAdditionalInfo: {
-                companyId: userInfoResponse.data.data.company_id,
-                companyName: userInfoResponse.data.data.company_name,
-                companyDomain: userInfoResponse.data.data.company_domain,
-            }
-        });
-    }
     return {
         id,
-        name
+        name,
+        timezoneName,
+        timezoneOffset,
+        platformAdditionalInfo: {
+            companyId: userInfoResponse.data.data.company_id,
+            companyName: userInfoResponse.data.data.company_name,
+            companyDomain: userInfoResponse.data.data.company_domain,
+        }
     };
 }
 
@@ -284,7 +243,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
-exports.saveUserInfo = saveUserInfo;
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

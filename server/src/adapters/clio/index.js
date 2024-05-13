@@ -1,11 +1,7 @@
 const axios = require('axios');
-const { UserModel } = require('../../models/userModel');
-const Op = require('sequelize').Op;
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
-const crmName = 'clio';
 
 function getAuthType() {
     return 'oauth';
@@ -20,7 +16,7 @@ function getOauthInfo() {
     }
 }
 
-async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, tokenExpiry, additionalInfo }) {
+async function getUserInfo({ authHeader }) {
     const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
         headers: {
             'Authorization': authHeader
@@ -30,45 +26,12 @@ async function saveUserInfo({ authHeader, hostname, accessToken, refreshToken, t
     const name = userInfoResponse.data.data.name;
     const timezoneName = userInfoResponse.data.data.time_zone;
     const timezoneOffset = 0;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform: crmName
-                }
-            ]
-        }
-    });
-    if (existingUser) {
-        await existingUser.update(
-            {
-                hostname,
-                timezoneName,
-                timezoneOffset,
-                accessToken,
-                refreshToken,
-                tokenExpiry,
-                platformAdditionalInfo: additionalInfo
-            }
-        );
-    }
-    else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform: crmName,
-            accessToken,
-            refreshToken,
-            tokenExpiry,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
     return {
         id,
-        name
+        name,
+        timezoneName,
+        timezoneOffset,
+        platformAdditionalInfo: {}
     };
 }
 async function unAuthorize({ user }) {
@@ -408,7 +371,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
-exports.saveUserInfo = saveUserInfo;
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;

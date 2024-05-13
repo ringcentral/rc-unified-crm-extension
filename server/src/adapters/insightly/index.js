@@ -1,10 +1,6 @@
 const axios = require('axios');
 const moment = require('moment');
-const { UserModel } = require('../../models/userModel');
-const Op = require('sequelize').Op;
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
-const crmName = 'insightly';
 
 function getAuthType() {
     return 'apiKey';
@@ -14,7 +10,7 @@ function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function saveUserInfo({ authHeader, hostname, apiKey, additionalInfo }) {
+async function getUserInfo({ authHeader, additionalInfo }) {
     additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
     const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
@@ -27,39 +23,12 @@ async function saveUserInfo({ authHeader, hostname, apiKey, additionalInfo }) {
     const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
     const timezoneOffset = null;
     const timezoneName = userInfoResponse.data.TIMEZONE_ID;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform: crmName
-                }
-            ]
-        }
-    });
-    if (existingUser) {
-        await existingUser.update({
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            accessToken: apiKey,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
-    else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform: crmName,
-            accessToken: apiKey,
-            platformAdditionalInfo: additionalInfo
-        });
-    }
     return {
         id,
-        name
+        name,
+        timezoneName,
+        timezoneOffset,
+        platformAdditionalInfo: additionalInfo
     };
 }
 
@@ -435,7 +404,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
-exports.saveUserInfo = saveUserInfo;
+exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;

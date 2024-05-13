@@ -12,7 +12,7 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
-        const platformModule = require(`../platformModules/${platform}`);
+        const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -50,7 +50,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
         if (!user || !user.accessToken) {
             return { successful: false, message: `Cannot find user with id: ${userId}` };
         }
-        const platformModule = require(`../platformModules/${platform}`);
+        const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
