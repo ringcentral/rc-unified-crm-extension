@@ -180,7 +180,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     const putBody = {
-        comments: `${!!note ? `<br/>${note}<br/><br/>` : ''}<b>Call details</b><br/><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
+        comments: `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: noteActions,
         personReference: {
             id: contactInfo.id
@@ -233,7 +233,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     // case: normal update
     else {
         // replace note
-        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br/>${note}<br/><br/>`)
+        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note}<br><br>`)
         // replace subject
         logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject ?? '');
     }
@@ -248,32 +248,87 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const noteActions = additionalSubmission.noteActions ?? '';
-    const subject = `${message.direction} SMS ${message.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
+    let userInfoResponse;
+    try {
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+        }
+    }
+    const userData = userInfoResponse.data.data[0];
+    const userName = userData.name;
+    const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const comments =
+        `<br><b>${subject}</b><br>` +
+        '<b>Conversation summary</b><br>' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+        'Participants<br>' +
+        `<ul><li><b>${userName}</b><br></li>` +
+        `<li><b>${contactInfo.name}</b></li></ul><br>` +
+        'Conversation(1 messages)<br>' +
+        'BEGIN<br>' +
+        '------------<br>' +
+        '<ul>' +
+        `<li>${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>` +
+        '</ul>' +
+        '------------<br>' +
+        'END<br><br>' +
+        '--- Created via RingCentral CRM Extension';
     const putBody = {
-        comments: `<b>SMS details</b><br/><ul><li><b>Subject</b>: ${subject}</li><li><b>${message.direction === 'Outbound' ? 'Recipient' : 'Sender'} phone number</b>: ${contactNumber}</li><li><b>${message.direction === 'Outbound' ? `Sender phone number</b>: ${message.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${message.to[0].phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(message.creationTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Message</b>: ${message.subject}</li>${recordingLink ? `<li><b>Recording link</b>: ${recordingLink}</li>` : ''}</ul>`,
+        comments: comments,
         action: noteActions,
         personReference: {
             id: contactInfo.id
         },
         dateAdded: message.creationTime
     }
-    let addLogRes;
+    const addLogRes = await axios.put(
+        `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+        putBody
+    );
+    return addLogRes.data.changedEntityId;
+}
+
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    let userInfoResponse;
     try {
-        addLogRes = await axios.put(
-            `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-            putBody
-        );
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
-            addLogRes = await axios.put(
-                `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-                putBody
-            );
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
         }
     }
-    return addLogRes.data.changedEntityId;
+    const userData = userInfoResponse.data.data[0];
+    const userName = userData.name;
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,comments`
+    );
+    let logBody = getLogRes.data.data.comments;
+    let patchBody = {};
+    const newMessageLog =
+        `<li>${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>`;
+    logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
+
+    const regex = RegExp('<br>Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+
+    patchBody = {
+        comments: logBody,
+        dateAdded: message.creationTime
+    }
+    // I dunno, Bullhorn uses POST as PATCH
+    const patchLogRes = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+        patchBody);
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -319,6 +374,7 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.createContact = createContact;

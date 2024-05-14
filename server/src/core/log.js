@@ -193,6 +193,8 @@ async function addMessageLog({ platform, userId, incomingData }) {
         });
         const existingIds = existingMessages.map(m => m.id);
         const logIds = [];
+        // reverse the order of messages to log the oldest message first
+        incomingData.logInfo.messages = incomingData.logInfo.messages.reverse();
         for (const message of incomingData.logInfo.messages) {
             if (existingIds.includes(message.id.toString())) {
                 console.log(`existing message log: ${message.id}`);
