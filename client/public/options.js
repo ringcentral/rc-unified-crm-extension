@@ -15,16 +15,9 @@ const saveOptions = () => {
     chrome.storage.local.set(
         { customCrmConfigUrl, selectedRegion: region, c2dDelay, autoLogCountdown, bullhornDefaultActionCode, renderQuickAccessButton, overridingPhoneNumberFormat, overridingPhoneNumberFormat2, overridingPhoneNumberFormat3 },
         () => {
-            // Update status to let user know options were saved.
-            const status = document.getElementById('status');
-            status.style = 'color: green';
-            status.textContent = 'Options saved.';
-            timerId = setTimeout(() => {
-                status.textContent = '';
-            }, 750);
+            setupConfig({ customCrmConfigUrl });
         }
     );
-    setupConfig({ customCrmConfigUrl });
 };
 
 // Restores select box and checkbox state using the preferences
@@ -56,6 +49,7 @@ async function setupConfig({ customCrmConfigUrl }) {
         if (customCrmConfigJson) {
             await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
         }
+        // Update status to let user know options were saved.
         const status = document.getElementById('status');
         status.style = 'color: green';
         status.textContent = 'Options saved.';
