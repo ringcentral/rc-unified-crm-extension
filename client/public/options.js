@@ -17,7 +17,7 @@ const saveOptions = () => {
         () => {
             // Update status to let user know options were saved.
             const status = document.getElementById('status');
-            status.style = 'color: black'
+            status.style = 'color: green';
             status.textContent = 'Options saved.';
             timerId = setTimeout(() => {
                 status.textContent = '';
@@ -56,6 +56,9 @@ async function setupConfig({ customCrmConfigUrl }) {
         if (customCrmConfigJson) {
             await chrome.storage.local.set({ customCrmConfig: customCrmConfigJson });
         }
+        const status = document.getElementById('status');
+        status.style = 'color: green';
+        status.textContent = 'Options saved.';
     }
     catch (e) {
         clearTimeout(timerId);

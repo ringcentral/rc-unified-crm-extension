@@ -18,14 +18,29 @@ async function openPopupWindow() {
       // ignore
     }
   }
+  const { extensionWindowStatus } = await chrome.storage.local.get({ extensionWindowStatus: null });
   // const redirectUri = chrome.identity.getRedirectURL('redirect.html'); //  set this when oauth with chrome.identity.launchWebAuthFlow
   const popupUri = `popup.html?multipleTabsSupport=1&disableLoginPopup=1&appServer=https://platform.ringcentral.com&redirectUri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html&enableAnalytics=1&showSignUpButton=1&clientId=3rJq9BxcTCm-I7CFcY19ew&appVersion=${packageJson.version}&userAgent=RingCentral CRM Extension&disableNoiseReduction=false`;
-  const popup = await chrome.windows.create({
-    url: popupUri,
-    type: 'popup',
-    width: 315,
-    height: 566,
-  });
+  let popup;
+  if (!!extensionWindowStatus.state && (extensionWindowStatus.state === 'maximized' || extensionWindowStatus.state === 'fullscreen')) {
+    popup = await chrome.windows.create({
+      url: popupUri,
+      type: 'popup',
+      focused: true,
+      state: extensionWindowStatus.state
+    });
+  }
+  else {
+    popup = await chrome.windows.create({
+      url: popupUri,
+      type: 'popup',
+      focused: true,
+      width: extensionWindowStatus.width ?? 315,
+      height: extensionWindowStatus.height ?? 566,
+      left: extensionWindowStatus.left ?? 50,
+      top: extensionWindowStatus.top ?? 50
+    });
+  }
   await chrome.storage.local.set({
     popupWindowId: popup.id,
   });
@@ -107,6 +122,14 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
   if (popupWindowId === windowId) {
     console.log('close popup');
     await chrome.storage.local.remove('popupWindowId');
+  }
+});
+
+chrome.windows.onBoundsChanged.addListener(async (window) => {
+  const { popupWindowId } = await chrome.storage.local.get('popupWindowId');
+  if (popupWindowId === window.id) {
+    const extensionWindowStatus = window;
+    await chrome.storage.local.set({ extensionWindowStatus });
   }
 });
 
