@@ -1,0 +1,47 @@
+{
+  "name": "rc-unified-crm-extension-server",
+  "version": "0.8.13",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "ngrok": "ngrok http 6066 ",
+    "tunnel": "lite-http-tunnel start 6066 -p crm",
+    "server": "node ./src/server.js",
+    "start": "npm run server",
+    "start-debug": "node --inspect ./src/server.js",
+    "test": "set NODE_ENV=test&&jest --forceExit -i",
+    "test-coverage": "set NODE_ENV=test&&jest --coverage",
+    "serverless-build": "node ./scripts/serverless-build",
+    "build": "npm run serverless-build",
+    "serverless-deploy": "node ./scripts/serverless-deploy",
+    "deploy": "npm run serverless-deploy"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "awesome-phonenumber": "^5.6.0",
+    "axios": "^1.1.2",
+    "body-parser": "^1.20.1",
+    "client-oauth2": "^4.3.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^8.5.1",
+    "moment": "^2.29.4",
+    "moment-timezone": "^0.5.39",
+    "pg": "^8.8.0",
+    "sequelize": "^6.25.0",
+    "serverless-http": "^3.0.3",
+    "shortid": "^2.2.16"
+  },
+  "devDependencies": {
+    "jest": "^29.3.1",
+    "nock": "^13.2.9",
+    "serverless": "^3.23.0",
+    "serverless-deployment-bucket": "^1.6.0",
+    "serverless-plugin-log-retention": "^2.0.0",
+    "shelljs": "^0.8.5",
+    "sqlite3": "^5.1.2",
+    "supertest": "^6.3.1"
+  }
+}
