@@ -1,29 +1,7 @@
 # Build and deploy a CRM adapter
 
-Once you have developed your adapter for a CRM, it is time to try it out. To do that, you will need to do two things:
+Once you have developed your adapter for a CRM, it is time to try it out. To do that, you will need to deploy your adapter's server to a publicly accessible server
 
-* Build a Chrome extension and load it into your browser
-* Deploy your adapter's server to a publicly accessible server
-
-## Building the Chrome extension
-
-Build scripts have been provided to assist you in building the Chrome extension you will install in your browser. 
-
-1. Build the Chrome extension
-
-    ```
-	cd rc-unified-crm-extension/client
-	npm run build
-	```
-
-    When you have completed the above, inside the `rc-unified-crm-extension/client` directory you will find a `build/dist` directory. The dist folder contains your Chrome extension. 
-	
-2. Install the Chrome extension
-
-    * Open your Chrome web browser
-	* From the "Window" menu, select "Extensions"
-	* Click "Load unpacked"
-	* Select the `dist` folder created in the previous step
 
 ## Deploying server to AWS
 

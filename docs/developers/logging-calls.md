@@ -17,33 +17,44 @@ Below you will find more information about each of these interfaces.
 * HTTP method: POST
 * HTTP endpoint: `<server base URL>/callLog`
 
-### Request parameters
+### Query parameters
 
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
 
+### Request body
+
+| Name             | Description                                                                     |
+|------------------|---------------------------------------------------------------------------------|
+| `logInfo` | RingCentral call log |
+| `additionalSubmission` | Submitted form data from `additionalFields`|
+| `note`| Note taken by user|
+|`contactId`| Contact ID|
+|`contactType`| Contact type|
+|`contactName`| Contact name|
+
+
 ### Response
 
 | Name   | Description |
 |--------|-------------|
-| `TODO` | TODO        |
+| `successful` | `true` or `false` |
+|`logId`| Log ID        |
 
 ### Sample code
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:179-214]!}
+    {!> server/src/adapters/testCRM/index.js [ln:144-179]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:264-283]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:130-155]!}
     ```
 
 ## Loading a log for a phone call
-
-TODO
 
 ### Endpoint
 
@@ -55,28 +66,28 @@ TODO
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
+|`sessionIds`| Under RingCentral call log|
 
 ### Response
 
 | Name  | Description |
 |-------|-------------|
-| `TODO` | TODO         |
+| `successful` |  `true` or `false` |
+|`logs`| Log info|
 
 ### Sample code
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:313-373]!}
+    {!> server/src/adapters/testCRM/index.js [ln:181-205]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:154-169]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:223-242]!}
     ```
 
 ## Updating the log for a phone call
-
-TODO
 
 ### Endpoint
 
@@ -88,21 +99,26 @@ TODO
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
+|`sessionId`| RingCentral call session id |
+|`subject`| Log subject |
+|`note`| Note taken by user |
+|`recordingLink`| RingCentral call recording link |
 
 ### Response
 
 | Name   | Description |
 |--------|-------------|
-| `TODO` | TODO        |
+| `successful` |  `true` or `false` |
+|`logId`| Log ID        |
 
 ### Sample code
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:242-279]!}
+    {!> server/src/adapters/testCRM/index.js [ln:207-244]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:198-234]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:157-193]!}
     ```

@@ -53,7 +53,7 @@ export default () => {
             if (isObjectEmpty(isFirstTime) && platformName !== '') {
                 setIsOpen(true);
                 setDocLink(config.platforms[platformName].embeddedOnCrmPage.welcomePage.docLink);
-                setVideoLink(config.platforms[platformName].embeddedOnCrmPage.welcomePage.VideoLink);
+                setVideoLink(config.platforms[platformName].embeddedOnCrmPage.welcomePage.videoLink);
                 await chrome.storage.local.set({ isFirstTime: false });
                 trackFirstTimeSetup();
             }

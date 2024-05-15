@@ -12,40 +12,52 @@ Each adapter provides a configuration that in some ways also acts as a manifest 
 * Define custom contact record types/categories
 * Customize the welcome screen for a given CRM
 
+## Test sample
+
+Under `server/src/adapters/testCRM`, there's an existing `config.json` as a test sample. 
+
 ## Config file
 
-TODO - describe where the config file is
+You should create a folder `server/src/adapters/{yourCrmName}` and then create a config file under it as `config.json`.
 
 ## Configuration options
 
 | Name             | Type            | Description |
 |------------------|-----------------|-------------|
-| `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's organge quick access button will appear. |
+| `serverUrl`      | string          | Url for your server|
+| `author`         | string          | (Optional) For client side app to track server identity |
+| `redirectUri`    | string          | Redirect Uri for RingCentral login |
+| `platforms`      | object          | Platform config object, explained [here](#platforms-config) |
+| `version`        | string          | Version of this service |
+
+### Platform config:
+
+| Name             | Type            | Description |
+|------------------|-----------------|-------------|
+| `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's organge quick access button will appear. ( * for wildcard match is surpported) |
 | `name`           | string          | The name of the CRM. |
 | `authType`       | string          | The supported auth type for the corresponding CRM. Only two values are supported: `oauth` and `apiKey`. |
 | `authUrl`        | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
 | `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
-| `contactTypes`   | ARRAY of string | CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
+| `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
+| `embeddedOnCrmPage` | object       | The rendering config for embedded page, explained [here](#customizing-the-welcome-message) |
+| `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
 
 ## Customizing the welcome message
 
 When a user installs the CRM extension for the first time and accesses it from their CRM, a welcome page or splash screen appears to the user. This screen can be very effective in educating the end user about how to setup and connect to the associated CRM. 
 
-Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources:
+Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources under `embeddedOnCrmPage.welcomePage`:
 
-* A URL to watch a video
-* A URL to read documentation
-
-```js
-{! client/src/config-copy.json [ln:54-59] !}
-```
+* `videoLink`: A URL to watch a video
+* `docLink`: A URL to read documentation
 
 ## Customizing pages within the client application
 
 There are a number of pages within the Unified CRM client application that often need to be customized in some way for the corresponding CRM. Those pages are:
 
-* CRM authentication page
+* CRM authentication page (ONLY for `apiKey` auth)
 * Call logging form
 * Message logging form
 
@@ -54,18 +66,19 @@ There are a number of pages within the Unified CRM client application that often
 === "Sample adapter"
 
     ```js
-    {!> client/src/config-copy.json [ln:16-26] !}
+    {!> server/src/adapters/testCRM/config.json [ln:23-33] !}
     ```
+
+![Auth page](../img/test-auth-page.png)
 
 === "Insightly adapter"
 
     ```js
-    {!> client/src/config-copy.json [ln:113-140] !}
+    {!> server/src/adapters/config.json [ln:57-84] !}
     ```
 
-#### Example custom auth page
+![Auth page](../img/insightly-auth-page.png)
 
-![Auth page](../img/auth-page-example.png)
 
 ### Adding custom fields to logging forms
 
@@ -94,7 +107,7 @@ Set up associated deals as dropdown options:
 and address as free input field.
 
 ```js
-{! client/src/config-copy.json [ln:27-42] !}
+{! server/src/adapters/testCRM/config.json [ln:35-48] !}
 ```
 
 #### Custom SMS log fields
@@ -102,13 +115,13 @@ and address as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! client/src/config-copy.json [ln:43-52] !}
+{! server/src/adapters/testCRM/config.json [ln:51-64] !}
 ```
 
 ## Sample config file
 
-Here is a [sample config file](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/client/src/config-copy.json) that illustrates the full syntax and structure of the config file. 
+Here is a sample config file that illustrates the full syntax and structure of the config file. 
 
 ```js
-{! client/src/config-copy.json !}
+{! server/src/adapters/testCRM/config.json !}
 ```

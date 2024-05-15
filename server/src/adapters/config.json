@@ -38,7 +38,7 @@
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/pipedrive/",
-                    "VideoLink": "https://youtu.be/Hu0qC13HDkQ"
+                    "videoLink": "https://youtu.be/Hu0qC13HDkQ"
                 }
             }
         },
@@ -130,7 +130,7 @@
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
-                    "VideoLink": "https://youtu.be/5hWvVI12UAc"
+                    "videoLink": "https://youtu.be/5hWvVI12UAc"
                 }
             }
         },
@@ -174,7 +174,7 @@
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
-                    "VideoLink": "https://youtu.be/pQgdsAR1UCI"
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
                 }
             }
         },
@@ -210,7 +210,7 @@
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/redtail/",
-                    "VideoLink": "https://youtu.be/1pbpbEvp5uQ"
+                    "videoLink": "https://youtu.be/1pbpbEvp5uQ"
                 }
             }
         },
@@ -249,7 +249,7 @@
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
-                    "VideoLink": "https://youtu.be/afbdQD0y4Yo"
+                    "videoLink": "https://youtu.be/afbdQD0y4Yo"
                 }
             }
         }

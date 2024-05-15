@@ -36,12 +36,12 @@ Finally, now that you have in your context the full user record, your adapter wi
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:121-141]!}
+    {!> server/src/adapters/testCRM/index.js [ln:86-106]!}
     ```
 
 === "Pipedrive adapter"
 
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:83-105]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:42-64]!}
     ```
 

@@ -32,11 +32,7 @@ The server should return an ARRAY of possible matches for the given phone number
 | `name`           | The full name of the contact in the target CRM.                   |
 | `phone`          | The phone number of the contact as stored in the CRM.             |
 | `organization`   | The company name or affiliation of the contact in the target CRM. |
-| `additionalInfo` | TODO                                                                  |
-
-#### Additional info
-
-TODO
+| `additionalInfo` | Correspondes to contact-dependent `additionalFields` for Call/Message page |
 
 ### Example
 
@@ -51,7 +47,7 @@ TODO
 	    'associations': [
 		   {
 		      'id': 1837202932,
-			  'label': 'Jedi Order' 
+			    'label': 'Jedi Order' 
 		   }
 		]
 	}
@@ -63,11 +59,11 @@ TODO
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:143-177]!}
+    {!> server/src/adapters/testCRM/index.js [ln:335-363]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:107-141]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:66-100]!}
     ```
 

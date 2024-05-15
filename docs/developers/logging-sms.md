@@ -14,21 +14,27 @@ The Unified CRM extension allows users to log in their CRM all forms of communic
 | Name             | Description                                                                     |
 |------------------|---------------------------------------------------------------------------------|
 | `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
+|`logInfo`| RingCentral message log |
+| `additionalSubmission` | Submitted form data from `additionalFields`|
+|`contactId`| Contact ID|
+|`contactType`| Contact type|
+|`contactName`| Contact name|
 
 ### Response
 
 | Name   | Description |
 |--------|-------------|
-| `TODO` | TODO        |
+| `successful` | `true` or `false` |
+|`logIds`| Log IDs        |
 
 ### Sample code
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:281-312]!}
+    {!> server/src/adapters/testCRM/index.js [ln:246-310]!}
     ```
 
-=== "Pipedrive adapter"
+=== "Clio adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:236-262]!}
+    {!> server/src/adapters/clio/index.js [ln:250-344]!}
     ```

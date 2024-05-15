@@ -29,10 +29,10 @@ In the event that no contact could be found with an associated phone number, the
 
 === "Sample adapter"
     ```js
-    {!> server/src/platformModules/testCRM/index.js [ln:313-373]!}
+    {!> server/src/adapters/testCRM/index.js [ln:312-372]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/platformModules/pipedrive/index.js [ln:154-169]!}
+    {!> server/src/adapters/pipedrive/index.js [ln:113-128]!}
     ```

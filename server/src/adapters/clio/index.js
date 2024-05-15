@@ -305,32 +305,6 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function getCallLog({ user, callLogId, authHeader }) {
-    const formattedLogId = callLogId.split('.')[0];
-    const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const note = getLogRes.data.data.body.includes('[Call recording link]') ?
-        getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
-        getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
-    const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
-        getLogRes.data.data.senders[0].id :
-        getLogRes.data.data.receivers[0].id;
-    const contactRes = await axios.get(
-        `https://${user.hostname}/api/v4/contacts/${contactId}.json?fields=name`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    return {
-        subject: getLogRes.data.data.subject,
-        note,
-        contactName: contactRes.data.data.name
-    }
-}
-
-
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
@@ -368,6 +342,33 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             headers: { 'Authorization': authHeader }
         });
 }
+
+async function getCallLog({ user, callLogId, authHeader }) {
+    const formattedLogId = callLogId.split('.')[0];
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const note = getLogRes.data.data.body.includes('[Call recording link]') ?
+        getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
+        getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
+    const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
+        getLogRes.data.data.senders[0].id :
+        getLogRes.data.data.receivers[0].id;
+    const contactRes = await axios.get(
+        `https://${user.hostname}/api/v4/contacts/${contactId}.json?fields=name`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    return {
+        subject: getLogRes.data.data.subject,
+        note,
+        contactName: contactRes.data.data.name
+    }
+}
+
+
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;

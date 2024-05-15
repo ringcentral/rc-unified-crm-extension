@@ -2,6 +2,16 @@
 
 {! docs/developers/beta_notice.inc !}
 
+### Register a RingCentral application
+
+The first step is to login to the [RingCentral Developer Console](https://developers.ringcentral.com/), and register an application. When you register an application, be sure to use the following settings:
+
+* Set the auth type to "Client-side web app"
+* Set the OAuth Redirect URI to `https://ringcentral.github.io/ringcentral-embeddable/redirect.html` 
+* Set the application scopes to the following: Read Messages, Read Presence, Read Contacts, Read Call Log, Read Accounts, Call Control, VoIP Calling, WebSocket Subscriptions, Ring Out, SMS, Internal Messages, Webhook Subscription, Edit Messages, Edit Presence.
+
+Upon registering your application, you will be provisioned a Client ID and Clien Secret. Navigate to the "Credentials" tab and copy these values to your clipboard. You will need them later.
+
 There a number of behaviors that are triggered in response to key events associated with using the Unified CRM extension. These callbacks are invoked with the intent of performing one of the following browser functions:
 
 * Open a tab corresponding to an incoming call's associated contact record
@@ -33,12 +43,12 @@ The following hash is sent to the callback as an input parameter.
 
 === "Sample adapter"
     ```js
-    {!> client/src/platformModules/testCRM.js [ln:1-9]!}
+    {!> client/src/adapters/testCRM.js [ln:1-9]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> client/src/platformModules/pipedrive.js [ln:1-3]!}
+    {!> client/src/adapters/pipedrive.js [ln:1-3]!}
     ```
 
 ## Opening call log page
@@ -54,12 +64,12 @@ When the `canOpenLogPage` config option is set to `true` in the [config file](co
 
 === "Sample adapter"
     ```js
-    {!> client/src/platformModules/testCRM.js [ln:14-23]!}
+    {!> client/src/adapters/testCRM.js [ln:14-23]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> client/src/platformModules/pipedrive.js [ln:5-7]!}
+    {!> client/src/adapters/pipedrive.js [ln:5-7]!}
     ```
 
 ### Deauthorizing users
@@ -71,16 +81,35 @@ When a user logs out of a CRM via the Unified CRM extension, then this callback 
 
 === "Sample adapter"
     ```js
-    {!> client/src/platformModules/testCRM.js [ln:10-12]!}
+    {!> client/src/adapters/testCRM.js [ln:10-12]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> client/src/platformModules/pipedrive.js [ln:9-11]!}
+    {!> client/src/adapters/pipedrive.js [ln:9-11]!}
     ```
 
 === "Bullhorn adapter"
     ```js
-    {!> client/src/platformModules/bullhorn.js [ln:14-17]!}
+    {!> client/src/adapters/bullhorn.js [ln:14-17]!}
     ```
 
+## Building the Chrome extension
+
+Build scripts have been provided to assist you in building the Chrome extension you will install in your browser. 
+
+1. Build the Chrome extension
+
+    ```
+	cd rc-unified-crm-extension/client
+	npm run build
+	```
+
+    When you have completed the above, inside the `rc-unified-crm-extension/client` directory you will find a `build/dist` directory. The dist folder contains your Chrome extension. 
+	
+2. Install the Chrome extension
+
+    * Open your Chrome web browser
+	* From the "Window" menu, select "Extensions"
+	* Click "Load unpacked"
+	* Select the `dist` folder created in the previous step
