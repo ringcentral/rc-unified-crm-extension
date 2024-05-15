@@ -29,12 +29,13 @@ Welcome to RingCentral's Unified CRM integration framework. Using this framework
 
 Each CRM supported by this framework is required to implement what is referred to as an "adapter." Adapters help broker communications between the client application (the dialer and primary user interface) and the CRM being integrated with. 
 
+(TODO: below image needs to be updated to remove CRM adapter on client side)
+
 ![Adapter architecture diagram](../img/adapter-arch.png)
 
 Each adapter implements the following components:
 
 * A configuration file, or manifest that defines basic metadata and provides a no-code interface for defining common user interactions. 
-* A set of client-side callbacks written in Javascript that is packaged with the Chrome extension and invoked in response to specific UI events.
 * A server that implements a prescribed interface that is invoked by the front-end client to perform more complex interactions with the CRM. 
 
 In this guide, you will learn how to build, package and distribute an adapter for a CRM.

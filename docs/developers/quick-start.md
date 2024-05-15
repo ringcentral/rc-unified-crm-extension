@@ -4,7 +4,7 @@
 
 The Unified CRM integration framework help developers connect the embedded RingCentral client application that comes bundled with the Unified CRM extension to a variety of CRMs. Connectivity to each CRM is handled by an "adapter."
 
-This quick start will guide you through the process of configuring and building an instance of the framework using the sample adapter that comes bundled in the framework. This sample adapter does not actually connect to a CRM, and without modification it basically does nothing. Instead, it serves as a template for the custom adapter you will eventually build. 
+This quick start will guide you through the process of configuring and building an instance of the framework using the sample adapter that comes bundled in the framework. This sample adapter does not actually connect to a CRM. It runs with mock data and serves as a template for the custom adapter you will eventually build.
 
 Let's begin.
 
@@ -62,41 +62,11 @@ Open up a console and within it, follow these instructions.
 	npm run start
 	```
 
-### Build and install the client
+### Install and configure the client
 
-Next, you need to build and package the Chrome extension that will provide the integrated phone and client application that end user will interface with. 
+1. Download and install the Chrome extension from https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh?hl=en
 
-1. Install the necessary prerequisites
-
-    ```
-	cd client
-	npm i
-	```
-
-2. Edit the client's config file in the `rc-unified-crm-extension/client/src` directory
-
-    ```
-	cp config-copy.json config.json
-	```
-	
-	Edit `config.json` and set the following values:
-	* Set `serverUrl` to your personalized ngrok URL above.
-	* Set `clientId` to the client of the RingCentral application you registered earlier.
-
-3. Build the Chrome extension from the `rc-unified-crm-extension/client` directory
-
-    ```
-	npm run build
-	```
-
-    When you have completed the above, inside the `rc-unified-crm-extension/client` directory you will find a `build/dist` directory. 
-	
-4. Install the client
-
-    * Open your Chrome web browser
-	* From the "Window" menu, select "Extensions"
-	* Click "Load unpacked"
-	* Select the `dist` folder created in the previous step
+2. Right click extension's icon and go to Options, change `Custom CRM config url` to `https://xxx.ngrok.io/crmConfig?platformName=testCRM` and save.
 
 ### Try it out
 
