@@ -46,7 +46,7 @@ Open up a console and within it, follow these instructions.
 	npm run ngrok
 	```
 	
-    Make note of your personalized ngrok URL.
+    Make note of your personalized ngrok URL (referred as `https://xxxx.ngrok.app` below).
 	
 3. Edit your server's config file in the `rc-unified-crm-extension/server` directory
 
@@ -55,8 +55,12 @@ Open up a console and within it, follow these instructions.
 	```
 	
 	Edit `.env` and set `APP_SERVER` equal to your personalized ngrok URL above. 
-	
-4. Start your server from the `rc-unified-crm-extension/server` directory
+
+4. Edit test CRM config file in the `rc-unified-crm-extension/server/src/adapters/testCRM` directory
+
+	Change `serverUrl` in `config.json` to `https://xxxx.ngrok.app`
+
+5. Start your server from the `rc-unified-crm-extension/server` directory
 
     ```
 	npm run start
@@ -66,7 +70,7 @@ Open up a console and within it, follow these instructions.
 
 1. Download and install the Chrome extension from https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh?hl=en
 
-2. Right click extension's icon and go to Options, change `Custom CRM config url` to `https://xxx.ngrok.io/crmConfig?platformName=testCRM` and save.
+2. Right click extension's icon and go to Options, change `Custom CRM config url` to `https://xxxx.ngrok.app/crmConfig?platformName=testCRM` and save.
 
 ### Try it out
 

@@ -261,7 +261,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
-    console.log(`adding message log... \n\n${JSON.stringify(callLog, null, 2)}`);
+    console.log(`adding message log... \n\n${JSON.stringify(message, null, 2)}`);
     mockMessageLog = {
         id: 'testMessageLogId'
     }
@@ -270,14 +270,48 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             id: mockMessageLog.id
         }
     }
-    //---------------------------------------------------------------------------------
-    //---CHECK.7: Open db.sqlite and CRM website to check if message logs are saved ---
-    //---------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------------------
+    //---CHECK.7: For single message logging, open db.sqlite and CRM website to check if message logs are saved ---
+    //-------------------------------------------------------------------------------------------------------------
     return addLogRes.data.id;
 }
+
+// Used to update existing message log so to group message in the same day together
+async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader}){
+    // ---------------------------------------
+    // ---TODO.8: Implement message logging---
+    // ---------------------------------------
+
+    // const existingLogId = existingMessageLog.thirdPartyLogId;
+    // const getLogRes = await axios.get(
+    //     `https://api.crm.com/activity/${existingLogId}`,
+    //     {
+    //         headers: { 'Authorization': authHeader }
+    //     });
+    // const originalNote = getLogRes.data.body;
+    // const updateNote = orginalNote.replace();
+
+    // const patchBody = {
+    //     data: {
+    //         body: updateNote,
+    //     }
+    // }
+    // const updateLogRes = await axios.patch(
+    //     `https://api.crm.com/activity`,
+    //     patchBody,
+    //     {
+    //         headers: { 'Authorization': authHeader }
+    //     });
+    console.log(`update message log with... \n\n${JSON.stringify(message, null, 2)}`);
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+    //---CHECK.8: For multiple messages or additional message during the day, open db.sqlite and CRM website to check if message logs are saved ---
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+}
+
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
     // ----------------------------------------
-    // ---TODO.8: Implement contact creation---
+    // ---TODO.9: Implement contact creation---
     // ----------------------------------------
 
     const postBody = {
@@ -329,7 +363,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 
     //--------------------------------------------------------------------------------
-    //---CHECK.8: In extension, try create a new contact against an unknown number ---
+    //---CHECK.9: In extension, try create a new contact against an unknown number ---
     //--------------------------------------------------------------------------------
     return {
         id: contactInfoRes.id,
@@ -345,6 +379,7 @@ exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getContact = getContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
