@@ -26,7 +26,6 @@ Open up a console and within it, follow these instructions.
 1. Install the necessary prerequisites
 
     ```
-	cd server
 	npm i
 	```
 
