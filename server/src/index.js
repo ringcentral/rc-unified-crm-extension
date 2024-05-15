@@ -10,6 +10,7 @@ const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
+const releaseNotes = require('../../releaseNotes.json');
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -306,5 +307,9 @@ app.post('/messageLog', async function (req, res) {
         res.status(400).send(e);
     }
 });
+
+app.get('/releaseNotes', async function (req, res) {
+    res.json(releaseNotes);
+})
 
 exports.server = app;

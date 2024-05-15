@@ -235,7 +235,7 @@ window.addEventListener('message', async (e) => {
           // Check version and show release notes
           const registeredVersionInfo = await chrome.storage.local.get('rc-crm-extension-version');
           if (!!registeredVersionInfo[['rc-crm-extension-version']]) {
-            const releaseNotesPageRender = releaseNotesPage.getReleaseNotesPageRender({ config, platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
+            const releaseNotesPageRender = await releaseNotesPage.getReleaseNotesPageRender({ config, platformName, registeredVersion: registeredVersionInfo['rc-crm-extension-version'] });
             if (!!releaseNotesPageRender) {
               document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
                 type: 'rc-adapter-register-customized-page',

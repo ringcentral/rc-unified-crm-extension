@@ -1,6 +1,8 @@
-const releaseNotes = require('../../../releaseNotes.json')
+import axios from 'axios';
 
-function getReleaseNotesPageRender({ config, platformName, registeredVersion }) {
+async function getReleaseNotesPageRender({ config, platformName, registeredVersion }) {
+    const releaseNotesResponse = await axios.get(`${config.serverUrl}/releaseNotes`);
+    const releaseNotes = releaseNotesResponse.data;
     const registeredVersionNumbers = registeredVersion.split('.').map(v => parseInt(v));
     const currentVersionNumbers = config.version.split('.').map(v => parseInt(v));
     if (!!releaseNotes[config.version] &&
