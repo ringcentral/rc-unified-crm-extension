@@ -10,7 +10,7 @@ Technically your adapter's server could be deployed anywhere. You could host it 
 1. Customize your environment
     
     ```js
-	cd rc-unified-crm-extension/server/serverless-deploy
+	cd rc-unified-crm-extension/serverless-deploy
 	cp sample.env.yml env.yml
 	```
 	

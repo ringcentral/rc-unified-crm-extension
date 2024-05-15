@@ -14,11 +14,11 @@ Each adapter provides a configuration that in some ways also acts as a manifest 
 
 ## Test sample
 
-Under `server/src/adapters/testCRM`, there's an existing `config.json` as a test sample. 
+Under `src/adapters/testCRM`, there's an existing `config.json` as a test sample. 
 
 ## Config file
 
-You should create a folder `server/src/adapters/{yourCrmName}` and then create a config file under it as `config.json`.
+You should create a folder `src/adapters/{yourCrmName}` and then create a config file under it as `config.json`.
 
 ## Configuration options
 
@@ -66,7 +66,7 @@ There are a number of pages within the Unified CRM client application that often
 === "Sample adapter"
 
     ```js
-    {!> server/src/adapters/testCRM/config.json [ln:23-33] !}
+    {!> src/adapters/testCRM/config.json [ln:23-33] !}
     ```
 
 ![Auth page](../img/test-auth-page.png)
@@ -74,7 +74,7 @@ There are a number of pages within the Unified CRM client application that often
 === "Insightly adapter"
 
     ```js
-    {!> server/src/adapters/config.json [ln:57-84] !}
+    {!> src/adapters/config.json [ln:57-84] !}
     ```
 
 ![Auth page](../img/insightly-auth-page.png)
@@ -107,7 +107,7 @@ Set up associated deals as dropdown options:
 and address as free input field.
 
 ```js
-{! server/src/adapters/testCRM/config.json [ln:35-48] !}
+{! src/adapters/testCRM/config.json [ln:35-48] !}
 ```
 
 #### Custom SMS log fields
@@ -115,7 +115,7 @@ and address as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! server/src/adapters/testCRM/config.json [ln:51-64] !}
+{! src/adapters/testCRM/config.json [ln:51-64] !}
 ```
 
 ## Sample config file
@@ -123,5 +123,5 @@ Set up associated deals the same as call log
 Here is a sample config file that illustrates the full syntax and structure of the config file. 
 
 ```js
-{! server/src/adapters/testCRM/config.json !}
+{! src/adapters/testCRM/config.json !}
 ```

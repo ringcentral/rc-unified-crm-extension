@@ -46,7 +46,7 @@ Open up a console and within it, follow these instructions.
 	
 	Edit `.env` and set `APP_SERVER` equal to your personalized ngrok URL above. 
 
-4. Edit test CRM config file in the `rc-unified-crm-extension/server/src/adapters/testCRM` directory
+4. Edit test CRM config file in the `rc-unified-crm-extension/src/adapters/testCRM` directory
 
 	Change `serverUrl` in `config.json` to `https://xxxx.ngrok.app`
 

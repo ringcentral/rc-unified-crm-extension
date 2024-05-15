@@ -11,9 +11,9 @@ serverless.yml
 *~
 **/.#*
 
-server/serverless-deploy/*
+serverless-deploy/*
 client/dist.zip
 client/src/config.json
-/server/test.js
+/test.js
 /devFlow.puml
 /devGuideDraft.md

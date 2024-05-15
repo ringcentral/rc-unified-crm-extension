@@ -46,12 +46,12 @@ Below you will find more information about each of these interfaces.
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:144-179]!}
+    {!> src/adapters/testCRM/index.js [ln:144-179]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/adapters/pipedrive/index.js [ln:130-155]!}
+    {!> src/adapters/pipedrive/index.js [ln:130-155]!}
     ```
 
 ## Loading a log for a phone call
@@ -79,12 +79,12 @@ Below you will find more information about each of these interfaces.
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:181-205]!}
+    {!> src/adapters/testCRM/index.js [ln:181-205]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/adapters/pipedrive/index.js [ln:223-242]!}
+    {!> src/adapters/pipedrive/index.js [ln:223-242]!}
     ```
 
 ## Updating the log for a phone call
@@ -115,10 +115,10 @@ Below you will find more information about each of these interfaces.
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:207-244]!}
+    {!> src/adapters/testCRM/index.js [ln:207-244]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/adapters/pipedrive/index.js [ln:157-193]!}
+    {!> src/adapters/pipedrive/index.js [ln:157-193]!}
     ```

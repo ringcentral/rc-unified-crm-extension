@@ -28,7 +28,7 @@ The server will need to decrypt the `jwtToken` received in the request using the
 }
 ```
 
-The server then needs to lookup the [User](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/server/src/models/userModel.js) associated with the provided `id` in the server's database. 
+The server then needs to lookup the [User](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/src/models/userModel.js) associated with the provided `id` in the server's database. 
 
 Finally, now that you have in your context the full user record, your adapter will need to make the necessary API calls to deauthorize the user's session with the associated CRM. 
 
@@ -36,12 +36,12 @@ Finally, now that you have in your context the full user record, your adapter wi
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:86-106]!}
+    {!> src/adapters/testCRM/index.js [ln:86-106]!}
     ```
 
 === "Pipedrive adapter"
 
     ```js
-    {!> server/src/adapters/pipedrive/index.js [ln:42-64]!}
+    {!> src/adapters/pipedrive/index.js [ln:42-64]!}
     ```
 

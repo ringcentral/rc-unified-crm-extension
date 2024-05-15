@@ -31,10 +31,10 @@ The Unified CRM extension allows users to log in their CRM all forms of communic
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:246-310]!}
+    {!> src/adapters/testCRM/index.js [ln:246-310]!}
     ```
 
 === "Clio adapter"
     ```js
-    {!> server/src/adapters/clio/index.js [ln:250-344]!}
+    {!> src/adapters/clio/index.js [ln:250-344]!}
     ```

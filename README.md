@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/ringcentral/rc-unified-crm-extension/workflows/CI%20Pipeline/badge.svg?branch=master)](https://github.com/ringcentral/rc-unified-crm-extension/actions)
 
-[![Coverage Status](https://coveralls.io/repos/github/ringcentral/rc-unified-crm-extension/server/badge.svg?branch=master)](https://coveralls.io/github/ringcentral/rc-unified-crm-extension/server?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/ringcentral/rc-unified-crm-extension/badge.svg?branch=master)](https://coveralls.io/github/ringcentral/rc-unified-crm-extension?branch=master)
 
 ## Looking for user documentation?
 

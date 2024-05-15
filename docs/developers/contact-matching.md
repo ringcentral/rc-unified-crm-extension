@@ -59,11 +59,11 @@ The server should return an ARRAY of possible matches for the given phone number
 
 === "Sample adapter"
     ```js
-    {!> server/src/adapters/testCRM/index.js [ln:335-363]!}
+    {!> src/adapters/testCRM/index.js [ln:335-363]!}
     ```
 
 === "Pipedrive adapter"
     ```js
-    {!> server/src/adapters/pipedrive/index.js [ln:66-100]!}
+    {!> src/adapters/pipedrive/index.js [ln:66-100]!}
     ```
 
