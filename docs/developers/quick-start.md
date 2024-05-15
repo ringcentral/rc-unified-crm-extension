@@ -8,16 +8,6 @@ This quick start will guide you through the process of configuring and building 
 
 Let's begin.
 
-### Register a RingCentral application
-
-The first step is to login to the [RingCentral Developer Console](https://developers.ringcentral.com/), and register an application. When you register an application, be sure to use the following settings:
-
-* Set the auth type to "Client-side web app"
-* Set the OAuth Redirect URI to `https://ringcentral.github.io/ringcentral-embeddable/redirect.html` 
-* Set the application scopes to the following: Read Messages, Read Presence, Read Contacts, Read Call Log, Read Accounts, Call Control, VoIP Calling, WebSocket Subscriptions, Ring Out, SMS, Internal Messages, Webhook Subscription, Edit Messages, Edit Presence.
-
-Upon registering your application, you will be provisioned a Client ID and Clien Secret. Navigate to the "Credentials" tab and copy these values to your clipboard. You will need them later.
-
 ### Clone or fork the framework's repository
 
 Let's begin by downloading the framework to your development machine.
