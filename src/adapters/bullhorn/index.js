@@ -272,7 +272,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         'BEGIN<br>' +
         '------------<br>' +
         '<ul>' +
-        `<li>${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>` +
         '</ul>' +
         '------------<br>' +
@@ -293,7 +293,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.changedEntityId;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
     try {
@@ -313,7 +313,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.data.comments;
     let patchBody = {};
     const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
     logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
 

@@ -16,7 +16,7 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ authHeader }) {
+async function getUserInfo({ authHeader, hostname }) {
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
             'Authorization': authHeader
@@ -35,7 +35,8 @@ async function getUserInfo({ authHeader }) {
             companyId: userInfoResponse.data.data.company_id,
             companyName: userInfoResponse.data.data.company_name,
             companyDomain: userInfoResponse.data.data.company_domain,
-        }
+        },
+        overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
     };
 }
 
@@ -193,19 +194,43 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+        headers: {
+            'Authorization': authHeader
+        }
+    });
+    const userName = userInfoResponse.data.data.name;
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const orgId = contactInfo.organization ? contactInfo.organization.id : '';
     const timeUtc = moment(message.creationTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
+    const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const note =
+        `<br><b>${subject}</b><br>` +
+        '<b>Conversation summary</b><br>' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+        'Participants<br>' +
+        `<ul><li><b>${userName}</b><br></li>` +
+        `<li><b>${contactInfo.name}</b></li></ul><br>` +
+        'Conversation(1 messages)<br>' +
+        'BEGIN<br>' +
+        '------------<br>' +
+        '<ul>' +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>` +
+        '</ul>' +
+        '------------<br>' +
+        'END<br><br>' +
+        '--- Created via RingCentral CRM Extension';
     const postBody = {
         user_id: user.id,
-        subject: `${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${contactInfo.name}(${message.to[0].phoneNumber})`,
+        subject,
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Time] ${moment(message.creationTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p>${!!message.subject ? `<p>[Message] ${message.subject}</p>` : ''} ${!!recordingLink ? `\n<p>[Recording link] ${recordingLink}</p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
+        note,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc,
@@ -219,6 +244,42 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         });
     return addLogRes.data.data.id;
 }
+
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+        headers: {
+            'Authorization': authHeader
+        }
+    });
+    const userName = userInfoResponse.data.data.name;
+    const getLogRes = await axios.get(
+        `https://${user.hostname}/v1/activities/${existingLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let logBody = getLogRes.data.data.note;
+    let putBody = {};
+    const newMessageLog =
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>`;
+    logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
+
+    const regex = RegExp('<br>Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+
+    putBody = {
+        note: logBody
+    }
+    const putLogRes = await axios.put(
+        `https://${user.hostname}/v1/activities/${existingLogId}`,
+        putBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+}
+
 
 async function getCallLog({ user, callLogId, authHeader }) {
     const getLogRes = await axios.get(
@@ -247,6 +308,7 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.createContact = createContact;

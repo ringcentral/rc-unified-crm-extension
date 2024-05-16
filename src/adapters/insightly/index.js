@@ -364,9 +364,30 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+    const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+        headers: {
+            'Authorization': authHeader
+        }
+    });;
+    const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
+    const title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const details =
+        '\nConversation summary\n' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+        'Participants\n' +
+        `    ${userName}\n` +
+        `    ${contactInfo.name}\n` +
+        '\nConversation(1 messages)\n' +
+        'BEGIN\n' +
+        '------------\n' +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n` +
+        '------------\n' +
+        'END\n\n' +
+        '--- Created via RingCentral CRM Extension';
     const postBody = {
-        TITLE: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}` : `to ${contactInfo.name}`}`,
-        DETAILS: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+        TITLE: title,
+        DETAILS: details,
         START_DATE_UTC: moment(message.creationTime).utc(),
         END_DATE_UTC: moment(message.creationTime).utc()
     }
@@ -402,12 +423,51 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.EVENT_ID;
 }
 
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+        headers: {
+            'Authorization': authHeader
+        }
+    });;
+    const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
+    let logBody = getLogRes.data.DETAILS;
+    let putBody = {};
+    const originalNote = logBody.split('BEGIN\n------------\n')[1];
+    const newMessageLog =
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n`;
+    logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+
+    const regex = RegExp('Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+
+    putBody = {
+        EVENT_ID: existingLogId,
+        DETAILS:logBody,
+        END_DATE_UTC: moment(message.creationTime).utc()
+    }
+    const putLogRes = await axios.put(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
+        putBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+}
+
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.createContact = createContact;

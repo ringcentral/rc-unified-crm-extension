@@ -186,9 +186,28 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const userName = user.id;
+    const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const description =
+        `<br><b>${subject}</b><br>` +
+        '<b>Conversation summary</b><br>' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+        'Participants<br>' +
+        `<ul><li><b>${userName}</b><br></li>` +
+        `<li><b>${contactInfo.name}</b></li></ul><br>` +
+        'Conversation(1 messages)<br>' +
+        'BEGIN<br>' +
+        '------------<br>' +
+        '<ul>' +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>` +
+        '</ul>' +
+        '------------<br>' +
+        'END<br><br>' +
+        '--- Created via RingCentral CRM Extension';
     const postBody = {
-        subject: `${message.direction} SMS ${message.direction == 'Inbound' ? `from ${contactInfo.name}(${message.from.phoneNumber})` : `to ${contactInfo.name}(${message.to[0].phoneNumber})`}`,
-        description: `${!!message.subject ? `[Message] ${message.subject}` : ''}<br><br><em> Created via: <a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh?hl=en">RingCentral CRM Extension</a></span></em>`,
+        subject,
+        description,
         start_date: moment(message.creationTime).utc().toISOString(),
         end_date: moment(message.creationTime).utc().toISOString(),
         activity_code_id: 3,
@@ -214,6 +233,38 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
             headers: { 'Authorization': overrideAuthHeader }
         });
     return completeLogRes.data.activity.id;
+}
+
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    const userName = user.id;
+    const getLogRes = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
+        {
+            headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
+        });
+    let logBody = getLogRes.data.activity.description;
+    let putBody = {};
+    const newMessageLog =
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<b>${message.subject}</b></li>`;
+    logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
+
+    const regex = RegExp('<br>Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+
+    putBody = {
+        description: logBody,
+        end_date: moment(message.creationTime).utc().toISOString()
+    }
+    const putLogRes = await axios.patch(
+        `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
+        putBody,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -249,6 +300,7 @@ exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;
 exports.addMessageLog = addMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
 exports.getContact = getContact;
 exports.createContact = createContact;

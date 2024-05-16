@@ -277,7 +277,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 // Used to update existing message log so to group message in the same day together
-async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader}){
+async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader, contactNumber}){
     // ---------------------------------------
     // ---TODO.8: Implement message logging---
     // ---------------------------------------

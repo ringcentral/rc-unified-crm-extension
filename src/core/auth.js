@@ -14,14 +14,14 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, username });
+    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,
         tokenUrl,
         apiUrl,
         username,
-        hostname,
+        hostname: !!platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
         accessToken,
         refreshToken,
         tokenExpiry: expires
@@ -32,7 +32,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const platformModule = require(`../adapters/${platform}`);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, additionalInfo });
+    const platformUserInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,

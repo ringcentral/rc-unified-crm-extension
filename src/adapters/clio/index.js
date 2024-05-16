@@ -273,7 +273,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         '\nConversation(1 messages)\n' +
         'BEGIN\n' +
         '------------\n' +
-        `${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n` +
         '------------\n' +
         'END\n\n' +
@@ -305,7 +305,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
@@ -322,7 +322,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const newMessageLog =
-        `${message.direction === 'Inbound' ? contactInfo.name : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n`;
     logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 
