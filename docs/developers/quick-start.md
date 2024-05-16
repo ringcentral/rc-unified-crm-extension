@@ -61,6 +61,8 @@ Open up a console and within it, follow these instructions.
 
 2. Right click extension's icon and go to Options, change `Custom CRM config url` to `https://xxxx.ngrok.app/crmConfig?platformName=testCRM` and save.
 
+(If the option save failed, please try if you can manually open the config file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.)
+
 ### Try it out
 
 The sample CRM bundled with the framework is configured to only appear when you access the RingCentral Developer website. 
