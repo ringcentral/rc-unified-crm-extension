@@ -87,6 +87,9 @@ chrome.runtime.onMessage.addListener(
 );
 
 function Root() {
+  if (window.location.href.startsWith('https://app.bullhornstaffing.com/content')) {
+    return;
+  }
   return (
     <RcThemeProvider>
       <App />
