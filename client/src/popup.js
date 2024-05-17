@@ -262,6 +262,9 @@ window.addEventListener('message', async (e) => {
               openContactPage({ phoneNumber: data.call.direction === 'Inbound' ? data.call.from.phoneNumber : data.call.to.phoneNumber });
             }
           }
+          if (data.call.telephonyStatus === 'CallConnected') {
+            window.postMessage({ type: 'rc-expandable-call-note-open', sessionId: data.call.sessionId }, '*');
+          }
           break;
         case 'rc-analytics-track':
           switch (data.event) {
@@ -289,9 +292,9 @@ window.addEventListener('message', async (e) => {
             if (data.path.startsWith('/conversations/') || data.path.startsWith('/composeText')) {
               window.postMessage({ type: 'rc-expandable-call-note-terminate' }, '*');
             }
-            else if (data.path.startsWith('/calls/active/')) {
-              window.postMessage({ type: 'rc-expandable-call-note-open' }, '*');
-            }
+            // else if (data.path.startsWith('/calls/active/')) {
+            //   window.postMessage({ type: 'rc-expandable-call-note-open' }, '*');
+            // }
           }
           break;
         case 'rc-post-message-request':

@@ -40,12 +40,12 @@ export default () => {
             return;
         }
         if (e.data.type === 'rc-expandable-call-note-open') {
-            setIsOpen(true);
-            if(!!e.data.sessionId){
-                setSessionId(e.data.sessionId);
-            }
-            else{
+            if (!isOpen) {
+                setIsOpen(true);
                 setNote('');
+                if (!!e.data.sessionId) {
+                    setSessionId(e.data.sessionId);
+                }
             }
         }
         if (e.data.type === 'rc-expandable-call-note-terminate') {
