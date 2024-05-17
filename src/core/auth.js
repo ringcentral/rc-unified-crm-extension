@@ -14,7 +14,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname });
+    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,

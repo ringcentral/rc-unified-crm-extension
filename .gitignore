@@ -11,6 +11,7 @@ serverless.yml
 *~
 **/.#*
 
+/server/*
 serverless-deploy/*
 client/dist.zip
 client/src/config.json
