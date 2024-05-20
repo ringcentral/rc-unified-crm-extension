@@ -12,5 +12,5 @@ jobs:
         with:
           node-version: '14'
           registry-url: https://registry.npmjs.org/
-      - run: cd server&&npm i
+      - run: npm i
       - run: npm run test-coverage
