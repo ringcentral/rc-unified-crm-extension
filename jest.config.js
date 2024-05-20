@@ -9,7 +9,6 @@ module.exports = {
     '<rootDir>/tests/setup.js',
   ],
   reporters: ['default'],
-  maxConcurrency: 1,
   testEnvironment: 'node',
   coveragePathIgnorePatterns: ['/node_modules/'],
 };

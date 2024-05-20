@@ -1,6 +1,6 @@
 const request = require('supertest');
 const nock = require('nock');
-const platforms = require('../tests/platformInfo.json');
+const platforms = require('./platformInfo.json');
 const { server } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const { UserModel } = require('../src/models/userModel');
@@ -13,16 +13,49 @@ const rcUserNumber = '+123456789';
 const unknownPhoneNumber = 'unknownPhoneNumber';
 
 describe('auth tests', () => {
-    describe('oauth login', () => {
-        describe('validations', () => {
-            test('no platform - error', async () => {
-                // Act
-                const res = await request(server).get(`/oauth-callback`)
+    describe('login', () => {
+        describe('oauth login', () => {
+            describe('validations', () => {
+                test('no callbackUri - error', async () => {
+                    // Act
+                    const res = await request(server).get(`/oauth-callback`)
 
-                // Assert
-                expect(res.status).toEqual(400);
+                    // Assert
+                    expect(res.status).toEqual(400);
+                    expect(res.error.text).toEqual('missing callbackUri');
+                })
+                test('no platform - error', async () => {
+                    // Act
+                    const res = await request(server).get(`/oauth-callback?callbackUri=https://callback?state=platformName=platformName`)
+
+                    // Assert
+                    expect(res.status).toEqual(400);
+                    expect(res.error.text).toEqual('missing platform name');
+                })
             })
-        })
+        });
+        describe('api key login', () => {
+            describe('validations', () => {
+                test('no platform - error', async () => {
+                    // Act
+                    const res = await request(server).post(`/apiKeyLogin`).send({
+                        apiKey: 'apiKey'
+                    });
+
+                    // Assert
+                    expect(res.status).toEqual(400);
+                })
+                test('no api key - error', async () => {
+                    // Act
+                    const res = await request(server).post(`/apiKeyLogin`).send({
+                        platform: 'platformName'
+                    });
+
+                    // Assert
+                    expect(res.status).toEqual(400);
+                })
+            })
+        });
     });
     describe('logout', () => {
         describe('get jwt validation', () => {

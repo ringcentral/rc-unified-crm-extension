@@ -111,9 +111,8 @@ app.get('/hostname', async function (req, res) {
 })
 app.get('/oauth-callback', async function (req, res) {
     try {
-        if (req.query.callbackUri === 'undefined') {
-            res.status(400).send('missing callbackUri');
-            return;
+        if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
+            throw 'missing callbackUri';
         }
         const platform = req.query.state ?
             req.query.state.split('platform=')[1] :
@@ -278,8 +277,8 @@ app.patch('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, logId } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, logId });
+            const { successful, logId, updatedDescription } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, logId, updatedDescription });
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');

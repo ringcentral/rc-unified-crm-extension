@@ -135,9 +135,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, timezoneOffset: user.timezoneOffset });
+            const updatedDescription = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, timezoneOffset: user.timezoneOffset });
             console.log(`updated call log: ${existingCallLog.id}`);
-            return { successful: true, logId: existingCallLog.thirdPartyLogId };
+            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedDescription };
         }
         return { successful: false };
     } catch (e) {

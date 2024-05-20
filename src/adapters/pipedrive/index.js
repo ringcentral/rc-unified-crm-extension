@@ -191,10 +191,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+    return putBody.note;
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+    const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
         }

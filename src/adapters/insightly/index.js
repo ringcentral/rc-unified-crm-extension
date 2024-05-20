@@ -339,6 +339,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+
+    return putBody.DETAILS;
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -450,7 +452,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 
     putBody = {
         EVENT_ID: existingLogId,
-        DETAILS:logBody,
+        DETAILS: logBody,
         END_DATE_UTC: moment(message.creationTime).utc()
     }
     const putLogRes = await axios.put(

@@ -14,6 +14,8 @@ const accessToken = 'accessToken';
 const phoneNumber = '+17206789819';
 const unknownPhoneNumber = '+17206789820';
 const extensionNumber = '224';
+const newContactId = 'newContacId';
+const newContactName = 'newContactName';
 
 beforeAll(async () => {
     for (const platform of platforms) {
@@ -41,24 +43,24 @@ afterAll(async () => {
 
 
 describe('contact tests', () => {
-    describe('get jwt validation', () => {
-        test('bad jwt - 400', async () => {
-            // Act
-            const res = await request(server).get(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
-
-            // Assert
-            expect(res.status).toEqual(400);
-        });
-        test('no jwt - 400', async () => {
-            // Act
-            const res = await request(server).get(`/contact?phoneNumber=${phoneNumber}`)
-
-            // Assert
-            expect(res.status).toEqual(400);
-            expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
-        });
-    });
     describe('get contact', () => {
+        describe('get jwt validation', () => {
+            test('bad jwt - 400', async () => {
+                // Act
+                const res = await request(server).get(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+            });
+            test('no jwt - 400', async () => {
+                // Act
+                const res = await request(server).get(`/contact?phoneNumber=${phoneNumber}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+            });
+        });
         test('cannot find user - unsuccessful', async () => {
             for (const platform of platforms) {
                 // Arrange
@@ -69,7 +71,7 @@ describe('contact tests', () => {
                 });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${phoneNumber}`);
+                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -95,7 +97,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${unknownPhoneNumber}`);
+                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${unknownPhoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -116,7 +118,7 @@ describe('contact tests', () => {
                 });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${extensionNumber}`);
+                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${extensionNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -161,7 +163,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&&phoneNumber=${phoneNumber}`);
+                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -173,4 +175,52 @@ describe('contact tests', () => {
             }
         });
     });
+    describe('create contact', () => {
+        describe('get jwt validation', () => {
+            test('bad jwt - 400', async () => {
+                // Act
+                const res = await request(server).post(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+            });
+            test('no jwt - 400', async () => {
+                // Act
+                const res = await request(server).post(`/contact?phoneNumber=${phoneNumber}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+            });
+        });
+        test('new contact - successful', async ()=>{
+            for (const platform of platforms) {
+                // Arrange
+                const jwtToken = jwt.generateJwt({
+                    id: userId,
+                    rcUserNumber,
+                    platform: platform.name
+                });
+                const platformCreateContactScope = nock(platform.domain)
+                    .post(platform.contactPath)
+                    .once()
+                    .reply(200, {
+                        data: {
+                            id: newContactId,
+                            name: newContactName
+                        }
+                    });
+
+                // Act
+                const res = await request(server).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
+
+                // Assert
+                expect(res.status).toEqual(200);
+                expect(res.body.successful).toEqual(true);
+
+                // Clean up
+                platformCreateContactScope.done();
+            }
+        })
+    })
 });

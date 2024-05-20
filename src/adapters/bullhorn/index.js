@@ -244,6 +244,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const postLogRes = await axios.post(
         `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
         postBody);
+    return postBody.comments;
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {

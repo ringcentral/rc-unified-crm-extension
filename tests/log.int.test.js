@@ -24,6 +24,9 @@ const phoneNumber = '+17206789819';
 const messageLogId = 'messageLogId';
 const unknownMessageLogId = 'unknownMessageLogId';
 const conversationId = 'conversationId';
+const username = 'username';
+const recordingLink = 'https://recording.link';
+const newNote = 'newNote';
 beforeAll(async () => {
     for (const platform of platforms) {
         await CallLogModel.create({
@@ -109,6 +112,23 @@ describe('call&message log tests', () => {
                 expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
+        describe('patch jwt validation', () => {
+            test('bad jwt - 400', async () => {
+                // Act
+                const res = await request(server).patch(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+            });
+            test('no jwt - 400', async () => {
+                // Act
+                const res = await request(server).patch(`/callLog?sessionId=${sessionId}`)
+
+                // Assert
+                expect(res.status).toEqual(400);
+                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+            });
+        });
         describe('get call log', () => {
             test('existing call log - matched', async () => {
                 for (const platform of platforms) {
@@ -134,7 +154,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logs[sessionId].matched).toEqual(true);
+                    expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
 
                     // Clean up
                     platformGetLogScope.done();
@@ -155,7 +175,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logs[unknownSessionId].matched).toEqual(false);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
                 }
             });
             test('known and unknown call log - first matched and second not matched', async () => {
@@ -181,8 +201,8 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logs[sessionId].matched).toEqual(true);
-                    expect(res.body.logs[unknownSessionId].matched).toEqual(false);
+                    expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
 
                     // Clean up
                     platformGetLogScope.done();
@@ -299,6 +319,104 @@ describe('call&message log tests', () => {
                 }
             });
         });
+        describe('update call log', () => {
+            test('not existing call log - unsuccessful', async () => {
+                for (const platform of platforms) {
+                    // Arrange
+                    const jwtToken = jwt.generateJwt({
+                        id: userId,
+                        rcUserNumber,
+                        platform: platform.name
+                    });
+                    // Act
+                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
+
+                    // Assert
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(false);
+                }
+            });
+            test('existing call log - update call recording link - successful', async () => {
+                for (const platform of platforms) {
+                    // Arrange
+                    const jwtToken = jwt.generateJwt({
+                        id: userId,
+                        rcUserNumber,
+                        platform: platform.name
+                    });
+                    const patchBody = {
+                        sessionId,
+                        recordingLink
+                    }
+                    const platformGetLogScope = nock(platform.domain)
+                        .get(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .once()
+                        .reply(200, {
+                            data: {
+                                note: '<p>[Note] 123</p>'
+                            }
+                        });
+                    const platformPatchLogScope = nock(platform.domain)
+                        .put(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .once()
+                        .reply(200);
+
+
+                    // Act
+                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
+
+                    // Assert
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(true);
+                    expect(res.body.logId).toEqual(thirdPartyLogId);
+                    expect(res.body.updatedDescription).toContain(recordingLink);
+
+                    // Clean up
+                    platformGetLogScope.done();
+                    platformPatchLogScope.done();
+                }
+            });
+            test('existing call log - update note - successful', async () => {
+                for (const platform of platforms) {
+                    // Arrange
+                    const jwtToken = jwt.generateJwt({
+                        id: userId,
+                        rcUserNumber,
+                        platform: platform.name
+                    });
+                    const patchBody = {
+                        sessionId,
+                        note: newNote
+                    }
+                    const platformGetLogScope = nock(platform.domain)
+                        .get(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .once()
+                        .reply(200, {
+                            data: {
+                                note: '</p><p>[Note] orginalNote</p>'
+                            }
+                        });
+                    const platformPatchLogScope = nock(platform.domain)
+                        .put(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .once()
+                        .reply(200);
+
+
+                    // Act
+                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
+
+                    // Assert
+                    expect(res.status).toEqual(200);
+                    expect(res.body.successful).toEqual(true);
+                    expect(res.body.logId).toEqual(thirdPartyLogId);
+                    expect(res.body.updatedDescription).toContain(newNote);
+
+                    // Clean up
+                    platformGetLogScope.done();
+                    platformPatchLogScope.done();
+                }
+            });
+        });
     });
     describe('message log', () => {
         describe('post jwt validation', () => {
@@ -387,6 +505,7 @@ describe('call&message log tests', () => {
                     });
                     const postBody = {
                         logInfo: {
+                            conversationId,
                             messages: [
                                 {
                                     id: messageLogId
@@ -405,10 +524,21 @@ describe('call&message log tests', () => {
                                 {
                                     phoneNumber
                                 }
-                            ]
+                            ],
+                            date: new Date()
                         },
                         contactId
                     };
+                    const platformGetUserScope = nock(platform.domain)
+                        .get(platform.userInfoPath)
+                        .once()
+                        .reply(200, {
+                            data: {
+                                data: {
+                                    name: username
+                                }
+                            }
+                        });
                     const platformActivityTypeScope = nock(platform.domain)
                         .get(platform.activityTypesPath)
                         .once()
@@ -430,12 +560,13 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logIds).toEqual([unknownThirdPartyLogId]);
+                    expect(res.body.logIds).toEqual([unknownMessageLogId]);
                     const newLog = await MessageLogModel.findByPk(unknownMessageLogId);
                     expect(newLog).not.toBeNull();
 
                     // Clean up
                     await newLog.destroy();
+                    platformGetUserScope.done();
                     platformActivityTypeScope.done();
                     platformAddMessageLogScope.done();
                 }
