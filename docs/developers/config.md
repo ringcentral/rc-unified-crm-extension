@@ -12,6 +12,8 @@ Each adapter provides a configuration that in some ways also acts as a manifest 
 * Define custom contact record types/categories
 * Customize the welcome screen for a given CRM
 
+Note: The extension has a fixed redirect uri: `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. It should suffice standard OAuth use cases. If there's any special case, please contact us.
+
 ## Test sample
 
 Under `src/adapters/testCRM`, there's an existing `config.json` as a test sample. 
@@ -20,11 +22,15 @@ Under `src/adapters/testCRM`, there's an existing `config.json` as a test sample
 
 You should create a folder `src/adapters/{yourCrmName}` and then create a config file under it as `config.json`.
 
+### Refresh config on client side
+
+Go to extension's option page and change `Custom CRM config url` to `{serverUrl}/crmConfig?platformName={crmName}` and save.
+
 ## Configuration options
 
 | Name             | Type            | Description |
 |------------------|-----------------|-------------|
-| `serverUrl`      | string          | Url for your server|
+| `serverUrl`      | string          | Domain url for your server|
 | `author`         | string          | (Optional) For client side app to track server identity |
 | `redirectUri`    | string          | Redirect Uri for RingCentral login |
 | `platforms`      | object          | Platform config object, explained [here](#platforms-config) |
@@ -38,11 +44,17 @@ You should create a folder `src/adapters/{yourCrmName}` and then create a config
 | `name`           | string          | The name of the CRM. |
 | `authType`       | string          | The supported auth type for the corresponding CRM. Only two values are supported: `oauth` and `apiKey`. |
 | `authUrl`        | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
+| `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+| `customState`| string |(Optional) Only if you want to override state query string in OAuth url |
 | `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
 | `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
 | `embeddedOnCrmPage` | object       | The rendering config for embedded page, explained [here](#customizing-the-welcome-message) |
 | `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
+
+The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
+
+Note: `customState` overrides state string. It'll be `state={customState}` instead.
 
 ## Customizing the welcome message
 

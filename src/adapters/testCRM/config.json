@@ -8,6 +8,8 @@
             "name": "testCRM",
             "authType": "apiKey",
             "clientId": "",
+            "customState": "",
+            "scope": "",
             "canOpenLogPage": false,
             "contactTypes": [
                 "TestContactType",
