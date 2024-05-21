@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">79.81% </span>
+                <span class="strong">85.32% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>87/109</span>
+                <span class='fraction'>93/109</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">59.09% </span>
+                <span class="strong">61.36% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>26/44</span>
+                <span class='fraction'>27/44</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">85.71% </span>
+                <span class="strong">92.85% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>12/14</span>
+                <span class='fraction'>13/14</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">79.62% </span>
+                <span class="strong">85.18% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>86/108</span>
+                <span class='fraction'>92/108</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -388,7 +388,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -397,16 +397,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -711,17 +711,17 @@ function getOauthInfo() {
     }
 }
 &nbsp;
-async function <span class="fstat-no" title="function not covered" >getUserInfo(</span>{ authHeader, hostname }) {
-    const userInfoResponse = <span class="cstat-no" title="statement not covered" >await axios.get('https://api.pipedrive.com/v1/users/me', {</span>
+async function getUserInfo({ authHeader, hostname }) {
+    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
             'Authorization': authHeader
         }
     });
-    const id = <span class="cstat-no" title="statement not covered" >userInfoResponse.data.data.id.toString();</span>
-    const name = <span class="cstat-no" title="statement not covered" >userInfoResponse.data.data.name;</span>
-    const timezoneName = <span class="cstat-no" title="statement not covered" >userInfoResponse.data.data.timezone_name;</span>
-    const timezoneOffset = <span class="cstat-no" title="statement not covered" >userInfoResponse.data.data.timezone_offset;</span>
-<span class="cstat-no" title="statement not covered" >    return {</span>
+    const id = userInfoResponse.data.data.id.toString();
+    const name = userInfoResponse.data.data.name;
+    const timezoneName = userInfoResponse.data.data.timezone_name;
+    const timezoneOffset = userInfoResponse.data.data.timezone_offset;
+    return {
         id,
         name,
         timezoneName,
@@ -731,7 +731,7 @@ async function <span class="fstat-no" title="function not covered" >getUserInfo(
             companyName: userInfoResponse.data.data.company_name,
             companyDomain: userInfoResponse.data.data.company_domain,
         },
-        overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
+        overridingHostname: hostname == 'temp' ? <span class="branch-0 cbranch-no" title="branch not covered" >`${userInfoResponse.data.data.company_domain}.pipedrive.com` </span>: null
     };
 }
 &nbsp;
@@ -1015,7 +1015,7 @@ exports.unAuthorize = unAuthorize;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-05-20T07:00:46.385Z
+                at 2024-05-21T04:59:26.250Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -97,7 +97,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberToQuery,
-                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters } : null
+                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters, logTimeEntry: true } : { logTimeEntry: true }
                 })
             }
         }

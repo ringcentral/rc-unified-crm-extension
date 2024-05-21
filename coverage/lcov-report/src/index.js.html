@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.25% </span>
+                <span class="strong">82.95% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>143/176</span>
+                <span class='fraction'>146/176</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.68% </span>
+                <span class="strong">78.94% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>28/38</span>
+                <span class='fraction'>30/38</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">81.71% </span>
+                <span class="strong">83.42% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>143/175</span>
+                <span class='fraction'>146/175</span>
             </div>
         
             
@@ -488,31 +488,31 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -806,14 +806,14 @@ app.get('/oauth-callback', async function (req, res) {
             throw 'missing callbackUri';
         }
         const platform = req.query.state ?
-<span class="branch-0 cbranch-no" title="branch not covered" >            req.query.state.split('platform=')[1] </span>:
+            req.query.state.split('platform=')[1] :
             decodeURIComponent(req.originalUrl.split('state=')[1].split('&amp;')[0]).split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
-        <span class="missing-if-branch" title="else path not taken" >E</span>if (!platform) {
+        if (!platform) {
             throw 'missing platform name';
         }
-        const userInfo = <span class="cstat-no" title="statement not covered" >await authCore.onOAuthCallback({</span>
+        const userInfo = await authCore.onOAuthCallback({
             platform,
             hostname,
             tokenUrl,
@@ -821,11 +821,11 @@ app.get('/oauth-callback', async function (req, res) {
             apiUrl: req.query.apiUrl,
             username: req.query.username
         });
-        const jwtToken = <span class="cstat-no" title="statement not covered" >jwt.generateJwt({</span>
+        const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             platform: platform
         });
-<span class="cstat-no" title="statement not covered" >        res.status(200).send({ jwtToken, name: userInfo.name });</span>
+        res.status(200).send({ jwtToken, name: userInfo.name });
     }
     catch (e) {
         console.log(e);
@@ -1009,7 +1009,7 @@ exports.server = app;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-05-20T07:00:46.385Z
+                at 2024-05-21T04:59:26.250Z
             </div>
         <script src="../prettify.js"></script>
         <script>

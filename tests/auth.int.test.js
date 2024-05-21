@@ -4,6 +4,7 @@ const platforms = require('./platformInfo.json');
 const { server } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const { UserModel } = require('../src/models/userModel');
+const oauth = require('../src/lib/oauth');
 
 // create test data
 const userId = 'userId';
@@ -11,6 +12,24 @@ const unknownUserId = 'unknownUserId';
 const unknownJwt = 'unknownJwt;'
 const rcUserNumber = '+123456789';
 const unknownPhoneNumber = 'unknownPhoneNumber';
+
+
+// Add this line to reset the mock before each test
+beforeEach(() => {
+    jest.clearAllMocks();
+});
+
+// clear test data in db
+afterEach(async () => {
+    for (const platform of platforms) {
+        await UserModel.destroy({
+            where: {
+                id: userId,
+                platform: platform.name
+            }
+        })
+    }
+});
 
 describe('auth tests', () => {
     describe('login', () => {
@@ -32,6 +51,49 @@ describe('auth tests', () => {
                     expect(res.status).toEqual(400);
                     expect(res.error.text).toEqual('missing platform name');
                 })
+                test('oauth callback - successful', async () => {
+                    for (const platform of platforms) {
+                        // Arrange
+                        const requestQuery = `callbackUri=https://callback?code=code&hostname=hostname&state=platform=${platform.name}`;
+                        oauth.getOAuthApp = jest.fn().mockReturnValue({
+                            code: {
+                                getToken: () => {
+                                    return {
+                                        accessToken: 'accessToken',
+                                        refreshToken: 'refreshToken',
+                                        expires: 'expires'
+                                    }
+                                }
+                            }
+                        });
+                        const platformGetUserInfoScope = nock(platform.userInfoDomain)
+                            .get(platform.userInfoPath)
+                            .once()
+                            .reply(200, {
+                                data: {
+                                    id: userId,
+                                    name: 'userName',
+                                    timezone_name: 'timezone_name',
+                                    timezone_offset: 0
+                                }
+                            });
+                        const jwtToken = jwt.generateJwt({
+                            id: userId,
+                            platform: platform.name
+                        });
+
+                        // Act
+                        const res = await request(server).get(`/oauth-callback?${requestQuery}`)
+
+                        // Assert
+                        expect(res.status).toEqual(200);
+                        expect(res.body.jwtToken).toEqual(jwtToken);
+                        expect(res.body.name).toEqual('userName');
+
+                        // Clean up
+                        platformGetUserInfoScope.done();
+                    }
+                });
             })
         });
         describe('api key login', () => {
