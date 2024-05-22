@@ -37,7 +37,7 @@ Open up a console and within it, follow these instructions.
 	
     Make note of your personalized ngrok URL (referred as `https://xxxx.ngrok.app` below).
 	
-3. Edit your server's config file in the `rc-unified-crm-extension/server` directory
+3. Edit your server's manifest file in the `rc-unified-crm-extension/server` directory
 
     ```
 	cp .env.test .env
@@ -45,9 +45,9 @@ Open up a console and within it, follow these instructions.
 	
 	Edit `.env` and set `APP_SERVER` equal to your personalized ngrok URL above. 
 
-4. Edit test CRM config file in the `rc-unified-crm-extension/src/adapters/testCRM` directory
+4. Edit test CRM manifest file in the `rc-unified-crm-extension/src/adapters/testCRM` directory
 
-	Change `serverUrl` in `config.json` to `https://xxxx.ngrok.app`
+	Change `serverUrl` in `manifest.json` to `https://xxxx.ngrok.app`
 
 5. Start your server from the `rc-unified-crm-extension/server` directory
 
@@ -59,9 +59,9 @@ Open up a console and within it, follow these instructions.
 
 1. Download and install the Chrome extension from https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh?hl=en
 
-2. Right click extension's icon and go to Options, change `Custom CRM config url` to `https://xxxx.ngrok.app/crmConfig?platformName=testCRM` and save.
+2. Right click extension's icon and go to Options, change `Custom CRM manifest url` to `https://xxxx.ngrok.app/crmManifest?platformName=testCRM` and save.
 
-(If the option save failed, please try if you can manually open the config file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.)
+(If the option save failed, please try if you can manually open the manifest file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.)
 
 ### Try it out
 

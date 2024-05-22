@@ -78,7 +78,7 @@ nav:
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
   - 'Client':
-    - 'Configuration': developers/config.md
+    - 'Manifest': developers/manifest.md
     - 'Callbacks': developers/client.md
   - 'Server': 
     - 'Overview and interfaces': developers/server.md

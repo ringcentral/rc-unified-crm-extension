@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://xxxx.ngrok.app",
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
     "author": "RingCentral Labs",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "platforms": {

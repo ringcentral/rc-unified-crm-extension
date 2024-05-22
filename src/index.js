@@ -33,16 +33,16 @@ app.use(cors({
     methods: ['GET', 'POST', 'PATCH']
 }));
 
-app.get('/crmConfig', (req, res) => {
+app.get('/crmManifest', (req, res) => {
     try {
         if (!!!req.query.platformName) {
-            const defaultCrmConfig = require('./adapters/config.json');
-            res.json(defaultCrmConfig);
+            const defaultCrmManifest = require('./adapters/manifest.json');
+            res.json(defaultCrmManifest);
             return;
         }
-        const crmConfig = require(`./adapters/${req.query.platformName}/config.json`);
-        if (!!crmConfig) {
-            res.json(crmConfig);
+        const crmManifest = require(`./adapters/${req.query.platformName}/manifest.json`);
+        if (!!crmManifest) {
+            res.json(crmManifest);
         }
         else {
             res.status(400).send('Platform not found');

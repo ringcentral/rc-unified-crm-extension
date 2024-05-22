@@ -53,7 +53,7 @@ The following hash is sent to the callback as an input parameter.
 
 ## Opening call log page
 
-When the `canOpenLogPage` config option is set to `true` in the [config file](config.md), then a new menu item will appear in the more menu for each call in the call history page. When a user clicks on This menu item labeled "Open log page," this callback is executed. The callback's function is to formulate a URL to the call log page, and open a new browser tab to that URL. 
+When the `canOpenLogPage` manifest option is set to `true` in the [manifest file](manifest.md), then a new menu item will appear in the more menu for each call in the call history page. When a user clicks on This menu item labeled "Open log page," this callback is executed. The callback's function is to formulate a URL to the call log page, and open a new browser tab to that URL. 
 
 * **Triggering event**: user clicks "Open call log" in the more menu of the phone's call history tab
 * **Callback input parameters**: 

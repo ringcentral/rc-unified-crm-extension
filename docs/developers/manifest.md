@@ -1,8 +1,8 @@
-# Configuring your adapter
+# Configuring your adapter manifest
 
 {! docs/developers/beta_notice.inc !}
 
-Each adapter provides a configuration that in some ways also acts as a manifest file. The config file not only provides key pieces of metadata to enable the framework to connect to the CRM, and display other properties to the user (name and so forth), but it also allows developers to customize the appearance of screens, add custom fields to various CRM object types, and more. Here is a list of things the config file enables for developers:
+Each adapter provides a configuration that in some ways also acts as a manifest file. The manifest file not only provides key pieces of metadata to enable the framework to connect to the CRM, and display other properties to the user (name and so forth), but it also allows developers to customize the appearance of screens, add custom fields to various CRM object types, and more. Here is a list of things the manifest file enables for developers:
 
 * Provide CRM connectivity and authorization details
 * Define custom fields for:
@@ -16,15 +16,15 @@ Note: The extension has a fixed redirect uri: `https://ringcentral.github.io/rin
 
 ## Test sample
 
-Under `src/adapters/testCRM`, there's an existing `config.json` as a test sample. 
+Under `src/adapters/testCRM`, there's an existing `manifest.json` as a test sample. 
 
-## Config file
+## Manifest file
 
-You should create a folder `src/adapters/{yourCrmName}` and then create a config file under it as `config.json`.
+You should create a folder `src/adapters/{yourCrmName}` and then create a manifest file under it as `manifest.json`.
 
-### Refresh config on client side
+### Refresh manifest on client side
 
-Go to extension's option page and change `Custom CRM config url` to `{serverUrl}/crmConfig?platformName={crmName}` and save.
+Go to extension's option page and change `Custom CRM manifest url` to `{serverUrl}/crmManifest?platformName={crmName}` and save.
 
 ## Configuration options
 
@@ -78,7 +78,7 @@ There are a number of pages within the Unified CRM client application that often
 === "Sample adapter"
 
     ```js
-    {!> src/adapters/testCRM/config.json [ln:23-33] !}
+    {!> src/adapters/testCRM/manifest.json [ln:23-33] !}
     ```
 
 ![Auth page](../img/test-auth-page.png)
@@ -86,7 +86,7 @@ There are a number of pages within the Unified CRM client application that often
 === "Insightly adapter"
 
     ```js
-    {!> src/adapters/config.json [ln:57-84] !}
+    {!> src/adapters/manifest.json [ln:57-84] !}
     ```
 
 ![Auth page](../img/insightly-auth-page.png)
@@ -119,7 +119,7 @@ Set up associated deals as dropdown options:
 and address as free input field.
 
 ```js
-{! src/adapters/testCRM/config.json [ln:35-48] !}
+{! src/adapters/testCRM/manifest.json [ln:35-48] !}
 ```
 
 #### Custom SMS log fields
@@ -127,13 +127,13 @@ and address as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! src/adapters/testCRM/config.json [ln:51-64] !}
+{! src/adapters/testCRM/manifest.json [ln:51-64] !}
 ```
 
-## Sample config file
+## Sample manifest file
 
-Here is a sample config file that illustrates the full syntax and structure of the config file. 
+Here is a sample manifest file that illustrates the full syntax and structure of the manifest file. 
 
 ```js
-{! src/adapters/testCRM/config.json !}
+{! src/adapters/testCRM/manifest.json !}
 ```
