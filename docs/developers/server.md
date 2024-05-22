@@ -4,6 +4,12 @@
 
 Each adapter will be configured to communicate with the corresponding server for that adapter. While the [sample server](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/src/adapters/testCRM/index.js) that is provided through this framework is implemented in Javascript, you are free to implement your server in whatever language you prefer -- provided that it implements the interface properly. 
 
+It is highly recommeded that you look at [Quick Start](./quick-start.md) before starting your development.
+
+## Flow
+
+![Flow](../img/flow.png)
+
 ## Interfaces
 
 Each server will need to implement each of the following interfaces:
