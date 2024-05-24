@@ -2,37 +2,21 @@
 
 {! docs/developers/beta_notice.inc !}
 
-In the event that no contact could be found with an associated phone number, then the client application will prompt a user to create a placeholder contact. If the user elects to create a placeholder contact, then this interface on the server will be invoked. 
+In the event that no contact could be found with an associated phone number, then the client application will prompt a user to create a placeholder contact.
 
-### Endpoint
+In the framework's logic, contact creation is coupled with call/message logging. It'll only be used in one case: logging a call/message against an unknown contact. Therefore, it can be described as:
 
-* HTTP method: POST
-* HTTP endpoint: `<server base URL>/contact`
+logging against an unknown contact = create a placeholder contact + logging against it
 
-### Request parameters
+## Implementation
 
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
-| `phoneNumber`    | The phone number associated with the contact that will be created.              |
-| `newContactName` | The name of the contact that will be created.                                   |
-| `newContactType` | The type of contact that will be created.                                       |
+Following interfaces need to be inplemented:
 
-### Response
+* `createContact`: create contact (`TODO.9`)
 
-| Name   | Description                                              |
-|--------|----------------------------------------------------------|
-| `id`   | The ID of the newly created contact in the target CRM.   |
-| `name` | The name of the newly created contact in the target CRM. |
+## Test
 
-### Sample code
-
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:312-372]!}
-    ```
-
-=== "Pipedrive adapter"
-    ```js
-    {!> src/adapters/pipedrive/index.js [ln:113-128]!}
-    ```
+1. Make a call to an uknown contact
+2. Click `+` button near a call record to log the call
+3. Check if the contact is created on CRM platform (`CHECK.9`)
+4. Check if call log is saved on CRM platform and database (`CHECK.9`)

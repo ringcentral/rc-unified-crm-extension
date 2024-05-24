@@ -31,8 +31,8 @@ Go to extension's option page and change `Custom CRM manifest url` to `{serverUr
 | Name             | Type            | Description |
 |------------------|-----------------|-------------|
 | `serverUrl`      | string          | Domain url for your server|
-| `author`         | string          | (Optional) For client side app to track server identity |
-| `redirectUri`    | string          | Redirect Uri for RingCentral login |
+| `author`         | string          | For client side app to track server identity |
+| `redirectUri`    | string          | Redirect Uri for RingCentral login. It's recommended to use the default one  |
 | `platforms`      | object          | Platform config object, explained [here](#platforms-config) |
 | `version`        | string          | Version of this service |
 
@@ -45,7 +45,7 @@ Go to extension's option page and change `Custom CRM manifest url` to `{serverUr
 | `authType`       | string          | The supported auth type for the corresponding CRM. Only two values are supported: `oauth` and `apiKey`. |
 | `authUrl`        | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
 | `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
-| `customState`| string |(Optional) Only if you want to override state query string in OAuth url |
+| `customState`| string |(Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
 | `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
@@ -53,8 +53,6 @@ Go to extension's option page and change `Custom CRM manifest url` to `{serverUr
 | `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
 
 The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
-
-Note: `customState` overrides state string. It'll be `state={customState}` instead.
 
 ## Customizing the welcome message
 

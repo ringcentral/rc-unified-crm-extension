@@ -4,37 +4,34 @@
 
 The Unified CRM extension allows users to log in their CRM all forms of communication with a customer, which includes SMS or text messages. This interface describes how to log an SMS conversation within the target CRM. 
 
-### Endpoint
+## Important note
 
-* HTTP method: POST
-* HTTP endpoint: `<server base URL>/messageLog`
+Message logging is slightly different from call logging. Message logs could become pretty messy. This framework applies an idea to group messages together, and here is how:
 
-### Request parameters
+Message logs are grouped per conversation per day, meaning there will be just one CRM activity for all messages that happen under the same conversation on the same day.
 
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
-|`logInfo`| RingCentral message log |
-| `additionalSubmission` | Submitted form data from `additionalFields`|
-|`contactId`| Contact ID|
-|`contactType`| Contact type|
-|`contactName`| Contact name|
+Therefore, the first message during the day will be logged using `addMessageLog` to create a new CRM activity, while the following messages are added to the existing activity using `updateMessageLog`. And the framework already takes care of separating the 1st message and the rest.
 
-### Response
+## Implementation
 
-| Name   | Description |
-|--------|-------------|
-| `successful` | `true` or `false` |
-|`logIds`| Log IDs        |
+Following interfaces need to be inplemented:
 
-### Sample code
+* `addMessageLog`: create a new message log on CRM platform with contact and possibly, other associations. (`TODO.7`)
+* `updateMessageLog`: update existing message log with new messages(`TODO.8`)
 
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:246-310]!}
-    ```
+## Test
 
-=== "Clio adapter"
-    ```js
-    {!> src/adapters/clio/index.js [ln:250-344]!}
-    ```
+1. Send a SMS message to a known contact
+2. Click `+` button near a conversation record to log all unlogged messages under this conversation
+3. Check if message log is saved on CRM platform and database (`CHECK.7`)
+4. Send another SMS message to the same contact
+5. Click `+` button near a conversation record to log all unlogged messages under this conversation
+6. Check if message log is added to previously created log on CRM platform and as a new record in database (`CHECK.8`)
+
+### Tips
+
+The framework checks database to see if there's existing message log on the day. If you want to setup a scenario to test 1st message, you could delete all message log records in database.
+
+## Log page setup
+
+Please go to [manifest](manifest.md#adding-custom-fields-to-logging-forms).

@@ -8,117 +8,24 @@ One of the most used features across all of RingCentral's CRM integrations is th
 * Create a call log record
 * Update a call log record
 
-Below you will find more information about each of these interfaces.
+## Implementation
 
-## Logging new phone calls
+Following interfaces need to be inplemented:
 
-### Endpoint
+* `addCallLog`: create a new call log on CRM platform with contact and possibly, other associations. (`TODO.4`)
+* `getCallLog`: return call log info (`TODO.5`)
+* `updateCallLog`: update call log's subject and/or note (`TODO.6`)
 
-* HTTP method: POST
-* HTTP endpoint: `<server base URL>/callLog`
+## Test
 
-### Query parameters
+1. Make a call to a known contact
+2. Click `+` button near a call record to log the call
+3. Check if call log is saved on CRM platform and database (`CHECK.4`)
+4. Click `Edit` button near the call record to update the log
+5. Check if call log's subject and note are pulled correctly (`CHECK.5`)
+6. Edit subject and note, then click `Update`
+7. Check if call log is updated on CRM platform (`CHECK.6`)
 
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
+## Log page setup
 
-### Request body
-
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `logInfo` | RingCentral call log |
-| `additionalSubmission` | Submitted form data from `additionalFields`|
-| `note`| Note taken by user|
-|`contactId`| Contact ID|
-|`contactType`| Contact type|
-|`contactName`| Contact name|
-
-
-### Response
-
-| Name   | Description |
-|--------|-------------|
-| `successful` | `true` or `false` |
-|`logId`| Log ID        |
-
-### Sample code
-
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:144-179]!}
-    ```
-
-=== "Pipedrive adapter"
-    ```js
-    {!> src/adapters/pipedrive/index.js [ln:130-155]!}
-    ```
-
-## Loading a log for a phone call
-
-### Endpoint
-
-* HTTP method: GET
-* HTTP endpoint: `<server base URL>/callLog`
-
-### Request parameters
-
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
-|`sessionIds`| Under RingCentral call log|
-
-### Response
-
-| Name  | Description |
-|-------|-------------|
-| `successful` |  `true` or `false` |
-|`logs`| Log info|
-
-### Sample code
-
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:181-205]!}
-    ```
-
-=== "Pipedrive adapter"
-    ```js
-    {!> src/adapters/pipedrive/index.js [ln:223-242]!}
-    ```
-
-## Updating the log for a phone call
-
-### Endpoint
-
-* HTTP method: PATCH
-* HTTP endpoint: `<server base URL>/callLog`
-
-### Request parameters
-
-| Name             | Description                                                                     |
-|------------------|---------------------------------------------------------------------------------|
-| `jwtToken`       | An encrypted string that includes the current user's ID and the associated CRM. |
-|`sessionId`| RingCentral call session id |
-|`subject`| Log subject |
-|`note`| Note taken by user |
-|`recordingLink`| RingCentral call recording link |
-
-### Response
-
-| Name   | Description |
-|--------|-------------|
-| `successful` |  `true` or `false` |
-|`logId`| Log ID        |
-
-### Sample code
-
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:207-244]!}
-    ```
-
-=== "Pipedrive adapter"
-    ```js
-    {!> src/adapters/pipedrive/index.js [ln:157-193]!}
-    ```
+Please go to [manifest](manifest.md#adding-custom-fields-to-logging-forms).

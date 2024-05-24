@@ -43,10 +43,11 @@ async function addCallLog({ platform, userId, incomingData }) {
         }
         const contactInfo = {
             id: contactId,
+            phoneNumber: contactNumber,
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset, contactNumber });
+        const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
         await CallLogModel.create({
             id: incomingData.logInfo.id,
             sessionId: incomingData.logInfo.sessionId,
@@ -182,6 +183,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
         }
         const contactInfo = {
             id: contactId,
+            phoneNumber: contactNumber,
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
@@ -212,11 +214,11 @@ async function addMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (!!existingSameDateMessageLog) {
-                await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, contactNumber });
+                await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
             }
             else {
-                crmLogId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset, contactNumber });
+                crmLogId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
             }
             const createdMessageLog =
                 await MessageLogModel.create({

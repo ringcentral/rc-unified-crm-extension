@@ -176,11 +176,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     const putBody = {
-        comments: `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
+        comments: `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
         action: noteActions,
         personReference: {
             id: contactInfo.id
@@ -247,7 +247,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return postBody.comments;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
     try {
@@ -273,7 +273,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         'BEGIN<br>' +
         '------------<br>' +
         '<ul>' +
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>` +
         '</ul>' +
         '------------<br>' +
@@ -294,7 +294,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.changedEntityId;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
     try {
@@ -314,7 +314,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.data.comments;
     let patchBody = {};
     const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
     logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
 

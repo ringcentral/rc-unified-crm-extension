@@ -57,7 +57,7 @@ Open up a console and within it, follow these instructions.
 
 ### Install and configure the client
 
-1. Download and install the Chrome extension from https://chrome.google.com/webstore/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh?hl=en
+1. Download the zipped build and install the Chrome extension from https://github.com/ringcentral/rc-unified-crm-extension-client/tree/build
 
 2. Right click extension's icon and go to Options, change `Custom CRM manifest url` to `https://xxxx.ngrok.app/crmManifest?platformName=testCRM` and save.
 
@@ -84,3 +84,6 @@ Now that we are "connected" to the CRM, let's try out a few features.
 
 And that's it. You have successfully built and deployed your own RingCentral/CRM integration. Now, let's learn how to customize your adapter to actually integrate with a CRM provider. 
 
+### Develop a new adapter
+
+Now you should have rough ideas about what this extension does. If you want to add a new adapter for a CRM platform, please go to [Implement your own adapter](./adapter.md).

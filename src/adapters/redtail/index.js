@@ -185,7 +185,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return putBody.description;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const userName = user.id;
     const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
@@ -200,7 +200,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         'BEGIN<br>' +
         '------------<br>' +
         '<ul>' +
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>` +
         '</ul>' +
         '------------<br>' +
@@ -236,7 +236,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return completeLogRes.data.activity.id;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const userName = user.id;
@@ -248,7 +248,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.activity.description;
     let putBody = {};
     const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
     logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
 

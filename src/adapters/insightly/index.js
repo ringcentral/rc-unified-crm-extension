@@ -218,7 +218,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const noteDetail = `\n\nAgent notes: ${note}`;
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
@@ -365,7 +365,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -382,7 +382,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         '\nConversation(1 messages)\n' +
         'BEGIN\n' +
         '------------\n' +
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n` +
         '------------\n' +
         'END\n\n' +
@@ -425,7 +425,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.EVENT_ID;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingLogId}`,
@@ -442,7 +442,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let putBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n`;
     logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 

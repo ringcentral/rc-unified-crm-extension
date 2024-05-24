@@ -128,7 +128,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
     const orgId = personResponse.data.data.org_id?.value ?? '';
@@ -141,7 +141,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Phone Number] ${contactNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactInfo.phoneNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc
@@ -194,7 +194,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return putBody.note;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -219,7 +219,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         'BEGIN<br>' +
         '------------<br>' +
         '<ul>' +
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>` +
         '</ul>' +
         '------------<br>' +
@@ -246,7 +246,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
@@ -262,7 +262,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.data.note;
     let putBody = {};
     const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
     logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
 

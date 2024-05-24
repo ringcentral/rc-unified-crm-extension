@@ -9,61 +9,13 @@ A critical function performed by the server is looking up a contact record in th
 	
 	As a workaround, the CRM framework allows users to specify additional phone number formats that they typically store phone numbers in. This list of phone numbers is transmitted to the adapter's server, so that the associated adapter can search for a contact using multiple phone number formats until one is found.
 
-### Endpoint
+## Implementation
 
-* HTTP method: GET
-* HTTP endpoint: `<server base URL>/contact`
+Following interface need to be inplemented:
 
-### Request parameters
+* `getContact`: return an array of matched contacts
 
-| Name               | Description                                                                                            |
-|--------------------|--------------------------------------------------------------------------------------------------------|
-| `jwtToken`         | An encrypted string that includes the current user's ID and the associated CRM.                        |
-| `phoneNumber`      | The phone number in E.164 format that should be searched for in the associated CRM.                    |
-| `overridingFormat` | A comma-delimitted list of phone number formats that should be used when searching the associated CRM. |
+## Test
 
-### Response
-
-The server should return an ARRAY of possible matches for the given phone number. 
-
-| Name             | Description                                                       |
-|------------------|-------------------------------------------------------------------|
-| `id`             | The unique ID of the contact in the target CRM.                   |
-| `name`           | The full name of the contact in the target CRM.                   |
-| `phone`          | The phone number of the contact as stored in the CRM.             |
-| `organization`   | The company name or affiliation of the contact in the target CRM. |
-| `additionalInfo` | Correspondes to contact-dependent `additionalFields` for Call/Message page |
-
-### Example
-
-```js
-[
-  {
-    'id': 80723490120943,
-    'name': 'Luke Skywalker',
-    'phone': '+16505551212',
-    'organization': 'Rebel Alliance',
-    'additionalInfo': {
-	    'associations': [
-		   {
-		      'id': 1837202932,
-			    'label': 'Jedi Order' 
-		   }
-		]
-	}
-  }
-]
-```
-
-#### Sample code
-
-=== "Sample adapter"
-    ```js
-    {!> src/adapters/testCRM/index.js [ln:335-363]!}
-    ```
-
-=== "Pipedrive adapter"
-    ```js
-    {!> src/adapters/pipedrive/index.js [ln:66-100]!}
-    ```
-
+1. Create a new contact on CRM platform and make a call to it
+2. In extension, near call record, click `Refresh contact` to check if console prints correct results (`CHECK.3`)

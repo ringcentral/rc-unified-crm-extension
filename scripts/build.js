@@ -2,7 +2,7 @@ const { rm, echo, cp, mkdir } = require('shelljs');
 const { resolve } = require('path');
 
 const projectPath = resolve(__dirname, '..');
-const deployPath = resolve(projectPath, 'serverless-deploy')
+const deployPath = resolve(projectPath, 'build')
 
 echo('clean path...');
 rm('-rf', `${deployPath}/*.js`);
@@ -16,7 +16,6 @@ echo('building...');
 mkdir(deployPath)
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
 cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
-cp(`${projectPath}/src/lambda.js`, `${deployPath}/lambda.js`);
 cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
@@ -25,4 +24,4 @@ cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
 cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 
-echo('build done');
+echo(`build done, output in ${deployPath}`);

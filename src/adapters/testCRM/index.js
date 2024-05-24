@@ -13,11 +13,12 @@ function getAuthType() {
     return 'apiKey'; // Return either 'oauth' OR 'apiKey'
 }
 
-function getBasicAuth({ apiKey }) {
-    return Buffer.from(`${apiKey}:`).toString('base64');
-}
+// CHOOSE: If using apiKey auth
+// function getBasicAuth({ apiKey }) {
+//     return Buffer.from(`${apiKey}:`).toString('base64');
+// }
 
-// CASE: If using OAuth
+// CHOOSE: If using OAuth
 // function getOauthInfo() {
 //     return {
 //         clientId: process.env.TEST_CRM_CLIENT_ID,
@@ -27,7 +28,7 @@ function getBasicAuth({ apiKey }) {
 //     }
 // }
 
-// CASE: If using OAuth and Auth server requires CLIENT_ID in token exchange request
+// CHOOSE: If using OAuth and Auth server requires CLIENT_ID in token exchange request
 // function getOverridingOAuthOption({ code }) {
 //     return {
 //         query: {
@@ -46,6 +47,12 @@ function getBasicAuth({ apiKey }) {
 
 
 // For params, if OAuth, then accessToken, refreshToken, tokenExpiry; If apiKey, then apiKey
+// ------------
+// - additionalInfo: contains custom additional fields on auth page (eg. username and password for redtail)
+// ------------
+// Optional input params:
+// - oauth: tokenUrl, apiUrl, hostname
+// - apiKey: hostname
 async function getUserInfo({ authHeader, additionalInfo }) {
     // ------------------------------------------------------
     // ---TODO.1: Implement API call to retrieve user info---
@@ -75,7 +82,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         name,
         timezoneName,
         timezoneOffset,
-        platformAdditionalInfo: {}
+        platformAdditionalInfo: {}  // this should save whatever extra info you want to save against the user
     };
 
     //---------------------------------------------------------------------------------------------------
@@ -105,6 +112,8 @@ async function unAuthorize({ user }) {
     //--------------------------------------------------------------
 }
 
+//  - phoneNumber: phone number in E.164 format
+//  - overridingFormat: optional, if you want to override the phone number format
 async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     // ----------------------------------------
     // ---TODO.3: Implement contact matching---
@@ -141,14 +150,18 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     return foundContacts;  //[{id, name, phone, additionalInfo}]
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+// - contactInfo: { id, type, phoneNumber, name }
+// - callLog: same as in https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord
+// - note: note submitted by user
+// - additionalSubmission: all additional fields that are setup in manifest under call log page
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     // ------------------------------------
     // ---TODO.4: Implement call logging---
     // ------------------------------------
 
     // const postBody = {
     //     subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
-    //     body: `\nContact Number: ${contactNumber}\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+    //     body: `\nContact Number: ${contactInfo.phoneNumber}\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
     //     type: 'PhoneCommunication',
     //     received_at: moment(callLog.startTime).toISOString()
     // }
@@ -204,6 +217,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
+// - note: note submitted by user
+// - subject: subject submitted by user
+// - recordingLink: recordingLink updated from RingCentral. It's separated from addCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     // ---------------------------------------
     // ---TODO.6: Implement call log update---
@@ -243,7 +259,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return patchLogRes.data.id;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+// - contactInfo: { id, type, phoneNumber, name }
+// - message : same as in https://developers.ringcentral.com/api-reference/Message-Store/readMessage
+// - recordingLink: recording link of voice mail
+// - additionalSubmission: all additional fields that are setup in manifest under call log page
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     // ---------------------------------------
     // ---TODO.7: Implement message logging---
     // ---------------------------------------
@@ -277,7 +297,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
 }
 
 // Used to update existing message log so to group message in the same day together
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     // ---------------------------------------
     // ---TODO.8: Implement message logging---
     // ---------------------------------------

@@ -132,7 +132,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
@@ -154,7 +154,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
-            body: `\nContact Number: ${contactNumber}\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            body: `\nContact Number: ${contactInfo.phoneNumber}\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
             senders: [sender],
@@ -248,7 +248,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return patchBody.data?.body;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const sender =
     {
         id: contactInfo.id,
@@ -274,7 +274,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         '\nConversation(1 messages)\n' +
         'BEGIN\n' +
         '------------\n' +
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n` +
         '------------\n' +
         'END\n\n' +
@@ -306,7 +306,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
@@ -323,7 +323,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n`;
     logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 
