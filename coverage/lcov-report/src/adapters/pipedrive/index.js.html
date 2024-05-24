@@ -823,7 +823,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 &nbsp;
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset, contactNumber }) {
+async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
     const dealId = additionalSubmission ? <span class="branch-0 cbranch-no" title="branch not covered" >additionalSubmission.deals </span>: '';
     const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
     const orgId = personResponse.data.data.org_id?.value ?? '';
@@ -836,7 +836,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `&lt;p&gt;[Phone Number] ${contactNumber}&lt;/p&gt;&lt;p&gt;[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}&lt;/p&gt;&lt;p&gt;[Duration] ${callLog.duration} seconds&lt;/p&gt;&lt;p&gt;[Call result] ${callLog.result}&lt;/p&gt;&lt;p&gt;[Note] ${note}&lt;/p&gt;${callLog.recording ? <span class="branch-0 cbranch-no" title="branch not covered" >`&lt;p&gt;[Call recording link] &lt;a target="_blank" href=${callLog.recording.link}&gt;open&lt;/a&gt;&lt;/p&gt;` </span>: ''}&lt;p&gt;&lt;span style="font-size:9px"&gt;[Created via] &lt;em&gt;&lt;a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57"&gt;RingCentral CRM Extension&lt;/a&gt;&lt;/span&gt;&lt;/em&gt;&lt;/p&gt;`,
+        note: `&lt;p&gt;[Phone Number] ${contactInfo.phoneNumber}&lt;/p&gt;&lt;p&gt;[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}&lt;/p&gt;&lt;p&gt;[Duration] ${callLog.duration} seconds&lt;/p&gt;&lt;p&gt;[Call result] ${callLog.result}&lt;/p&gt;&lt;p&gt;[Note] ${note}&lt;/p&gt;${callLog.recording ? <span class="branch-0 cbranch-no" title="branch not covered" >`&lt;p&gt;[Call recording link] &lt;a target="_blank" href=${callLog.recording.link}&gt;open&lt;/a&gt;&lt;/p&gt;` </span>: ''}&lt;p&gt;&lt;span style="font-size:9px"&gt;[Created via] &lt;em&gt;&lt;a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57"&gt;RingCentral CRM Extension&lt;/a&gt;&lt;/span&gt;&lt;/em&gt;&lt;/p&gt;`,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc
@@ -889,7 +889,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return putBody.note;
 }
 &nbsp;
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
+async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -914,7 +914,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         'BEGIN&lt;br&gt;' +
         '------------&lt;br&gt;' +
         '&lt;ul&gt;' +
-        `&lt;li&gt;${message.direction === 'Inbound' ? <span class="branch-0 cbranch-no" title="branch not covered" >`${contactInfo.name} (${contactNumber})` </span>: userName} ${moment(message.creationTime).format('hh:mm A')}&lt;br&gt;` +
+        `&lt;li&gt;${message.direction === 'Inbound' ? <span class="branch-0 cbranch-no" title="branch not covered" >`${contactInfo.name} (${contactInfo.phoneNumber})` </span>: userName} ${moment(message.creationTime).format('hh:mm A')}&lt;br&gt;` +
         `&lt;b&gt;${message.subject}&lt;/b&gt;&lt;/li&gt;` +
         '&lt;/ul&gt;' +
         '------------&lt;br&gt;' +
@@ -941,7 +941,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return addLogRes.data.data.id;
 }
 &nbsp;
-async function <span class="fstat-no" title="function not covered" >updateMessageLog(</span>{ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function <span class="fstat-no" title="function not covered" >updateMessageLog(</span>{ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = <span class="cstat-no" title="statement not covered" >existingMessageLog.thirdPartyLogId;</span>
     const userInfoResponse = <span class="cstat-no" title="statement not covered" >await axios.get('https://api.pipedrive.com/v1/users/me', {</span>
         headers: {
@@ -957,7 +957,7 @@ async function <span class="fstat-no" title="function not covered" >updateMessag
     let logBody = <span class="cstat-no" title="statement not covered" >getLogRes.data.data.note;</span>
     let putBody = <span class="cstat-no" title="statement not covered" >{};</span>
     const newMessageLog =
-<span class="cstat-no" title="statement not covered" >        `&lt;li&gt;${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}&lt;br&gt;` +</span>
+<span class="cstat-no" title="statement not covered" >        `&lt;li&gt;${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}&lt;br&gt;` +</span>
         `&lt;b&gt;${message.subject}&lt;/b&gt;&lt;/li&gt;`;
 <span class="cstat-no" title="statement not covered" >    logBody = logBody.replace('------------&lt;br&gt;&lt;ul&gt;', `------------&lt;br&gt;&lt;ul&gt;${newMessageLog}`);</span>
 &nbsp;
@@ -1015,7 +1015,7 @@ exports.unAuthorize = unAuthorize;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-05-21T04:59:26.250Z
+                at 2024-05-24T06:58:20.105Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
