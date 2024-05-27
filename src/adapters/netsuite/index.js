@@ -26,6 +26,7 @@ function getOauthInfo() {
 
 async function getUserInfo({ authHeader, additionalInfo }) {
     // ---TODO.1: Implement API call to retrieve user info---
+    console.log({ additionalInfo ,authHeader});
     const mockUserInfoResponse = {
         data: {
             id: '-5',
@@ -111,6 +112,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         title: title,
         phone: contactNumber || '',
         priority: "MEDIUM",
+        status: "COMPLETE",
         startDate: moment(callLog.startTime).toISOString(),
         message: temporedMessage,
     }
@@ -175,71 +177,90 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-    console.log("In Add message log");
-    console.log({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber });
-    // ---------------------------------------
-    // ---TODO.7: Implement message logging---
-    // ---------------------------------------
 
-    // const postBody = {
-    //     data: {
-    //         subject: `[SMS] ${message.direction} SMS - ${message.from.name ?? ''}(${message.from.phoneNumber}) to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`,
-    //         body: `${message.direction} SMS - ${message.direction == 'Inbound' ? `from ${message.from.name ?? ''}(${message.from.phoneNumber})` : `to ${message.to[0].name ?? ''}(${message.to[0].phoneNumber})`} \n${!!message.subject ? `[Message] ${message.subject}` : ''} ${!!recordingLink ? `\n[Recording link] ${recordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`,
-    //         type: 'Message'
-    //     }
-    // }
-    // const addLogRes = await axios.post(
-    //     `https://api.crm.com/activity`,
-    //     postBody,
-    //     {
-    //         headers: { 'Authorization': authHeader }
-    //     });
-    console.log(`adding message log... \n\n${JSON.stringify(message, null, 2)}`);
-    mockMessageLog = {
-        id: 'testMessageLogId'
+    const sender =
+    {
+        id: contactInfo?.id,
+        type: 'Contact'
     }
-    const addLogRes = {
+    const receiver =
+    {
+        id: user?.id,
+        type: 'User'
+    }
+
+    const userName = "SushilTestCRM"; //TODO - get user name from user object or from the CRM
+    const logBody =
+        '\nConversation summary\n' +
+        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+        'Participants\n' +
+        `    ${userName}\n` +
+        `    ${contactInfo.name}\n` +
+        '\nConversation(1 messages)\n' +
+        'BEGIN\n' +
+        '------------\n' +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n` +
+        '------------\n' +
+        'END\n\n' +
+        '--- Created via RingCentral CRM Extension';
+    const title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const postBody = {
         data: {
-            id: mockMessageLog.id
+            title:title,
+            message: logBody,
+            status: "COMPLETE",
         }
+    
     }
-    //-------------------------------------------------------------------------------------------------------------
-    //---CHECK.7: For single message logging, open db.sqlite and CRM website to check if message logs are saved ---
-    //-------------------------------------------------------------------------------------------------------------
-    return addLogRes.data.id;
+    const addLogRes = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
+        postBody.data,
+        {
+            headers: { 'Authorization': authHeader }
+            });
+    const phoneCallResponse = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        {
+            q: `SELECT * FROM PhoneCall WHERE title = '${title}'`
+        },
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
+    let callLogId = null;
+    if (phoneCallResponse.data.items.length > 0) {
+         callLogId = phoneCallResponse.data.items[0].id;
+    }
+    console.log(`call log id from addMessage... \n${callLogId}`);
+    return callLogId;
 }
 
-// Used to update existing message log so to group message in the same day together
 async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader}){
-    // ---------------------------------------
-    // ---TODO.8: Implement message logging---
-    // ---------------------------------------
+    const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
+    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const userName = "SushilTestCRM"; //TODO - get user name from user object or from the CRM
+    let logBody = getLogRes.data.message;
+    let patchBody = {};
+    const originalNote = logBody.split('BEGIN\n------------\n')[1];
+    const newMessageLog =
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.subject}\n`;
+    logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 
-    // const existingLogId = existingMessageLog.thirdPartyLogId;
-    // const getLogRes = await axios.get(
-    //     `https://api.crm.com/activity/${existingLogId}`,
-    //     {
-    //         headers: { 'Authorization': authHeader }
-    //     });
-    // const originalNote = getLogRes.data.body;
-    // const updateNote = orginalNote.replace();
-
-    // const patchBody = {
-    //     data: {
-    //         body: updateNote,
-    //     }
-    // }
-    // const updateLogRes = await axios.patch(
-    //     `https://api.crm.com/activity`,
-    //     patchBody,
-    //     {
-    //         headers: { 'Authorization': authHeader }
-    //     });
-    console.log(`update message log with... \n\n${JSON.stringify(message, null, 2)}`);
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-    //---CHECK.8: For multiple messages or additional message during the day, open db.sqlite and CRM website to check if message logs are saved ---
-    //---------------------------------------------------------------------------------------------------------------------------------------------
+    const regex = RegExp('Conversation.(.*) messages.');
+    const matchResult = regex.exec(logBody);
+    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+     const patchLogRes = await axios.patch(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
+        {
+            message: logBody
+    },
+        {
+            headers: { 'Authorization': authHeader }
+        });
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
