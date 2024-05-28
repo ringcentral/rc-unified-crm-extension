@@ -235,7 +235,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return callLogId;
 }
 
-async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader}){
+async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader, contactNumber}){
     const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
         {
