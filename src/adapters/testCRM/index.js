@@ -13,12 +13,12 @@ function getAuthType() {
     return 'apiKey'; // Return either 'oauth' OR 'apiKey'
 }
 
-// CHOOSE: If using apiKey auth
+// CHOOSE 1: If using apiKey auth
 // function getBasicAuth({ apiKey }) {
 //     return Buffer.from(`${apiKey}:`).toString('base64');
 // }
 
-// CHOOSE: If using OAuth
+// CHOOSE 1: If using OAuth
 // function getOauthInfo() {
 //     return {
 //         clientId: process.env.TEST_CRM_CLIENT_ID,
@@ -28,7 +28,7 @@ function getAuthType() {
 //     }
 // }
 
-// CHOOSE: If using OAuth and Auth server requires CLIENT_ID in token exchange request
+// CHOOSE 1: If using OAuth somehow uses query not body to pass code
 // function getOverridingOAuthOption({ code }) {
 //     return {
 //         query: {

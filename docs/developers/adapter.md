@@ -45,6 +45,7 @@ Each adapter will need to implement the following interfaces. Let's start by dup
 * [Logging, updating and looking up call logs](logging-calls.md)
 * [Logging SMS messages](logging-sms.md)
 * [Creating placeholder contacts](placeholder-contacts.md)
+* [MISC](misc.md)
 
 ## Deployment
 

@@ -48,6 +48,8 @@ Go to extension's option page and change `Custom CRM manifest url` to `{serverUr
 | `customState`| string |(Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
+| `contactPageUrl`| string| A format string to open CRM contact page. Eg.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
+| `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
 | `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
 | `embeddedOnCrmPage` | object       | The rendering config for embedded page, explained [here](#customizing-the-welcome-message) |
 | `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
@@ -60,8 +62,8 @@ When a user installs the CRM extension for the first time and accesses it from t
 
 Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources under `embeddedOnCrmPage.welcomePage`:
 
-* `videoLink`: A URL to watch a video
 * `docLink`: A URL to read documentation
+* `videoLink`: A URL to watch a video
 
 ## Customizing pages within the client application
 
