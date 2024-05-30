@@ -11,6 +11,10 @@ const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const releaseNotes = require('../releaseNotes.json');
+const axios = require('axios');
+const manifest = require('./adapters/manifest.json');
+
+axios.defaults.headers.common['Unified-CRM-Extension-Version'] = manifest.version;
 
 async function initDB() {
     console.log('creating db tables if not exist...');

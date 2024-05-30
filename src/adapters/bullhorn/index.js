@@ -61,12 +61,23 @@ async function unAuthorize({ user }) {
 async function getContact({ user, phoneNumber }) {
     let commentActionListResponse;
     try {
-        commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+        commentActionListResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
@@ -75,9 +86,14 @@ async function getContact({ user, phoneNumber }) {
     const matchedContactInfo = [];
     // check for Contact
     const contactPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
         {
             query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
         });
     for (const result of contactPersonInfo.data.data) {
         matchedContactInfo.push({
@@ -90,9 +106,14 @@ async function getContact({ user, phoneNumber }) {
     }
     // check for Candidate
     const candidatePersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
         {
             query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode} OR workPhone:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
         });
     for (const result of candidatePersonInfo.data.data) {
         matchedContactInfo.push({
@@ -116,10 +137,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 phone: phoneNumber.replace(' ', '+')
             }
             const candidateInfo = await axios.put(
-                `${user.platformAdditionalInfo.restUrl}entity/Candidate?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                `${user.platformAdditionalInfo.restUrl}entity/Candidate`,
                 candidatePostBody,
                 {
-                    headers: { 'Authorization': authHeader }
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
                 }
             );
             return {
@@ -129,12 +152,14 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         case 'Contact':
             let companyId = 0;
             const companyInfo = await axios.post(
-                `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,name`,
+                `${user.platformAdditionalInfo.restUrl}search/ClientCorporation?fields=id,name`,
                 {
                     query: "name:RingCentral_CRM_Extension_Placeholder_Company"
                 },
                 {
-                    headers: { 'Authorization': authHeader }
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
                 }
             )
             if (companyInfo.data.total > 0 && companyInfo.data.data[0].name === 'RingCentral_CRM_Extension_Placeholder_Company') {
@@ -142,13 +167,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
             else {
                 const createCompany = await axios.put(
-                    `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                    `${user.platformAdditionalInfo.restUrl}entity/ClientCorporation`,
                     {
                         name: "RingCentral_CRM_Extension_Placeholder_Company",
                         companyDescription: "<strong><span style=\"color: rgb(231,76,60);\">This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records. </span></strong>"
                     },
                     {
-                        headers: { 'Authorization': authHeader }
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
                     }
                 )
                 companyId = createCompany.data.changedEntityId;
@@ -163,10 +190,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 }
             }
             const contactInfo = await axios.put(
-                `${user.platformAdditionalInfo.restUrl}entity/ClientContact?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
+                `${user.platformAdditionalInfo.restUrl}entity/ClientContact`,
                 contactPostBody,
                 {
-                    headers: { 'Authorization': authHeader }
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
                 }
             );
             return {
@@ -190,16 +219,26 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     let addLogRes;
     try {
         addLogRes = await axios.put(
-            `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-            putBody
+            `${user.platformAdditionalInfo.restUrl}entity/Note`,
+            putBody,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            }
         );
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
             addLogRes = await axios.put(
-                `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-                putBody
+                `${user.platformAdditionalInfo.restUrl}entity/Note`,
+                putBody,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                }
             );
         }
     }
@@ -211,13 +250,23 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let getLogRes
     try {
         getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
     }
     let logBody = getLogRes.data.data.comments;
@@ -242,8 +291,13 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         comments: logBody
     }
     const postLogRes = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        postBody);
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+        postBody,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
     return postBody.comments;
 }
 
@@ -251,12 +305,22 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
     try {
-        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
         }
     }
     const userData = userInfoResponse.data.data[0];
@@ -288,8 +352,13 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         dateAdded: message.creationTime
     }
     const addLogRes = await axios.put(
-        `${user.platformAdditionalInfo.restUrl}entity/Note?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        putBody
+        `${user.platformAdditionalInfo.restUrl}entity/Note`,
+        putBody,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
     );
     return addLogRes.data.changedEntityId;
 }
@@ -298,18 +367,33 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
     try {
-        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&BhRestToken=${user.platformAdditionalInfo.bhRestToken}&where=id=${user.id.replace('-bullhorn', '')}`);
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
         }
     }
     const userData = userInfoResponse.data.data[0];
     const userName = userData.name;
     const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}&fields=id,comments`
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?fields=id,comments`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
     );
     let logBody = getLogRes.data.data.comments;
     let patchBody = {};
@@ -328,21 +412,36 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     }
     // I dunno, Bullhorn uses POST as PATCH
     const patchLogRes = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?BhRestToken=${user.platformAdditionalInfo.bhRestToken}`,
-        patchBody);
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}`,
+        patchBody,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
     let getLogRes
     try {
         getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
     }
     catch (e) {
         if (e.response.status === 401) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts&BhRestToken=${user.platformAdditionalInfo.bhRestToken}`);
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
     }
     const logBody = getLogRes.data.data.comments;
