@@ -77,9 +77,9 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
-  - 'Client':
-    - 'Manifest': developers/manifest.md
-    - 'Callbacks': developers/client.md
+  - 'Manifest': developers/manifest.md
+  - 'Authorization': developers/auth.md
+  - 'Build and deployment': developers/deploy.md
   - 'Adapter': 
     - 'Overview and interfaces': developers/adapter.md
     - 'Contact matching': developers/contact-matching.md
@@ -88,7 +88,6 @@ nav:
     - 'Placeholder contacts': developers/placeholder-contacts.md
     - 'Unauthorizing users': developers/unauthorization.md
     - 'OpenAPI specification': developers/openapi.md
-  - 'Build and deployment': developers/deploy.md
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md
