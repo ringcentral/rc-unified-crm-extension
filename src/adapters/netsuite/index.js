@@ -26,7 +26,6 @@ function getOauthInfo() {
 
 async function getUserInfo({ authHeader, additionalInfo }) {
     // ---TODO.1: Implement API call to retrieve user info---
-    console.log({ additionalInfo ,authHeader});
     const mockUserInfoResponse = {
         data: {
             id: '-5',
@@ -209,6 +208,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         data: {
             title:title,
             message: logBody,
+            phone: contactNumber || '',
             status: "COMPLETE",
         }
     
@@ -235,7 +235,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
     return callLogId;
 }
 
-async function updateMessageLog({user, contactInfo, existingMessageLog, message, authHeader, contactNumber}){
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
     const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
         {
