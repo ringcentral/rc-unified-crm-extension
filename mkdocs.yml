@@ -77,18 +77,20 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
-  - 'Client':
-    - 'Manifest': developers/manifest.md
-    - 'Callbacks': developers/client.md
   - 'Adapter': 
-    - 'Overview and interfaces': developers/adapter.md
+    - 'Overview': developers/adapter.md
+    - 'Manifest': developers/manifest.md
+    - 'Authorization': developers/auth.md
     - 'Contact matching': developers/contact-matching.md
     - 'Logging phone calls': developers/logging-calls.md
     - 'Logging SMS': developers/logging-sms.md
     - 'Placeholder contacts': developers/placeholder-contacts.md
-    - 'Unauthorizing users': developers/unauthorization.md
-    - 'OpenAPI specification': developers/openapi.md
+    - 'MISC': developers/misc.md
   - 'Build and deployment': developers/deploy.md
+  - 'Advanced':
+    - 'Build your client app': developers/advanced/client.md
+    - 'Build your server': developers/advanced/server.md
+    - 'OpenAPI specification': developers/advanced/openapi.md
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md
