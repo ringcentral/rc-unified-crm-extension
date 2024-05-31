@@ -3,13 +3,6 @@ const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 
-// -----------------------------------------------------------------------------------------------
-// ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
-// -----------------------------------------------------------------------------------------------
-let mockContact = null;
-let mockCallLog = null;
-let mockMessageLog = null;
-
 function getAuthType() {
     return 'oauth'; 
 }
@@ -94,9 +87,6 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
                 }
             }
         }
-    }
-    if (mockContact != null) {
-        foundContacts.push(mockContact);
     }
     console.log(`found netsuite contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
     return foundContacts;
