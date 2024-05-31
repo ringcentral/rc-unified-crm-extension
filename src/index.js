@@ -10,7 +10,7 @@ const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
-const releaseNotes = require('../releaseNotes.json');
+const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const manifest = require('./adapters/manifest.json');
 
