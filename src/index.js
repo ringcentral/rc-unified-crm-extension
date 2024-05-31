@@ -136,7 +136,7 @@ app.get('/oauth-callback', async function (req, res) {
             platform,
             hostname,
             tokenUrl,
-            callbackUri:req.query.callbackUri+"&code="+req.query.code,
+            callbackUri:platform==="netsuite"?req.query.callbackUri+"&code="+req.query.code:req.query.callbackUri,
             apiUrl: req.query.apiUrl,
             username: req.query.username
         });
