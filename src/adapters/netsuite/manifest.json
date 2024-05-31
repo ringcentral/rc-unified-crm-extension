@@ -8,14 +8,12 @@
             "name": "netsuite",
             "authType": "oauth",
             "clientId": "e2c171e8b925b98b9d49c902376e89ad8b9efa959c3622e7d17ec8fdf2be5dad",
-            "scopes": [
-                "restlets+rest_webservices"
-            ],
-            "customState": "platformValue=netsuite",
+            "scope": "scope=restlets+rest_webservices",
+            "customState": "fillerString,platform=netsuite",
             "platform": "netsuite",
-            "authUrl": "https://{hostname}/app/login/oauth2/authorize.nl",
-            "contactPageUrl": "https://{hostname}/app/common/entity/contact.nl?id={contactId}",
-            "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
+            "authUrl": "https://tstdrv2444007.app.netsuite.com/app/login/oauth2/authorize.nl",
+            "contactPageUrl": "https://tstdrv2444007.app.netsuite.com/app/common/entity/contact.nl?id={contactId}",
+            "logPageUrl": "https://tstdrv2444007.app.netsuite.com/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
             "embeddedOnCrmPage": {
                 "welcomePage": {

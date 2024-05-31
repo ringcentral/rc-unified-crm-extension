@@ -121,8 +121,8 @@ app.get('/oauth-callback', async function (req, res) {
             throw 'Missing callbackUri';
         }
         const platform = req.query.state ?
-            req.query.state.split('platformValue=')[1] :
-            decodeURIComponent(req.originalUrl.split('state=')[1].split('&')[0]).split('platformValue=')[1];
+            req.query.state.split('platform=')[1] :
+            decodeURIComponent(req.originalUrl.split('state=')[1].split('&')[0]).split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
         if (!platform) {

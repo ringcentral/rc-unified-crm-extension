@@ -99,7 +99,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
     console.log({originalMessage, temporedMessage});
     const postBody = {
         title: title,
-        phone: contactNumber || '',
+        phone: contactInfo?.phoneNumber || '',
         priority: "MEDIUM",
         status: "COMPLETE",
         startDate: moment(callLog.startTime).toISOString(),
@@ -166,7 +166,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset, contactNumber }) {
-
     const sender =
     {
         id: contactInfo?.id,
@@ -188,7 +187,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         '\nConversation(1 messages)\n' +
         'BEGIN\n' +
         '------------\n' +
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n` +
         '------------\n' +
         'END\n\n' +
@@ -198,7 +197,7 @@ async function addMessageLog({ user, contactInfo, authHeader, message, additiona
         data: {
             title:title,
             message: logBody,
-            phone: contactNumber || '',
+            phone: contactInfo?.phoneNumber || '',
             status: "COMPLETE",
         }
     
@@ -236,7 +235,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n`;
     logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 
