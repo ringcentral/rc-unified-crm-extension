@@ -126,6 +126,10 @@ app.get('/oauth-callback', async function (req, res) {
         if (!platform) {
             throw 'Missing platform name';
         }
+        const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
+        if (!hasAuthCodeInCallbackUri) {
+            req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
+        }
         const userInfo = await authCore.onOAuthCallback({
             platform,
             hostname,
