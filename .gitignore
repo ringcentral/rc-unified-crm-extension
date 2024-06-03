@@ -14,6 +14,7 @@ serverless.yml
 **/.DS_Store
 /server/*
 serverless-deploy/*
+serverless-deploy-test/*
 client/dist.zip
 client/src/manifest.json
 /test.js

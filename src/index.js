@@ -10,7 +10,7 @@ const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
-const releaseNotes = require('../releaseNotes.json');
+const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const manifest = require('./adapters/manifest.json');
 
@@ -100,7 +100,7 @@ app.get('/hostname', async function (req, res) {
                 }
             });
             if (!!!user) {
-                res.status(400).send('unknown user');
+                res.status(400).send('Unknown user');
             }
             res.status(200).send(user.hostname);
         }
@@ -116,7 +116,7 @@ app.get('/hostname', async function (req, res) {
 app.get('/oauth-callback', async function (req, res) {
     try {
         if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
-            throw 'missing callbackUri';
+            throw 'Missing callbackUri';
         }
         const platform = req.query.state ?
             req.query.state.split('platform=')[1] :
@@ -124,7 +124,7 @@ app.get('/oauth-callback', async function (req, res) {
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
         if (!platform) {
-            throw 'missing platform name';
+            throw 'Missing platform name';
         }
         const userInfo = await authCore.onOAuthCallback({
             platform,
@@ -152,10 +152,10 @@ app.post('/apiKeyLogin', async function (req, res) {
         const hostname = req.body.hostname;
         const additionalInfo = req.body.additionalInfo;
         if (!platform) {
-            throw 'missing platform name';
+            throw 'Missing platform name';
         }
         if (!apiKey) {
-            throw 'missing api key';
+            throw 'Missing api key';
         }
         const userInfo = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
         const jwtToken = jwt.generateJwt({
@@ -181,7 +181,7 @@ app.post('/unAuthorize', async function (req, res) {
                 }
             });
             if (!!!userToLogout) {
-                res.status(400).send('unknown user');
+                res.status(400).send('Unknown user');
                 return;
             }
             const platformModule = require(`./adapters/${unAuthData.platform}`);

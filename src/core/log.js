@@ -8,7 +8,7 @@ async function addCallLog({ platform, userId, incomingData }) {
     try {
         const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
         if (existingCallLog) {
-            return { successful: false, message: `existing log for session ${incomingData.logInfo.sessionId}` }
+            return { successful: false, message: `Existing log for session ${incomingData.logInfo.sessionId}` }
         }
         let user = await UserModel.findOne({
             where: {
@@ -150,7 +150,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
 async function addMessageLog({ platform, userId, incomingData }) {
     try {
         if (incomingData.logInfo.messages.length === 0) {
-            return { successful: false, message: 'no message to log.' }
+            return { successful: false, message: 'No message to log.' }
         }
         const platformModule = require(`../adapters/${platform}`);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;

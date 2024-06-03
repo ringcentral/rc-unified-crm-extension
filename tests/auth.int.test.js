@@ -151,7 +151,7 @@ describe('auth tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual('unknown user');
+                    expect(res.error.text).toEqual('Unknown user');
                 }
             });
             test('known user - successful', async () => {

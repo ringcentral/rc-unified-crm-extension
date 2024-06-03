@@ -231,7 +231,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(false);
-                    expect(res.body.message).toEqual(`existing log for session ${sessionId}`);
+                    expect(res.body.message).toEqual(`Existing log for session ${sessionId}`);
                 }
             });
             test('cannot find user - unsuccessful', async () => {
@@ -458,7 +458,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(false);
-                    expect(res.body.message).toEqual('no message to log.');
+                    expect(res.body.message).toEqual('No message to log.');
                 }
             });
             test('cannot find user - unsuccessful', async () => {
