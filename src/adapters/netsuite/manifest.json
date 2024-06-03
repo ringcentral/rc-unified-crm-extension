@@ -1,0 +1,35 @@
+{
+    "serverUrl": "https://netsuite.loca.lt",
+    "author": "RingCentral Labs",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+    "platforms": {
+        "netsuite": {
+            "urlIdentifier": "*.app.netsuite.com/app*",
+            "name": "netsuite",
+            "authType": "oauth",
+            "clientId": "e2c171e8b925b98b9d49c902376e89ad8b9efa959c3622e7d17ec8fdf2be5dad",
+            "scope": "scope=restlets+rest_webservices",
+            "customState": "fillerString,platform=netsuite",
+            "platform": "netsuite",
+            "authUrl": "https://tstdrv2444007.app.netsuite.com/app/login/oauth2/authorize.nl",
+            "contactPageUrl": "https://tstdrv2444007.app.netsuite.com/app/common/entity/contact.nl?id={contactId}",
+            "logPageUrl": "https://tstdrv2444007.app.netsuite.com/app/crm/calendar/call.nl?id={logId}",
+            "canOpenLogPage": true,
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "page": {
+                "callLog": {
+                    "additionalFields": []
+                },
+                "messageLog": {
+                    "additionalFields": []
+                }
+            }
+        }
+    },
+    "version": "0.8.13"
+}

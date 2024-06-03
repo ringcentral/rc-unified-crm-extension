@@ -41,7 +41,7 @@ describe('auth tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual('missing callbackUri');
+                    expect(res.error.text).toEqual('Missing callbackUri');
                 })
                 test('no platform - error', async () => {
                     // Act
@@ -49,7 +49,7 @@ describe('auth tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(400);
-                    expect(res.error.text).toEqual('missing platform name');
+                    expect(res.error.text).toEqual('Missing platform name');
                 })
                 test('oauth callback - successful', async () => {
                     for (const platform of platforms) {

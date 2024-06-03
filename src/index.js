@@ -57,7 +57,9 @@ app.get('/crmManifest', (req, res) => {
     }
 })
 
-app.get('/is-alive', (req, res) => { res.send(`OK`); });
+app.get('/is-alive', (req, res) => {
+    res.send(`OK`);
+});
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
     try {
@@ -134,7 +136,7 @@ app.get('/oauth-callback', async function (req, res) {
             platform,
             hostname,
             tokenUrl,
-            callbackUri: req.query.callbackUri,
+            callbackUri:req.query.callbackUri,
             apiUrl: req.query.apiUrl,
             username: req.query.username
         });
