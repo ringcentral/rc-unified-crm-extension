@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://netsuite.loca.lt",
+    "serverUrl": "https://unified-crm-extension-test.labs.ringcentral.com",
     "author": "RingCentral Labs",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "platforms": {
