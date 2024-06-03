@@ -10,6 +10,7 @@ env.yml
 serverless.yml
 *~
 **/.#*
+**/#*
 
 **/.DS_Store
 /server/*

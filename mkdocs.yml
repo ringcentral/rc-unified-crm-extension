@@ -76,11 +76,10 @@ nav:
   - 'Settings': users/settings.md
 - 'Developer guide':
   - 'Introduction': developers/index.md
-  - 'Quick start': developers/quick-start.md
+  - 'Getting started': developers/getting-started.md
+  - 'Technical overview': developers/adapter.md
   - 'Build and deployment': developers/deploy.md
   - 'Adapter': 
-    - 'Technical overview': developers/adapter.md
-    - 'Getting started': developers/getting-started.md
     - 'Authorization': developers/auth.md
     - 'Manifest':
       - 'Manifest properties': developers/manifest.md
