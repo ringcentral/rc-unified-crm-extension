@@ -2,6 +2,7 @@
 
 This method returns either `oauth` or `apiKey`. 
 
+#### Reference
 === "Example CRM"
 
     ```js
