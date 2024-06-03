@@ -148,7 +148,7 @@ In order to match a call to a contact in a CRM, the Unified CRM extension needs 
 * etc
 
 <figure markdown>
-  ![Overriding formats in settings](../../img/overriding-format-setup.png){ style="max-width:300px" }
+  ![Overriding formats in settings](../img/overriding-format-setup.png){ style="max-width:300px" }
   <figcaption>A setting used to search for contacts using a variety of alternative formats used by the customer.</figcaption>
 </figure>
 

@@ -92,7 +92,7 @@ nav:
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Welcome pages': developers/welcome-page.md
-      - 'OpenAPI specification': developers/advanced/openapi.md
+      - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'addCallLog': developers/interfaces/addCallLog.md
       - 'addMessageLog': developers/interfaces/addMessageLog.md
