@@ -13,12 +13,15 @@ function getAuthType() {
     return 'apiKey'; // Return either 'oauth' OR 'apiKey'
 }
 
-// CHOOSE 1: If using apiKey auth
+// Choose 1 of the following 3 functions, delete the rest
+
+// CHOOSE: If using apiKey auth
 // function getBasicAuth({ apiKey }) {
 //     return Buffer.from(`${apiKey}:`).toString('base64');
 // }
+// exports.getBasicAuth = getBasicAuth;
 
-// CHOOSE 1: If using OAuth
+// CHOOSE: If using OAuth
 // function getOauthInfo() {
 //     return {
 //         clientId: process.env.TEST_CRM_CLIENT_ID,
@@ -27,8 +30,9 @@ function getAuthType() {
 //         redirectUri: process.env.TEST_CRM_REDIRECT_URI
 //     }
 // }
+// exports.getOauthInfo = getOauthInfo;
 
-// CHOOSE 1: If using OAuth somehow uses query not body to pass code
+// CHOOSE: If using OAuth somehow uses query not body to pass code
 // function getOverridingOAuthOption({ code }) {
 //     return {
 //         query: {
@@ -134,6 +138,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
     //             foundContacts.push({
     //                 id: result.id,
     //                 name: result.name,
+    //                 type: result.type,
     //                 phone: numberToQuery,
     //                 additionalInfo: null
     //             })
@@ -212,8 +217,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     //-------------------------------------------------------------------------------------
     return {
         subject: getLogRes.subject,
-        note: getLogRes.note,
-        additionalSubmission: {}
+        note: getLogRes.note
     }
 }
 
@@ -394,7 +398,6 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 
 exports.getAuthType = getAuthType;
-exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.addCallLog = addCallLog;
 exports.updateCallLog = updateCallLog;

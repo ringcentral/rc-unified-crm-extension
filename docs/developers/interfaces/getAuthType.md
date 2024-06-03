@@ -10,7 +10,7 @@ None.
 
 This interface returns a single string, either `oauth` or `apiKey` to indicate what kind of auth is supported by the target CRM. 
 
-## Examples
+## Reference
 
 === "Example CRM"
 

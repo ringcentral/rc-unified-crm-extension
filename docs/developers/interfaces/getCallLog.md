@@ -31,12 +31,12 @@ This interface should return the associated call log record in a prescribed form
 }
 ```
 
-## Examples
+## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:194-218] !}
+    {!> src/adapters/testCRM/index.js [ln:199-223] !}
 	```
 	
 === "Pipedrive"

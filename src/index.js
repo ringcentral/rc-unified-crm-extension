@@ -57,7 +57,9 @@ app.get('/crmManifest', (req, res) => {
     }
 })
 
-app.get('/is-alive', (req, res) => { res.send(`OK`); });
+app.get('/is-alive', (req, res) => {
+    res.send(`OK`);
+});
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
     try {
@@ -126,11 +128,15 @@ app.get('/oauth-callback', async function (req, res) {
         if (!platform) {
             throw 'Missing platform name';
         }
+        const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
+        if (!hasAuthCodeInCallbackUri) {
+            req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
+        }
         const userInfo = await authCore.onOAuthCallback({
             platform,
             hostname,
             tokenUrl,
-            callbackUri: req.query.callbackUri,
+            callbackUri:req.query.callbackUri,
             apiUrl: req.query.apiUrl,
             username: req.query.username
         });

@@ -28,12 +28,12 @@ This method should return an associative array with the following keys and value
 }
 ```
 
-## Examples
+## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:22-29] !}
+    {!> src/adapters/testCRM/index.js [ln:25-32] !}
 	```
 	
 === "Pipedrive"

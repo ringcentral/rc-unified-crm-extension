@@ -114,7 +114,7 @@ To load a custom adapter, enter in the URL to the publicly accessible manifest.j
 
 <figure markdown>
   ![Custom CRM adapter](../img/custom-adapter.png){ style="max-width:400px" }
-  <figcaption>A setting used to load a custom CRM adapter into the framework..</figcaption>
+  <figcaption>A setting used to load a custom CRM adapter into the framework.</figcaption>
 </figure>
 
 ### Click-to-dial inject delay
@@ -146,6 +146,11 @@ In order to match a call to a contact in a CRM, the Unified CRM extension needs 
 * `###-###-####`
 * `+1-###-###-####`
 * etc
+
+<figure markdown>
+  ![Overriding formats in settings](../../img/overriding-format-setup.png){ style="max-width:300px" }
+  <figcaption>A setting used to search for contacts using a variety of alternative formats used by the customer.</figcaption>
+</figure>
 
 RingCentral phone numbers are all formatted using the [E.164 standard](https://en.wikipedia.org/wiki/E.164). If you are not storing phone numbers that utilize this format, and if your particular CRM does not support a more rigorous search mechanism, the Unified CRM extension may fail to associate calls with contacts properly. 
 

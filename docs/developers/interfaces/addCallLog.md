@@ -4,15 +4,15 @@ This interface is responsible for creating a new call log record in the associat
 
 ## Input parameters
 
-| Parameter              | Description                                                                            |
-|------------------------|----------------------------------------------------------------------------------------|
-| `user`                 | TODO | 
-| `contactInfo`          | An associative array describing the contact a call is associated with.                 |
-| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM. | 
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
+| `contactInfo`          | An associative array describing the contact a call is associated with.                                   |
+| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
 | `callLog`              | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
-| `note`                 | The notes saved by the user during and/or after the call.                              |
-| `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user. |
-| `timezoneOffset`       | TODO | 
+| `note`                 | The notes saved by the user during and/or after the call.                                                |
+| `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
+| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     | 
 
 ### Contact Info
 
@@ -29,12 +29,12 @@ This interface is responsible for creating a new call log record in the associat
 
 The ID of the log entry created within the CRM.
 
-## Examples
+## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:157-192] !}
+    {!> src/adapters/testCRM/index.js [ln:162-197] !}
 	```
 	
 === "Pipedrive"

@@ -1,18 +1,24 @@
 # addMessageLog
 
-This interface is responsible for creating a new messaging log record in the associated CRM. The message or messages must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. This interface can be invoked for a single SMS message, or for a group of SMS messages. 
+This interface is responsible for creating a new messaging log record in the associated CRM. The message or messages must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. This interface is always invoked for a single SMS message.
+
+### Creating daily digests of an SMS conversation
+
+To prevent SMS conversations with a customer from overwhelming the CRM with a multitude of SMS messages, the Unified CRM extension creates a daily digest for each SMS conversation with a customer into which all SMS messages for a 24 hour period are aggregated. 
+
+Therefore, this interface is only invoked when the daily digest is created. The [`updateMessageLog`](updateMessageLog.md) interface is invoked for all subsequent SMS messages in that 24 hour period. 
 
 ## Input parameters
 
-| Parameter              | Description                                                                            |
-|------------------------|----------------------------------------------------------------------------------------|
-| `user`                 | TODO | 
-| `contactInfo`          | An associative array describing the contact a call is associated with.                  |
-| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM. | 
-| `message`              | All the metadata associated with the message to be logged. [SMS message schema](https://developers.ringcentral.com/api-reference/Message-Store/readMessage) is described in our API Reference. |
-| `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user. |
-| `recordingLink`        | TODO | 
-| `timezoneOffset`       | TODO | 
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. |
+| `contactInfo`          | An associative array describing the contact a call is associated with.                                   |
+| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  |
+| `message`              | All the metadata associated with the message to be logged.  [SMS message schema](https://developers.ringcentral.com/api-reference/Message-Store/readMessage) is described in our API Reference. |
+| `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
+| `recordingLink`        | If the call was a voicemail, then this field will contain a link to the voicemail.                       |
+| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     |
 
 ### message
 
@@ -51,10 +57,12 @@ This interface is responsible for creating a new messaging log record in the ass
 
 The ID of the log entry created within the CRM.
 
+## Reference
+
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:266-297] !}
+    {!> src/adapters/testCRM/index.js [ln:270-301] !}
 	```
 	
 === "Pipedrive"
