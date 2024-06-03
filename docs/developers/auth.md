@@ -1,76 +1,108 @@
-# Authorization
+# Authorization and authenticating users with their CRM
 
-We support 2 types of authorization: [`oauth`](#oauth) and [`apiKey`](#api-key). Please fill the value in `manifest.json/platforms/{newCRM}/authType`. 
+The Unified CRM adapter framework currently supports two different authentication modalities:
 
-To start off, you need to register an app on CRM platform, and then you'll get:
+* [OAuth](#implementing-oauth-for-a-crm). This is the most common form of authentication and authorization supported by most CRMs. 
+* [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
 
-* `oauth`: `ClientId` and `ClientSecret`
+Start by editing the `platforms` object within your adapter's [manifest](manifest.md), and setting the `authType` property to either:
 
-OR
+* `oauth`
+* `apiKey`
 
-* `apiKey`: `apiKey`
+## Connecting to a CRM via OAuth
 
-## OAuth
+When implementing OAuth, you will need to login to the target CRM as a developer to retrieve a client ID and client secret. Every CRM is different, so please consult the CRM's API documentation to learn how to generate these two values to uniquely identify your application that will be calling the CRM's APIs. 
 
-### Config
+Once you have obtained these values, you will need to set the following values in your adapter's manifest:
 
-There are some parameters you may want to setup in `manifest.json`:
+| Name                             | Type   | Description |
+|----------------------------------|--------|-------------|
+| `platforms.{crmName}.authUrl`    | string | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
+| `platforms.{crmName}.clientId`   | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. | 
+| `platforms.{crmName}.scope`      | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+| `platforms.{crmName}.customState`| string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 
-| Name             | Type            | Description |
-|------------------|-----------------|-------------|
-| `redirectUri`    | string          | Redirect Uri for RingCentral login. It's recommended to use the default one |
-| `platforms.{crmName}.authUrl`      | string          | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
-| `platforms.{crmName}.clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
-| `platforms.{crmName}.scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
-| `platforms.{crmName}.customState`| string |(Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 
-The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
+### Generating an Auth URL
 
-### Implementation
+The framework will compose an OAuth compliant auth URL for you by appending to the `authUrl` the following query string:
 
-Following interfaces need to be inplemented:
+    {authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}
+		&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html
 
-* `getAuthType`: return auth type
-* `getOauthInfo`: return oauth info (needs to be setup in `.env` file)
-* `getUserInfo`: replace mock with the actual call to CRM API server (`TODO.1`)
+### Setting the redirect URI
 
-### Test
+The Unified CRM Chrome extension utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
 
-1. Refresh manifest: go to your extension options and click `save` to force the extension update its manifest and then reload the extension.
-2. Log in to your RingCentral account.
-3. Go to user settings and `Connect` to your CRM account, which should open a new tab with full auth url.
-4. Check if user info is saved in database (`CHECK.1`)
+    https://ringcentral.github.io/ringcentral-embeddable/redirect.html
 
-## API key
+It should suffice standard OAuth use cases. If there's any special case, please contact us.
 
-### Auth page setup
+### Implement server endpoints
 
-Please go to [manifest](manifest.md#authentication-page).
+Within your adapter's `index.js` file, implement the following methods.
 
-### Implementation
+* [`getAuthType`](interfaces/getAuthType.md)
+* [`getOauthInfo`](interfaces/getOauthInfo.md)
+* [`getUserInfo`](interfaces/getUserInfo.md)
 
-Following interfaces need to be inplemented:
+## Connecting to a CRM using an API key
 
-* `getAuthType`: return auth type
-* `getBasicAuth`: return basic auth
-* `getUserInfo`: replace mock with the actual call to CRM API server (`TODO.1`)
+Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the Unified CRM adapter framework does what it can to make the process as easy as possible for users. 
 
-### Test
+To auth a user via an API key, you need to present them with a form in which they will enter all needed credentials. The user will save those values and the framework will stash them a secure database for you. 
 
-1. Refresh manifest: go to your extension options and click `save` to force the extension update its manifest and then reload the extension.
-2. Log in to your RingCentral account.
-3. Go to user settings and `Connect` to your CRM account, which should open a new tab with full auth url.
-4. Check if user info is saved in database (`CHECK.1`)
+### Setup the auth page in the extension
 
-## Unauthorize
+**Sample CRM adapter**
 
-### Implementation
+=== "manifest.json"
 
-Following interfaces need to be inplemented:
+    ```js 
+    {!> src/adapters/testCRM/manifest.json [ln:24-35] !}
+    ```
 
-* `unAuthorize`: remove user info (`TODO.2`)
+=== "Rendered page"
 
-### Test
+    ![Auth page](../img/test-auth-page.png){ style="max-width:200px" }
 
-1. In the extension, click `Logout`
-2. Check if user info is moreved from database (`CHECK.2`)
+**Insightly adapter**
+
+=== "manifest.json"
+
+    ```js
+    {!> src/adapters/manifest.json [ln:56-84] !}
+    ```
+
+=== "Rendered page"
+
+    ![Auth page](../img/insightly-auth-page.png)
+
+### Implement server endpoints
+
+Within your adapter's `index.js` file, implement the following methods.
+
+* [`getAuthType`](interfaces/getAuthType.md)
+* [`getOauthInfo`](interfaces/getOauthInfo.md)
+* [`getUserInfo`](interfaces/getUserInfo.md)
+
+## Deauthorizing users
+
+Just as one needs to log someone in, they need to log someone out. 
+
+### Implement server endpoints
+
+Within your adapter's `index.js` file, implement the following methods.
+
+* [`unAuthorize`](interfaces/unAuthorize.md)
+
+## Testing your authorization implementation
+
+Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
+
+1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapterRefresh) setting under the extension's options. 
+   2. Access the Chrome extension. 
+3. Log out and log back into your CRM using the "Connect" button under the Settings tab, or by going through the appropriate CRM login and authorization flow for your adapter.
+4. Finally, check to see if any user info was saved in the database (`CHECK.1`)
+

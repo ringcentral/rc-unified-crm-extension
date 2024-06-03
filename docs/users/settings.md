@@ -106,6 +106,17 @@ Then scroll down near to the bottom and click "Extension options" to open the di
   <figcaption>Unified CRM extension options. Users may see a slightly different set of options depending upon the version they are using.</figcaption>
 </figure>
 
+### Loading custom CRM adapter
+
+The Unified CRM Chrome extension comes bundled with a number of CRM adapters that are ready-to-use. Developers and users alike can use advanced settings to load another third-party or alternative adapter. 
+
+To load a custom adapter, enter in the URL to the publicly accessible manifest.json file into the "Custom CRM config url" field. 
+
+<figure markdown>
+  ![Custom CRM adapter](../img/custom-adapter.png){ style="max-width:400px" }
+  <figcaption>A setting used to load a custom CRM adapter into the framework..</figcaption>
+</figure>
+
 ### Click-to-dial inject delay
 
 The embedded phone/dialer from the Unified CRM extension is injected into the CRM via a mechanism that some web servers will reject. This is circumvented by delaying the loading of the CTI by a couple of seconds. This config parameter controls this delay. 

@@ -9,11 +9,11 @@ A critical function performed by the server is looking up a contact record in th
 	
 	As a workaround, the CRM framework allows users to specify additional phone number formats that they typically store phone numbers in. This list of phone numbers is transmitted to the adapter's server, so that the associated adapter can search for a contact using multiple phone number formats until one is found.
 
-## Implementation
+## Implement server endpoints
 
-Following interface need to be inplemented:
+Within your adapter's `index.js` file, implement the following methods.
 
-* `getContact`: return an array of matched contacts
+* [`getContact`](interfaces/getContact.md)
 
 ## Test
 

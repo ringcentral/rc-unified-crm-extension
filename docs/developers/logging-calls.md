@@ -8,13 +8,13 @@ One of the most used features across all of RingCentral's CRM integrations is th
 * Create a call log record
 * Update a call log record
 
-## Implementation
+## Implement server endpoints
 
-Following interfaces need to be inplemented:
+Within your adapter's `index.js` file, implement the following methods.
 
-* `addCallLog`: create a new call log on CRM platform with contact and possibly, other associations. (`TODO.4`)
-* `getCallLog`: return call log info (`TODO.5`)
-* `updateCallLog`: update call log's subject and/or note (`TODO.6`)
+* [`addCallLog`](interfaces/addCallLog.md)
+* [`getCallLog`](interfaces/getCallLog.md)
+* [`updateCallLog`](interfaces/updateCallLog.md)
 
 ## Test
 

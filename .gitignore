@@ -11,6 +11,7 @@ serverless.yml
 *~
 **/.#*
 
+**/.DS_Store
 /server/*
 serverless-deploy/*
 client/dist.zip

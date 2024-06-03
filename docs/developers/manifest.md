@@ -1,58 +1,44 @@
-# Configuring your adapter manifest
+# Configuring your adapter's manifest
 
 {! docs/developers/beta_notice.inc !}
 
-Each adapter provides a configuration that in some ways also acts as a manifest file. The manifest file not only provides key pieces of metadata to enable the framework to connect to the CRM, and display other properties to the user (name and so forth), but it also allows developers to customize the appearance of screens, add custom fields to various CRM object types, and more. Here is a list of things the manifest file enables for developers:
+An adapter's manifest file helps a developer to instruct the framework on how to interface with your adapter. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
 
-* Provide CRM connectivity and authorization details
-* Define custom fields for:
-    * call logging and disposition
-    * SMS and messagig logging
-* Customize the "Connect to CRM" or authorization screen
-* Define custom contact record types/categories
-* Customize the welcome screen for a given CRM
+Below you will find an explanation of the many properties found within a manifest file. 
 
-Note: The extension has a fixed redirect uri: `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. It should suffice standard OAuth use cases. If there's any special case, please contact us.
+## Basic properties
 
-## Test sample
+These basic properties 
 
-Under `src/adapters/testCRM`, there's an existing `manifest.json` as a test sample. 
+| Name          | Type   | Description                                                                                                           |
+|---------------|--------|-----------------------------------------------------------------------------------------------------------------------|
+| `author`      | string | The author of the adapter. This is displayed to end users within the Chrome extension.                                |
+| `platforms`   | ARRAY of object | An array of [platforms](#platforms-configuration) being integrated with. Each element of this array defines a different CRM. |
+| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. |
+| `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your adapter. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-adapter.myserver.com` |
+| `version`     | string | The version of your adapter. This is displayed to end users within the Chrome extension. |
 
-## Manifest file
+### Platform configuration
 
-You should create a folder `src/adapters/{yourCrmName}` and then create a manifest file under it as `manifest.json`.
+Each manifest file contains an array of `platform` objects. This is helpful for developers who manage multiple CRM adapters from the same server. 
 
-### Refresh manifest on client side
-
-Go to extension's option page and change `Custom CRM manifest url` to `{serverUrl}/crmManifest?platformName={crmName}` and save.
-
-## Configuration options
+The platforms property is an associative array. Each key should be a unique identifier for the crm. The value of each element is an object with the following properties. 
 
 | Name             | Type            | Description |
 |------------------|-----------------|-------------|
-| `serverUrl`      | string          | Domain url for your server|
-| `author`         | string          | For client side app to track server identity |
-| `redirectUri`    | string          | Redirect Uri for RingCentral login. It's recommended to use the default one  |
-| `platforms`      | object          | Platform config object, explained [here](#platforms-config) |
-| `version`        | string          | Version of this service |
-
-### Platform config:
-
-| Name             | Type            | Description |
-|------------------|-----------------|-------------|
-| `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's organge quick access button will appear. ( * for wildcard match is surpported) |
-| `name`           | string          | The name of the CRM. |
-| `authType`       | string          | The supported auth type for the corresponding CRM. Only two values are supported: `oauth` and `apiKey`. |
+| `authType`       | string          | The authorization mode utilized by the target CRM. Only two values are supported: `oauth` and `apiKey`. Setting up auth is covered in more detail in the [Authorization](auth.md) section. |
 | `authUrl`        | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
-| `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
-| `customState`| string |(Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
-| `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
-| `contactPageUrl`| string| A format string to open CRM contact page. Eg.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
-| `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
+| `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
+| `customState`    | string          | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
+| `contactPageUrl` | string          | A format string to open a CRM's contact page, e.g.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
 | `embeddedOnCrmPage` | object       | The rendering config for embedded page, explained [here](#customizing-the-welcome-message) |
+| `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
+| `name`           | string          | The name of the CRM. |
 | `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
+| `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+| `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's orange quick access button will appear. (`*` for wildcard match is supported) |
 
 The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
 
@@ -130,10 +116,3 @@ Set up associated deals the same as call log
 {! src/adapters/testCRM/manifest.json [ln:51-64] !}
 ```
 
-## Sample manifest file
-
-Here is a sample manifest file that illustrates the full syntax and structure of the manifest file. 
-
-```js
-{! src/adapters/testCRM/manifest.json !}
-```

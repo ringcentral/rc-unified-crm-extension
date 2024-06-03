@@ -1,6 +1,4 @@
-# MISC
-
-## View contact and log details
+# View contact and log details
 
 For a matched contact or a logged call, the extension supports to open the corresponding page on CRM.
 
@@ -15,16 +13,3 @@ To configure this feature, there are several fields to setup in `manifest.json`.
 | `contactPageUrl`| string| A format string to open CRM contact page. Eg.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
 | `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
 
-
-## Embedded
-
-### Welcome page
-
-When user opens CRM page for the first time after installing the extension, it'll show welcome page in a modal dialog. 
-
-![welcome page](../img/welcome-dialog.png)
-
-Configure this feature under `manifest.json`, under `embeddedOnCrmPage` and then `welcomePage`, there are:
-
-* `docLink`: A URL to read documentation
-* `videoLink`: A URL to watch a video

@@ -77,17 +77,36 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Quick start': developers/quick-start.md
-  - 'Manifest': developers/manifest.md
-  - 'Authorization': developers/auth.md
   - 'Build and deployment': developers/deploy.md
   - 'Adapter': 
-    - 'Overview and interfaces': developers/adapter.md
-    - 'Contact matching': developers/contact-matching.md
-    - 'Logging phone calls': developers/logging-calls.md
-    - 'Logging SMS': developers/logging-sms.md
-    - 'Placeholder contacts': developers/placeholder-contacts.md
-    - 'Unauthorizing users': developers/unauthorization.md
-    - 'OpenAPI specification': developers/openapi.md
+    - 'Technical overview': developers/adapter.md
+    - 'Getting started': developers/getting-started.md
+    - 'Authorization': developers/auth.md
+    - 'Manifest':
+      - 'Manifest properties': developers/manifest.md
+      - 'Customizing pages': developers/manifest-pages.md
+      - 'Sample manifest': developers/manifest-sample.md
+    - 'Server': 
+      - 'Contact matching': developers/contact-matching.md
+      - 'Logging phone calls': developers/logging-calls.md
+      - 'Logging SMS': developers/logging-sms.md
+      - 'Placeholder contacts': developers/placeholder-contacts.md
+      - 'Viewing contacts and activities': developers/view-details.md
+      - 'Welcome pages': developers/welcome-page.md
+      - 'OpenAPI specification': developers/advanced/openapi.md
+    - 'Interfaces':
+      - 'addCallLog': developers/interfaces/addCallLog.md
+      - 'addMessageLog': developers/interfaces/addMessageLog.md
+      - 'createContact': developers/interfaces/createContact.md
+      - 'getAuthType': developers/interfaces/getAuthType.md
+      - 'getCallLog': developers/interfaces/getCallLog.md
+      - 'getContact': developers/interfaces/getContact.md
+      - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+      - 'getUserInfo': developers/interfaces/getUserInfo.md
+      - 'unAuthorize': developers/interfaces/unAuthorize.md
+      - 'updateCallLog': developers/interfaces/updateCallLog.md
+      - 'updateMessageLog': developers/interfaces/updateMessageLog.md
+
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md

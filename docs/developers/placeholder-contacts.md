@@ -8,11 +8,11 @@ In the framework's logic, contact creation is coupled with call/message logging.
 
 logging against an unknown contact = create a placeholder contact + logging against it
 
-## Implementation
+## Implement server endpoints
 
-Following interfaces need to be inplemented:
+Within your adapter's `index.js` file, implement the following methods.
 
-* `createContact`: create contact (`TODO.9`)
+* [`createContact`](interfaces/createContact.md) 
 
 ## Test
 

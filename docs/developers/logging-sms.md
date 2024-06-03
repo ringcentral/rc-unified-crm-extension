@@ -12,12 +12,12 @@ Message logs are grouped per conversation per day, meaning there will be just on
 
 Therefore, the first message during the day will be logged using `addMessageLog` to create a new CRM activity, while the following messages are added to the existing activity using `updateMessageLog`. And the framework already takes care of separating the 1st message and the rest.
 
-## Implementation
+## Implement server endpoints
 
-Following interfaces need to be inplemented:
+Within your adapter's `index.js` file, implement the following methods.
 
-* `addMessageLog`: create a new message log on CRM platform with contact and possibly, other associations. (`TODO.7`)
-* `updateMessageLog`: update existing message log with new messages(`TODO.8`)
+* [`addMessageLog`](interfaces/addMessageLog.md) 
+* [`updateMessageLog`](interfaces/updateMessageLog.md)
 
 ## Test
 
