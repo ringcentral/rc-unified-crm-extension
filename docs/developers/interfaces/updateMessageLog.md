@@ -16,7 +16,7 @@ Developers are responsible for making modifications to the `existingMessageLog` 
 
 ## Return value(s)
 
-
+None. 
 
 ## Reference
 
