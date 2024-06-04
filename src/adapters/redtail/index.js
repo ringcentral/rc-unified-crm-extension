@@ -46,7 +46,7 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
-async function getContact({ user, phoneNumber }) {
+async function findContact({ user, phoneNumber }) {
     const matchedContacts = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     phoneNumber = phoneNumber.replace(' ', '+')
@@ -94,7 +94,7 @@ async function createContact({ user, phoneNumber, newContactName }) {
     }
 }
 
-async function addCallLog({ user, contactInfo, callLog, note }) {
+async function createCallLog({ user, contactInfo, callLog, note }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const linkedNotes = note ?? '';
     const descriptionNotes = note ? `\n\nAgent notes: ${note}` : '';
@@ -185,7 +185,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return putBody.description;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const userName = user.id;
     const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
@@ -298,11 +298,11 @@ function formatContact(rawContactInfo) {
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

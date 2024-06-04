@@ -64,7 +64,7 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
     if (!phoneNumber.includes('+')) {
@@ -128,7 +128,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
     const orgId = personResponse.data.data.org_id?.value ?? '';
@@ -141,7 +141,7 @@ async function addCallLog({ user, contactInfo, authHeader, callLog, note, additi
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Phone Number] ${contactInfo.phoneNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactInfo.phoneNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(user.timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc
@@ -194,7 +194,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return putBody.note;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -306,11 +306,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

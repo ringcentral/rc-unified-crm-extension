@@ -36,7 +36,7 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
     if (overridingFormat === '') {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -218,7 +218,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const noteDetail = `\n\nAgent notes: ${note}`;
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
@@ -365,7 +365,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -466,11 +466,11 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

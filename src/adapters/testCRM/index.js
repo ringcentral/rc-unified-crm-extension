@@ -118,7 +118,7 @@ async function unAuthorize({ user }) {
 
 //  - phoneNumber: phone number in E.164 format
 //  - overridingFormat: optional, if you want to override the phone number format
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     // ----------------------------------------
     // ---TODO.3: Implement contact matching---
     // ----------------------------------------
@@ -159,7 +159,7 @@ async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
 // - callLog: same as in https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord
 // - note: note submitted by user
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     // ------------------------------------
     // ---TODO.4: Implement call logging---
     // ------------------------------------
@@ -223,7 +223,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 // - note: note submitted by user
 // - subject: subject submitted by user
-// - recordingLink: recordingLink updated from RingCentral. It's separated from addCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
+// - recordingLink: recordingLink updated from RingCentral. It's separated from createCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     // ---------------------------------------
     // ---TODO.6: Implement call log update---
@@ -267,7 +267,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 // - message : same as in https://developers.ringcentral.com/api-reference/Message-Store/readMessage
 // - recordingLink: recording link of voice mail
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     // ---------------------------------------
     // ---TODO.7: Implement message logging---
     // ---------------------------------------
@@ -399,11 +399,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 exports.getAuthType = getAuthType;
 exports.getUserInfo = getUserInfo;
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

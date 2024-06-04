@@ -287,13 +287,13 @@ describe('call&message log tests', () => {
                         },
                         contactId
                     };
-                    const platformGetContactScope = nock(platform.domain)
+                    const platformFindContactScope = nock(platform.domain)
                         .get(`${platform.contactPath}/${contactId}`)
                         .once()
                         .reply(200, {
                             data: {}
                         });
-                    const platformAddCallLogScope = nock(platform.domain)
+                    const platformCreateCallLogScope = nock(platform.domain)
                         .post(platform.callLogPath)
                         .once()
                         .reply(200, {
@@ -313,8 +313,8 @@ describe('call&message log tests', () => {
                     expect(newLog).not.toBeNull();
 
                     // Clean up
-                    platformGetContactScope.done();
-                    platformAddCallLogScope.done();
+                    platformFindContactScope.done();
+                    platformCreateCallLogScope.done();
                     await newLog.destroy();
                 }
             });
@@ -545,7 +545,7 @@ describe('call&message log tests', () => {
                         .reply(200, {
                             data: ['']
                         });
-                    const platformAddMessageLogScope = nock(platform.domain)
+                    const platformCreateMessageLogScope = nock(platform.domain)
                         .post(platform.messageLogPath)
                         .once()
                         .reply(200, {
@@ -568,7 +568,7 @@ describe('call&message log tests', () => {
                     await newLog.destroy();
                     platformGetUserScope.done();
                     platformActivityTypeScope.done();
-                    platformAddMessageLogScope.done();
+                    platformCreateMessageLogScope.done();
                 }
             });
         })

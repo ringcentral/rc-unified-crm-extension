@@ -48,7 +48,7 @@ async function unAuthorize({ user }) {
     await user.destroy();
 }
 
-async function getContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
     if (overridingFormat === '') {
         numberToQueryArray.push(phoneNumber.replace(' ', '+'));
@@ -132,7 +132,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
@@ -248,7 +248,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return patchBody.data?.body;
 }
 
-async function addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const sender =
     {
         id: contactInfo.id,
@@ -374,11 +374,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;

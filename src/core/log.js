@@ -4,7 +4,7 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 
-async function addCallLog({ platform, userId, incomingData }) {
+async function createCallLog({ platform, userId, incomingData }) {
     try {
         const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
         if (existingCallLog) {
@@ -47,7 +47,7 @@ async function addCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const logId = await platformModule.addCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, timezoneOffset: user.timezoneOffset });
+        const logId = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
         await CallLogModel.create({
             id: incomingData.logInfo.id,
             sessionId: incomingData.logInfo.sessionId,
@@ -136,7 +136,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            const updatedDescription = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, timezoneOffset: user.timezoneOffset });
+            const updatedDescription = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
             console.log(`updated call log: ${existingCallLog.id}`);
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedDescription };
         }
@@ -147,7 +147,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
     }
 }
 
-async function addMessageLog({ platform, userId, incomingData }) {
+async function createMessageLog({ platform, userId, incomingData }) {
     try {
         if (incomingData.logInfo.messages.length === 0) {
             return { successful: false, message: 'No message to log.' }
@@ -218,7 +218,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
             }
             else {
-                crmLogId = await platformModule.addMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, timezoneOffset: user.timezoneOffset });
+                crmLogId = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink });
             }
             const createdMessageLog =
                 await MessageLogModel.create({
@@ -241,7 +241,7 @@ async function addMessageLog({ platform, userId, incomingData }) {
     }
 }
 
-exports.addCallLog = addCallLog;
+exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
-exports.addMessageLog = addMessageLog;
+exports.createMessageLog = createMessageLog;
 exports.getCallLog = getCallLog;

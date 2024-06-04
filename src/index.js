@@ -12,9 +12,8 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
-const manifest = require('./adapters/manifest.json');
 
-axios.defaults.headers.common['Unified-CRM-Extension-Version'] = manifest.version;
+axios.defaults.headers.common['Unified-CRM-Extension-Version'] = process.env.VERSION;
 
 async function initDB() {
     console.log('creating db tables if not exist...');
@@ -219,7 +218,7 @@ app.get('/contact', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, contact } = await contactCore.getContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            const { successful, message, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, message, contact });
         }
         else {
@@ -270,7 +269,7 @@ app.post('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId } = await logCore.addCallLog({ platform, userId, incomingData: req.body });
+            const { successful, message, logId } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
         }
         else {
@@ -304,7 +303,7 @@ app.post('/messageLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logIds } = await logCore.addMessageLog({ platform, userId, incomingData: req.body });
+            const { successful, message, logIds } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logIds });
         }
         else {

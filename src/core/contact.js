@@ -1,7 +1,7 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 
-async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
+async function findContact({ platform, userId, phoneNumber, overridingFormat }) {
     try {
         let user = await UserModel.findOne({
             where: {
@@ -26,7 +26,7 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber, overridingFormat });
+        const contactInfo = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat });
         if (contactInfo != null && contactInfo.length > 0) {
             return { successful: true, message: '', contact: contactInfo };
         }
@@ -77,5 +77,5 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
     }
 }
 
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;

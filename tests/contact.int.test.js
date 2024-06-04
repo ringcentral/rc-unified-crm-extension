@@ -87,7 +87,7 @@ describe('contact tests', () => {
                     rcUserNumber,
                     platform: platform.name
                 });
-                const platformGetContactScope = nock(platform.domain)
+                const platformFindContactScope = nock(platform.domain)
                     .get(`${platform.contactPath}/search?term=${unknownPhoneNumber.replace('+1', '')}&fields=phone`)
                     .once()
                     .reply(200, {
@@ -105,7 +105,7 @@ describe('contact tests', () => {
                 expect(res.body.message).toEqual('Cannot find contact');
 
                 // Clean up
-                platformGetContactScope.done();
+                platformFindContactScope.done();
             }
         });
         test('contact with just extension number - unsuccessful', async () => {
@@ -134,7 +134,7 @@ describe('contact tests', () => {
                     rcUserNumber,
                     platform: platform.name
                 });
-                const platformGetContactScope = nock(platform.domain)
+                const platformFindContactScope = nock(platform.domain)
                     .get(`${platform.contactPath}/search?term=${phoneNumber.replace('+1', '')}&fields=phone`)
                     .once()
                     .reply(200, {
@@ -170,7 +170,7 @@ describe('contact tests', () => {
                 expect(res.body.successful).toEqual(true);
 
                 // Clean up
-                platformGetContactScope.done();
+                platformFindContactScope.done();
                 platformGetDealScope.done();
             }
         });
