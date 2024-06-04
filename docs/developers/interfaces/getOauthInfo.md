@@ -2,6 +2,12 @@
 
 This method returns a simple object containing all necessary OAuth values. This method provides developers with a safe and secure way to present to the framework values that are typically considered private, for example a client secret. These values are often stored in environment variables or in a vault. 
 
+## Input parameters
+
+None.
+
+## Return value(s)
+
 This method should return an associative array with the following keys and values:
 
 | Key              | Value                                                                                          |
@@ -11,7 +17,7 @@ This method should return an associative array with the following keys and value
 | `accessTokenUri` | The API endpoint used to retrieve the access token from the CRM provider.                      |
 | `redirectUri`    | The redirect URI registered with the CRM provider.                                             |
 
-##### Example
+**Example**
 
 ```js
 {
@@ -22,11 +28,12 @@ This method should return an associative array with the following keys and value
 }
 ```
 
-#### Reference
+## Reference
+
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:22-29] !}
+    {!> src/adapters/testCRM/index.js [ln:25-32] !}
 	```
 	
 === "Pipedrive"

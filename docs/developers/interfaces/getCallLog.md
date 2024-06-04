@@ -1,18 +1,38 @@
 # getCallLog
 
-This function is to return call log from CRM to client extension.
+This interface retrieves a previously logged call log record in the target CRM. This information is used to render a form to allow an end user to view or edit that record within the Unified CRM extension. 
 
-#### Params
-`Input`:
-- `user`: user entity
-- `callLogId`: crm call log id
-- `authHeader`: auth header for CRM API call
+## Request parameters
 
-`Output`:
-- `subject`: call log subject
-- `note`: call log user note
+| Parameter    | Description                                                                             |
+|--------------|-----------------------------------------------------------------------------------------|
+| `user`       | TODO                                                                                    |
+| `callLogId`  | The ID of the activity or call log record within the CRM.                               |
+| `authHeader` | The HTTP Authorization header to be transmitted with the API request to the target CRM. |
 
-#### Reference
+
+## Return value(s)
+
+This interface should return the associated call log record in a prescribed format. 
+
+| Parameter              | Description                                         |
+|------------------------|-----------------------------------------------------|
+| `subject`              | The subject or summary line of the activity record. |
+| `note`                 | The contents of the activity record.                |
+| `additionalSubmission` | A set of key/value pairs describing the additional fields associated with a call log record. These fields correspond to the custom fields as defined by the adapter's manifest. |
+
+**Example**
+
+```js
+{
+  subject: "<string>",
+  note: "<string>",
+  additionalSubmission: "<object>"
+}
+```
+
+## Reference
+
 === "Example CRM"
 
     ```js

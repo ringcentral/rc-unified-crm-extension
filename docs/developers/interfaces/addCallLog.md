@@ -1,25 +1,36 @@
 # addCallLog
 
-This function is to add call log onto a matched contact on CRM. A call log has 4 parts:
-1. call metadata from RingCentral (eg. call start time, call duration, all in input `callLog`)
-2. call subject (in `callLog.customSubject`)
-3. call note (in input `note`)
-4. call associations from CRM (in input `additionalSubmission`)
+This interface is responsible for creating a new call log record in the associated CRM. The call must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. 
 
-#### Params
-`Input`:
-- `user`: user entity
-- `contactInfo`: has `id`, `phoneNumber`, `type`, `name`
-- `authHeader`: auth header for CRM API call
-- `callLog`: all call log info
-- `note`: user note
-- `additionalSubmission`: user submission for contact's `additionalInfo`
-- `timezoneOffset`: (optional) to be used in case that CRM platform requires timezone info
+## Input parameters
 
-`Output`:
-- `id`: crm call log id
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
+| `contactInfo`          | An associative array describing the contact a call is associated with.                                   |
+| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+| `callLog`              | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
+| `note`                 | The notes saved by the user during and/or after the call.                                                |
+| `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
+| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     | 
 
-#### Reference
+### Contact Info
+
+```js
+{ 
+  id: "<string">,
+  type: "<string>", 
+  phoneNumber: "<E.164 Phone Number>",
+  name: "<string>"
+}
+```
+
+## Return value(s)
+
+The ID of the log entry created within the CRM.
+
+## Reference
+
 === "Example CRM"
 
     ```js
@@ -32,3 +43,62 @@ This function is to add call log onto a matched contact on CRM. A call log has 4
     {!> src/adapters/pipedrive/index.js [ln:131-156] !}
 	```
 
+### Example Call Log Schema
+
+```js
+{
+  "uri" : "https://platform.ringcentral.com/restapi/v1.0/account/1477535004/extension/1477535004/call-log/X2AvJPtwNQbNQA?view=Detailed",
+  "id" : "X2AvJPtwNQbNQA",
+  "sessionId" : "4503991004",
+  "telephonySessionId": "s-9a03590172ea4d39a7cf7d5b6dba6a3b",
+  "startTime" : "2018-09-11T13:24:09.000Z",
+  "duration" : 7,
+  "type" : "Voice",
+  "direction" : "Inbound",
+  "action" : "Phone Call",
+  "result" : "Accepted",
+  "to" : {
+    "phoneNumber" : "+18662019834",
+    "name" : "Jane Smith"
+  },
+  "from" : {
+    "phoneNumber" : "+16504445566",
+    "name" : "John Smith",
+    "location" : "Palo Alto, CA"
+  },
+  "extension" : {
+    "uri" : "https://platform.ringcentral.com/restapi/v1.0/account/1477535004/extension/1477535004",
+    "id" : 1477535004
+  },
+  "transport" : "PSTN",
+  "lastModifiedTime" : "2018-09-11T13:24:12.003Z",
+  "billing" : {
+    "costIncluded" : 0.000,
+    "costPurchased" : 0.000
+  },
+  "legs" : [ {
+    "startTime" : "2018-09-11T13:24:09.000Z",
+    "duration" : 7,
+    "type" : "Voice",
+    "direction" : "Inbound",
+    "action" : "Phone Call",
+    "result" : "Accepted",
+    "to" : {
+      "phoneNumber" : "+18662019834",
+      "name" : "Jane Smith"
+    },
+    "from" : {
+      "phoneNumber" : "+16504445566",
+      "name" : "John Smith",
+      "location" : "Palo Alto, CA"
+    },
+    "extension" : {
+      "uri" : "https://platform.ringcentral.com/restapi/v1.0/account/1477535004/extension/1477535004",
+      "id" : 1477535004
+    },
+    "transport" : "PSTN",
+    "legType" : "Accept",
+    "master" : true
+  } ]
+}
+```

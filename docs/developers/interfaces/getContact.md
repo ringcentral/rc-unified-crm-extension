@@ -1,38 +1,59 @@
 # getContact
 
-This function is to get an array of matched contacts by phone number from CRM platform. Certain number formatting might be required so to make the search more accurate.
+This interface is a central interface to the Unified CRM adapter framework as it is responsible for matching phone numbers with contacts in the target CRM. This interface powers the following key features:
 
-* If CRM only supports exact match, `overridingFormat` is provided as a workaround. It is setup from the extesion options and passed in as eg. `(***) ***-****`. Please refer to [user guide](../../users/settings.md#phone-number-formats) on how it works.
+* call pop
+* call logging
+* sms logging
 
-![overriding format seutp](../../img/overriding-format-setup.png)
+This interface can return one or more contacts. If multiple contacts are returned, the Unified CRM extension will prompt the end user to select the specific contact to be used when logging calls. 
 
-It gets called by the client extension in 3 different cases:
-1. First time use after installation
-2. A new call from/to the contact is connected
-3. Manually click "Refresh contact"
+This interface is called in the following circumstances:
 
-![manually refresh contact](../../img/manually-refresh-contact.png)
+* When a call is received.
+* When a user manually clicks the "refresh contact" action for a contact or phone call. 
+* When a user accesses the Unified CRM Chrome extension the first time in an attempt to perform an initial contact match operation for recent phone calls. 
 
-#### Params
-`Input`:
-- `user`: user entity
-- `authHeader`: auth header for CRM API call
-- `phoneNumber`: contact phone number in E.164 format
-- `overridingFormat`: (refer to above)
+<figure markdown>
+  ![Manually refresh contact](../../img/manually-refresh-contact.png)
+  <figcaption>The "Refresh contact" action in the Unified CRM extension's contact list</figcaption>
+</figure>
 
-`Output`:
-- `foundContacts`: an array of all matched contacts found
-    - `id`: crm contact id
-    - `name`: crm contact name
-    - `type`: crm contact type (optional)
-    - `phone`: phone number
-    - `additionalInfo`: crm contact additional associations. (eg. `deal` in Pipedrive, `matter` in Clio)
+## Request parameters
 
-#### Reference
+| Parameter          | Description                                                                                           |
+|--------------------|-------------------------------------------------------------------------------------------------------|
+| `user`           | An object describing the Chrome extension user associated with the action that triggered this interface. |
+| `authHeader`       | The HTTP Authorization header to be transmitted with the API request to the target CRM.               |
+| `phoneNumber`      | The phone number to search for within the target CRM, provided in an E.164 format, e.g. +11231231234. |
+| `overridingFormat` | (Optional) If defined by the user under advanced settings, this will contain alternative formats the user may wish to use when searching for the `phoneNumber`                                                                                           |
+
+!!! warning "Alternative formats"
+    Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/settings.md#phone-number-formats) which they often use when entering phone numbers into the CRM. It is the intention that each adapter when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
+	
+	*Remember: only a single call the* `getContact` *interface will be made. The developer is responsible for searching for each alternative format.*
+
+## Return value(s)
+
+This interface should return an ARRAY of object. Each object in the array represents a contact found in the CRM that is associated with the given phone number. 
+
+**Example**
+
+```js
+{
+  id: "<string>",
+  name: "<string>",
+  phone: "<string>",
+  additionalInfo: <object>
+}
+```
+
+## Reference
+
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:121-155] !}
+    {!> src/adapters/testCRM/index.js [ln:121-156] !}
 	```
 	
 === "Pipedrive"

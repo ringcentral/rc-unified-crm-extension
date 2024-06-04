@@ -2,7 +2,16 @@
 
 This method returns either `oauth` or `apiKey`. 
 
-#### Reference
+## Request parameters
+
+None.
+
+## Return value(s)
+
+This interface returns a single string, either `oauth` or `apiKey` to indicate what kind of auth is supported by the target CRM. 
+
+## Reference
+
 === "Example CRM"
 
     ```js

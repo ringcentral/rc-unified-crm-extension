@@ -1,16 +1,25 @@
 # updateMessageLog
 
-This function is to add following messages on the same day to the same contact. Use case is explained [here](./addMessageLog.md)
+This interface is invoked when a new SMS message has been received, and the daily digest for that SMS conversation needs to be updated, as explained in more detail in [`addMessageLog`](./addMessageLog.md).
 
-#### Params
-`Input`:
-- `user`: user entity
-- `contactInfo`: has `id`, `phoneNumber`, `type`, `name`
-- `existingMessageLog`: existing message log entity
-- `authHeader`: auth header for CRM API call
-- `message`: message text
+Developers are responsible for making modifications to the `existingMessageLog` to insert the newly received messaging into the body of the SMS message log. 
 
-#### Reference
+## Input parameters
+
+| Parameter            | Description                                                                                              |
+|----------------------|----------------------------------------------------------------------------------------------------------|
+| `user`               | An object describing the Chrome extension user associated with the action that triggered this interface. | 
+| `contactInfo`        | An associative array describing the contact a call is associated with.                                   |
+| `existingMessageLog` | The current contents of the existing message log within the CRM.                                         |
+| `message`            | All the metadata associated with the message to be logged.  [SMS message schema](https://developers.ringcentral.com/api-reference/Message-Store/readMessage) is described in our API Reference. |
+| `authHeader`         | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+
+## Return value(s)
+
+None. 
+
+## Reference
+
 === "Example CRM"
 
     ```js

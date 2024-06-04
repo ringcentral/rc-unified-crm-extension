@@ -1,24 +1,44 @@
 # updateCallLog
 
-This function is to update call log in following 2 scenarios:
-1. User edit log to update subject or note
-2. Call recording link is synced to the extension and then passed to server
+This interface is called when a call log activity record needs to be updated. This interface is invoked in response to the following user actions:
 
-* Call recording link will be ready and synced to client extension with delay after a recorded call. If user logs the call immediately after it ends, the log info won't contain recording link. And the link will be automatically passed to server and you want to update it onto previous log.
+* The user of the Unified CRM Chrome extension updates the subject or notes associated with a call log. 
+* When a recording has become available for a phone call.
 
-#### Params
-`Input`:
-- `user`: user entity
-- `existingCallLog`: existing call log entity
-- `authHeader`: auth header for CRM API call
-- `recordingLink`: call recording link
-- `subject`: updated log subject
-- `note`: updated user note
+### Adding a recording to a call log entry
 
-`Output`:
-- `id`: call log id
+Events are triggers the moment a phone call is completed so that it can be logged properly. However, recordings take additional time to process and encode to make available to users. Therefore, for any given call you will receive an event when the call ends, and a subsequent event when a record is made available (assuming a recording of the call was made). 
 
-#### Reference
+It is the developer's responsibility to update the call log record contents as they see fit to make a call recording available. 
+
+## Input parameters
+
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
+| `existingCallLog`      | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
+| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+| `recordingLink`        | If the call has a recording associated with it, then this field will contain a link to the voicemail.    |
+| `subject`              | The subject or summary of the call activity. The value may have been changes by the user.                |
+| `note`                 | The notes saved by the user. The value may change if the user has updated the notes they have taken.     |
+
+### Contact Info
+
+```js
+{ 
+  id: "<string">,
+  type: "<string>", 
+  phoneNumber: "<E.164 Phone Number>",
+  name: "<string>"
+}
+```
+
+## Return value(s)
+
+The ID of the log entry created within the CRM.
+
+## Reference
+
 === "Example CRM"
 
     ```js

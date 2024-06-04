@@ -61,6 +61,21 @@ Open up a console and within it, follow these instructions.
 	npm run start
 	```
 
+### Install and configure the client
+
+Download the zipped build and install the Chrome extension from the following URL:
+
+[https://github.com/ringcentral/rc-unified-crm-extension-client/tree/build](https://github.com/ringcentral/rc-unified-crm-extension-client/tree/build)
+
+Right click extension's icon and go to Options, change Custom CRM manifest url to the following URL:
+
+https://xxxx.ngrok.app/crmManifest?platformName=testCRM
+
+Click "Save."
+
+!!! hint "What to do if saving options doesn't work"
+    If the option save failed, please try if you can manually open the manifest file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.
+
 ## Next step: edit your manifest file
 
 With this step complete, you now have a shell of an adapter in place and you are ready to begin development. Let's start by customizing your adapter's manifest file. 

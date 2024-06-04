@@ -38,4 +38,4 @@ Each adapter implements the following components:
 
 In this guide, you will learn how to build, package and distribute an adapter for a CRM.
 
-[Checkout the Quick Start](quick-start.md){ .md-button .md-button--primary }
+[Get started using the framework](getting-started.md){ .md-button .md-button--primary }

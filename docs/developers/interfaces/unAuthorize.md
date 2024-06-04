@@ -2,11 +2,18 @@
 
 It is to remove user data from our database when user chooses to log out. Some CRMs have token invalidation mechanism, if so, please implement that as well.
 
-#### Params
-`Input`:
-- `user`: user entity
+## Request parameters
 
-#### Reference
+| Parameter    | Description                                                                                              |             |
+|--------------|----------------------------------------------------------------------------------------------------------|-------------|
+| `user`       | An object describing the Chrome extension user associated with the action that triggered this interface. |             |
+
+## Return value(s)
+
+None.
+
+## Reference
+
 === "Example CRM"
 
     ```js
