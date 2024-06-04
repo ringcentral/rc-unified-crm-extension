@@ -13,7 +13,7 @@ A critical function performed by the server is looking up a contact record in th
 
 Within your adapter's `index.js` file, implement the following methods.
 
-* [`getContact`](interfaces/getContact.md)
+* [`findContact`](interfaces/findContact.md)
 
 ## Test
 

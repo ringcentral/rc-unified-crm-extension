@@ -14,7 +14,6 @@ These basic properties
 |---------------|--------|-----------------------------------------------------------------------------------------------------------------------|
 | `author`      | string | The author of the adapter. This is displayed to end users within the Chrome extension.                                |
 | `platforms`   | ARRAY of object | An array of [platforms](#platforms-configuration) being integrated with. Each element of this array defines a different CRM. |
-| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. |
 | `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your adapter. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-adapter.myserver.com` |
 | `version`     | string | The version of your adapter. This is displayed to end users within the Chrome extension. |
 
@@ -30,6 +29,7 @@ The platforms property is an associative array. Each key should be a unique iden
 | `authUrl`        | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
 | `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
+| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. |
 | `contactTypes`   | ARRAY of string | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. |
 | `customState`    | string          | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `contactPageUrl` | string          | A format string to open a CRM's contact page, e.g.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|

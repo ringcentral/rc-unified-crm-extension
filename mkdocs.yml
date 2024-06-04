@@ -94,12 +94,12 @@ nav:
       - 'Welcome pages': developers/welcome-page.md
       - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
-      - 'addCallLog': developers/interfaces/addCallLog.md
-      - 'addMessageLog': developers/interfaces/addMessageLog.md
+      - 'createCallLog': developers/interfaces/createCallLog.md
+      - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
       - 'getCallLog': developers/interfaces/getCallLog.md
-      - 'getContact': developers/interfaces/getContact.md
+      - 'findContact': developers/interfaces/findContact.md
       - 'getOauthInfo': developers/interfaces/getOauthInfo.md
       - 'getUserInfo': developers/interfaces/getUserInfo.md
       - 'unAuthorize': developers/interfaces/unAuthorize.md

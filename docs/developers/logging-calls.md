@@ -12,7 +12,7 @@ One of the most used features across all of RingCentral's CRM integrations is th
 
 Within your adapter's `index.js` file, implement the following methods.
 
-* [`addCallLog`](interfaces/addCallLog.md)
+* [`createCallLog`](interfaces/createCallLog.md)
 * [`getCallLog`](interfaces/getCallLog.md)
 * [`updateCallLog`](interfaces/updateCallLog.md)
 

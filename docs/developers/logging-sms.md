@@ -10,13 +10,13 @@ Message logging is slightly different from call logging. Message logs could beco
 
 Message logs are grouped per conversation per day, meaning there will be just one CRM activity for all messages that happen under the same conversation on the same day.
 
-Therefore, the first message during the day will be logged using `addMessageLog` to create a new CRM activity, while the following messages are added to the existing activity using `updateMessageLog`. And the framework already takes care of separating the 1st message and the rest.
+Therefore, the first message during the day will be logged using `createMessageLog` to create a new CRM activity, while the following messages are added to the existing activity using `updateMessageLog`. And the framework already takes care of separating the 1st message and the rest.
 
 ## Implement server endpoints
 
 Within your adapter's `index.js` file, implement the following methods.
 
-* [`addMessageLog`](interfaces/addMessageLog.md) 
+* [`createMessageLog`](interfaces/createMessageLog.md) 
 * [`updateMessageLog`](interfaces/updateMessageLog.md)
 
 ## Test
