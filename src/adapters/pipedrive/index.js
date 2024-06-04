@@ -207,8 +207,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
-    const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-    const note =
+    const subject = !!recordingLink ? `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}` : `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const note = !!recordingLink ?
+        recordingLink :
         `<br><b>${subject}</b><br>` +
         '<b>Conversation summary</b><br>' +
         `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +

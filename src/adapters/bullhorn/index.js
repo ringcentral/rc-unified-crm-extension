@@ -306,27 +306,28 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let userInfoResponse;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
-            }
-        });
-    }
-    catch (e) {
-        if (e.response.status === 401) {
-            user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
     }
     const userData = userInfoResponse.data.data[0];
     const userName = userData.name;
     const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-    const comments =
+    const comments = !!recordingLink ?
+        `Voicemail recording: ${recordingLink}` :
         `<br><b>${subject}</b><br>` +
         '<b>Conversation summary</b><br>' +
         `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
@@ -368,21 +369,21 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let userInfoResponse;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
-            }
-        });
-    }
-    catch (e) {
-        if (e.response.status === 401) {
-            user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+    }
+    catch (e) {
+        if (e.response.status === 401) {
+            user = await refreshSessionToken(user);
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
     }
     const userData = userInfoResponse.data.data[0];

@@ -372,8 +372,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });;
     const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    const title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-    const details =
+    const title = !!recordingLink ? `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}` : `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const details = !!recordingLink ?
+        recordingLink :
         '\nConversation summary\n' +
         `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
         'Participants\n' +

@@ -188,8 +188,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const userName = user.id;
-    const subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-    const description =
+    const subject = !!recordingLink ? `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}` : `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const description = !!recordingLink ?
+        recordingLink :
         `<br><b>${subject}</b><br>` +
         '<b>Conversation summary</b><br>' +
         `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +

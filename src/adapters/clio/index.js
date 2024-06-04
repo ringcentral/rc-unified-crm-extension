@@ -265,7 +265,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    const logBody =
+    const logBody = !!recordingLink ?
+        recordingLink :
         '\nConversation summary\n' +
         `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
         'Participants\n' +
@@ -279,9 +280,10 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         '------------\n' +
         'END\n\n' +
         '--- Created via RingCentral CRM Extension';
+        const logSubject = !!recordingLink ? `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}` : `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
     const postBody = {
         data: {
-            subject: `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`,
+            subject: logSubject,
             body: logBody,
             type: 'PhoneCommunication',
             received_at: moment(message.creationTime).toISOString(),
