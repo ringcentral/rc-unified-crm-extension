@@ -121,7 +121,7 @@ app.get('/oauth-callback', async function (req, res) {
         }
         const platform = req.query.state ?
             req.query.state.split('platform=')[1] :
-            decodeURIComponent(req.originalUrl.split('state=')[1].split('&')[0]).split('platform=')[1];
+            decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
         if (!platform) {
@@ -135,7 +135,7 @@ app.get('/oauth-callback', async function (req, res) {
             platform,
             hostname,
             tokenUrl,
-            callbackUri:req.query.callbackUri,
+            callbackUri: req.query.callbackUri,
             apiUrl: req.query.apiUrl,
             username: req.query.username
         });

@@ -284,7 +284,7 @@
             "auth": {
                 "type": "oauth",
                 "oauth": {
-                    "authUrl": "https://{hostname}/app/login/oauth2/authorize.nl",
+                    "authUrl": "https://tstdrv2444007.app.netsuite.com/app/login/oauth2/authorize.nl",
                     "clientId": "e2c171e8b925b98b9d49c902376e89ad8b9efa959c3622e7d17ec8fdf2be5dad",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
