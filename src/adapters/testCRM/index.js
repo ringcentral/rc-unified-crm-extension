@@ -149,6 +149,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         foundContacts.push(mockContact);
     }
     console.log(`found contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
+
+    // If you want to support creating a new contact from the extension, below placeholder contact should be used
+    matchedContacts.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: null,
+        isNewContact: true
+    });
     //-----------------------------------------------------
     //---CHECK.3: In console, if contact info is printed---
     //-----------------------------------------------------

@@ -64,6 +64,12 @@ async function findContact({ user, phoneNumber }) {
         rawPersonInfo['phoneNumber'] = phoneNumber;
         matchedContacts.push(formatContact(rawPersonInfo));
     }
+    matchedContacts.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: null,
+        isNewContact: true
+    });
     return matchedContacts;
 }
 

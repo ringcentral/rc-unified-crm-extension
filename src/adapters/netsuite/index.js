@@ -89,6 +89,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         }
     }
     console.log(`found netsuite contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
+    
+    // If you want to support creating a new contact from the extension, below placeholder contact should be used
+    foundContacts.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: null,
+        isNewContact: true
+    });
     return foundContacts;
 }
 

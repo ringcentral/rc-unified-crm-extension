@@ -124,6 +124,12 @@ async function findContact({ user, phoneNumber }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
+    matchedContactInfo.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null,
+        isNewContact: true
+    });
     return matchedContactInfo;
 }
 

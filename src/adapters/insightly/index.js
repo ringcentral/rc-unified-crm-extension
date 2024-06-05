@@ -152,6 +152,12 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         }
         foundContacts.push(formatContact(singlePersonInfo));
     }
+    foundContacts.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: null,
+        isNewContact: true
+    });
     return foundContacts;
 }
 

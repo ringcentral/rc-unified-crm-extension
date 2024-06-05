@@ -102,6 +102,12 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
+    foundContacts.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: { logTimeEntry: true },
+        isNewContact: true
+    });
     return foundContacts;
 }
 
