@@ -17,7 +17,14 @@ function getOauthInfo() {
     }
 }
 
-async function getUserInfo({ authHeader, additionalInfo }) {
+async function getUserInfo({ authHeader, additionalInfo, query }) {
+    console.log({ authHeader, additionalInfo, query });
+    const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
+    console.log({ url });
+    const employeResponse = await axios.get(url,
+        {
+            headers: { 'Authorization': authHeader }
+        });
     // ---TODO.1: Implement API call to retrieve user info---
     const mockUserInfoResponse = {
         data: {
@@ -25,17 +32,18 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             name: 'Cathy Cadigan'
         }
     }
-    const id = mockUserInfoResponse.data.id;
-    const name = mockUserInfoResponse.data.name;
-    const timezoneName = mockUserInfoResponse.data.time_zone ?? ''; 
-    const timezoneOffset = mockUserInfoResponse.data.time_zone_offset ?? null; 
+    const id = query.entity;
+    const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
+    const timezoneName = employeResponse.data.time_zone ?? ''; 
+    const timezoneOffset = employeResponse.data.time_zone_offset ?? null; 
     return {
         id,
         name,
         timezoneName,
         timezoneOffset,
         platformAdditionalInfo: {
-            email: 'pratyusha.mudrakarta@ringcentral.com'
+            email: employeResponse.data.email,
+            name: name,
         }
     };
 }
