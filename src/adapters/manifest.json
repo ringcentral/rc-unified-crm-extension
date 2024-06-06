@@ -289,7 +289,7 @@
             "auth": {
                 "type": "oauth",
                 "oauth": {
-                    "authUrl": "https://tstdrv2444007.app.netsuite.com/app/login/oauth2/authorize.nl",
+                    "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
                     "clientId": "e2c171e8b925b98b9d49c902376e89ad8b9efa959c3622e7d17ec8fdf2be5dad",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
@@ -297,8 +297,8 @@
                 }
             },
             "platform": "netsuite",
-            "contactPageUrl": "https://tstdrv2444007.app.netsuite.com/app/common/entity/contact.nl?id={contactId}",
-            "logPageUrl": "https://tstdrv2444007.app.netsuite.com/app/crm/calendar/call.nl?id={logId}",
+            "contactPageUrl": "https://{hostname}/app/common/entity/contact.nl?id={contactId}",
+            "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
             "embeddedOnCrmPage": {
                 "welcomePage": {
