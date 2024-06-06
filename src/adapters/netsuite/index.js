@@ -18,7 +18,6 @@ function getOauthInfo() {
 }
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
-    console.log({ authHeader, additionalInfo, query });
     const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
     console.log({ url });
     const employeResponse = await axios.get(url,
