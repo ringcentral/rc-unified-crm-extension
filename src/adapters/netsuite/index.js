@@ -19,18 +19,10 @@ function getOauthInfo() {
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
     const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
-    console.log({ url });
     const employeResponse = await axios.get(url,
         {
             headers: { 'Authorization': authHeader }
         });
-    // ---TODO.1: Implement API call to retrieve user info---
-    const mockUserInfoResponse = {
-        data: {
-            id: '-5',
-            name: 'Cathy Cadigan'
-        }
-    }
     const id = query.entity;
     const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
     const timezoneName = employeResponse.data.time_zone ?? ''; 
