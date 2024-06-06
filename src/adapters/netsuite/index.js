@@ -173,6 +173,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
 }
 
+// TODO: add voicemail, fax cases
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
     const sender =
     {

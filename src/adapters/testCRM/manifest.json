@@ -10,6 +10,7 @@
         "testCRM": {
             "urlIdentifier": "*developers.ringcentral.com*",
             "name": "testCRM",
+            "displayName": "Test CRM",
             "auth": {
                 "type": "apiKey",
                 "apiKey": {

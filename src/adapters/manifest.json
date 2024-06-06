@@ -10,6 +10,7 @@
         "pipedrive": {
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
+            "displayName": "Pipedrive",
             "auth": {
                 "type": "oauth",
                 "oauth": {
@@ -53,6 +54,7 @@
         "insightly": {
             "urlIdentifier": "insightly.com",
             "name": "insightly",
+            "displayName": "Insightly",
             "auth": {
                 "type": "apiKey",
                 "apiKey": {
@@ -149,6 +151,7 @@
         "clio": {
             "urlIdentifier": "app.clio.com",
             "name": "clio",
+            "displayName": "Clio",
             "auth": {
                 "type": "oauth",
                 "oauth": {
@@ -236,6 +239,7 @@
         "bullhorn": {
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
+            "displayName": "Bullhorn",
             "auth": {
                 "type": "oauth",
                 "oauth": {
@@ -281,6 +285,7 @@
         "netsuite": {
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
+            "displayName": "NetSuite",
             "auth": {
                 "type": "oauth",
                 "oauth": {

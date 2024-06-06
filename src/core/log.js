@@ -206,6 +206,10 @@ async function createMessageLog({ platform, userId, incomingData }) {
             if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
                 recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
             }
+            let faxDocLink = null;
+            if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
+                faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+            }
             const existingSameDateMessageLog = await MessageLogModel.findOne({
                 where: {
                     conversationId: incomingData.logInfo.conversationId,
@@ -218,7 +222,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
             }
             else {
-                crmLogId = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink });
+                crmLogId = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
             }
             const createdMessageLog =
                 await MessageLogModel.create({

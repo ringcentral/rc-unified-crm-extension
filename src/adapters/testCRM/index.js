@@ -275,7 +275,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 // - message : same as in https://developers.ringcentral.com/api-reference/Message-Store/readMessage
 // - recordingLink: recording link of voice mail
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     // ---------------------------------------
     // ---TODO.7: Implement message logging---
     // ---------------------------------------
@@ -293,6 +293,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
+    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
     console.log(`adding message log... \n\n${JSON.stringify(message, null, 2)}`);
     mockMessageLog = {
         id: 'testMessageLogId'

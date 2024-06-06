@@ -254,7 +254,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     return patchBody.data?.body;
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const sender =
     {
         id: contactInfo.id,
@@ -271,22 +271,36 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    const logBody = !!recordingLink ?
-        recordingLink :
-        '\nConversation summary\n' +
-        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-        'Participants\n' +
-        `    ${userName}\n` +
-        `    ${contactInfo.name}\n` +
-        '\nConversation(1 messages)\n' +
-        'BEGIN\n' +
-        '------------\n' +
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n` +
-        '------------\n' +
-        'END\n\n' +
-        '--- Created via RingCentral CRM Extension';
-        const logSubject = !!recordingLink ? `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}` : `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    let logBody = '';
+    let logSubject = '';
+    switch (messageType) {
+        case 'SMS':
+            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody =
+                '\nConversation summary\n' +
+                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                'Participants\n' +
+                `    ${userName}\n` +
+                `    ${contactInfo.name}\n` +
+                '\nConversation(1 messages)\n' +
+                'BEGIN\n' +
+                '------------\n' +
+                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                `${message.subject}\n` +
+                '------------\n' +
+                'END\n\n' +
+                '--- Created via RingCentral CRM Extension';
+            break;
+        case 'Voicemail':
+            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral CRM Extension`;
+            break;
+        case 'Fax':
+            logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
+            break;
+    }
     const postBody = {
         data: {
             subject: logSubject,
