@@ -137,7 +137,8 @@ app.get('/oauth-callback', async function (req, res) {
             tokenUrl,
             callbackUri: req.query.callbackUri,
             apiUrl: req.query.apiUrl,
-            username: req.query.username
+            username: req.query.username,
+            query: req.query
         });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),

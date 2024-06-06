@@ -2,7 +2,7 @@ const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
     const platformModule = require(`../adapters/${platform}`);
     const oauthInfo = platformModule.getOauthInfo({ tokenUrl });
 
@@ -14,7 +14,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri });
+    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,
