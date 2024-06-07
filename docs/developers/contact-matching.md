@@ -19,3 +19,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 1. Create a new contact on CRM platform and make a call to it
 2. In extension, near call record, click `Refresh contact` to check if console prints correct results (`CHECK.3`)
+
+### Multiple contact types
+
+The framework supports multiple contact types at basic levels. Please refer to existing `bullhorn` or `insightly` code implementation and manifest for more details. 
