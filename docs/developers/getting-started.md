@@ -78,6 +78,9 @@ Click "Save."
 
 ## Next step: edit your manifest file
 
+!!! hint "Fork this repo and track changes better"
+    Under this framework, there are 1 javascript file and 1 manifest.json file that you'll need to create which are new files therefore won't prevent you from fetching the latest changes from this repo. Please don't change anything outside of that in case of conflicts in pull actions.
+
 With this step complete, you now have a shell of an adapter in place and you are ready to begin development. Let's start by customizing your adapter's manifest file. 
 
 [Implement an authorization layer](auth.md){.md-button}
