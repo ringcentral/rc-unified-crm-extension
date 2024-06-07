@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
+    "serverUrl": "https://netsuite.loca.lt",
     "author": {
         "name": "RingCentral Labs",
         "websiteUrl": "https://github.com/ringcentral/rc-unified-crm-extension",
@@ -300,6 +300,10 @@
             "contactPageUrl": "https://{hostname}/app/common/entity/contact.nl?id={contactId}",
             "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
+            "contactTypes": [
+                "Customer",
+                "Contact"
+            ],
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
