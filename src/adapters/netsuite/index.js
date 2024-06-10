@@ -194,8 +194,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
 }
 
-// TODO: add voicemail, fax cases
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+    console.log({ message: "Create Message Log", user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink });
     const sender =
     {
         id: contactInfo?.id,
@@ -207,22 +207,37 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         type: 'User'
     }
 
-    const userName = "SushilTestCRM"; //TODO - get user name from user object or from the CRM
-    const logBody =
-        '\nConversation summary\n' +
-        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-        'Participants\n' +
-        `    ${userName}\n` +
-        `    ${contactInfo.name}\n` +
-        '\nConversation(1 messages)\n' +
-        'BEGIN\n' +
-        '------------\n' +
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n` +
-        '------------\n' +
-        'END\n\n' +
-        '--- Created via RingCentral CRM Extension';
-    const title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+    const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
+    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    let logBody = '';
+    let title = '';
+    switch (messageType) {
+        case 'SMS':
+            title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody =
+                '\nConversation summary\n' +
+                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                'Participants\n' +
+                `    ${userName}\n` +
+                `    ${contactInfo.name}\n` +
+                '\nConversation(1 messages)\n' +
+                'BEGIN\n' +
+                '------------\n' +
+                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                `${message.subject}\n` +
+                '------------\n' +
+                'END\n\n' +
+                '--- Created via RingCentral CRM Extension';
+            break;
+        case 'Voicemail':
+            title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral CRM Extension`;
+            break;
+        case 'Fax':
+            title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
+            break;
+    }
     const postBody = {
         data: {
             title: title,
@@ -260,7 +275,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
-    const userName = "SushilTestCRM"; //TODO - get user name from user object or from the CRM
+    const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
     let logBody = getLogRes.data.message;
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
