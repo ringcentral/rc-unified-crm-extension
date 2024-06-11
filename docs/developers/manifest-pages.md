@@ -53,3 +53,34 @@ Set up associated deals the same as call log
 {! src/adapters/testCRM/manifest.json [ln:51-64] !}
 ```
 
+### Feedback page
+
+To use feedback page, please create `feedback` object under `page`. `feedback` has below properties:
+
+| Name               | Type    | Description |
+|--------------------|---------|-------------|
+| `url`            | string  | An url that pointing to your feedback page. Query parameters can be setup. Please refer to [below](#page-elements-and-query-parameters) |
+| `elements`            | array | Page elements. Please refer to [below](#page-elements-and-query-parameters)  |
+
+#### Page elements and query parameters
+
+Page elements are defined as similar to log page fields above:
+
+| Name               | Type    | Description |
+|--------------------|---------|-------------|
+| `const`            | string  | A unique key identifying the field. |
+| `title`            | string  | The display name of the field. |
+| `type`             | string  | The data type associated with the field. `string`, `inputField` and `selection` |
+| `bold` | boolean | (Only applicable for `string`)  |
+| `selections`| array | Each element has only `const` and `title`|
+| `required`| boolean | Required field flag.|
+| `placeholder`|string| (Only application for `inputField`)|
+
+`url` can be best explained in an example. If I want to eventually open a Google Form, I'd have my `url` as "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.912199228={crmName}". In page elements, if I have an element with `const` as "score", it'll then replace {score} in the url to construct a new url with user input data. And some parameters are native, like {crmName} which will be your crm name. Here are details:
+
+|Name|Is native|Description|
+|----|-----|----|
+|{any element}|false|Any custom field that you define in your feedback page|
+|`crmName`|true|Your crm platform name|
+|`userName`|true|RingCentral user name|
+|`userEmail`|true|RingCentral user email|
