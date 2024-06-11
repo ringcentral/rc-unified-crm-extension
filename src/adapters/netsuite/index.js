@@ -56,9 +56,24 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    console.log(phoneNumber);
     const numberToQueryArray = [];
-    numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    if (overridingFormat === '') {
+        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    }
+    else {
+        const formats = overridingFormat.split(',');
+        for (var format of formats) {
+            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+            if (phoneNumberObj.valid) {
+                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                let formattedNumber = format;
+                for (const numberBit of phoneNumberWithoutCountryCode) {
+                    formattedNumber = formattedNumber.replace('*', numberBit);
+                }
+                numberToQueryArray.push(formattedNumber);
+            }
+        }
+    }
     const foundContacts = [];
     for (var numberToQuery of numberToQueryArray) {
         console.log({ numberToQuery });
