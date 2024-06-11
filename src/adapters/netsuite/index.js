@@ -97,7 +97,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         id: result.id,
                         name: `${firstName} ${middleName} ${lastName}`,
                         phone: numberToQuery,
-                        additionalInfo: null
+                        additionalInfo: null,
+                        type: 'contact'
                     })
                 }
             }
@@ -120,7 +121,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         id: result.id,
                         name: `${firstName} ${middleName} ${lastName}`,
                         phone: numberToQuery,
-                        additionalInfo: null
+                        additionalInfo: null,
+                        type: 'custjob'
                     })
                 }
             }

@@ -297,7 +297,7 @@
                 }
             },
             "platform": "netsuite",
-            "contactPageUrl": "https://{hostname}/app/common/entity/contact.nl?id={contactId}",
+            "contactPageUrl": "https://{hostname}/app/common/entity/{contactType}.nl?id={contactId}",
             "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
             "contactTypes": [
