@@ -82,7 +82,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM contact WHERE phone LIKE ${numberToQuery}`
+                    q: `SELECT id,firstname,middlename,lastname FROM contact WHERE phone = ${numberToQuery}
+                        OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
@@ -106,7 +107,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const customerInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM customer WHERE phone = ${numberToQuery}`
+                    q: `SELECT id,firstname,middlename,lastname FROM customer WHERE phone = ${numberToQuery}
+                     OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
