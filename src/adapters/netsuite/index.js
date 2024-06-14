@@ -144,34 +144,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     //const originalMessage = note;
     //const temporedMessage = originalMessage + generateRandomString(20);
     const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    let postBody = {};
+    let postBody = {
+        title: title,
+        phone: contactInfo?.phoneNumber || '',
+        priority: "MEDIUM",
+        status: "COMPLETE",
+        startDate: moment(callLog.startTime).toISOString(),
+        message: note,
+    };
     if (contactInfo.type === 'Contact') {
         console.log({ message: "Contact CallLog", contactInfo })
         const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
             headers: { 'Authorization': authHeader }
         });
-        postBody = {
-            title: title,
-            phone: contactInfo?.phoneNumber || '',
-            priority: "MEDIUM",
-            status: "COMPLETE",
-            startDate: moment(callLog.startTime).toISOString(),
-            message: note,
-            company: { id: contactInfoRes.data?.company?.id },
-            contact: { id: contactInfo.id }
-        }
-
-    } else {
-        postBody = {
-            title: title,
-            phone: contactInfo?.phoneNumber || '',
-            priority: "MEDIUM",
-            status: "COMPLETE",
-            startDate: moment(callLog.startTime).toISOString(),
-            message: note,
-        }
+        postBody.contact = { id: contactInfo.id };
+        postBody.company = { id: contactInfoRes.data?.company?.id };
     }
-
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
     console.log(`with note... \n${note}`);
     console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
