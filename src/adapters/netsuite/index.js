@@ -141,18 +141,37 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
-    const originalMessage = note;
-    const temporedMessage = originalMessage + generateRandomString(20);
+    //const originalMessage = note;
+    //const temporedMessage = originalMessage + generateRandomString(20);
     const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    console.log({ originalMessage, temporedMessage });
-    const postBody = {
-        title: title,
-        phone: contactInfo?.phoneNumber || '',
-        priority: "MEDIUM",
-        status: "COMPLETE",
-        startDate: moment(callLog.startTime).toISOString(),
-        message: temporedMessage,
+    let postBody = {};
+    if (contactInfo.type === 'Contact') {
+        console.log({ message: "Contact CallLog", contactInfo })
+        const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
+            headers: { 'Authorization': authHeader }
+        });
+        postBody = {
+            title: title,
+            phone: contactInfo?.phoneNumber || '',
+            priority: "MEDIUM",
+            status: "COMPLETE",
+            startDate: moment(callLog.startTime).toISOString(),
+            message: note,
+            company: { id: contactInfoRes.data?.company?.id },
+            contact: { id: contactInfo.id }
+        }
+
+    } else {
+        postBody = {
+            title: title,
+            phone: contactInfo?.phoneNumber || '',
+            priority: "MEDIUM",
+            status: "COMPLETE",
+            startDate: moment(callLog.startTime).toISOString(),
+            message: note,
+        }
     }
+
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
     console.log(`with note... \n${note}`);
     console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
@@ -163,6 +182,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });
+    const callLogId = extractIdFromUrl(addLogRes.headers.location);
+    /*
     const phoneCallResponse = await axios.post(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
         {
@@ -182,7 +203,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         },
         {
             headers: { 'Authorization': authHeader }
-        });
+        });*/
     return callLogId;
 }
 
@@ -320,6 +341,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
     const nameParts = splitName(newContactName);
     console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
+    let contactId = 0;
     switch (newContactType) {
         case 'Contact':
             let companyId = 0;
@@ -345,9 +367,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     {
                         headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                     });
-                const createdCompanyUrl = createCompany.headers.location;
-                const segments = createdCompanyUrl.split('/').filter(segment => segment !== ''); // Remove empty segments
-                companyId = segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
+                companyId = extractIdFromUrl(createCompany.headers.location);
             }
             const contactPayLoad = {
                 firstName: nameParts.firstName,
@@ -363,6 +383,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                 });
+            contactId = extractIdFromUrl(createContactRes.headers.location);
             break;
         case 'Customer':
             const customerPayLoad = {
@@ -380,9 +401,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                 });
+            contactId = extractIdFromUrl(createCustomerRes.headers.location);
             break;
     }
-    return {};
+    return {
+        id: contactId,
+    };
 }
 
 function splitName(fullName) {
@@ -403,6 +427,11 @@ function generateRandomString(length) {
         counter += 1;
     }
     return result;
+}
+
+function extractIdFromUrl(url) {
+    const segments = url.split('/').filter(segment => segment !== ''); // Remove empty segments
+    return segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
 }
 
 
