@@ -249,8 +249,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral CRM Extension';
             break;
         case 'Voicemail':
+            const decodedRecordingLink = decodeURIComponent(recordingLink);
             title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral CRM Extension`;
+            logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral CRM Extension`;
             break;
         case 'Fax':
             title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
@@ -321,11 +322,39 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
     switch (newContactType) {
         case 'Contact':
+            let companyId = 0;
+            const companyInfo = await axios.post(
+                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                {
+                    q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
+                },
+                {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                }
+            )
+            if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
+                companyId = companyInfo.data.items[0].id;
+            }
+            else {
+                const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                    {
+                        companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                        comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                    }
+                    ,
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                    });
+                const createdCompanyUrl = createCompany.headers.location;
+                const segments = createdCompanyUrl.split('/').filter(segment => segment !== ''); // Remove empty segments
+                companyId = segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
+            }
             const contactPayLoad = {
                 firstName: nameParts.firstName,
                 middleName: nameParts.middleName,
                 lastName: nameParts.lastName,
-                phone: phoneNumber || ''
+                phone: phoneNumber || '',
+                company: { id: companyId }
             };
             const createContactRes = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
