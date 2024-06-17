@@ -30,6 +30,7 @@ function getHashValue(string, secretKey) {
     ).digest('hex');
 }
 initDB();
+analytics.init();
 const app = express();
 app.use(bodyParser.json())
 
@@ -348,7 +349,7 @@ app.get('/callLog', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform });
+            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
             res.status(200).send({ successful, logs });
             success = true;
         }
@@ -485,7 +486,7 @@ app.get('/releaseNotes', async function (req, res) {
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
     const hashedAccountId = headers['rc-account-id'];
-    const ip = headers['x-forwarded-for'].split(',')[0];
+    const ip = headers['x-forwarded-for'].split(',').find(i => !i.startsWith('10.'));
     const userAgent = headers['user-agent'];
     return {
         hashedAccountId,

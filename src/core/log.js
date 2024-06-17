@@ -63,8 +63,7 @@ async function createCallLog({ platform, userId, incomingData }) {
     }
 }
 
-async function getCallLog({ userId, sessionIds, platform }) {
-    const platformModule = require(`../adapters/${platform}`);
+async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     let user = await UserModel.findOne({
         where: {
             id: userId,
@@ -74,33 +73,50 @@ async function getCallLog({ userId, sessionIds, platform }) {
     if (!user || !user.accessToken) {
         return { successful: false, message: `Cannot find user with id: ${userId}` };
     }
-    const authType = platformModule.getAuthType();
-    let authHeader = '';
-    switch (authType) {
-        case 'oauth':
-            const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
-            user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
-            authHeader = `Bearer ${user.accessToken}`;
-            break;
-        case 'apiKey':
-            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
-            authHeader = `Basic ${basicAuth}`;
-            break;
-    }
-    const sessionIdsArray = sessionIds.split(',');
     let logs = [];
-    for (const sessionId of sessionIdsArray) {
-        const callLog = await CallLogModel.findOne({
-            where: {
-                sessionId
-            }
-        });
-        if (!!!callLog) {
-            logs.push({ sessionId, matched: false });
-            continue;
+    const sessionIdsArray = sessionIds.split(',');
+    if (!!requireDetails) {
+        const platformModule = require(`../adapters/${platform}`);
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
         }
-        const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-        logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog });
+        for (const sessionId of sessionIdsArray) {
+            const callLog = await CallLogModel.findOne({
+                where: {
+                    sessionId
+                }
+            });
+            if (!!!callLog) {
+                logs.push({ sessionId, matched: false });
+                continue;
+            }
+            const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog });
+        }
+    }
+    else {
+        for (const sessionId of sessionIdsArray) {
+            const callLog = await CallLogModel.findOne({
+                where: {
+                    sessionId
+                }
+            });
+            if (!!!callLog) {
+                logs.push({ sessionId, matched: false });
+                continue;
+            }
+            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId });
+        }
     }
     return { successful: true, logs };
 }
