@@ -141,17 +141,24 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
-    const originalMessage = note;
-    const temporedMessage = originalMessage + generateRandomString(20);
+    //const originalMessage = note;
+    //const temporedMessage = originalMessage + generateRandomString(20);
     const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    console.log({ originalMessage, temporedMessage });
-    const postBody = {
+    let postBody = {
         title: title,
         phone: contactInfo?.phoneNumber || '',
         priority: "MEDIUM",
         status: "COMPLETE",
         startDate: moment(callLog.startTime).toISOString(),
-        message: temporedMessage,
+        message: note,
+    };
+    if (contactInfo.type === 'Contact') {
+        console.log({ message: "Contact CallLog", contactInfo })
+        const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
+            headers: { 'Authorization': authHeader }
+        });
+        postBody.contact = { id: contactInfo.id };
+        postBody.company = { id: contactInfoRes.data?.company?.id };
     }
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
     console.log(`with note... \n${note}`);
@@ -163,6 +170,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });
+    const callLogId = extractIdFromUrl(addLogRes.headers.location);
+    /*
     const phoneCallResponse = await axios.post(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
         {
@@ -182,7 +191,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         },
         {
             headers: { 'Authorization': authHeader }
-        });
+        });*/
     return callLogId;
 }
 
@@ -249,8 +258,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral CRM Extension';
             break;
         case 'Voicemail':
+            const decodedRecordingLink = decodeURIComponent(recordingLink);
             title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral CRM Extension`;
+            logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral CRM Extension`;
             break;
         case 'Fax':
             title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
@@ -319,13 +329,40 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
     const nameParts = splitName(newContactName);
     console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
+    let contactId = 0;
     switch (newContactType) {
         case 'Contact':
+            let companyId = 0;
+            const companyInfo = await axios.post(
+                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                {
+                    q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
+                },
+                {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                }
+            )
+            if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
+                companyId = companyInfo.data.items[0].id;
+            }
+            else {
+                const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                    {
+                        companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                        comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                    }
+                    ,
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                    });
+                companyId = extractIdFromUrl(createCompany.headers.location);
+            }
             const contactPayLoad = {
                 firstName: nameParts.firstName,
                 middleName: nameParts.middleName,
                 lastName: nameParts.lastName,
-                phone: phoneNumber || ''
+                phone: phoneNumber || '',
+                company: { id: companyId }
             };
             const createContactRes = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
@@ -334,6 +371,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                 });
+            contactId = extractIdFromUrl(createContactRes.headers.location);
             break;
         case 'Customer':
             const customerPayLoad = {
@@ -351,9 +389,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                 });
+            contactId = extractIdFromUrl(createCustomerRes.headers.location);
             break;
     }
-    return {};
+    return {
+        id: contactId,
+    };
 }
 
 function splitName(fullName) {
@@ -374,6 +415,11 @@ function generateRandomString(length) {
         counter += 1;
     }
     return result;
+}
+
+function extractIdFromUrl(url) {
+    const segments = url.split('/').filter(segment => segment !== ''); // Remove empty segments
+    return segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
 }
 
 
