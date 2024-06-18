@@ -228,8 +228,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
             }
             const existingSameDateMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationId: incomingData.logInfo.conversationId,
-                    date: incomingData.logInfo.date
+                    conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
             let crmLogId = ''
@@ -247,7 +246,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     conversationId: incomingData.logInfo.conversationId,
                     thirdPartyLogId: crmLogId,
                     userId,
-                    date: incomingData.logInfo.date
+                    conversationLogId: incomingData.logInfo.conversationLogId
                 });
             console.log(`added message log: ${createdMessageLog.id}`);
             logIds.push(createdMessageLog.id);
