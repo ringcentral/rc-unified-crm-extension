@@ -1,0 +1,70 @@
+{
+    "serverUrl": "https://ad87-116-75-212-14.ngrok-free.app",
+    "author": "RingCentral Labs",
+    "platforms": {
+        "servicenow": {
+            "urlIdentifier": "*service-now.com*",
+            "name": "servicenow",
+            "displayName": "servicenow",
+            "auth": {
+                "type": "oauth",
+                "oauth": {
+                    "authUrl": "https://dev194338.service-now.com/oauth_auth.do",
+                    "clientId": "28f5e591b712021007de332ca7b91efb",
+                    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
+                }
+            },
+            "customState": "",
+            "scope": "",
+            "canOpenLogPage": true,
+            "contactPageUrl":"https://dev194338.service-now.com/customer_contact.do?sys_id={contactId}",
+            "logPageUrl":"https://dev194338.service-now.com/incident.do?sys_id={logId}",
+            "contactTypes": [
+                "TestContactType",
+                "Contact"
+            ],
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "logTimeEntry",
+                            "title": "Log time entry",
+                            "type": "checkbox",
+                            "contactDependent": false,
+                            "defaultValue": true
+                        },
+                        {
+                            "const": "categorySelection",
+                            "title": "Category",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "matters",
+                            "title": "Matter",
+                            "type": "selection",
+                            "contactDependent": true
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "version": "0.8.13"
+}

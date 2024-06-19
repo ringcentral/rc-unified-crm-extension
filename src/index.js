@@ -5,6 +5,11 @@ const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
+// const { ConfigModel } = require('./models/configModel');
+const { UserModel1 } = require('./adapters/models/userModel');
+const { CallLogModel1 } = require('./adapters/models/callLogModel');
+const { MessageLogModel1 } = require('./adapters/models/messageLogModel');
+const { ConfigModel1 } = require('./adapters/models/configModel');
 const cors = require('cors')
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
@@ -12,15 +17,17 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
-const analytics = require('./lib/analytics');
 
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = process.env.VERSION;
 
 async function initDB() {
+    // UserModel1.belongsTo(ConfigModel1);
+    // ConfigModel1.hasMany(UserModel1);
     console.log('creating db tables if not exist...');
-    await UserModel.sync();
+    await UserModel.sync({force:true,alter:true});
     await CallLogModel.sync();
     await MessageLogModel.sync();
+    // await ConfigModel.sync({ force: true,alter:true });
     console.log('db tables created');
 }
 
@@ -30,7 +37,6 @@ function getHashValue(string, secretKey) {
     ).digest('hex');
 }
 initDB();
-analytics.init();
 const app = express();
 app.use(bodyParser.json())
 
@@ -117,15 +123,11 @@ app.get('/hostname', async function (req, res) {
     }
 })
 app.get('/oauth-callback', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
             throw 'Missing callbackUri';
         }
-        platformName = platform = req.query.state ?
+        const platform = req.query.state ?
             req.query.state.split('platform=')[1] :
             decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
         const hostname = req.query.hostname;
@@ -151,33 +153,15 @@ app.get('/oauth-callback', async function (req, res) {
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });
-        success = true;
     }
     catch (e) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'OAuth Callback',
-        interfaceName: 'onOAuthCallback',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 })
 app.post('/apiKeyLogin', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const platform = req.body.platform;
-        platformName = platform;
         const apiKey = req.body.apiKey;
         const hostname = req.body.hostname;
         const additionalInfo = req.body.additionalInfo;
@@ -193,35 +177,17 @@ app.post('/apiKeyLogin', async function (req, res) {
             platform: platform
         });
         res.status(200).send({ jwtToken, name: userInfo.name });
-        success = true;
     }
     catch (e) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'API Key Login',
-        interfaceName: 'onApiKeyLogin',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 })
 app.post('/unAuthorize', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
             const userToLogout = await UserModel.findOne({
                 where: {
                     id: unAuthData.id,
@@ -235,7 +201,6 @@ app.post('/unAuthorize', async function (req, res) {
             const platformModule = require(`./adapters/${unAuthData.platform}`);
             await platformModule.unAuthorize({ user: userToLogout });
             res.status(200).send();
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -245,18 +210,6 @@ app.post('/unAuthorize', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Unauthorize',
-        interfaceName: 'unAuthorize',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.get('/userInfoHash', async function (req, res) {
     try {
@@ -270,18 +223,12 @@ app.get('/userInfoHash', async function (req, res) {
     }
 })
 app.get('/contact', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
             const { successful, message, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, message, contact });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -291,32 +238,14 @@ app.get('/contact', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Find contact',
-        interfaceName: 'findContact',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.post('/contact', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
             const { successful, message, contact } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
             res.status(200).send({ successful, message, contact });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -326,32 +255,14 @@ app.post('/contact', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Create contact',
-        interfaceName: 'createContact',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.get('/callLog', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
-            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
+            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform });
             res.status(200).send({ successful, logs });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -361,31 +272,14 @@ app.get('/callLog', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Get call log',
-        interfaceName: 'getCallLog',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.post('/callLog', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             const { successful, message, logId } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logId });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -395,32 +289,14 @@ app.post('/callLog', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Create call log',
-        interfaceName: 'createCallLog',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.patch('/callLog', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
             const { successful, logId, updatedDescription } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, logId, updatedDescription });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -430,32 +306,14 @@ app.patch('/callLog', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Update call log',
-        interfaceName: 'updateCallLog',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 app.post('/messageLog', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
             const { successful, message, logIds } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
             res.status(200).send({ successful, message, logIds });
-            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -465,35 +323,10 @@ app.post('/messageLog', async function (req, res) {
         console.log(e);
         res.status(400).send(e);
     }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Create message log',
-        interfaceName: 'createMessageLog',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip
-    });
 });
 
 app.get('/releaseNotes', async function (req, res) {
     res.json(releaseNotes);
 })
-
-function getAnalyticsVariablesInReqHeaders({ headers }) {
-    const hashedExtensionId = headers['rc-extension-id'];
-    const hashedAccountId = headers['rc-account-id'];
-    const ip = headers['x-forwarded-for'].split(',').find(i => !i.startsWith('10.'));
-    const userAgent = headers['user-agent'];
-    return {
-        hashedAccountId,
-        hashedExtensionId,
-        ip,
-        userAgent
-    }
-}
 
 exports.server = app;
