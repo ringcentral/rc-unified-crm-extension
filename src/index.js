@@ -20,23 +20,23 @@ const axios = require('axios');
 
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = process.env.VERSION;
 
-async function initDB() {
-    // UserModel1.belongsTo(ConfigModel1);
-    // ConfigModel1.hasMany(UserModel1);
-    console.log('creating db tables if not exist...');
-    await UserModel.sync({force:true,alter:true});
-    await CallLogModel.sync();
-    await MessageLogModel.sync();
-    // await ConfigModel.sync({ force: true,alter:true });
-    console.log('db tables created');
-}
+// async function initDB() {
+//     // UserModel1.belongsTo(ConfigModel1);
+//     // ConfigModel1.hasMany(UserModel1);
+//     console.log('creating db tables if not exist...');
+//     await UserModel.sync({force:true,alter:true});
+//     await CallLogModel.sync();
+//     await MessageLogModel.sync();
+//     // await ConfigModel.sync({ force: true,alter:true });
+//     console.log('db tables created');
+// }
 
 function getHashValue(string, secretKey) {
     return crypto.createHash('sha256').update(
         `${string}:${secretKey}`
     ).digest('hex');
 }
-initDB();
+// initDB();
 const app = express();
 app.use(bodyParser.json())
 

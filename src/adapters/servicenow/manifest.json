@@ -46,10 +46,30 @@
                             "defaultValue": true
                         },
                         {
-                            "const": "categorySelection",
+                            "const": "category",
                             "title": "Category",
                             "type": "selection",
                             "contactDependent": true
+                        },
+                        {
+                            "const": "subcategory",
+                            "title": "Sub-Category",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "impact",
+                            "title": "Impact",
+                            "type": "selection",
+                            "contactDependent": true,
+                            "default": 3
+                        },
+                        {
+                            "const": "urgency",
+                            "title": "Urgency",
+                            "type": "selection",
+                            "contactDependent": true,
+                            "default": 3
                         }
                     ]
                 },

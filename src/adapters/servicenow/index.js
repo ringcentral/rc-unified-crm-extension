@@ -1,12 +1,12 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { saveUserInfo} = require('../core/auth');
-const { UserModel } = require('../../models/userModel');
-const { UserModel1 } = require('../models/userModel');
-const { ConfigModel1 } = require('../models/configModel');
-const { CallLogModel1 } = require('../models/callLogModel');
-const { MessageLogModel1 } = require('../models/messageLogModel');
+// const { saveUserInfo} = require('../core/auth');
+// const { UserModel } = require('../../models/userModel');
+// const { UserModel1 } = require('../models/userModel');
+// const { ConfigModel1 } = require('../models/configModel');
+// const { CallLogModel1 } = require('../models/callLogModel');
+// const { MessageLogModel1 } = require('../models/messageLogModel');
 
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
@@ -15,14 +15,14 @@ let mockContact = null;
 let mockCallLog = null;
 let mockMessageLog = null;
 
-async function initDB()
-{
-    await UserModel1.sync({ force: true,alter:true });
-    await CallLogModel1.sync({ force: true,alter:true });
-    await MessageLogModel1.sync({ force: true,alter:true });
-    await ConfigModel1.sync({ force: true,alter:true });
-}
-initDB();
+// async function initDB()
+// {
+//     await UserModel1.sync({ force: true,alter:true });
+//     await CallLogModel1.sync({ force: true,alter:true });
+//     await MessageLogModel1.sync({ force: true,alter:true });
+//     await ConfigModel1.sync({ force: true,alter:true });
+// }
+// initDB();
 
 function getAuthType() {
     return 'oauth'; // Return either 'oauth' OR 'apiKey'
@@ -67,22 +67,22 @@ async function getUserInfo({ authHeader, additionalInfo }) {
     // ---TODO.1: Implement API call to retrieve user info---
     // ------------------------------------------------------
 
-    const checkActiveUsers = await UserModel1.findAndCountAll({
-        where:{
-            license_key_id:process.env.license_key_id
-        },
-        // include:[{
-        //     model:ConfigModel1,
-        //     required:true,
-        //     attributes:["max_allowed_users"]
-        // }]
-    })
-    // const getMaxUsersCount = await ConfigModel1.findOne({
+    // const checkActiveUsers = await UserModel1.findAndCountAll({
     //     where:{
-    //         license_key_id
-    //     }
+    //         license_key_id:process.env.license_key_id
+    //     },
+    //     // include:[{
+    //     //     model:ConfigModel1,
+    //     //     required:true,
+    //     //     attributes:["max_allowed_users"]
+    //     // }]
     // })
-    console.log("checkActiveUsers",checkActiveUsers);
+    // // const getMaxUsersCount = await ConfigModel1.findOne({
+    // //     where:{
+    // //         license_key_id
+    // //     }
+    // // })
+    // console.log("checkActiveUsers",checkActiveUsers);
     
 
     const userInfoResponse = await axios.get(`https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/${process.env.SERVICE_NOW_USER_DETAILS_PATH}`, {
@@ -95,7 +95,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
     const name = userInfoResponse.data.result.user_name;
     const timezoneName = userInfoResponse.data.result.time_zone ?? ''; // Optional. Whether or not you want to log with regards to the user's timezone
     const timezoneOffset = userInfoResponse.data.result.time_zone_offset ?? null; // Optional. Whether or not you want to log with regards to the user's timezone. It will need to be converted to a format that CRM platform uses,
-    await saveUserInfo(userInfoResponse.data.result);
+    // await saveUserInfo(userInfoResponse.data.result);
     return {
         id,
         name,
@@ -140,6 +140,26 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
     numberToQueryArray.push(phoneNumber.trim());
 
+    const categorySelection = await axios.get(
+        `https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/now/table/sys_choice?sysparm_query=name=incident^element=category&sysparm_fields=sys_id,label,value`,
+        {
+            headers: { 'Authorization':  authHeader }
+        });
+
+    const cateogries = categorySelection.data.result.length > 0 ? categorySelection.data.result.map(m => { return { const: m.sys_id, title: m.label } }) : null;
+    
+    const subcategorySelection = await axios.get(
+        `https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/now/table/sys_choice?sysparm_query=name=incident^element=subcategory&sysparm_fields=sys_id,label,dependent_value`,
+        {
+            headers: { 'Authorization':  authHeader }
+        });
+    
+    const subcateogries = subcategorySelection.data.result.length > 0 ? subcategorySelection.data.result.map(m => { return { const: m.sys_id, title: m.label } }) : null;
+
+    const impactSelection = [{ const: 1, title: "High" }, { const: 2, title: "Medium" }, { const: 3, title: "Low" }]
+    const urgencySelection = [{ const: 1, title: "High" }, { const: 2, title: "Medium" }, { const: 3, title: "Low" }]
+    
+
     // You can use parsePhoneNumber functions to further parse the phone number
     const foundContacts = [];
 
@@ -157,7 +177,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     id: result.sys_id,
                     name: result.name,
                     phone: numberToQuery,
-                    additionalInfo: null
+                    additionalInfo: {category: cateogries, subcategory: subcateogries, impact: impactSelection, urgency: urgencySelection}
                 })
             }
         }
@@ -193,6 +213,33 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         contact_type: "Phone",
         caller_id: caller_id.data.result.id
     }
+
+    if (additionalSubmission && additionalSubmission.category){
+        const categorySelection = await axios.get(
+            `https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/now/table/sys_choice?sysparm_query=name=incident^element=category^sys_id=${additionalSubmission.category}&sysparm_fields=sys_id,label,value`,
+            {
+                headers: { 'Authorization':  authHeader }
+            });
+    
+        const returnedCateogry = categorySelection.data.result.length > 0 ? categorySelection.data.result[0].value : null;
+        postBody.category = returnedCateogry;
+
+        if (additionalSubmission.subcategory) {
+            const subcategorySelection = await axios.get(
+                `https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/now/table/sys_choice?sysparm_query=name=incident^element=subcategory^sys_id=${additionalSubmission.subcategory}&sysparm_fields=sys_id,value,dependent_value`,
+                {
+                    headers: { 'Authorization':  authHeader }
+                });
+            
+            const returnedSubcateogry = subcategorySelection.data.result.length > 0 ? subcategorySelection.data.result[0].value : null;
+
+            postBody.subcategory = returnedSubcateogry;
+        }
+        
+    }
+
+    postBody.impact = (additionalSubmission && additionalSubmission.impact) ? additionalSubmission.impact : 3;
+    postBody.urgency = (additionalSubmission && additionalSubmission.urgency) ? additionalSubmission.urgency : 3;
 
     const addLogRes = await axios.post(
         `https://${process.env.SERVICE_NOW_INSTANCE_ID}.service-now.com/api/now/table/incident`,
