@@ -1,0 +1,41 @@
+name: Deploy code to API server
+on:
+  push:
+    branches: rc-unified-crm-extension
+jobs:
+  preview:
+    runs-on: gitrunner-ringcentralapi
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v1
+          
+        # Creating API zip archive to upload 
+      - name: create zip archive
+        env:
+          user: ${{ secrets.SSH_USER_TEST }}
+          host: ${{ secrets.API_HOST_TEST }}
+          privateKey: ${{ secrets.SSH_USER_KEY_TEST}}
+
+        run: |
+          rm -rf api.zip
+          zip -r api.zip  .env ./*
+          
+        # deploying api.zip to the API server
+      - name: copy file via SSH password
+        uses: appleboy/scp-action@master
+        with:
+           host: ${{ secrets.API_HOST_TEST }}
+           username: ${{ secrets.SSH_USER_TEST }}
+           key: ${{ secrets.SSH_USER_KEY_TEST }}
+           port: ${{ secrets.PORT }}
+           source: "api.zip"
+           target: "rc-crmapi.test.gate6.com"
+
+      - name: executing remote SSH commands using SSH key
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.API_HOST_TEST }}
+          username: ${{ secrets.SSH_USER_TEST }}
+          key: ${{ secrets.SSH_USER_KEY_TEST }}
+          port: ${{ secrets.PORT }}
+          script: cd /home/ec2-user/rc-crmapi.test.gate6.com && unzip -o api.zip && rm -rf api.zip && npm install && pm2 stop src/server.js && pm2 start src/server.js
