@@ -33,19 +33,6 @@
                 "callLog": {
                     "additionalFields": [
                         {
-                            "const": "matters",
-                            "title": "Matter",
-                            "type": "selection",
-                            "contactDependent": true
-                        },
-                        {
-                            "const": "logTimeEntry",
-                            "title": "Log time entry",
-                            "type": "checkbox",
-                            "contactDependent": false,
-                            "defaultValue": true
-                        },
-                        {
                             "const": "category",
                             "title": "Category",
                             "type": "selection",
