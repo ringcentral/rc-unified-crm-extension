@@ -1,6 +1,13 @@
 name: CI Pipeline
-on: [push, pull_request]
-
+on:
+  push:
+    branches:
+      - main
+      - FrameworkRefactor
+  pull_request:
+    branches:
+      - main
+      - FrameworkRefactor
 jobs:
   server-test:
     runs-on: ubuntu-latest

@@ -82,8 +82,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM contact WHERE phone = ${numberToQuery}
-                        OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
+                    q: `SELECT id,firstname,middlename,lastname FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
@@ -107,8 +106,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const customerInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM customer WHERE phone = ${numberToQuery}
-                     OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
+                    q: `SELECT id,firstname,middlename,lastname FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
@@ -152,7 +150,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         startDate: moment(callLog.startTime).toISOString(),
         message: note,
     };
-    if (contactInfo.type === 'Contact') {
+    if (contactInfo.typ.toUpperCase() === 'CONTACT') {
         console.log({ message: "Contact CallLog", contactInfo })
         const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
             headers: { 'Authorization': authHeader }
@@ -276,25 +274,22 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
 
     }
+    if (contactInfo.type.toUpperCase() === 'CONTACT') {
+        console.log({ message: "Contact CallLog", contactInfo })
+        const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
+            headers: { 'Authorization': authHeader }
+        });
+        postBody.data.contact = { id: contactInfo.id };
+        postBody.data.company = { id: contactInfoRes.data?.company?.id };
+    }
     const addLogRes = await axios.post(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
         postBody.data,
         {
             headers: { 'Authorization': authHeader }
         });
-    const phoneCallResponse = await axios.post(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-        {
-            q: `SELECT * FROM PhoneCall WHERE title = '${title}'`
-        },
-        {
-            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-        });
-    let callLogId = null;
-    if (phoneCallResponse.data.items.length > 0) {
-        callLogId = phoneCallResponse.data.items[0].id;
-    }
-    console.log(`call log id from addMessage... \n${callLogId}`);
+    const callLogId = extractIdFromUrl(addLogRes.headers.location);
+    console.log({ message: "CallLogId is", callLogId });
     return callLogId;
 }
 
