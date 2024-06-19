@@ -16,27 +16,46 @@ function getOauthInfo({ tokenUrl }) {
 }
 
 async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
-    const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
-    const { BhRestToken: bhRestToken, restUrl } = userLoginResponse.data;
-    const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
-    const userData = userInfoResponse.data.data[0];
-    const id = `${userData.id.toString()}-bullhorn`;
-    const name = userData.name;
-    const timezoneOffset = userData.timeZoneOffsetEST - 5 * 60;
-    const timezoneName = '';
-    const platformAdditionalInfo = {
-        tokenUrl,
-        restUrl,
-        loginUrl: apiUrl,
-        bhRestToken
+    try {
+        const userLoginResponse = await axios.post(`${apiUrl}/login?version=2.0&access_token=${authHeader.split('Bearer ')[1]}`);
+        const { BhRestToken: bhRestToken, restUrl } = userLoginResponse.data;
+        const userInfoResponse = await axios.get(`${restUrl}query/CorporateUser?fields=id,name,timeZoneOffsetEST&BhRestToken=${bhRestToken}&where=username='${username}'`);
+        const userData = userInfoResponse.data.data[0];
+        const id = `${userData.id.toString()}-bullhorn`;
+        const name = userData.name;
+        const timezoneOffset = userData.timeZoneOffsetEST - 5 * 60;
+        const timezoneName = '';
+        const platformAdditionalInfo = {
+            tokenUrl,
+            restUrl,
+            loginUrl: apiUrl,
+            bhRestToken
+        }
+        return {
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                platformAdditionalInfo
+            },
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connceted to Bullhorn.',
+                ttl: 3000
+            }
+        };
+
     }
-    return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        platformAdditionalInfo
-    };
+    catch (e) {
+        return {
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to get user info.',
+                ttl: 3000
+            }
+        }
+    }
 }
 
 function getOverridingOAuthOption({ code }) {
@@ -56,6 +75,13 @@ function getOverridingOAuthOption({ code }) {
 
 async function unAuthorize({ user }) {
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from Bullhorn account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, phoneNumber }) {
@@ -130,7 +156,9 @@ async function findContact({ user, phoneNumber }) {
         additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null,
         isNewContact: true
     });
-    return matchedContactInfo;
+    return {
+        matchedContactInfo
+    };
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
@@ -142,7 +170,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
                 phone: phoneNumber.replace(' ', '+')
             }
-            const candidateInfo = await axios.put(
+            const candidateInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Candidate`,
                 candidatePostBody,
                 {
@@ -152,8 +180,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 }
             );
             return {
-                id: candidateInfo.data.changedEntityId,
-                name: newContactName
+                contactInfo: {
+                    id: candidateInfoResp.data.changedEntityId,
+                    name: newContactName
+                },
+                returnMessage: {
+                    message: `New ${newContactType} created.`,
+                    messageType: 'success',
+                    ttl: 3000
+                }
             }
         case 'Contact':
             let companyId = 0;
@@ -195,7 +230,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     id: companyId
                 }
             }
-            const contactInfo = await axios.put(
+            const contactInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/ClientContact`,
                 contactPostBody,
                 {
@@ -205,8 +240,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 }
             );
             return {
-                id: contactInfo.data.changedEntityId,
-                name: newContactName
+                contactInfo: {
+                    id: contactInfoResp.data.changedEntityId,
+                    name: newContactName
+                },
+                returnMessage: {
+                    message: `New ${newContactType} created.`,
+                    messageType: 'success',
+                    ttl: 3000
+                }
             }
     }
 }
@@ -248,7 +290,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             );
         }
     }
-    return addLogRes.data.changedEntityId;
+    return {
+        logId: addLogRes.data.changedEntityId,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
@@ -304,7 +353,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         });
-    return postBody.comments;
+    return {
+        updatedNote: postBody.comments,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -382,7 +438,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         }
     );
-    return addLogRes.data.changedEntityId;
+    return {
+        logId: addLogRes.data.changedEntityId,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    }
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
@@ -470,9 +533,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const note = logBody.split('<b>Call details</b>')[0].replaceAll('<br>', '');
     const contact = getLogRes.data.data.clientContacts.total > 0 ? getLogRes.data.data.clientContacts.data[0] : getLogRes.data.data.candidates.data[0];
     return {
-        subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
-        note,
-        contactName: `${contact.firstName} ${contact.lastName}`
+        callLogInfo: {
+            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
+            note,
+            contactName: `${contact.firstName} ${contact.lastName}`
+        }
     }
 }
 

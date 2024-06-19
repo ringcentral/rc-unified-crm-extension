@@ -14,7 +14,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
+    const { platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,
@@ -26,20 +26,26 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
         refreshToken,
         tokenExpiry: expires
     });
-    return userInfo;
+    return {
+        userInfo,
+        returnMessage
+    };
 }
 
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const platformModule = require(`../adapters/${platform}`);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const platformUserInfo = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
+    const { platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
     const userInfo = await saveUserInfo({
         platformUserInfo,
         platform,
         hostname,
         accessToken: platformUserInfo.overridingApiKey ?? apiKey
     });
-    return userInfo;
+    return {
+        userInfo,
+        returnMessage
+    };
 }
 
 async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {

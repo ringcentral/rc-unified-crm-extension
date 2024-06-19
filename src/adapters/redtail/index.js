@@ -1,10 +1,6 @@
 const axios = require('axios');
 const moment = require('moment');
-const { UserModel } = require('../../models/userModel');
-const Op = require('sequelize').Op;
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
-const crmName = 'redtail';
 
 function getAuthType() {
     return 'apiKey';
@@ -33,21 +29,35 @@ async function getUserInfo({ authHeader, additionalInfo }) {
     const timezoneName = '';
     const timezoneOffset = null;
     return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        overridingApiKey: additionalInfo.userResponse.user_key,
-        platformAdditionalInfo: additionalInfo
+        platformUserInfo: {
+            id,
+            name,
+            timezoneName,
+            timezoneOffset,
+            overridingApiKey: additionalInfo.userResponse.user_key,
+            platformAdditionalInfo: additionalInfo
+        },
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully connceted to Redtail.',
+            ttl: 3000
+        }
     }
 }
 
 async function unAuthorize({ user }) {
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from Redtail account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, phoneNumber }) {
-    const matchedContacts = [];
+    const matchedContactInfo = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     phoneNumber = phoneNumber.replace(' ', '+')
     const phoneNumberObj = parsePhoneNumber(phoneNumber);
@@ -62,15 +72,15 @@ async function findContact({ user, phoneNumber }) {
         });
     for (let rawPersonInfo of personInfo.data.contacts) {
         rawPersonInfo['phoneNumber'] = phoneNumber;
-        matchedContacts.push(formatContact(rawPersonInfo));
+        matchedContactInfo.push(formatContact(rawPersonInfo));
     }
-    matchedContacts.push({
+    matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
         additionalInfo: null,
         isNewContact: true
     });
-    return matchedContacts;
+    return { matchedContactInfo };
 }
 
 async function createContact({ user, phoneNumber, newContactName }) {
@@ -95,15 +105,22 @@ async function createContact({ user, phoneNumber, newContactName }) {
         }
     );
     return {
-        id: personInfo.data.contact.id,
-        name: `${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`
+        contactInfo: {
+            id: personInfo.data.contact.id,
+            name: `${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`
+        },
+        returnMessage: {
+            message: `New contact created.`,
+            messageType: 'success',
+            ttl: 3000
+        }
     }
 }
 
 async function createCallLog({ user, contactInfo, callLog, note }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const linkedNotes = note ?? '';
-    const descriptionNotes = note ? `\n\nAgent notes: ${note}` : '';
+    const descriptionNotes = `\n\nAgent notes: ${note ?? ''}`;
     const callRecordingDetail = callLog.recording ? `\nCall recording link: <a target="_blank" href=${callLog.recording.link}>open</a>` : "";
     const postBody = {
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
@@ -144,7 +161,14 @@ async function createCallLog({ user, contactInfo, callLog, note }) {
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
-    return completeLogRes.data.activity.id;
+    return {
+        logId: completeLogRes.data.activity.id,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
@@ -188,7 +212,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
-    return putBody.description;
+    return {
+        updatedNote: putBody.description,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -255,7 +286,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
-    return completeLogRes.data.activity.id;
+    return {
+        logId: completeLogRes.data.activity.id,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
@@ -302,9 +340,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
         logBody?.split('Agent notes: ')[1]?.split('<br><br>Call recording link:')[0] :
         logBody?.split('Agent notes: ')[1]?.split('<br><br><em> Created via:')[0];
     return {
-        subject: getLogRes.data.activity.subject,
-        note,
-        contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,
+        callLogInfo: {
+            subject: getLogRes.data.activity.subject,
+            note,
+            contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,
+        }
     }
 }
 

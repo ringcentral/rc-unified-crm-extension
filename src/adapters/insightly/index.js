@@ -24,16 +24,30 @@ async function getUserInfo({ authHeader, additionalInfo }) {
     const timezoneOffset = null;
     const timezoneName = userInfoResponse.data.TIMEZONE_ID;
     return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        platformAdditionalInfo: additionalInfo
+        platformUserInfo: {
+            id,
+            name,
+            timezoneName,
+            timezoneOffset,
+            platformAdditionalInfo: additionalInfo
+        },
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully connceted to Insightly.',
+            ttl: 3000
+        }
     };
 }
 
 async function unAuthorize({ user }) {
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from Insightly account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -101,7 +115,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             rawContacts.push(rawContactInfo);
         }
     }
-    const foundContacts = [];
+    const matchedContactInfo = [];
     for (let singlePersonInfo of rawContacts) {
         singlePersonInfo.additionalInfo = {};
         for (const link of singlePersonInfo.LINKS) {
@@ -150,15 +164,15 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     break;
             }
         }
-        foundContacts.push(formatContact(singlePersonInfo));
+        matchedContactInfo.push(formatContact(singlePersonInfo));
     }
-    foundContacts.push({
+    matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
         additionalInfo: null,
         isNewContact: true
     });
-    return foundContacts;
+    return { matchedContactInfo };
 }
 
 function formatContact(rawContactInfo) {
@@ -219,8 +233,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     );
     return {
-        id: newContactType === 'Contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID,
-        name: `${personInfo.data.FIRST_NAME} ${personInfo.data.LAST_NAME}`
+        contactInfo: {
+            id: newContactType === 'Contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID,
+            name: `${personInfo.data.FIRST_NAME} ${personInfo.data.LAST_NAME}`
+        },
+        returnMessage: {
+            message: `New contact created.`,
+            messageType: 'success',
+            ttl: 3000
+        }
     }
 }
 
@@ -300,7 +321,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 headers: { 'Authorization': authHeader }
             });
     }
-    return addLogRes.data.EVENT_ID;
+    return {
+        logId: addLogRes.data.EVENT_ID,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
@@ -346,7 +374,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             headers: { 'Authorization': authHeader }
         });
 
-    return putBody.DETAILS;
+    return {
+        updatedNote: putBody.DETAILS,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -365,9 +400,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     );
     return {
-        subject: getLogRes.data.TITLE,
-        note,
-        contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`
+        callLogInfo: {
+            subject: getLogRes.data.TITLE,
+            note,
+            contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`
+        }
     }
 }
 
@@ -444,7 +481,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 headers: { 'Authorization': authHeader }
             });
     }
-    return addLogRes.data.EVENT_ID;
+    return {
+        logId: addLogRes.data.EVENT_ID,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {

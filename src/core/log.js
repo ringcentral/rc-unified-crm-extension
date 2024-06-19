@@ -47,7 +47,7 @@ async function createCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const logId = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
+        const { logId, returnMessage } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
         await CallLogModel.create({
             id: incomingData.logInfo.id,
             sessionId: incomingData.logInfo.sessionId,
@@ -56,7 +56,7 @@ async function createCallLog({ platform, userId, incomingData }) {
             userId
         });
         console.log(`added call log: ${logId}`);
-        return { successful: true, logId };
+        return { successful: true, logId, returnMessage };
     } catch (e) {
         console.log(e);
         return { successful: false };
@@ -74,6 +74,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         return { successful: false, message: `Cannot find user with id: ${userId}` };
     }
     let logs = [];
+    let returnMessage = null;
     const sessionIdsArray = sessionIds.split(',');
     if (!!requireDetails) {
         const platformModule = require(`../adapters/${platform}`);
@@ -100,8 +101,9 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 logs.push({ sessionId, matched: false });
                 continue;
             }
-            const thirdPartyCallLog = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: thirdPartyCallLog });
+            const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+            returnMessage = getCallLogResult.returnMessage;
+            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
         }
     }
     else {
@@ -118,7 +120,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
             logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId });
         }
     }
-    return { successful: true, logs };
+    return { successful: true, logs, returnMessage };
 }
 
 async function updateCallLog({ platform, userId, incomingData }) {
@@ -152,9 +154,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            const updatedDescription = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
+            const { updatedNote, returnMessage } = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
             console.log(`updated call log: ${existingCallLog.id}`);
-            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedDescription };
+            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage };
         }
         return { successful: false };
     } catch (e) {
@@ -165,6 +167,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
 
 async function createMessageLog({ platform, userId, incomingData }) {
     try {
+        let returnMessage = null;
         if (incomingData.logInfo.messages.length === 0) {
             return { successful: false, message: 'No message to log.' }
         }
@@ -237,7 +240,9 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
             }
             else {
-                crmLogId = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
+                crmLogId = createMessageLogResult.logId;
+                returnMessage = createMessageLogResult.returnMessage;
             }
             const createdMessageLog =
                 await MessageLogModel.create({
@@ -252,7 +257,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
             logIds.push(createdMessageLog.id);
         }
         console.log(`logged ${logIds.length} messages.`);
-        return { successful: true, logIds };
+        return { successful: true, logIds, returnMessage };
     }
     catch (e) {
         console.log(e);

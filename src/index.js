@@ -137,7 +137,7 @@ app.get('/oauth-callback', async function (req, res) {
         if (!hasAuthCodeInCallbackUri) {
             req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
         }
-        const userInfo = await authCore.onOAuthCallback({
+        const { userInfo, returnMessage } = await authCore.onOAuthCallback({
             platform,
             hostname,
             tokenUrl,
@@ -150,7 +150,7 @@ app.get('/oauth-callback', async function (req, res) {
             id: userInfo.id.toString(),
             platform: platform
         });
-        res.status(200).send({ jwtToken, name: userInfo.name });
+        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
         success = true;
     }
     catch (e) {
@@ -187,12 +187,12 @@ app.post('/apiKeyLogin', async function (req, res) {
         if (!apiKey) {
             throw 'Missing api key';
         }
-        const userInfo = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
+        const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
         const jwtToken = jwt.generateJwt({
             id: userInfo.id.toString(),
             platform: platform
         });
-        res.status(200).send({ jwtToken, name: userInfo.name });
+        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
         success = true;
     }
     catch (e) {
@@ -233,8 +233,8 @@ app.post('/unAuthorize', async function (req, res) {
                 return;
             }
             const platformModule = require(`./adapters/${unAuthData.platform}`);
-            await platformModule.unAuthorize({ user: userToLogout });
-            res.status(200).send();
+            const { returnMessage } = await platformModule.unAuthorize({ user: userToLogout });
+            res.status(200).send({ returnMessage });
             success = true;
         }
         else {
@@ -279,8 +279,8 @@ app.get('/contact', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, message, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
-            res.status(200).send({ successful, message, contact });
+            const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            res.status(200).send({ successful, returnMessage, contact });
             success = true;
         }
         else {
@@ -314,8 +314,8 @@ app.post('/contact', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, message, contact } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
-            res.status(200).send({ successful, message, contact });
+            const { successful, returnMessage, contact } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
+            res.status(200).send({ successful, returnMessage, contact });
             success = true;
         }
         else {
@@ -349,8 +349,8 @@ app.get('/callLog', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, logs } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
-            res.status(200).send({ successful, logs });
+            const { successful, logs, returnMessage } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
+            res.status(200).send({ successful, logs, returnMessage });
             success = true;
         }
         else {
@@ -383,8 +383,8 @@ app.post('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, message, logId });
+            const { successful, message, logId, returnMessage } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, message, logId, returnMessage });
             success = true;
         }
         else {
@@ -418,8 +418,8 @@ app.patch('/callLog', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, logId, updatedDescription } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, logId, updatedDescription });
+            const { successful, logId, updatedNote, returnMessage } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, logId, updatedNote, returnMessage });
             success = true;
         }
         else {
@@ -453,8 +453,8 @@ app.post('/messageLog', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, message, logIds } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, message, logIds });
+            const { successful, returnMessage, logIds } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, returnMessage, logIds });
             success = true;
         }
         else {

@@ -27,16 +27,23 @@ async function getUserInfo({ authHeader, hostname }) {
     const timezoneName = userInfoResponse.data.data.timezone_name;
     const timezoneOffset = userInfoResponse.data.data.timezone_offset;
     return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        platformAdditionalInfo: {
-            companyId: userInfoResponse.data.data.company_id,
-            companyName: userInfoResponse.data.data.company_name,
-            companyDomain: userInfoResponse.data.data.company_domain,
+        platformUserInfo: {
+            id,
+            name,
+            timezoneName,
+            timezoneOffset,
+            platformAdditionalInfo: {
+                companyId: userInfoResponse.data.data.company_id,
+                companyName: userInfoResponse.data.data.company_name,
+                companyDomain: userInfoResponse.data.data.company_domain,
+            },
+            overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
         },
-        overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully connceted to Pipedrive.',
+            ttl: 3000
+        }
     };
 }
 
@@ -62,6 +69,13 @@ async function unAuthorize({ user }) {
             headers: { 'Authorization': `Basic ${basicAuthHeader}` }
         });
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from Pipedrive account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -80,24 +94,24 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         {
             headers: { 'Authorization': authHeader }
         });
-    const matchedContacts = [];
-    if (personInfo.data.data.items.length === 0) {
-        return matchedContacts;
+    const matchedContactInfo = [];
+    for (const person of personInfo.data.data.items) {
+        const dealsResponse = await axios.get(
+            `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const relatedDeals = dealsResponse.data.data ?
+            dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
+            : null;
+        matchedContactInfo.push(formatContact(person.item, relatedDeals));
     }
-    else {
-        for (const person of personInfo.data.data.items) {
-            const dealsResponse = await axios.get(
-                `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
-                {
-                    headers: { 'Authorization': authHeader }
-                });
-            const relatedDeals = dealsResponse.data.data ?
-                dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
-                : null;
-            matchedContacts.push(formatContact(person.item, relatedDeals));
-        }
-    }
-    return matchedContacts;
+    matchedContactInfo.push({
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        isNewContact: true
+    });
+    return { matchedContactInfo };
 }
 
 function formatContact(rawContactInfo, relatedDeals) {
@@ -123,8 +137,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             headers: { 'Authorization': authHeader }
         });
     return {
-        id: createContactRes.data.data.id,
-        name: createContactRes.data.data.name
+        contactInfo: {
+            id: createContactRes.data.data.id,
+            name: createContactRes.data.data.name
+        },
+        returnMessage: {
+            message: `New contact created.`,
+            messageType: 'success',
+            ttl: 3000
+        }
     }
 }
 
@@ -141,7 +162,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         person_id: contactInfo.id,
         org_id: orgId,
         deal_id: dealId,
-        note: `<p>[Phone Number] ${contactInfo.phoneNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(user.timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note] ${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
+        note: `<p>[Phone Number] ${contactInfo.phoneNumber}</p><p>[Time] ${moment(callLog.startTime).utcOffset(user.timezoneOffset).format('YYYY-MM-DD hh:mm:ss A')}</p><p>[Duration] ${callLog.duration} seconds</p><p>[Call result] ${callLog.result}</p><p>[Note]${note}</p>${callLog.recording ? `<p>[Call recording link] <a target="_blank" href=${callLog.recording.link}>open</a></p>` : ''}<p><span style="font-size:9px">[Created via] <em><a href="https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57">RingCentral CRM Extension</a></span></em></p>`,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc
@@ -152,7 +173,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });
-    return addLogRes.data.data.id;
+    return {
+        logId: addLogRes.data.data.id,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
@@ -178,8 +206,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
     // case: normal update
     else {
-        const originalNote = logBody.split('</p><p>[Note] ')[1].split('</p>')[0];
-        logBody = logBody.replace(`</p><p>[Note] ${originalNote}</p>`, `</p><p>[Note] ${note}</p>`);
+        const originalNote = logBody.split('</p><p>[Note]')[1].split('</p>')[0];
+        logBody = logBody.replace(`</p><p>[Note]${originalNote}</p>`, `</p><p>[Note]${note}</p>`);
         putBody = {
             note: logBody,
             subject: subject ?? existingCallLog.subject,
@@ -191,7 +219,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
-    return putBody.note;
+    return {
+        updatedNote: putBody.note,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -207,7 +242,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
-    
+
     const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let note = '';
@@ -259,7 +294,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': authHeader }
         });
-    return addLogRes.data.data.id;
+    return {
+        logId: addLogRes.data.data.id,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
@@ -305,7 +347,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     const logBody = getLogRes.data.data.note;
-    const note = logBody.split('<p>[Note] ')[1].split('</p>')[0];
+    const note = logBody.split('<p>[Note]')[1].split('</p>')[0];
     const relatedContact = getLogRes.data.related_objects?.person;
     let contactName = 'Unknown';
     if (!!relatedContact) {
@@ -313,9 +355,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
         contactName = relatedContact[contactKeys[0]].name;
     }
     return {
-        subject: getLogRes.data.data.subject,
-        note,
-        contactName
+        callLogInfo: {
+            subject: getLogRes.data.data.subject,
+            note,
+            contactName
+        }
     }
 }
 

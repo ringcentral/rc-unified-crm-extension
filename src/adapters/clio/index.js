@@ -27,11 +27,18 @@ async function getUserInfo({ authHeader }) {
     const timezoneName = userInfoResponse.data.data.time_zone;
     const timezoneOffset = 0;
     return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        platformAdditionalInfo: {}
+        platformUserInfo: {
+            id,
+            name,
+            timezoneName,
+            timezoneOffset,
+            platformAdditionalInfo: {}
+        },
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully connceted to Clio.',
+            ttl: 3000
+        }
     };
 }
 async function unAuthorize({ user }) {
@@ -46,6 +53,13 @@ async function unAuthorize({ user }) {
             headers: { 'Authorization': `Bearer ${user.accessToken}` }
         });
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from Clio account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -67,7 +81,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
-    const foundContacts = [];
+    const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
             `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
@@ -91,7 +105,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
                 returnedMatters = returnedMatters.concat(associatedMatters ?? []);
-                foundContacts.push({
+                matchedContactInfo.push({
                     id: result.id,
                     name: result.name,
                     title: result.title ?? "",
@@ -102,13 +116,13 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
-    foundContacts.push({
+    matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
         additionalInfo: { logTimeEntry: true },
         isNewContact: true
     });
-    return foundContacts;
+    return { matchedContactInfo };
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName }) {
@@ -133,8 +147,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     );
 
     return {
-        id: personInfo.data.data.id,
-        name: personInfo.data.data.name
+        contactInfo: {
+            id: personInfo.data.data.id,
+            name: personInfo.data.data.name
+        },
+        returnMessage: {
+            message: `New contact created.`,
+            messageType: 'success',
+            ttl: 3000
+        }
     }
 }
 
@@ -200,7 +221,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 headers: { 'Authorization': authHeader }
             });
     }
-    return communicationId;
+    return {
+        logId: communicationId,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
@@ -251,7 +279,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
-    return patchBody.data?.body;
+    return {
+        updatedNote: patchBody.data?.body,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -325,7 +360,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': authHeader }
         });
-    return addLogRes.data.data.id;
+    return {
+        logId: addLogRes.data.data.id,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
@@ -385,9 +427,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     return {
-        subject: getLogRes.data.data.subject,
-        note,
-        contactName: contactRes.data.data.name
+        callLogInfo: {
+            subject: getLogRes.data.data.subject,
+            note,
+            contactName: contactRes.data.data.name
+        }
     }
 }
 

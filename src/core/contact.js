@@ -26,16 +26,16 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat }) 
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat });
-        if (contactInfo != null && contactInfo.length > 0) {
-            return { successful: true, message: '', contact: contactInfo };
+        const { matchedContactInfo, returnMessage } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat });
+        if (matchedContactInfo != null && matchedContactInfo.length > 0) {
+            return { successful: true, returnMessage, contact: matchedContactInfo };
         }
         else {
-            return { successful: false, message: 'Cannot find contact' };
+            return { successful: false, returnMessage };
         }
     } catch (e) {
         console.log(e);
-        return { successful: false, message: 'Failed to get contact.' };
+        return { successful: false, returnMessage: { message: `Failed to find contact.`, messageType: 'warning' } };
     }
 }
 
@@ -64,16 +64,16 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const contactInfo = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
+        const { contactInfo, returnMessage } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
         if (contactInfo != null) {
-            return { successful: true, message: '', contact: contactInfo };
+            return { successful: true, returnMessage, contact: contactInfo };
         }
         else {
-            return { successful: false, message: `Cannot create contact ${newContactName} for phone number: ${phoneNumber}.` };
+            return { successful: false, returnMessage };
         }
     } catch (e) {
         console.log(e);
-        return { successful: false, message: `Failed to create contact.` };
+        return { successful: false, returnMessage: { message: `Failed to create contact.`, messageType: 'warning' } };
     }
 }
 
