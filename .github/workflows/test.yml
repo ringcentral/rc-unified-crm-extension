@@ -1,7 +1,7 @@
 name: Deploy code to API server
 on:
   push:
-    branches: rc-unified-crm-extension
+    branches: FrameworkRefactor
 jobs:
   preview:
     runs-on: gitrunner-ringcentralapi
