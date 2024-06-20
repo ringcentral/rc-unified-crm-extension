@@ -91,7 +91,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         },
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully connceted to TestCRM.',
+            message: 'Successfully connected to TestCRM.',
             ttl: 3000
         }
     };
