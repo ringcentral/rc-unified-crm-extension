@@ -28,13 +28,21 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
     const timezoneName = employeResponse.data.time_zone ?? '';
     const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
     return {
-        id,
-        name,
-        timezoneName,
-        timezoneOffset,
-        platformAdditionalInfo: {
-            email: employeResponse.data.email,
-            name: name,
+        platformUserInfo: {
+            id,
+            name,
+            timezoneName,
+            timezoneOffset,
+            platformAdditionalInfo: {
+                email: employeResponse.data.email,
+                name: name,
+            },
+
+        },
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully connected to NetSuite.',
+            ttl: 3000
         }
     };
 }
@@ -53,6 +61,13 @@ async function unAuthorize({ user }) {
         });
     console.log(`Access and Refresh Token is revoked for user ${user.id}...`);
     await user.destroy();
+    return {
+        returnMessage: {
+            messageType: 'success',
+            message: 'Successfully logged out from NetSuite account.',
+            ttl: 3000
+        }
+    }
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -74,7 +89,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
-    const foundContacts = [];
+    const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         console.log({ numberToQuery });
         if (numberToQuery !== 'undefined' && numberToQuery !== null && numberToQuery !== '') {
@@ -93,7 +108,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
                     let lastName = result.lastname ?? '';
-                    foundContacts.push({
+                    matchedContactInfo.push({
                         id: result.id,
                         name: `${firstName} ${middleName} ${lastName}`,
                         phone: numberToQuery,
@@ -117,7 +132,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
                     let lastName = result.lastname ?? '';
-                    foundContacts.push({
+                    matchedContactInfo.push({
                         id: result.id,
                         name: `${firstName} ${middleName} ${lastName}`,
                         phone: numberToQuery,
@@ -128,14 +143,16 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
-    console.log(`found netsuite contacts... \n\n${JSON.stringify(foundContacts, null, 2)}`);
-    foundContacts.push({
+    console.log(`found netsuite contacts... \n\n${JSON.stringify(matchedContactInfo, null, 2)}`);
+    matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
         additionalInfo: null,
         isNewContact: true
     });
-    return foundContacts;
+    return {
+        matchedContactInfo,
+    };
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
@@ -150,7 +167,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         startDate: moment(callLog.startTime).toISOString(),
         message: note,
     };
-    if (contactInfo.typ.toUpperCase() === 'CONTACT') {
+    if (contactInfo.type?.toUpperCase() === 'CONTACT') {
         console.log({ message: "Contact CallLog", contactInfo })
         const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
             headers: { 'Authorization': authHeader }
@@ -190,7 +207,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });*/
-    return callLogId;
+    return {
+        logId: callLogId,
+        returnMessage: {
+            message: 'Call log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
+    // return callLogId;
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -200,9 +225,16 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     return {
-        subject: getLogRes.data.title,
-        note: getLogRes.data?.message ?? '',
-        additionalSubmission: {}
+        callLogInfo: {
+            subject: getLogRes.data.title,
+            note: getLogRes.data?.message ?? '',
+            additionalSubmission: {}
+        },
+        returnMessage: {
+            message: 'Call log fetched.',
+            messageType: 'success',
+            ttl: 3000
+        }
     }
 }
 
@@ -218,6 +250,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+    return {
+        updatedNote: note,
+        returnMessage: {
+            message: 'Call log updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -274,7 +314,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
 
     }
-    if (contactInfo.type.toUpperCase() === 'CONTACT') {
+    if (contactInfo.type?.toUpperCase() === 'CONTACT') {
         console.log({ message: "Contact CallLog", contactInfo })
         const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
             headers: { 'Authorization': authHeader }
@@ -290,7 +330,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         });
     const callLogId = extractIdFromUrl(addLogRes.headers.location);
     console.log({ message: "CallLogId is", callLogId });
-    return callLogId;
+    return {
+        logId: callLogId,
+        returnMessage: {
+            message: 'Message log added.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
@@ -319,6 +366,14 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
+    return {
+        logId: existingLogId,
+        returnMessage: {
+            message: 'Message log Updated.',
+            messageType: 'success',
+            ttl: 3000
+        }
+    };
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
@@ -328,46 +383,61 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     switch (newContactType) {
         case 'Contact':
             let companyId = 0;
-            const companyInfo = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                {
-                    q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
-                },
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                }
-            )
-            if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
-                companyId = companyInfo.data.items[0].id;
-            }
-            else {
-                const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+            try {
+                const companyInfo = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                     {
-                        companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
-                        comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                        q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
+                    },
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                     }
+                )
+                if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
+                    companyId = companyInfo.data.items[0].id;
+                }
+                else {
+                    const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                        {
+                            companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                            comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                        }
+                        ,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        });
+                    companyId = extractIdFromUrl(createCompany.headers.location);
+                }
+                const contactPayLoad = {
+                    firstName: nameParts.firstName,
+                    middleName: nameParts.middleName,
+                    lastName: nameParts.lastName,
+                    phone: phoneNumber || '',
+                    company: { id: companyId }
+                };
+                const createContactRes = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
+                    contactPayLoad
                     ,
                     {
                         headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                     });
-                companyId = extractIdFromUrl(createCompany.headers.location);
+                contactId = extractIdFromUrl(createContactRes.headers.location);
+                break;
+            } catch (error) {
+                console.log({ message: "Error in creating Contact", error });
+                return {
+                    contactInfo: {
+                        id: contactId,
+                        name: newContactName
+                    },
+                    returnMessage: {
+                        message: `Error in creating Contact.`,
+                        messageType: 'danger',
+                        ttl: 3000
+                    }
+                }
             }
-            const contactPayLoad = {
-                firstName: nameParts.firstName,
-                middleName: nameParts.middleName,
-                lastName: nameParts.lastName,
-                phone: phoneNumber || '',
-                company: { id: companyId }
-            };
-            const createContactRes = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
-                contactPayLoad
-                ,
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
-                });
-            contactId = extractIdFromUrl(createContactRes.headers.location);
-            break;
         case 'Customer':
             const customerPayLoad = {
                 firstName: nameParts.firstName,
@@ -377,19 +447,43 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 isPerson: true
 
             };
-            const createCustomerRes = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
-                customerPayLoad
-                ,
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
-                });
-            contactId = extractIdFromUrl(createCustomerRes.headers.location);
-            break;
+            try {
+                const createCustomerRes = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                    customerPayLoad
+                    ,
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                    });
+                contactId = extractIdFromUrl(createCustomerRes.headers.location);
+                break;
+            } catch (error) {
+                console.log({ message: "Error in creating Customer", error });
+                return {
+                    contactInfo: {
+                        id: contactId,
+                        name: newContactName
+                    },
+                    returnMessage: {
+                        message: `Error in creating Customer.`,
+                        messageType: 'danger',
+                        ttl: 3000
+                    }
+                }
+            }
+
     }
     return {
-        id: contactId,
-    };
+        contactInfo: {
+            id: contactId,
+            name: newContactName
+        },
+        returnMessage: {
+            message: `New contact created.`,
+            messageType: 'success',
+            ttl: 3000
+        }
+    }
 }
 
 function splitName(fullName) {
