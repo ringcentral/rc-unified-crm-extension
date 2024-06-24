@@ -11,6 +11,9 @@
             "urlIdentifier": "*developers.ringcentral.com*",
             "name": "testCRM",
             "displayName": "Test CRM",
+            "requestConfig": {
+                "timeout": 30
+            },
             "auth": {
                 "type": "apiKey",
                 "apiKey": {

@@ -39,6 +39,7 @@ The platforms property is an associative array. Each key should be a unique iden
 | `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
 | `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
 | `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's orange quick access button will appear. (`*` for wildcard match is supported) |
+|`requestConfig`| object| Contains http request config for client extension, including `timeout` (number in seconds)|
 
 The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
 
