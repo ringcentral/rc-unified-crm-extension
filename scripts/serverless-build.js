@@ -1,8 +1,24 @@
 const { rm, echo, cp, mkdir } = require('shelljs');
 const { resolve } = require('path');
+const { exec } = require('child_process');
 
 const projectPath = resolve(__dirname, '..');
 const deployPath = resolve(projectPath, 'serverless-deploy')
+
+const execAsync = (cmd, options = {
+    cwd: deployPath,
+}) => {
+    return new Promise((resolve, reject) => {
+        exec(cmd, options, (error, stdout, stderr) => {
+            if (error) {
+                return reject(error);
+            }
+            console.log(`stdout: ${stdout}`);
+            console.error(`stderr: ${stderr}`);
+            resolve(stdout);
+        })
+    });
+}
 
 echo('clean path...');
 rm('-rf', `${deployPath}/*.js`);
@@ -26,4 +42,12 @@ cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
 cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 
-echo('build done');
+async function run() {
+    const installCmd = 'npm i --production';
+    console.log(`run cmd: ${installCmd}`);
+    const installRes = await execAsync(installCmd).catch((e) => console.log(e));
+    console.log(installRes);
+    echo('build done');
+}
+
+run();
