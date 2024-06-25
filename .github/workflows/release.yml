@@ -8,6 +8,7 @@ on:
     branches:
       - main
       - FrameworkRefactor
+      
 jobs:
   server-test:
     runs-on: ubuntu-latest
