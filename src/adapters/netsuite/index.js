@@ -165,7 +165,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         priority: "MEDIUM",
         status: "COMPLETE",
         startDate: moment(callLog.startTime).toISOString(),
-        message: note,
+        message: `\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
     };
     if (contactInfo.type?.toUpperCase() === 'CONTACT') {
         console.log({ message: "Contact CallLog", contactInfo })
@@ -224,10 +224,13 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
+    const note = getLogRes.data?.message.includes('[Call recording link]') ?
+        getLogRes.data?.message.split('Note: ')[1].split('\n[Call recording link]')[0] :
+        getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
     return {
         callLogInfo: {
             subject: getLogRes.data.title,
-            note: getLogRes.data?.message ?? '',
+            note,
             additionalSubmission: {}
         },
         returnMessage: {
@@ -241,12 +244,36 @@ async function getCallLog({ user, callLogId, authHeader }) {
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     console.log({ user, existingCallLog, authHeader, recordingLink, subject, note });
     const existingLogId = existingCallLog.thirdPartyLogId;
+    const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
+    let messageBody = callLogResponse.data.message;
+    console.log({ messageBody });
+    let patchBody = { title: subject };
+    if (!!recordingLink) {
+        const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
+        if (messageBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+            messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+        }
+        else {
+            messageBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+        }
+    }
+    else {
+        let originalNote = '';
+        if (messageBody.includes('\n[Call recording link]')) {
+            originalNote = messageBody.split('\n[Call recording link]')[0].split('Note: ')[1];
+        }
+        else {
+            originalNote = messageBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
+            console.log({ originalNote });
+        }
+
+        messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
+    }
+    patchBody.message = messageBody;
+    console.log({ patchBody });
     const patchLogRes = await axios.patch(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
-        {
-            title: subject,
-            message: note
-        },
+        patchBody,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -442,7 +469,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             const customerPayLoad = {
                 firstName: nameParts.firstName,
                 middleName: nameParts.middleName,
-                lastName: nameParts.lastName,
+                lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
                 phone: phoneNumber || '',
                 isPerson: true
 
