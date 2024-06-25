@@ -164,8 +164,14 @@
             "contactPageUrl": "https://{hostname}/list/{contactType}/?blade=/details/{contactType}/{contactId}",
             "logPageUrl": "https://{hostname}/list/{contactType}/?blade=/details/Event/{logId}",
             "contactTypes": [
-                "Lead",
-                "Contact"
+                {
+                    "display": "Lead",
+                    "value": "lead"
+                },
+                {
+                    "display": "Contact",
+                    "value": "contact"
+                }
             ],
             "page": {
                 "callLog": {
@@ -540,8 +546,14 @@
             },
             "canOpenLogPage": false,
             "contactTypes": [
-                "Candidate",
-                "Contact"
+                {
+                    "display": "Candidate",
+                    "value": "Candidate"
+                },
+                {
+                    "display": "Contact",
+                    "value": "Contact"
+                }
             ],
             "page": {
                 "callLog": {
@@ -663,8 +675,14 @@
             "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
             "contactTypes": [
-                "Customer",
-                "Contact"
+                {
+                    "display": "Customer",
+                    "value": "custjob"
+                },
+                {
+                    "display": "Contact",
+                    "value": "contact"
+                }
             ],
             "embeddedOnCrmPage": {
                 "welcomePage": {

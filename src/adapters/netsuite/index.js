@@ -381,7 +381,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
     let contactId = 0;
     switch (newContactType) {
-        case 'Contact':
+        case 'contact':
             let companyId = 0;
             try {
                 const companyInfo = await axios.post(
@@ -438,7 +438,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 }
             }
-        case 'Customer':
+        case 'custjob':
             const customerPayLoad = {
                 firstName: nameParts.firstName,
                 middleName: nameParts.middleName,

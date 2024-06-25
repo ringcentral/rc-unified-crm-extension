@@ -38,7 +38,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         }
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
         const contactId = incomingData.contactId;
-        if (!!!contactId) {
+        if (!!!contactId || contactId === 0) {
             return { successful: false, message: `Contact not found for number ${contactNumber}` };
         }
         const contactInfo = {

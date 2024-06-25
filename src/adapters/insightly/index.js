@@ -234,7 +234,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     );
     return {
         contactInfo: {
-            id: newContactType === 'Contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID,
+            id: newContactType === 'contact' ? personInfo.data.CONTACT_ID : personInfo.data.LEAD_ID,
             name: `${personInfo.data.FIRST_NAME} ${personInfo.data.LAST_NAME}`
         },
         returnMessage: {
