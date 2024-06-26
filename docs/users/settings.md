@@ -32,8 +32,7 @@ To customize your default country and area code, from the Settings screen select
 </figure>
 
 ## Customizing your preferred audio devices
-
-To customize your preferred input and output devices, e.g. headphones, laptop speakers, etc, from the Settings screen select "Audio." Then select your preferred default devices. 
+To customize your preferred input and output devices, e.g. headphones, laptop speakers, etc, from the Settings screen select "Audio." Then select your preferred default devices. There are also audio volume controls.
 
 <figure markdown>
   ![Setting your preferred phone device](../img/settings-audio.png){ style="max-width:300px" }
@@ -49,10 +48,18 @@ The term "call-pop" refers to opening a page about an incoming caller automatica
   <figcaption>The settings screen for toggling call-pop</figcaption>
 </figure>
 
+## Toggling the contact creation pop feature
+
+Users can directly create placeholder contacts from within the extension so to make call logging efficient. Placeholder contacts would normally be created with just name and phone number. If users want to edit the placeholder contact further on its CRM webpage, "Open contact page after creating it" setting can be turned on to automatically open contact page after the creation.
+
+<figure markdown>
+  ![Setting your preferred phone device](../img/settings-contact-creation-pop.png){ style="max-width:300px" }
+  <figcaption>The settings screen for toggling contact creation pop</figcaption>
+</figure>
 
 ## Automatically prompt to capture call notes
 
-Many end users would like confidence in knowing that every call they place or receive is logged properly in the CRM they are connected to. Furthermore, users also want to be prompted to capture notes about a call immediately upon a call ending. To automatically be prompted to enter and save notes relating to a call that has just ended, enable "Prompt to enter notes when calls end" from the Settings page. 
+Many end users would like confidence in knowing that every call they place or receive is logged properly in the CRM they are connected to. Furthermore, users also want to be prompted to capture notes about a call immediately upon a call ending. To automatically be prompted to enter and save notes relating to a call that has just ended, enable "Auto log call - only pop up log page" from the Settings page. 
 
 <figure markdown>
   ![Setting your preferred phone device](../img/settings-autolog.png){ style="max-width:300px" }
@@ -70,18 +77,10 @@ As with phone calls, many end users would like to reliably capture the SMS messa
 
 ## Automatically log calls and SMS messages
 
-Sometimes users may not be present at their computer when a call is received, yet they still wish to record the call was received and possibly that the call was never responded to. To ensure all calls are captured whether you are present or not, enable "Auto-log save delay."
+Sometimes users may not be present at their computer when a call is received, yet they still wish to record the call was received and possibly that the call was never responded to. To ensure all calls are captured whether you are present or not, enable "Auto log call/SMS"
 
-<figure markdown>
-  ![Setting your preferred phone device](../img/settings-countdown.png){ style="max-width:300px" }
-  <figcaption>The settings screen for automatically logging a call after set number of seconds</figcaption>
-</figure>
+For more details, please refer to [auto log](./logging.md#automatically-logging-calls).
 
-When this is enabled, the call will be logged automatically after a set number of seconds, which can be configured under "Advanced configuration options" below. If you have also configured the extension to prompt you to enter notes automatically, then you will observe that when a call ends the call log form appears, and a auto-save timer will start. If you do not interact with the form before the timer runs out, the call be logged automatically. 
-
-## Open contact page after creating it
-
-Users can directly create placeholder contacts from within the extension so to make call logging efficient. Placeholder contacts would normally be created with just name and phone number. If users want to edit the placeholder contact further on its CRM webpage, "Open contact page after creating it" setting can be turned on to automatically open contact page after the creation.
 
 ## Advanced configuration options
 
@@ -126,10 +125,6 @@ The embedded phone/dialer from the Unified CRM extension is injected into the CR
 CRMs known to need this parameter set are:
 
 * Pipedrive
-
-### Auto-log countdown timer
-
-When auto-logging calls, the parameter controls how many seconds the CRM extension will wait before auto-saving the call to the CRM. If the call log form is interacted with prior to the countdown terminating, the countdown will stop. 
 
 ### Render quick access button
 

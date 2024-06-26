@@ -20,5 +20,8 @@ When using your CRM, all phone numbers in your CRM will become clickable, allowi
 
 If this feature is enabled, when you receive a phone call the Unified CRM extension will open a browser tab to the contact record of the person calling you. That way when you answer the call, you will have all pertinent information about them at your fingertips, helping you to create a personalized experience for your customer. 
 
+
+![Call pop](../img/call-pop.png)
+
 !!! tip "Pro tip: call-pop functionality can easily be disabled via Settings accessed via the More menu."
 

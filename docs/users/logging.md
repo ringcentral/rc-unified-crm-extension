@@ -40,10 +40,17 @@ When multiple contacts are found, users are given an opportunity to disambiguate
 
 The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.
 
-* **Auto pop up call logging page after call**. This determines if you will be prompted to enter notes or not. 
-* **Auto log with countdown**. This determines how long the extension will wait for you to begin entering notes before logging the call automatically. 
+* **Auto log call/SMS**. This is to turn on auto log feature which will always attemp to log your calls/messages unless any conflict found. A conflict can come in different forms, eg. multiple matched contact for one number.
+* **Auto log call/SMS - only pop up log page**. This is a sub-setting under auto log. With it ON, instead of log it in the background, the extension will only open up the log form and you will need to manually log it. This is especially helpful when your work involves taking notes in the log or selecting specific associations with the event.
 
-*Remember: calls from unknown contact won't trigger auto pop up nor auto log. For those calls, users can only manually log them along with the action to create new contacts for them.*
+### Conflicts
+
+In most cases, we are facing 3 types of conflicts:
+1. `No contact match`: An unknown number that's not matched with any existing contact in your CRM
+2. `Multiple matched contacts`: A known number thats matched with more than one contact in your CRM
+3. `Multiple associations`: In some CRMs, a call/SMS log can be associated with other entities. A quick example would be, a contact has 2 orders.
+
+![Unresolved conflicts](../img/auto-log-unresolved-conflicts.png)
 
 **How do you know if a contact record has been found?**
 
