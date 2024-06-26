@@ -124,7 +124,7 @@ app.get('/oauth-callback', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
             throw 'Missing callbackUri';
@@ -179,7 +179,7 @@ app.post('/apiKeyLogin', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const platform = req.body.platform;
         platformName = platform;
@@ -222,7 +222,7 @@ app.post('/unAuthorize', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -280,7 +280,7 @@ app.get('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -316,7 +316,7 @@ app.post('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -352,7 +352,7 @@ app.get('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -388,7 +388,7 @@ app.post('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -423,7 +423,7 @@ app.patch('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -459,7 +459,7 @@ app.post('/messageLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -517,7 +517,7 @@ app.get('/oauth-callbackV2', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
             throw 'Missing callbackUri';
@@ -574,7 +574,7 @@ app.post('/apiKeyLoginV2', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const platform = req.body.platform;
         platformName = platform;
@@ -619,7 +619,7 @@ app.get('/contactV2', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {

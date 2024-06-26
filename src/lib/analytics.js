@@ -11,7 +11,7 @@ exports.init = function init() {
     mixpanel = Mixpanel.init(process.env.MIXPANEL_TOKEN);
 }
 
-exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip }) {
+exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip, author }) {
     if (!!!mixpanel) {
         return;
     }
@@ -30,7 +30,8 @@ exports.track = function track({ eventName, interfaceName, adapterName, accountI
         $browser: ua.browser.name,
         $os: ua.os.name,
         $device: ua.device.type,
-        ip
+        ip,
+        author
     });
     console.log(`Event: ${eventName}`);
 }
