@@ -171,7 +171,8 @@ app.get('/oauth-callback', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 })
 app.post('/apiKeyLogin', async function (req, res) {
@@ -213,7 +214,8 @@ app.post('/apiKeyLogin', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 })
 app.post('/unAuthorize', async function (req, res) {
@@ -259,7 +261,8 @@ app.post('/unAuthorize', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.get('/userInfoHash', async function (req, res) {
@@ -305,7 +308,8 @@ app.get('/contact', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.post('/contact', async function (req, res) {
@@ -340,7 +344,8 @@ app.post('/contact', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.get('/callLog', async function (req, res) {
@@ -375,7 +380,8 @@ app.get('/callLog', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.post('/callLog', async function (req, res) {
@@ -409,7 +415,8 @@ app.post('/callLog', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.patch('/callLog', async function (req, res) {
@@ -444,7 +451,8 @@ app.patch('/callLog', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 app.post('/messageLog', async function (req, res) {
@@ -479,7 +487,8 @@ app.post('/messageLog', async function (req, res) {
         success,
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
-        ip
+        ip,
+        author
     });
 });
 
@@ -492,11 +501,13 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedAccountId = headers['rc-account-id'];
     const ip = headers['x-forwarded-for'].split(',').find(i => !i.startsWith('10.'));
     const userAgent = headers['user-agent'];
+    const author = headers['developer-author-name'];
     return {
         hashedAccountId,
         hashedExtensionId,
         ip,
-        userAgent
+        userAgent,
+        author
     }
 }
 
@@ -554,6 +565,7 @@ app.get('/oauth-callbackV2', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
+        author,
         isLegacy: true
     });
 })
@@ -598,6 +610,7 @@ app.post('/apiKeyLoginV2', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
+        author,
         isLegacy: true
     });
 })
@@ -635,6 +648,7 @@ app.get('/contactV2', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
+        author,
         isLegacy: true
     });
 });
