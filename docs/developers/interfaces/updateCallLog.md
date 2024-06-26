@@ -35,19 +35,36 @@ It is the developer's responsibility to update the call log record contents as t
 
 ## Return value(s)
 
-The ID of the log entry created within the CRM.
+An object with following properties:
+
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+|`updatedNote`| updated note on CRM |
+|`returnMessage`|`message`, `messageType` and `ttl`|
+
+**Example**
+```js
+  return {
+    updatedNote: "Some random notes",
+    returnMessage:{
+      message: 'Call logged',
+      messageType: 'success', // 'success', 'warning' or 'danger'
+      ttl: 30000 // in miliseconds
+    }
+  }
+```
 
 ## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:227-264] !}
+    {!> src/adapters/testCRM/index.js [ln:362-392] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:158-195] !}
+    {!> src/adapters/pipedrive/index.js [ln:307-340] !}
 	```
 

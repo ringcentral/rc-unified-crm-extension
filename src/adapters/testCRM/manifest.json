@@ -39,8 +39,14 @@
             },
             "canOpenLogPage": false,
             "contactTypes": [
-                "TestContactType",
-                "Contact"
+                {
+                  "display": "TestContactType",
+                  "value": "testContact"
+                },
+                {
+                  "display": "Contact",
+                  "value": "cta"
+                }
             ],
             "embeddedOnCrmPage": {
                 "welcomePage": {
@@ -84,5 +90,5 @@
             }
         }
     },
-    "version": "0.8.13"
+    "version": "1.0.0"
 }

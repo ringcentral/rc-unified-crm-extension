@@ -12,8 +12,14 @@ Every CRM can define a different set of contact types, or data elements that can
 ```js
 ..snip..
 "contactTypes": [
-   "TestContactType",
-   "Contact"
+  {
+    "display": "TestContactType",
+    "value": "testContact"
+  },
+  {
+    "display": "Contact",
+    "value": "cta"
+  }
 ],
 ..snip..
 ```
@@ -30,19 +36,26 @@ Every CRM can define a different set of contact types, or data elements that can
 
 ## Return value(s)
 
-This interface returns a single object. That object describes the contact that was created. 
+This interface returns a single object. That object describes the contact that was created.  It has following properties:
 
 | Parameter | Description                                                                                                          |
 |-----------|----------------------------------------------------------------------------------------------------------------------|
-| `id`      | The ID of the contact in the target CRM.                                                                             |
-| `name`    | The display name of the contact. This name will appear and be associated with all users with the same `phoneNumber`. |
+|`contactInfo`| Contain `id` and `name`|
+|`returnMessage`|`message`, `messageType` and `ttl`|
 
 **Example**
 
 ```js
 {
-  id: "<string>",
-  name: "<string>"
+  contactInfo:{
+    id: "xxxx-xxxxx", // ID of the contact in the target 
+    name: "John Doe" // Display name of the contact. This name will appear and be associated with all users with the same `phoneNumber`.
+  },
+  returnMessage:{
+    message: 'Contact created',
+    messageType: 'success', // 'success', 'warning' or 'danger'
+    ttl: 30000 // in miliseconds
+  }
 }
 ```
 
@@ -51,12 +64,12 @@ This interface returns a single object. That object describes the contact that w
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:336-397] !}
+    {!> src/adapters/testCRM/index.js [ln:394-462] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:114-129] !}
+    {!> src/adapters/pipedrive/index.js [ln:128-150] !}
 	```
 

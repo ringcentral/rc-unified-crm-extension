@@ -5,7 +5,7 @@ The Unified CRM adapter framework currently supports two different authenticatio
 * [OAuth](#implementing-oauth-for-a-crm). This is the most common form of authentication and authorization supported by most CRMs. 
 * [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
 
-Start by editing the `platforms` object within your adapter's [manifest](manifest.md), and setting the `authType` property to either:
+Start by editing the `platforms` object within your adapter's [manifest](manifest.md), and setting the `type` property under `auth` to either:
 
 * `oauth`
 * `apiKey`
@@ -18,10 +18,11 @@ Once you have obtained these values, you will need to set the following values i
 
 | Name                             | Type   | Description |
 |----------------------------------|--------|-------------|
-| `platforms.{crmName}.authUrl`    | string | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
-| `platforms.{crmName}.clientId`   | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. | 
-| `platforms.{crmName}.scope`      | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
-| `platforms.{crmName}.customState`| string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
+| `platforms.{crmName}.auth.oauth.authUrl`    | string | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
+| `platforms.{crmName}.auth.oauth.clientId`   | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. | 
+| `platforms.{crmName}.auth.oauth.redirectUri`| string | You can use your own uri, but the default one `https://ringcentral.github.io/ringcentral-embeddable/redirect.html` should work in most cases. |
+| `platforms.{crmName}.auth.oauth.scope`      | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+| `platforms.{crmName}.auth.oauth.customState`| string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 
 
 ### Generating an Auth URL
@@ -60,7 +61,7 @@ To auth a user via an API key, you need to present them with a form in which the
 === "manifest.json"
 
     ```js 
-    {!> src/adapters/testCRM/manifest.json [ln:24-35] !}
+    {!> src/adapters/testCRM/manifest.json [ln:20-31] !}
     ```
 
 === "Rendered page"
@@ -72,7 +73,7 @@ To auth a user via an API key, you need to present them with a form in which the
 === "manifest.json"
 
     ```js
-    {!> src/adapters/manifest.json [ln:56-84] !}
+    {!> src/adapters/manifest.json [ln:132-161] !}
     ```
 
 === "Rendered page"

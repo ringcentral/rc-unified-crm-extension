@@ -35,16 +35,38 @@ This interface is called in the following circumstances:
 
 ## Return value(s)
 
-This interface should return an ARRAY of object. Each object in the array represents a contact found in the CRM that is associated with the given phone number. 
+This interface returns a single object. That object describes the contacts that were found. It has following properties:
+
+| Parameter | Description                                                                                                          |
+|-----------|----------------------------------------------------------------------------------------------------------------------|
+|`matchedContactInfo`| An array of objects containing `id`, `name` and optionally `additionalInfo` and `isNewContact`.|
+|`returnMessage`|`message`, `messageType` and `ttl`|
+
+!!! tip "isNewContact is only used as an extra option in contact list for users to be able to create new contacts"
 
 **Example**
 
 ```js
 {
-  id: "<string>",
-  name: "<string>",
-  phone: "<string>",
-  additionalInfo: <object>
+  matchedContactInfo:[
+    {
+      id: 'contact id',
+      name: 'John Doe',
+      additionalInfo: null,
+      isNewContact: false
+    },
+    {
+        id: 'createNewContact',
+        name: 'Create new contact...',
+        additionalInfo: null,
+        isNewContact: true
+    }
+  ],
+  returnMessage:{
+    message: 'Found 1 contact',
+    messageType: 'warning', // 'success', 'warning' or 'danger'
+    ttl: 30000 // in miliseconds
+  }
 }
 ```
 
@@ -53,12 +75,12 @@ This interface should return an ARRAY of object. Each object in the array repres
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:121-156] !}
+    {!> src/adapters/testCRM/index.js [ln:135-185] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:67-101] !}
+    {!> src/adapters/pipedrive/index.js [ln:81-115] !}
 	```
 

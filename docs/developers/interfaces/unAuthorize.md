@@ -10,19 +10,33 @@ It is to remove user data from our database when user chooses to log out. Some C
 
 ## Return value(s)
 
-None.
+| Parameter              | Description                                         |
+|------------------------|-----------------------------------------------------|
+| `returnMessage`|       `message`, `messageType` and `ttl`|
+
+**Example**
+
+```js
+{
+  returnMessage:{
+    message: 'Successfully unauthorized',
+    messageType: 'success', // 'success', 'warning' or 'danger'
+    ttl: 30000 // in miliseconds
+  }
+}
+```
 
 ## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:97-117] !}
+    {!> src/adapters/testCRM/index.js [ln:104-126] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:43-65] !}
+    {!> src/adapters/pipedrive/index.js [ln:50-79] !}
 	```
 

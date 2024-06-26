@@ -21,10 +21,10 @@ This method should return an associative array with the following keys and value
 
 ```js
 {
-  'clientId': '<string>',
-  'clientSecret': '<string>',
-  'accessTokenUri': '<string>',
-  'redirectUri': '<string>'
+  'clientId': 'xxx-xxxx-xxxxxxxxxx-xxxx',
+  'clientSecret': 'xxxxxxxx-xxxxxxxxxxxxxxxxxx',
+  'accessTokenUri': 'https://auth.crm.com/token',
+  'redirectUri': 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html'
 }
 ```
 

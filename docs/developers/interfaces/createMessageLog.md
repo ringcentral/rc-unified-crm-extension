@@ -55,19 +55,37 @@ Therefore, this interface is only invoked when the daily digest is created. The 
 
 ## Return value(s)
 
-The ID of the log entry created within the CRM.
+An object with following properties:
+
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+|`logId`| ID of the log entry created within the CRM|
+|`returnMessage`|`message`, `messageType` and `ttl`|
+
+**Example**
+```js
+  return {
+    logId: "xxxx-xxx", // ID of log entity on CRM platform
+    returnMessage:{
+      message: 'Logged',
+      messageType: 'success', // 'success', 'warning' or 'danger'
+      ttl: 30000 // in miliseconds
+    }
+  }
+```
+
 
 ## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:270-301] !}
+    {!> src/adapters/testCRM/index.js [ln:320-359] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:197-247] !}
+    {!> src/adapters/pipedrive/index.js [ln:232-305] !}
 	```
 

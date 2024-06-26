@@ -17,17 +17,25 @@ This interface should return the associated call log record in a prescribed form
 
 | Parameter              | Description                                         |
 |------------------------|-----------------------------------------------------|
-| `subject`              | The subject or summary line of the activity record. |
-| `note`                 | The contents of the activity record.                |
-| `additionalSubmission` | A set of key/value pairs describing the additional fields associated with a call log record. These fields correspond to the custom fields as defined by the adapter's manifest. |
+| `callLogInfo`              | Contain `subject`, `note` and optionally `additionalSubmission` |
+| `returnMessage`|       `message`, `messageType` and `ttl`|
 
 **Example**
 
 ```js
 {
-  subject: "<string>",
-  note: "<string>",
-  additionalSubmission: "<object>"
+  callLogInfo:{
+    subject: "A new call from John Doe",
+    note: "Delivery location changed.",
+    additionalSubmission: {
+      address: "12 Some Street, CA"
+    }
+  },
+  returnMessage:{
+    message: 'Log fetched',
+    messageType: 'success', // 'success', 'warning' or 'danger'
+    ttl: 30000 // in miliseconds
+  }
 }
 ```
 
@@ -36,12 +44,12 @@ This interface should return the associated call log record in a prescribed form
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:199-223] !}
+    {!> src/adapters/testCRM/index.js [ln:235-265] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:285-304] !}
+    {!> src/adapters/pipedrive/index.js [ln:343-364] !}
 	```
 

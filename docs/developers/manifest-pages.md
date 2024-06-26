@@ -42,7 +42,7 @@ Set up associated deals as dropdown options:
 and address as free input field.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:35-48] !}
+{! src/adapters/testCRM/manifest.json [ln:52-67] !}
 ```
 
 #### Custom SMS log fields
@@ -50,7 +50,7 @@ and address as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:51-64] !}
+{! src/adapters/testCRM/manifest.json [ln:68-81] !}
 ```
 
 ### Feedback page

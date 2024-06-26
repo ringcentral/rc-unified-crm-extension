@@ -27,20 +27,37 @@ This interface is responsible for creating a new call log record in the associat
 
 ## Return value(s)
 
-The ID of the log entry created within the CRM.
+An object with following properties:
+
+| Parameter              | Description                                                                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------|
+|`logId`| ID of the log entry created within the CRM|
+|`returnMessage`|`message`, `messageType` and `ttl`|
+
+**Example**
+```js
+  return {
+    logId: "xxx-xxxxx", // ID of log entity on CRM platform
+    returnMessage:{
+      message: 'Call logged',
+      messageType: 'success', // 'success', 'warning' or 'danger'
+      ttl: 30000 // in miliseconds
+    }
+  }
+```
 
 ## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:162-197] !}
+    {!> src/adapters/testCRM/index.js [ln:191-232] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:131-156] !}
+    {!> src/adapters/pipedrive/index.js [ln:152-184] !}
 	```
 
 ### Example Call Log Schema
