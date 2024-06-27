@@ -18,36 +18,49 @@ function getOauthInfo() {
 }
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
-    const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
-    const employeResponse = await axios.get(url,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const id = query.entity;
-    const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
-    const timezoneName = employeResponse.data.time_zone ?? '';
-    const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
-    return {
-        platformUserInfo: {
-            id,
-            name,
-            timezoneName,
-            timezoneOffset,
-            platformAdditionalInfo: {
-                email: employeResponse.data.email,
-                name: name,
-            },
+    try {
+        const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
+        const employeResponse = await axios.get(url,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const id = query.entity;
+        const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
+        const timezoneName = employeResponse.data.time_zone ?? '';
+        const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
+        return {
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                platformAdditionalInfo: {
+                    email: employeResponse.data.email,
+                    name: name,
+                },
 
-        },
-        returnMessage: {
-            messageType: 'success',
-            message: 'Successfully connected to NetSuite.',
-            ttl: 3000
+            },
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connected to NetSuite.',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log({ message: "Error in getting User Info", error });
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: 'Error in getting NetSuite User Info.',
+                ttl: 3000
+            }
         }
-    };
+    }
+
 }
 
 async function unAuthorize({ user }) {
+    console.log({ message: "Intiating to unauthorize user", userId: user.id });
     const revokeUrl = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/revoke`;
     const basicAuthHeader = Buffer.from(`${process.env.NETSUITE_CRM_CLIENT_ID}:${process.env.NETSUITE_CRM_CLIENT_SECRET}`).toString('base64');
     const refreshTokenParams = new url.URLSearchParams({
@@ -91,7 +104,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     }
     const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
-        console.log({ numberToQuery });
+        console.log({ message: "Finding Contact with the number", numberToQuery });
         if (numberToQuery !== 'undefined' && numberToQuery !== null && numberToQuery !== '') {
             //For Contact search
             const personInfo = await axios.post(
@@ -219,26 +232,35 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
-    console.log({ callLogId });
-    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${callLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const note = getLogRes.data?.message.includes('[Call recording link]') ?
-        getLogRes.data?.message.split('Note: ')[1].split('\n[Call recording link]')[0] :
-        getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
-    return {
-        callLogInfo: {
-            subject: getLogRes.data.title,
-            note,
-            additionalSubmission: {}
-        },
-        returnMessage: {
-            message: 'Call log fetched.',
-            messageType: 'success',
-            ttl: 3000
+    console.log({ message: "Finding Call With Id", callLogId });
+    try {
+        const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${callLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const note = getLogRes.data?.message.includes('[Call recording link]') ?
+            getLogRes.data?.message.split('Note: ')[1].split('\n[Call recording link]')[0] :
+            getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
+        return {
+            callLogInfo: {
+                subject: getLogRes.data.title,
+                note,
+                additionalSubmission: {}
+            },
+            returnMessage: {
+            }
+        }
+    } catch (error) {
+        console.log({ message: "Error in getting Call Log", error });
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: 'Error in getting NetSuite Call Log.',
+                ttl: 3000
+            }
         }
     }
+
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
