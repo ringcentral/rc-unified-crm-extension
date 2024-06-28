@@ -32,7 +32,7 @@ Technically your adapter's server could be deployed anywhere. You could host it 
 	```
 	
 !!! tip "Deploying to another platform" 
-    If you want to deploy it to other platform. Run `npm run build` and a build folder will be created for you in the `build` folder. You can then deploy this build folder to any other hosting provider.
+    If you want to deploy it to other platform. Run `npm run build-local` and a build folder will be created for you in the `build` folder. You can then deploy this build folder to any other hosting provider.
 
 ### Server environment variables
 
