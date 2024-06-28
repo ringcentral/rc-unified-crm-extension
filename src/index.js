@@ -10,7 +10,6 @@ const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
-const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
 
@@ -494,10 +493,6 @@ app.post('/messageLog', async function (req, res) {
         author
     });
 });
-
-app.get('/releaseNotes', async function (req, res) {
-    res.json(releaseNotes);
-})
 
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
