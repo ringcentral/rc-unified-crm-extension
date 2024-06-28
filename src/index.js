@@ -12,12 +12,12 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
-let package = null;
+let packageJson = null;
 try {
-    package = require('./package.json');
+    packageJson = require('./package.json');
 }
 catch (e) {
-    package = require('../package.json');
+    packageJson = require('../package.json');
 }
 
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
