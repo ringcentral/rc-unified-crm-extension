@@ -1,6 +1,12 @@
 const Mixpanel = require('mixpanel');
 const parser = require('ua-parser-js');
-const package = require('../../package.json');
+let package = null;
+try {
+    package = require('../package.json');
+}
+catch (e) {
+    package = require('../../package.json');
+}
 const appName = 'RingCentral CRM Extension';
 const version = package.version;
 let mixpanel = null;
