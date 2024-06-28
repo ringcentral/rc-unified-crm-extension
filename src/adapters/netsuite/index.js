@@ -374,6 +374,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         });
         postBody.data.contact = { id: contactInfo.id };
         postBody.data.company = { id: contactInfoRes.data?.company?.id };
+    } else if (contactInfo.type === 'custjob') {
+        postBody.data.company = { id: contactInfo.id };
     }
     const addLogRes = await axios.post(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
