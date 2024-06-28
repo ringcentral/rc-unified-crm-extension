@@ -47,6 +47,9 @@ app.get('/crmManifest', (req, res) => {
         }
         const crmManifest = require(`./adapters/${req.query.platformName}/manifest.json`);
         if (!!crmManifest) {
+            if(!!!crmManifest.author?.name){
+                throw 'author name is required';
+            }
             res.json(crmManifest);
         }
         else {
