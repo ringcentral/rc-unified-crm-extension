@@ -13,6 +13,8 @@
 - Fix: Copy meeting info
 - Remove: Auto log with countdown
 
+Video demo: https://youtu.be/x1GDk0ncm9A
+
 ## 0.8.7
 
 - Fix: Call disposition not cleared if opening under a contact without disposition options
