@@ -1,0 +1,81 @@
+const oauth = require('../lib/oauth');
+const { UserModel } = require('../models/userModel');
+
+async function findContact({ platform, userId, phoneNumber, overridingFormat }) {
+    try {
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
+        if (!user || !user.accessToken) {
+            return { successful: false, message: `Cannot find user with id: ${userId}` };
+        }
+        const platformModule = require(`../adapters/${platform}`);
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const { matchedContactInfo, returnMessage } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat });
+        if (matchedContactInfo != null && matchedContactInfo.length > 0) {
+            return { successful: true, returnMessage, contact: matchedContactInfo };
+        }
+        else {
+            return { successful: false, returnMessage };
+        }
+    } catch (e) {
+        console.log(e);
+        return { successful: false, returnMessage: { message: `Failed to find contact.`, messageType: 'warning' } };
+    }
+}
+
+async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }) {
+    try {
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
+        if (!user || !user.accessToken) {
+            return { successful: false, message: `Cannot find user with id: ${userId}` };
+        }
+        const platformModule = require(`../adapters/${platform}`);
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp(platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const { contactInfo, returnMessage } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
+        if (contactInfo != null) {
+            return { successful: true, returnMessage, contact: contactInfo };
+        }
+        else {
+            return { successful: false, returnMessage };
+        }
+    } catch (e) {
+        console.log(e);
+        return { successful: false, returnMessage: { message: `Failed to create contact.`, messageType: 'warning' } };
+    }
+}
+
+exports.findContact = findContact;
+exports.createContact = createContact;

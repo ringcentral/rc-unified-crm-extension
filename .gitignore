@@ -10,10 +10,15 @@ env.yml
 serverless.yml
 *~
 **/.#*
+**/#*
 
-server/serverless-deploy/*
+**/.DS_Store
+/server/*
+serverless-deploy/*
+serverless-deploy-test/*
 client/dist.zip
-client/src/config.json
-/server/test.js
+client/src/manifest.json
+/test.js
 /devFlow.puml
 /devGuideDraft.md
+/build/*

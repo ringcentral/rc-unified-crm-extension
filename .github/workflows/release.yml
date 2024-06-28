@@ -1,6 +1,14 @@
 name: CI Pipeline
-on: [push, pull_request]
-
+on:
+  push:
+    branches:
+      - main
+      - FrameworkRefactor
+  pull_request:
+    branches:
+      - main
+      - FrameworkRefactor
+      
 jobs:
   server-test:
     runs-on: ubuntu-latest
@@ -12,5 +20,5 @@ jobs:
         with:
           node-version: '14'
           registry-url: https://registry.npmjs.org/
-      - run: cd server&&npm i
+      - run: npm i
       - run: npm run test-coverage

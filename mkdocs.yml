@@ -51,6 +51,9 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.emoji:
+       emoji_index: !!python/name:material.extensions.emoji.twemoji 
+       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 copyright: "2023-2024 RingCentral, Inc. All rights reserved."
 
@@ -64,17 +67,45 @@ nav:
      - 'Insightly': insightly.md
      - 'Pipedrive': pipedrive.md
      - 'Redtail CRM': redtail.md
-- 'User Guide':
-  - 'Core features': users/core-features.md
+- 'User guide':
+  - 'Accessing the extension': users/access.md
+  - 'Making and receiving calls': users/making-calls.md
   - 'Logging calls': users/logging.md
+  - 'Sending SMS': users/sms.md
+  - 'Presence': users/presence.md
   - 'Settings': users/settings.md
 - 'Developer guide':
   - 'Introduction': developers/index.md
-  - 'Quick start': developers/quick-start.md
-  - 'Adapter config': developers/config.md
-  - 'Client-side callbacks': developers/client.md
-  - 'Adapter server': developers/server.md
+  - 'Getting started': developers/getting-started.md
+  - 'Technical overview': developers/adapter.md
   - 'Build and deployment': developers/deploy.md
+  - 'Adapter': 
+    - 'Authorization': developers/auth.md
+    - 'Manifest':
+      - 'Manifest properties': developers/manifest.md
+      - 'Customizing pages': developers/manifest-pages.md
+      - 'Sample manifest': developers/manifest-sample.md
+    - 'Server': 
+      - 'Contact matching': developers/contact-matching.md
+      - 'Logging phone calls': developers/logging-calls.md
+      - 'Logging SMS': developers/logging-sms.md
+      - 'Placeholder contacts': developers/placeholder-contacts.md
+      - 'Viewing contacts and activities': developers/view-details.md
+      - 'Welcome pages': developers/welcome-page.md
+      - 'Building your own server': developers/advanced/openapi.md
+    - 'Interfaces':
+      - 'createCallLog': developers/interfaces/createCallLog.md
+      - 'createMessageLog': developers/interfaces/createMessageLog.md
+      - 'createContact': developers/interfaces/createContact.md
+      - 'getAuthType': developers/interfaces/getAuthType.md
+      - 'getCallLog': developers/interfaces/getCallLog.md
+      - 'findContact': developers/interfaces/findContact.md
+      - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+      - 'getUserInfo': developers/interfaces/getUserInfo.md
+      - 'unAuthorize': developers/interfaces/unAuthorize.md
+      - 'updateCallLog': developers/interfaces/updateCallLog.md
+      - 'updateMessageLog': developers/interfaces/updateMessageLog.md
+
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Feedback': feedback.md

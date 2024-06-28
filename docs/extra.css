@@ -12,6 +12,9 @@
 .md-main {
     padding-bottom: 50px
 }
+#powered-by-embeddable .admonition {
+    font-size: 0.8rem;
+}
 :root {
     --md-primary-fg-color: #002755;
 }

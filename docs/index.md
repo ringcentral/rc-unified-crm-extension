@@ -34,11 +34,11 @@ The Unified CRM extension requires the following:
 
 RingCentral currently supports the following CRMs using the Unified CRM extension:
 
-* Bullhorn (beta)
-* Clio
-* Insightly
-* Pipedrive
-* Redtail CRM
+* [Bullhorn](./bullhorn.md)
+* [Clio](./clio.md)
+* [Insightly](./insightly.md)
+* [Pipedrive](./pipedrive.md)
+* [Redtail CRM](./redtail.md)
 
 Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
 

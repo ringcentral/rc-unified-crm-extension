@@ -1,0 +1,94 @@
+{
+    "serverUrl": "https://xxxxx.ngrok.io",
+    "author": {
+        "name": "RingCentral Labs",
+        "websiteUrl": "",
+        "iconUrl": "",
+        "supportUrl": ""
+    },
+    "platforms": {
+        "testCRM": {
+            "urlIdentifier": "*developers.ringcentral.com*",
+            "name": "testCRM",
+            "displayName": "Test CRM",
+            "requestConfig": {
+                "timeout": 30
+            },
+            "auth": {
+                "type": "apiKey",
+                "apiKey": {
+                    "page": {
+                        "title": "test CRM",
+                        "content": [
+                            {
+                                "const": "apiKey",
+                                "title": "apiKey",
+                                "type": "string",
+                                "required": true
+                            }
+                        ]
+                    }
+                },
+                "oauth": {
+                    "authUrl": "",
+                    "clientId": "",
+                    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+                    "customState": "",
+                    "scope": ""
+                }
+            },
+            "canOpenLogPage": false,
+            "contactTypes": [
+                {
+                  "display": "TestContactType",
+                  "value": "testContact"
+                },
+                {
+                  "display": "Contact",
+                  "value": "cta"
+                }
+            ],
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "address",
+                            "title": "Address",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "address",
+                            "title": "Address",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "version": "1.0.0"
+}
