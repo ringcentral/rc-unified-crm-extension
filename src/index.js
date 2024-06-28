@@ -12,8 +12,9 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
+const packageJson = require('../package.json');
 
-axios.defaults.headers.common['Unified-CRM-Extension-Version'] = process.env.VERSION;
+axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
 
 async function initDB() {
     console.log('creating db tables if not exist...');
