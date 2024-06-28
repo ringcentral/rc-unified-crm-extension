@@ -189,6 +189,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         });
         postBody.contact = { id: contactInfo.id };
         postBody.company = { id: contactInfoRes.data?.company?.id };
+    } else if (contactInfo.type === 'custjob') {
+        postBody.company = { id: contactInfo.id };
     }
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
     console.log(`with note... \n${note}`);
