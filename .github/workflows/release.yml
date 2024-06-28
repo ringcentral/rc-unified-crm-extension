@@ -20,5 +20,6 @@ jobs:
         with:
           node-version: '14'
           registry-url: https://registry.npmjs.org/
+      - run: echo "Start"
       - run: npm i
       - run: npm run test-coverage
