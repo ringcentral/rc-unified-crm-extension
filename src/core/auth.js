@@ -14,22 +14,27 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
-    const userInfo = await saveUserInfo({
-        platformUserInfo,
-        platform,
-        tokenUrl,
-        apiUrl,
-        username,
-        hostname: !!platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
-        accessToken,
-        refreshToken,
-        tokenExpiry: expires
-    });
-    return {
-        userInfo,
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
+    if (successful) {
+        const userInfo = await saveUserInfo({
+            platformUserInfo,
+            platform,
+            tokenUrl,
+            apiUrl,
+            username,
+            hostname: !!platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
+            accessToken,
+            refreshToken,
+            tokenExpiry: expires
+        });
+        return {
+            userInfo,
+            returnMessage
+        };
+    }
+    else {
         returnMessage
-    };
+    }
 }
 
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {

@@ -15,32 +15,45 @@ function getAuthHeader({ userKey }) {
 }
 
 async function getUserInfo({ authHeader, additionalInfo }) {
-    const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
-    const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
-    const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
-        headers: {
-            'Authorization': overrideAuthHeader
+    try {
+        const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
+        const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
+        const authResponse = await axios.get(`${process.env.REDTAIL_API_SERVER}/authentication`, {
+            headers: {
+                'Authorization': overrideAuthHeader
+            }
+        });
+        additionalInfo['userResponse'] = authResponse.data.authenticated_user;
+        delete additionalInfo.password;
+        const id = additionalInfo.username;
+        const name = additionalInfo.username;
+        const timezoneName = '';
+        const timezoneOffset = null;
+        return {
+            successful: false,
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                overridingApiKey: additionalInfo.userResponse.user_key,
+                platformAdditionalInfo: additionalInfo
+            },
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connceted to Redtail.',
+                ttl: 3000
+            }
         }
-    });
-    additionalInfo['userResponse'] = authResponse.data.authenticated_user;
-    delete additionalInfo.password;
-    const id = additionalInfo.username;
-    const name = additionalInfo.username;
-    const timezoneName = '';
-    const timezoneOffset = null;
-    return {
-        platformUserInfo: {
-            id,
-            name,
-            timezoneName,
-            timezoneOffset,
-            overridingApiKey: additionalInfo.userResponse.user_key,
-            platformAdditionalInfo: additionalInfo
-        },
-        returnMessage: {
-            messageType: 'success',
-            message: 'Successfully connceted to Redtail.',
-            ttl: 3000
+    }
+    catch (e) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to get user info.',
+                ttl: 3000
+            }
         }
     }
 }

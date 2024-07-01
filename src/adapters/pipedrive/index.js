@@ -17,34 +17,47 @@ function getOauthInfo() {
 }
 
 async function getUserInfo({ authHeader, hostname }) {
-    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
-        headers: {
-            'Authorization': authHeader
-        }
-    });
-    const id = userInfoResponse.data.data.id.toString();
-    const name = userInfoResponse.data.data.name;
-    const timezoneName = userInfoResponse.data.data.timezone_name;
-    const timezoneOffset = userInfoResponse.data.data.timezone_offset;
-    return {
-        platformUserInfo: {
-            id,
-            name,
-            timezoneName,
-            timezoneOffset,
-            platformAdditionalInfo: {
-                companyId: userInfoResponse.data.data.company_id,
-                companyName: userInfoResponse.data.data.company_name,
-                companyDomain: userInfoResponse.data.data.company_domain,
+    try {
+        const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+            headers: {
+                'Authorization': authHeader
+            }
+        });
+        const id = userInfoResponse.data.data.id.toString();
+        const name = userInfoResponse.data.data.name;
+        const timezoneName = userInfoResponse.data.data.timezone_name;
+        const timezoneOffset = userInfoResponse.data.data.timezone_offset;
+        return {
+            successful: true,
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                platformAdditionalInfo: {
+                    companyId: userInfoResponse.data.data.company_id,
+                    companyName: userInfoResponse.data.data.company_name,
+                    companyDomain: userInfoResponse.data.data.company_domain,
+                },
+                overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
             },
-            overridingHostname: hostname == 'temp' ? `${userInfoResponse.data.data.company_domain}.pipedrive.com` : null
-        },
-        returnMessage: {
-            messageType: 'success',
-            message: 'Successfully connceted to Pipedrive.',
-            ttl: 3000
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connceted to Pipedrive.',
+                ttl: 3000
+            }
+        };
+    }
+    catch (e) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to get user info.',
+                ttl: 3000
+            }
         }
-    };
+    }
 }
 
 async function unAuthorize({ user }) {

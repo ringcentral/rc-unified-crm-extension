@@ -11,32 +11,45 @@ function getBasicAuth({ apiKey }) {
 }
 
 async function getUserInfo({ authHeader, additionalInfo }) {
-    additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
-    const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
-        headers: {
-            'Authorization': authHeader
+    try {
+        additionalInfo.apiUrl = additionalInfo.apiUrl.split('/v')[0];
+        const userInfoResponse = await axios.get(`${additionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+            headers: {
+                'Authorization': authHeader
+            }
+        });;
+        // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
+        // We use UTC here for now
+        const id = userInfoResponse.data.USER_ID.toString();
+        const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
+        const timezoneOffset = null;
+        const timezoneName = userInfoResponse.data.TIMEZONE_ID;
+        return {
+            successful: true,
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                platformAdditionalInfo: additionalInfo
+            },
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connceted to Insightly.',
+                ttl: 3000
+            }
+        };
+    }
+    catch (e) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to get user info.',
+                ttl: 3000
+            }
         }
-    });;
-    // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
-    // We use UTC here for now
-    const id = userInfoResponse.data.USER_ID.toString();
-    const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    const timezoneOffset = null;
-    const timezoneName = userInfoResponse.data.TIMEZONE_ID;
-    return {
-        platformUserInfo: {
-            id,
-            name,
-            timezoneName,
-            timezoneOffset,
-            platformAdditionalInfo: additionalInfo
-        },
-        returnMessage: {
-            messageType: 'success',
-            message: 'Successfully connceted to Insightly.',
-            ttl: 3000
-        }
-    };
+    }
 }
 
 async function unAuthorize({ user }) {

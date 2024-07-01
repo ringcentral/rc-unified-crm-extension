@@ -32,6 +32,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             bhRestToken
         }
         return {
+            successful: true,
             platformUserInfo: {
                 id,
                 name,
@@ -49,6 +50,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
     }
     catch (e) {
         return {
+            successful: false,
             returnMessage: {
                 messageType: 'warning',
                 message: 'Failed to get user info.',

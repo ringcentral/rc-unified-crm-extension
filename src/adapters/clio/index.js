@@ -17,29 +17,42 @@ function getOauthInfo() {
 }
 
 async function getUserInfo({ authHeader }) {
-    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
-        headers: {
-            'Authorization': authHeader
+    try {
+        const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
+            headers: {
+                'Authorization': authHeader
+            }
+        });
+        const id = userInfoResponse.data.data.id.toString();
+        const name = userInfoResponse.data.data.name;
+        const timezoneName = userInfoResponse.data.data.time_zone;
+        const timezoneOffset = 0;
+        return {
+            successful: true,
+            platformUserInfo: {
+                id,
+                name,
+                timezoneName,
+                timezoneOffset,
+                platformAdditionalInfo: {}
+            },
+            returnMessage: {
+                messageType: 'success',
+                message: 'Successfully connceted to Clio.',
+                ttl: 3000
+            }
+        };
+    }
+    catch (e) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to get user info.',
+                ttl: 3000
+            }
         }
-    });
-    const id = userInfoResponse.data.data.id.toString();
-    const name = userInfoResponse.data.data.name;
-    const timezoneName = userInfoResponse.data.data.time_zone;
-    const timezoneOffset = 0;
-    return {
-        platformUserInfo: {
-            id,
-            name,
-            timezoneName,
-            timezoneOffset,
-            platformAdditionalInfo: {}
-        },
-        returnMessage: {
-            messageType: 'success',
-            message: 'Successfully connceted to Clio.',
-            ttl: 3000
-        }
-    };
+    }
 }
 async function unAuthorize({ user }) {
     const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
