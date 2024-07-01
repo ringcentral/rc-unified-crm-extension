@@ -24,6 +24,8 @@ const phoneNumber = '+17206789819';
 const messageLogId = 'messageLogId';
 const unknownMessageLogId = 'unknownMessageLogId';
 const conversationId = 'conversationId';
+const conversationLogId = 'conversationIdXX/XX';
+const unknownConversationLogId = 'unknownConversationIdXX/XX';
 const username = 'username';
 const recordingLink = 'https://recording.link';
 const newNote = 'newNote';
@@ -40,6 +42,7 @@ beforeAll(async () => {
             id: messageLogId,
             platform: platform.name,
             conversationId,
+            conversationLogId,
             thirdPartyLogId,
             userId
         });
@@ -138,15 +141,6 @@ describe('call&message log tests', () => {
                         rcUserNumber,
                         platform: platform.name
                     });
-                    const platformGetLogScope = nock(platform.domain)
-                        .get(`${platform.callLogPath}/${thirdPartyLogId}`)
-                        .once()
-                        .reply(200, {
-                            data: {
-                                note: '<p>[Note] 123</p>'
-                            }
-                        });
-
 
                     // Act
                     const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId}`)
@@ -155,9 +149,6 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
-
-                    // Clean up
-                    platformGetLogScope.done();
                 }
             });
             test('unknown call log - not matched', async () => {
@@ -186,14 +177,6 @@ describe('call&message log tests', () => {
                         rcUserNumber,
                         platform: platform.name
                     });
-                    const platformGetLogScope = nock(platform.domain)
-                        .get(`${platform.callLogPath}/${thirdPartyLogId}`)
-                        .once()
-                        .reply(200, {
-                            data: {
-                                note: '<p>[Note] 123</p>'
-                            }
-                        });
 
                     // Act
                     const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId},${unknownSessionId}`)
@@ -203,9 +186,6 @@ describe('call&message log tests', () => {
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
                     expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
-
-                    // Clean up
-                    platformGetLogScope.done();
                 }
             });
         });
@@ -231,7 +211,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(false);
-                    expect(res.body.message).toEqual(`Existing log for session ${sessionId}`);
+                    expect(res.body.returnMessage.message).toEqual(`Existing log for session ${sessionId}`);
                 }
             });
             test('cannot find user - unsuccessful', async () => {
@@ -254,7 +234,7 @@ describe('call&message log tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
                     expect(res.body.successful).toEqual(false);
                 }
             });
@@ -369,7 +349,7 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logId).toEqual(thirdPartyLogId);
-                    expect(res.body.updatedDescription).toContain(recordingLink);
+                    expect(res.body.updatedNote).toContain(recordingLink);
 
                     // Clean up
                     platformGetLogScope.done();
@@ -409,7 +389,7 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logId).toEqual(thirdPartyLogId);
-                    expect(res.body.updatedDescription).toContain(newNote);
+                    expect(res.body.updatedNote).toContain(newNote);
 
                     // Clean up
                     platformGetLogScope.done();
@@ -458,7 +438,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(false);
-                    expect(res.body.message).toEqual('No message to log.');
+                    expect(res.body.returnMessage.message).toEqual('No message to log.');
                 }
             });
             test('cannot find user - unsuccessful', async () => {
@@ -491,7 +471,7 @@ describe('call&message log tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
                     expect(res.body.successful).toEqual(false);
                 }
             });
@@ -506,6 +486,7 @@ describe('call&message log tests', () => {
                     const postBody = {
                         logInfo: {
                             conversationId,
+                            conversationLogId: unknownConversationLogId,
                             messages: [
                                 {
                                     id: messageLogId

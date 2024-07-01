@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.91% </span>
+                <span class="strong">76.08% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>34/46</span>
+                <span class='fraction'>35/46</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.77% </span>
+                <span class="strong">72.22% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>14/18</span>
+                <span class='fraction'>13/18</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">73.91% </span>
+                <span class="strong">76.08% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>34/46</span>
+                <span class='fraction'>35/46</span>
             </div>
         
             
@@ -143,7 +143,14 @@
 <a name='L78'></a><a href='#L78'>78</a>
 <a name='L79'></a><a href='#L79'>79</a>
 <a name='L80'></a><a href='#L80'>80</a>
-<a name='L81'></a><a href='#L81'>81</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -157,6 +164,13 @@
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -172,15 +186,15 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -226,7 +240,7 @@
 <span class="cline-any cline-yes">4x</span></td><td class="text"><pre class="prettyprint lang-js">const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 &nbsp;
-async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
+async function findContact({ platform, userId, phoneNumber, overridingFormat }) {
     try {
         let user = await UserModel.findOne({
             where: {
@@ -235,7 +249,14 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
             }
         });
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Cannot find user with id: ${userId}` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Cannot find user with id: ${userId}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
@@ -251,16 +272,16 @@ async function getContact({ platform, userId, phoneNumber, overridingFormat }) {
 <span class="cstat-no" title="statement not covered" >                authHeader = `Basic ${basicAuth}`;</span>
 <span class="cstat-no" title="statement not covered" >                break;</span>
         }
-        const contactInfo = await platformModule.getContact({ user, authHeader, phoneNumber, overridingFormat });
-        if (contactInfo != null &amp;&amp; contactInfo.length &gt; 0) {
-            return { successful: true, message: '', contact: contactInfo };
+        const { matchedContactInfo, returnMessage } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat });
+        if (matchedContactInfo != null &amp;&amp; matchedContactInfo.length &gt; 0) {
+            return { successful: true, returnMessage, contact: matchedContactInfo };
         }
-        else {
-            return { successful: false, message: 'Cannot find contact' };
+        else <span class="missing-if-branch" title="else path not taken" >E</span>{
+<span class="cstat-no" title="statement not covered" >            return { successful: false, returnMessage };</span>
         }
     } catch (e) {
-<span class="cstat-no" title="statement not covered" >        console.log(e);</span>
-<span class="cstat-no" title="statement not covered" >        return { successful: false, message: 'Failed to get contact.' };</span>
+        console.log(e);
+        return { successful: false, returnMessage: { message: `Failed to find contact.`, messageType: 'warning' } };
     }
 }
 &nbsp;
@@ -289,20 +310,20 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
 <span class="cstat-no" title="statement not covered" >                authHeader = `Basic ${basicAuth}`;</span>
 <span class="cstat-no" title="statement not covered" >                break;</span>
         }
-        const contactInfo = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
+        const { contactInfo, returnMessage } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
         if (contactInfo != null) {
-            return { successful: true, message: '', contact: contactInfo };
+            return { successful: true, returnMessage, contact: contactInfo };
         }
         else <span class="missing-if-branch" title="else path not taken" >E</span>{
-<span class="cstat-no" title="statement not covered" >            return { successful: false, message: `Cannot create contact ${newContactName} for phone number: ${phoneNumber}.` };</span>
+<span class="cstat-no" title="statement not covered" >            return { successful: false, returnMessage };</span>
         }
     } catch (e) {
 <span class="cstat-no" title="statement not covered" >        console.log(e);</span>
-<span class="cstat-no" title="statement not covered" >        return { successful: false, message: `Failed to create contact.` };</span>
+<span class="cstat-no" title="statement not covered" >        return { successful: false, returnMessage: { message: `Failed to create contact.`, messageType: 'warning' } };</span>
     }
 }
 &nbsp;
-exports.getContact = getContact;
+exports.findContact = findContact;
 exports.createContact = createContact;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -310,7 +331,7 @@ exports.createContact = createContact;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2024-05-24T06:58:20.105Z
+                at 2024-07-01T05:04:49.970Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

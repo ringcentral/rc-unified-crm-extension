@@ -10,7 +10,14 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat }) 
             }
         });
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Cannot find user with id: ${userId}` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Cannot find user with id: ${userId}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
