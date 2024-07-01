@@ -80,12 +80,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:320-359] !}
+    {!> src/adapters/testCRM/index.js [ln:331-370] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:232-305] !}
+    {!> src/adapters/pipedrive/index.js [ln:245-318] !}
 	```
 

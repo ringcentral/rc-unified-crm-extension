@@ -75,12 +75,12 @@ This interface returns a single object. That object describes the contacts that 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:135-185] !}
+    {!> src/adapters/testCRM/index.js [ln:146-196] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:81-115] !}
+    {!> src/adapters/pipedrive/index.js [ln:94-128] !}
 	```
 

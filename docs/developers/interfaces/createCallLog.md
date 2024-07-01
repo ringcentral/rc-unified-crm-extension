@@ -51,13 +51,13 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:191-232] !}
+    {!> src/adapters/testCRM/index.js [ln:202-244] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:152-184] !}
+    {!> src/adapters/pipedrive/index.js [ln:165-197] !}
 	```
 
 ### Example Call Log Schema

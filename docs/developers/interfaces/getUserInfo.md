@@ -22,11 +22,11 @@ This method results in the adapter calling the CRM to retrieve key information a
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:60-97] !}
+    {!> src/adapters/testCRM/index.js [ln:60-109] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:19-48] !}
+    {!> src/adapters/pipedrive/index.js [ln:19-61] !}
 	```
