@@ -3,11 +3,9 @@ on:
   push:
     branches:
       - main
-      - FrameworkRefactor
   pull_request:
     branches:
       - main
-      - FrameworkRefactor
       
 jobs:
   server-test:
@@ -23,3 +21,5 @@ jobs:
       - run: echo "Start"
       - run: npm i
       - run: npm run test-coverage
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
