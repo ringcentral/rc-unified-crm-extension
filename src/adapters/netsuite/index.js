@@ -29,6 +29,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const timezoneName = employeResponse.data.time_zone ?? '';
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
         return {
+            successful: true,
             platformUserInfo: {
                 id,
                 name,
@@ -49,6 +50,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
     } catch (error) {
         console.log({ message: "Error in getting User Info", error });
         return {
+            successful: false,
             returnMessage: {
                 messageType: 'danger',
                 message: 'Error in getting NetSuite User Info.',
