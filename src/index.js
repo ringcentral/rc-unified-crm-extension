@@ -402,8 +402,8 @@ app.post('/callLog', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const { successful, message, logId, returnMessage } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
-            res.status(200).send({ successful, message, logId, returnMessage });
+            const { successful, logId, returnMessage } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+            res.status(200).send({ successful, logId, returnMessage });
             success = true;
         }
         else {
@@ -504,7 +504,7 @@ app.post('/messageLog', async function (req, res) {
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
     const hashedAccountId = headers['rc-account-id'];
-    const ip = headers['x-forwarded-for'].split(',').find(i => !i.startsWith('10.'));
+    const ip = headers['x-forwarded-for']?.split(',')?.find(i => !i.startsWith('10.'));
     const userAgent = headers['user-agent'];
     const author = headers['developer-author-name'];
     return {
@@ -518,143 +518,143 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
 
 // Legacy endpoints for backward compatibility
 
-app.get('/oauth-callbackV2', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-    try {
-        if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
-            throw 'Missing callbackUri';
-        }
-        platformName = platform = req.query.state ?
-            req.query.state.split('platform=')[1] :
-            decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
-        const hostname = req.query.hostname;
-        const tokenUrl = req.query.tokenUrl;
-        if (!platform) {
-            throw 'Missing platform name';
-        }
-        const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
-        if (!hasAuthCodeInCallbackUri) {
-            req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
-        }
-        const { userInfo, returnMessage } = await authCore.onOAuthCallback({
-            platform,
-            hostname,
-            tokenUrl,
-            callbackUri: req.query.callbackUri,
-            apiUrl: req.query.apiUrl,
-            username: req.query.username,
-            query: req.query
-        });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            platform: platform
-        });
-        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
-        success = true;
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'OAuth Callback',
-        interfaceName: 'onOAuthCallback',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip,
-        author,
-        isLegacy: true
-    });
-})
+// app.get('/oauth-callbackV2', async function (req, res) {
+//     const requestStartTime = new Date().getTime();
+//     let platformName = null;
+//     let success = false;
+//     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+//     try {
+//         if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
+//             throw 'Missing callbackUri';
+//         }
+//         platformName = platform = req.query.state ?
+//             req.query.state.split('platform=')[1] :
+//             decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
+//         const hostname = req.query.hostname;
+//         const tokenUrl = req.query.tokenUrl;
+//         if (!platform) {
+//             throw 'Missing platform name';
+//         }
+//         const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
+//         if (!hasAuthCodeInCallbackUri) {
+//             req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
+//         }
+//         const { userInfo, returnMessage } = await authCore.onOAuthCallback({
+//             platform,
+//             hostname,
+//             tokenUrl,
+//             callbackUri: req.query.callbackUri,
+//             apiUrl: req.query.apiUrl,
+//             username: req.query.username,
+//             query: req.query
+//         });
+//         const jwtToken = jwt.generateJwt({
+//             id: userInfo.id.toString(),
+//             platform: platform
+//         });
+//         res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
+//         success = true;
+//     }
+//     catch (e) {
+//         console.log(e);
+//         res.status(400).send(e);
+//     }
+//     const requestEndTime = new Date().getTime();
+//     analytics.track({
+//         eventName: 'OAuth Callback',
+//         interfaceName: 'onOAuthCallback',
+//         adapterName: platformName,
+//         accountId: hashedAccountId,
+//         extensionId: hashedExtensionId,
+//         success,
+//         requestDuration: (requestEndTime - requestStartTime) / 1000,
+//         userAgent,
+//         ip,
+//         author,
+//         isLegacy: true
+//     });
+// })
 
-app.post('/apiKeyLoginV2', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-    try {
-        const platform = req.body.platform;
-        platformName = platform;
-        const apiKey = req.body.apiKey;
-        const hostname = req.body.hostname;
-        const additionalInfo = req.body.additionalInfo;
-        if (!platform) {
-            throw 'Missing platform name';
-        }
-        if (!apiKey) {
-            throw 'Missing api key';
-        }
-        const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            platform: platform
-        });
-        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
-        success = true;
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'API Key Login',
-        interfaceName: 'onApiKeyLogin',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip,
-        author,
-        isLegacy: true
-    });
-})
+// app.post('/apiKeyLoginV2', async function (req, res) {
+//     const requestStartTime = new Date().getTime();
+//     let platformName = null;
+//     let success = false;
+//     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+//     try {
+//         const platform = req.body.platform;
+//         platformName = platform;
+//         const apiKey = req.body.apiKey;
+//         const hostname = req.body.hostname;
+//         const additionalInfo = req.body.additionalInfo;
+//         if (!platform) {
+//             throw 'Missing platform name';
+//         }
+//         if (!apiKey) {
+//             throw 'Missing api key';
+//         }
+//         const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
+//         const jwtToken = jwt.generateJwt({
+//             id: userInfo.id.toString(),
+//             platform: platform
+//         });
+//         res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
+//         success = true;
+//     }
+//     catch (e) {
+//         console.log(e);
+//         res.status(400).send(e);
+//     }
+//     const requestEndTime = new Date().getTime();
+//     analytics.track({
+//         eventName: 'API Key Login',
+//         interfaceName: 'onApiKeyLogin',
+//         adapterName: platformName,
+//         accountId: hashedAccountId,
+//         extensionId: hashedExtensionId,
+//         success,
+//         requestDuration: (requestEndTime - requestStartTime) / 1000,
+//         userAgent,
+//         ip,
+//         author,
+//         isLegacy: true
+//     });
+// })
 
-app.get('/contactV2', async function (req, res) {
-    const requestStartTime = new Date().getTime();
-    let platformName = null;
-    let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-    try {
-        const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            platformName = platform;
-            const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
-            res.status(200).send({ successful, message: '', contact: contact.filter(c => c.id != 'createNewContact') });
-            success = true;
-        }
-        else {
-            res.status(400).send('Please go to Settings and authorize CRM platform');
-        }
-    }
-    catch (e) {
-        console.log(e);
-        res.status(400).send(e);
-    }
-    const requestEndTime = new Date().getTime();
-    analytics.track({
-        eventName: 'Find contact',
-        interfaceName: 'findContact',
-        adapterName: platformName,
-        accountId: hashedAccountId,
-        extensionId: hashedExtensionId,
-        success,
-        requestDuration: (requestEndTime - requestStartTime) / 1000,
-        userAgent,
-        ip,
-        author,
-        isLegacy: true
-    });
-});
+// app.get('/contactV2', async function (req, res) {
+//     const requestStartTime = new Date().getTime();
+//     let platformName = null;
+//     let success = false;
+//     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+//     try {
+//         const jwtToken = req.query.jwtToken;
+//         if (!!jwtToken) {
+//             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+//             platformName = platform;
+//             const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+//             res.status(200).send({ successful, message: '', contact: contact.filter(c => c.id != 'createNewContact') });
+//             success = true;
+//         }
+//         else {
+//             res.status(400).send('Please go to Settings and authorize CRM platform');
+//         }
+//     }
+//     catch (e) {
+//         console.log(e);
+//         res.status(400).send(e);
+//     }
+//     const requestEndTime = new Date().getTime();
+//     analytics.track({
+//         eventName: 'Find contact',
+//         interfaceName: 'findContact',
+//         adapterName: platformName,
+//         accountId: hashedAccountId,
+//         extensionId: hashedExtensionId,
+//         success,
+//         requestDuration: (requestEndTime - requestStartTime) / 1000,
+//         userAgent,
+//         ip,
+//         author,
+//         isLegacy: true
+//     });
+// });
 exports.server = app;

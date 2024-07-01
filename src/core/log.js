@@ -8,7 +8,14 @@ async function createCallLog({ platform, userId, incomingData }) {
     try {
         const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
         if (existingCallLog) {
-            return { successful: false, message: `Existing log for session ${incomingData.logInfo.sessionId}` }
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Existing log for session ${incomingData.logInfo.sessionId}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            }
         }
         let user = await UserModel.findOne({
             where: {
@@ -17,7 +24,14 @@ async function createCallLog({ platform, userId, incomingData }) {
             }
         });
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Cannot find user with id: ${userId}` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Cannot find user with id: ${userId}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const platformModule = require(`../adapters/${platform}`);
         const callLog = incomingData.logInfo;
@@ -39,7 +53,14 @@ async function createCallLog({ platform, userId, incomingData }) {
         const contactNumber = callLog.direction === 'Inbound' ? callLog.from.phoneNumber : callLog.to.phoneNumber;
         const contactId = incomingData.contactId;
         if (!!!contactId || contactId === 0) {
-            return { successful: false, message: `Contact not found for number ${contactNumber}` };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Contact not found for number ${contactNumber}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const contactInfo = {
             id: contactId,
@@ -169,7 +190,15 @@ async function createMessageLog({ platform, userId, incomingData }) {
     try {
         let returnMessage = null;
         if (incomingData.logInfo.messages.length === 0) {
-            return { successful: false, message: 'No message to log.' }
+            return {
+                successful: false,
+                returnMessage:
+                {
+                    message: 'No message to log.',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            }
         }
         const platformModule = require(`../adapters/${platform}`);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
@@ -181,7 +210,15 @@ async function createMessageLog({ platform, userId, incomingData }) {
             }
         });
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Cannot find user with id: ${userId}` };
+            return {
+                successful: false,
+                returnMessage:
+                {
+                    message: `Cannot find user with id: ${userId}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const authType = platformModule.getAuthType();
         let authHeader = '';
@@ -198,7 +235,15 @@ async function createMessageLog({ platform, userId, incomingData }) {
         }
         const contactId = incomingData.contactId;
         if (!!!contactId) {
-            return { successful: false, message: `Contact not found for number ${contactNumber}` };
+            return {
+                successful: false,
+                returnMessage:
+                {
+                    message: `Contact not found for number ${contactNumber}`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
         }
         const contactInfo = {
             id: contactId,

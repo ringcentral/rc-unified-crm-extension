@@ -75,11 +75,11 @@ describe('contact tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(200);
-                expect(res.body.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
                 expect(res.body.successful).toEqual(false);
             }
         });
-        test('unknown contact - unsuccessful', async () => {
+        test('unknown contact - return only new contact placeholder', async () => {
             for (const platform of platforms) {
                 // Arrange
                 const jwtToken = jwt.generateJwt({
@@ -101,8 +101,8 @@ describe('contact tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(200);
-                expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual('Cannot find contact');
+                expect(res.body.successful).toEqual(true);
+                expect(res.body.contact[0].isNewContact).toEqual(true);
 
                 // Clean up
                 platformFindContactScope.done();
@@ -123,7 +123,7 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.message).toEqual(`Cannot find contact`);
+                expect(res.body.returnMessage.message).toEqual(`Failed to find contact.`);
             }
         });
         test('known contact - successful', async () => {

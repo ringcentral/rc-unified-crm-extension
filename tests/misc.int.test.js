@@ -39,6 +39,32 @@ afterAll(async () => {
 });
 
 describe('misc tests', () => {
+    describe('get manifest', ()=>{
+        test('get manifest- no platformName - return default', async()=>{
+            // Act
+            const res = await request(server).get('/crmManifest');
+
+            // Assert
+            expect(res.status).toEqual(200);
+            expect(res.body.author.name).toEqual('RingCentral Labs');
+        })
+        test('get manifest- has platformName - return platform manifest', async()=>{
+            // Act
+            const res = await request(server).get('/crmManifest?platformName=testCRM');
+
+            // Assert
+            expect(res.status).toEqual(200);
+            expect(res.body.author.name).toEqual('Test Developer');
+        })
+        test('get manifest- has platformName but not valid - return error', async()=>{
+            // Act
+            const res = await request(server).get('/crmManifest?platformName=unknownCRM');
+
+            // Assert
+            expect(res.status).toEqual(400);
+            expect(res.text).toEqual('Platform not found');
+        })
+    });
     describe('user info hash', () => {
         test('extensionId hash', async () => {
             // Act
