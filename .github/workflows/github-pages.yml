@@ -26,4 +26,5 @@ jobs:
             mkdocs-material-
       - run: echo "Start"
       - run: pip install mkdocs-material 
+      - run: pip install mdx_include 
       - run: mkdocs gh-deploy --force
