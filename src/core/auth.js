@@ -33,7 +33,10 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
         };
     }
     else {
-        returnMessage
+        return {
+            userInfo: null,
+            returnMessage
+        }
     }
 }
 

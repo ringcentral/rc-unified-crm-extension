@@ -159,16 +159,16 @@ app.get('/oauth-callback', async function (req, res) {
             username: req.query.username,
             query: req.query
         });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            platform: platform
-        });
         if (!!userInfo) {
+            const jwtToken = jwt.generateJwt({
+                id: userInfo.id.toString(),
+                platform: platform
+            });
             res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
             success = true;
         }
         else {
-            res.status(500).send({ returnMessage });
+            res.status(200).send({ returnMessage });
             success = false;
         }
     }
