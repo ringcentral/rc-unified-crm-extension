@@ -530,13 +530,16 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
 
     }
+    const displayMessage = newContactType === 'contact'
+        ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
+        : 'New Customer Created';
     return {
         contactInfo: {
             id: contactId,
             name: newContactName
         },
         returnMessage: {
-            message: `New contact created.`,
+            message: displayMessage,
             messageType: 'success',
             ttl: 5000
         }
