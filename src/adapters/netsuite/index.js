@@ -491,7 +491,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     returnMessage: {
                         message: `Error in creating Contact.`,
                         messageType: 'danger',
-                        ttl: 3000
+                        ttl: 5000
                     }
                 }
             }
@@ -524,7 +524,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     returnMessage: {
                         message: `Error in creating Customer.`,
                         messageType: 'danger',
-                        ttl: 3000
+                        ttl: 5000
                     }
                 }
             }
@@ -538,7 +538,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         returnMessage: {
             message: `New contact created.`,
             messageType: 'success',
-            ttl: 3000
+            ttl: 5000
         }
     }
 }
