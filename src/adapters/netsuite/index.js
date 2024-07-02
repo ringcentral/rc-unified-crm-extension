@@ -112,7 +112,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
+                    q: `SELECT * FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
@@ -123,9 +123,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
                     let lastName = result.lastname ?? '';
+                    const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
                     matchedContactInfo.push({
                         id: result.id,
-                        name: `${firstName} ${middleName} ${lastName}`,
+                        name: contactName,
                         phone: numberToQuery,
                         additionalInfo: null,
                         type: 'contact'
@@ -136,7 +137,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             const customerInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
-                    q: `SELECT id,firstname,middlename,lastname FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
+                    q: `SELECT * FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
                 },
                 {
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
@@ -147,9 +148,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
                     let lastName = result.lastname ?? '';
+                    const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
                     matchedContactInfo.push({
                         id: result.id,
-                        name: `${firstName} ${middleName} ${lastName}`,
+                        name: customerName,
                         phone: numberToQuery,
                         additionalInfo: null,
                         type: 'custjob'
@@ -489,7 +491,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     returnMessage: {
                         message: `Error in creating Contact.`,
                         messageType: 'danger',
-                        ttl: 3000
+                        ttl: 5000
                     }
                 }
             }
@@ -522,7 +524,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     returnMessage: {
                         message: `Error in creating Customer.`,
                         messageType: 'danger',
-                        ttl: 3000
+                        ttl: 5000
                     }
                 }
             }
@@ -536,7 +538,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         returnMessage: {
             message: `New contact created.`,
             messageType: 'success',
-            ttl: 3000
+            ttl: 5000
         }
     }
 }
