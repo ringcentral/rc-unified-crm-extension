@@ -41,7 +41,10 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat }) 
             return { successful: false, returnMessage };
         }
     } catch (e) {
-        console.log(e);
+        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        if (e.response?.status === 429) {
+            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+        }
         return { successful: false, returnMessage: { message: `Failed to find contact.`, messageType: 'warning' } };
     }
 }
@@ -79,7 +82,10 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
             return { successful: false, returnMessage };
         }
     } catch (e) {
-        console.log(e);
+        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        if (e.response?.status === 429) {
+            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+        }
         return { successful: false, returnMessage: { message: `Failed to create contact.`, messageType: 'warning' } };
     }
 }

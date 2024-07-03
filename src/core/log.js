@@ -76,10 +76,12 @@ async function createCallLog({ platform, userId, incomingData }) {
             thirdPartyLogId: logId,
             userId
         });
-        console.log(`added call log: ${logId}`);
         return { successful: true, logId, returnMessage };
     } catch (e) {
-        console.log(e);
+        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        if (e.response?.status === 429) {
+            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+        }
         return { successful: false };
     }
 }
@@ -176,12 +178,14 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     break;
             }
             const { updatedNote, returnMessage } = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
-            console.log(`updated call log: ${existingCallLog.id}`);
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage };
         }
         return { successful: false };
     } catch (e) {
-        console.log(e);
+        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        if (e.response?.status === 429) {
+            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+        }
         return { successful: false };
     }
 }
@@ -263,7 +267,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
         incomingData.logInfo.messages = incomingData.logInfo.messages.reverse();
         for (const message of incomingData.logInfo.messages) {
             if (existingIds.includes(message.id.toString())) {
-                console.log(`existing message log: ${message.id}`);
                 continue;
             }
             let recordingLink = null;
@@ -298,14 +301,15 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     userId,
                     conversationLogId: incomingData.logInfo.conversationLogId
                 });
-            console.log(`added message log: ${createdMessageLog.id}`);
             logIds.push(createdMessageLog.id);
         }
-        console.log(`logged ${logIds.length} messages.`);
         return { successful: true, logIds, returnMessage };
     }
     catch (e) {
-        console.log(e);
+        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        if (e.response?.status === 429) {
+            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+        }
         return { successful: false };
     }
 }
