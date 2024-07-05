@@ -53,7 +53,7 @@ For this extension to work, NetSuite account admin needs to assign users with be
 |Contact-Subsidiary relationship|View|
 |Contacts|Full|
 |Customers|Full|
-|Employee RecordFull|
+|Employee Record|Full|
 |Employees|Full|
 |Entity-Subsidiary relationship|View|
 |Phone Calls|Full|
@@ -64,5 +64,5 @@ For this extension to work, NetSuite account admin needs to assign users with be
 |Permission|Level|
 |-|-|
 |Log in using OAuth 2.0 Access Tokens|Full|
-|REST Web Services||Full|
-|User Access Tokens||Full
+|REST Web Services|Full|
+|User Access Tokens|Full
