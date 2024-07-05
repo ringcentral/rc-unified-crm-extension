@@ -292,16 +292,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult.returnMessage;
             }
-            const createdMessageLog =
-                await MessageLogModel.create({
-                    id: message.id.toString(),
-                    platform,
-                    conversationId: incomingData.logInfo.conversationId,
-                    thirdPartyLogId: crmLogId,
-                    userId,
-                    conversationLogId: incomingData.logInfo.conversationLogId
-                });
-            logIds.push(createdMessageLog.id);
+            if (!!crmLogId) {
+                const createdMessageLog =
+                    await MessageLogModel.create({
+                        id: message.id.toString(),
+                        platform,
+                        conversationId: incomingData.logInfo.conversationId,
+                        thirdPartyLogId: crmLogId,
+                        userId,
+                        conversationLogId: incomingData.logInfo.conversationLogId
+                    });
+                logIds.push(createdMessageLog.id);
+            }
         }
         return { successful: true, logIds, returnMessage };
     }
