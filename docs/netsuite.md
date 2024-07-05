@@ -8,7 +8,7 @@ RingCentral's integration with NetSuite helps streamline communications with con
 
 If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://youtu.be/yo4Q1Vj-sH4" title="Unified CRM extension for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="Unified CRM extension for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
