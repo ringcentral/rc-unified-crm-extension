@@ -36,6 +36,7 @@ cp(`${projectPath}/src/lambda.js`, `${deployPath}/lambda.js`);
 cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
+cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 cp('-r', `${projectPath}/src/core`, `${deployPath}/core`);
 cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
