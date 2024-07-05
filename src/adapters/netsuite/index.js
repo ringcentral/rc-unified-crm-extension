@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const { parse } = require('path');
 
 function getAuthType() {
     return 'oauth';
@@ -49,16 +50,19 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         };
     } catch (error) {
         console.log({ message: "Error in getting User Info", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Employee Record && Lists -> Employee' permission to authorize. Please contact your administrator."
+            : "Error in getting NetSuite User Info.";
         return {
             successful: false,
             returnMessage: {
                 messageType: 'danger',
-                message: 'Error in getting NetSuite User Info.',
-                ttl: 3000
+                message: errorMessage,
+                ttl: 60000
             }
         }
     }
-
 }
 
 async function unAuthorize({ user }) {
@@ -86,155 +90,185 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    const numberToQueryArray = [];
-    if (overridingFormat === '') {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
-    }
-    else {
-        const formats = overridingFormat.split(',');
-        for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-            if (phoneNumberObj.valid) {
-                const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                let formattedNumber = format;
-                for (const numberBit of phoneNumberWithoutCountryCode) {
-                    formattedNumber = formattedNumber.replace('*', numberBit);
-                }
-                numberToQueryArray.push(formattedNumber);
-            }
+    try {
+        const numberToQueryArray = [];
+        if (overridingFormat === '') {
+            numberToQueryArray.push(phoneNumber.replace(' ', '+'));
         }
-    }
-    const matchedContactInfo = [];
-    for (var numberToQuery of numberToQueryArray) {
-        console.log({ message: "Finding Contact with the number", numberToQuery });
-        if (numberToQuery !== 'undefined' && numberToQuery !== null && numberToQuery !== '') {
-            //For Contact search
-            const personInfo = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                {
-                    q: `SELECT * FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
-                },
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                });
-            console.log(personInfo);
-            if (personInfo.data.items.length > 0) {
-                for (var result of personInfo.data.items) {
-                    let firstName = result.firstname ?? '';
-                    let middleName = result.middlename ?? '';
-                    let lastName = result.lastname ?? '';
-                    const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                    matchedContactInfo.push({
-                        id: result.id,
-                        name: contactName,
-                        phone: numberToQuery,
-                        additionalInfo: null,
-                        type: 'contact'
-                    })
-                }
-            }
-            //For Customer search
-            const customerInfo = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                {
-                    q: `SELECT * FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
-                },
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                });
-            console.log({ message: "Custome Search", customerInfo });
-            if (customerInfo.data.items.length > 0) {
-                for (var result of customerInfo.data.items) {
-                    let firstName = result.firstname ?? '';
-                    let middleName = result.middlename ?? '';
-                    let lastName = result.lastname ?? '';
-                    const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                    matchedContactInfo.push({
-                        id: result.id,
-                        name: customerName,
-                        phone: numberToQuery,
-                        additionalInfo: null,
-                        type: 'custjob'
-                    })
+        else {
+            const formats = overridingFormat.split(',');
+            for (var format of formats) {
+                const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+                if (phoneNumberObj.valid) {
+                    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                    let formattedNumber = format;
+                    for (const numberBit of phoneNumberWithoutCountryCode) {
+                        formattedNumber = formattedNumber.replace('*', numberBit);
+                    }
+                    numberToQueryArray.push(formattedNumber);
                 }
             }
         }
+        const matchedContactInfo = [];
+        for (var numberToQuery of numberToQueryArray) {
+            console.log({ message: "Finding Contact with the number", numberToQuery });
+            if (numberToQuery !== 'undefined' && numberToQuery !== null && numberToQuery !== '') {
+                //For Contact search
+                const personInfo = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                    {
+                        q: `SELECT * FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
+                    },
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                    });
+                console.log(personInfo);
+                if (personInfo.data.items.length > 0) {
+                    for (var result of personInfo.data.items) {
+                        let firstName = result.firstname ?? '';
+                        let middleName = result.middlename ?? '';
+                        let lastName = result.lastname ?? '';
+                        const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                        matchedContactInfo.push({
+                            id: result.id,
+                            name: contactName,
+                            phone: numberToQuery,
+                            additionalInfo: null,
+                            type: 'contact'
+                        })
+                    }
+                }
+                //For Customer search
+                const customerInfo = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                    {
+                        q: `SELECT * FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
+                    },
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                    });
+                console.log({ message: "Custome Search", customerInfo });
+                if (customerInfo.data.items.length > 0) {
+                    for (var result of customerInfo.data.items) {
+                        let firstName = result.firstname ?? '';
+                        let middleName = result.middlename ?? '';
+                        let lastName = result.lastname ?? '';
+                        const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                        matchedContactInfo.push({
+                            id: result.id,
+                            name: customerName,
+                            phone: numberToQuery,
+                            additionalInfo: null,
+                            type: 'custjob'
+                        })
+                    }
+                }
+            }
+        }
+        console.log(`found netsuite contacts... \n\n${JSON.stringify(matchedContactInfo, null, 2)}`);
+        matchedContactInfo.push({
+            id: 'createNewContact',
+            name: 'Create new contact...',
+            additionalInfo: null,
+            isNewContact: true
+        });
+        return {
+            matchedContactInfo,
+        };
+    } catch (error) {
+        console.log({ message: "Error in Finding Contact/Customer", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts && Lists -> Customer' permission to fetch details. Please contact your administrator."
+            : "Error in Finding Contact.";
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
+        }
     }
-    console.log(`found netsuite contacts... \n\n${JSON.stringify(matchedContactInfo, null, 2)}`);
-    matchedContactInfo.push({
-        id: 'createNewContact',
-        name: 'Create new contact...',
-        additionalInfo: null,
-        isNewContact: true
-    });
-    return {
-        matchedContactInfo,
-    };
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
-    //const originalMessage = note;
-    //const temporedMessage = originalMessage + generateRandomString(20);
-    const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    let postBody = {
-        title: title,
-        phone: contactInfo?.phoneNumber || '',
-        priority: "MEDIUM",
-        status: "COMPLETE",
-        startDate: moment(callLog.startTime).toISOString(),
-        message: `\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
-    };
-    if (contactInfo.type?.toUpperCase() === 'CONTACT') {
-        console.log({ message: "Contact CallLog", contactInfo })
-        const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
-            headers: { 'Authorization': authHeader }
-        });
-        postBody.contact = { id: contactInfo.id };
-        postBody.company = { id: contactInfoRes.data?.company?.id };
-    } else if (contactInfo.type === 'custjob') {
-        postBody.company = { id: contactInfo.id };
-    }
-    console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
-    console.log(`with note... \n${note}`);
-    console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
-
-    const addLogRes = await axios.post(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
-        postBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const callLogId = extractIdFromUrl(addLogRes.headers.location);
-    /*
-    const phoneCallResponse = await axios.post(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-        {
-            q: `SELECT * FROM PhoneCall WHERE title = '${title}' AND message = '${temporedMessage}'`
-        },
-        {
-            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-        });
-    let callLogId = null;
-    if (phoneCallResponse.data.items.length > 0) {
-        callLogId = phoneCallResponse.data.items[0].id;
-    }
-    console.log(`call log id... \n${callLogId}`);
-    await axios.patch(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${callLogId}`,
-        {
-            message: originalMessage
-        },
-        {
-            headers: { 'Authorization': authHeader }
-        });*/
-    return {
-        logId: callLogId,
-        returnMessage: {
-            message: 'Call log added.',
-            messageType: 'success',
-            ttl: 3000
+    try {
+        const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+        let postBody = {
+            title: title,
+            phone: contactInfo?.phoneNumber || '',
+            priority: "MEDIUM",
+            status: "COMPLETE",
+            startDate: moment(callLog.startTime).toISOString(),
+            message: `\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+        };
+        if (contactInfo.type?.toUpperCase() === 'CONTACT') {
+            console.log({ message: "Contact CallLog", contactInfo })
+            const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
+                headers: { 'Authorization': authHeader }
+            });
+            postBody.contact = { id: contactInfo.id };
+            postBody.company = { id: contactInfoRes.data?.company?.id };
+        } else if (contactInfo.type === 'custjob') {
+            postBody.company = { id: contactInfo.id };
         }
-    };
-    // return callLogId;
+        console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
+        console.log(`with note... \n${note}`);
+        console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
+
+        const addLogRes = await axios.post(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
+            postBody,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const callLogId = extractIdFromUrl(addLogRes.headers.location);
+        /*
+        const phoneCallResponse = await axios.post(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+            {
+                q: `SELECT * FROM PhoneCall WHERE title = '${title}' AND message = '${temporedMessage}'`
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+            });
+        let callLogId = null;
+        if (phoneCallResponse.data.items.length > 0) {
+            callLogId = phoneCallResponse.data.items[0].id;
+        }
+        console.log(`call log id... \n${callLogId}`);
+        await axios.patch(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${callLogId}`,
+            {
+                message: originalMessage
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });*/
+        return {
+            logId: callLogId,
+            returnMessage: {
+                message: 'Call log added.',
+                messageType: 'success',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log({ message: "Error in creating Call Log", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            : "Error in Creating Call Log";
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
+        }
+
+    }
+
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -258,11 +292,15 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     } catch (error) {
         console.log({ message: "Error in getting Call Log", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            : "Error in getting NetSuite Call Log.";
         return {
             returnMessage: {
                 messageType: 'danger',
-                message: 'Error in getting NetSuite Call Log.',
-                ttl: 3000
+                message: errorMessage,
+                ttl: 60000
             }
         }
     }
@@ -270,278 +308,338 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
-    console.log({ user, existingCallLog, authHeader, recordingLink, subject, note });
-    const existingLogId = existingCallLog.thirdPartyLogId;
-    const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
-    let messageBody = callLogResponse.data.message;
-    console.log({ messageBody });
-    let patchBody = { title: subject };
-    if (!!recordingLink) {
-        const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
-        if (messageBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-            messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+    try {
+        console.log({ user, existingCallLog, authHeader, recordingLink, subject, note });
+        const existingLogId = existingCallLog.thirdPartyLogId;
+        const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
+        let messageBody = callLogResponse.data.message;
+        console.log({ messageBody });
+        let patchBody = { title: subject };
+        if (!!recordingLink) {
+            const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
+            if (messageBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
+                messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+            }
+            else {
+                messageBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+            }
         }
         else {
-            messageBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
-        }
-    }
-    else {
-        let originalNote = '';
-        if (messageBody.includes('\n[Call recording link]')) {
-            originalNote = messageBody.split('\n[Call recording link]')[0].split('Note: ')[1];
-        }
-        else {
-            originalNote = messageBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
-            console.log({ originalNote });
-        }
+            let originalNote = '';
+            if (messageBody.includes('\n[Call recording link]')) {
+                originalNote = messageBody.split('\n[Call recording link]')[0].split('Note: ')[1];
+            }
+            else {
+                originalNote = messageBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
+                console.log({ originalNote });
+            }
 
-        messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
-    }
-    patchBody.message = messageBody;
-    console.log({ patchBody });
-    const patchLogRes = await axios.patch(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
-        patchBody,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    return {
-        updatedNote: note,
-        returnMessage: {
-            message: 'Call log updated.',
-            messageType: 'success',
-            ttl: 3000
+            messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
         }
-    };
+        patchBody.message = messageBody;
+        console.log({ patchBody });
+        const patchLogRes = await axios.patch(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
+            patchBody,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        return {
+            updatedNote: note,
+            returnMessage: {
+                message: 'Call log updated.',
+                messageType: 'success',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log({ message: "Error in Updating Call Log", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            : "Error in getting Updating Call Log.";
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
+        }
+    }
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
-    console.log({ message: "Create Message Log", user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink });
-    const sender =
-    {
-        id: contactInfo?.id,
-        type: 'Contact'
-    }
-    const receiver =
-    {
-        id: user?.id,
-        type: 'User'
-    }
-
-    const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
-    let logBody = '';
-    let title = '';
-    switch (messageType) {
-        case 'SMS':
-            title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody =
-                '\nConversation summary\n' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-                'Participants\n' +
-                `    ${userName}\n` +
-                `    ${contactInfo.name}\n` +
-                '\nConversation(1 messages)\n' +
-                'BEGIN\n' +
-                '------------\n' +
-                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n` +
-                '------------\n' +
-                'END\n\n' +
-                '--- Created via RingCentral CRM Extension';
-            break;
-        case 'Voicemail':
-            const decodedRecordingLink = decodeURIComponent(recordingLink);
-            title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral CRM Extension`;
-            break;
-        case 'Fax':
-            title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
-            break;
-    }
-    const postBody = {
-        data: {
-            title: title,
-            message: logBody,
-            phone: contactInfo?.phoneNumber || '',
-            status: "COMPLETE",
-        }
-
-    }
-    if (contactInfo.type?.toUpperCase() === 'CONTACT') {
-        console.log({ message: "Contact CallLog", contactInfo })
-        const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
-            headers: { 'Authorization': authHeader }
-        });
-        postBody.data.contact = { id: contactInfo.id };
-        postBody.data.company = { id: contactInfoRes.data?.company?.id };
-    } else if (contactInfo.type === 'custjob') {
-        postBody.data.company = { id: contactInfo.id };
-    }
-    const addLogRes = await axios.post(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
-        postBody.data,
+    try {
+        console.log({ message: "Create Message Log", user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink });
+        const sender =
         {
-            headers: { 'Authorization': authHeader }
-        });
-    const callLogId = extractIdFromUrl(addLogRes.headers.location);
-    console.log({ message: "CallLogId is", callLogId });
-    return {
-        logId: callLogId,
-        returnMessage: {
-            message: 'Message log added.',
-            messageType: 'success',
-            ttl: 3000
+            id: contactInfo?.id,
+            type: 'Contact'
         }
-    };
+        const receiver =
+        {
+            id: user?.id,
+            type: 'User'
+        }
+
+        const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
+        const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+        let logBody = '';
+        let title = '';
+        switch (messageType) {
+            case 'SMS':
+                title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody =
+                    '\nConversation summary\n' +
+                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                    'Participants\n' +
+                    `    ${userName}\n` +
+                    `    ${contactInfo.name}\n` +
+                    '\nConversation(1 messages)\n' +
+                    'BEGIN\n' +
+                    '------------\n' +
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${message.subject}\n` +
+                    '------------\n' +
+                    'END\n\n' +
+                    '--- Created via RingCentral CRM Extension';
+                break;
+            case 'Voicemail':
+                const decodedRecordingLink = decodeURIComponent(recordingLink);
+                title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral CRM Extension`;
+                break;
+            case 'Fax':
+                title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
+                break;
+        }
+        const postBody = {
+            data: {
+                title: title,
+                message: logBody,
+                phone: contactInfo?.phoneNumber || '',
+                status: "COMPLETE",
+            }
+
+        }
+        if (contactInfo.type?.toUpperCase() === 'CONTACT') {
+            console.log({ message: "Contact CallLog", contactInfo })
+            const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
+                headers: { 'Authorization': authHeader }
+            });
+            postBody.data.contact = { id: contactInfo.id };
+            postBody.data.company = { id: contactInfoRes.data?.company?.id };
+        } else if (contactInfo.type === 'custjob') {
+            postBody.data.company = { id: contactInfo.id };
+        }
+        const addLogRes = await axios.post(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
+            postBody.data,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const callLogId = extractIdFromUrl(addLogRes.headers.location);
+        console.log({ message: "CallLogId is", callLogId });
+        return {
+            logId: callLogId,
+            returnMessage: {
+                message: 'Message log added.',
+                messageType: 'success',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log({ message: "Error in creating Message Log", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to Message Log. Please contact your administrator."
+            : "Error in Creating Message Log";
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
+        }
+    }
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
-    const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
-    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
-    let logBody = getLogRes.data.message;
-    let patchBody = {};
-    const originalNote = logBody.split('BEGIN\n------------\n')[1];
-    const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n`;
-    logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+    try {
+        const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
+        const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
+        let logBody = getLogRes.data.message;
+        let patchBody = {};
+        const originalNote = logBody.split('BEGIN\n------------\n')[1];
+        const newMessageLog =
+            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+            `${message.subject}\n`;
+        logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
 
-    const regex = RegExp('Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-    const patchLogRes = await axios.patch(
-        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
-        {
-            message: logBody
-        },
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    return {
-        logId: existingLogId,
-        returnMessage: {
-            message: 'Message log Updated.',
-            messageType: 'success',
-            ttl: 3000
+        const regex = RegExp('Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+        const patchLogRes = await axios.patch(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
+            {
+                message: logBody
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        return {
+            logId: existingLogId,
+            returnMessage: {
+                message: 'Message log Updated.',
+                messageType: 'success',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log({ message: "Error in Updating Message Log", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to MessageLog. Please contact your administrator."
+            : "Error in Updating Message Log";
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
         }
-    };
+    }
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
-    const nameParts = splitName(newContactName);
-    console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
-    let contactId = 0;
-    switch (newContactType) {
-        case 'contact':
-            let companyId = 0;
-            try {
-                const companyInfo = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                    {
-                        q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
-                    },
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                    }
-                )
-                if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
-                    companyId = companyInfo.data.items[0].id;
-                }
-                else {
-                    const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+    try {
+        const nameParts = splitName(newContactName);
+        console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
+        let contactId = 0;
+        switch (newContactType) {
+            case 'contact':
+                let companyId = 0;
+                try {
+                    const companyInfo = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                         {
-                            companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
-                            comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                            q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                         }
+                    )
+                    if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
+                        companyId = companyInfo.data.items[0].id;
+                    }
+                    else {
+                        const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                            {
+                                companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                                comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                            }
+                            ,
+                            {
+                                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                            });
+                        companyId = extractIdFromUrl(createCompany.headers.location);
+                    }
+                    const contactPayLoad = {
+                        firstName: nameParts.firstName,
+                        middleName: nameParts.middleName,
+                        lastName: nameParts.lastName,
+                        phone: phoneNumber || '',
+                        company: { id: companyId }
+                    };
+                    const createContactRes = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
+                        contactPayLoad
                         ,
                         {
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                         });
-                    companyId = extractIdFromUrl(createCompany.headers.location);
+                    contactId = extractIdFromUrl(createContactRes.headers.location);
+                    break;
+                } catch (error) {
+                    console.log({ message: "Error in creating Contact", error });
+                    return {
+                        contactInfo: {
+                            id: contactId,
+                            name: newContactName
+                        },
+                        returnMessage: {
+                            message: `Error in creating Contact.`,
+                            messageType: 'danger',
+                            ttl: 5000
+                        }
+                    }
                 }
-                const contactPayLoad = {
+            case 'custjob':
+                const customerPayLoad = {
                     firstName: nameParts.firstName,
                     middleName: nameParts.middleName,
-                    lastName: nameParts.lastName,
+                    lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
                     phone: phoneNumber || '',
-                    company: { id: companyId }
+                    isPerson: true
+
                 };
-                const createContactRes = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
-                    contactPayLoad
-                    ,
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
-                    });
-                contactId = extractIdFromUrl(createContactRes.headers.location);
-                break;
-            } catch (error) {
-                console.log({ message: "Error in creating Contact", error });
-                return {
-                    contactInfo: {
-                        id: contactId,
-                        name: newContactName
-                    },
-                    returnMessage: {
-                        message: `Error in creating Contact.`,
-                        messageType: 'danger',
-                        ttl: 5000
+                try {
+                    const createCustomerRes = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                        customerPayLoad
+                        ,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        });
+                    contactId = extractIdFromUrl(createCustomerRes.headers.location);
+                    break;
+                } catch (error) {
+                    console.log({ message: "Error in creating Customer", error });
+                    return {
+                        contactInfo: {
+                            id: contactId,
+                            name: newContactName
+                        },
+                        returnMessage: {
+                            message: `Error in creating Customer.`,
+                            messageType: 'danger',
+                            ttl: 5000
+                        }
                     }
                 }
-            }
-        case 'custjob':
-            const customerPayLoad = {
-                firstName: nameParts.firstName,
-                middleName: nameParts.middleName,
-                lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
-                phone: phoneNumber || '',
-                isPerson: true
 
-            };
-            try {
-                const createCustomerRes = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
-                    customerPayLoad
-                    ,
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
-                    });
-                contactId = extractIdFromUrl(createCustomerRes.headers.location);
-                break;
-            } catch (error) {
-                console.log({ message: "Error in creating Customer", error });
-                return {
-                    contactInfo: {
-                        id: contactId,
-                        name: newContactName
-                    },
-                    returnMessage: {
-                        message: `Error in creating Customer.`,
-                        messageType: 'danger',
-                        ttl: 5000
-                    }
-                }
+        }
+        const displayMessage = newContactType === 'contact'
+            ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
+            : 'New Customer Created';
+        return {
+            contactInfo: {
+                id: contactId,
+                name: newContactName
+            },
+            returnMessage: {
+                message: displayMessage,
+                messageType: 'success',
+                ttl: 5000
             }
-
-    }
-    const displayMessage = newContactType === 'contact'
-        ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
-        : 'New Customer Created';
-    return {
-        contactInfo: {
-            id: contactId,
-            name: newContactName
-        },
-        returnMessage: {
-            message: displayMessage,
-            messageType: 'success',
-            ttl: 5000
+        }
+    } catch (error) {
+        console.log({ message: "Error in creating Contact/Customer", error });
+        const isForbiddenError = isNetSuiteForbiddenError(error);
+        const errorMessage = isForbiddenError
+            ? "Permission violation: Make Sure You have 'Lists -> Contacts && Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
+            : "Error in Creating Contact/Customer Log";
+        return {
+            returnMessage: {
+                messageType: 'danger',
+                message: errorMessage,
+                ttl: 60000
+            }
         }
     }
 }
@@ -570,7 +668,22 @@ function extractIdFromUrl(url) {
     const segments = url.split('/').filter(segment => segment !== ''); // Remove empty segments
     return segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
 }
-
+function isNetSuiteForbiddenError(error) {
+    try {
+        const data = error?.response?.data;
+        const errorDetails = data['o:errorDetails'][0].detail;
+        console.log({ Data: data, errorDetails });
+        if (data.title === 'Forbidden' && data.status === 403) {
+            return true;
+        } else if (errorDetails.includes("Your current role does not have permission ")) {
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.log({ message: "Error in parsing NetSuite Error", error });
+        return false;
+    }
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
