@@ -67,6 +67,7 @@ nav:
      - 'Insightly': insightly.md
      - 'Pipedrive': pipedrive.md
      - 'Redtail CRM': redtail.md
+     - 'NetSuite': netsuite.md
 - 'User guide':
   - 'Accessing the extension': users/access.md
   - 'Making and receiving calls': users/making-calls.md

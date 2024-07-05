@@ -24,7 +24,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. On the authorization screen, scroll to the bottom and click "Allow and Install." The CRM extension should automatically come to the foreground and show that you are now connected to Pipedrive. 
 
-When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "unauthorize."
+When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "logout".
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
 

@@ -63,9 +63,7 @@ Open up a console and within it, follow these instructions.
 
 ### Install and configure the client
 
-Download the zipped build and install the Chrome extension from the following URL:
-
-[https://github.com/ringcentral/rc-unified-crm-extension-client/tree/build](https://github.com/ringcentral/rc-unified-crm-extension-client/tree/build)
+Download Chrome extension from [Chrome Web Store](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhhd)
 
 Right click extension's icon and go to Options, change Custom CRM manifest url to the following URL:
 

@@ -22,11 +22,11 @@ Once the extension has been installed, follow these steps to setup and configure
 
     ![Connect to Clio](img/clio-connect.png){ style="max-width: 200px" }
 
-4. Click the "Authorize" button. 
+4. Click the "Connect" button. 
 
 5. A window will be opened prompting you to enter your Clio username and password. Login to Clio. 
 
-When you login successfully, the Chrome extension will automatically update to show you are connected to Clio. If you are connected, the button next to Clio will say, "unauthorize."
+When you login successfully, the Chrome extension will automatically update to show you are connected to Clio. If you are connected, the button next to Clio will say, "logout".
 
 And with that, you will be connected to Clio and ready to begin using the integration. 
 

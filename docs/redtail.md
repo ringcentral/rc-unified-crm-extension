@@ -22,10 +22,10 @@ Once the extension has been installed, follow these steps to setup and configure
 
     ![Connect to Redtail](img/redtail-connect.png){ style="max-width: 200px" }
 
-4. Click the "Authorize" button. 
+4. Click the "Connect" button. 
 
 5. A window will be opened prompting you to enter your Redtail username and password. Login to Redtail. 
 
-When you login successfully, the Chrome extension will automatically update to show you are connected to Redtail. If you are connected, the button next to Redtail will say, "unauthorize."
+When you login successfully, the Chrome extension will automatically update to show you are connected to Redtail. If you are connected, the button next to Redtail will say, "logout".
 
 And with that, you will be connected to Redtail and ready to begin using the integration. 

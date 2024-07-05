@@ -48,5 +48,6 @@ Each CRM may have a slightly different approach in order to install the extensio
 * [Connect and setup Insightly](./insightly.md)
 * [Connect and setup Pipedrive](./pipedrive.md)
 * [Connect and setup Redtail CRM](./redtail.md)
+* [Connect and setup NetSuite](./netsuite.md)
 
 

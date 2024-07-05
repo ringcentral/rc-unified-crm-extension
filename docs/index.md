@@ -39,6 +39,7 @@ RingCentral currently supports the following CRMs using the Unified CRM extensio
 * [Insightly](./insightly.md)
 * [Pipedrive](./pipedrive.md)
 * [Redtail CRM](./redtail.md)
+* [NetSuite](./netsuite.md)
 
 Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
 

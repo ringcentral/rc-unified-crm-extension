@@ -14,7 +14,7 @@
 
 New features video demo:
 
-<iframe src="https://www.youtube.com/embed/x1GDk0ncm9A" width="720" height="480" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/x1GDk0ncm9A" title="Unified CRM extension 1.0.0 updates" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## 0.8.7
 
