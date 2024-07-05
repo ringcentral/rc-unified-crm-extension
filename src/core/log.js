@@ -69,13 +69,15 @@ async function createCallLog({ platform, userId, incomingData }) {
             name: incomingData.contactName ?? ""
         };
         const { logId, returnMessage } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
-        await CallLogModel.create({
-            id: incomingData.logInfo.id,
-            sessionId: incomingData.logInfo.sessionId,
-            platform,
-            thirdPartyLogId: logId,
-            userId
-        });
+        if (!!logId) {
+            await CallLogModel.create({
+                id: incomingData.logInfo.id,
+                sessionId: incomingData.logInfo.sessionId,
+                platform,
+                thirdPartyLogId: logId,
+                userId
+            });
+        }
         return { successful: true, logId, returnMessage };
     } catch (e) {
         console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
