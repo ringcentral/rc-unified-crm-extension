@@ -3,17 +3,18 @@
 ## 1.0.0
 
 - New: Auto log with conflict resolver
-- New: SMS messages are now logged as in conversations per day
 - New: Manual refersh contact info with button
 - New: Audio volume controls
+- Better: SMS messages are now logged as in conversations per day
 - Better: New UIs
-- Fix: View fax
-- Fix: Fax logging
+- Fix: Fax view and logging
 - Fix: Open contact page from call history now only opens selected one if there are multiple matched contacts
 - Fix: Copy meeting info
 - Remove: Auto log with countdown
 
-Video demo: https://youtu.be/x1GDk0ncm9A
+New features video demo:
+
+<iframe src="https://www.youtube.com/embed/x1GDk0ncm9A" width="720" height="480" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
 ## 0.8.7
 
