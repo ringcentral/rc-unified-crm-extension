@@ -189,7 +189,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         matchedContactInfo,
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully found contact.',
+            message: matchedContactInfo.filter(c => !c.isNewContact).length > 0 ? 'Successfully found contact.' : 'No contact found, please create one',
             ttl: 3000
         }
     };  //[{id, name, phone, additionalInfo}]
@@ -443,6 +443,36 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     const: 'aC92',
                     title: 'Anniversary C92'
+                }
+            ],
+            mainProductCategory:[
+                {
+                    const: 'cookers',
+                    title: 'Cookers',
+                    subProductCategory:[
+                        {
+                            const: 'gas',
+                            title: 'Gas'
+                        },
+                        {
+                            const: 'electric',
+                            title: 'Electric'
+                        }
+                    ]
+                },
+                {
+                    const: 'fridges',
+                    title: 'Fridges',
+                    subProductCategory:[
+                        {
+                            const: 'mini',
+                            title: 'Mini'
+                        },
+                        {
+                            const: 'large',
+                            title: 'Large'
+                        }
+                    ]
                 }
             ],
             address: ''

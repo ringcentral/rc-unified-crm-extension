@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://xxxxx.ngrok.io",
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Test Developer",
@@ -41,12 +41,12 @@
             "canOpenLogPage": false,
             "contactTypes": [
                 {
-                  "display": "TestContactType",
-                  "value": "testContact"
+                    "display": "TestContactType",
+                    "value": "testContact"
                 },
                 {
-                  "display": "Contact",
-                  "value": "cta"
+                    "display": "Contact",
+                    "value": "cta"
                 }
             ],
             "embeddedOnCrmPage": {
@@ -63,6 +63,20 @@
                             "title": "Deals",
                             "type": "selection",
                             "contactDependent": true
+                        },
+                        {
+                            "const": "mainProductCategory",
+                            "title": "Main Product",
+                            "type": "selection",
+                            "contactDependent": true,
+                            "subFields": [
+                                {
+                                    "const": "subProductCategory",
+                                    "title": "Sub Product",
+                                    "type": "selection",
+                                    "contactDependent": true
+                                }
+                            ]
                         },
                         {
                             "const": "address",
