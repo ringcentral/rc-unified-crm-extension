@@ -1,5 +1,6 @@
 {
     "serverUrl": "https://xxxxx.ngrok.io",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Test Developer",
         "websiteUrl": "",
