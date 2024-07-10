@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.0.1
+
+- Fix: RingCentral sign in issue where pop up sign in window is stuck at loading screen
+- Better: Auto log conflict messages now contain more meaningful info
+
+### Bullhorn
+- Better: Default Note Action is now moved to User Settings where you can setup default actions. Can also work for auto log.
+
 ## 1.0.0
 
 - New: Auto log with conflict resolver

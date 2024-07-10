@@ -1,4 +1,22 @@
 {
+    "1.0.1":{
+        "global":[
+            {
+                "type": "Fix",
+                "description": "- RingCentral sign in issue where pop up sign in window is stuck at loading screen"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto log conflict messages now contain more meaningful info"
+            }
+        ],
+        "bullhorn":[
+            {
+                "type": "Better",
+                "description": "- Default Note Action is now moved to User Settings where you can setup default actions. Can also work for auto log."
+            }
+        ]
+    },
     "1.0.0": {
         "global": [
             {
