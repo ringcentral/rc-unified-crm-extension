@@ -29,3 +29,15 @@ Once the extension has been installed, follow these steps to setup and configure
 When you login successfully, the Chrome extension will automatically update to show you are connected to Bullhorn. If you are connected, the button next to Bullhorn will say, "logout".
 
 And with that, you will be connected to Bullhorn and ready to begin using the integration. 
+
+## Auto log with default Note Action preference setup
+
+In Settings, there's a "Bullhorn Default Note Action" entry button.
+
+![Bullhorn default Note Action](img/bullhorn-default-note-action-entry.png)
+
+We provide 3 most common cases here. Once you input the same Note Action string inside the field, the extension will try to find the assigned Note Action and select that for you on the log form page.
+
+There's also a "Apply to auto log" toggle to turn on this defaulting mechanism for auto log so that the extension won't generate unresolved items due to conflicts over multiple Note Actions. 
+
+![Bullhorn default Note Action page](img/bullhorn-default-note-action-page.png)
