@@ -1,4 +1,16 @@
 {
+    "1.0.2":{
+        "global":[
+            {
+                "type": "Fix",
+                "description": "- SMS template cannot apply issue"
+            },
+            {
+                "type": "New",
+                "description": "- Factory Reset button in user settings"
+            }
+        ]
+    },
     "1.0.1":{
         "global":[
             {

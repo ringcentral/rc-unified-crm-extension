@@ -81,6 +81,9 @@ Sometimes users may not be present at their computer when a call is received, ye
 
 For more details, please refer to [auto log](./logging.md#automatically-logging-calls).
 
+## Factory reset
+
+Sometimes users may encounter issues that are transient and most likely resolved by uninstalling and re-installing the app. To make this process easier, there's a Factory Reset button in user settings that allow you to wipe out user data without uninstalling the extension.
 
 ## Advanced configuration options
 

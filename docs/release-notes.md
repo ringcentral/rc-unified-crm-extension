@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.0.2
+
+- Fix: SMS template cannot apply issue
+- New: Factor reset button in user settings
+
 ## 1.0.1
 
 - Fix: RingCentral sign in issue where pop up sign in window is stuck at loading screen
