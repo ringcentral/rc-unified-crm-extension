@@ -52,7 +52,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         console.log({ message: "Error in getting User Info", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Employee Record && Lists -> Employee' permission to authorize. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Employee Record & Lists -> Employee' permission to authorize. Please contact your administrator."
             : "Error in getting NetSuite User Info.";
         return {
             successful: false,
@@ -179,7 +179,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         console.log({ message: "Error in Finding Contact/Customer", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts && Lists -> Customer' permission to fetch details. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts & Lists -> Customer' permission to fetch details. Please contact your administrator."
             : "Error in Finding Contact.";
         return {
             successful: false,
@@ -257,7 +257,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         console.log({ message: "Error in creating Call Log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in Creating Call Log";
         return {
             returnMessage: {
@@ -294,7 +294,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         console.log({ message: "Error in getting Call Log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in getting NetSuite Call Log.";
         return {
             returnMessage: {
@@ -356,7 +356,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         console.log({ message: "Error in Updating Call Log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to CallLog. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in getting Updating Call Log.";
         return {
             returnMessage: {
@@ -453,7 +453,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         console.log({ message: "Error in creating Message Log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to Message Log. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to Message Log. Please contact your administrator."
             : "Error in Creating Message Log";
         return {
             returnMessage: {
@@ -504,7 +504,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         console.log({ message: "Error in Updating Message Log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts && Lists -> Customers' permission to MessageLog. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to MessageLog. Please contact your administrator."
             : "Error in Updating Message Log";
         return {
             returnMessage: {
@@ -632,7 +632,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         console.log({ message: "Error in creating Contact/Customer", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Contacts && Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
+            ? "Permission violation: Make Sure You have 'Lists -> Contacts & Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
             : "Error in Creating Contact/Customer Log";
         return {
             returnMessage: {
