@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.0.3
+
+- Better: Use SMS template that syncs with RingCentral App's SMS template
+- New: Show notification when a call recording link is uploaded. Typically, a call recording link won't be immediately ready upon hang up. If call is logged right after, call recording will be uploaded when it's ready
+
 ## 1.0.2
 
 - Fix: SMS template cannot apply issue

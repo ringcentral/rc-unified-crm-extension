@@ -1,6 +1,18 @@
 {
-    "1.0.2":{
-        "global":[
+    "1.0.3": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Use SMS template that syncs with RingCentral App's SMS template"
+            },
+            {
+                "type": "New",
+                "description": "Show notification when a call recording link is uploaded"
+            }
+        ]
+    },
+    "1.0.2": {
+        "global": [
             {
                 "type": "Fix",
                 "description": "- SMS template cannot apply issue"
@@ -11,8 +23,8 @@
             }
         ]
     },
-    "1.0.1":{
-        "global":[
+    "1.0.1": {
+        "global": [
             {
                 "type": "Fix",
                 "description": "- RingCentral sign in issue where pop up sign in window is stuck at loading screen"
@@ -22,7 +34,7 @@
                 "description": "- Auto log conflict messages now contain more meaningful info"
             }
         ],
-        "bullhorn":[
+        "bullhorn": [
             {
                 "type": "Better",
                 "description": "- Default Note Action is now moved to User Settings where you can setup default actions. Can also work for auto log."
