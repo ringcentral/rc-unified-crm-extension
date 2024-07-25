@@ -194,6 +194,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     try {
+        console.log({ message: "Create Call Log", user, contactInfo, callLog, note, additionalSubmission });
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         let postBody = {
             title: title,
@@ -201,7 +202,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             priority: "MEDIUM",
             status: "COMPLETE",
             startDate: moment(callLog.startTime).toISOString(),
-            message: `\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            timedEvent: true,
+            message: `\nContact Number: ${contactInfo.phoneNumber}\n Duration In Second: ${callLog.duration}Sec. \nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             console.log({ message: "Contact CallLog", contactInfo })
