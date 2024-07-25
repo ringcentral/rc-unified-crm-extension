@@ -165,7 +165,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 }
             }
         }
-        console.log(`found netsuite contacts... \n\n${JSON.stringify(matchedContactInfo, null, 2)}`);
         matchedContactInfo.push({
             id: 'createNewContact',
             name: 'Create new contact...',
@@ -201,10 +200,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             priority: "MEDIUM",
             status: "COMPLETE",
             startDate: moment(callLog.startTime).toISOString(),
-            message: `\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            timedEvent: true,
+            message: `\nContact Number: ${contactInfo.phoneNumber}\n Duration In Second: ${callLog.duration}Sec. \nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
-            console.log({ message: "Contact CallLog", contactInfo })
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
                 headers: { 'Authorization': authHeader }
             });
@@ -213,9 +212,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } else if (contactInfo.type === 'custjob') {
             postBody.company = { id: contactInfo.id };
         }
-        console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
-        console.log(`with note... \n${note}`);
-        console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
 
         const addLogRes = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
@@ -309,11 +305,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
     try {
-        console.log({ user, existingCallLog, authHeader, recordingLink, subject, note });
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let messageBody = callLogResponse.data.message;
-        console.log({ messageBody });
         let patchBody = { title: subject };
         if (!!recordingLink) {
             const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
@@ -337,7 +331,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
         }
         patchBody.message = messageBody;
-        console.log({ patchBody });
         const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             patchBody,
@@ -370,7 +363,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     try {
-        console.log({ message: "Create Message Log", user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink });
         const sender =
         {
             id: contactInfo?.id,
@@ -424,7 +416,6 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 
         }
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
-            console.log({ message: "Contact CallLog", contactInfo })
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
                 headers: { 'Authorization': authHeader }
             });
@@ -519,7 +510,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
     try {
         const nameParts = splitName(newContactName);
-        console.log({ message: 'NetSuite Create contact', user, phoneNumber, newContactName, newContactType });
         let contactId = 0;
         switch (newContactType) {
             case 'contact':
@@ -672,7 +662,6 @@ function isNetSuiteForbiddenError(error) {
     try {
         const data = error?.response?.data;
         const errorDetails = data['o:errorDetails'][0].detail;
-        console.log({ Data: data, errorDetails });
         if (data.title === 'Forbidden' && data.status === 403) {
             return true;
         } else if (errorDetails.includes("Your current role does not have permission ")) {
