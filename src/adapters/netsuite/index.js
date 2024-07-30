@@ -32,7 +32,6 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
         const location = employeResponse.data.location ?? '';
         const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
-        console.log({ message: "User Info", id, name, timezoneName, timezoneOffset, location });
         return {
             successful: true,
             platformUserInfo: {
