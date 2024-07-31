@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.4
+
+- New: An About page in user settings to show info and helper links
+- Better: Factor reset now also cleans up unresolved conflicts
+- Better: SMS template supports drag and drop to arrange item orders
+
 ## 1.0.3
 
 - Better: Use SMS template that syncs with RingCentral App's SMS template

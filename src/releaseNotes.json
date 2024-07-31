@@ -1,4 +1,20 @@
 {
+    "1.0.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "An About page in user settings to show info and helper links"
+            },
+            {
+                "type": "Better",
+                "description": "Factor reset now also cleans up unresolved conflicts"
+            },
+            {
+                "type": "Better",
+                "description": "SMS template supports drag and drop to arrange item orders"
+            }
+        ]
+    },
     "1.0.3": {
         "global": [
             {
