@@ -9,11 +9,12 @@ function getAuthType() {
 }
 
 
-function getOauthInfo() {
+function getOauthInfo({ hostname }) {
+    const tokenUrl = `https://${hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`;
     return {
         clientId: process.env.NETSUITE_CRM_CLIENT_ID,
         clientSecret: process.env.NETSUITE_CRM_CLIENT_SECRET,
-        accessTokenUri: process.env.NETSUITE_CRM_TOKEN_URI,
+        accessTokenUri: tokenUrl,
         redirectUri: process.env.NETSUITE_CRM_REDIRECT_URI
     }
 }
@@ -29,6 +30,8 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
         const timezoneName = employeResponse.data.time_zone ?? '';
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
+        const location = employeResponse.data.location ?? '';
+        const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
         return {
             successful: true,
             platformUserInfo: {
@@ -39,6 +42,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                 platformAdditionalInfo: {
                     email: employeResponse.data.email,
                     name: name,
+                    subsidiaryId,
                 },
 
             },
@@ -531,7 +535,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
                             {
                                 companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
-                                comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records."
+                                comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records.",
+                                subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
                             }
                             ,
                             {
@@ -544,7 +549,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         middleName: nameParts.middleName,
                         lastName: nameParts.lastName,
                         phone: phoneNumber || '',
-                        company: { id: companyId }
+                        company: { id: companyId },
+                        subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
                     };
                     const createContactRes = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
@@ -575,7 +581,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     middleName: nameParts.middleName,
                     lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
                     phone: phoneNumber || '',
-                    isPerson: true
+                    isPerson: true,
+                    subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
 
                 };
                 try {
