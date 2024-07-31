@@ -3,6 +3,7 @@ const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
+const { getTimeZone } = require('./util');
 
 function getAuthType() {
     return 'oauth';
@@ -198,6 +199,20 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+        const subsidiary = await axios.post(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+            {
+                q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+            });
+        const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
+        const callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+        const callEndTime = moment(callStartTime).add(callLog.duration, 'seconds');
+        const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
+        const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
+        //const callDate = moment.tz(moment(callLog.startTime).toISOString(), timeZone).format('YYYY-MM-DD HH:mm:ss');
         let postBody = {
             title: title,
             phone: contactInfo?.phoneNumber || '',
@@ -205,7 +220,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             status: "COMPLETE",
             startDate: moment(callLog.startTime).toISOString(),
             timedEvent: true,
-            message: `\nContact Number: ${contactInfo.phoneNumber}\n Duration In Second: ${callLog.duration}Sec. \nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            message: `\nCallStartTime: ${formatedStartTime}\n Duration In Second: ${callLog.duration}Sec.\n CallEndTime : ${formatedEndTime}\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
@@ -245,6 +260,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             {
                 headers: { 'Authorization': authHeader }
             });*/
+        console.log({ message: "Call Log Added with CallLogId", callLogId });
         return {
             logId: callLogId,
             returnMessage: {
@@ -377,7 +393,6 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             id: user?.id,
             type: 'User'
         }
-
         const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
         const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
         let logBody = '';
