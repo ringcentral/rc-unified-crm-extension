@@ -220,7 +220,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             status: "COMPLETE",
             startDate: moment(callLog.startTime).toISOString(),
             timedEvent: true,
-            message: `\nCallStartTime: ${formatedStartTime}\n Duration In Second: ${callLog.duration}Sec.\n CallEndTime : ${formatedEndTime}\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            message: `\nCall Start Time: ${formatedStartTime}\n Duration In Second: ${callLog.duration}Sec.\n Call End Time : ${formatedEndTime}\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
@@ -294,8 +294,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
             {
                 headers: { 'Authorization': authHeader }
             });
-        const note = getLogRes.data?.message.includes('[Call recording link]') ?
-            getLogRes.data?.message.split('Note: ')[1].split('\n[Call recording link]')[0] :
+        const note = getLogRes.data?.message.includes('Call recording link') ?
+            getLogRes.data?.message.split('Note: ')[1].split('\nCall recording link')[0] :
             getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
         return {
             callLogInfo: {
@@ -332,16 +332,16 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         if (!!recordingLink) {
             const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
             if (messageBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-                messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+                messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\nCall recording link${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
             }
             else {
-                messageBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
+                messageBody += `\nCall recording link${urlDecodedRecordingLink}`;
             }
         }
         else {
             let originalNote = '';
-            if (messageBody.includes('\n[Call recording link]')) {
-                originalNote = messageBody.split('\n[Call recording link]')[0].split('Note: ')[1];
+            if (messageBody.includes('\nCall recording link')) {
+                originalNote = messageBody.split('\nCall recording link')[0].split('Note: ')[1];
             }
             else {
                 originalNote = messageBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
