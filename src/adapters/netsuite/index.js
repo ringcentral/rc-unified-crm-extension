@@ -3,7 +3,7 @@ const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
-const { getTimeZone } = require('./util');
+const { getTimeZone } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
