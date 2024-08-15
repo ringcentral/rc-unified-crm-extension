@@ -41,3 +41,12 @@ We provide 3 most common cases here. Once you input the same Note Action string 
 There's also a "Apply to auto log" toggle to turn on this defaulting mechanism for auto log so that the extension won't generate unresolved items due to conflicts over multiple Note Actions. 
 
 ![Bullhorn default Note Action page](img/bullhorn-default-note-action-page.png)
+
+## Placeholder companies when creating contacts
+
+Bullhorn requires that every contact be associated with a company. When logging calls for new contacts, the Unified CRM extension will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
+
+1. Edit the company called "Placeholder Company" with a more appropriate name and with additional details.
+2. Edit the contact to associate it with a more appropriate company stored in Bullhorn. 
+
+In this way, the Unified CRM extension ensures that all contacts created by it conform to the requirements of Bullhorn so that all contact records are complete. 

@@ -30,39 +30,48 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to NetSuite and ready to begin using the integration. 
 
-## Role permission setup
+## Role and permission setup
 
 For this extension to work, NetSuite account admin needs to assign users with below permissions:
 
-*Transactions:*
+#### Transactions
 
-|Permission|Level|
-|-|-|
-|Sales Order|Full|
+| Permission  | Level |
+|-------------|-------|
+| Sales Order | Full  |
 
-*Reports:*
+#### Reports
 
-|Permission|Level|
-|-|-|
-|SuiteAnalytics Workbook|Edit|
+| Permission              | Level |
+|-------------------------|-------|
+| SuiteAnalytics Workbook | Edit  |
 
-*Lists:*
+#### Lists
 
-|Permission|Level|
-|-|-|
-|Contact-Subsidiary relationship|View|
-|Contacts|Full|
-|Customers|Full|
-|Employee Record|Full|
-|Employees|Full|
-|Entity-Subsidiary relationship|View|
-|Phone Calls|Full|
-|Related Items|View|
+| Permission                      | Level |
+|---------------------------------|-------|
+| Contact-Subsidiary relationship | View  |
+| Contacts                        | Full  |
+| Customers                       | Full  |
+| Employee Record                 | Full  |
+| Employees                       | Full  |
+| Entity-Subsidiary relationship  | View  |
+| Phone Calls                     | Full  |
+| Related Items                   | View  |
 
-*Setup:*
+#### Setup
 
-|Permission|Level|
-|-|-|
-|Log in using OAuth 2.0 Access Tokens|Full|
-|REST Web Services|Full|
-|User Access Tokens|Full
+| Permission                           | Level |
+|--------------------------------------|-------|
+| Log in using OAuth 2.0 Access Tokens | Full  |
+| REST Web Services                    | Full  |
+| User Access Tokens                   | Full  |
+
+## Placeholder companies when creating contacts
+
+NetSuite requires that every contact be associated with a company. When logging calls for new contacts, the Unified CRM extension will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
+
+1. Edit the company called "Placeholder Company" with a more appropriate name and with additional details.
+2. Edit the contact to associate it with a more appropriate company stored in NetSuite. 
+
+In this way, the Unified CRM extension ensures that all contacts created by it conform to the requirements of NetSuite so that all contact records are complete. 
