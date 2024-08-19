@@ -1,4 +1,18 @@
 {
+    "1.0.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "SMS template remembers orders after close"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Better",
+                "description": "Bullhorn now has Voicemail default note action"
+            }
+        ]
+    },
     "1.0.4": {
         "global": [
             {

@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.0.5
+
+- Better: Bullhorn now has Voicemail default note action
+- Fix: SMS template remembers orders after close
+
 ## 1.0.4
 
 - New: An About page in user settings to show info and helper links
