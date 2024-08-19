@@ -261,11 +261,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let note = '';
     switch (messageType) {
         case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
             note =
                 `<br><b>${subject}</b><br>` +
                 '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+                `${moment(message.creationTime).utcOffset(user.timezoneOffset).format('dddd, MMMM DD, YYYY')}<br>` +
                 'Participants<br>' +
                 `<ul><li><b>${userName}</b><br></li>` +
                 `<li><b>${contactInfo.name}</b></li></ul><br>` +
@@ -273,7 +273,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'BEGIN<br>' +
                 '------------<br>' +
                 '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
                 `<b>${message.subject}</b></li>` +
                 '</ul>' +
                 '------------<br>' +
@@ -281,11 +281,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral CRM Extension';
             break;
         case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
             note = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral CRM Extension`;
             break;
         case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
             note = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral CRM Extension`;
             break;
     }
@@ -333,7 +333,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.data.note;
     let putBody = {};
     const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
     logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
 

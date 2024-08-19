@@ -9,6 +9,7 @@
     },
     "platforms": {
         "pipedrive": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
             "displayName": "Pipedrive",
@@ -125,6 +126,7 @@
             }
         },
         "insightly": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Insightly_logo.png",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
             "displayName": "Insightly",
@@ -300,6 +302,7 @@
             }
         },
         "clio": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Clio_Logo.png",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
             "displayName": "Clio",
@@ -422,6 +425,7 @@
             }
         },
         "redtail": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
             "urlIdentifier": "crm.redtailtechnology.com",
             "name": "redtail",
             "auth": {
@@ -534,6 +538,7 @@
             }
         },
         "bullhorn": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
             "displayName": "Bullhorn",
@@ -658,6 +663,7 @@
             }
         },
         "netsuite": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Netsuite_Logo.png",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
             "displayName": "NetSuite",
