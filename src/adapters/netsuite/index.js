@@ -10,7 +10,7 @@ function getAuthType() {
 }
 
 
-async  function getOauthInfo({ hostname }) {
+async function getOauthInfo({ hostname }) {
     const tokenUrl = `https://${hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`;
     return {
         clientId: process.env.NETSUITE_CRM_CLIENT_ID,
