@@ -4,7 +4,7 @@ const Op = require('sequelize').Op;
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
     const platformModule = require(`../adapters/${platform}`);
-    const oauthInfo = platformModule.getOauthInfo({ tokenUrl, hostname });
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname });
 
     // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
     let overridingOAuthOption = null;

@@ -22,7 +22,7 @@ function getBasicAuth({ apiKey }) {
 exports.getBasicAuth = getBasicAuth;
 
 // CHOOSE: If using OAuth
-// function getOauthInfo() {
+// async function getOauthInfo() {
 //     return {
 //         clientId: process.env.TEST_CRM_CLIENT_ID,
 //         clientSecret: process.env.TEST_CRM_CLIENT_SECRET,

@@ -6,7 +6,7 @@ function getAuthType() {
     return 'oauth';
 }
 
-function getOauthInfo({ tokenUrl }) {
+async function getOauthInfo({ tokenUrl }) {
     return {
         clientId: process.env.BULLHORN_CLIENT_ID,
         clientSecret: process.env.BULLHORN_CLIENT_SECRET,
