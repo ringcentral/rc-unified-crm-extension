@@ -43,24 +43,28 @@ The Unified CRM extension can be configured to log calls automatically so that y
 * **Auto log call/SMS**. This is to turn on auto log feature which will always attemp to log your calls/messages unless any conflict found. A conflict can come in different forms, eg. multiple matched contact for one number.
 * **Auto log call/SMS - only pop up log page**. This is a sub-setting under auto log. With it ON, instead of log it in the background, the extension will only open up the log form and you will need to manually log it. This is especially helpful when your work involves taking notes in the log or selecting specific associations with the event.
 
-### Conflicts
+!!! warning "Auto-logging calls require you to be logged in"
+    Users should be aware that calls received while the browser is closed, or while the extension is not actively running will *not* be logged automatically. They will however be logged the next time the CRM extension is active. 
 
-In most cases, we are facing 3 types of conflicts:
-1. `No contact match`: An unknown number that's not matched with any existing contact in your CRM
-2. `Multiple matched contacts`: A known number thats matched with more than one contact in your CRM
-3. `Multiple associations`: In some CRMs, a call/SMS log can be associated with other entities. A quick example would be, a contact has 2 orders.
+### How to resolve logging conflicts
+
+If you have "Auto log call" enabled under Settings, then whenever a call is received or placed that cannot be logged automatically, then a new tab will appear called "Unresolve." Within this tab, calls with various logging conflicts will queue up for the user to resolve. 
 
 ![Unresolved conflicts](../img/auto-log-unresolved-conflicts.png)
+
+In most cases, there are three reasons a call cannot be logged. 
+
+1. **No contact found**: A contact could not be found in the CRM associated with the associated phone number. When this happens, a new contact must be created, or the actual contact record in the CRM should be updated with the phone number in question. 
+
+2. **Multiple contacts found**: More than one contact was found with the associated phone number. To log this call, a contact record needs to be selected for the note/activity to be associated. 
+
+3. **Multiple associations found**: In some CRMs, a call/SMS log can be associated with other entities. A quick example would be, a contact has two orders.
 
 **How do you know if a contact record has been found?**
 
 You will know if a contact record has been found if you see a contact's name in the call history tab of the Unified CRM extension. If you see a phone number only, chances are a contact record could not be found. 
 
 *Pro tip: you can still log the call as long as you fill in a contact name in the call log form for the extension to create a placeholder contact and then log the call against it*
-
-**Limitations**
-
-Users should be aware, that calls received while the browser is closed, or while the extension is not actively running will NOT be logged. 
 
 ## Logging past calls
 
