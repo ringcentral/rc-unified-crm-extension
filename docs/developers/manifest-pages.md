@@ -33,31 +33,25 @@ For each page, you will define an array of `additionalFields`. Each additional f
 
 #### Custom call log fields
 
-Set up associated deals as dropdown options:
-
-1. Christmas special A351
-2. Easter A22
-3. Anniversary C92
-
-and address as free input field.
+In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:52-67] !}
+{! src/adapters/testCRM/manifest.json [ln:58-74,91] !}
 ```
 
 #### Custom SMS log fields
 
-Set up associated deals the same as call log
+Setup the same fields as above, but associated with the SMS logging page.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:68-81] !}
+{! src/adapters/testCRM/manifest.json [ln:58,75-91] !}
 ```
 
 ### Feedback page
 
 A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in the CRM extension for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
 
-To use feedback page, please create `feedback` object under `page`. `feedback` has below properties:
+To use feedback page, please create `feedback` object under `page`. The `feedback` object has the following properties:
 
 | Name       | Type    | Description |
 |------------|---------|-------------|
