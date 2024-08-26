@@ -85,7 +85,7 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.sendFile(path.join(__dirname, 'adapters/pipedrive/redirect.html'));
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}.`);
         res.status(500).send(e);
     }
 })
@@ -105,7 +105,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}`);
         res.status(500).send(e);
     }
 })
@@ -130,7 +130,7 @@ app.get('/hostname', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}`);
         res.status(500).send(e);
     }
 })
@@ -178,7 +178,7 @@ app.get('/oauth-callback', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -222,7 +222,7 @@ app.post('/apiKeyLogin', async function (req, res) {
         success = true;
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -271,7 +271,7 @@ app.post('/unAuthorize', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -296,7 +296,7 @@ app.get('/userInfoHash', async function (req, res) {
         res.status(200).send({ extensionId, accountId });
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}`);
         res.status(400).send(e);
     }
 })
@@ -320,7 +320,7 @@ app.get('/contact', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -358,7 +358,7 @@ app.post('/contact', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -396,7 +396,7 @@ app.get('/callLog', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -433,7 +433,7 @@ app.post('/callLog', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -471,7 +471,7 @@ app.patch('/callLog', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }
@@ -509,7 +509,7 @@ app.post('/messageLog', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platformName}`);
         res.status(400).send(e);
         success = false;
     }

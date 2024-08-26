@@ -41,7 +41,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat }) 
             return { successful: false, returnMessage };
         }
     } catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platform}`);
         if (e.response?.status === 429) {
             return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
         }
@@ -82,7 +82,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
             return { successful: false, returnMessage };
         }
     } catch (e) {
-        console.log(`Error: status: ${e.response?.status}. data: ${e.response?.data}`);
+        console.log(`Error: status: ${e.response?.status}. message: ${e.response?.message}. platform: ${platform}`);
         if (e.response?.status === 429) {
             return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
         }
