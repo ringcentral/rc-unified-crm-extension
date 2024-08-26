@@ -33,54 +33,61 @@ For each page, you will define an array of `additionalFields`. Each additional f
 
 #### Custom call log fields
 
-Set up associated deals as dropdown options:
-
-1. Christmas special A351
-2. Easter A22
-3. Anniversary C92
-
-and address as free input field.
+In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:52-67] !}
+{! src/adapters/testCRM/manifest.json [ln:58-74,91] !}
 ```
 
 #### Custom SMS log fields
 
-Set up associated deals the same as call log
+Setup the same fields as above, but associated with the SMS logging page.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:68-81] !}
+{! src/adapters/testCRM/manifest.json [ln:58,75-91] !}
 ```
 
 ### Feedback page
 
-To use feedback page, please create `feedback` object under `page`. `feedback` has below properties:
+A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in the CRM extension for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
 
-| Name               | Type    | Description |
-|--------------------|---------|-------------|
-| `url`            | string  | An url that pointing to your feedback page. Query parameters can be setup. Please refer to [below](#page-elements-and-query-parameters) |
-| `elements`            | array | Page elements. Please refer to [below](#page-elements-and-query-parameters)  |
+To use feedback page, please create `feedback` object under `page`. The `feedback` object has the following properties:
+
+| Name       | Type    | Description |
+|------------|---------|-------------|
+| `url`      | string  | A URL that the feedback form will post data to. Query parameters can be setup. Please refer to [below](#page-elements-and-query-parameters) |
+| `elements` | array   | Page and input elements that will comprise the feedback form. Please refer to [below](#page-elements-and-query-parameters)  |
 
 #### Page elements and query parameters
 
 Page elements are defined as similar to log page fields above:
 
-| Name               | Type    | Description |
-|--------------------|---------|-------------|
-| `const`            | string  | A unique key identifying the field. |
-| `title`            | string  | The display name of the field. |
-| `type`             | string  | The data type associated with the field. `string`, `inputField` and `selection` |
-| `bold` | boolean | (Only applicable for `string`)  |
-| `selections`| array | Each element has only `const` and `title`|
-| `required`| boolean | Required field flag.|
-| `placeholder`|string| (Only application for `inputField`)|
+| Name    | Type   | Description                         |
+|---------|--------|-------------------------------------|
+| `const` | string | A unique key identifying the field. |
+| `title` | string | The display name of the field.      |
+| `type`  | string | The input type associated with the field. `string`, `inputField` and `selection` |
+| `bold`  | boolean | (Only applicable for `string`)  |
+| `selections`  | array   | Each element has only `const` and `title`|
+| `required`    | boolean | If true, the form cannot be submitted until a value has been entered. |
+| `placeholder` | string  | A placeholder value to be replaced by the user. Only applicable for `inputField`. |
 
-`url` can be best explained in an example. If I want to eventually open a Google Form, I'd have my `url` as "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.912199228={crmName}". In page elements, if I have an element with `const` as "score", it'll then replace {score} in the url to construct a new url with user input data. And some parameters are native, like {crmName} which will be your crm name. Here are details:
+#### Submitting feedback forms
 
-|Name|Is native|Description|
-|----|-----|----|
-|{any element}|false|Any custom field that you define in your feedback page|
-|`crmName`|true|Your crm platform name|
-|`userName`|true|RingCentral user name|
-|`userEmail`|true|RingCentral user email|
+When a user submits the feedback form, the feedback will be submitted to the designated `url`. The URL supports a number of tokens so that you can encode user submitted form data into the URL being posted to. These tokens are as follows:
+
+| Name        | Is native | Description            |
+|-------------|-----------|------------------------|
+| `crmName`   | true      | Your crm platform name |
+| `userName`  | true      | RingCentral user name  |
+| `userEmail` | true      | RingCentral user email |
+| *Element const value* | false     | Any custom field that you define in your feedback page |
+
+!!! tip "Posting to a Google Form"
+    Posting feedback to a Google Form such that the user's input is pre-filled on the resulting Google Form page requires you to encode the Google Form URL with custom values. This is achieved through the use of tokens. For example, consider the need to construct the following URL:
+	
+	    https://docs.google.com/forms/d/e/:FORM_ID/viewform?
+	       usp=pp_url&entry.912199227={score}&entry.912199228={crmName}
+		
+	Prior to the form being posted to the URL, the `{score}` and `{crmName}` tokens will be replaced with their corresponding values, using user-provided data when present. 
+
