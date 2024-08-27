@@ -671,7 +671,7 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
-                    "clientId": "e2c171e8b925b98b9d49c902376e89ad8b9efa959c3622e7d17ec8fdf2be5dad",
+                    "clientId": "0bc4b1f329aefe9320d80ae080216faccd19c9cf11c19256d7440b25df6b1b5a",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
                     "customState": "fillerString,platform=netsuite"
