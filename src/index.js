@@ -304,6 +304,7 @@ app.get('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
+    let resultCount = 0;
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
@@ -312,6 +313,8 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, returnMessage, contact });
+            const nonNewContact = contact.filter(c => !c.isNewContact);
+            resultCount = nonNewContact.length;
             success = true;
         }
         else {
@@ -335,7 +338,10 @@ app.get('/contact', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        extras: {
+            resultCount
+        }
     });
 });
 app.post('/contact', async function (req, res) {

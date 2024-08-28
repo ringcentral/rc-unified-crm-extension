@@ -43,6 +43,6 @@ And with that, you will be connected to Insightly and ready to begin using the i
 
 Insightly's contact lookup method is very strict. As a result, if the phone numbers in Insightly are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Insightly, is to go our [advanced settings](./users/settings.md#advanced-configuration-options) and setting the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Insightly, is to go our [Phone number format setting](./users/settings.md#phone-number-formats) under `Contact setting` and setting the phone number formats to conform with the conventions used by your company. 
 
 Making this change will improve your experience with the extension considerably. 

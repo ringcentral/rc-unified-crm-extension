@@ -6,6 +6,15 @@ An adapter's manifest file helps a developer to instruct the framework on how to
 
 Below you will find an explanation of the many properties found within a manifest file. 
 
+## Turn on developer mode
+
+To use a custom manifest, we'll need to turn on developer mode and assign a custom manifest url to the extension. Here's how:
+
+1. Open DevTools
+2. In console, execute `window.postMessage({type: 'toggle-developer-mode', toggle: true})` and reload the extension
+3. In user settings, there's a section for `Developer settings`. Input your custom manifest url and save
+4. Reload the extension to make it work
+
 ## Basic properties
 
 These basic properties 
