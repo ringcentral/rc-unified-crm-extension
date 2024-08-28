@@ -7,7 +7,7 @@ function getAuthType() {
     return 'oauth';
 }
 
-function getOauthInfo() {
+async function getOauthInfo() {
     return {
         clientId: process.env.PIPEDRIVE_CLIENT_ID,
         clientSecret: process.env.PIPEDRIVE_CLIENT_SECRET,
