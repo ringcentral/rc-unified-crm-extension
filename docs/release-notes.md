@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.0.6
+
+- Better: User settings are organized in a better way 
+- New: Support page is added to user settings
+- New: Community forum is created, can be accessed via support page -> 'Get support'
+- Clio&Insightly: Number formatters are in user setting contact page now
+
 ## 1.0.5
 
 - Better: Bullhorn now has Voicemail default note action

@@ -1,15 +1,43 @@
 {
+    "1.0.6":{
+        "global":[
+            {
+                "type": "Better",
+                "description": "- User settings are organized in a better way"
+            },
+            {
+                "type": "New",
+                "description": "- Support page is added to user settings"
+            },
+            {
+                "type": "New",
+                "description": "- Community forum is created, can be accessed via support page -> 'Get support'"
+            }
+        ],
+        "clio":[
+            {
+                "type": "Better",
+                "description": "- Number formatters are in user setting contact page now"
+            }
+        ],
+        "insightly":[
+            {
+                "type": "Better",
+                "description": "- Number formatters are in user setting contact page now"
+            }
+        ]
+    },
     "1.0.5": {
         "global": [
             {
                 "type": "Fix",
-                "description": "SMS template remembers orders after close"
+                "description": "- SMS template remembers orders after close"
             }
         ],
         "bullhorn": [
             {
                 "type": "Better",
-                "description": "Bullhorn now has Voicemail default note action"
+                "description": "- Bullhorn now has Voicemail default note action"
             }
         ]
     },
@@ -17,15 +45,15 @@
         "global": [
             {
                 "type": "New",
-                "description": "An About page in user settings to show info and helper links"
+                "description": "- An About page in user settings to show info and helper links"
             },
             {
                 "type": "Better",
-                "description": "Factor reset now also cleans up unresolved conflicts"
+                "description": "- Factor reset now also cleans up unresolved conflicts"
             },
             {
                 "type": "Better",
-                "description": "SMS template supports drag and drop to arrange item orders"
+                "description": "- SMS template supports drag and drop to arrange item orders"
             }
         ]
     },
@@ -33,11 +61,11 @@
         "global": [
             {
                 "type": "Better",
-                "description": "Use SMS template that syncs with RingCentral App's SMS template"
+                "description": "- Use SMS template that syncs with RingCentral App's SMS template"
             },
             {
                 "type": "New",
-                "description": "Show notification when a call recording link is uploaded"
+                "description": "- Show notification when a call recording link is uploaded"
             }
         ]
     },
