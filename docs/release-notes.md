@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.7
+
+- Fix: Incoming call pop contact page fixed
+
 ## 1.0.6
 
 - Better: User settings are organized in a better way 

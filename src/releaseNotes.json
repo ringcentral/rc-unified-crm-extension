@@ -1,6 +1,14 @@
 {
-    "1.0.6":{
-        "global":[
+    "1.0.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Incoming call pop contact page fixed"
+            }
+        ]
+    },
+    "1.0.6": {
+        "global": [
             {
                 "type": "Better",
                 "description": "- User settings are organized in a better way"
@@ -14,13 +22,13 @@
                 "description": "- Community forum is created, can be accessed via support page -> 'Get support'"
             }
         ],
-        "clio":[
+        "clio": [
             {
                 "type": "Better",
                 "description": "- Number formatters are in user setting contact page now"
             }
         ],
-        "insightly":[
+        "insightly": [
             {
                 "type": "Better",
                 "description": "- Number formatters are in user setting contact page now"
