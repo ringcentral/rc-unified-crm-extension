@@ -313,9 +313,12 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, returnMessage, contact });
-            const nonNewContact = contact.filter(c => !c.isNewContact);
-            resultCount = nonNewContact.length;
-            success = true;
+            if(successful)
+            {
+                const nonNewContact = contact.filter(c => !c.isNewContact);
+                resultCount = nonNewContact.length;
+                success = true;
+            }
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
