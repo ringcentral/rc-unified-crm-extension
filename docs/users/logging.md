@@ -39,15 +39,13 @@ When multiple contacts are found, users are given an opportunity to disambiguate
 ## Automatically logging calls
 
 !!! note "What to expect from logging call automatically"
-    The Unified CRM extension can log calls for its user automatically, but it is important to understand what it can and cannot do. 
+    The Unified CRM extension does have the ability to automatically log calls for its users, but it is not designed to be an all-purpose call logging solution. So use it successfully to log calls, it is important to understand what it can and cannot do:
 	
-	    * It CAN automatically log the calls for any user who has the extension installed, and has connected the extension to both RingCentral and their CRM.
-		* It CANNOT log calls for anyone who does not have the extension installed in their browser. 
-		* It CANNOT log calls for anyone who has not connected the extension to their CRM. 
-		* It CANNOT log calls automatically for people who browser is closed. 
+    * It CAN automatically log the calls for any user who has the extension installed, and has connected the extension to both RingCentral and their CRM.
+	* It CANNOT log calls for anyone who does not have the extension installed in their browser. 
+	* It CANNOT log calls for anyone who has not connected the extension to their CRM. 
+	* It CANNOT log calls automatically for people who browser is closed. 
 		
-	In short, this product is not a all-purpose call logging solution. All call logging is performed by the browser extension itself. It does not provide a server-based solution for logging all calls received by an account. 
-
 The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.
 
 * **Auto log call/SMS**. This is to turn on auto log feature which will always attemp to log your calls/messages unless any conflict found. A conflict can come in different forms, eg. multiple matched contact for one number.
