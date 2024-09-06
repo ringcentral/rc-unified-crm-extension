@@ -9,6 +9,15 @@ One of the central features of the Unified CRM extension is the ability to autom
 
 If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
 
+## Taking notes during an active call
+
+While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.
+
+<figure markdown>
+  ![Logging calls](../img/notes-during-call.png)
+  <figcaption>Users can take notes during a phone call that can later be logged into a CRM.</figcaption>
+</figure>
+
 ## Logging calls when no contact is found
 
 In order for a call to be logged properly, a contact record within the connected CRM must exist and be associated with the phone call. Calls are matched to a contact via the phone number associated with the call.
