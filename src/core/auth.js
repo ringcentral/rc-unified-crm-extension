@@ -6,6 +6,16 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const platformModule = require(`../adapters/${platform}`);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
 
+    if (!!oauthInfo.failMessage) {
+        return {
+            userInfo: null,
+            returnMessage: {
+                messageType: 'danger',
+                message: oauthInfo.failMessage
+            }
+        }
+    }
+
     // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
     let overridingOAuthOption = null;
     if (platformModule.getOverridingOAuthOption != null) {
