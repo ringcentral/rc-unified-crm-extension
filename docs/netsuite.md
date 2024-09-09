@@ -6,7 +6,7 @@ RingCentral's integration with NetSuite helps streamline communications with con
 
 ## Prerequisites
 
-The current version of the NetSuite integration requires NetSuite version 2024.2 and later. 
+The current version of the NetSuite integration requires NetSuite version 2024.2 or later. 
 
 ## Install the SuiteApp
 
