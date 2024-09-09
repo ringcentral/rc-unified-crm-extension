@@ -4,7 +4,25 @@ NetSuite is a cloud-based business management software that helps organizations 
 
 RingCentral's integration with NetSuite helps streamline communications with contacts, and helps staffing agents better support contacts through the entire sales order pipeline by helping to manage and store communication history for all contacts. 
 
-## Install the extension
+## Prerequisites
+
+The current version of the NetSuite integration requires NetSuite version 2024.2 and later. 
+
+## Install the SuiteApp
+
+To begin using the NetSuite integration, users will first need to do the following:
+
+* Login to NetSuite
+* Click on the "SuiteApps" tab if your role gives you access to it
+* Search for "RingCentral" in the directory
+* Click "RingCentral Unified CRM Extension" in the search results
+* Click the "Install" button found in the upper right hand corner of the page
+
+If you see, "Not compatible" in place of an "Install" button, then you must be running NetSuite version 2024.1 or earlier. You will need to upgrade to 2024.2 or later. 
+
+Installing the app from the SuiteApp marketplace is a necessary step prior to installing the Chrome extension discussed next. 
+
+## Install the Chrome/Edge extension
 
 If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
 
