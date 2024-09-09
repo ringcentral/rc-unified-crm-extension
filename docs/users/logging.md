@@ -9,6 +9,15 @@ One of the central features of the Unified CRM extension is the ability to autom
 
 If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
 
+## Taking notes during an active call
+
+While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.
+
+<figure markdown>
+  ![Logging calls](../img/notes-during-call.png)
+  <figcaption>Users can take notes during a phone call that can later be logged into a CRM.</figcaption>
+</figure>
+
 ## Logging calls when no contact is found
 
 In order for a call to be logged properly, a contact record within the connected CRM must exist and be associated with the phone call. Calls are matched to a contact via the phone number associated with the call.
@@ -38,6 +47,14 @@ When multiple contacts are found, users are given an opportunity to disambiguate
 
 ## Automatically logging calls
 
+!!! note "What to expect from logging call automatically"
+    The Unified CRM extension does have the ability to automatically log calls for its users, but it is not designed to be an all-purpose call logging solution. So use it successfully to log calls, it is important to understand what it can and cannot do:
+	
+    * It CAN automatically log the calls for any user who has the extension installed, and has connected the extension to both RingCentral and their CRM.
+	* It CANNOT log calls for anyone who does not have the extension installed in their browser. 
+	* It CANNOT log calls for anyone who has not connected the extension to their CRM. 
+	* It CANNOT log calls automatically for people who browser is closed. 
+		
 The Unified CRM extension can be configured to log calls automatically so that you do not need to remember to do so manually. To log calls automatically, there are two configuration parameters that are relevant to you. Both of these parameters can be found under Settings accessed from the More tab.
 
 * **Auto log call/SMS**. This is to turn on auto log feature which will always attemp to log your calls/messages unless any conflict found. A conflict can come in different forms, eg. multiple matched contact for one number.
