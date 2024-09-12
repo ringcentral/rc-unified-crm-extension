@@ -34,6 +34,16 @@ And with that, you will be connected to NetSuite and ready to begin using the in
 
 For this extension to work, NetSuite account admin needs to assign users with below permissions:
 
+#### Turn on REST web services
+
+REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
+
+1. From NetSuite homepage, go to Setup -> Company -> Enable Features
+2. Go to sub-tab, "SuiteCloud"
+3. Tick on "REST Web Services" and save
+
+Please then create a new role and assign to users with following permissions.
+
 #### Transactions
 
 | Permission  | Level |
