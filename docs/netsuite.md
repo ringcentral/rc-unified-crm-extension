@@ -4,7 +4,55 @@ NetSuite is a cloud-based business management software that helps organizations 
 
 RingCentral's integration with NetSuite helps streamline communications with contacts, and helps staffing agents better support contacts through the entire sales order pipeline by helping to manage and store communication history for all contacts. 
 
-## Install the extension
+!!! warning "Prerequisites"
+    * The current version of the NetSuite integration requires NetSuite version 2024.1 or later. 
+    * NetSuite users must have [REST Web Services](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_1544787084.html#Related-Topics) enabled. 
+
+## Install the SuiteApp
+
+To begin using the NetSuite integration, users will first need to do the following:
+
+* Login to NetSuite
+* Click on the "SuiteApps" tab if your role gives you access to it
+* Search for "RingCentral" in the directory
+* Click "RingCentral Unified CRM Extension" in the search results
+* Click the "Install" button found in the upper right hand corner of the page
+
+If you see, "Not compatible" in place of an "Install" button, then you must be running an older version of NetSuite. You will need to upgrade to 2024.1 or later. 
+
+Installing the app from the SuiteApp marketplace is a necessary step prior to installing the Chrome extension discussed below. 
+
+## Setup roles and permissions in NetSuite
+
+### Turn on REST web services
+
+REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
+
+1. From NetSuite homepage, go to Setup -> Company -> Enable Features
+2. Go to sub-tab, "SuiteCloud"
+3. Tick on "REST Web Services" and save
+
+### Create role with required permissions
+
+For this extension to work, your NetSuite account admin needs to assign users with the permissions below:
+
+| Category     | Permission                           | Level |
+|--------------|--------------------------------------|-------|
+| Lists        | Contact-Subsidiary relationship      | View  |
+| Lists        | Contacts                             | Full  |
+| Lists        | Customers                            | Full  |
+| Lists        | Employee Record                      | Full  |
+| Lists        | Employees                            | Full  |
+| Lists        | Entity-Subsidiary relationship       | View  |
+| Lists        | Phone Calls                          | Full  |
+| Lists        | Related Items                        | View  |
+| Reports      | SuiteAnalytics Workbook              | Edit  |
+| Setup        | Log in using OAuth 2.0 Access Tokens | Full  |
+| Setup        | REST Web Services                    | Full  |
+| Setup        | User Access Tokens                   | Full  |
+| Transactions | Sales Order                          | Full  |
+
+## Install the Chrome/Edge extension
 
 If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
 
@@ -12,7 +60,7 @@ If you have not already done so, begin by [installing the Unified CRM extension]
 
 ## Setup the extension
 
-Once the extension has been installed, follow these steps to setup and configure the extension for Bullhorn. 
+Once the extension has been installed, follow these steps to setup and configure the extension for NetSuite. 
 
 1. [Login to NetSuite](https://system.netsuite.com/pages/customerlogin.jsp).
 
@@ -29,53 +77,6 @@ Once the extension has been installed, follow these steps to setup and configure
 When you login successfully, the Chrome extension will automatically update to show you are connected to NetSuite. If you are connected, the button next to NetSuite will say, "logout".
 
 And with that, you will be connected to NetSuite and ready to begin using the integration. 
-
-## Role and permission setup
-
-For this extension to work, NetSuite account admin needs to assign users with below permissions:
-
-#### Turn on REST web services
-
-REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
-
-1. From NetSuite homepage, go to Setup -> Company -> Enable Features
-2. Go to sub-tab, "SuiteCloud"
-3. Tick on "REST Web Services" and save
-
-Please then create a new role and assign to users with following permissions.
-
-#### Transactions
-
-| Permission  | Level |
-|-------------|-------|
-| Sales Order | Full  |
-
-#### Reports
-
-| Permission              | Level |
-|-------------------------|-------|
-| SuiteAnalytics Workbook | Edit  |
-
-#### Lists
-
-| Permission                      | Level |
-|---------------------------------|-------|
-| Contact-Subsidiary relationship | View  |
-| Contacts                        | Full  |
-| Customers                       | Full  |
-| Employee Record                 | Full  |
-| Employees                       | Full  |
-| Entity-Subsidiary relationship  | View  |
-| Phone Calls                     | Full  |
-| Related Items                   | View  |
-
-#### Setup
-
-| Permission                           | Level |
-|--------------------------------------|-------|
-| Log in using OAuth 2.0 Access Tokens | Full  |
-| REST Web Services                    | Full  |
-| User Access Tokens                   | Full  |
 
 ## Placeholder companies when creating contacts
 
