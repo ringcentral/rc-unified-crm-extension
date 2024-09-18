@@ -85,7 +85,7 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.sendFile(path.join(__dirname, 'adapters/pipedrive/redirect.html'));
     }
     catch (e) {
-        console.log(`platform: ${platformName} \n${e.stack}`);
+        console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
     }
 })
@@ -105,7 +105,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: ${platformName} \n${e.stack}`);
+        console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
     }
 })
@@ -130,7 +130,7 @@ app.get('/hostname', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: ${platformName} \n${e.stack}`);
+        console.log(`${e.stack}`);
         res.status(500).send(e);
     }
 })
@@ -296,7 +296,7 @@ app.get('/userInfoHash', async function (req, res) {
         res.status(200).send({ extensionId, accountId });
     }
     catch (e) {
-        console.log(`platform: ${platformName} \n${e.stack}`);
+        console.log(`${e.stack}`);
         res.status(400).send(e);
     }
 })
