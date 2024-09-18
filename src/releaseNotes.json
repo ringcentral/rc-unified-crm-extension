@@ -1,4 +1,12 @@
 {
+    "1.0.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- More historical call records can be viewed from call history page with 'Load more' button"
+            }
+        ]
+    },
     "1.0.7": {
         "global": [
             {

@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.0.8
+
+- New: More historical call records can be viewed from call history page with 'Load more' button
+
 ## 1.0.7
 
 - Fix: Incoming call pop contact page fixed
