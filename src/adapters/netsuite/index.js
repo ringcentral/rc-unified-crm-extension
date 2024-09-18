@@ -93,74 +93,57 @@ async function unAuthorize({ user }) {
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     try {
-        const numberToQueryArray = [];
-        if (overridingFormat === '') {
-            numberToQueryArray.push(phoneNumber.replace(' ', '+'));
-        }
-        else {
-            const formats = overridingFormat.split(',');
-            for (var format of formats) {
-                const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-                if (phoneNumberObj.valid) {
-                    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-                    let formattedNumber = format;
-                    for (const numberBit of phoneNumberWithoutCountryCode) {
-                        formattedNumber = formattedNumber.replace('*', numberBit);
-                    }
-                    numberToQueryArray.push(formattedNumber);
+        const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+        const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+        const matchedContactInfo = [];
+        if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
+            const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            const personInfo = await axios.post(
+                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                {
+                    q: contactQuery
+                },
+                {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                });
+            if (personInfo.data.items.length > 0) {
+                for (var result of personInfo.data.items) {
+                    let firstName = result.firstname ?? '';
+                    let middleName = result.middlename ?? '';
+                    let lastName = result.lastname ?? '';
+                    const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                    matchedContactInfo.push({
+                        id: result.id,
+                        name: contactName,
+                        phone: phoneNumberWithoutCountryCode,
+                        additionalInfo: null,
+                        type: 'contact'
+                    })
                 }
             }
-        }
-        const matchedContactInfo = [];
-        for (var numberToQuery of numberToQueryArray) {
-            if (numberToQuery !== 'undefined' && numberToQuery !== null && numberToQuery !== '') {
-                //For Contact search
-                const personInfo = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                    {
-                        q: `SELECT * FROM contact WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery} OR officePhone = ${numberToQuery}`
-                    },
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                    });
-                if (personInfo.data.items.length > 0) {
-                    for (var result of personInfo.data.items) {
-                        let firstName = result.firstname ?? '';
-                        let middleName = result.middlename ?? '';
-                        let lastName = result.lastname ?? '';
-                        const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                        matchedContactInfo.push({
-                            id: result.id,
-                            name: contactName,
-                            phone: numberToQuery,
-                            additionalInfo: null,
-                            type: 'contact'
-                        })
-                    }
-                }
-                //For Customer search
-                const customerInfo = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                    {
-                        q: `SELECT * FROM customer WHERE phone = ${numberToQuery} OR homePhone = ${numberToQuery} OR mobilePhone = ${numberToQuery}  OR altPhone = ${numberToQuery}`
-                    },
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                    });
-                if (customerInfo.data.items.length > 0) {
-                    for (var result of customerInfo.data.items) {
-                        let firstName = result.firstname ?? '';
-                        let middleName = result.middlename ?? '';
-                        let lastName = result.lastname ?? '';
-                        const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                        matchedContactInfo.push({
-                            id: result.id,
-                            name: customerName,
-                            phone: numberToQuery,
-                            additionalInfo: null,
-                            type: 'custjob'
-                        })
-                    }
+            //For Customer search
+            const customerInfo = await axios.post(
+                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                {
+                    q: customerQuery
+                },
+                {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                });
+            if (customerInfo.data.items.length > 0) {
+                for (var result of customerInfo.data.items) {
+                    let firstName = result.firstname ?? '';
+                    let middleName = result.middlename ?? '';
+                    let lastName = result.lastname ?? '';
+                    const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                    matchedContactInfo.push({
+                        id: result.id,
+                        name: customerName,
+                        phone: phoneNumberWithoutCountryCode,
+                        additionalInfo: null,
+                        type: 'custjob'
+                    })
                 }
             }
         }
@@ -174,6 +157,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
+        console.log({ message: "Error in finding contact", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts & Lists -> Customer' permission to fetch details. Please contact your administrator."
