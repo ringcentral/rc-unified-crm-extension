@@ -116,7 +116,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     matchedContactInfo.push({
                         id: result.id,
                         name: contactName,
-                        phone: phoneNumber,
+                        phone: result.phone ?? '',
+                        homephone: result.homephone ?? '',
+                        mobilephone: result.mobilephone ?? '',
+                        officephone: result.officephone ?? '',
                         additionalInfo: null,
                         type: 'contact'
                     })
@@ -140,7 +143,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     matchedContactInfo.push({
                         id: result.id,
                         name: customerName,
-                        phone: phoneNumber,
+                        phone: result.phone ?? '',
+                        homephone: result.homephone ?? '',
+                        mobilephone: result.mobilephone ?? '',
+                        altphone: result.altphone ?? '',
                         additionalInfo: null,
                         type: 'custjob'
                     })
