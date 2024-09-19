@@ -22,12 +22,14 @@ async function getOauthInfo({ hostname }) {
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
     try {
+        console.log({ message: "Going to find employee informaton", entityId: maskLastThreeDigits(query?.entity) });
         const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
         const employeResponse = await axios.get(url,
             {
                 headers: { 'Authorization': authHeader }
             });
         const id = query.entity;
+        console.log({ message: "Employee Details fetched", id: maskLastThreeDigits(id) });
         const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
         const timezoneName = employeResponse.data.time_zone ?? '';
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
@@ -54,10 +56,12 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             }
         };
     } catch (error) {
+
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Employee Record & Lists -> Employee' permission to authorize. Please contact your administrator."
             : "Error in getting NetSuite User Info.";
+        console.log({ message: "Error in getting employee informaton", error });
         return {
             successful: false,
             returnMessage: {
@@ -95,6 +99,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+        console.log({ message: "Finding contact", phoneNumber: maskLastThreeDigits(phoneNumberWithoutCountryCode) });
         const matchedContactInfo = [];
         if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
             const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
@@ -251,6 +256,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
+        console.log({ message: "Error in creating call log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
@@ -286,6 +292,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
     } catch (error) {
+        console.log({ message: "Error in getting call log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
@@ -343,6 +350,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         };
     } catch (error) {
+        console.log({ message: "Error in updating call log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
@@ -435,6 +443,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         };
     } catch (error) {
+        console.log({ message: "Error in creating message log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to Message Log. Please contact your administrator."
@@ -485,6 +494,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             }
         };
     } catch (error) {
+        console.log({ message: "Error in updating message log", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to MessageLog. Please contact your administrator."
@@ -612,6 +622,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
         }
     } catch (error) {
+        console.log({ message: "Error in creating contact", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Contacts & Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
@@ -662,6 +673,15 @@ function isNetSuiteForbiddenError(error) {
         return false;
     } catch (error) {
         return false;
+    }
+}
+
+function maskLastThreeDigits(number) {
+    try {
+        let numberStr = number.toString();
+        return numberStr.slice(0, -3) + '***';
+    } catch (err) {
+        return number;
     }
 }
 
