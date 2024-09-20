@@ -54,10 +54,12 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             }
         };
     } catch (error) {
+
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Employee Record & Lists -> Employee' permission to authorize. Please contact your administrator."
             : "Error in getting NetSuite User Info.";
+        console.log({ message: "Error in getting employee information", error });
         return {
             successful: false,
             returnMessage: {
@@ -163,7 +165,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
-        console.log({ message: "Error in finding contact", error });
         const isForbiddenError = isNetSuiteForbiddenError(error);
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts & Lists -> Customer' permission to fetch details. Please contact your administrator."
@@ -664,6 +665,7 @@ function isNetSuiteForbiddenError(error) {
         return false;
     }
 }
+
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
