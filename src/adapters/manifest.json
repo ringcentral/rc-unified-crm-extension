@@ -3,13 +3,15 @@
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
-        "websiteUrl": "https://github.com/ringcentral/rc-unified-crm-extension",
-        "iconUrl": "https://lh3.googleusercontent.com/opCzi-yJ2FLuN_XmmZPj_OuKtXhgW6w77_8tZPH5Y6tFw2Zwk8T-XGW0z0Xio_FgdvTRLJ3k-kYplXtmUhKjzxMkJEQ=s60",
-        "supportUrl": "https://community.ringcentral.com/groups/unified-crm-extension-22?utm_source=crm-extension&utm_medium=link&utm_campaign=in-app-link"
+        "websiteUrl": "https://github.com/ringcentral/rc-unified-crm-extension"
     },
     "platforms": {
         "pipedrive": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/pipedrive/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
             "displayName": "Pipedrive",
@@ -127,6 +129,10 @@
         },
         "insightly": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Insightly_logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
             "displayName": "Insightly",
@@ -303,6 +309,10 @@
         },
         "clio": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Clio_Logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
             "displayName": "Clio",
@@ -426,6 +436,10 @@
         },
         "redtail": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/redtail/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "crm.redtailtechnology.com",
             "name": "redtail",
             "auth": {
@@ -539,6 +553,10 @@
         },
         "bullhorn": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
             "displayName": "Bullhorn",
@@ -664,6 +682,10 @@
         },
         "netsuite": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Netsuite_Logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/netsuite/",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
             "displayName": "NetSuite",
@@ -779,5 +801,5 @@
             }
         }
     },
-    "version": "1.0.7"
+    "version": "1.0.8"
 }

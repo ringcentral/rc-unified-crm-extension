@@ -24,6 +24,16 @@ Installing the app from the SuiteApp marketplace is a necessary step prior to in
 
 ## Setup roles and permissions in NetSuite
 
+### Turn on REST web services
+
+REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
+
+1. From NetSuite homepage, go to Setup -> Company -> Enable Features
+2. Go to sub-tab, "SuiteCloud"
+3. Tick on "REST Web Services" and save
+
+### Create role with required permissions
+
 For this extension to work, your NetSuite account admin needs to assign users with the permissions below:
 
 | Category     | Permission                           | Level |
