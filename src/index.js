@@ -5,11 +5,13 @@ const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
+const { AdminConfigModel } = require('./models/adminConfigModel');
 const cors = require('cors')
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
+const adminCore = require('./core/admin');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
@@ -28,6 +30,7 @@ async function initDB() {
     await UserModel.sync();
     await CallLogModel.sync();
     await MessageLogModel.sync();
+    await AdminConfigModel.sync();
     console.log('db tables created');
 }
 
@@ -109,6 +112,57 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         res.status(500).send(e);
     }
 })
+
+app.post('/admin/updateUserSettings', async function (req, res) {
+    try {
+        const isValidated = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+        if (isValidated) {
+            await adminCore.upsertUserSettings({ hashedRcAccountId: req.query.hashedRcAccountId, userSettings: req.body.userSettings });
+            res.status(200).send('User settings updated');
+        }
+        else {
+            res.status(401).send('Admin validation failed');
+        }
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+});
+
+app.get('/userSettings', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findOne({
+                where: {
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
+                }
+            });
+            if (!!!user) {
+                res.status(400).send('Unknown user');
+            }
+            const hashedRcAccountId = getHashValue(req.query.accountId, process.env.HASH_KEY);
+            const userSettings = await adminCore.getUserSettings({ hashedRcAccountId });
+            if (!!adminConfig) {
+                res.status(200).send(userSettings);
+            }
+            else {
+                res.status(400).send('Cannot find pre-configured user settings');
+            }
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+});
+
 app.get('/hostname', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
@@ -313,8 +367,7 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, returnMessage, contact });
-            if(successful)
-            {
+            if (successful) {
                 const nonNewContact = contact.filter(c => !c.isNewContact);
                 resultCount = nonNewContact.length;
                 success = true;
