@@ -43,11 +43,11 @@ The process of connecting the Unified CRM extension to your CRM is more or less 
 
 Each CRM may have a slightly different approach in order to install the extension fully. Consult the CRM-specific documentation to setup and configure your CRM below.
 
-* [Connect and setup Bullhorn](./bullhorn.md)
-* [Connect and setup Clio](./clio.md)
-* [Connect and setup Insightly](./insightly.md)
-* [Connect and setup Pipedrive](./pipedrive.md)
-* [Connect and setup Redtail CRM](./redtail.md)
-* [Connect and setup NetSuite](./netsuite.md)
+* [Connect and setup Bullhorn](./crm/bullhorn.md)
+* [Connect and setup Clio](./crm/clio.md)
+* [Connect and setup Insightly](./crm/insightly.md)
+* [Connect and setup Pipedrive](./crm/pipedrive.md)
+* [Connect and setup Redtail CRM](./crm/redtail.md)
+* [Connect and setup NetSuite](./crm/netsuite.md)
 
 

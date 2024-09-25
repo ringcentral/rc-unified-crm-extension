@@ -2,9 +2,9 @@
 hide:
   - navigation
 ---
-# Unified CRM extension for Google Chrome and Microsoft Edge
+# Unified CRM extension for RingEX
 
-RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a browser plugin that helps connect your RingCentral account to a number of different CRM services. It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track calls and engage with customers.
+RingCentral's Unified CRM extension for RingEX is a browser extension for Google Chrome and Microsoft Edge that helps connect your RingCentral RingEX account to a number of different CRM services. It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track calls and engage with customers.
 
 <figure markdown>
   ![Unified CRM extension](img/intro.png)
@@ -28,18 +28,19 @@ RingCentral's Unified CRM extension for Google Chrome and Microsoft Edge is a br
 
 The Unified CRM extension requires the following:
 
+* RingEX account
 * Google Chrome or Microsoft Edge
 
 ## Supported CRMs
 
 RingCentral currently supports the following CRMs using the Unified CRM extension:
 
-* [Bullhorn](./bullhorn.md)
-* [Clio](./clio.md)
-* [Insightly](./insightly.md)
-* [Pipedrive](./pipedrive.md)
-* [Redtail CRM](./redtail.md)
-* [NetSuite](./netsuite.md)
+* [Bullhorn](./crm/bullhorn.md)
+* [Clio](./crm/clio.md)
+* [Insightly](./crm/insightly.md)
+* [Pipedrive](./crm/pipedrive.md)
+* [Redtail CRM](./crm/redtail.md)
+* [NetSuite](./crm/netsuite.md)
 
 Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
 

@@ -6,7 +6,7 @@ RingCentral's integration with Bullhorn helps streamline communications with can
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/afbdQD0y4Yo?si=UKcBw2BP4pj2adNc" title="Unified CRM extension for Bullhorn - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "bullhorn."
 
-    ![Connect to Bullhorn](img/bullhorn-connect.png){ style="max-width: 200px" }
+    ![Connect to Bullhorn](../img/bullhorn-connect.png){ style="max-width: 200px" }
 
 4. Click the "Connect" button. 
 
@@ -34,13 +34,13 @@ And with that, you will be connected to Bullhorn and ready to begin using the in
 
 In Settings, there's a "Bullhorn Default Note Action" entry button.
 
-![Bullhorn default Note Action](img/bullhorn-default-note-action-entry.png)
+![Bullhorn default Note Action](../img/bullhorn-default-note-action-entry.png)
 
 We provide 3 most common cases here. Once you input the same Note Action string inside the field, the extension will try to find the assigned Note Action and select that for you on the log form page.
 
 There's also a "Apply to auto log" toggle to turn on this defaulting mechanism for auto log so that the extension won't generate unresolved items due to conflicts over multiple Note Actions. 
 
-![Bullhorn default Note Action page](img/bullhorn-default-note-action-page.png)
+![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
 
 ## Placeholder companies when creating contacts
 
