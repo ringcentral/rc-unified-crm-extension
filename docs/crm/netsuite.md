@@ -54,7 +54,7 @@ For this extension to work, your NetSuite account admin needs to assign users wi
 
 ## Install the Chrome/Edge extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="Unified CRM extension for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -68,7 +68,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "netsuite".
 
-    ![Connect to NetSuite](img/netsuite-connect.png){ style="max-width: 200px" }
+    ![Connect to NetSuite](../img/netsuite-connect.png){ style="max-width: 200px" }
 
 4. Click the "Connect" button. 
 

@@ -6,7 +6,7 @@ RingCentral's integration with Redtail CRM helps streamline communications betwe
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/1pbpbEvp5uQ?si=BUmLcaKk5att_XQf" title="Unified CRM extension for Redtail CRM - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "redtail."
 
-    ![Connect to Redtail](img/redtail-connect.png){ style="max-width: 200px" }
+    ![Connect to Redtail](../img/redtail-connect.png){ style="max-width: 200px" }
 
 4. Click the "Connect" button. 
 
