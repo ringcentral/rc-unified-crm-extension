@@ -52,6 +52,9 @@ For this extension to work, your NetSuite account admin needs to assign users wi
 | Setup        | User Access Tokens                   | Full  |
 | Transactions | Sales Order                          | Full  |
 
+!!! warning "Make sure Employee permission is set to View"
+    For security reasons, only an Administrator can edit Administrator records. As a result if you apply "Full" Employee permissons to a role, you may experience difficulty connecting the extension to NetSuite. 
+
 ## Install the Chrome/Edge extension
 
 If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
