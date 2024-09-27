@@ -1,4 +1,20 @@
 {
+    "1.0.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Call history page now has a search bar with filters"
+            },
+            {
+                "type": "New",
+                "description": "- Contact pop settings now support both inbound and outbound calls on different timings"
+            },
+            {
+                "type": "New",
+                "description": "- RingCentral team message is added as a new tab (might get delayed to show up)"
+            }
+        ]
+    },
     "1.0.8": {
         "global": [
             {
