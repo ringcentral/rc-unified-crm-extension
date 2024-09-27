@@ -40,4 +40,4 @@ The OpenAPI specification below defines the interfaces that a developer must imp
 
 As a user uses the Chrome extension, when a CRM-specific function is engaged, the Chrome extension will compose a request the corresponding adapter's endpoint implemented by that adapter's server. The server will perform the corresponding action in the associated CRM, and return results in a prescribed format so the Chrome extension can display the results of the user's action.
 
-[:fontawesome-solid-download: Download OpenAPI spec](../../crm-server-openapi.json){ .md-button }
+[:fontawesome-solid-download: Download OpenAPI spec](../crm-server-openapi.json){ .md-button }

@@ -17,9 +17,10 @@ RingCentral's Unified CRM extension for RingEX is a browser extension for Google
 
 ## Features
 
-* **Embedded CTI**. A fully functional phone is embedded into your CRM so that you can place and receive phone calls. The CTI is also enhanced with specific capabilities designed specifically for use cases common to users of most CRMs. These enhancements are enumerated below. 
+* **Embedded dailer/CTI**. A fully functional phone is embedded into your CRM so that you can place and receive phone calls. The CTI is also enhanced with specific capabilities designed specifically for use cases common to users of most CRMs. These enhancements are enumerated below. 
 * **Click-to-dial**. Make any phone number in your CRM clickable to easily call or send an SMS to that phone number. 
-* **Call logging**. Every call you make or receive on RingCentral can easily be logged into your CRM ensuring important communications are recorded there. Options are available that allow you to log calls and messages automatically, and more. 
+* **Call logging**. Every call you make or receive on RingCentral can easily be logged into your CRM ensuring important communications are recorded there. Options are available that allow you to log calls and messages automatically, and more.
+* **Automatic call logging**. With a flip of a switch, make sure every inbound and outbound call is recorded in your CRM. If there is a conflict, then access our "Unlogged" tab to quickly fix the issue. 
 * **Call pop**. When you receive a phone call, the extension will automatically open the caller's contact page in your CRM so that you have the customer's full context before answering the phone.
 * **Send/receive SMS**. Not only can you place calls, but you can also send and receive SMS using the CTI. 
 * **SMS templates**. Respond to SMS more quickly, by storing and accessing messages you commonly send over SMS using a simple UI. 
@@ -28,7 +29,7 @@ RingCentral's Unified CRM extension for RingEX is a browser extension for Google
 
 The Unified CRM extension requires the following:
 
-* RingEX account
+* RingEX account (Core, Advanced or Ultimate)
 * Google Chrome or Microsoft Edge
 
 ## Supported CRMs
