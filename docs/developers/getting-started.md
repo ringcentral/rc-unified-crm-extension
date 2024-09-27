@@ -74,6 +74,10 @@ Click "Save."
 !!! hint "What to do if saving options doesn't work"
     If the option save failed, please try if you can manually open the manifest file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.
 
+Now, the extension is setup with a manifest that serves `testCRM`. From the manifest file we can tell that the variable `okatforms.testCRM.urlIdentifier` = "\*.labs.ringcentral.com/\*". Let's use https://unified-crm-extension.labs.ringcentral.com/is-alive as the test CRM homepage.
+
+Open the extension on the page and login with your RingCentral account. Then you should be able to play with mock data and see how this extension works.
+
 ## Next step: edit your manifest file
 
 !!! hint "Fork this repo and track changes better"

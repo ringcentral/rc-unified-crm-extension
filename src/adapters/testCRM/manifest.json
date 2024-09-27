@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://xxxxx.ngrok.io",
+    "serverUrl": "https://xxxx.ngrok.app",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Test Developer",
@@ -7,12 +7,12 @@
     },
     "platforms": {
         "testCRM": {
-            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
+            "logoUrl": "https://avatars.githubusercontent.com/u/6549285?s=200&v=4",
             "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-            "urlIdentifier": "*developers.ringcentral.com*",
+            "urlIdentifier": "*.labs.ringcentral.com/*",
             "name": "testCRM",
             "displayName": "Test CRM",
             "requestConfig": {
