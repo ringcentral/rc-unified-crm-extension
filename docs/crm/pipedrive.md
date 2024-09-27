@@ -6,7 +6,7 @@ RingCentral's integration with Pipedrive helps streamline communications between
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/Hu0qC13HDkQ?si=XZLWUCalDRhF8ASP" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. From the marketplace listing, initiate the authorization process by clicking the "Install Now" button.
 
-    ![Install Pipedrive ext](img/pipedrive-marketplace.png)
+    ![Install Pipedrive ext](../img/pipedrive-marketplace.png)
 
 3. On the authorization screen, scroll to the bottom and click "Allow and Install." The CRM extension should automatically come to the foreground and show that you are now connected to Pipedrive. 
 
@@ -32,6 +32,6 @@ And with that, you will be connected to Pipedrive and ready to begin using the i
 
 Pipedrive's system exhibits a relatively uncommon behavior that is the result of a perfectly normal function of the frameworks used by their engineers. However, this behavior is unfortunate because it causes the dialer to be removed from the page after it has loaded. You may see it appear briefly, and then POOF! It is gone. 
 
-To address this, go our [advanced settings](./users/settings.md#advanced-configuration-options) and set the config option called "Click-to-dial inject delay" to `2` or `3`. Depending upon network latencies, you may need to increase this number, but usually a value of `2` is sufficient. 
+To address this, go our [advanced settings](../users/settings.md#advanced-configuration-options) and set the config option called "Click-to-dial inject delay" to `2` or `3`. Depending upon network latencies, you may need to increase this number, but usually a value of `2` is sufficient. 
 
 

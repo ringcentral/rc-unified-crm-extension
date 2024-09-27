@@ -9,6 +9,13 @@ One of the central features of the Unified CRM extension is the ability to autom
 
 If you wish to edit a call you have previously logged, you will need to do so from within your CRM directly. Once a call has been logged using the extension, it cannot be edited by the extension.
 
+### Logging call recordings
+
+If a call is recorded, a link to the call's recording is included in the contents logged to the CRM automatically. 
+
+!!! warning "Call logs are kept for a maximum of 90 days within RingCentral"
+    Please be aware that RingCentral does not retain data indefinitely. Call recordings for example are purged after 90 days. If you wish to retain those files longer, most users subscribe to a third-party service to archive call media. 
+
 ## Taking notes during an active call
 
 While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.

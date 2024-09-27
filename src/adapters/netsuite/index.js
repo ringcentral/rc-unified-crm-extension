@@ -59,7 +59,9 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Employee Record & Lists -> Employee' permission to authorize. Please contact your administrator."
             : "Error in getting NetSuite User Info.";
-        console.log({ message: "Error in getting employee information", error });
+        const responseData = error?.response?.data;
+        const errorDetails = responseData?.['o:errorDetails'] ?? [];
+        console.log({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, responseData, errorDetails, responseHeader: error?.response?.headers });
         return {
             successful: false,
             returnMessage: {

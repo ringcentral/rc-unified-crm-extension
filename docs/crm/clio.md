@@ -6,7 +6,7 @@ RingCentral's integration with Clio helps streamline communications with clients
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](./getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/pQgdsAR1UCI?si=PaSTDhHkTUa9fMtk" title="Unified CRM extension for Clio - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "clio."
 
-    ![Connect to Clio](img/clio-connect.png){ style="max-width: 200px" }
+    ![Connect to Clio](../img/clio-connect.png){ style="max-width: 200px" }
 
 4. Click the "Connect" button. 
 
@@ -34,7 +34,7 @@ And with that, you will be connected to Clio and ready to begin using the integr
 
 Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Clio, is to go to [Phone number format setting](./users/settings.md#phone-number-formats) under `Contact setting` and setting the phone number formats to conform with the conventions used by your practice. 
+To address this, short of reformatting every phone number stored in Clio, is to go to [Phone number format setting](../users/settings.md#phone-number-formats) under `Contact setting` and setting the phone number formats to conform with the conventions used by your practice. 
 
 Navigate to the Unified CRM Chrome extension's advanced settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any number. Any other character used in the format string will be interpretted literally. 
 
@@ -69,7 +69,7 @@ We have found the following formats are commonly used among customers (feel free
 
 Select or enter up to three different formats used by your practice. When you are done, the advanced settings form may look something like this:
 
-![Advanced settings with format options](img/adv-settings-formats.png)
+![Advanced settings with format options](../img/adv-settings-formats.png)
 
 !!! tip "The E.164 format is used by default. You do not need to specify the format `1**********`."
 
@@ -84,6 +84,6 @@ Ideally, phone numbers in Clio would all be stored using the E.164 format standa
 
 !!! tip "Use Zapier to automatically format phone numbers"
     Zapier is a great automation tool that can help your organization [reformat phone numbers to E.164](https://zapier.com/apps/clio/integrations/formatter/1481647/format-numbers-for-new-clio-contacts-with-formatter-by-zapier) for all new contacts moving forward.
-    ![Clio number formatter Zap](img/clio-zapier.png)
+    ![Clio number formatter Zap](../img/clio-zapier.png)
 
 Finally, you can improve performance by going back to existing contacts and updating their phone numbers. This can be a laborious process, but will yield the best results in the long term. 
