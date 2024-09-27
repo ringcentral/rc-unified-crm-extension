@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.9
+
+- New: Call history page now has a search bar with filters
+- New: Contact pop settings now support both inbound and outbound calls on different timings
+- New: RingCentral team message is added as a new tab
+
 ## 1.0.8
 
 - New: More historical call records can be viewed from call history page with 'Load more' button

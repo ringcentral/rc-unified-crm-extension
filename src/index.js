@@ -76,7 +76,8 @@ app.get('/is-alive', (req, res) => {
     res.send(`OK`);
 });
 app.get('/serverVersionInfo', (req, res) => {
-    res.send({ version: process.env.VERSION });
+    const defaultCrmManifest = require('./adapters/manifest.json');
+    res.send({ version: defaultCrmManifest.version });
 });
 
 // Unique: Pipedrive
