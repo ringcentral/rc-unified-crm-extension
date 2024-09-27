@@ -37,15 +37,13 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 For this extension to work, your NetSuite account admin needs to assign users with the permissions below:
 
 | Category     | Permission                           | Level |
-|--------------|--------------------------------------|-------|
-| Lists        | Contact-Subsidiary relationship      | View  |
+| ------------ | ------------------------------------ | ----- |
 | Lists        | Contacts                             | Full  |
 | Lists        | Customers                            | Full  |
-| Lists        | Employee Record                      | Full  |
-| Lists        | Employees                            | Full  |
-| Lists        | Entity-Subsidiary relationship       | View  |
+| Lists        | Employee Record                      | View  |
+| Lists        | Employees                            | View  |
 | Lists        | Phone Calls                          | Full  |
-| Lists        | Related Items                        | View  |
+| Lists        | Subsidiaries                         | View  |
 | Reports      | SuiteAnalytics Workbook              | Edit  |
 | Setup        | Log in using OAuth 2.0 Access Tokens | Full  |
 | Setup        | REST Web Services                    | Full  |
