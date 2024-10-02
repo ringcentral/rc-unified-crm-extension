@@ -41,7 +41,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Redtail.',
+                message: 'Successfully connected to Redtail.',
                 ttl: 3000
             }
         }
