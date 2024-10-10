@@ -80,6 +80,7 @@ nav:
   - 'Getting started': developers/getting-started.md
   - 'Technical overview': developers/adapter.md
   - 'Build and deployment': developers/deploy.md
+  - 'Proprietary CRMs': developers/proprietary-crm.md
   - 'Adapter': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
