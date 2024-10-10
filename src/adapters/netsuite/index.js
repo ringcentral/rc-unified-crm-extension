@@ -4,6 +4,7 @@ const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
 const { getTimeZone } = require('../../lib/util');
+const { log } = require('console');
 
 function getAuthType() {
     return 'oauth';
@@ -171,6 +172,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts & Lists -> Customer' permission to fetch details. Please contact your administrator."
             : "Error in Finding Contact.";
+        logNetSuiteErrorDetails(error, "Error in Finding Contact");
         return {
             successful: false,
             returnMessage: {
@@ -258,6 +260,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in Creating Call Log";
+        logNetSuiteErrorDetails(error, "Error in Creating Call Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -293,6 +296,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in getting NetSuite Call Log.";
+        logNetSuiteErrorDetails(error, "Error in getting NetSuite Call Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -350,6 +354,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
             : "Error in getting Updating Call Log.";
+        logNetSuiteErrorDetails(error, "Error in Updating Call Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -442,6 +447,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to Message Log. Please contact your administrator."
             : "Error in Creating Message Log";
+        logNetSuiteErrorDetails(error, "Error in Creating Message Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -492,6 +498,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to MessageLog. Please contact your administrator."
             : "Error in Updating Message Log";
+        logNetSuiteErrorDetails(error, "Error in Updating Message Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -619,6 +626,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         const errorMessage = isForbiddenError
             ? "Permission violation: Make Sure You have 'Lists -> Contacts & Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
             : "Error in Creating Contact/Customer Log";
+        logNetSuiteErrorDetails(error, "Error in Creating Contact/Customer Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -655,6 +663,7 @@ function extractIdFromUrl(url) {
 }
 function isNetSuiteForbiddenError(error) {
     try {
+        console.log({ error });
         const data = error?.response?.data;
         const errorDetails = data['o:errorDetails'][0].detail;
         if (data.title === 'Forbidden' && data.status === 403) {
@@ -667,6 +676,25 @@ function isNetSuiteForbiddenError(error) {
         return false;
     }
 }
+
+function logNetSuiteErrorDetails(error, message) {
+    try {
+        const responseData = error?.response?.data;
+        const errorDetails = responseData?.['o:errorDetails'] ?? [];
+        console.log({
+            message: message || "Error occurred",
+            Path: error?.request?.path,
+            Host: error?.request?.host,
+            responseData,
+            errorDetails,
+            responseHeader: error?.response?.headers
+        });
+    } catch (e) {
+        console.error(e);
+    }
+
+}
+
 
 
 exports.getAuthType = getAuthType;
