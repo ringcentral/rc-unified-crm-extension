@@ -1,0 +1,26 @@
+.crm-logo {
+    max-width: 200px;
+    max-height: 100px;
+    display: block;
+    margin-bottom: 15px;
+}
+.md-typeset a {
+    color: #066fac
+}
+.md-typeset a:hover {
+    color: #066fac;
+    text-decoration: underline;
+}
+.download-button {
+    color: #CCC !important;
+    border-radius: 10px !important;
+}
+.md-main {
+    padding-bottom: 50px
+}
+#powered-by-embeddable .admonition {
+    font-size: 0.8rem;
+}
+:root {
+    --md-primary-fg-color: #002755;
+}
