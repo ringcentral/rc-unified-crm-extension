@@ -4,7 +4,6 @@ const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
 const { getTimeZone } = require('../../lib/util');
-const { log } = require('console');
 
 function getAuthType() {
     return 'oauth';
