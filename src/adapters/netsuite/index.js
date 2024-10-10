@@ -663,7 +663,6 @@ function extractIdFromUrl(url) {
 }
 function isNetSuiteForbiddenError(error) {
     try {
-        console.log({ error });
         const data = error?.response?.data;
         const errorDetails = data['o:errorDetails'][0].detail;
         if (data.title === 'Forbidden' && data.status === 403) {
