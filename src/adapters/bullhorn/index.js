@@ -42,7 +42,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Bullhorn.',
+                message: 'Successfully connected to Bullhorn.',
                 ttl: 3000
             }
         };

@@ -38,7 +38,7 @@ async function getUserInfo({ authHeader }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Clio.',
+                message: 'Successfully connected to Clio.',
                 ttl: 3000
             }
         };

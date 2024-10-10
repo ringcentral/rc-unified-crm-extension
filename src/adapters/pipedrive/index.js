@@ -43,7 +43,7 @@ async function getUserInfo({ authHeader, hostname }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Pipedrive.',
+                message: 'Successfully connected to Pipedrive.',
                 ttl: 3000
             }
         };

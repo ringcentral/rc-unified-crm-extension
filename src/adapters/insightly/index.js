@@ -35,7 +35,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Insightly.',
+                message: 'Successfully connected to Insightly.',
                 ttl: 3000
             }
         };
