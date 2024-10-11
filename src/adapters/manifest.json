@@ -449,6 +449,16 @@
                         "title": "Redtail",
                         "content": [
                             {
+                                "const": "description",
+                                "description": "Please enter your Redtail CRM credentials below",
+                                "type": "string",
+                                "uiSchema": {
+                                    "ui:field": "typography",
+                                    "ui:variant": "body2",
+                                    "ui:align": "center"
+                                }
+                            },
+                            {
                                 "const": "username",
                                 "title": "username",
                                 "type": "string",
