@@ -54,19 +54,13 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             }
         };
     } catch (error) {
-
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Employee Record & Lists -> Employee' permission to authorize. Please contact your administrator."
-            : "Error in getting NetSuite User Info.";
-        const responseData = error?.response?.data;
-        const errorDetails = responseData?.['o:errorDetails'] ?? [];
-        console.log({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, responseData, errorDetails, responseHeader: error?.response?.headers });
+        const errorDetails = netSuiteErrorDetails(error, "Error in getting NetSuite User Info.");
+        console.log({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, errorDetails, responseHeader: error?.response?.headers });
         return {
             successful: false,
             returnMessage: {
                 messageType: 'danger',
-                message: errorMessage,
+                message: errorDetails,
                 ttl: 60000
             }
         }
@@ -167,10 +161,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Reports -> SuiteAnalytics Workbook, Lists -> Contacts & Lists -> Customer' permission to fetch details. Please contact your administrator."
-            : "Error in Finding Contact.";
+        let errorMessage = netSuiteErrorDetails(error, "Error in Finding Contact.");
+        errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
             successful: false,
             returnMessage: {
@@ -254,10 +246,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
-            : "Error in Creating Call Log";
+        let errorMessage = netSuiteErrorDetails(error, "Error in Creating Call Log");
+        if (errorMessage.includes("'Subsidiary' was not found.")) {
+            errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
+        }
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -289,10 +281,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
-            : "Error in getting NetSuite Call Log.";
+        const errorMessage = netSuiteErrorDetails(error, "Error in getting NetSuite Call Log.");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -346,10 +335,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         };
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to CallLog. Please contact your administrator."
-            : "Error in getting Updating Call Log.";
+        const errorMessage = netSuiteErrorDetails(error, "Error in getting NetSuite Call Log.");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -438,10 +424,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         };
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to Message Log. Please contact your administrator."
-            : "Error in Creating Message Log";
+        const errorMessage = netSuiteErrorDetails(error, "Error in Creating Message Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -488,10 +471,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             }
         };
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Phone Calls, Lists -> Contacts & Lists -> Customers' permission to MessageLog. Please contact your administrator."
-            : "Error in Updating Message Log";
+        const errorMessage = netSuiteErrorDetails(error, "Error in Updating Message Log");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -615,10 +595,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
         }
     } catch (error) {
-        const isForbiddenError = isNetSuiteForbiddenError(error);
-        const errorMessage = isForbiddenError
-            ? "Permission violation: Make Sure You have 'Lists -> Contacts & Lists -> Customers' permission to Create Contact/Customer. Please contact your administrator."
-            : "Error in Creating Contact/Customer Log";
+        const errorMessage = netSuiteErrorDetails(error, "Error in Creating Contact/Customer");
         return {
             returnMessage: {
                 messageType: 'danger',
@@ -653,18 +630,22 @@ function extractIdFromUrl(url) {
     const segments = url.split('/').filter(segment => segment !== ''); // Remove empty segments
     return segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
 }
-function isNetSuiteForbiddenError(error) {
+function netSuiteErrorDetails(error, message) {
     try {
         const data = error?.response?.data;
-        const errorDetails = data['o:errorDetails'][0].detail;
-        if (data.title === 'Forbidden' && data.status === 403) {
-            return true;
-        } else if (errorDetails.includes("Your current role does not have permission ")) {
-            return true;
+        let concatenatedErrorDetails = "";
+        // Check if 'o:errorDetails' exists and is an array
+        if (Array.isArray(data?.['o:errorDetails'])) {
+            // Iterate through each element in 'o:errorDetails' and concatenate the 'detail' field
+            data['o:errorDetails'].forEach(errorDetail => {
+                concatenatedErrorDetails += errorDetail?.detail + " "; // Concatenating with a space
+            });
+            // Trim any trailing space from the concatenated string
+            concatenatedErrorDetails = concatenatedErrorDetails.trim();
         }
-        return false;
+        return concatenatedErrorDetails.length > 0 ? concatenatedErrorDetails : message;
     } catch (error) {
-        return false;
+        return message;
     }
 }
 
