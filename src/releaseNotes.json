@@ -6,6 +6,10 @@
                 "description": "- Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page"
             },
             {
+                "type": "Change",
+                "description": "- Updated notification UI"
+            },
+            {
                 "type": "Fix",
                 "description": "- Numbers can now be copied from call page and call history page"
             },

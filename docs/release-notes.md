@@ -3,6 +3,7 @@
 ## 1.0.10
 
 - Change: Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page
+- Change: Updated notification UI.
 - Fix: Numbers can now be copied from call page and call history page
 - Fix: Click-to-dial now supports detecting phone numbers in input fields
 - Fix: Click-to-dial now supports detecting extension numbers with format as eg. +13334445555#134
