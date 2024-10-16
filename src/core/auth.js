@@ -53,17 +53,25 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const platformModule = require(`../adapters/${platform}`);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const { platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
-    const userInfo = await saveUserInfo({
-        platformUserInfo,
-        platform,
-        hostname,
-        accessToken: platformUserInfo.overridingApiKey ?? apiKey
-    });
-    return {
-        userInfo,
-        returnMessage
-    };
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
+    if (successful) {
+        const userInfo = await saveUserInfo({
+            platformUserInfo,
+            platform,
+            hostname,
+            accessToken: platformUserInfo.overridingApiKey ?? apiKey
+        });
+        return {
+            userInfo,
+            returnMessage
+        };
+    }
+    else {
+        return {
+            userInfo: null,
+            returnMessage
+        }
+    }
 }
 
 async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {

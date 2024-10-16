@@ -30,7 +30,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         const timezoneName = '';
         const timezoneOffset = null;
         return {
-            successful: false,
+            successful: true,
             platformUserInfo: {
                 id,
                 name,
@@ -51,7 +51,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to get user info.',
+                message: 'Failed to get user info. Please check your credentials.',
                 ttl: 3000
             }
         }

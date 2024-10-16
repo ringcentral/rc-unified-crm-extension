@@ -98,7 +98,7 @@ async function findContact({ user, phoneNumber }) {
             });
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
                 {
@@ -264,7 +264,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         personReference: {
             id: contactInfo.id
         },
-        dateAdded: callLog.startTime
+        dateAdded: callLog.startTime,
+        externalID: callLog.sessionId,
+        minutesSpent: callLog.duration / 60
     }
     let addLogRes;
     try {
@@ -279,7 +281,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         );
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             addLogRes = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -315,7 +317,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             });
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
                 `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
@@ -377,7 +379,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             });
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
                 {
@@ -462,7 +464,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             });
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
                 {
@@ -520,7 +522,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             });
     }
     catch (e) {
-        if (e.response.status === 401) {
+        if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
                 `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
@@ -561,6 +563,10 @@ async function refreshSessionToken(user) {
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     await user.save();
     return user;
+}
+
+function isAuthError(statusCode) {
+    return statusCode >= 400 && statusCode < 500;
 }
 
 exports.getAuthType = getAuthType;

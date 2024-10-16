@@ -22,3 +22,4 @@ client/src/manifest.json
 /devFlow.puml
 /devGuideDraft.md
 /build/*
+/src/test.js

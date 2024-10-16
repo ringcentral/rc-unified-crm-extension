@@ -215,12 +215,18 @@ app.post('/apiKeyLogin', async function (req, res) {
             throw 'Missing api key';
         }
         const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            platform: platform
-        });
-        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
-        success = true;
+        if (!!userInfo) {
+            const jwtToken = jwt.generateJwt({
+                id: userInfo.id.toString(),
+                platform: platform
+            });
+            res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
+            success = true;
+        }
+        else {
+            res.status(400).send({ returnMessage });
+            success = false;
+        }
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
@@ -314,8 +320,7 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
             res.status(200).send({ successful, returnMessage, contact });
-            if(successful)
-            {
+            if (successful) {
                 const nonNewContact = contact.filter(c => !c.isNewContact);
                 resultCount = nonNewContact.length;
                 success = true;
