@@ -1,4 +1,24 @@
 {
+    "1.0.10": {
+        "global": [
+            {
+                "type": "Change",
+                "description": "- Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page"
+            },
+            {
+                "type": "Fix",
+                "description": "- Numbers can now be copied from call page and call history page"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting phone numbers in input fields"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting extension numbers with format as eg. +13334445555#134"
+            }
+        ]
+    },
     "1.0.9": {
         "global": [
             {
