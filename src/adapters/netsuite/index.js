@@ -33,6 +33,15 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
         const location = employeResponse.data.location ?? '';
         const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
+        let oneWorldLicenseResponse;
+        try {
+            const checkOneWorldLicenseUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getoneworldlicense_scriptid&deploy=customdeploy_getoneworldlicense_deployid`;
+            oneWorldLicenseResponse = await axios.get(checkOneWorldLicenseUrl, {
+                headers: { 'Authorization': authHeader }
+            });
+        } catch (e) {
+            console.log({ message: "Error in getting OneWorldLicense" });
+        }
         return {
             successful: true,
             platformUserInfo: {
@@ -44,6 +53,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                     email: employeResponse.data.email,
                     name: name,
                     subsidiaryId,
+                    oneWorldEnabled: oneWorldLicenseResponse?.data?.oneWorldEnabled,
                 },
 
             },
@@ -177,12 +187,12 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-        const subsidiaryId = user?.platformAdditionalInfo?.subsidiaryId;
+        const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         let callStartTime = moment(moment(callLog.startTime).toISOString());
         /**
          * Users without a OneWorld license do not have access to subsidiaries.
          */
-        if (subsidiaryId !== undefined && subsidiaryId !== '') {
+        if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
             const subsidiary = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
@@ -494,6 +504,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         const nameParts = splitName(newContactName);
         let contactId = 0;
         const subsidiaryId = user.platformAdditionalInfo?.subsidiaryId;
+        const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         switch (newContactType) {
             case 'contact':
                 let companyId = 0;
@@ -515,7 +526,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
                             comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records.",
                         };
-                        if (subsidiaryId !== undefined && subsidiaryId !== '') {
+                        if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                             companyPostBody.subsidiary = { id: subsidiaryId };
                         }
                         const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
@@ -533,7 +544,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         phone: phoneNumber || '',
                         company: { id: companyId }
                     };
-                    if (subsidiaryId !== undefined && subsidiaryId !== '') {
+                    if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                         contactPayLoad.subsidiary = { id: subsidiaryId };
                     }
                     const createContactRes = await axios.post(
@@ -567,7 +578,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     isPerson: true
 
                 };
-                if (subsidiaryId !== undefined && subsidiaryId !== '') {
+                if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                     customerPayLoad.subsidiary = { id: subsidiaryId };
                 }
                 try {
