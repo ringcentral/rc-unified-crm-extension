@@ -589,6 +589,45 @@
                     "value": "Contact"
                 }
             ],
+            "settings": [
+                {
+                    "id": "bullhornDefaultNoteAction",
+                    "type": "section",
+                    "name": "Bullhorn options",
+                    "items": [
+                        {
+                            "id": "noteActionMatchWarning",
+                            "name": "Info: note action matching warning",
+                            "type": "warning",
+                            "value": "Note action value match ignores cases and spaces"
+                        },
+                        {
+                            "id": "bullhornInboundCallNoteAction",
+                            "type": "inputField",
+                            "name": "Default action for inbound calls",
+                            "placeholder": "Enter action value"
+                        },
+                        {
+                            "id": "bullhornOutboundCallNoteAction",
+                            "type": "inputField",
+                            "name": "Default action for outbound calls",
+                            "placeholder": "Enter action value"
+                        },
+                        {
+                            "id": "bullhornMessageNoteAction",
+                            "type": "inputField",
+                            "name": "Default action for SMS",
+                            "placeholder": "Enter action value"
+                        },
+                        {
+                            "id": "bullhornVoicemailNoteAction",
+                            "type": "inputField",
+                            "name": "Default action for voicemails",
+                            "placeholder": "Enter action value"
+                        }
+                    ]
+                }
+            ],
             "page": {
                 "callLog": {
                     "additionalFields": [
@@ -596,7 +635,16 @@
                             "const": "noteActions",
                             "title": "Note action",
                             "type": "selection",
-                            "contactDependent": false
+                            "contactDependent": false,
+                            "defaultSettingId": "bullhornDefaultNoteAction",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "bullhornInboundCallNoteAction"
+                                },
+                                "outboundCall": {
+                                    "settingId": "bullhornOutboundCallNoteAction"
+                                }
+                            }
                         }
                     ]
                 },
@@ -606,7 +654,16 @@
                             "const": "noteActions",
                             "title": "Note action",
                             "type": "selection",
-                            "contactDependent": false
+                            "contactDependent": false,
+                            "defaultSettingId": "bullhornDefaultNoteAction",
+                            "defaultSettingValues": {
+                                "message": {
+                                    "settingId": "bullhornMessageNoteAction"
+                                },
+                                "voicemail": {
+                                    "settingId": "bullhornVoicemailNoteAction"
+                                }
+                            }
                         }
                     ]
                 },
