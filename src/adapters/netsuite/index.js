@@ -33,14 +33,18 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
         const location = employeResponse.data.location ?? '';
         const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
-        let oneWorldLicenseResponse;
+        let oneWorldEnabled;
         try {
             const checkOneWorldLicenseUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getoneworldlicense_scriptid&deploy=customdeploy_getoneworldlicense_deployid`;
-            oneWorldLicenseResponse = await axios.get(checkOneWorldLicenseUrl, {
+            const oneWorldLicenseResponse = await axios.get(checkOneWorldLicenseUrl, {
                 headers: { 'Authorization': authHeader }
             });
+            oneWorldEnabled = oneWorldLicenseResponse?.data?.oneWorldEnabled;
         } catch (e) {
             console.log({ message: "Error in getting OneWorldLicense" });
+            if (subsidiaryId !== undefined && subsidiaryId !== '') {
+                oneWorldEnabled = true;
+            }
         }
         return {
             successful: true,
@@ -53,7 +57,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                     email: employeResponse.data.email,
                     name: name,
                     subsidiaryId,
-                    oneWorldEnabled: oneWorldLicenseResponse?.data?.oneWorldEnabled,
+                    oneWorldEnabled: oneWorldEnabled,
                 },
 
             },
