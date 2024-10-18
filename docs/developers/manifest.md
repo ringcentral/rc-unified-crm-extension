@@ -139,3 +139,103 @@ Currently welcome pages are relatively simple, providing developers with the abi
 
 * `docLink`: A URL to read documentation
 * `videoLink`: A URL to watch a video
+
+## User settings for default log form values
+
+This topic is closely related to the use of [auto log](../users//logging.md#automatically-logging-calls). For manual log cases, using Bullhorn as example, users would need to manually select one of the `Note action` codes. In auto log scenarios, the extension would refuse to auto log because it misses selection for `Note action` code value. Now, default log form values would be able to help. It has 4 cases: `inbound call`, `outbound call`, `message` and `voicemail` where we can predefine default values.
+
+Here's the example from Bullhorn. In `settings`, we want to add a new custom setting, and on log page render, we want to link the default values from user settings.
+
+![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
+
+```json
+{
+    "settings": 
+        [
+            {
+                "id": "bullhornDefaultNoteAction",
+                "type": "section",
+                "name": "Bullhorn options",
+                "items": [
+                    {
+                        "id": "noteActionMatchWarning",
+                        "name": "Info: note action matching warning",
+                        "type": "warning",
+                        "value": "Note action value match ignores cases and spaces"
+                    },
+                    {
+                        "id": "bullhornInboundCallNoteAction",
+                        "type": "inputField",
+                        "name": "Default action for inbound calls",
+                        "placeholder": "Enter action value"
+                    },
+                    {
+                        "id": "bullhornOutboundCallNoteAction",
+                        "type": "inputField",
+                        "name": "Default action for outbound calls",
+                        "placeholder": "Enter action value"
+                    },
+                    {
+                        "id": "bullhornMessageNoteAction",
+                        "type": "inputField",
+                        "name": "Default action for SMS",
+                        "placeholder": "Enter action value"
+                    },
+                    {
+                        "id": "bullhornVoicemailNoteAction",
+                        "type": "inputField",
+                        "name": "Default action for voicemails",
+                        "placeholder": "Enter action value"
+                    }
+                ]
+            }
+        ]
+}
+```
+
+Page fields need to be set to use default values mapped from user settings. 
+
+```json
+{
+    "page": {
+        "callLog": {
+            "additionalFields": [
+                {
+                    "const": "noteActions",
+                    "title": "Note action",
+                    "type": "selection",
+                    "contactDependent": false,
+                    "defaultSettingId": "bullhornDefaultNoteAction",
+                    "defaultSettingValues": {
+                        "inboundCall": {
+                            "settingId": "bullhornInboundCallNoteAction"
+                        },
+                        "outboundCall": {
+                            "settingId": "bullhornOutboundCallNoteAction"
+                        }
+                    }
+                }
+            ]
+        },
+        "messageLog": {
+            "additionalFields": [
+                {
+                    "const": "noteActions",
+                    "title": "Note action",
+                    "type": "selection",
+                    "contactDependent": false,
+                    "defaultSettingId": "bullhornDefaultNoteAction",
+                    "defaultSettingValues": {
+                        "message": {
+                            "settingId": "bullhornMessageNoteAction"
+                        },
+                        "voicemail": {
+                            "settingId": "bullhornVoicemailNoteAction"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
+```

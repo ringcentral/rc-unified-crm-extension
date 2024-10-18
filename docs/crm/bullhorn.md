@@ -36,9 +36,7 @@ In Settings, there's a "Bullhorn Default Note Action" entry button.
 
 ![Bullhorn default Note Action](../img/bullhorn-default-note-action-entry.png)
 
-We provide 3 most common cases here. Once you input the same Note Action string inside the field, the extension will try to find the assigned Note Action and select that for you on the log form page.
-
-There's also a "Apply to auto log" toggle to turn on this defaulting mechanism for auto log so that the extension won't generate unresolved items due to conflicts over multiple Note Actions. 
+We provide 4 most common cases here. Once you input the same Note Action string inside the field, the extension will try to find the assigned Note Action and select that for you on the log form page.
 
 ![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
 
