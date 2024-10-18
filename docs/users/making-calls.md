@@ -8,7 +8,9 @@ To place a call, bring the extension to the foreground, open up the dialer, and 
 
 ## Click-to-dial
 
-When using your CRM, all phone numbers in your CRM will become clickable, allowing you to easily initiate a call with that phone number, or send an SMS message to that phone number. This helps users more quickly and easily engage with contacts, leads, candidates and people whom your CRM tracks. 
+When using your CRM, all phone numbers in your CRM will become clickable, allowing you to easily initiate a call with that phone number, or send an SMS message to that phone number. This helps users more quickly and easily engage with contacts, leads, candidates and people whom your CRM tracks.
+
+Extension numbers are also supported, in format: {mainNumber}#{extensionNumber} (eg. +12223334444#438)
 
 <figure markdown>
   ![Click to dial](../img/click-to-dial.png)
