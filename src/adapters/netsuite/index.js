@@ -33,6 +33,19 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
         const location = employeResponse.data.location ?? '';
         const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
+        let oneWorldEnabled;
+        try {
+            const checkOneWorldLicenseUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getoneworldlicense_scriptid&deploy=customdeploy_getoneworldlicense_deployid`;
+            const oneWorldLicenseResponse = await axios.get(checkOneWorldLicenseUrl, {
+                headers: { 'Authorization': authHeader }
+            });
+            oneWorldEnabled = oneWorldLicenseResponse?.data?.oneWorldEnabled;
+        } catch (e) {
+            console.log({ message: "Error in getting OneWorldLicense" });
+            if (subsidiaryId !== undefined && subsidiaryId !== '') {
+                oneWorldEnabled = true;
+            }
+        }
         return {
             successful: true,
             platformUserInfo: {
@@ -44,6 +57,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                     email: employeResponse.data.email,
                     name: name,
                     subsidiaryId,
+                    oneWorldEnabled: oneWorldEnabled,
                 },
 
             },
@@ -177,16 +191,23 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-        const subsidiary = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
-        const callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+        const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
+        let callStartTime = moment(moment(callLog.startTime).toISOString());
+        /**
+         * Users without a OneWorld license do not have access to subsidiaries.
+         */
+        if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+            const subsidiary = await axios.post(
+                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                {
+                    q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
+                },
+                {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                });
+            const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
+            callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+        }
         const callEndTime = moment(callStartTime).add(callLog.duration, 'seconds');
         const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
         const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
@@ -486,6 +507,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     try {
         const nameParts = splitName(newContactName);
         let contactId = 0;
+        const subsidiaryId = user.platformAdditionalInfo?.subsidiaryId;
+        const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         switch (newContactType) {
             case 'contact':
                 let companyId = 0;
@@ -503,12 +526,15 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         companyId = companyInfo.data.items[0].id;
                     }
                     else {
+                        let companyPostBody = {
+                            companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                            comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records.",
+                        };
+                        if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                            companyPostBody.subsidiary = { id: subsidiaryId };
+                        }
                         const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
-                            {
-                                companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
-                                comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records.",
-                                subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
-                            }
+                            companyPostBody
                             ,
                             {
                                 headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
@@ -520,9 +546,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         middleName: nameParts.middleName,
                         lastName: nameParts.lastName,
                         phone: phoneNumber || '',
-                        company: { id: companyId },
-                        subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
+                        company: { id: companyId }
                     };
+                    if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                        contactPayLoad.subsidiary = { id: subsidiaryId };
+                    }
                     const createContactRes = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
                         contactPayLoad
@@ -551,10 +579,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     middleName: nameParts.middleName,
                     lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
                     phone: phoneNumber || '',
-                    isPerson: true,
-                    subsidiary: { id: user.platformAdditionalInfo?.subsidiaryId }
+                    isPerson: true
 
                 };
+                if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                    customerPayLoad.subsidiary = { id: subsidiaryId };
+                }
                 try {
                     const createCustomerRes = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
