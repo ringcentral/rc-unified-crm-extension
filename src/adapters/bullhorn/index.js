@@ -407,7 +407,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
     try {
-        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -417,7 +417,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     catch (e) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -492,7 +492,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
     try {
-        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+        userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -502,7 +502,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     catch (e) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
-            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=id=${user.id.replace('-bullhorn', '')}`,
+            userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
