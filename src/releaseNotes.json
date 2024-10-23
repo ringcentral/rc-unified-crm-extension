@@ -1,4 +1,30 @@
 {
+    "1.1.0": {
+        "global":[
+            {
+                "type": "New",
+                "description": "- Show error page when CRM initialization fails"
+            },
+            {
+                "type": "Better",
+                "description": "- Use local cached contact info to avoid rate limit issue"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open"
+            }
+        ],
+        "bullhorn":[
+            {
+                "type": "Better",
+                "description": "- Default note action matching ignores case and spaces"
+            },
+            {
+                "type": "Fix",
+                "description": "- Issue of session becoming invalid due to user id confusion"
+            }
+        ]
+    },
     "1.0.10": {
         "global": [
             {

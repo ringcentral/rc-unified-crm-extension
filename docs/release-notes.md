@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.1.0
+
+- New: Show error page when CRM initialization fails
+- Better: Use local cached contact info to avoid rate limit issue
+- Better: Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open
+- Bullhorn: Default note action matching ignores case and spaces
+- Bullhorn: Fix issue on user id confusion
+
 ## 1.0.10
 
 - Change: Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page
