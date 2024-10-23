@@ -767,7 +767,7 @@
                 }
             },
             "platform": "netsuite",
-            "contactPageUrl": "https://{hostname}/app/common/entity/{contactType}.nl?id={contactId}",
+            "contactPageUrl": "https://{hostname}/app/common/entity/{contactType}.nl?id={contactId}&source=ringcentral",
             "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
             "canOpenLogPage": true,
             "contactTypes": [

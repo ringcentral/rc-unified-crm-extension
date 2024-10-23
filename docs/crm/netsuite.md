@@ -26,6 +26,18 @@ Installing the app from the SuiteApp marketplace is a necessary step prior to in
 
 Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral Unified CRM Extension." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
 
+### For Non-OneWorld License Account Users:
+1. Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created.  
+2. This custom role enables Non-OneWorld license account users to access features such as call logs, message logs, and more.
+
+### For OneWorld License Account Users:
+1. Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created.  
+2. Users must create a clone of this role by selecting the "Customize" option.  
+3. While cloning, add the permission **"List -> Subsidiaries"** to the cloned role.  
+4. The cloned role can now be used to access features such as call logs, message logs, and other functionality.
+
+Note: The role is created by SuiteApp locked by default and cannot be edited. If you wish to make modifications, you may duplicate the role by clicking on "Customize."
+
 ### Turn on REST web services
 
 REST Web Services is default to be invisible. We'll need to turn on the feature so to make it selectable for roles. Here's how to do it:
