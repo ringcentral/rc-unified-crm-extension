@@ -4,6 +4,7 @@ const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
 const { getTimeZone } = require('../../lib/util');
+const { get } = require('shortid/lib/alphabet');
 
 function getAuthType() {
     return 'oauth';
@@ -22,17 +23,23 @@ async function getOauthInfo({ hostname }) {
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
     try {
-        const url = `https://${query.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/employee/${query.entity}`;
-        const employeResponse = await axios.get(url,
-            {
+        let getCurrentLoggedInUserResponse;
+        try {
+            const getCurrentLoggedInUserUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getcurrentuser&deploy=customdeploy_getcurrentuser`;
+            getCurrentLoggedInUserResponse = await axios.get(getCurrentLoggedInUserUrl, {
                 headers: { 'Authorization': authHeader }
             });
-        const id = query.entity;
-        const name = employeResponse.data.firstName + ' ' + employeResponse.data.lastName;
-        const timezoneName = employeResponse.data.time_zone ?? '';
-        const timezoneOffset = employeResponse.data.time_zone_offset ?? null;
-        const location = employeResponse.data.location ?? '';
-        const subsidiaryId = employeResponse.data.subsidiary?.id ?? '';
+        } catch (e) {
+            console.log({ message: "Error in getting employee information using RestLet" });
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "It appears that your SuiteApp is an older version. Please update it to the latest version.",
+                    ttl: 60000
+                }
+            }
+        }
         let oneWorldEnabled;
         try {
             const checkOneWorldLicenseUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getoneworldlicense_scriptid&deploy=customdeploy_getoneworldlicense_deployid`;
@@ -49,14 +56,12 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         return {
             successful: true,
             platformUserInfo: {
-                id,
-                name,
-                timezoneName,
-                timezoneOffset,
+                id: query.entity,
+                name: getCurrentLoggedInUserResponse?.data?.name,
                 platformAdditionalInfo: {
-                    email: employeResponse.data.email,
-                    name: name,
-                    subsidiaryId,
+                    email: getCurrentLoggedInUserResponse?.data?.email,
+                    name: getCurrentLoggedInUserResponse?.data?.name,
+                    subsidiaryId: getCurrentLoggedInUserResponse?.data?.subsidiary,
                     oneWorldEnabled: oneWorldEnabled,
                 },
 
