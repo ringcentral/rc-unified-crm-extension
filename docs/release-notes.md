@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.1
+
+- Fix: Call/SMS logging issue
+
 ## 1.1.0
 
 - New: Show error page when CRM initialization fails

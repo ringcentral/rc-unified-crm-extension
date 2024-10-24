@@ -1,4 +1,18 @@
 {
+    "1.1.1": {
+        "global":[
+            {
+                "type": "Fix",
+                "description": "- Call/SMS logging issue"
+            }
+        ],
+        "bullhorn":[
+            {
+                "type": "Message",
+                "description": "- There has been a fix for unstable Bullhorn authorization. Please disconnect -> refresh Bullhorn page -> re-connect if you haven't done it."
+            }
+        ]
+    },
     "1.1.0": {
         "global":[
             {
