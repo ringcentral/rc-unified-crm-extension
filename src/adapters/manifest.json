@@ -186,7 +186,7 @@
                 "callLog": {
                     "additionalFields": [
                         {
-                            "const": "organization",
+                            "const": "organisation",
                             "title": "Organisation",
                             "type": "selection",
                             "contactDependent": true
