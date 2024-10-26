@@ -2,7 +2,7 @@
 
 The Unified CRM adapter framework currently supports two different authentication modalities:
 
-* [OAuth](#implementing-oauth-for-a-crm). This is the most common form of authentication and authorization supported by most CRMs. 
+* [OAuth](#connecting-to-a-crm-via-oauth). This is the most common form of authentication and authorization supported by most CRMs. 
 * [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
 
 Start by editing the `platforms` object within your adapter's [manifest](manifest.md), and setting the `type` property under `auth` to either:
@@ -102,7 +102,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
 
-1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapterRefresh) setting under the extension's options. 
+1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapter) setting under the extension's options. 
    2. Access the Chrome extension. 
 3. Log out and log back into your CRM using the "Connect" button under the Settings tab, or by going through the appropriate CRM login and authorization flow for your adapter.
 4. Finally, check to see if any user info was saved in the database (`CHECK.1`)

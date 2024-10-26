@@ -10,6 +10,10 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: img/RingCentral_logo_color.png
+  font:
+    code: Roboto Mono
+    text: Inter Tight
   features:
       - navigation.path
       - navigation.sections
