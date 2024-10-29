@@ -1,4 +1,12 @@
 {
+    "1.1.2": {
+        "global":[
+            {
+                "type": "Change",
+                "description": "- Auto pop up log page is not dependent on auto log setting anymore."
+            }
+        ]
+    },
     "1.1.1": {
         "global":[
             {
