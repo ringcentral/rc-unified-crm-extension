@@ -30,7 +30,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                 headers: { 'Authorization': authHeader }
             });
         } catch (e) {
-            console.log({ message: "Error in getting employee information using RestLet", e });
+            console.log({ message: "Error in getting employee information using RestLet" });
             return {
                 successful: false,
                 returnMessage: {
