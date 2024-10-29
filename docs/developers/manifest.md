@@ -22,7 +22,7 @@ These basic properties
 | Name          | Type   | Description                                                                                                           |
 |---------------|--------|-----------------------------------------------------------------------------------------------------------------------|
 | `author`      | string | The author of the adapter. This is displayed to end users within the Chrome extension.                                |
-| `platforms`   | ARRAY of object | An array of [platforms](#platforms-configuration) being integrated with. Each element of this array defines a different CRM. |
+| `platforms`   | ARRAY of object | An array of [platforms](#platform-configuration) being integrated with. Each element of this array defines a different CRM. |
 | `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your adapter. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-adapter.myserver.com` |
 | `version`     | string | The version of your adapter. This is displayed to end users within the Chrome extension. |
 
@@ -37,7 +37,7 @@ The platforms property is an associative array. Each key should be a unique iden
 | `name`           | string          | The name of the CRM. |
 | `displayName`           | string          | The display name of the CRM. |
 | `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's orange quick access button will appear. (`*` for wildcard match is supported) |
-| `auth`       | object          | Contains all info for authorization. [Details](#setup-authorization) |
+| `auth`       | object          | Contains all info for authorization. [Details](#authorization) |
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
 | `contactTypes`   | ARRAY of object | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. Each object has `display` and `value`. |
 | `contactPageUrl` | string          | A format string to open a CRM's contact page, e.g.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
