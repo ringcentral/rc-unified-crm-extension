@@ -636,6 +636,7 @@
                             "title": "Note action",
                             "type": "selection",
                             "contactDependent": false,
+                            "allowCustomValue": true,
                             "defaultSettingId": "bullhornDefaultNoteAction",
                             "defaultSettingValues": {
                                 "inboundCall": {
@@ -655,6 +656,7 @@
                             "title": "Note action",
                             "type": "selection",
                             "contactDependent": false,
+                            "allowCustomValue": true,
                             "defaultSettingId": "bullhornDefaultNoteAction",
                             "defaultSettingValues": {
                                 "message": {
