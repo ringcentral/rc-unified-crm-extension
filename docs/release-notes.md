@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.2
+
+- Change: Auto pop up log page is not dependent on auto log setting anymore
+
 ## 1.1.1
 
 - Fix: Call/SMS logging issue

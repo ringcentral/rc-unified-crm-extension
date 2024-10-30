@@ -15,6 +15,7 @@
             "urlIdentifier": "*.labs.ringcentral.com/*",
             "name": "testCRM",
             "displayName": "Test CRM",
+            "enableExtensionNumberLoggingSetting": true,
             "requestConfig": {
                 "timeout": 30
             },
@@ -44,12 +45,12 @@
             "canOpenLogPage": false,
             "contactTypes": [
                 {
-                  "display": "TestContactType",
-                  "value": "testContact"
+                    "display": "TestContactType",
+                    "value": "testContact"
                 },
                 {
-                  "display": "Contact",
-                  "value": "cta"
+                    "display": "Contact",
+                    "value": "cta"
                 }
             ],
             "embeddedOnCrmPage": {
@@ -94,5 +95,5 @@
             }
         }
     },
-    "version": "1.1.1"
+    "version": "1.1.2"
 }
