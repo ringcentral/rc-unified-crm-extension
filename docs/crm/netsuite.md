@@ -54,8 +54,6 @@ If you would like to create a custom role that includes the permissions necessar
 | ------------ | ------------------------------------ | ----- |
 | Lists        | Contacts                             | Full  |
 | Lists        | Customers                            | Full  |
-| Lists        | Employee Record                      | View  |
-| Lists        | Employees                            | View  |
 | Lists        | Phone Calls                          | Full  |
 | Lists        | Subsidiaries                         | View  |
 | Reports      | SuiteAnalytics Workbook              | Edit  |
@@ -64,8 +62,6 @@ If you would like to create a custom role that includes the permissions necessar
 | Setup        | User Access Tokens                   | Full  |
 | Transactions | Sales Order                          | Full  |
 
-!!! warning "Make sure Employee permission is set to View"
-    For security reasons, only an Administrator can edit Administrator records. As a result if you apply "Full" Employee permissons to a role, you may experience difficulty connecting the extension to NetSuite. 
 
 ## Install the Chrome/Edge extension
 
