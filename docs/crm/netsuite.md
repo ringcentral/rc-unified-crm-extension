@@ -7,6 +7,7 @@ RingCentral's integration with NetSuite helps streamline communications with con
 !!! warning "Prerequisites"
     * The current version of the NetSuite integration requires NetSuite version 2024.1 or later. 
     * NetSuite users must have [REST Web Services](https://docs.oracle.com/en/cloud/saas/netsuite/ns-online-help/section_1544787084.html#Related-Topics) enabled. 
+	* NetSuite OneWorld license holders will need to manually add the "Subsidiaries" permission to the role they use to connect to NetSuite. 
 
 ## Install the SuiteApp
 
@@ -26,17 +27,16 @@ Installing the app from the SuiteApp marketplace is a necessary step prior to in
 
 Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral Unified CRM Extension." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
 
-### For Non-OneWorld License Account Users:
-1. Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created.  
-2. This custom role enables Non-OneWorld license account users to access features such as call logs, message logs, and more.
+### NetSuite OneWorld instructions
 
-### For OneWorld License Account Users:
-1. Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created.  
-2. Users must create a clone of this role by selecting the "Customize" option.  
-3. While cloning, add the permission **"List -> Subsidiaries"** to the cloned role.  
-4. The cloned role can now be used to access features such as call logs, message logs, and other functionality.
+Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
 
-Note: The role is created by SuiteApp locked by default and cannot be edited. If you wish to make modifications, you may duplicate the role by clicking on "Customize."
+1. Clone the "RingCentral Unified CRM Extension" role by selecting the "Customize" option.
+2. While cloning, add the permission **"List -> Subsidiaries"** to the cloned role.
+
+Use this cloned role when logging into and connecting the Unified CRM extension to NetSuite.
+
+!!! info "The role is created by SuiteApp locked by default and cannot be edited. If you wish to make modifications, you may duplicate the role by clicking on 'Customize.'"
 
 ### Turn on REST web services
 
@@ -48,24 +48,19 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 
 ### Create role with required permissions
 
-If you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
+We recommend using the "RingCentral Unified CRM Extension" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
 
-| Category     | Permission                           | Level |
-| ------------ | ------------------------------------ | ----- |
-| Lists        | Contacts                             | Full  |
-| Lists        | Customers                            | Full  |
-| Lists        | Employee Record                      | View  |
-| Lists        | Employees                            | View  |
-| Lists        | Phone Calls                          | Full  |
-| Lists        | Subsidiaries                         | View  |
-| Reports      | SuiteAnalytics Workbook              | Edit  |
-| Setup        | Log in using OAuth 2.0 Access Tokens | Full  |
-| Setup        | REST Web Services                    | Full  |
-| Setup        | User Access Tokens                   | Full  |
-| Transactions | Sales Order                          | Full  |
-
-!!! warning "Make sure Employee permission is set to View"
-    For security reasons, only an Administrator can edit Administrator records. As a result if you apply "Full" Employee permissons to a role, you may experience difficulty connecting the extension to NetSuite. 
+| Category     | Permission                           | Level                       |
+| ------------ | ------------------------------------ | -----                       |
+| Lists        | Contacts                             | Full                        |
+| Lists        | Customers                            | Full                        |
+| Lists        | Phone Calls                          | Full                        |
+| Lists        | Subsidiaries                         | View  (OneWorld users only) |
+| Reports      | SuiteAnalytics Workbook              | Edit                        |
+| Setup        | Log in using OAuth 2.0 Access Tokens | Full                        |
+| Setup        | REST Web Services                    | Full                        |
+| Setup        | User Access Tokens                   | Full                        |
+| Transactions | Sales Order                          | Full                        |
 
 ## Install the Chrome/Edge extension
 
