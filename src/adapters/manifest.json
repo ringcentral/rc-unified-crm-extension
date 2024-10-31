@@ -440,7 +440,7 @@
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-            "urlIdentifier": "crm.redtailtechnology.com",
+            "urlIdentifier": "redtailtechnology.com",
             "name": "redtail",
             "auth": {
                 "type": "apiKey",
@@ -870,5 +870,5 @@
             }
         }
     },
-    "version": "1.1.2"
+    "version": "1.1.3"
 }
