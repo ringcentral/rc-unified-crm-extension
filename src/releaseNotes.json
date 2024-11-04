@@ -20,6 +20,10 @@
             {
                 "type": "Fix",
                 "description": "- Default SMS note action issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Message log timezone issue"
             }
         ]
     },

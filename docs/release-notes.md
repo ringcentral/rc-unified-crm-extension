@@ -3,6 +3,7 @@
 ## 1.1.4
 
 - Bullhorn: Fix default SMS note action issue
+- Bullhorn: Fix message log timezone issue
 
 ## 1.1.3
 
