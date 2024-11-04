@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -624,6 +624,34 @@
                             "type": "inputField",
                             "name": "Default action for voicemails",
                             "placeholder": "Enter action value"
+                        }
+                    ]
+                },
+                {
+                    "id": "logDetailsLevelSection",
+                    "type": "section",
+                    "name": "Log details level",
+                    "isIncludedInLogSubmission": true,
+                    "items": [
+                        {
+                            "id": "callLogDetailsLevel",
+                            "type": "option",
+                            "name": "Call log details level",
+                            "defaultValue": "full",
+                            "options": [
+                                {
+                                    "id": "full",
+                                    "name": "Full call summary"
+                                },
+                                {
+                                    "id": "noteOnly",
+                                    "name": "User-entered notes only"
+                                },
+                                {
+                                    "id": "callDurationOnly",
+                                    "name": "Call duration only"
+                                }
+                            ]
                         }
                     ]
                 }

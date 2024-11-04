@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { UserModel } = require('../../models/userModel');
+const { secondsToTime } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
@@ -30,7 +31,7 @@ async function tempMigrateUserId({ existingUser }) {
         }
     }
     const newUserId = userInfoResponse.data.data[0]?.masterUserID;
-    if(!!!newUserId){
+    if (!!!newUserId) {
         return null;
     }
     const newUser = await UserModel.create({
@@ -295,8 +296,22 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
+    const logDetailLevel = additionalSubmission.customSettings?.find(s => s.id === 'callLogDetailsLevel') ?? 'full';
+    const callDuration = secondsToTime(callLog.duration);
+    let comments = '';
+    switch (logDetailLevel.value) {
+        case 'full':
+            comments = `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callDuration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`;
+            break;
+        case 'noteOnly':
+            comments = note;
+            break;
+        case 'callDurationOnly':
+            comments = `Call duration: ${callDuration}`;
+            break;
+    }
     const putBody = {
-        comments: `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
+        comments,
         action: noteActions,
         personReference: {
             id: contactInfo.id
