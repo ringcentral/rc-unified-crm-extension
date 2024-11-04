@@ -1,20 +1,44 @@
 {
+    "1.1.3": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Auto log association"
+            },
+            {
+                "type": "New",
+                "description": "- User setting in advanced features to turn on 'Auto open extension' to open itself when opening a CRM page"
+            }
+        ],
+        "redtail": [
+            {
+                "type": "Fix",
+                "description": "- Domain matching"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Default SMS note action issue"
+            }
+        ]
+    },
     "1.1.2": {
-        "global":[
+        "global": [
             {
                 "type": "Change",
-                "description": "- Auto pop up log page is not dependent on auto log setting anymore."
+                "description": "- Auto pop up log page is not dependent on auto log setting anymore"
             }
         ]
     },
     "1.1.1": {
-        "global":[
+        "global": [
             {
                 "type": "Fix",
                 "description": "- Call/SMS logging issue"
             }
         ],
-        "bullhorn":[
+        "bullhorn": [
             {
                 "type": "Message",
                 "description": "- There has been a fix for unstable Bullhorn authorization. Please disconnect -> refresh Bullhorn page -> re-connect if you haven't done it."
@@ -22,7 +46,7 @@
         ]
     },
     "1.1.0": {
-        "global":[
+        "global": [
             {
                 "type": "New",
                 "description": "- Show error page when CRM initialization fails"
@@ -36,7 +60,7 @@
                 "description": "- Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open"
             }
         ],
-        "bullhorn":[
+        "bullhorn": [
             {
                 "type": "Better",
                 "description": "- Default note action matching ignores case and spaces"

@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.3
+
+- Fix: Auto log association
+- New: User setting in advanced features to turn on "Auto open extension" to open itself when opening a CRM page
+- Redtail: Fix domain matching
+- Bullhorn: Fix default SMS note action issue
+
 ## 1.1.2
 
 - Change: Auto pop up log page is not dependent on auto log setting anymore
