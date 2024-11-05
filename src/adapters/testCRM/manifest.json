@@ -69,10 +69,36 @@
                             "contactDependent": true
                         },
                         {
-                            "const": "address",
-                            "title": "Address",
-                            "type": "inputField",
-                            "contactDependent": false
+                            "const": "state",
+                            "title": "State",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "allowCustomValue": true,
+                            "defaultSettingId": "testDefaultState",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "testInboundCallState"
+                                },
+                                "outboundCall": {
+                                    "settingId": "testOutboundCallState"
+                                }
+                            }
+                        },
+                        {
+                            "const": "type",
+                            "title": "Type",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "allowCustomValue": true,
+                            "defaultSettingId": "testDefaultType",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "testInboundCallType"
+                                },
+                                "outboundCall": {
+                                    "settingId": "testOutboundCallType"
+                                }
+                            }
                         }
                     ]
                 },
@@ -85,14 +111,116 @@
                             "contactDependent": true
                         },
                         {
-                            "const": "address",
-                            "title": "Address",
+                            "const": "state",
+                            "title": "State",
                             "type": "inputField",
-                            "contactDependent": false
+                            "contactDependent": false,
+                            "allowCustomValue": true,
+                            "defaultSettingId": "testDefaultState",
+                            "defaultSettingValues": {
+                                "message": {
+                                    "settingId": "testMessageState"
+                                },
+                                "outboundCall": {
+                                    "voicemail": "testVoicemailState"
+                                }
+                            }
+                        },
+                        {
+                            "const": "type",
+                            "title": "Type",
+                            "type": "inputField",
+                            "contactDependent": false,
+                            "allowCustomValue": true,
+                            "defaultSettingId": "testDefaultType",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "testMessageState"
+                                },
+                                "outboundCall": {
+                                    "settingId": "testVoicemailState"
+                                }
+                            }
                         }
                     ]
                 }
-            }
+            },
+            "settings":[
+                {
+                    "id": "testDefaultState",
+                    "type": "section",
+                    "name": "Test default state",
+                    "items": [
+                        {
+                            "id": "stateMatchWarning",
+                            "name": "Info: state matching warning",
+                            "type": "warning",
+                            "value": "State value match ignores cases and spaces"
+                        },
+                        {
+                            "id": "testInboundCallState",
+                            "type": "inputField",
+                            "name": "Default state for inbound calls",
+                            "placeholder": "Enter state value"
+                        },
+                        {
+                            "id": "testOutboundCallState",
+                            "type": "inputField",
+                            "name": "Default state for outbound calls",
+                            "placeholder": "Enter state value"
+                        },
+                        {
+                            "id": "testMessageState",
+                            "type": "inputField",
+                            "name": "Default state for SMS",
+                            "placeholder": "Enter state value"
+                        },
+                        {
+                            "id": "testVoicemailState",
+                            "type": "inputField",
+                            "name": "Default state for voicemails",
+                            "placeholder": "Enter state value"
+                        }
+                    ]
+                },
+                {
+                    "id": "testDefaultType",
+                    "type": "section",
+                    "name": "Test default type",
+                    "items": [
+                        {
+                            "id": "typeMatchWarning",
+                            "name": "Info: type matching warning",
+                            "type": "warning",
+                            "value": "Type value match ignores cases and spaces"
+                        },
+                        {
+                            "id": "testInboundCallType",
+                            "type": "inputField",
+                            "name": "Default type for inbound calls",
+                            "placeholder": "Enter type value"
+                        },
+                        {
+                            "id": "testOutboundCallType",
+                            "type": "inputField",
+                            "name": "Default type for outbound calls",
+                            "placeholder": "Enter type value"
+                        },
+                        {
+                            "id": "testMessageType",
+                            "type": "inputField",
+                            "name": "Default type for SMS",
+                            "placeholder": "Enter type value"
+                        },
+                        {
+                            "id": "testVoicemailType",
+                            "type": "inputField",
+                            "name": "Default type for voicemails",
+                            "placeholder": "Enter type value"
+                        }
+                    ]
+                }
+            ]
         }
     },
     "version": "1.1.4"

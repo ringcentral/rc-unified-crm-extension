@@ -151,11 +151,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     console.log(`phone number: ${phoneNumber}`)
     console.log(`is extesnion number? ${isExtension}`)
     const numberToQueryArray = [];
-    if(isExtension)
-    {
+    if (isExtension) {
         numberToQueryArray.push(phoneNumber);
     }
-    else{
+    else {
         numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     }
     // You can use parsePhoneNumber functions to further parse the phone number
@@ -443,17 +442,36 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 {
                     const: 'csA351',
                     title: 'Christmas special A351'
-                },
-                {
-                    const: 'eA22',
-                    title: 'Easter A22'
-                },
-                {
-                    const: 'aC92',
-                    title: 'Anniversary C92'
                 }
             ],
-            address: ''
+            state: [
+                {
+                    const: 'active',
+                    title: 'Active'
+                },
+                {
+                    const: 'inactive',
+                    title: 'Inactive'
+                },
+                {
+                    const: 'pending',
+                    title: 'Pending'
+                }
+            ],
+            type: [
+                {
+                    const: 'phone',
+                    title: 'Phone'
+                },
+                {
+                    const: 'email',
+                    title: 'Email'
+                },
+                {
+                    const: 'fax',
+                    title: 'Fax'
+                }
+            ]
         }
     }
 
