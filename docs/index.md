@@ -2,18 +2,14 @@
 hide:
   - navigation
 ---
-# Unified CRM extension for RingEX
+# App Connect for RingEX
 
-RingCentral's Unified CRM extension for RingEX is a browser extension for Google Chrome and Microsoft Edge that helps connect your RingCentral RingEX account to a number of different CRM services. It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track calls and engage with customers.
+RingCentral's App Connect for RingEX is a browser extension for Google Chrome and Microsoft Edge that helps connect your RingCentral RingEX account to a number of [different CRM services](crm/index.md). It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track communications and engage with customers.
 
 <figure markdown>
-  ![Unified CRM extension](img/intro.png)
-  <figcaption>RingCentral's Unified CRM extension as seen inside Redtail CRM</figcaption>
+  ![App Connect](img/intro.png)
+  <figcaption>RingCentral's App Connect as seen inside Redtail CRM</figcaption>
 </figure>
-
-## Supported CRMs
-
-![Unified CRM extension](img/supported-crms.png)
 
 ## Features
 
@@ -25,27 +21,23 @@ RingCentral's Unified CRM extension for RingEX is a browser extension for Google
 * **Send/receive SMS**. Not only can you place calls, but you can also send and receive SMS using the CTI. 
 * **SMS templates**. Respond to SMS more quickly, by storing and accessing messages you commonly send over SMS using a simple UI. 
 
+## Supported CRMs
+
+App Connect currently supports the following CRMs and services:
+
+![App Connect's supported CRMs](img/supported-crms.png)
+
+Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
+
+### Are you a developer? Build support for your own CRM
+
+App Connect is itself an [open source framework](https://github.com/ringcentral/rc-unified-crm-extension) that can be used by developers to [create a custom CRM integration](developers/index.md) more easily than building one from scratch. 
+
 ## Prerequisites
 
-The Unified CRM extension requires the following:
+App Connect requires the following:
 
 * RingEX account (Core, Advanced or Ultimate)
 * Google Chrome or Microsoft Edge
 
-## Supported CRMs
-
-RingCentral currently supports the following CRMs using the Unified CRM extension:
-
-* [Bullhorn](./crm/bullhorn.md)
-* [Clio](./crm/clio.md)
-* [Insightly](./crm/insightly.md)
-* [Pipedrive](./crm/pipedrive.md)
-* [Redtail CRM](./crm/redtail.md)
-* [NetSuite](./crm/netsuite.md)
-
-Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
-
-## Are you a developer? Build support for your own CRM
-
-The Unified CRM extension is built on top of an [open source framework](https://github.com/ringcentral/rc-unified-crm-extension), and can be used by third-party developers to [create a custom CRM integration](developers/index.md) more easily than building one from scratch. Visit our github page to learn how to build and contribute support for additional CRMs. 
 

@@ -1,6 +1,6 @@
 # createContact
 
-This interface is invoked whenever a new contact needs to be created in the target CRM. This happens when a user of the Unified CRM Chrome extension has elected to create a "placeholder contact." 
+This interface is invoked whenever a new contact needs to be created in the target CRM. This happens when a user of App Connect has elected to create a "placeholder contact." 
 
 This function is to create a placeholder contact, ONLY in the following case:
 * User adds a new call/message log against a number with no matched contact. In another words, create placeholder contact is tied to call/message logging action

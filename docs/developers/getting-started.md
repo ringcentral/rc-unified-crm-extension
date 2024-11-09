@@ -25,7 +25,7 @@ Next, copy the contents of the test CRM adapter to a new folder where your adapt
 
 ### Setup and start your server
 
-Each adapter requires a server to be running. This server exposes a canonical API to the Unified CRM integration framework, and in a sense acts as a broker or proxy between the front-end client, and the CRM. Let's setup and start the sample server bundled with the framework. 
+Each adapter requires a server to be running. This server exposes a canonical API to the App Connect framework, and in a sense acts as a broker or proxy between the front-end client, and the CRM. Let's setup and start the sample server bundled with the framework. 
 
 Open up a console and within it, follow these instructions.
 

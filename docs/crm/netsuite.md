@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for NetSuite
+# Setting up App Connect for NetSuite
 
 NetSuite is a cloud-based business management software that helps organizations manage their financials, operations, and customer relationships.
 
@@ -16,7 +16,7 @@ To begin using the NetSuite integration, users will first need to do the followi
 * Login to NetSuite
 * Click on the "SuiteApps" tab if your role gives you access to it
 * Search for "RingCentral" in the directory
-* Click "RingCentral Unified CRM Extension" in the search results
+* Click "RingCentral App Connect" in the search results
 * Click the "Install" button found in the upper right hand corner of the page
 
 If you see, "Not compatible" in place of an "Install" button, then you must be running an older version of NetSuite. You will need to upgrade to 2024.1 or later. 
@@ -25,16 +25,16 @@ Installing the app from the SuiteApp marketplace is a necessary step prior to in
 
 ## Setup roles and permissions in NetSuite
 
-Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral Unified CRM Extension." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
+Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral App Connect." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
 
 ### NetSuite OneWorld instructions
 
-Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral Unified CRM Extension"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
+Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral App Connect"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
 
-1. Clone the "RingCentral Unified CRM Extension" role by selecting the "Customize" option.
+1. Clone the "RingCentral App Connect" role by selecting the "Customize" option.
 2. While cloning, add the permission **"List -> Subsidiaries"** to the cloned role.
 
-Use this cloned role when logging into and connecting the Unified CRM extension to NetSuite.
+Use this cloned role when logging into and connecting App Connect to NetSuite.
 
 !!! info "The role is created by SuiteApp locked by default and cannot be edited. If you wish to make modifications, you may duplicate the role by clicking on 'Customize.'"
 
@@ -48,7 +48,7 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 
 ### Create role with required permissions
 
-We recommend using the "RingCentral Unified CRM Extension" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
+We recommend using the "RingCentral App Connect" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
 
 | Category     | Permission                           | Level                       |
 | ------------ | ------------------------------------ | -----                       |
@@ -64,9 +64,9 @@ We recommend using the "RingCentral Unified CRM Extension" role created for you 
 
 ## Install the Chrome/Edge extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="Unified CRM extension for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/yo4Q1Vj-sH4" title="App Connect for NetSuite - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
@@ -76,9 +76,9 @@ Once the extension has been installed, follow these steps to setup and configure
 
 2. While visiting a NetSuite web page, click the quick access button to bring the dialer to the foreground. 
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "netsuite".
+3. Navigate to the Settings screen in App Connect, and find the option labeled "Netsuite".
 
-    ![Connect to NetSuite](../img/netsuite-connect.png){ style="max-width: 200px" }
+    ![Connect to NetSuite](../img/netsuite-connect.png){ .mw-200 }
 
 4. Click the "Connect" button. 
 
@@ -90,9 +90,9 @@ And with that, you will be connected to NetSuite and ready to begin using the in
 
 ## Placeholder companies when creating contacts
 
-NetSuite requires that every contact be associated with a company. When logging calls for new contacts, the Unified CRM extension will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
+NetSuite requires that every contact be associated with a company. When logging calls for new contacts, App Connect will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
 
 1. Edit the company called "Placeholder Company" with a more appropriate name and with additional details.
 2. Edit the contact to associate it with a more appropriate company stored in NetSuite. 
 
-In this way, the Unified CRM extension ensures that all contacts created by it conform to the requirements of NetSuite so that all contact records are complete. 
+In this way, App Connect ensures that all contacts created by it conform to the requirements of NetSuite so that all contact records are complete. 

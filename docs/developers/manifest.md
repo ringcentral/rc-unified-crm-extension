@@ -70,7 +70,7 @@ The client-side authorization url that is opened by the extension will be: `{aut
 
 ## Customizing pages within the client application
 
-There are a number of pages within the Unified CRM client application that often need to be customized in some way for the corresponding CRM. Those pages are:
+There are a number of pages within the App Connect client application that often need to be customized in some way for the corresponding CRM. Those pages are:
 
 * CRM authentication page (ONLY for `apiKey` auth)
 * Call logging form

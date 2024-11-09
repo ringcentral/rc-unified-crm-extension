@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for Clio
+# Setting up App Connect for Clio
 
 Clio provides legal client relationship management software to help law firms manage business development functions such as client intake, client scheduling and follow-up, revenue tracking, and more. In short, Clio addresses the client intake process of turning potential new clients into retained clients.
 
@@ -6,9 +6,9 @@ RingCentral's integration with Clio helps streamline communications with clients
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/pQgdsAR1UCI?si=PaSTDhHkTUa9fMtk" title="Unified CRM extension for Clio - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/pQgdsAR1UCI?si=PaSTDhHkTUa9fMtk" title="App Connect for Clio - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
@@ -18,9 +18,9 @@ Once the extension has been installed, follow these steps to setup and configure
 
 2. While visiting a Clio application page, click the quick access button to bring the dialer to the foreground. 
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "clio."
+3. Navigate to the Settings screen in App Connect, and find the option labeled "Clio."
 
-    ![Connect to Clio](../img/clio-connect.png){ style="max-width: 200px" }
+    ![Connect to Clio](../img/clio-connect.png){ .mw-200 }
 
 4. Click the "Connect" button. 
 
@@ -36,7 +36,7 @@ Clio's contact lookup method is very strict. As a result, if the phone numbers i
 
 To address this, short of reformatting every phone number stored in Clio, is to go to [Phone number format setting](../users/settings.md#phone-number-formats) under `Contact setting` and setting the phone number formats to conform with the conventions used by your practice. 
 
-Navigate to the Unified CRM Chrome extension's advanced settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any number. Any other character used in the format string will be interpretted literally. 
+Navigate to App Connect's advanced settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any number. Any other character used in the format string will be interpretted literally. 
 
 Let's look at a few examples. First, consider the following format string:
 

@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for Insightly
+# Setting up App Connect for Insightly
 
 Growing businesses across the globe rely on Insightly to help them build lasting customer relationships. Insightly delivers a platform that can take businesses to the next level: a powerful CRM, plus marketing automation, a customer service app, and an integration tool.
 
@@ -6,9 +6,9 @@ RingCentral's integration with Insightly helps streamline communications between
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/5hWvVI12UAc?si=IX1PjO__Njki_60i" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
@@ -18,9 +18,9 @@ Once the extension has been installed, follow these steps to setup and configure
 
 2. While visiting an Insightly application page, click the quick access button to bring the dialer to the foreground. 
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "insightly."
+3. Navigate to the Settings screen in App Connect, and find the option labeled "Insightly."
 
-    ![Connect to Insightly](../img/insightly-connect.png){ style="max-width: 200px" }
+    ![Connect to Insightly](../img/insightly-connect.png){ .mw-200 }
 
 4. Click the "Connect" button. 
 
@@ -28,12 +28,12 @@ Once the extension has been installed, follow these steps to setup and configure
     * API key
     * API URL
 
-    ![Connect to Insightly](../img/insightly-setup.png){ style="max-width: 200px" }
+    ![Connect to Insightly](../img/insightly-setup.png){ .mw-200 }
 
 
 6. Click the "Get Key" button and the extension will attempt to retrieve these values for you. You may also enter these values manually. In Insightly, navigate to User Settings from the pull down menu in the upper-righthand corner. Scroll down until you see a section labeled "API." Copy and paste your API key and API URL into the corresponding fields. 
 
-    ![Insightly API credentials](../img/insightly-apicreds.png){ style="max-width: 600px" }
+    ![Insightly API credentials](../img/insightly-apicreds.png){ .mw-600 }
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Insightly. If you are connected, the button next to Insightly will say, "logout".
 

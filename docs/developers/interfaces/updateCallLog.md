@@ -2,7 +2,7 @@
 
 This interface is called when a call log activity record needs to be updated. This interface is invoked in response to the following user actions:
 
-* The user of the Unified CRM Chrome extension updates the subject or notes associated with a call log. 
+* The user of App Connect's Chrome extension updates the subject or notes associated with a call log. 
 * When a recording has become available for a phone call.
 
 ### Adding a recording to a call log entry

@@ -1,6 +1,6 @@
 # getCallLog
 
-This interface retrieves a previously logged call log record in the target CRM. This information is used to render a form to allow an end user to view or edit that record within the Unified CRM extension. 
+This interface retrieves a previously logged call log record in the target CRM. This information is used to render a form to allow an end user to view or edit that record within the App Connect client.
 
 ## Request parameters
 

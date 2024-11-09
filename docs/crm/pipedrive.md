@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for Pipedrive
+# Setting up App Connect for Pipedrive
 
 Pipedrive is designed to help small businesses grow. For over ten years, Pipedrive has been committed to building the best CRM – a CRM by and for salespeople. The result is an easy-to-use, effective sales tool that centralizes your data, helping you visualize your entire sales process and win more deals.
 
@@ -6,9 +6,9 @@ RingCentral's integration with Pipedrive helps streamline communications between
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/Hu0qC13HDkQ?si=XZLWUCalDRhF8ASP" title="Unified CRM extension for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/Hu0qC13HDkQ?si=XZLWUCalDRhF8ASP" title="App Connect for Insightly - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 

@@ -36,7 +36,7 @@ The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environm
 
 ## Adapter Server OpenAPI specification
 
-The OpenAPI specification below defines the interfaces that a developer must implement when creating an adapter for the Unified CRM extension. Once implemented, your adapter's [manifest file](../manifest.md) will specify the `serverURL` for your adapter's server that has implemented the interfaces defined by the OpenAPI specification below. 
+The OpenAPI specification below defines the interfaces that a developer must implement when creating an adapter for App Connect. Once implemented, your adapter's [manifest file](../manifest.md) will specify the `serverURL` for your adapter's server that has implemented the interfaces defined by the OpenAPI specification below. 
 
 As a user uses the Chrome extension, when a CRM-specific function is engaged, the Chrome extension will compose a request the corresponding adapter's endpoint implemented by that adapter's server. The server will perform the corresponding action in the associated CRM, and return results in a prescribed format so the Chrome extension can display the results of the user's action.
 

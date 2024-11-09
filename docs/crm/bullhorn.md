@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for Bullhorn
+# Setting up App Connect for Bullhorn
 
 Bullhorn is the global leader in software for the staffing industry. More than 10,000 companies rely on Bullhorn’s cloud-based platform to power their staffing processes from start to finish. 
 
@@ -6,9 +6,9 @@ RingCentral's integration with Bullhorn helps streamline communications with can
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/afbdQD0y4Yo?si=UKcBw2BP4pj2adNc" title="Unified CRM extension for Bullhorn - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/afbdQD0y4Yo?si=UKcBw2BP4pj2adNc" title="App Connect for Bullhorn - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
@@ -16,11 +16,11 @@ Once the extension has been installed, follow these steps to setup and configure
 
 1. [Login to Bullhorn](https://www.bullhornstaffing.com/).
 
-2. While visiting a Bullhorn application page, click the quick access button to bring the dialer to the foreground. 
+2. While visiting a Bullhorn application page, click the quick access badge to open or bring the dialer to the foreground. 
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "bullhorn."
+3. Navigate to the Settings screen in App Connect, and find the option labeled "Bullhorn."
 
-    ![Connect to Bullhorn](../img/bullhorn-connect.png){ style="max-width: 200px" }
+    ![Connect to Bullhorn](../img/bullhorn-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
@@ -32,19 +32,28 @@ And with that, you will be connected to Bullhorn and ready to begin using the in
 
 ## Auto log with default Note Action preference setup
 
-In Settings, there's a "Bullhorn Default Note Action" entry button.
+In Settings, there's a "Bullhorn options" entry button.
 
 ![Bullhorn default Note Action](../img/bullhorn-default-note-action-entry.png)
 
-We provide 4 most common cases here. Once you input the same Note Action string inside the field, the extension will try to find the assigned Note Action and select that for you on the log form page.
+We provide four options to choose from, corresponding to the different communications that can be logged in Bullhorn via App Connect. The values you enter here will be used in two different ways:
+
+1. When logging calls automatically, these note actions will be used when creating the associated notes. 
+2. When logging calls manually, these note actions will determine which action is selected by default in the logging screen. 
 
 ![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
 
+### Editing the enumerated list of possible note actions
+
+As an admin, navigate inside of Bullhorn to Admin > System Settings. Then filter the list of settings for "commentActionList." There you should fine a comma-delimited list of values that determine the possible/allowed note actions. 
+
+![Bullhorn default Note Action page](../img/bullhorn-comment-action-list.png)
+
 ## Placeholder companies when creating contacts
 
-Bullhorn requires that every contact be associated with a company. When logging calls for new contacts, the Unified CRM extension will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
+Bullhorn requires that every contact be associated with a company. When logging calls for new contacts, App Connect will first look for a company called, "Placeholder company." If a company with that name is not found, one will be created. Then the contact will be associated with that company record. It is the intent that once the call is complete that an agent do one of the following:
 
 1. Edit the company called "Placeholder Company" with a more appropriate name and with additional details.
 2. Edit the contact to associate it with a more appropriate company stored in Bullhorn. 
 
-In this way, the Unified CRM extension ensures that all contacts created by it conform to the requirements of Bullhorn so that all contact records are complete. 
+In this way, App Connect ensures that all contacts created by it conform to the requirements of Bullhorn so that all contact records are complete. 

@@ -2,7 +2,7 @@
 
 {! docs/developers/beta_notice.inc !}
 
-The Unified CRM extension allows users to log in their CRM all forms of communication with a customer, which includes SMS or text messages. This interface describes how to log an SMS conversation within the target CRM. 
+App Connect allows users to log in their CRM all forms of communication with a customer, which includes SMS or text messages. This interface describes how to log an SMS conversation within the target CRM. 
 
 ## Important note
 

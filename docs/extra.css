@@ -1,3 +1,24 @@
+.md-typeset img.mw-100 {
+    max-width: 100px;
+}
+.md-typeset img.mw-200 {
+    max-width: 200px;
+}
+.md-typeset img.mw-250 {
+    max-width: 250px;
+}
+.md-typeset img.mw-300 {
+    max-width: 300px;
+}
+.md-typeset img.mw-400 {
+    max-width: 400px;
+}
+.md-typeset img.mw-500 {
+    max-width: 500px;
+}
+.md-typeset img.mw-600 {
+    max-width: 600px;
+}
 .crm-logo {
     max-width: 200px;
     max-height: 100px;

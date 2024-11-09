@@ -1,6 +1,6 @@
 # Authorization and authenticating users with their CRM
 
-The Unified CRM adapter framework currently supports two different authentication modalities:
+App Connect's framework currently supports two different authentication modalities:
 
 * [OAuth](#connecting-to-a-crm-via-oauth). This is the most common form of authentication and authorization supported by most CRMs. 
 * [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
@@ -34,7 +34,7 @@ The framework will compose an OAuth compliant auth URL for you by appending to t
 
 ### Setting the redirect URI
 
-The Unified CRM Chrome extension utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
+App Connect's framework utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
 
     https://ringcentral.github.io/ringcentral-embeddable/redirect.html
 
@@ -50,7 +50,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 ## Connecting to a CRM using an API key
 
-Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the Unified CRM adapter framework does what it can to make the process as easy as possible for users. 
+Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the App Connect framework does what it can to make the process as easy as possible for users. 
 
 To auth a user via an API key, you need to present them with a form in which they will enter all needed credentials. The user will save those values and the framework will stash them a secure database for you. 
 
@@ -66,7 +66,7 @@ To auth a user via an API key, you need to present them with a form in which the
 
 === "Rendered page"
 
-    ![Auth page](../img/test-auth-page.png){ style="max-width:200px" }
+    ![Auth page](../img/test-auth-page.png){ .md-200 }
 
 **Insightly adapter**
 
