@@ -58,7 +58,7 @@ The client-side authorization url that is opened by the extension will be: `{aut
 | `oauth`        | object       | Only used with `type` equal to `oauth`. It contains `authUrl`, `clientId` and `redirectUri`. |
 | `apiKey`| object| Only used with `type` equal to `apiKey`. It contains [`page`](#apikey-auth-page) |
 
-### oauth paramters
+### oauth parameters
 
 | Name          | Type   | Description |
 |-|-|-|

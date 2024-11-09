@@ -6,6 +6,10 @@
     
     In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
 
+## Check the community!
+
+Detailed below are some common challenges users encounter. However the [App Connect community](https://community.ringcentral.com/groups/unified-crm-extension-22) is a far more comprehensive resource for helping users resolve issues. It is also a place where you can find recent news and updates to alert you of known issue, upcoming enhancements, and new releases. 
+
 ## I don't see an "Authorize" or "Connect" button to login to my CRM
 
 In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. App Connect will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch the CRM extension from any other domain, you will not see an Authorize or Connect button. 

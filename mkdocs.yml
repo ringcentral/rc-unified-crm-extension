@@ -98,6 +98,7 @@ nav:
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Welcome pages': developers/welcome-page.md
+      - 'Returning errors': developers/errors.md
       - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'createCallLog': developers/interfaces/createCallLog.md

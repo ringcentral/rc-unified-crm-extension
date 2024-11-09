@@ -57,21 +57,3 @@ This guide will walk you through the process of creating an adapter step-by-step
 
 Let's [get started](getting-started.md).
 
-### Return message to client
-
-Within your adapter, you can customize messages that will be shown to the client side for different scenarios.
-
-Here's a quick example for create call log return in `testCRM`:
-
-```js
-return {
-    logId: addLogRes.data.id,
-    returnMessage: {
-        message: 'Call log added.',
-        messageType: 'success',
-        ttl: 3000
-    }
-};
-```
-
-There are 3 types of messages: `success`, `warning` and `danger`.

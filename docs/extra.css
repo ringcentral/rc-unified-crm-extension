@@ -19,6 +19,8 @@
 .md-typeset img.mw-600 {
     max-width: 600px;
 }
+#oauth-parameters + .md-typeset__scrollwrap table th:first-of-type,
+#platform-configuration + p + p + .md-typeset__scrollwrap table th:first-of-type,
 #getuserinfo + p + .md-typeset__scrollwrap table th:first-of-type,
 #return-values + .md-typeset__scrollwrap table th:first-of-type,
 #return-values + p + .md-typeset__scrollwrap table th:first-of-type,
