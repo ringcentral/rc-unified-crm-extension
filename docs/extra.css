@@ -19,6 +19,13 @@
 .md-typeset img.mw-600 {
     max-width: 600px;
 }
+#getuserinfo + p + .md-typeset__scrollwrap table th:first-of-type,
+#return-values + .md-typeset__scrollwrap table th:first-of-type,
+#return-values + p + .md-typeset__scrollwrap table th:first-of-type,
+#request-parameters + .md-typeset__scrollwrap table th:first-of-type,
+#input-parameters + .md-typeset__scrollwrap table th:first-of-type {
+    width: 250px;
+}
 .crm-logo {
     max-width: 200px;
     max-height: 100px;
