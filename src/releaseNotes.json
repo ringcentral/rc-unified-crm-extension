@@ -1,4 +1,22 @@
 {
+    "1.2.0":{
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- SMS log issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Missing recording link when doing retroactive auto call logging"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "New",
+                "description": "- New user setting to allow custom action note"
+            }
+        ]
+    },
     "1.1.4": {
         "global": [
             {
