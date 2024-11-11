@@ -60,12 +60,13 @@ The client-side authorization url that is opened by the extension will be: `{aut
 
 ### oauth paramters
 
-| Name | Type | Description |
-| `authUrl`       | string          | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
-| `clientId`       | string          | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
+| Name          | Type   | Description |
+|-|-|-|
+| `authUrl`     | string | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
+| `clientId`    | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
 | `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. |
-| `customState`    | string          | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
-| `scope`| string |(Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+| `customState` | string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
+| `scope`       | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
 
 ## Customizing pages within the client application
 
@@ -80,18 +81,18 @@ There are a number of pages within the Unified CRM client application that often
 === "Sample adapter"
 
     ```js
-    {!> src/adapters/testCRM/manifest.json [ln:20-31] !}
+    {!> src/adapters/testCRM/manifest.json [ln:22-36] !}
     ```
 
-![Auth page](../img/test-auth-page.png)
+    ![Auth page](../img/test-auth-page.png)
 
 === "Insightly adapter"
 
     ```js
-    {!> src/adapters/manifest.json [ln:133-160] !}
+    {!> src/adapters/manifest.json [ln:139-170] !}
     ```
 
-![Auth page](../img/insightly-auth-page.png)
+    ![Auth page](../img/insightly-auth-page.png)
 
 ### Adding custom fields to logging forms
 
@@ -117,10 +118,10 @@ Set up associated deals as dropdown options:
 2. Easter A22
 3. Anniversary C92
 
-and address as free input field.
+And then setup "Address" as free input field.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:52-67] !}
+{! src/adapters/testCRM/manifest.json [ln:62-78] !}
 ```
 
 #### Custom SMS log fields
@@ -128,7 +129,7 @@ and address as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:68-81] !}
+{! src/adapters/testCRM/manifest.json [ln:79-94] !}
 ```
 
 ## Customizing the welcome message

@@ -24,19 +24,19 @@ CRMs almost always have a set of fields associated with logging an activity that
 
 For each page, you will define an array of `additionalFields`. Each additional field element consists of the properties below.
 
-| Name               | Type    | Description |
-|--------------------|---------|-------------|
-| `const`            | string  | A unique key identifying the field. |
-| `title`            | string  | The display name of the field. |
-| `type`             | string  | The data type associated with the field. |
-| `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static.  |
+| Name               | Type    | Description                                                                                                       |
+|--------------------|---------|-------------------------------------------------------------------------------------------------------------------|
+| `const`            | string  | A unique key identifying the field.                                                                               |
+| `title`            | string  | The display name of the field.                                                                                    |
+| `type`             | string  | The data type associated with the field.                                                                          |
+| `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static. |
 
 #### Custom call log fields
 
 In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:58-74,91] !}
+{! src/adapters/testCRM/manifest.json [ln:63-78] !}
 ```
 
 #### Custom SMS log fields
@@ -44,7 +44,7 @@ In the following example, a "Deals" pull-down menu with three options, and an "A
 Setup the same fields as above, but associated with the SMS logging page.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:58,75-91] !}
+{! src/adapters/testCRM/manifest.json [ln:79-94] !}
 ```
 
 ### Feedback page
