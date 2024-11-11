@@ -7,8 +7,8 @@ hide:
 RingCentral's App Connect for RingEX is a browser extension for Google Chrome and Microsoft Edge that helps connect your RingCentral RingEX account to a number of [different CRM services](crm/index.md). It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track communications and engage with customers.
 
 <figure markdown>
-  ![App Connect](img/intro.png)
-  <figcaption>RingCentral's App Connect as seen inside Redtail CRM</figcaption>
+  ![App Connect's supported CRMs](img/supported-crms.png)
+  <figcaption markdown>Don't see your CRM listed above? Tell us using our [Ideas portal](https://ideas.ringcetral.com/), or work with a developer to [build for it](developers/index.md).</figcaption>
 </figure>
 
 ## Features
@@ -21,15 +21,12 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 * **Send/receive SMS**. Not only can you place calls, but you can also send and receive SMS using the CTI. 
 * **SMS templates**. Respond to SMS more quickly, by storing and accessing messages you commonly send over SMS using a simple UI. 
 
-## Supported CRMs
+<figure markdown>
+  ![App Connect](img/intro.png)
+  <figcaption>RingCentral's App Connect as seen inside Redtail CRM</figcaption>
+</figure>
 
-App Connect currently supports the following CRMs and services:
-
-![App Connect's supported CRMs](img/supported-crms.png)
-
-Don't see your CRM listed above? Visit our [Ideas portal](https://ideas.ringcetral.com/) to tell us more about the CRM you would like us to integrate with. 
-
-### Are you a developer? Build support for your own CRM
+## Are you a developer? Build support for your own CRM
 
 App Connect is itself an [open source framework](https://github.com/ringcentral/rc-unified-crm-extension) that can be used by developers to [create a custom CRM integration](developers/index.md) more easily than building one from scratch. 
 
