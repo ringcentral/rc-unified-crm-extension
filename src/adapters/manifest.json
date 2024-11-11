@@ -624,6 +624,12 @@
                             "type": "inputField",
                             "name": "Default action for voicemails",
                             "placeholder": "Enter action value"
+                        },
+                        {
+                            "id": "allowBullhornCustomNoteAction",
+                            "type": "boolean",
+                            "name": "Allow custom note action",
+                            "defaultValue": false
                         }
                     ]
                 }
