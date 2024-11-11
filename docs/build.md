@@ -1,4 +1,4 @@
-# Build support for a CRM
+# Build support for a new app or CRM
 
 App Connect is not only a product used by RingCentral customers to connect our communications system to their applications, it is also a developer framework that helps companies integrate a full-featured phone and communication client into new CRMs, or proprietary CRMs into RingCentral quickly, efficiently and at a fraction of the cost. 
 
