@@ -18,7 +18,7 @@
     
     App Connect is frequently updated with fixes and feature enhancements. While the extension is updated automatically, you may need to restart your browser in order for those updates to take effect. 
 
-### I don't see an "Authorize" or "Connect" button to login to my CRM
+### I don't see a "Connect" button to login to my CRM
 
 In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. App Connect will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch App Connect from any other domain, you will not see an Authorize or Connect button. 
 
