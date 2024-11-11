@@ -2,7 +2,7 @@
 
 <div class="grid cards" markdown>
 
--    **[:material-forum: Search the Community](https://community.ringcentral.com/groups/unified-crm-extension-22)**
+-    **[:material-forum: Search the Community](https://community.ringcentral.com/groups/app-connect-22)**
      
      Search for answers from the community knowledge base.
 

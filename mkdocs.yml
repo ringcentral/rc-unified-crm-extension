@@ -47,9 +47,9 @@ extra:
 extra_css:
   - extra.css
 
-plugins:
-  pdf-export:
-    combined: true
+#plugins:
+#  pdf-export:
+#    combined: true
 
 markdown_extensions:
   - attr_list
