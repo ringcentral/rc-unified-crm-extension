@@ -8,6 +8,8 @@ If your CRM is not supported by App Connect, you have three general options.
 
 App Connect is an open source framework that you are welcome to use to build support for your CRM of choice on your own. Our [developer documentation](developers/index.md) will help you get started. 
 
+<!--
+
 ## Contact RingCentral Professional Services
 
 [RingCentral Professional Services](https://www.ringcentral.com/solutions/professional-services.html) offers a package in which RingCentral will build support for your CRM. Professional Services' package comes with the following:
@@ -21,6 +23,8 @@ App Connect is an open source framework that you are welcome to use to build sup
 * **Maintenance and support**. Rest easy knowing that Professional Services will help keep your integration current with the latest App Connect has to offer.
 
 [Book a free consultation](https://www.ringcentral.com/solutions/professional-services.html#form_professional-services){ .md-button }
+
+-->
 
 ## Work with a trusted third-party vendor
 
