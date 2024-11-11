@@ -301,13 +301,13 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     let comments = '';
     switch (logDetailLevel.value) {
         case 'full':
-            comments = `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callDuration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`;
+            comments = `${!!note ? `<br><b>Note</b>: ${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callDuration}</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`;
             break;
         case 'noteOnly':
-            comments = note;
+            comments = `<br><b>Note</b>: ${note}<br><br>`;
             break;
         case 'callDurationOnly':
-            comments = `Call duration: ${callDuration}`;
+            comments = `<ul><li><b>Duration</b>: ${callDuration}</li></ul>`;
             break;
     }
     const putBody = {
@@ -356,7 +356,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, duration, result }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     try {
@@ -390,12 +390,29 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
         }
     }
-    // case: normal update
-    else {
-        // replace note
-        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note}<br><br>`)
-        // replace subject
-        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject ?? '');
+    // case: user note update
+    if (!!note && logBody.includes('<br><b>Note</b>')) {
+        const noteRegex = RegExp('<br><b>Note</b>: (.*)<br>');
+        const noteMatchResult = noteRegex.exec(logBody);
+        logBody = logBody.replace(noteMatchResult[0], `<br><b>Note</b>: ${note}<br><br>`);
+    }
+    if(!!subject && logBody.includes('<li><b>Summary</b>')) {
+        const subjectRegex = RegExp('<li><b>Summary</b>: .(.*)</li>');
+        const subjectMatchResult = subjectRegex.exec(logBody);
+        logBody = logBody.replace(subjectMatchResult[0], `<li><b>Summary</b>: ${subject}</li>`);
+    }
+    // case: call duration update
+    if (!!duration && logBody.includes('<b>Duration</b>')) {
+        const callDuration = secondsToTime(duration);
+        const durationRegex = RegExp('>Duration</b>: .(.*)<');
+        const durationMatchResult = durationRegex.exec(logBody);
+        logBody = logBody.replace(durationMatchResult[0], `>Duration</b>: ${callDuration}<`);
+    }
+    // case: call result update
+    if (!!result && logBody.includes('<b>Result</b>')) {
+        const resultRegex = RegExp('>Result</b>: .(.*)<');
+        const resultMatchResult = resultRegex.exec(logBody);
+        logBody = logBody.replace(resultMatchResult[0], `>Result</b>: ${result}<`);
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
@@ -586,7 +603,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     }
     const logBody = getLogRes.data.data.comments;
-    const note = logBody.split('<b>Call details</b>')[0].replaceAll('<br>', '');
+    const note = logBody.split('<br><b>Note</b>: ')[1]?.split('<br><br>')[0] ?? '';
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
@@ -597,7 +614,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
     return {
         callLogInfo: {
-            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
+            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '',
             note,
             contactName: `${contact.firstName} ${contact.lastName}`
         }

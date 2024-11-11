@@ -179,7 +179,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            const { updatedNote, returnMessage } = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
+            const { updatedNote, returnMessage } = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note, duration: incomingData.duration, result: incomingData.result });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage };
         }
         return { successful: false };
@@ -188,11 +188,10 @@ async function updateCallLog({ platform, userId, incomingData }) {
         if (e.response?.status === 429) {
             return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
         }
-        if(!!incomingData.recordingLink)
-        {
+        if (!!incomingData.recordingLink) {
             return { successful: false, returnMessage: { message: `Failed to upload call recording link.`, messageType: 'warning', ttl: 5000 } };
         }
-        else{
+        else {
             return { successful: false, returnMessage: { message: `Failed to update call log. Please check if the log entity still exist on ${platform}`, messageType: 'warning', ttl: 5000 } };
         }
     }
