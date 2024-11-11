@@ -2,6 +2,8 @@
 hide:
   - navigation
 ---
+!!! info "RingCentral Unified CRM extension is becoming App Connect! [Learn more](https://community.ringcentral.com/unified-crm-extension-22/the-unified-crm-extension-is-becoming-app-connect-10090)"
+
 # App Connect for RingEX
 
 RingCentral's App Connect for RingEX is a browser extension for Google Chrome and Microsoft Edge that helps connect your RingCentral RingEX account to a number of [different CRM services](crm/index.md). It embeds a fully functional web phone into your CRM and supports key user flows unique to CRMs to better track communications and engage with customers.
