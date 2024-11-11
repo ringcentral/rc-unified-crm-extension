@@ -26,7 +26,7 @@ App Connect is an open source framework that you are welcome to use to build sup
 
 ### Gate6
 
-![Gate6 Logo](../img/vendor-gate6.png){ .mw-300 .float-right }
+![Gate6 Logo](img/vendor-gate6.png){ .mw-300 .float-right }
 
 Gate6 specializes in connecting your business applications, platforms, and data sources into cohesive Enterprise Solutions. Their dedicated System Integration Services team ensures seamless integration across infrastructure, technology architecture, applications, and data. With a focus on preserving legacy investments while embracing future innovations, they deliver end-to-end solutions tailored to your needs.
 
@@ -34,7 +34,7 @@ Gate6 specializes in connecting your business applications, platforms, and data 
 
 <div class="grid cards" markdown>
 
--    [![ServiceNow](../img/servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
+-    [![ServiceNow](img/servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
      
      Currently in beta, Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
 

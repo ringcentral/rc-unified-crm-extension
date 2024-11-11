@@ -44,7 +44,7 @@ To customize your preferred input and output devices, e.g. headphones, laptop sp
 The term "call-pop" refers to opening a page about an incoming caller automatically so that the person making (or receiving) the call can see all of the relevant information about that person prior to answering the phone. You can easily toggle this feature on and off under the "Contacts" section. 
 
 <figure markdown>
-  ![Setting your preferred phone device](../../img/call-pop.png){ .mw-300 }
+  ![Setting your preferred phone device](../img/call-pop.png){ .mw-300 }
   <figcaption>The settings screen for toggling call-pop</figcaption>
 </figure>
 
