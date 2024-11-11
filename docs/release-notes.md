@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.2.0
+
+- Fix: SMS log issue
+- Fix: Missing recording link when doing retroactive auto call logging
+- Bullhorn: New user setting to allow custom action note
+
 ## 1.1.4
 
 - Bullhorn: Fix default SMS note action issue
