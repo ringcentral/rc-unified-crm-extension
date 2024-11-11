@@ -1,3 +1,5 @@
+.float-left { float: left; }
+.float-right { float: right; }
 .md-typeset img.mw-100 {
     max-width: 100px;
 }

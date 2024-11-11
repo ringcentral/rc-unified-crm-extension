@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Redtail."
 
-    ![Connect to Redtail](../img/redtail-connect.png){ .mw-200 }
+    ![Connect to Redtail](../img/redtail-connect.png){ .mw-400 }
 
 4. Click the "Connect" button. 
 

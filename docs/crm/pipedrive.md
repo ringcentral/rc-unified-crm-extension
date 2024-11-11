@@ -16,15 +16,20 @@ Once the extension has been installed, follow these steps to setup and configure
 
 1. Make sure you are [logged in to Pipedrive](https://app.pipedrive.com/auth/login).
 
-2. Navigate to the RingCentral CRM extension in the [Pipedrive Marketplace](https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57).
+2. Navigate to the RingCentral App Connect in the [Pipedrive Marketplace](https://www.pipedrive.com/en/marketplace/app/ring-central-crm-extension/5d4736e322561f57).
 
 3. From the marketplace listing, initiate the authorization process by clicking the "Install Now" button.
 
     ![Install Pipedrive ext](../img/pipedrive-marketplace.png)
 
-3. On the authorization screen, scroll to the bottom and click "Allow and Install." The CRM extension should automatically come to the foreground and show that you are now connected to Pipedrive. 
+3. On the authorization screen, scroll to the bottom and click "Allow and Install." App Connect should automatically come to the foreground and show that you are now connected to Pipedrive. 
 
 When you login successfully, the Chrome extension will automatically update to show you are connected to Pipedrive. If you are connected, the button next to Pipedrive will say, "logout".
+
+<figure markdown>
+  ![Connected to pipedrive](../img/pipedrive-connect.png)
+  <figcaption>Settings once you have connected to Pipedrive</figcaption>
+</figure>
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
 

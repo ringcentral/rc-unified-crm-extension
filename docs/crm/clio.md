@@ -20,7 +20,7 @@ Once the extension has been installed, follow these steps to setup and configure
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Clio."
 
-    ![Connect to Clio](../img/clio-connect.png){ .mw-200 }
+    ![Connect to Clio](../img/clio-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
@@ -32,11 +32,13 @@ And with that, you will be connected to Clio and ready to begin using the integr
 
 ## Setting up phone number matching to properly match contacts
 
-Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then the CRM extension will fail to find the contact record for call logging and call pop. 
+Clio's contact lookup method is very strict. As a result, if the phone numbers in Clio are not stored using the E.164 standard, e.g. `+1##########`, then App Connect will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Clio, is to go to [Phone number format setting](../users/settings.md#phone-number-formats) under `Contact setting` and setting the phone number formats to conform with the conventions used by your practice. 
+To address this, short of reformatting every phone number stored in Clio, is to go to [Phone number format alternatives](../users/settings.md#phone-number-formats) under the "Contacts" settings and set the phone number formats to conform with the conventions used by your practice. 
 
-Navigate to App Connect's advanced settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any number. Any other character used in the format string will be interpretted literally. 
+![Overriding formats in settings](../img/overriding-format-setup.png){ .mw-300 }
+  
+Navigate to App Connect's Contacts settings page and enter in the phone formats used by your practice. Define a format by using an asterix "*" in place of any digit/number. Any other character used in the format string will be interpretted literally. 
 
 Let's look at a few examples. First, consider the following format string:
 
@@ -67,9 +69,12 @@ We have found the following formats are commonly used among customers (feel free
 * `***.***.****`
 * `1 (***) ***-****`
 
-Select or enter up to three different formats used by your practice. When you are done, the advanced settings form may look something like this:
+Select or enter up to three different formats used by your practice and click "Save." 
 
-![Advanced settings with format options](../img/adv-settings-formats.png)
+<figure markdown>
+  ![Advanced settings with format options](../img/adv-settings-formats.png)
+  <figcaption>Phone number formats after being properly filled in.</figcaption>
+</figure>
 
 !!! tip "The E.164 format is used by default. You do not need to specify the format `1**********`."
 

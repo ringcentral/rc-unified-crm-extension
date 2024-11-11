@@ -4,7 +4,7 @@ App Connect provides numerous options so that end-users can customize their spec
 
 *Please note that currently all options are user-specific. Account-wide configuration options are not supported.*
 
-Below you will find information on the various ways in which the CRM extension can be configured and customized. You can access all of these options from the Settings page accessed from the More menu. 
+Below you will find information on the various ways in which App Connect can be configured and customized. You can access all of these options from the Settings page accessed from the More menu. 
 
 ## Setting your preferred phone device
 
@@ -17,7 +17,7 @@ RingCentral customers may sometimes have multiple devices or ways of initiating 
 
 ### Config options
 
-* **Browser**. Select this if you wish to place calls using the CRM extension itself. 
+* **Browser**. Select this if you wish to place calls using App Connect itself. 
 * **RingCentral App**. If you prefer to use the main RingCentral desktop app to make calls, select this. 
 * **RingCentral Phone**. This option is not recommended as RingCentral Phone is no longer supported. However, if you still have this app installed and if you prefer to use it, select this. 
 * **RingOut**. RingOut is helpful if you prefer to make a call from your desk phone. When RingOut is selected you will be called, and your desk/hard phone will ring. Answer the phone and we will then connect you to the person you are calling. 
@@ -114,7 +114,7 @@ Most users will not need to access these advanced configuration options. However
 
 **Finding advanced settings**
 
-To access advanced settings, in your browser, navigate to "Manage Extensions," or just "Extensions." From there locate "RingCentral CRM extension" and click "Show Details."
+To access advanced settings, in your browser, navigate to "Manage Extensions," or just "Extensions." From there locate "RingCentral App Connect" and click "Show Details."
 
 <figure markdown>
   ![Setting your preferred phone device](../img/extension-details.png){ .mw-400 }

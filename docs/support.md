@@ -1,20 +1,28 @@
-# Troubleshooting App Connect
+# Getting help with App Connect
+
+<div class="grid cards" markdown>
+
+-    **[:material-forum: Search the Community](https://community.ringcentral.com/groups/unified-crm-extension-22)**
+     
+     Search for answers from the community knowledge base.
+
+-    **[:material-help: Ask a question](https://community.ringcentral.com/topic/new?fid=22)**
+     
+     Ask the community for help - you will find all of us very helpful.
+
+</div>
+
+## Common issues
 
 !!! tip "Always make sure you are running the latest version"
     
     App Connect is frequently updated with fixes and feature enhancements. While the extension is updated automatically, you may need to restart your browser in order for those updates to take effect. 
-    
-    In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
 
-## Check the community!
+### I don't see an "Authorize" or "Connect" button to login to my CRM
 
-Detailed below are some common challenges users encounter. However the [App Connect community](https://community.ringcentral.com/groups/unified-crm-extension-22) is a far more comprehensive resource for helping users resolve issues. It is also a place where you can find recent news and updates to alert you of known issue, upcoming enhancements, and new releases. 
+In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. App Connect will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch App Connect from any other domain, you will not see an Authorize or Connect button. 
 
-## I don't see an "Authorize" or "Connect" button to login to my CRM
-
-In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. App Connect will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch the CRM extension from any other domain, you will not see an Authorize or Connect button. 
-
-## Unable to find contact
+### Unable to find contact
 
 One of the most common challenges arises from phone calls for which a corresponding contact record in the CRM cannot be found. However, you know for sure the contact exists.
 
@@ -36,4 +44,9 @@ Updates to App Connect are installed automatically by Chrome and Edge when you r
 ![version number](img/version.png){ style="width:50%" }
 
 To ensure you are actively running the most recent version, please restart your browser. 
+
+## Last resort
+
+In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
+
 

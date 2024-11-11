@@ -115,6 +115,5 @@ nav:
 
 - 'Support':
   - 'Troubleshooting': support.md
-  - 'Community': https://community.ringcentral.com/groups/unified-crm-extension-22
-  - 'Request help': https://community.ringcentral.com/topic/new?fid=22
+  - 'Build a CRM adapter': build.md
   - 'Release notes': release-notes.md

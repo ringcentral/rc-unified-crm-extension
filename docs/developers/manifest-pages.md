@@ -1,6 +1,6 @@
 ## Customizing the welcome message
 
-When a user installs the CRM extension for the first time and accesses it from their CRM, a welcome page or splash screen appears to the user. This screen can be very effective in educating the end user about how to setup and connect to the associated CRM. 
+When a user installs App Connect for the first time and accesses it from their CRM, a welcome page or splash screen appears to the user. This screen can be very effective in educating the end user about how to setup and connect to the associated CRM. 
 
 Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources under `embeddedOnCrmPage.welcomePage`:
 
@@ -49,7 +49,7 @@ Setup the same fields as above, but associated with the SMS logging page.
 
 ### Feedback page
 
-A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in the CRM extension for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
+A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in App Connect for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
 
 To use feedback page, please create `feedback` object under `page`. The `feedback` object has the following properties:
 
