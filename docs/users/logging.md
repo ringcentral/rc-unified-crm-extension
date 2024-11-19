@@ -20,6 +20,9 @@ It might be helpful from time to time to quickly assess and remedy any calls tha
 
 If a call is recorded, a link to the call's recording is included in the contents logged to the CRM automatically. 
 
+!!! warning "Call recording links are generated with certain delay"
+    Please be aware that it takes time for RingCentral server to process and upload your recordings, therefore recording links won't be generated immediately after calls. The delay could be seconds to minutes dpending on duration of the call and RingCentral server's current capacity.  
+
 !!! warning "Call logs are kept for a maximum of 90 days within RingCentral"
     Please be aware that RingCentral does not retain data indefinitely. Call recordings for example are purged after 90 days. If you wish to retain those files longer, most users subscribe to a third-party service to archive call media. 
 
