@@ -29,13 +29,14 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             getCurrentLoggedInUserResponse = await axios.get(getCurrentLoggedInUserUrl, {
                 headers: { 'Authorization': authHeader }
             });
-        } catch (e) {
+        } catch (error) {
             console.log({ message: "Error in getting employee information using RestLet" });
+            let errorMessage = netSuiteRestLetError(error, "Error in Finding Current User");
             return {
                 successful: false,
                 returnMessage: {
                     messageType: 'danger',
-                    message: "It appears that your SuiteApp is an older version. Please update it to the latest version.",
+                    message: errorMessage,
                     ttl: 60000
                 }
             }
@@ -251,31 +252,50 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         let callStartTime = moment(moment(callLog.startTime).toISOString());
+        let startTimeSLot = moment(callLog.startTime).format('HH:mm');
         /**
          * Users without a OneWorld license do not have access to subsidiaries.
          */
-        if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
-            const subsidiary = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                {
-                    q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
-                },
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                });
-            const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
+        // if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+        //     const subsidiary = await axios.post(
+        //         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        //         {
+        //             q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
+        //         },
+        //         {
+        //             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        //         });
+        //     const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
+        //     callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+        // }
+        try {
+            const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+            const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                headers: { 'Authorization': authHeader }
+            });
+            const timeZone = timeZoneResponse?.data?.userTimezone;
             callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+            startTimeSLot = callStartTime.format('HH:mm');
+
+        } catch (error) {
+            console.log({ message: "Error in getting timezone" });
         }
         const callEndTime = moment(callStartTime).add(callLog.duration, 'seconds');
         const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
         const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
-        //const callDate = moment.tz(moment(callLog.startTime).toISOString(), timeZone).format('YYYY-MM-DD HH:mm:ss');
+        let endTimeSlot = callEndTime.format('HH:mm');
+        if (startTimeSLot === endTimeSlot) {
+            //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
+            endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
+        }
         let postBody = {
             title: title,
             phone: contactInfo?.phoneNumber || '',
             priority: "MEDIUM",
             status: "COMPLETE",
             startDate: moment(callLog.startTime).toISOString(),
+            startTime: startTimeSLot,
+            endTime: endTimeSlot,
             timedEvent: true,
             message: `\nCall Start Time: ${formatedStartTime}\n Duration In Second: ${callLog.duration}Sec.\n Call End Time : ${formatedEndTime}\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
@@ -735,6 +755,14 @@ function netSuiteErrorDetails(error, message) {
     } catch (error) {
         return message;
     }
+}
+
+function netSuiteRestLetError(error, message) {
+    const errorMessage = error?.response?.data?.split('\n')
+        .find(line => line.startsWith('error message:'))
+        ?.replace('error message: ', '')
+        .trim();
+    return errorMessage || message;
 }
 
 
