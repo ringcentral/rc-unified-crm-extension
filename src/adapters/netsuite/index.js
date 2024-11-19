@@ -29,13 +29,14 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             getCurrentLoggedInUserResponse = await axios.get(getCurrentLoggedInUserUrl, {
                 headers: { 'Authorization': authHeader }
             });
-        } catch (e) {
+        } catch (error) {
             console.log({ message: "Error in getting employee information using RestLet" });
+            let errorMessage = netSuiteRestLetError(error, "Error in Finding Current User");
             return {
                 successful: false,
                 returnMessage: {
                     messageType: 'danger',
-                    message: "It appears that your SuiteApp is an older version. Please update it to the latest version.",
+                    message: errorMessage,
                     ttl: 60000
                 }
             }
@@ -754,6 +755,14 @@ function netSuiteErrorDetails(error, message) {
     } catch (error) {
         return message;
     }
+}
+
+function netSuiteRestLetError(error, message) {
+    const errorMessage = error?.response?.data?.split('\n')
+        .find(line => line.startsWith('error message:'))
+        ?.replace('error message: ', '')
+        .trim();
+    return errorMessage || message;
 }
 
 
