@@ -30,7 +30,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                 headers: { 'Authorization': authHeader }
             });
         } catch (error) {
-            console.log({ message: "Error in getting employee information using RestLet", error });
+            console.log({ message: "Error in getting employee information using RestLet" });
             let errorMessage = netSuiteRestLetError(error, "Error in Finding Current User");
             return {
                 successful: false,
