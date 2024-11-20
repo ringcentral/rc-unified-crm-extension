@@ -1,5 +1,5 @@
 # Project information
-site_name: RingCentral Unified CRM extension for RingEX
+site_name: App Connect for RingEX
 site_url: https://github.com/ringcentral/rc-unified-crm-extension
 
 # Repository
@@ -10,6 +10,10 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: img/RingCentral_logo_color.png
+  font:
+    code: Roboto Mono
+    text: Inter Tight
   features:
       - navigation.path
       - navigation.sections
@@ -42,6 +46,10 @@ extra:
       link: https://twitter.com/ringcentraldevs
 extra_css:
   - extra.css
+
+#plugins:
+#  pdf-export:
+#    combined: true
 
 markdown_extensions:
   - attr_list
@@ -80,6 +88,7 @@ nav:
   - 'Getting started': developers/getting-started.md
   - 'Technical overview': developers/adapter.md
   - 'Build and deployment': developers/deploy.md
+  - 'Proprietary CRMs': developers/proprietary-crm.md
   - 'Adapter': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
@@ -93,6 +102,7 @@ nav:
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Welcome pages': developers/welcome-page.md
+      - 'Returning errors': developers/errors.md
       - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'createCallLog': developers/interfaces/createCallLog.md
@@ -109,6 +119,5 @@ nav:
 
 - 'Support':
   - 'Troubleshooting': support.md
-  - 'Community': https://community.ringcentral.com/groups/unified-crm-extension-22
-  - 'Request help': https://community.ringcentral.com/topic/new?fid=22
+  - 'Build a CRM adapter': build.md
   - 'Release notes': release-notes.md

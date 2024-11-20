@@ -1,6 +1,6 @@
 # Presence and status
 
-Using the embedded phone provided by the Unified CRM extension one can easily set their presence and/or status and instantly have that synced across the network. Similarly, your presence status will always be reflected in your embedded dialer as it changes via mechanisms outside of the extension. 
+Using the embedded phone provided by App Connect one can easily set their presence and/or status and instantly have that synced across the network. Similarly, your presence status will always be reflected in your embedded dialer as it changes via mechanisms outside of the extension. 
 
 There are two ways to change your status:
 

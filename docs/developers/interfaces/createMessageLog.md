@@ -4,7 +4,7 @@ This interface is responsible for creating a new messaging log record in the ass
 
 ### Creating daily digests of an SMS conversation
 
-To prevent SMS conversations with a customer from overwhelming the CRM with a multitude of SMS messages, the Unified CRM extension creates a daily digest for each SMS conversation with a customer into which all SMS messages for a 24 hour period are aggregated. 
+To prevent SMS conversations with a customer from overwhelming the CRM with a multitude of log entries for each SMS message, App Connect creates a daily digest for each SMS conversation with a customer into which all SMS messages for a 24 hour period are aggregated. 
 
 Therefore, this interface is only invoked when the daily digest is created. The [`updateMessageLog`](updateMessageLog.md) interface is invoked for all subsequent SMS messages in that 24 hour period. 
 

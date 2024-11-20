@@ -35,7 +35,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Insightly.',
+                message: 'Successfully connected to Insightly.',
                 ttl: 3000
             }
         };
@@ -45,7 +45,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to get user info.',
+                message: 'Failed to get user info. Please check your API key and try again.',
                 ttl: 3000
             }
         }

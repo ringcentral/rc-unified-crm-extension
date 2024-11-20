@@ -189,6 +189,36 @@ app.get('/hostname', async function (req, res) {
         res.status(500).send(e);
     }
 })
+
+app.get('/temp-bullhorn-migrate-userId', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const userInfo = await authCore.tempMigrateBullhornUserId({ oldUserId: userId });
+            if (!!userInfo) {
+                const jwtToken = jwt.generateJwt({
+                    id: userInfo.id.toString(),
+                    platform: platform
+                });
+                res.status(200).send({ jwtToken, name: userInfo.name });
+            }
+            else {
+                res.status(200).send();
+            }
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
+        }
+        console.log('Event: bullhorn user id migrate')
+    }
+    catch (e) {
+        console.log(`platform: bullhorn \n${e.stack}`);
+        res.status(400).send(e);
+    }
+})
+
 app.get('/oauth-callback', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
@@ -269,12 +299,18 @@ app.post('/apiKeyLogin', async function (req, res) {
             throw 'Missing api key';
         }
         const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
-        const jwtToken = jwt.generateJwt({
-            id: userInfo.id.toString(),
-            platform: platform
-        });
-        res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
-        success = true;
+        if (!!userInfo) {
+            const jwtToken = jwt.generateJwt({
+                id: userInfo.id.toString(),
+                platform: platform
+            });
+            res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
+            success = true;
+        }
+        else {
+            res.status(400).send({ returnMessage });
+            success = false;
+        }
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
@@ -366,7 +402,7 @@ app.get('/contact', async function (req, res) {
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat });
+            const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
             if (successful) {
                 const nonNewContact = contact.filter(c => !c.isNewContact);

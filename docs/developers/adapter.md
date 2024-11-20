@@ -2,7 +2,7 @@
 
 {! docs/developers/beta_notice.inc !}
 
-The Unified CRM extension's developer framework comes with everything you need to build an adapter for virtually any target CRM platform. While the [sample adapter](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/src/adapters/testCRM/) that is provided through this framework is implemented in Javascript, you are free to implement your server in whatever language you prefer -- provided that it implements the interface properly. However, we recommend most developers utilize this framework directly, as it will dramatically decrease your time to market. 
+App Connect's developer framework comes with everything you need to build an adapter for virtually any target CRM platform. While the [sample adapter](https://github.com/ringcentral/rc-unified-crm-extension/blob/FrameworkRefactor/src/adapters/testCRM/) that is provided through this framework is implemented in Javascript, you are free to implement your server in whatever language you prefer -- provided that it implements the interface properly. However, we recommend most developers utilize this framework directly, as it will dramatically decrease your time to market. 
 
 Every adapter contains two key files or elements:
 
@@ -53,25 +53,7 @@ This guide will walk you through the process of creating an adapter step-by-step
     * [Creating a custom welcome and getting started page](welcome-page.md)
     * [Opening contact and activity pages in the CRM](view-details.md)
 * [Deploy your server](deploy.md)
-* Configure the Unified Chrome extension to load your custom adapter
+* Configure the App Connect Chrome extension to load your custom adapter
 
 Let's [get started](getting-started.md).
 
-### Return message to client
-
-Within your adapter, you can customize messages that will be shown to the client side for different scenarios.
-
-Here's a quick example for create call log return in `testCRM`:
-
-```js
-return {
-    logId: addLogRes.data.id,
-    returnMessage: {
-        message: 'Call log added.',
-        messageType: 'success',
-        ttl: 3000
-    }
-};
-```
-
-There are 3 types of messages: `success`, `warning` and `danger`.

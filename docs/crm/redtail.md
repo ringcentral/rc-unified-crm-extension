@@ -1,4 +1,4 @@
-# Setting up the Unified CRM extension for Redtail CRM
+# Setting up App Connect for Redtail CRM
 
 Whether you are looking to strengthen your client relationships, improve your team’s collaboration efforts and overall efficiency, increase your revenues and profitability, decrease client attrition, or engage in any number of other business-building activities, Redtail CRM offers tools to assist in your efforts.
 
@@ -6,9 +6,9 @@ RingCentral's integration with Redtail CRM helps streamline communications betwe
 
 ## Install the extension
 
-If you have not already done so, begin by [installing the Unified CRM extension](../getting-started.md) from the Chrome web store. 
+If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/1pbpbEvp5uQ?si=BUmLcaKk5att_XQf" title="Unified CRM extension for Redtail CRM - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/1pbpbEvp5uQ?si=BUmLcaKk5att_XQf" title="App Connect for Redtail CRM - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
@@ -18,9 +18,9 @@ Once the extension has been installed, follow these steps to setup and configure
 
 2. While visiting a Redtail application page, click the quick access button to bring the dialer to the foreground. 
 
-3. Navigate to the Settings screen in the Unified CRM extension's CTI, and find the option labeled "redtail."
+3. Navigate to the Settings screen in App Connect, and find the option labeled "Redtail."
 
-    ![Connect to Redtail](../img/redtail-connect.png){ style="max-width: 200px" }
+    ![Connect to Redtail](../img/redtail-connect.png){ .mw-400 }
 
 4. Click the "Connect" button. 
 

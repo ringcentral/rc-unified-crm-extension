@@ -123,7 +123,7 @@ describe('contact tests', () => {
                 // Assert
                 expect(res.status).toEqual(200);
                 expect(res.body.successful).toEqual(false);
-                expect(res.body.returnMessage.message).toEqual(`Failed to find contact.`);
+                expect(res.body.returnMessage.message).toEqual(`Logging against internal extension number is not supported.`);
             }
         });
         test('known contact - successful', async () => {

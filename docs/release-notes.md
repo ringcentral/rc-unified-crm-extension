@@ -1,5 +1,46 @@
 # Release notes
 
+## 1.2.0
+
+- Fix: SMS log issue
+- Fix: Missing recording link when doing retroactive auto call logging
+- Bullhorn: New user setting to allow custom action note
+
+## 1.1.4
+
+- Bullhorn: Fix default SMS note action issue
+- Bullhorn: Fix message log timezone issue
+
+## 1.1.3
+
+- Fix: Auto log association
+- New: User setting in advanced features to turn on "Auto open extension" to open itself when opening a CRM page
+- Redtail: Fix domain matching
+
+## 1.1.2
+
+- Change: Auto pop up log page is not dependent on auto log setting anymore
+
+## 1.1.1
+
+- Fix: Call/SMS logging issue
+
+## 1.1.0
+
+- New: Show error page when CRM initialization fails
+- Better: Use local cached contact info to avoid rate limit issue
+- Better: Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open
+- Bullhorn: Default note action matching ignores case and spaces
+- Bullhorn: Fix issue on user id confusion
+
+## 1.0.10
+
+- Change: Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page
+- Change: Updated notification UI.
+- Fix: Numbers can now be copied from call page and call history page
+- Fix: Click-to-dial now supports detecting phone numbers in input fields
+- Fix: Click-to-dial now supports detecting extension numbers with format as eg. +13334445555#134
+
 ## 1.0.9
 
 - New: Call history page now has a search bar with filters
@@ -65,7 +106,7 @@
 
 New features video demo:
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/x1GDk0ncm9A" title="Unified CRM extension 1.0.0 updates" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/x1GDk0ncm9A" title="App Connect 1.0.0 updates" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## 0.8.7
 

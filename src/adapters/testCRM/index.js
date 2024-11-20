@@ -143,13 +143,21 @@ async function unAuthorize({ user }) {
 
 //  - phoneNumber: phone number in E.164 format
 //  - overridingFormat: optional, if you want to override the phone number format
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
     // ----------------------------------------
     // ---TODO.3: Implement contact matching---
     // ----------------------------------------
 
+    console.log(`phone number: ${phoneNumber}`)
+    console.log(`is extesnion number? ${isExtension}`)
     const numberToQueryArray = [];
-    numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    if(isExtension)
+    {
+        numberToQueryArray.push(phoneNumber);
+    }
+    else{
+        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    }
     // You can use parsePhoneNumber functions to further parse the phone number
     const matchedContactInfo = [];
     // for (var numberToQuery of numberToQueryArray) {

@@ -1,8 +1,8 @@
-# Integrating with CRMs using the Unified CRM extension framework
+# Integrating with CRMs using the App Connect framework
 
 {! docs/developers/beta_notice.inc !}
 
-Welcome to RingCentral's Unified CRM integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework is centered around enabling the following features common to many CRM integrations:
+Welcome to RingCentral's App Connect integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework is centered around enabling the following features common to many CRM integrations:
 
 * **Embedded phone**. Injecting a phone into the CRM for a fully-integrated communications experience.
 * **Call pop**. Automatically opening up a contact record when a call is received.
@@ -13,7 +13,7 @@ Welcome to RingCentral's Unified CRM integration framework. Using this framework
 !!! info "Powered by RingCentral Embeddable"
     ![RingCentral Embeddable](../img/embeddable.png){ align=right }
 	
-	The Unified CRM integration framework is build on top of [RingCentral Embeddable](https://ringcentral.github.io/ringcentral-embeddable/), which itself provides the following capabilities via its unified communications client:
+	App Connect's integration framework is build on top of [RingCentral Embeddable](https://ringcentral.github.io/ringcentral-embeddable/), which itself provides the following capabilities via its unified communications client:
 
     * Make and receive phone calls.
     * Send and receive SMS.

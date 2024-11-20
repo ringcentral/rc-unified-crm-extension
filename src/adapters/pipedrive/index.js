@@ -43,7 +43,7 @@ async function getUserInfo({ authHeader, hostname }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connceted to Pipedrive.',
+                message: 'Successfully connected to Pipedrive.',
                 ttl: 3000
             }
         };
@@ -95,7 +95,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
     if (!phoneNumber.includes('+')) {
-        return null;
+        return {
+            matchedContactInfo: null,
+            returnMessage: {
+                message: 'Logging against internal extension number is not supported.',
+                messageType: 'warning',
+                ttl: 3000
+            }
+        };
     }
     const phoneNumberObj = parsePhoneNumber(phoneNumber);
     let phoneNumberWithoutCountryCode = phoneNumber;

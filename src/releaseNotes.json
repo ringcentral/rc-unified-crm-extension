@@ -1,4 +1,122 @@
 {
+    "1.2.0":{
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- SMS log issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Missing recording link when doing retroactive auto call logging"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "New",
+                "description": "- New user setting to allow custom action note"
+            }
+        ]
+    },
+    "1.1.4": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Auto log association"
+            },
+            {
+                "type": "New",
+                "description": "- User setting in advanced features to turn on 'Auto open extension' to open itself when opening a CRM page"
+            }
+        ],
+        "redtail": [
+            {
+                "type": "Fix",
+                "description": "- Domain matching"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Default SMS note action issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Message log timezone issue"
+            }
+        ]
+    },
+    "1.1.2": {
+        "global": [
+            {
+                "type": "Change",
+                "description": "- Auto pop up log page is not dependent on auto log setting anymore"
+            }
+        ]
+    },
+    "1.1.1": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Call/SMS logging issue"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Message",
+                "description": "- There has been a fix for unstable Bullhorn authorization. Please disconnect -> refresh Bullhorn page -> re-connect if you haven't done it."
+            }
+        ]
+    },
+    "1.1.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Show error page when CRM initialization fails"
+            },
+            {
+                "type": "Better",
+                "description": "- Use local cached contact info to avoid rate limit issue"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Better",
+                "description": "- Default note action matching ignores case and spaces"
+            },
+            {
+                "type": "Fix",
+                "description": "- (It's suggested to disconnect -> refresh Bullhorn page -> connect back again)Issue of session becoming invalid due to user id confusion"
+            }
+        ]
+    },
+    "1.0.10": {
+        "global": [
+            {
+                "type": "Change",
+                "description": "- Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page"
+            },
+            {
+                "type": "Change",
+                "description": "- Updated notification UI"
+            },
+            {
+                "type": "Fix",
+                "description": "- Numbers can now be copied from call page and call history page"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting phone numbers in input fields"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting extension numbers with format as eg. +13334445555#134"
+            }
+        ]
+    },
     "1.0.9": {
         "global": [
             {

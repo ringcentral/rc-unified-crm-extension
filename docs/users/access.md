@@ -1,28 +1,29 @@
 # Accessing the extension to make calls
 
-The Unified CRM extension makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
+App Connect makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
 
-## Click the quick access button
+## Click the quick access badge
 
-When logged into and viewing your CRM, a blue "R" handle/button will appear in the lower-righthand corner of your browser window. Hovering over it will show a dialer icon. Click the dialer icon to open the dialer window and bring it to the foreground. 
+When logged into and viewing your CRM, an orange "R" handle/badge will appear in the lower-righthand corner of your browser window. Click the badge to open the dialer window and/or bring it to the foreground. 
 
 <figure markdown>
-  ![Quick Access button](../img/quick-access.png)
-  <figcaption>The Unified CRM extension quick access button</figcaption>
+  ![Quick Access badge](../img/quick-access.png)
+  <figcaption>App Connect's quick access badge</figcaption>
 </figure>
 
-*Pro tip: if the blue handle obscures page content, or if you wish to hide it for other reasons, you may turn this off using an advanced configuration parameter.*
+!!! tip "If the orange badge obscures page content, or if you wish to hide it for other reasons, you may turn this off using an advanced configuration parameter."
 
-## Click "RingCentral CRM Extension" from the extensions menu
+## Click "RingCentral App Connect" from the extensions menu
 
-You can open the Unified CRM extension dialer by finding the extension in your list of installed extensions and clicking "RingCentral CRM Extension."
+You can open App Connect's dialer by finding the extension in your list of installed extensions and clicking "RingCentral App Connect."
 
 <figure markdown>
   ![Chrome extensions menu](../img/chrome-extension-menu.png)
-  <figcaption>The Unified CRM extension quick access button</figcaption>
+  <figcaption>App Connect's quick access badge</figcaption>
 </figure>
 
-*Pro tip: if you need to access the extension often, you can "pin" the extension to your location bar so that it is more readily available.*
-
-![Chrome location bar with pinned extension](../img/chrome-pinning-ext.png)
+!!! tip "Pin the extension to your browser bar"
+    If you need to access the extension often, you can "pin" the extension to your location bar so that it is more readily available.
+	
+    ![Chrome location bar with pinned extension](../img/chrome-pinning-ext.png)
 

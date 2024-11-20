@@ -1,8 +1,8 @@
 # Authorization and authenticating users with their CRM
 
-The Unified CRM adapter framework currently supports two different authentication modalities:
+App Connect's framework currently supports two different authentication modalities:
 
-* [OAuth](#implementing-oauth-for-a-crm). This is the most common form of authentication and authorization supported by most CRMs. 
+* [OAuth](#connecting-to-a-crm-via-oauth). This is the most common form of authentication and authorization supported by most CRMs. 
 * [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
 
 Start by editing the `platforms` object within your adapter's [manifest](manifest.md), and setting the `type` property under `auth` to either:
@@ -34,7 +34,7 @@ The framework will compose an OAuth compliant auth URL for you by appending to t
 
 ### Setting the redirect URI
 
-The Unified CRM Chrome extension utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
+App Connect's framework utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
 
     https://ringcentral.github.io/ringcentral-embeddable/redirect.html
 
@@ -50,7 +50,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 ## Connecting to a CRM using an API key
 
-Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the Unified CRM adapter framework does what it can to make the process as easy as possible for users. 
+Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the App Connect framework does what it can to make the process as easy as possible for users. 
 
 To auth a user via an API key, you need to present them with a form in which they will enter all needed credentials. The user will save those values and the framework will stash them a secure database for you. 
 
@@ -61,19 +61,19 @@ To auth a user via an API key, you need to present them with a form in which the
 === "manifest.json"
 
     ```js 
-    {!> src/adapters/testCRM/manifest.json [ln:20-31] !}
+    {!> src/adapters/testCRM/manifest.json [ln:22-36] !}
     ```
 
 === "Rendered page"
 
-    ![Auth page](../img/test-auth-page.png){ style="max-width:200px" }
+    ![Auth page](../img/test-auth-page.png){ .md-200 }
 
 **Insightly adapter**
 
 === "manifest.json"
 
     ```js
-    {!> src/adapters/manifest.json [ln:132-161] !}
+    {!> src/adapters/manifest.json [ln:139-171] !}
     ```
 
 === "Rendered page"
@@ -102,7 +102,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
 
-1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapterRefresh) setting under the extension's options. 
+1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapter) setting under the extension's options. 
    2. Access the Chrome extension. 
 3. Log out and log back into your CRM using the "Connect" button under the Settings tab, or by going through the appropriate CRM login and authorization flow for your adapter.
 4. Finally, check to see if any user info was saved in the database (`CHECK.1`)

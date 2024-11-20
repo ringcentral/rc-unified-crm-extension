@@ -2,6 +2,21 @@ const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 
+async function tempMigrateBullhornUserId({ oldUserId }) {
+    const existingUser = await UserModel.findOne({
+        where: {
+            id: oldUserId,
+            platform: 'bullhorn'
+        }
+    });
+    if (existingUser) {
+        const platformModule = require(`../adapters/bullhorn`);
+        const newUserInfo = await platformModule.tempMigrateUserId({ existingUser });
+        return newUserInfo;
+    }
+    return null;
+}
+
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
     const platformModule = require(`../adapters/${platform}`);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
@@ -53,17 +68,25 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const platformModule = require(`../adapters/${platform}`);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const { platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
-    const userInfo = await saveUserInfo({
-        platformUserInfo,
-        platform,
-        hostname,
-        accessToken: platformUserInfo.overridingApiKey ?? apiKey
-    });
-    return {
-        userInfo,
-        returnMessage
-    };
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo });
+    if (successful) {
+        const userInfo = await saveUserInfo({
+            platformUserInfo,
+            platform,
+            hostname,
+            accessToken: platformUserInfo.overridingApiKey ?? apiKey
+        });
+        return {
+            userInfo,
+            returnMessage
+        };
+    }
+    else {
+        return {
+            userInfo: null,
+            returnMessage
+        }
+    }
 }
 
 async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {
@@ -116,3 +139,4 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
 
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
+exports.tempMigrateBullhornUserId = tempMigrateBullhornUserId;

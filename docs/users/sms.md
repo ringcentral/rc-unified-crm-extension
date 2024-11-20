@@ -1,6 +1,6 @@
 # Sending SMS
 
-The Unified CRM extension also has the ability to send and receive SMS messages. You can access this functionality from the Messages tab and works more or less like your phone. Click on the conversation you want to view, and then send messages to that individual or group. 
+App Connect has the ability to send and receive SMS messages. You can access this functionality from the Messages tab and works more or less like your phone. Click on the conversation you want to view, and then send messages to that individual or group. 
 
 ## SMS templates
 
@@ -11,18 +11,24 @@ Engaging with communications from customers can be overwhelming, and responding 
   <figcaption>Use SMS templates to quickly compose responses to common inquiries</figcaption>
 </figure>
 
-**Importing and exporting SMS templates**
+### Managing SMS templates
 
-Right now, all pre-written SMS messages are stored locally in your browser. But one can share their responses with their colleagues by exporting their templates to a file which is downloaded automatically, and then having their coworkers import that file into their instance of the Unified CRM extension. 
+The SMS templates used in App Connect are the same templates you create and manage inside of the RingCentral desktop application to ensure consistency between these two clients. 
 
 <figure markdown>
-  ![Google Chrome Web store](../img/sms-import.png)
-  <figcaption>Share templates with coworkers by importing and exporting templates you have created</figcaption>
+  ![Google Chrome Web store](../img/sms-templates-glip.png){ .mw-400 }
+  <figcaption>Use SMS templates as seen from the RingCentral desktop application</figcaption>
 </figure>
 
-*Warning: when importing templates all previous templates will be erased. So if you have made changes, be sure to export them or save them somewhere so that those changes can be preserved.*
+## Logging SMS conversations
 
-**Limitations**
+Similar to call logging, App Connect can also log SMS messages. To help prevent a CRM from being overwhelmed by individual records for each SMS, App Connect creates a single CRM record that contains a digest of all the SMS messages sent between you and a recipient sent in a single day. 
 
-* SMS templates are stored locally in your browser, and are not shared with others in your organization or account. 
+### SMS logging settings
 
+| Setting | Description |
+|---------|-------------|
+| **Log SMS conversations automatically** | This toggles the auto log feature which will always attemp to log your SMS messages unless any conflict is found. |
+| **Open call SMS logging page after message** | This is a sub-setting under auto log. When enabled, App Connect will open a logging page when an SMS message is sent. It only prompts you in this manner for the first message logged that day. |
+
+Logging SMS conversations follows many of the same rules as logging phone calls, especially as it relates to resolving conflicts and so forth. Please consult [call logging](logging.md) for more information. 
