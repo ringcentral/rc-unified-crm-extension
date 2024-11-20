@@ -19,7 +19,7 @@ To begin using the NetSuite integration, users will first need to do the followi
   * Click "RingCentral Unified CRM Extension" in the search results
 * Click the "Install" button found in the upper right hand corner of the page
 
-If you see, "Not compatible" in place of an "Install" button, then you must be running an older version of NetSuite. You will need to upgrade to 2024.1 or later. 
+If you see, "Not compatible" in place of an "Install" button, then you must be running an older version of NetSuite. You will need to upgrade to 2024.2 or later. 
 
 Installing the app from the SuiteApp marketplace is a necessary step prior to installing the Chrome extension discussed below. 
 
