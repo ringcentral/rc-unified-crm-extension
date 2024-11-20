@@ -92,7 +92,13 @@
                         }
                     ]
                 }
-            }
+            },
+            "rcAdditionalSubmission": [
+                {
+                    "id": "departmentName",
+                    "path": "cachedData.extensionInfo.contact.department"
+                }
+            ]
         }
     },
     "version": "1.2.0"
