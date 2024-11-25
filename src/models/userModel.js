@@ -31,5 +31,8 @@ exports.UserModel = sequelize.define('users', {
   },
   platformAdditionalInfo: {
     type: Sequelize.JSON
+  },
+  userSettings: {
+    type: Sequelize.JSON
   }
 });

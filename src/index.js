@@ -12,6 +12,7 @@ const logCore = require('./core/log');
 const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const adminCore = require('./core/admin');
+const userCore = require('./core/user');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
@@ -131,7 +132,7 @@ app.post('/admin/updateUserSettings', async function (req, res) {
     }
 });
 
-app.get('/userSettings', async function (req, res) {
+app.get('/admin/settings', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
@@ -153,6 +154,60 @@ app.get('/userSettings', async function (req, res) {
             else {
                 res.status(400).send('Cannot find pre-configured user settings');
             }
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+});
+
+app.get('/user/settings', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findOne({
+                where: {
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
+                }
+            });
+            if (!!!user) {
+                res.status(400).send('Unknown user');
+            }
+            const userSettings = await userCore.getUserSettings({ user });
+            res.status(200).send(userSettings);
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+});
+
+app.post('/user/settings', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findOne({
+                where: {
+                    id: unAuthData.id,
+                    platform: unAuthData.platform
+                }
+            });
+            if (!!!user) {
+                res.status(400).send('Unknown user');
+            }
+            await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
+            res.status(200).send('User settings updated');
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
