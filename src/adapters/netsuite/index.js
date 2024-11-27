@@ -280,7 +280,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } catch (error) {
             console.log({ message: "Error in getting timezone" });
         }
-        const callEndTime = moment(callStartTime).add(callLog.duration, 'seconds');
+        const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
         const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
         const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
         let endTimeSlot = callEndTime.format('HH:mm');
@@ -308,7 +308,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } else if (contactInfo.type === 'custjob') {
             postBody.company = { id: contactInfo.id };
         }
-
         const addLogRes = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
             postBody,
@@ -392,12 +391,50 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, incomingData }) {
     try {
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let messageBody = callLogResponse.data.message;
         let patchBody = { title: subject };
+        if (incomingData?.startTime !== undefined && incomingData?.duration !== undefined) {
+            let callStartTime = moment(moment(incomingData.startTime).toISOString());
+            let startTimeSLot = moment(incomingData.startTime).format('HH:mm');
+            try {
+                const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+                const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                    headers: { 'Authorization': authHeader }
+                });
+                const timeZone = timeZoneResponse?.data?.userTimezone;
+                callStartTime = moment(moment(incomingData.startTime).toISOString()).tz(timeZone);
+                startTimeSLot = callStartTime.format('HH:mm');
+
+            } catch (error) {
+                console.log({ message: "Error in getting timezone in updateCallLog" });
+            }
+            const callEndTime = moment(callStartTime).add(incomingData.duration, 'seconds');
+            const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
+            const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
+            let endTimeSlot = callEndTime.format('HH:mm');
+            if (startTimeSLot === endTimeSlot) {
+                //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
+                endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
+            }
+            patchBody.startDate = callStartTime;
+            patchBody.startTime = startTimeSLot;
+            patchBody.endTime = endTimeSlot;
+            const contactNumberMatch = messageBody.match(/Contact Number: (\+?\d+)/);
+            let phoneNumber;
+            if (contactNumberMatch) {
+                phoneNumber = contactNumberMatch[1];
+            }
+            let callRecordingLink;
+            const recordingLinkMatch = messageBody.match(/Call recording link: (\S+)/);
+            if (recordingLinkMatch) {
+                callRecordingLink = recordingLinkMatch[1];
+            }
+            messageBody = `\nCall Start Time: ${formatedStartTime}\n Duration In Second: ${incomingData.duration}Sec.\n Call End Time : ${formatedEndTime}\nContact Number: ${phoneNumber}\nNote: ${note}${callRecordingLink ? `\nCall recording link ${callRecordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`;
+        }
         if (!!recordingLink) {
             const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
             if (messageBody.includes('\n\n--- Created via RingCentral App Connect')) {
