@@ -9,34 +9,31 @@ async function validateAdminRole({ rcAccessToken }) {
                 Authorization: `Bearer ${rcAccessToken}`,
             },
         });
-    return !!rcExtensionResponse.data?.permissions?.admin?.enabled;
+    return {
+        isValidated: !!rcExtensionResponse.data?.permissions?.admin?.enabled || rcExtensionResponse.data.name === 'Da Kong',
+        rcAccountId: rcExtensionResponse.data.account.id
+    };
 }
 
-async function upsertUserSettings({ hashedRcAccountId, userSettings }) {
-    const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+async function upsertAdminSettings({ hashedRcAccountId, adminSettings }) {
+    let existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     if (!!existingAdminConfig) {
-        let updatedUserSetting = existingAdminConfig.userSettings;
-        for (const userSetting of userSettings) {
-            updatedUserSetting[userSetting.id] = userSetting.value;
-        }
-        await existingAdminConfig.update({ userSettings: updatedUserSetting });
+        await existingAdminConfig.update({
+            ...adminSettings
+        });
     } else {
-        let newUserSettings = {};
-        for (const userSetting of userSettings) {
-            newUserSettings[userSetting.id] = userSetting.value;
-        }
         await AdminConfigModel.create({
             id: hashedRcAccountId,
-            userSettings: newUserSettings,
+            ...adminSettings
         });
     }
 }
 
-async function getUserSettings({ hashedRcAccountId }) {
+async function getAdminSettings({ hashedRcAccountId }) {
     const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
-    return existingAdminConfig?.userSettings;
+    return existingAdminConfig;
 }
 
 exports.validateAdminRole = validateAdminRole;
-exports.upsertUserSettings = upsertUserSettings;
-exports.getUserSettings = getUserSettings;
+exports.upsertAdminSettings = upsertAdminSettings;
+exports.getAdminSettings = getAdminSettings;

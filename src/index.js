@@ -115,12 +115,13 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 })
 
-app.post('/admin/updateUserSettings', async function (req, res) {
+app.post('/admin/settings', async function (req, res) {
     try {
-        const isValidated = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+        const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
         if (isValidated) {
-            await adminCore.upsertUserSettings({ hashedRcAccountId: req.query.hashedRcAccountId, userSettings: req.body.userSettings });
-            res.status(200).send('User settings updated');
+            await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
+            res.status(200).send('Admin settings updated');
         }
         else {
             res.status(401).send('Admin validation failed');
@@ -146,13 +147,19 @@ app.get('/admin/settings', async function (req, res) {
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
-            const hashedRcAccountId = getHashValue(req.query.accountId, process.env.HASH_KEY);
-            const userSettings = await adminCore.getUserSettings({ hashedRcAccountId });
-            if (!!adminConfig) {
-                res.status(200).send(userSettings);
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+            if (isValidated) {
+                const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
+                if (!!adminSettings) {
+                    res.status(200).send(adminSettings);
+                }
+                else {
+                    res.status(400).send('Cannot find pre-configured admin settings');
+                }
             }
             else {
-                res.status(400).send('Cannot find pre-configured user settings');
+                res.status(401).send('Admin validation failed');
             }
         }
         else {
