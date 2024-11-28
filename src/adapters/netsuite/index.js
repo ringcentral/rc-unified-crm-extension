@@ -645,7 +645,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: `Error in creating Contact.`,
+                            message: netSuiteErrorDetails(error, "Error in Creating Contact"),
                             messageType: 'danger',
                             ttl: 5000
                         }
@@ -680,7 +680,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: `Error in creating Customer.`,
+                            message: netSuiteErrorDetails(error, "Error in Creating Customer"),
                             messageType: 'danger',
                             ttl: 5000
                         }
