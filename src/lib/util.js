@@ -1,7 +1,7 @@
 
 const tzlookup = require('tz-lookup');
 const { State } = require('country-state-city');
-const moment = require('moment-timezone');
+const crypto = require('crypto');
 
 function getTimeZone(countryCode, stateCode) {
     const state = State.getStateByCodeAndCountry(stateCode, countryCode);
@@ -12,5 +12,13 @@ function getTimeZone(countryCode, stateCode) {
     return timezone;
 }
 
+
+function getHashValue(string, secretKey) {
+    return crypto.createHash('sha256').update(
+        `${string}:${secretKey}`
+    ).digest('hex');
+}
+
 exports.getTimeZone = getTimeZone;
+exports.getHashValue = getHashValue;
 

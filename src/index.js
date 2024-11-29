@@ -1,6 +1,5 @@
 const path = require('path');
 const express = require('express');
-const crypto = require('crypto');
 const bodyParser = require('body-parser')
 const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
@@ -16,6 +15,7 @@ const userCore = require('./core/user');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
+const util = require('./lib/util');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
@@ -35,11 +35,6 @@ async function initDB() {
     console.log('db tables created');
 }
 
-function getHashValue(string, secretKey) {
-    return crypto.createHash('sha256').update(
-        `${string}:${secretKey}`
-    ).digest('hex');
-}
 initDB();
 analytics.init();
 const app = express();
@@ -118,7 +113,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 app.post('/admin/settings', async function (req, res) {
     try {
         const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
-        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
         if (isValidated) {
             await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
             res.status(200).send('Admin settings updated');
@@ -148,7 +143,7 @@ app.get('/admin/settings', async function (req, res) {
                 res.status(400).send('Unknown user');
             }
             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
-            const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+            const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
             if (isValidated) {
                 const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
                 if (!!adminSettings) {
@@ -172,6 +167,23 @@ app.get('/admin/settings', async function (req, res) {
     }
 });
 
+app.get('/user/preloadSettings', async function (req, res) {
+    try {
+        const rcAccessToken = req.query.rcAccessToken;
+        if (!!rcAccessToken) {
+            const userSettings = await userCore.preloadUserSettings({ rcAccessToken });
+            res.status(200).send(userSettings);
+        }
+        else {
+            res.status(400).send('Cannot find rc user login');
+        }
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+}
+);
 app.get('/user/settings', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
@@ -444,8 +456,8 @@ app.post('/unAuthorize', async function (req, res) {
 });
 app.get('/userInfoHash', async function (req, res) {
     try {
-        const extensionId = getHashValue(req.query.extensionId, process.env.HASH_KEY);
-        const accountId = getHashValue(req.query.accountId, process.env.HASH_KEY);
+        const extensionId = util.getHashValue(req.query.extensionId, process.env.HASH_KEY);
+        const accountId = util.getHashValue(req.query.accountId, process.env.HASH_KEY);
         res.status(200).send({ extensionId, accountId });
     }
     catch (e) {
