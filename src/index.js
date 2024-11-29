@@ -171,7 +171,7 @@ app.get('/user/preloadSettings', async function (req, res) {
     try {
         const rcAccessToken = req.query.rcAccessToken;
         if (!!rcAccessToken) {
-            const userSettings = await userCore.preloadUserSettings({ rcAccessToken });
+            const userSettings = await userCore.userSettingsByAdmin({ rcAccessToken });
             res.status(200).send(userSettings);
         }
         else {
@@ -186,6 +186,16 @@ app.get('/user/preloadSettings', async function (req, res) {
 );
 app.get('/user/settings', async function (req, res) {
     try {
+        const rcAccessToken = req.query.rcAccessToken;
+        if (!!rcAccessToken) {
+            const userSettingsByAdmin = await userCore.userSettingsByAdmin({ rcAccessToken });
+            if (!!userSettingsByAdmin?.userSettings) {
+                res.status(200).send(userSettingsByAdmin.userSettings);
+                return;
+            }
+        }
+
+        // If no user settings by admin, use user's own settings
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);

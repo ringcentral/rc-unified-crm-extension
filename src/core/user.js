@@ -2,7 +2,7 @@ const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const { getHashValue } = require('../lib/util');
 
-async function preloadUserSettings({ rcAccessToken }) {
+async function userSettingsByAdmin({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
         {
@@ -31,6 +31,6 @@ async function updateUserSettings({ user, userSettings }) {
     await user.save();
 }
 
-exports.preloadUserSettings = preloadUserSettings;
+exports.userSettingsByAdmin = userSettingsByAdmin;
 exports.getUserSettings = getUserSettings;
 exports.updateUserSettings = updateUserSettings;
