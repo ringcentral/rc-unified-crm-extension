@@ -19,18 +19,18 @@ async function userSettingsByAdmin({ rcAccessToken }) {
     };
 }
 
-async function getUserSettings({ user }) {
-    return {
-        isFromAdmin: false,
-        userSettings: user.userSettings
-    };
-}
-
 async function updateUserSettings({ user, userSettings }) {
-    user.userSettings = userSettings;
-    await user.save();
+    const keys = Object.keys(userSettings);
+    let updatedSettings = {
+        ...user.userSettings
+    };
+    for (const k of keys) {
+        updatedSettings[k] = userSettings[k];
+    }
+    await user.update({
+        userSettings: updatedSettings
+    });
 }
 
 exports.userSettingsByAdmin = userSettingsByAdmin;
-exports.getUserSettings = getUserSettings;
 exports.updateUserSettings = updateUserSettings;

@@ -150,7 +150,7 @@ app.get('/admin/settings', async function (req, res) {
                     res.status(200).send(adminSettings);
                 }
                 else {
-                    res.status(400).send('Cannot find pre-configured admin settings');
+                    res.status(400).send('');
                 }
             }
             else {
@@ -186,16 +186,6 @@ app.get('/user/preloadSettings', async function (req, res) {
 );
 app.get('/user/settings', async function (req, res) {
     try {
-        const rcAccessToken = req.query.rcAccessToken;
-        if (!!rcAccessToken) {
-            const userSettingsByAdmin = await userCore.userSettingsByAdmin({ rcAccessToken });
-            if (!!userSettingsByAdmin?.userSettings) {
-                res.status(200).send(userSettingsByAdmin.userSettings);
-                return;
-            }
-        }
-
-        // If no user settings by admin, use user's own settings
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
@@ -208,8 +198,36 @@ app.get('/user/settings', async function (req, res) {
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
-            const userSettings = await userCore.getUserSettings({ user });
-            res.status(200).send(userSettings);
+            const rcAccessToken = req.query.rcAccessToken;
+            let userSettingsByAdmin = [];
+            if (!!rcAccessToken) {
+                userSettingsByAdmin = await userCore.userSettingsByAdmin({ rcAccessToken });
+            }
+
+            // Any non-readonly admin settings, user use its own setting
+            let userSettings = await user.userSettings;
+            let result = {};
+            if (!!!userSettingsByAdmin?.userSettings) {
+                result = userSettings;
+            }
+            else {
+                const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
+                // distinct keys
+                for (const key of new Set(keys)) {
+                    // from user's own settings
+                    if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
+                        result[key] = {
+                            customizable: true,
+                            value: userSettings[key].value
+                        };
+                    }
+                    // from admin settings
+                    else {
+                        result[key] = userSettingsByAdmin.userSettings[key];
+                    }
+                }
+            }
+            res.status(200).send(result);
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
