@@ -150,7 +150,10 @@ app.get('/admin/settings', async function (req, res) {
                     res.status(200).send(adminSettings);
                 }
                 else {
-                    res.status(400).send('');
+                    res.status(200).send({
+                        customAdapter: null,
+                        userSettings: {}
+                    });
                 }
             }
             else {
@@ -289,35 +292,6 @@ app.get('/hostname', async function (req, res) {
     catch (e) {
         console.log(`${e.stack}`);
         res.status(500).send(e);
-    }
-})
-
-app.get('/temp-bullhorn-migrate-userId', async function (req, res) {
-    try {
-        const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-            const userInfo = await authCore.tempMigrateBullhornUserId({ oldUserId: userId });
-            if (!!userInfo) {
-                const jwtToken = jwt.generateJwt({
-                    id: userInfo.id.toString(),
-                    platform: platform
-                });
-                res.status(200).send({ jwtToken, name: userInfo.name });
-            }
-            else {
-                res.status(200).send();
-            }
-        }
-        else {
-            res.status(400).send('Please go to Settings and authorize CRM platform');
-            success = false;
-        }
-        console.log('Event: bullhorn user id migrate')
-    }
-    catch (e) {
-        console.log(`platform: bullhorn \n${e.stack}`);
-        res.status(400).send(e);
     }
 })
 

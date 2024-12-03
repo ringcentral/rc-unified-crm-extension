@@ -2,21 +2,6 @@ const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
 
-async function tempMigrateBullhornUserId({ oldUserId }) {
-    const existingUser = await UserModel.findOne({
-        where: {
-            id: oldUserId,
-            platform: 'bullhorn'
-        }
-    });
-    if (existingUser) {
-        const platformModule = require(`../adapters/bullhorn`);
-        const newUserInfo = await platformModule.tempMigrateUserId({ existingUser });
-        return newUserInfo;
-    }
-    return null;
-}
-
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
     const platformModule = require(`../adapters/${platform}`);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
@@ -139,4 +124,3 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
 
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
-exports.tempMigrateBullhornUserId = tempMigrateBullhornUserId;
