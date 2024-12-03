@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.3.0
+
+- New: (Only for admin users) Admin tools. Admins have an extra tab in the extension to control end users' settings
+- Fix: SMS logging date format 
+
 ## 1.2.0
 
 - Fix: SMS log issue

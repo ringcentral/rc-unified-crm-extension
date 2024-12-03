@@ -1,4 +1,16 @@
 {
+    "1.3.0":{
+        "global": [
+            {
+                "type": "New",
+                "description": "- (Only for admin users) Admin tools. Admins have an extra tab in the extension to control end users' settings"
+            },
+            {
+                "type": "Fix",
+                "description": "- SMS logging date format"
+            }
+        ]
+    },
     "1.2.0":{
         "global": [
             {
