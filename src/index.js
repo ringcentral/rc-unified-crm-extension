@@ -111,28 +111,52 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 })
 
 app.post('/admin/settings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
         const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
         if (isValidated) {
             await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
             res.status(200).send('Admin settings updated');
+            success = true;
         }
         else {
             res.status(401).send('Admin validation failed');
+            success = false;
         }
     }
     catch (e) {
         console.log(`${e.stack}`);
         res.status(400).send(e);
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Set admin settings',
+        interfaceName: 'setAdminSettings',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author
+    });
 });
 
 app.get('/admin/settings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
+            platformName = unAuthData.platform;
             const user = await UserModel.findOne({
                 where: {
                     id: unAuthData.id,
@@ -155,19 +179,35 @@ app.get('/admin/settings', async function (req, res) {
                         userSettings: {}
                     });
                 }
+                success = true;
             }
             else {
                 res.status(401).send('Admin validation failed');
+                success = false;
             }
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
         }
     }
     catch (e) {
-        console.log(`${e.stack}`);
+        console.log(`platform: ${platformName} \n${e.stack}`);
         res.status(400).send(e);
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Get admin settings',
+        interfaceName: 'getAdminSettings',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author
+    });
 });
 
 app.get('/user/preloadSettings', async function (req, res) {
@@ -188,10 +228,15 @@ app.get('/user/preloadSettings', async function (req, res) {
 }
 );
 app.get('/user/settings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
+            platformName = unAuthData.platform;
             const user = await UserModel.findOne({
                 where: {
                     id: unAuthData.id,
@@ -207,46 +252,68 @@ app.get('/user/settings', async function (req, res) {
                 userSettingsByAdmin = await userCore.userSettingsByAdmin({ rcAccessToken });
             }
 
-            // Any non-readonly admin settings, user use its own setting
+            // For non-readonly admin settings, user use its own setting
             let userSettings = await user.userSettings;
             let result = {};
             if (!!!userSettingsByAdmin?.userSettings) {
                 result = userSettings;
             }
             else {
-                const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
-                // distinct keys
-                for (const key of new Set(keys)) {
-                    // from user's own settings
-                    if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
-                        result[key] = {
-                            customizable: true,
-                            value: userSettings[key].value
-                        };
-                    }
-                    // from admin settings
-                    else {
-                        result[key] = userSettingsByAdmin.userSettings[key];
+                if (!!userSettingsByAdmin?.userSettings && !!userSettings) {
+                    const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
+                    // distinct keys
+                    for (const key of new Set(keys)) {
+                        // from user's own settings
+                        if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
+                            result[key] = {
+                                customizable: true,
+                                value: userSettings[key].value
+                            };
+                        }
+                        // from admin settings
+                        else {
+                            result[key] = userSettingsByAdmin.userSettings[key];
+                        }
                     }
                 }
             }
+            success = true;
             res.status(200).send(result);
         }
         else {
+            success = false;
             res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
-        console.log(`${e.stack}`);
+        console.log(`platform: ${platformName} \n${e.stack}`);
         res.status(400).send(e);
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Get user settings',
+        interfaceName: 'getUserSettings',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author
+    });
 });
 
 app.post('/user/settings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
+            platformName = unAuthData.platform;
             const user = await UserModel.findOne({
                 where: {
                     id: unAuthData.id,
@@ -258,15 +325,30 @@ app.post('/user/settings', async function (req, res) {
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
             res.status(200).send('User settings updated');
+            success = true;
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
         }
     }
     catch (e) {
-        console.log(`${e.stack}`);
+        console.log(`platform: ${platformName} \n${e.stack}`);
         res.status(400).send(e);
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Set user settings',
+        interfaceName: 'setUserSettings',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author
+    });
 });
 
 app.get('/hostname', async function (req, res) {
