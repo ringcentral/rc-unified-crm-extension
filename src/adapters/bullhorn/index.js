@@ -30,7 +30,7 @@ async function tempMigrateUserId({ existingUser }) {
         }
     }
     const newUserId = userInfoResponse.data.data[0]?.masterUserID;
-    if(!!!newUserId){
+    if (!!!newUserId) {
         return null;
     }
     const newUser = await UserModel.create({
@@ -341,7 +341,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     try {
@@ -378,13 +378,31 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     // case: normal update
     else {
         // replace note
-        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note}<br><br>`)
+        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note ?? ''}<br><br>`)
         // replace subject
         logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject ?? '');
     }
+
+    // metadata update: startTime, duration, result
+    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.)<li>');
+    if (dateTimeRegex.test(logBody)) {
+        const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
+        logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
+    }
+    const durationRegex = RegExp('<li><b>Duration</b>: (.) seconds<li>');
+    if (durationRegex.test(logBody)) {
+        logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
+    }
+    const resultRegex = RegExp('<li><b>Result</b>: (.)<li>');
+    if (resultRegex.test(logBody)) {
+        logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<li>`);
+    }
+
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments: logBody
+        comments: logBody,
+        dateAdded: startTime,
+        minutesSpent: duration / 60
     }
     const postLogRes = await axios.post(
         `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,

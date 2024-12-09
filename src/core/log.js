@@ -179,7 +179,17 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            const { updatedNote, returnMessage } = await platformModule.updateCallLog({ user, existingCallLog, authHeader, recordingLink: incomingData.recordingLink, subject: incomingData.subject, note: incomingData.note });
+            const { updatedNote, returnMessage } = await platformModule.updateCallLog({ 
+                user, 
+                existingCallLog,
+                authHeader, 
+                recordingLink: incomingData.recordingLink, 
+                subject: incomingData.subject, 
+                note: incomingData.note, 
+                startTime: incomingData.startTime, 
+                duration: incomingData.duration,
+                result: incomingData.result
+            });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage };
         }
         return { successful: false };
