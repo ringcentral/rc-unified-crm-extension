@@ -652,10 +652,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 }
             case 'custjob':
+                const lastName = nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName;
                 const customerPayLoad = {
                     firstName: nameParts.firstName,
                     middleName: nameParts.middleName,
-                    lastName: nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName,
+                    lastName: lastName,
+                    entityId: nameParts.firstName + " " + lastName,
                     phone: phoneNumber || '',
                     isPerson: true
 
