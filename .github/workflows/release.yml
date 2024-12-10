@@ -20,7 +20,6 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: echo "Start"
       - run: npm i
-      - run: npm list @jridgewell/gen-mapping
       - run: npm run test-coverage
       - name: Coveralls
         uses: coverallsapp/github-action@v2
