@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@octokit/rest": "^19.0.5",
+    "@jridgewell/gen-mapping": "^0.3.6",
     "commander": "^9.4.1",
     "inquirer": "^9.1.4",
     "jest": "^29.3.1",
