@@ -297,7 +297,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             startTime: startTimeSLot,
             endTime: endTimeSlot,
             timedEvent: true,
-            message: `\nCall Start Time: ${formatedStartTime}\n Duration In Second: ${callLog.duration}Sec.\n Call End Time : ${formatedEndTime}\nContact Number: ${contactInfo.phoneNumber}\nNote: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            message: `Note: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
