@@ -380,22 +380,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // replace note
         logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note ?? ''}<br><br>`)
         // replace subject
-        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject ?? '');
+        if (!!subject) {
+            logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject);
+        }
     }
 
     // metadata update: startTime, duration, result
-    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.)<li>');
+    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)<li>');
     if (dateTimeRegex.test(logBody)) {
         const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
         logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
     }
-    const durationRegex = RegExp('<li><b>Duration</b>: ([0-9]+) seconds<li>');
+    const durationRegex = RegExp('<li><b>Duration</b>: (.+) seconds<li>');
     if (durationRegex.test(logBody)) {
         logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
     }
-    const resultRegex = RegExp('<li><b>Result</b>: ([a-zA-Z]+)<li>');
+    const resultRegex = RegExp('<li><b>Result</b>: (.+)<');
     if (resultRegex.test(logBody)) {
-        logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<li>`);
+        logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<`);
     }
 
     // I dunno, Bullhorn just uses POST as PATCH
