@@ -244,10 +244,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body,id`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -277,7 +277,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
         }
 
-        logBody = logBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
+        logBody = logBody.replace(`Note: ${originalNote}`, `Note: ${note ?? ''}`);
 
         patchBody = {
             data: {
@@ -286,6 +286,35 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         }
     }
+    // metadata update: startTime, duration, result
+    // startTime
+    patchBody.data.received_at = moment(startTime).toISOString();
+    // duration - update Timer
+    const getTimerRes = await axios.get(
+        `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
+        {
+            headers: { 'Authorization': authHeader }
+        }
+    )
+    if (!!getTimerRes.data.data[0]) {
+        const patchTimerBody = {
+            data: {
+                quantity: duration
+            }
+        }
+        const patchTimerRes = await axios.patch(
+            `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
+            patchTimerBody,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+    // result
+    const resultRegex = RegExp('Call Result: ([a-zA-Z]+)');
+    if (resultRegex.test(patchBody.data.body)) {
+        patchBody.data.body = patchBody.data.body.replace(resultRegex, `Call Result: ${result}`);
+    }
+
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
         patchBody,

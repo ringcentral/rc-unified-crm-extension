@@ -184,7 +184,7 @@ async function createCallLog({ user, contactInfo, callLog, note }) {
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
@@ -194,6 +194,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
     let logBody = getLogRes.data.activity.description;
     let logSubject = getLogRes.data.activity.subject;
+    let putBody = {};
     if (!!recordingLink) {
         if (logBody.includes('<em> Created via:')) {
             logBody = logBody.replace('<em> Created via:', `Call recording link: <a target="_blank" href=${recordingLink}>open</a><br/><em> Created via:`);
@@ -211,15 +212,21 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             originalNote = logBody.split('Agent notes: ')[1].split('<br><br><em> Created via:')[0];
         }
 
-        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
-        logSubject = subject ?? '';
+        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note ?? ''}`);
+        putBody.subject = !!subject ? subject : logSubject;
+    }
+    // metadata update: startTime, duration, result
+    // duration
+    const durationRegex = RegExp('This was a ([0-9]+) seconds call');
+    if (durationRegex.test(logBody)) {
+        logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
     }
 
-    const putBody = {
-        subject: logSubject,
-        description: logBody
-    }
-    const putLogRes = await axios.patch(
+    putBody.description = logBody;
+    putBody.start_date = moment(startTime).utc().toISOString();
+    putBody.end_date = moment(startTime).utc().add(duration, 'seconds').toISOString();
+
+    const putLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
         putBody,
         {

@@ -389,11 +389,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
         logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
     }
-    const durationRegex = RegExp('<li><b>Duration</b>: (.) seconds<li>');
+    const durationRegex = RegExp('<li><b>Duration</b>: ([0-9]+) seconds<li>');
     if (durationRegex.test(logBody)) {
         logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
     }
-    const resultRegex = RegExp('<li><b>Result</b>: (.)<li>');
+    const resultRegex = RegExp('<li><b>Result</b>: ([a-zA-Z]+)<li>');
     if (resultRegex.test(logBody)) {
         logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<li>`);
     }

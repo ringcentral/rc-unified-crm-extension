@@ -344,7 +344,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
     const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
     const getLogRes = await axios.get(
@@ -371,14 +371,22 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Agent notes: ')[1];
         }
 
-        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
+        logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note ?? ''}`);
         logSubject = subject;
+    }
+    // metadata update: startTime, duration, result
+    // duration
+    const durationRegex = RegExp('This was a ([0-9]+) seconds call');
+    if (durationRegex.test(logBody)) {
+        logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
     }
 
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
         DETAILS: logBody,
-        TITLE: logSubject
+        TITLE: logSubject,
+        START_DATE_UTC: moment(startTime).utc(),
+        END_DATE_UTC: moment(startTime).utc().add(duration, 'seconds')
     }
     const putLogRes = await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
