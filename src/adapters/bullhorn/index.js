@@ -19,7 +19,7 @@ async function getOauthInfo({ tokenUrl }) {
 async function tempMigrateUserId({ existingUser }) {
     const bhRestToken = existingUser.platformAdditionalInfo.bhRestToken;
     const existingUserId = existingUser.id.replace('-bullhorn', '');
-    let userInfoResponse
+    let userInfoResponse;
     try {
         userInfoResponse = await axios.get(`${existingUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,masterUserID&BhRestToken=${bhRestToken}&where=id=${existingUserId}`);
     }
@@ -125,6 +125,7 @@ async function unAuthorize({ user }) {
 
 async function findContact({ user, phoneNumber }) {
     let commentActionListResponse;
+    let extraDataTracking;
     try {
         commentActionListResponse = await axios.get(
             `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
@@ -189,6 +190,12 @@ async function findContact({ user, phoneNumber }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
+    extraDataTracking = {
+        ratelimitRemaining: candidatePersonInfo.headers['ratelimit-remaining'],
+        ratelimitAmount: candidatePersonInfo.headers['ratelimit-limit'],
+        ratelimitReset: candidatePersonInfo.headers['ratelimit-reset']
+    };
+
     matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
@@ -196,11 +203,13 @@ async function findContact({ user, phoneNumber }) {
         isNewContact: true
     });
     return {
-        matchedContactInfo
+        matchedContactInfo,
+        extraDataTracking
     };
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    let extraDataTracking;
     switch (newContactType) {
         case 'Candidate':
             const candidatePostBody = {
@@ -218,6 +227,12 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 }
             );
+            extraDataTracking = {
+                ratelimitRemaining: candidateInfoResp.headers['ratelimit-remaining'],
+                ratelimitAmount: candidateInfoResp.headers['ratelimit-limit'],
+                ratelimitReset: candidateInfoResp.headers['ratelimit-reset']
+            }
+
             return {
                 contactInfo: {
                     id: candidateInfoResp.data.changedEntityId,
@@ -227,7 +242,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     message: `New ${newContactType} created.`,
                     messageType: 'success',
                     ttl: 3000
-                }
+                },
+                extraDataTracking
             }
         case 'Contact':
             let companyId = 0;
@@ -278,6 +294,13 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 }
             );
+
+            extraDataTracking = {
+                ratelimitRemaining: contactInfoResp.headers['ratelimit-remaining'],
+                ratelimitAmount: contactInfoResp.headers['ratelimit-limit'],
+                ratelimitReset: contactInfoResp.headers['ratelimit-reset']
+            }
+
             return {
                 contactInfo: {
                     id: contactInfoResp.data.changedEntityId,
@@ -287,7 +310,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     message: `New ${newContactType} created.`,
                     messageType: 'success',
                     ttl: 3000
-                }
+                },
+                extraDataTracking
             }
     }
 }
@@ -306,6 +330,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         minutesSpent: callLog.duration / 60
     }
     let addLogRes;
+    let extraDataTracking;
     try {
         addLogRes = await axios.put(
             `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -316,6 +341,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
         );
+        extraDataTracking = {
+            ratelimitRemaining: addLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: addLogRes.headers['ratelimit-limit'],
+            ratelimitReset: addLogRes.headers['ratelimit-reset']
+        }
     }
     catch (e) {
         if (isAuthError(e.response.status)) {
@@ -337,13 +367,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             message: 'Call log added.',
             messageType: 'success',
             ttl: 3000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
+    let extraDataTracking;
     try {
         getLogRes = await axios.get(
             `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
@@ -375,14 +407,14 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
         }
     }
-    // case: normal update
-    else {
-        // replace note
-        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note ?? ''}<br><br>`)
-        // replace subject
-        if (!!subject) {
-            logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject);
-        }
+
+    // replace note
+    if (!!note) {
+        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note}<br><br>`)
+    }
+    // replace subject
+    if (!!subject) {
+        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject);
     }
 
     // metadata update: startTime, duration, result
@@ -414,19 +446,26 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         });
+    extraDataTracking = {
+        ratelimitRemaining: postLogRes.headers['ratelimit-remaining'],
+        ratelimitAmount: postLogRes.headers['ratelimit-limit'],
+        ratelimitReset: postLogRes.headers['ratelimit-reset']
+    }
     return {
         updatedNote: postBody.comments,
         returnMessage: {
             message: 'Call log updated.',
             messageType: 'success',
             ttl: 3000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
+    let extraDataTracking;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
@@ -499,19 +538,26 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         }
     );
+    extraDataTracking = {
+        ratelimitRemaining: addLogRes.headers['ratelimit-remaining'],
+        ratelimitAmount: addLogRes.headers['ratelimit-limit'],
+        ratelimitReset: addLogRes.headers['ratelimit-reset']
+    }
     return {
         logId: addLogRes.data.changedEntityId,
         returnMessage: {
             message: 'Message log added.',
             messageType: 'success',
             ttl: 3000
-        }
+        },
+        extraDataTracking
     }
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
+    let extraDataTracking;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
@@ -565,10 +611,19 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         });
+    extraDataTracking = {
+        ratelimitRemaining: patchLogRes.headers['ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['ratelimit-reset']
+    }
+    return {
+        extraDataTracking
+    }
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
     let getLogRes;
+    let extraDataTracking;
     try {
         getLogRes = await axios.get(
             `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
@@ -577,6 +632,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+        extraDataTracking = {
+            ratelimitRemaining: getLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: getLogRes.headers['ratelimit-limit'],
+            ratelimitReset: getLogRes.headers['ratelimit-reset']
+        }
     }
     catch (e) {
         if (isAuthError(e.response.status)) {
@@ -605,7 +665,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
             subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
             note,
             contactName: `${contact.firstName} ${contact.lastName}`
-        }
+        },
+        extraDataTracking
     }
 }
 

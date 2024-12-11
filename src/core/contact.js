@@ -33,9 +33,9 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { matchedContactInfo, returnMessage } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
+        const { matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
         if (matchedContactInfo != null && matchedContactInfo.length > 0) {
-            return { successful: true, returnMessage, contact: matchedContactInfo };
+            return { successful: true, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
             return { successful: false, returnMessage };
@@ -74,9 +74,9 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { contactInfo, returnMessage } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
+        const { contactInfo, returnMessage, extraDataTracking } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
         if (contactInfo != null) {
-            return { successful: true, returnMessage, contact: contactInfo };
+            return { successful: true, returnMessage, contact: contactInfo, extraDataTracking };
         }
         else {
             return { successful: false, returnMessage };
