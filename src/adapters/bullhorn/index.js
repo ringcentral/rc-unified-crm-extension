@@ -30,7 +30,7 @@ async function tempMigrateUserId({ existingUser }) {
         }
     }
     const newUserId = userInfoResponse.data.data[0]?.masterUserID;
-    if(!!!newUserId){
+    if (!!!newUserId) {
         return null;
     }
     const newUser = await UserModel.create({
@@ -341,7 +341,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, incomingData }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     try {
