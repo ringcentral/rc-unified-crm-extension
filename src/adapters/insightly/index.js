@@ -362,7 +362,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
         }
     }
-    else {
+    if (!!subject) {
+        logSubject = subject;
+    }
+    if (note) {
         let originalNote = '';
         if (logBody.includes('\n[Call recording link]')) {
             originalNote = logBody.split('\n[Call recording link]')[0].split('Agent notes: ')[1];
@@ -372,21 +375,26 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note ?? ''}`);
-        logSubject = subject;
     }
     // metadata update: startTime, duration, result
     // duration
-    const durationRegex = RegExp('This was a ([0-9]+) seconds call');
-    if (durationRegex.test(logBody)) {
-        logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
+    if (!!duration) {
+        const durationRegex = RegExp('This was a ([0-9]+) seconds call');
+        if (durationRegex.test(logBody)) {
+            logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
+        }
     }
 
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
         DETAILS: logBody,
         TITLE: logSubject,
-        START_DATE_UTC: moment(startTime).utc(),
-        END_DATE_UTC: moment(startTime).utc().add(duration, 'seconds')
+    }
+    if (!!startTime) {
+        putBody.START_DATE_UTC = moment(startTime).utc();
+    }
+    if (!!duration && !!startTime) {
+        putBody.END_DATE_UTC = moment(startTime).utc().add(duration, 'seconds');
     }
     const putLogRes = await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,

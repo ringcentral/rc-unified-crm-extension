@@ -203,7 +203,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             logBody += `Call recording link: <a target="_blank" href=${recordingLink}>open</a>`;
         }
     }
-    else {
+    if (!!note) {
         let originalNote = '';
         if (logBody.includes('Call recording link:')) {
             originalNote = logBody.split('Agent notes: ')[1].split('<br><br>Call recording link:')[0];
@@ -213,18 +213,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note ?? ''}`);
-        putBody.subject = !!subject ? subject : logSubject;
     }
+    putBody.subject = !!subject ? subject : logSubject;
     // metadata update: startTime, duration, result
     // duration
-    const durationRegex = RegExp('This was a ([0-9]+) seconds call');
-    if (durationRegex.test(logBody)) {
-        logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
+    if (duration) {
+        const durationRegex = RegExp('This was a ([0-9]+) seconds call');
+        if (durationRegex.test(logBody)) {
+            logBody = logBody.replace(durationRegex, `This was a ${duration} seconds call`);
+        }
     }
 
     putBody.description = logBody;
-    putBody.start_date = moment(startTime).utc().toISOString();
-    putBody.end_date = moment(startTime).utc().add(duration, 'seconds').toISOString();
+    if (!!startTime) {
+        putBody.start_date = moment(startTime).utc().toISOString();
+        if (!!duration) {
+            putBody.end_date = moment(startTime).utc().add(duration, 'seconds').toISOString();
+        }
+    }
 
     const putLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,

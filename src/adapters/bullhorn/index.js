@@ -418,26 +418,41 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
 
     // metadata update: startTime, duration, result
-    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)<li>');
-    if (dateTimeRegex.test(logBody)) {
-        const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
-        logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
+    if (!!startTime) {
+        const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)<li>');
+        if (dateTimeRegex.test(logBody)) {
+            const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
+            logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
+        }
     }
-    const durationRegex = RegExp('<li><b>Duration</b>: (.+) seconds<li>');
-    if (durationRegex.test(logBody)) {
-        logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
+
+    if (!!duration) {
+        const durationRegex = RegExp('<li><b>Duration</b>: (.+) seconds<li>');
+        if (durationRegex.test(logBody)) {
+            logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
+        }
     }
-    const resultRegex = RegExp('<li><b>Result</b>: (.+)<');
-    if (resultRegex.test(logBody)) {
-        logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<`);
+
+    if (!!result) {
+        const resultRegex = RegExp('<li><b>Result</b>: (.+)<');
+        if (resultRegex.test(logBody)) {
+            logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<`);
+        }
     }
 
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
         comments: logBody,
-        dateAdded: startTime,
-        minutesSpent: duration / 60
+    };
+
+    if (!!startTime) {
+        postBody.dateAdded = startTime;
     }
+
+    if (!!duration) {
+        postBody.minutesSpent = duration / 60;
+    }
+
     const postLogRes = await axios.post(
         `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
         postBody,

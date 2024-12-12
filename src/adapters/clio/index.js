@@ -252,7 +252,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.data.body;
-    let patchBody = {};
+    let patchBody = {
+        data: {
+            body: logBody
+        }
+    };
     if (!!recordingLink) {
         const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
         if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
@@ -262,13 +266,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
         }
 
-        patchBody = {
-            data: {
-                body: logBody
-            }
-        }
+        patchBody.data.body = logBody;
     }
-    else {
+    if (!!subject) {
+        patchBody.data.subject = subject
+    }
+    if (!!note) {
         let originalNote = '';
         if (logBody.includes('\n[Call recording link]')) {
             originalNote = logBody.split('\n[Call recording link]')[0].split('Note: ')[1];
@@ -278,41 +281,41 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         logBody = logBody.replace(`Note: ${originalNote}`, `Note: ${note ?? ''}`);
-
-        patchBody = {
-            data: {
-                subject: subject,
-                body: logBody
-            }
-        }
+        patchBody.data.body = logBody;
     }
     // metadata update: startTime, duration, result
     // startTime
-    patchBody.data.received_at = moment(startTime).toISOString();
+    if (!!startTime) {
+        patchBody.data.received_at = moment(startTime).toISOString();
+    }
     // duration - update Timer
-    const getTimerRes = await axios.get(
-        `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
-        {
-            headers: { 'Authorization': authHeader }
-        }
-    )
-    if (!!getTimerRes.data.data[0]) {
-        const patchTimerBody = {
-            data: {
-                quantity: duration
-            }
-        }
-        const patchTimerRes = await axios.patch(
-            `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
-            patchTimerBody,
+    if (!!duration) {
+        const getTimerRes = await axios.get(
+            `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
             {
                 headers: { 'Authorization': authHeader }
-            });
+            }
+        )
+        if (!!getTimerRes.data.data[0]) {
+            const patchTimerBody = {
+                data: {
+                    quantity: duration
+                }
+            }
+            const patchTimerRes = await axios.patch(
+                `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
+                patchTimerBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
     }
     // result
-    const resultRegex = RegExp('Call Result: ([a-zA-Z]+)');
-    if (resultRegex.test(patchBody.data.body)) {
-        patchBody.data.body = patchBody.data.body.replace(resultRegex, `Call Result: ${result}`);
+    if (result) {
+        const resultRegex = RegExp('Call Result: ([a-zA-Z]+)');
+        if (resultRegex.test(patchBody.data.body)) {
+            patchBody.data.body = patchBody.data.body.replace(resultRegex, `Call Result: ${result}`);
+        }
     }
 
     const patchLogRes = await axios.patch(
