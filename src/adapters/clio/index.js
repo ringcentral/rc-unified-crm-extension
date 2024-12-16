@@ -77,10 +77,8 @@ async function unAuthorize({ user }) {
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
-    if (overridingFormat === '') {
-        numberToQueryArray.push(phoneNumber.replace(' ', '+'));
-    }
-    else {
+    numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    if (overridingFormat !== '') {
         const formats = overridingFormat.split(',');
         for (var format of formats) {
             const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -94,6 +92,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
+
     const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
