@@ -297,7 +297,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             startTime: startTimeSLot,
             endTime: endTimeSlot,
             timedEvent: true,
-            message: `Note: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral CRM Extension`,
+            message: `Note: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral App Connect`,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
@@ -369,7 +369,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             });
         const note = getLogRes.data?.message.includes('Call recording link') ?
             getLogRes.data?.message.split('Note: ')[1].split('\nCall recording link')[0] :
-            getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral CRM Extension')[0];
+            getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral App Connect')[0];
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
@@ -400,8 +400,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         let patchBody = { title: subject };
         if (!!recordingLink) {
             const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
-            if (messageBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-                messageBody = messageBody.replace('\n\n--- Created via RingCentral CRM Extension', `\nCall recording link${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+            if (messageBody.includes('\n\n--- Created via RingCentral App Connect')) {
+                messageBody = messageBody.replace('\n\n--- Created via RingCentral App Connect', `\nCall recording link${urlDecodedRecordingLink}\n\n--- Created via RingCentral App Connect`);
             }
             else {
                 messageBody += `\nCall recording link${urlDecodedRecordingLink}`;
@@ -413,7 +413,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 originalNote = messageBody.split('\nCall recording link')[0].split('Note: ')[1];
             }
             else {
-                originalNote = messageBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Note: ')[1];
+                originalNote = messageBody.split('\n\n--- Created via RingCentral App Connect')[0].split('Note: ')[1];
             }
 
             messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
@@ -477,16 +477,16 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                     `${message.subject}\n` +
                     '------------\n' +
                     'END\n\n' +
-                    '--- Created via RingCentral CRM Extension';
+                    '--- Created via RingCentral App Connect';
                 break;
             case 'Voicemail':
                 const decodedRecordingLink = decodeURIComponent(recordingLink);
                 title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral CRM Extension`;
+                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
                 break;
             case 'Fax':
                 title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
+                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
                 break;
         }
         const postBody = {
@@ -606,7 +606,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     else {
                         let companyPostBody = {
                             companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
-                            comments: "This company was created automatically by the RingCentral Unified CRM Extension. Feel free to edit, or associate this company's contacts to more appropriate records.",
+                            comments: "This company was created automatically by the RingCentral App Connect. Feel free to edit, or associate this company's contacts to more appropriate records.",
                         };
                         if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                             companyPostBody.subsidiary = { id: subsidiaryId };

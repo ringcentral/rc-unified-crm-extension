@@ -263,7 +263,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     const callRecordingDetail = callLog.recording ? `\nCall recording link: ${callLog.recording.link}` : "";
     const postBody = {
         TITLE: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        DETAILS: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}\n\n--- Created via RingCentral CRM Extension`,
+        DETAILS: `This was a ${callLog.duration} seconds call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}(${callLog.to.phoneNumber})` : `from ${contactInfo.name}(${callLog.from.phoneNumber})`}.${noteDetail}${callRecordingDetail}\n\n--- Created via RingCentral App Connect`,
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
@@ -355,8 +355,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let logBody = getLogRes.data.DETAILS;
     let logSubject = getLogRes.data.TITLE;
     if (!!recordingLink) {
-        if (logBody.includes('\n\n--- Created via RingCentral CRM Extension')) {
-            logBody = logBody.replace('\n\n--- Created via RingCentral CRM Extension', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral CRM Extension`);
+        if (logBody.includes('\n\n--- Created via RingCentral App Connect')) {
+            logBody = logBody.replace('\n\n--- Created via RingCentral App Connect', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral App Connect`);
         }
         else {
             logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
@@ -368,7 +368,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             originalNote = logBody.split('\n[Call recording link]')[0].split('Agent notes: ')[1];
         }
         else {
-            originalNote = logBody.split('\n\n--- Created via RingCentral CRM Extension')[0].split('Agent notes: ')[1];
+            originalNote = logBody.split('\n\n--- Created via RingCentral App Connect')[0].split('Agent notes: ')[1];
         }
 
         logBody = logBody.replace(`Agent notes: ${originalNote}`, `Agent notes: ${note}`);
@@ -405,7 +405,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         });
     const note = getLogRes.data.DETAILS.includes('[Call recording link]') ?
         getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n[Call recording link]')[0] :
-        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n\n--- Created via RingCentral CRM Extension')[0];
+        getLogRes.data.DETAILS?.split('Agent notes: ')[1]?.split('\n\n--- Created via RingCentral App Connect')[0];
     const contactRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${getLogRes.data.LINKS[0].LINK_OBJECT_NAME}s/${getLogRes.data.LINKS[0].LINK_OBJECT_ID}`,
         {
@@ -447,15 +447,15 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 `${message.subject}\n` +
                 '------------\n' +
                 'END\n\n' +
-                '--- Created via RingCentral CRM Extension';
+                '--- Created via RingCentral App Connect';
             break;
         case 'Voicemail':
             title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            details = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral CRM Extension`;
+            details = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
             break;
         case 'Fax':
             title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            details = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral CRM Extension`;
+            details = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
             break;
     }
 
