@@ -77,12 +77,13 @@ nav:
    - 'Redtail CRM': crm/redtail.md
    - 'NetSuite': crm/netsuite.md
 - 'User guide':
-  - 'Accessing the extension': users/access.md
+  - 'Basic usage': users/access.md
   - 'Making and receiving calls': users/making-calls.md
   - 'Logging calls': users/logging.md
   - 'Sending SMS': users/sms.md
   - 'Presence': users/presence.md
   - 'Settings': users/settings.md
+  - 'Administration': users/admin.md
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
