@@ -10,7 +10,7 @@ async function validateAdminRole({ rcAccessToken }) {
             },
         });
     return {
-        isValidated: !!rcExtensionResponse.data?.permissions?.admin?.enabled || rcExtensionResponse.data.name === 'Da Kong' || rcExtensionResponse.data.name === 'Embbnux Ji',
+        isValidated: !!rcExtensionResponse.data?.permissions?.admin?.enabled || (!!process.env.ADMIN_EXTENSION_ID_DEV_PASS_LIST && process.env.ADMIN_EXTENSION_ID_DEV_PASS_LIST.split(',').includes(rcExtensionResponse.data.id.toString())),
         rcAccountId: rcExtensionResponse.data.account.id
     };
 }
