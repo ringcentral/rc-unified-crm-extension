@@ -16,7 +16,7 @@ To begin using the NetSuite integration, users will first need to do the followi
 * Login to NetSuite, then visit the [RingCentral Suite App](https://www.suiteapp.com/RingCentral-Unified-CRM-Extension) page, or:
   * Click on the "SuiteApps" tab if your role gives you access to it
   * Search for "RingCentral" in the directory
-  * Click "RingCentral Unified CRM Extension" in the search results
+  * Click "RingCentral App Connect" in the search results
 * Click the "Install" button found in the upper right hand corner of the page
 
 If you see, "Not compatible" in place of an "Install" button, then you must be running an older version of NetSuite. You will need to upgrade to 2024.2 or later. 
@@ -25,13 +25,13 @@ Installing the app from the SuiteApp marketplace is a necessary step prior to in
 
 ## Setup roles and permissions in NetSuite
 
-Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral CRM Extension." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
+Upon installation of the SuiteApp, a role will be created automatically within your account called "RingCentral App Connect." This role has been specially tuned to contain the bare minimum number access level to fully operate the Chrome extension. You can see a detailed list of permissions below if you would like to incorporate these permissions into a custom role of your own. 
 
 ### NetSuite OneWorld instructions
 
-Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral CRM Extension"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
+Upon installing the SuiteApp from the Marketplace, a new custom role named **"RingCentral App Connect"** will be automatically created in your account. If you are a OneWorld license holder, you will need to take these additional steps.
 
-1. Clone the "RingCentral CRM Extension" role by selecting the "Customize" option.
+1. Clone the "RingCentral App Connect" role by selecting the "Customize" option.
 2. While cloning, add the permission **"List -> Subsidiaries"** to the cloned role.
 
 Use this cloned role when logging into and connecting App Connect to NetSuite.
@@ -48,7 +48,7 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 
 ### Create role with required permissions
 
-We recommend using the "RingCentral CRM Extension" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
+We recommend using the "RingCentral App Connect" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
 
 | Category     | Permission                           | Level                       |
 | ------------ | ------------------------------------ | -----                       |

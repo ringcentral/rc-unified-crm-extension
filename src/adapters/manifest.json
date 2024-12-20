@@ -52,13 +52,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -232,13 +232,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -359,13 +359,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -483,13 +483,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -684,13 +684,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -810,13 +810,13 @@
                     "elements": [
                         {
                             "const": "pageDescription",
-                            "title": "RingCentral CRM Extension is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
                             "type": "string",
                             "bold": false
                         },
                         {
                             "const": "scoreDescription",
-                            "title": "How likely are you to recommend the Unified CRM Extension to a friend or colleague?",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
                             "type": "string",
                             "bold": true
                         },
@@ -880,5 +880,5 @@
             }
         }
     },
-    "version": "1.3.0"
+    "version": "1.3.2"
 }

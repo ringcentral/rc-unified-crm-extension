@@ -1,6 +1,12 @@
 # Release notes
 
-## 1.3.0
+## 1.3.2
+
+- New: User setting inside call pop to control behavior of multiple matched contacts (disabled, all open, prompt to select)
+- Fix: SMS logging issue
+- Fix: Auto open extension now only opens when main page is opened
+
+## 1.3.1
 
 - New: (Only for admin users) Admin tools. Admins have an extra tab in the extension to control end users' settings
 - Fix: SMS logging date format 
