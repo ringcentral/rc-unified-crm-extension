@@ -1,7 +1,6 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { UserModel } = require('../../models/userModel');
 
 function getAuthType() {
     return 'oauth';
@@ -13,41 +12,6 @@ async function getOauthInfo({ tokenUrl }) {
         clientSecret: process.env.BULLHORN_CLIENT_SECRET,
         accessTokenUri: tokenUrl,
         redirectUri: process.env.BULLHORN_REDIRECT_URI
-    }
-}
-
-async function tempMigrateUserId({ existingUser }) {
-    const bhRestToken = existingUser.platformAdditionalInfo.bhRestToken;
-    const existingUserId = existingUser.id.replace('-bullhorn', '');
-    let userInfoResponse;
-    try {
-        userInfoResponse = await axios.get(`${existingUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,masterUserID&BhRestToken=${bhRestToken}&where=id=${existingUserId}`);
-    }
-    catch (e) {
-        if (isAuthError(e.response.status)) {
-            existingUser = await refreshSessionToken(existingUser);
-            userInfoResponse = await axios.get(`${existingUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,masterUserID&BhRestToken=${bhRestToken}&where=id=${existingUserId}`);
-        }
-    }
-    const newUserId = userInfoResponse.data.data[0]?.masterUserID;
-    if (!!!newUserId) {
-        return null;
-    }
-    const newUser = await UserModel.create({
-        id: `${newUserId}-bullhorn`,
-        hostname: existingUser.hostname,
-        timezoneName: existingUser.timezoneName,
-        timezoneOffset: existingUser.timezoneOffset,
-        platform: existingUser.platform,
-        accessToken: existingUser.accessToken,
-        refreshToken: existingUser.refreshToken,
-        tokenExpiry: existingUser.tokenExpiry,
-        platformAdditionalInfo: existingUser.platformAdditionalInfo
-    });
-    await existingUser.destroy();
-    return {
-        id: newUser.id,
-        name: userInfoResponse.data.name
     }
 }
 
@@ -319,8 +283,18 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
+    let comments = '';
+    if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
+    comments += '<b>Call details</b><ul/>';
+    if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
+    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
+    if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
+    if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
+    if (user.userSettings?.addCallLogRecording?.value ?? true) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
+    comments += '</ul>';
     const putBody = {
-        comments: `${!!note ? `<br>${note}<br><br>` : ''}<b>Call details</b><br><ul><li><b>Summary</b>: ${subject}</li><li><b>${callLog.direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${contactInfo.phoneNumber}</li><li><b>${callLog.direction === 'Outbound' ? `Caller phone number</b>: ${callLog.from.phoneNumber ?? ''}` : `Recipient phone number</b>: ${callLog.to.phoneNumber ?? ''}`} </li><li><b>Date/time</b>: ${moment(callLog.startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}</li><li><b>Duration</b>: ${callLog.duration} seconds</li><li><b>Result</b>: ${callLog.result}</li>${callLog.recording ? `<li><b>Call recording link</b>: <a target="_blank" href=${callLog.recording.link}>open</a></li>` : ''}</ul>`,
+        comments,
         action: noteActions,
         personReference: {
             id: contactInfo.id
@@ -397,44 +371,18 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 });
         }
     }
-    let logBody = getLogRes.data.data.comments;
-    // case: recording link update
-    if (!!recordingLink) {
-        if (logBody.includes('</ul>')) {
-            logBody = logBody.replace('</ul>', `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a></ul>`);
-        }
-        else {
-            logBody += `<b>Call recording link</b>: <a target="_blank" src=${recordingLink}>open</a>`;
-        }
-    }
+    let comments = getLogRes.data.data.comments;
 
-    // replace note
-    if (!!note) {
-        logBody = logBody.replace(logBody.split('<b>Call details</b>')[0], `<br>${note}<br><br>`)
-    }
-    // replace subject
-    if (!!subject) {
-        logBody = logBody.replace(logBody.split('<li><b>Summary</b>: ')[1].split('<li><b>Recipient phone')[0], subject);
-    }
-
-    // metadata update: startTime, duration, result
-    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)<li>');
-    if (dateTimeRegex.test(logBody)) {
-        const updatedDateTime = moment(startTime).utcOffset(Number(user.timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
-        logBody = logBody.replace(dateTimeRegex, `<li><b>Date/time</b>: ${updatedDateTime}<li>`);
-    }
-    const durationRegex = RegExp('<li><b>Duration</b>: (.+) seconds<li>');
-    if (durationRegex.test(logBody)) {
-        logBody = logBody.replace(durationRegex, `<li><b>Duration</b>: ${duration} seconds<li>`);
-    }
-    const resultRegex = RegExp('<li><b>Result</b>: (.+)<');
-    if (resultRegex.test(logBody)) {
-        logBody = logBody.replace(resultRegex, `<li><b>Result</b>: ${result}<`);
-    }
+    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
+    if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, subject }); }
+    if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
+    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
+    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
+    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
 
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments: logBody,
+        comments,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
@@ -662,7 +610,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
     return {
         callLogInfo: {
-            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1].split('<li><b>')[0],
+            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '',
             note,
             contactName: `${contact.firstName} ${contact.lastName}`
         },
@@ -687,6 +635,80 @@ function isAuthError(statusCode) {
     return statusCode >= 400 && statusCode < 500;
 }
 
+function upsertCallAgentNote({ body, note }) {
+    if (!!!note) {
+        return body;
+    }
+    const noteRegex = RegExp('<br>(.+?)<br><br>');
+    if (noteRegex.test(body)) {
+        body = body.replace(noteRegex, `<br>${note}<br><br>`);
+    }
+    else {
+        body += `<br>${note}<br><br>`;
+    }
+    return body;
+}
+function upsertCallSubject({ body, subject }) {
+    const subjectRegex = RegExp('<li><b>Summary</b>: (.+?)(?:<li>|</ul>)');
+    if (subjectRegex.test(body)) {
+        body = body.replace(subjectRegex, (match, p1) => `<li><b>Summary</b>: ${subject}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Summary</b>: ${subject}<li>`;
+    }
+    return body;
+}
+
+function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
+    const phoneNumberRegex = RegExp(`<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: (.+?)(?:<li>|</ul>)`);
+    if (phoneNumberRegex.test(body)) {
+        body = body.replace(phoneNumberRegex, (match, p1) => `<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${phoneNumber}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${phoneNumber}<li>`;
+    }
+    return body;
+}
+
+function upsertCallDateTime({ body, startTime, timezoneOffset }) {
+    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)(?:<li>|</ul>)');
+    if (dateTimeRegex.test(body)) {
+        const updatedDateTime = moment(startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
+        body = body.replace(dateTimeRegex, (match, p1) => `<li><b>Date/time</b>: ${updatedDateTime}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Date/time</b>: ${moment(startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}<li>`;
+    }
+    return body;
+}
+
+function upsertCallDuration({ body, duration }) {
+    const durationRegex = RegExp('<li><b>Duration</b>: (.+?) seconds(?:<li>|</ul>)');
+    if (durationRegex.test(body)) {
+        body = body.replace(durationRegex, (match, p1) => `<li><b>Duration</b>: ${duration} seconds${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Duration</b>: ${duration} seconds<li>`;
+    }
+    return body;
+}
+
+function upsertCallResult({ body, result }) {
+    const resultRegex = RegExp('<li><b>Result</b>: (.+?)(?:<li>|</ul>)');
+    if (resultRegex.test(body)) {
+        body = body.replace(resultRegex, (match, p1) => `<li><b>Result</b>: ${result}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Result</b>: ${result}<li>`;
+    }
+    return body;
+}
+
+function upsertCallRecording({ body, recordingLink }) {
+    const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
+    if (!!recordingLink && recordingLinkRegex.test(body)) {
+        body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else if (!!recordingLink) {
+        body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+    }
+    return body;
+}
+
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
@@ -699,4 +721,3 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
-exports.tempMigrateUserId = tempMigrateUserId;
