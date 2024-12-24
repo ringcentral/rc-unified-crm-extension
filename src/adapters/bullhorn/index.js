@@ -284,9 +284,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    let comments = '';
+    let comments = '<b>Agent notes</b>';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
-    comments += '<b>Call details</b><ul/>';
+    comments += '<b>Call details</b><ul>';
     if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
     if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
     if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
