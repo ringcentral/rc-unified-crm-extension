@@ -292,7 +292,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
     if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-    if (user.userSettings?.addCallLogRecording?.value ?? true) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
+    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
     comments += '</ul>';
     const putBody = {
         comments,
@@ -702,10 +702,20 @@ function upsertCallResult({ body, result }) {
 
 function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (!!recordingLink && recordingLinkRegex.test(body)) {
-        body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else if (!!recordingLink) {
-        body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+    if (!!recordingLink) {
+        if (recordingLinkRegex.test(body)) {
+            body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+        }
+        else {
+            // a real link
+            if (recordingLink.startsWith('http')) {
+                body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+            }
+            // placeholder
+            else {
+                body += '<li><b>Call recording link</b>: (pending...)<li>';
+            }
+        }
     }
     return body;
 }
