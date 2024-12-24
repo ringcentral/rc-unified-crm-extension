@@ -391,28 +391,29 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, incomingData }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     try {
+        console.log({ use, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result });
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let messageBody = callLogResponse.data.message;
         let patchBody = { title: subject };
-        if (incomingData?.startTime !== undefined && incomingData?.duration !== undefined) {
-            let callStartTime = moment(moment(incomingData.startTime).toISOString());
-            let startTimeSLot = moment(incomingData.startTime).format('HH:mm');
+        if (startTime !== undefined && duration !== undefined) {
+            let callStartTime = moment(moment(startTime).toISOString());
+            let startTimeSLot = moment(startTime).format('HH:mm');
             try {
                 const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
                 const timeZoneResponse = await axios.get(getTimeZoneUrl, {
                     headers: { 'Authorization': authHeader }
                 });
                 const timeZone = timeZoneResponse?.data?.userTimezone;
-                callStartTime = moment(moment(incomingData.startTime).toISOString()).tz(timeZone);
+                callStartTime = moment(moment(startTime).toISOString()).tz(timeZone);
                 startTimeSLot = callStartTime.format('HH:mm');
 
             } catch (error) {
                 console.log({ message: "Error in getting timezone in updateCallLog" });
             }
-            const callEndTime = moment(callStartTime).add(incomingData.duration, 'seconds');
+            const callEndTime = moment(callStartTime).add(duration, 'seconds');
             const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
             const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
             let endTimeSlot = callEndTime.format('HH:mm');
@@ -433,7 +434,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (recordingLinkMatch) {
                 callRecordingLink = recordingLinkMatch[1];
             }
-            messageBody = `\nCall Start Time: ${formatedStartTime}\n Duration In Second: ${incomingData.duration}Sec.\n Call End Time : ${formatedEndTime}\nContact Number: ${phoneNumber}\nNote: ${note}${callRecordingLink ? `\nCall recording link ${callRecordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`;
+            messageBody = `Note: ${note}${callRecordingLink ? `\nCall recording link ${callRecordingLink}` : ''}\n\n--- Created via RingCentral CRM Extension`;
         }
         if (!!recordingLink) {
             const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
