@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
@@ -190,10 +191,17 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             id: user.id,
             type: 'User'
         }
+    let body = '\n';
+    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
+    if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
+    if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
+    if (user.userSettings?.addCallLogRecording?.value ?? true) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
+    body += '\n\n--- Created via RingCentral App Connect';
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
-            body: `\nContact Number: ${contactInfo.phoneNumber}\nCall Result: ${callLog.result}\nNote: ${note}${callLog.recording ? `\n[Call recording link] ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral App Connect`,
+            body,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
             senders: [sender],
@@ -252,42 +260,18 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
     let logBody = getLogRes.data.data.body;
     let patchBody = {};
-    if (!!recordingLink) {
-        const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
-        if (logBody.includes('\n\n--- Created via RingCentral App Connect')) {
-            logBody = logBody.replace('\n\n--- Created via RingCentral App Connect', `\n[Call recording link]${urlDecodedRecordingLink}\n\n--- Created via RingCentral App Connect`);
-        }
-        else {
-            logBody += `\n[Call recording link]${urlDecodedRecordingLink}`;
-        }
 
-        patchBody = {
-            data: {
-                body: logBody
-            }
+    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
+    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
+    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
+    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
+    patchBody = {
+        data: {
+            body: logBody
         }
     }
-    else {
-        let originalNote = '';
-        if (logBody.includes('\n[Call recording link]')) {
-            originalNote = logBody.split('\n[Call recording link]')[0].split('Note: ')[1];
-        }
-        else {
-            originalNote = logBody.split('\n\n--- Created via RingCentral App Connect')[0].split('Note: ')[1];
-        }
-
-        logBody = logBody.replace(`Note: ${originalNote}`, `Note: ${note ?? ''}`);
-
-        patchBody = {
-            data: {
-                subject: subject,
-                body: logBody
-            }
-        }
-    }
-    // metadata update: startTime, duration, result
-    // startTime
-    patchBody.data.received_at = moment(startTime).toISOString();
+    if (!!subject) { patchBody.data.subject = subject; }
+    if (!!startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
     const getTimerRes = await axios.get(
         `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
@@ -308,12 +292,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 headers: { 'Authorization': authHeader }
             });
     }
-    // result
-    const resultRegex = RegExp('Call Result: ([a-zA-Z]+)');
-    if (resultRegex.test(patchBody.data.body)) {
-        patchBody.data.body = patchBody.data.body.replace(resultRegex, `Call Result: ${result}`);
-    }
-
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
         patchBody,
@@ -456,9 +434,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.data.body.includes('[Call recording link]') ?
-        getLogRes.data.data.body.split('Note: ')[1].split('\n[Call recording link]')[0] :
-        getLogRes.data.data.body.split('Note: ')[1].split('\n\n--- Created via RingCentral App Connect')[0];
+    const note = getLogRes.data.data.body.split('- Note: ')[1].split('\n')[0];
     const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
         getLogRes.data.data.senders[0].id :
         getLogRes.data.data.receivers[0].id;
@@ -476,6 +452,59 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
+function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
+    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
+    if (phoneNumberRegex.test(body)) {
+        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
+    } else {
+        body += `- Contact Number: ${phoneNumber}\n`;
+    }
+    return body;
+}
+function upsertCallResult({ body, result }) {
+    const resultRegex = RegExp('- Result: (.+?)\n');
+    if (resultRegex.test(body)) {
+        body = body.replace(resultRegex, `- Result: ${result}\n`);
+    } else {
+        body += `- Result: ${result}\n`;
+    }
+    return body;
+}
+
+function upsertCallAgentNote({ body, note }) {
+    if (!!!note) {
+        return body;
+    }
+    const noteRegex = RegExp('- Note: (.+?)\n');
+    if (noteRegex.test(body)) {
+        body = body.replace(noteRegex, `- Note: ${note}\n`);
+    }
+    else {
+        body += `- Note: ${note}\n`;
+    }
+    return body;
+}
+
+function upsertCallDuration({ body, duration }) {
+    const durationRegex = RegExp('- Duration: (.+?)\n');
+    if (durationRegex.test(body)) {
+        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
+    } else {
+        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
+    }
+    return body;
+}
+
+
+function upsertCallRecording({ body, recordingLink }) {
+    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
+    if (!!recordingLink && recordingLinkRegex.test(body)) {
+        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+    } else if (!!recordingLink) {
+        body += `- Call recording link: ${recordingLink}\n`;
+    }
+    return body;
+}
 
 
 exports.getAuthType = getAuthType;

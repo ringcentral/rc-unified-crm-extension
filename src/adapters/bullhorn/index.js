@@ -1,6 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
@@ -599,7 +600,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     }
     const logBody = getLogRes.data.data.comments;
-    const note = logBody.split('<b>Call details</b>')[0].replaceAll('<br>', '');
+    const note = logBody.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
@@ -680,11 +681,11 @@ function upsertCallDateTime({ body, startTime, timezoneOffset }) {
 }
 
 function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('<li><b>Duration</b>: (.+?) seconds(?:<li>|</ul>)');
+    const durationRegex = RegExp('<li><b>Duration</b>: (.+?)(?:<li>|</ul>)');
     if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, (match, p1) => `<li><b>Duration</b>: ${duration} seconds${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+        body = body.replace(durationRegex, (match, p1) => `<li><b>Duration</b>: ${secondsToHoursMinutesSeconds(duration)}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
     } else {
-        body += `<li><b>Duration</b>: ${duration} seconds<li>`;
+        body += `<li><b>Duration</b>: ${secondsToHoursMinutesSeconds(duration)}<li>`;
     }
     return body;
 }
