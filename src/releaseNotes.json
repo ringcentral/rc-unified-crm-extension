@@ -1,4 +1,28 @@
 {
+    "1.3.3":{
+        "global":[
+            {
+                "type": "Update",
+                "description": "- This extension's name is now changed to RingCentral App Connect"
+            },
+            {
+                "type": "Fix",
+                "description": "- (for Clio and Insightly user only) Overriding phone number format missing issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Auto pop up log page after call setting not working"
+            },
+            {
+                "type": "Fix",
+                "description": "- Inbound call contact pop not working"
+            },
+            {
+                "type": "Fix",
+                "description": "- Admin icon in dark theme"
+            }
+        ]
+    },
     "1.3.2":{
         "global": [
             {

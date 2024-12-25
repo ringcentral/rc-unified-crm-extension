@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.3.3
+
+- Update: This extension's name is now changed to RingCentral App Connect
+- Fix: (for Clio and Insightly user only) Overriding phone number format missing issue
+- Fix: Admin icon in dark theme
+- Fix: Auto pop up log page after call setting not working
+- Fix: Inbound call contact pop not working
+
 ## 1.3.2
 
 - New: User setting inside call pop to control behavior of multiple matched contacts (disabled, all open, prompt to select)
