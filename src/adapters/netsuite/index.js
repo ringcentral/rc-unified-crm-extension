@@ -393,7 +393,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     try {
-        console.log({ use, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result });
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let messageBody = callLogResponse.data.message;
