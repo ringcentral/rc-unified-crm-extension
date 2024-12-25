@@ -6,7 +6,11 @@ const oauth = require('../lib/oauth');
 
 async function createCallLog({ platform, userId, incomingData }) {
     try {
-        const existingCallLog = await CallLogModel.findByPk(incomingData.logInfo.id);
+        const existingCallLog = await CallLogModel.findOne({
+            where: {
+                sessionId
+            }
+        });
         if (existingCallLog) {
             return {
                 successful: false,
@@ -71,7 +75,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
         if (!!logId) {
             await CallLogModel.create({
-                id: incomingData.logInfo.id,
+                id: incomingData.logInfo.telephonySessionId,
                 sessionId: incomingData.logInfo.sessionId,
                 platform,
                 thirdPartyLogId: logId,
