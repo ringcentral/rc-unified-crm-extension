@@ -8,7 +8,7 @@ async function createCallLog({ platform, userId, incomingData }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
-                sessionId
+                sessionId: incomingData.logInfo.sessionId
             }
         });
         if (existingCallLog) {
@@ -121,34 +121,38 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        for (const sessionId of sessionIdsArray) {
-            const callLog = await CallLogModel.findOne({
-                where: {
-                    sessionId
+        const callLogs = await CallLogModel.findAll({
+            where: {
+                sessionId: {
+                    [Op.in]: sessionIdsArray
                 }
-            });
+            }
+        });
+        for (const callLog of callLogs) {
             if (!!!callLog) {
-                logs.push({ sessionId, matched: false });
+                logs.push({ sessionId: callLog.sessionId, matched: false });
                 continue;
             }
             const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
             returnMessage = getCallLogResult.returnMessage;
             extraDataTracking = getCallLogResult.extraDataTracking;
-            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
+            logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
         }
     }
     else {
-        for (const sessionId of sessionIdsArray) {
-            const callLog = await CallLogModel.findOne({
-                where: {
-                    sessionId
+        const callLogs = await CallLogModel.findAll({
+            where: {
+                sessionId: {
+                    [Op.in]: sessionIdsArray
                 }
-            });
+            }
+        });
+        for (const callLog of callLogs) {
             if (!!!callLog) {
-                logs.push({ sessionId, matched: false });
+                logs.push({ sessionId: callLog.sessionId, matched: false });
                 continue;
             }
-            logs.push({ sessionId, matched: true, logId: callLog.thirdPartyLogId });
+            logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId });
         }
     }
     return { successful: true, logs, returnMessage, extraDataTracking };

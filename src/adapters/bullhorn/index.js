@@ -600,7 +600,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     }
     const logBody = getLogRes.data.data.comments;
-    const note = logBody.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
+    const note = logBody.split('<b>Agent notes</b><br>')[1]?.split('<br><br>')[0] ?? '';
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
