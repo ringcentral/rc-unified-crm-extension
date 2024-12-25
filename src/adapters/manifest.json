@@ -747,6 +747,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Bullhorn",
             "auth": {
                 "type": "oauth",
