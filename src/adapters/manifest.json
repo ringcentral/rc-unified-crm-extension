@@ -1,5 +1,5 @@
 {
-    "serverUrl": "http://localhost:6066",
+    "serverUrl": "unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
