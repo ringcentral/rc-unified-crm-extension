@@ -711,13 +711,18 @@ function upsertCallRecording({ body, recordingLink }) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
         else {
+            let text = '';
             // a real link
             if (recordingLink.startsWith('http')) {
-                body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+                text = `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+            } else {
+                // placeholder
+                text = '<li><b>Call recording link</b>: (pending...)<li>';
             }
-            // placeholder
-            else {
-                body += '<li><b>Call recording link</b>: (pending...)<li>';
+            if (body.indexOf('</ul>') === -1) {
+                body += text;
+            } else {
+                body = body.replace('</ul>', `${text}</ul>`);
             }
         }
     }
