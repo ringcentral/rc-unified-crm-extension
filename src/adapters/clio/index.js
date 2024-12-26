@@ -172,7 +172,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
@@ -197,6 +197,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
     if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
+
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
@@ -250,7 +253,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body,id`,
@@ -264,6 +267,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
     patchBody = {
         data: {
             body: logBody
@@ -272,24 +277,26 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!subject) { patchBody.data.subject = subject; }
     if (!!startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
-    const getTimerRes = await axios.get(
-        `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
-        {
-            headers: { 'Authorization': authHeader }
-        }
-    )
-    if (!!getTimerRes.data.data[0]) {
-        const patchTimerBody = {
-            data: {
-                quantity: duration
-            }
-        }
-        const patchTimerRes = await axios.patch(
-            `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
-            patchTimerBody,
+    if (!!duration) {
+        const getTimerRes = await axios.get(
+            `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
             {
                 headers: { 'Authorization': authHeader }
-            });
+            }
+        )
+        if (!!getTimerRes.data.data[0]) {
+            const patchTimerBody = {
+                data: {
+                    quantity: duration
+                }
+            }
+            const patchTimerRes = await axios.patch(
+                `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
+                patchTimerBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
     }
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
@@ -505,6 +512,26 @@ function upsertCallRecording({ body, recordingLink }) {
     return body;
 }
 
+function upsertAiNote({ body, aiNote }) {
+    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
+    const clearedAiNote = aiNote.replace(/\n+$/, '');
+    if (aiNoteRegex.test(body)) {
+        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
+    } else {
+        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
+    }
+    return body;
+}
+
+function upsertTranscript({ body, transcript }) {
+    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
+    if (transcriptRegex.test(body)) {
+        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
+    } else {
+        body += `- Transcript:\n${transcript}\n--- END\n`;
+    }
+    return body;
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
