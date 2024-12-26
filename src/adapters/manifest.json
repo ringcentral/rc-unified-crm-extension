@@ -1,5 +1,5 @@
 {
-    "serverUrl": "unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "http://localhost:6066",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -73,6 +73,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
@@ -267,6 +281,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
@@ -450,6 +478,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
@@ -651,6 +693,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
@@ -861,6 +917,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
