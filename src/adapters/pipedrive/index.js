@@ -170,7 +170,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
     const orgId = personResponse.data.data.org_id?.value ?? '';
@@ -185,6 +185,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (user.userSettings?.addCallLogResult?.value ?? true) { noteBody = upsertCallResult({ body: noteBody, result: callLog.result }); }
     if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { noteBody = upsertCallRecording({ body: noteBody, recordingLink: callLog.recording.link }); }
     noteBody += '</ul>';
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { noteBody = upsertAiNote({ body: noteBody, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { noteBody = upsertTranscript({ body: noteBody, transcript }); }
     const postBody = {
         user_id: user.id,
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
@@ -213,7 +215,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
@@ -224,11 +226,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let logBody = getLogRes.data.data.note;
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { logBody = upsertCallSubject({ body: logBody, subject }); }
     if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = upsertCallDateTime({ body: logBody, startTime, timezoneOffset: user.timezoneOffset }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
     putBody.note = logBody;
 
     if (!!subject) {
@@ -369,7 +372,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     const logBody = getLogRes.data.data.note;
-    console.log(logBody)
     const note = logBody.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
     const relatedContact = getLogRes.data.related_objects?.person;
     let contactName = 'Unknown';
@@ -448,15 +450,50 @@ function upsertCallRecording({ body, recordingLink }) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
         else {
+            let text = '';
             // a real link
             if (recordingLink.startsWith('http')) {
-                body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+                text = `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+            } else {
+                // placeholder
+                text = '<li><b>Call recording link</b>: (pending...)<li>';
             }
-            // placeholder
-            else {
-                body += '<li><b>Call recording link</b>: (pending...)<li>';
+            if (body.indexOf('</ul>') === -1) {
+                body += text;
+            } else {
+                body = body.replace('</ul>', `${text}</ul>`);
             }
         }
+    }
+    return body;
+}
+
+function upsertAiNote({ body, aiNote }) {
+    if (!!!aiNote) {
+        return body;
+    }
+    const formattedAiNote = aiNote.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    const aiNoteRegex = RegExp('<div><b>AI note</b><br>(.+?)</div><br>');
+    if (aiNoteRegex.test(body)) {
+        body = body.replace(aiNoteRegex, `<div><b>AI note</b><br>${formattedAiNote}</div><br>`);
+    }
+    else {
+        body += `<div><b>AI note</b><br>${formattedAiNote}</div><br>`;
+    }
+    return body;
+}
+
+function upsertTranscript({ body, transcript }) {
+    if (!!!transcript) {
+        return body;
+    }
+    const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    const transcriptRegex = RegExp('<div><b>Transcript</b><br>(.+?)</div><br>');
+    if (transcriptRegex.test(body)) {
+        body = body.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`);
+    }
+    else {
+        body += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
     }
     return body;
 }
