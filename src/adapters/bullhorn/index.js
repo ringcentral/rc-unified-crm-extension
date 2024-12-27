@@ -281,7 +281,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '<b>Agent notes</b>';;
@@ -294,6 +294,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
     if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
     comments += '</ul>';
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
     const putBody = {
         comments,
         action: noteActions,
@@ -347,7 +349,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking;
@@ -380,6 +382,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
@@ -707,15 +711,48 @@ function upsertCallRecording({ body, recordingLink }) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
         else {
+            let text = '';
             // a real link
             if (recordingLink.startsWith('http')) {
-                body += `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+                text = `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
+            } else {
+                // placeholder
+                text = '<li><b>Call recording link</b>: (pending...)<li>';
             }
-            // placeholder
-            else {
-                body += '<li><b>Call recording link</b>: (pending...)<li>';
+            if (body.indexOf('</ul>') === -1) {
+                body += text;
+            } else {
+                body = body.replace('</ul>', `${text}</ul>`);
             }
         }
+    }
+    return body;
+}
+
+function upsertAiNote({ body, aiNote }) {
+    if (!!!aiNote) {
+        return body;
+    }
+    const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
+    const aiNoteRegex = RegExp('<div><b>AI Note</b><br>(.+?)</div>');
+    if (aiNoteRegex.test(body)) {
+        body = body.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}</div>`);
+    } else {
+        body += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
+    }
+    return body;
+}
+
+function upsertTranscript({ body, transcript }) {
+    if (!!!transcript) {
+        return body;
+    }
+    const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
+    const transcriptRegex = RegExp('<div><b>Transcript</b><br>(.+?)</div>');
+    if (transcriptRegex.test(body)) {
+        body = body.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
+    } else {
+        body += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
     }
     return body;
 }
