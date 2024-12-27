@@ -474,7 +474,7 @@ function upsertCallAgentNote({ body, note }) {
     if (!!!note) {
         return body;
     }
-    const noteRegex = RegExp('- Note: (.+?)\n');
+    const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
     if (noteRegex.test(body)) {
         body = body.replace(noteRegex, `- Note: ${note}\n`);
     }

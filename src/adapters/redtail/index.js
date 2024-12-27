@@ -371,9 +371,9 @@ function upsertCallAgentNote({ body, note }) {
     if (!!!note) {
         return body;
     }
-    const noteRegex = RegExp('<br>(.+?)<br><br>');
+    const noteRegex = RegExp('<b>Agent notes</b><br>([\\s\\S]+?)<br><br>');
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `<br>${note}<br><br>`);
+        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
     }
     else {
         body += `<br>${note}<br><br>`;
