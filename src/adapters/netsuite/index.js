@@ -369,7 +369,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Date\/Time: .*/, '');
         note = note?.replace(/\n- Duration: .*/, '');
         note = note?.replace(/\n- Call recording link: .*/, '');
-        console.log("Note: ", note);
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
