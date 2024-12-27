@@ -1,5 +1,5 @@
 {
-    "serverUrl": "unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -232,7 +232,8 @@
                     "display": "Contact",
                     "value": "contact"
                 }
-            ],"settings": [
+            ],
+            "settings": [
                 {
                     "id": "insightlyCallLogDetails",
                     "type": "section",
@@ -604,7 +605,8 @@
                         ]
                     }
                 }
-            },"settings": [
+            },
+            "settings": [
                 {
                     "id": "redtailCallLogDetails",
                     "type": "section",
@@ -1009,6 +1011,57 @@
                     "customState": "fillerString,platform=netsuite"
                 }
             },
+            "settings": [
+                {
+                    "id": "netsuiteCallLogDetails",
+                    "type": "section",
+                    "name": "Call log details",
+                    "items": [
+                        {
+                            "id": "addCallLogNote",
+                            "type": "boolean",
+                            "name": "Add note to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogSubject",
+                            "type": "boolean",
+                            "name": "Add subject to call log",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogContactNumber",
+                            "type": "boolean",
+                            "name": "Add contact phone number to call log",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogDateTime",
+                            "type": "boolean",
+                            "name": "Add date and time to call log",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogDuration",
+                            "type": "boolean",
+                            "name": "Add duration to call log",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogResult",
+                            "type": "boolean",
+                            "name": "Add call result to call log",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogRecording",
+                            "type": "boolean",
+                            "name": "Add recording link to call log",
+                            "defaultValue": true
+                        }
+                    ]
+                }
+            ],
             "platform": "netsuite",
             "contactPageUrl": "https://{hostname}/app/common/entity/{contactType}.nl?id={contactId}&source=ringcentral",
             "logPageUrl": "https://{hostname}/app/crm/calendar/call.nl?id={logId}",
