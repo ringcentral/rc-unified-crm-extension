@@ -791,7 +791,7 @@ app.post('/messageLog', async function (req, res) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, returnMessage, logIds, extraDataTracking } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
-            if(!!extraDataTracking){
+            if (!!extraDataTracking) {
                 extraData = extraDataTracking;
             }
             res.status(200).send({ successful, returnMessage, logIds });

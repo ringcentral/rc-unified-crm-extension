@@ -13,8 +13,5 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   },
   customAdapter: {
     type: Sequelize.JSON
-  },
-  serverSideLogging: {
-    type: Sequelize.JSON
   }
 });
