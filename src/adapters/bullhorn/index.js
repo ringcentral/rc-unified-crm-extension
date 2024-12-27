@@ -733,12 +733,12 @@ function upsertAiNote({ body, aiNote }) {
     if (!!!aiNote) {
         return body;
     }
-    const formattedAiNote = aiNote.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    const aiNoteRegex = RegExp('<div><b>AI Note</b><br>(.+?)<div><br>');
+    const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
+    const aiNoteRegex = RegExp('<div><b>AI Note</b><br>(.+?)</div>');
     if (aiNoteRegex.test(body)) {
-        body = body.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}<div><br>`);
+        body = body.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}</div>`);
     } else {
-        body += `<div><b>AI Note</b><br>${formattedAiNote}<div><br>`;
+        body += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
     }
     return body;
 }
@@ -748,11 +748,11 @@ function upsertTranscript({ body, transcript }) {
         return body;
     }
     const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    const transcriptRegex = RegExp('<div><b>Transcript</b><br>(.+?)<div><br>');
+    const transcriptRegex = RegExp('<div><b>Transcript</b><br>(.+?)</div>');
     if (transcriptRegex.test(body)) {
-        body = body.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}<div><br>`);
+        body = body.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
     } else {
-        body += `<div><b>Transcript</b><br>${formattedTranscript}<div><br>`;
+        body += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
     }
     return body;
 }
