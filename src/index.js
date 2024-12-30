@@ -74,6 +74,51 @@ app.get('/crmManifest', (req, res) => {
 app.get('/is-alive', (req, res) => {
     res.send(`OK`);
 });
+
+app.get('/authValidation', async (req, res) => {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    let validationPass = false;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!!jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            platformName = platform;
+            const { successful, returnMessage } = await authCore.authValidation({ platform, userId });
+            success = true;
+            validationPass = successful;
+            res.status(200).send({ successful, returnMessage });
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
+        }
+    }
+    catch (e) {
+        console.log(`platform: ${platformName} \n${e.stack}`);
+        res.status(400).send(e);
+        success = false;
+    }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Auth validation',
+        interfaceName: 'authValidation',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        extras: {
+            validationPass
+        }
+    });
+});
+
 app.get('/serverVersionInfo', (req, res) => {
     const defaultCrmManifest = require('./adapters/manifest.json');
     res.send({ version: defaultCrmManifest.version });
@@ -112,7 +157,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 
 app.post('/admin/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
-    let platformName = null;
     let success = false;
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -136,7 +180,6 @@ app.post('/admin/settings', async function (req, res) {
     analytics.track({
         eventName: 'Set admin settings',
         interfaceName: 'setAdminSettings',
-        adapterName: platformName,
         accountId: hashedAccountId,
         extensionId: hashedExtensionId,
         success,

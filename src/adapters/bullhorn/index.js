@@ -7,6 +7,56 @@ function getAuthType() {
     return 'oauth';
 }
 
+async function authValidation({ user }) {
+    let commentActionListResponse;
+    try {
+        commentActionListResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        return {
+            successful: true
+        }
+    }
+    catch (e) {
+        if (isAuthError(e.response.status)) {
+            user = await refreshSessionToken(user);
+            try {
+                commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                    {
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
+                    });
+                return {
+                    successful: true
+                }
+            }
+            catch (e) {
+                return {
+                    successful: false,
+                    returnMessage: {
+                        messageType: 'warning',
+                        message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
+                        ttl: 3000
+                    }
+                }
+            }
+        }
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
+                ttl: 3000
+            }
+        }
+    }
+}
+
 async function getOauthInfo({ tokenUrl }) {
     return {
         clientId: process.env.BULLHORN_CLIENT_ID,
@@ -721,6 +771,7 @@ function upsertCallRecording({ body, recordingLink }) {
 }
 
 exports.getAuthType = getAuthType;
+exports.authValidation = authValidation;
 exports.getOauthInfo = getOauthInfo;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.getUserInfo = getUserInfo;

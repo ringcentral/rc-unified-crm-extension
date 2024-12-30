@@ -122,5 +122,32 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     };
 }
 
+async function authValidation({ platform, userId }) {
+    const existingUser = await UserModel.findOne({
+        where: {
+            [Op.and]: [
+                {
+                    id: userId,
+                    platform
+                }
+            ]
+        }
+    });
+    if (!!existingUser) {
+        const platformModule = require(`../adapters/${platform}`);
+        const { successful, returnMessage } = await platformModule.authValidation({ user: existingUser });
+        return {
+            successful,
+            returnMessage
+        }
+    }
+    else {
+        return {
+            successful: false
+        }
+    }
+}
+
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
+exports.authValidation = authValidation;
