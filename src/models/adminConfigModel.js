@@ -8,10 +8,10 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
     type: Sequelize.STRING,
     primaryKey: true,
   },
-  userSettings:{
+  userSettings: {
     type: Sequelize.JSON
   },
-  customAdapter:{
+  customAdapter: {
     type: Sequelize.JSON
   }
 });
