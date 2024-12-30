@@ -1058,6 +1058,20 @@
                             "type": "boolean",
                             "name": "Add recording link to call log",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Add AI note to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Add transcript to call log (if available) - Beta",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
                         }
                     ]
                 }
