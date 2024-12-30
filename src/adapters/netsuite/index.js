@@ -788,7 +788,7 @@ function upsertCallAgentNote({ body, note }) {
     }
     const noteRegex = /^- Note:[^\n]*(?:\n(?!- ).*)*/m;
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Note: ${note}\n`);
+        body = body.replace(noteRegex, `- Note: ${note}`);
     }
     else {
         if (body && !body.endsWith('\n')) {
@@ -810,9 +810,10 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallDuration({ body, duration }) {
+    console.log({ duration });
     const durationRegex = /- Duration: (.+?)(?=\n|$)/g;
     if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
+        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}`);
     } else {
         body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
     }
@@ -830,9 +831,9 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
 }
 
 function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
+    const recordingLinkRegex = /- Call recording link: (.+?)(?=\n|$)/g;
     if (!!recordingLink && recordingLinkRegex.test(body)) {
-        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}`);
     } else if (!!recordingLink) {
         // if not end with new line, add new line
         if (body && !body.endsWith('\n')) {
