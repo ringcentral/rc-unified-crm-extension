@@ -75,7 +75,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
         if (!!logId) {
             await CallLogModel.create({
-                id: incomingData.logInfo.telephonySessionId,
+                id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
                 sessionId: incomingData.logInfo.sessionId,
                 platform,
                 thirdPartyLogId: logId,
