@@ -810,7 +810,6 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallDuration({ body, duration }) {
-    console.log({ duration });
     const durationRegex = /- Duration: (.+?)(?=\n|$)/g;
     if (durationRegex.test(body)) {
         body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}`);
