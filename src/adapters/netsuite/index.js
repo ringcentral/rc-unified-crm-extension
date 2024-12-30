@@ -5,6 +5,7 @@ const { parsePhoneNumber } = require('awesome-phonenumber');
 const { parse } = require('path');
 const { getTimeZone } = require('../../lib/util');
 const { get } = require('shortid/lib/alphabet');
+const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
@@ -247,27 +248,12 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         let callStartTime = moment(moment(callLog.startTime).toISOString());
         let startTimeSLot = moment(callLog.startTime).format('HH:mm');
-        /**
-         * Users without a OneWorld license do not have access to subsidiaries.
-         */
-        // if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
-        //     const subsidiary = await axios.post(
-        //         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-        //         {
-        //             q: `SELECT * FROM Subsidiary WHERE id = ${user?.platformAdditionalInfo?.subsidiaryId}`
-        //         },
-        //         {
-        //             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-        //         });
-        //     const timeZone = getTimeZone(subsidiary.data.items[0]?.country, subsidiary.data.items[0]?.state);
-        //     callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
-        // }
         try {
             const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
             const timeZoneResponse = await axios.get(getTimeZoneUrl, {
@@ -280,14 +266,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } catch (error) {
             console.log({ message: "Error in getting timezone" });
         }
-        const callEndTime = moment(callStartTime).add(callLog.duration, 'seconds');
-        const formatedStartTime = callStartTime.format('YYYY-MM-DD HH:mm:ss');
-        const formatedEndTime = callEndTime.format('YYYY-MM-DD HH:mm:ss');
+        const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
         let endTimeSlot = callEndTime.format('HH:mm');
         if (startTimeSLot === endTimeSlot) {
             //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
+        let comments = '';;
+        if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
+        if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
+        if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+        if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
+        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
+        if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
+        if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
+        if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
+        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
         let postBody = {
             title: title,
             phone: contactInfo?.phoneNumber || '',
@@ -297,7 +291,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             startTime: startTimeSLot,
             endTime: endTimeSlot,
             timedEvent: true,
-            message: `Note: ${note}${callLog.recording ? `\nCall recording link ${callLog.recording.link}` : ''}\n\n--- Created via RingCentral App Connect`,
+            message: comments,
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
@@ -308,7 +302,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } else if (contactInfo.type === 'custjob') {
             postBody.company = { id: contactInfo.id };
         }
-
         const addLogRes = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
             postBody,
@@ -345,6 +338,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
+        console.log({ error });
         let errorMessage = netSuiteErrorDetails(error, "Error in Creating Call Log");
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
@@ -367,9 +361,16 @@ async function getCallLog({ user, callLogId, authHeader }) {
             {
                 headers: { 'Authorization': authHeader }
             });
-        const note = getLogRes.data?.message.includes('Call recording link') ?
-            getLogRes.data?.message.split('Note: ')[1].split('\nCall recording link')[0] :
-            getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral App Connect')[0];
+        let note = getLogRes.data.message.split('- Note: ')[1];
+        // const note = getLogRes.data?.message.includes('Call recording link') ?
+        //     getLogRes.data?.message.split('Note: ')[1].split('\nCall recording link')[0] :
+        //     getLogRes.data?.message.split('Note: ')[1].split('\n\n--- Created via RingCentral App Connect')[0];
+        note = note?.replace(/\n- Summary: .*/, '');
+        note = note?.replace(/\n- Contact Number: .*/, '');
+        note = note?.replace(/\n- Result: .*/, '');
+        note = note?.replace(/\n- Date\/Time: .*/, '');
+        note = note?.replace(/\n- Duration: .*/, '');
+        note = note?.replace(/\n- Call recording link: .*/, '');
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
@@ -392,33 +393,47 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     try {
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
-        let messageBody = callLogResponse.data.message;
+        let comments = callLogResponse.data.message;
         let patchBody = { title: subject };
-        if (!!recordingLink) {
-            const urlDecodedRecordingLink = decodeURIComponent(recordingLink);
-            if (messageBody.includes('\n\n--- Created via RingCentral App Connect')) {
-                messageBody = messageBody.replace('\n\n--- Created via RingCentral App Connect', `\nCall recording link${urlDecodedRecordingLink}\n\n--- Created via RingCentral App Connect`);
-            }
-            else {
-                messageBody += `\nCall recording link${urlDecodedRecordingLink}`;
-            }
-        }
-        else {
-            let originalNote = '';
-            if (messageBody.includes('\nCall recording link')) {
-                originalNote = messageBody.split('\nCall recording link')[0].split('Note: ')[1];
-            }
-            else {
-                originalNote = messageBody.split('\n\n--- Created via RingCentral App Connect')[0].split('Note: ')[1];
-            }
+        if (startTime !== undefined && duration !== undefined) {
+            let callStartTime = moment(moment(startTime).toISOString());
+            let startTimeSLot = moment(startTime).format('HH:mm');
+            try {
+                const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+                const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                    headers: { 'Authorization': authHeader }
+                });
+                const timeZone = timeZoneResponse?.data?.userTimezone;
+                callStartTime = moment(moment(startTime).toISOString()).tz(timeZone);
+                startTimeSLot = callStartTime.format('HH:mm');
 
-            messageBody = messageBody.replace(`Note: ${originalNote}`, `Note: ${note}`);
+            } catch (error) {
+                console.log({ message: "Error in getting timezone in updateCallLog" });
+            }
+            const callEndTime = moment(callStartTime).add(duration, 'seconds');
+            let endTimeSlot = callEndTime.format('HH:mm');
+            if (startTimeSLot === endTimeSlot) {
+                //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
+                endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
+            }
+            patchBody.startDate = callStartTime;
+            patchBody.startTime = startTimeSLot;
+            patchBody.endTime = endTimeSlot;
         }
-        patchBody.message = messageBody;
+        if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
+        if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, title: subject }); }
+        if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
+        if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
+        if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
+        if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
+        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
+        if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
+
+        patchBody.message = comments;
         const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             patchBody,
@@ -767,6 +782,108 @@ function netSuiteRestLetError(error, message) {
     return errorMessage || message;
 }
 
+function upsertCallAgentNote({ body, note }) {
+    if (!!!note) {
+        return body;
+    }
+    const noteRegex = /^- Note:[^\n]*(?:\n(?!- ).*)*/m;
+    if (noteRegex.test(body)) {
+        body = body.replace(noteRegex, `- Note: ${note}\n`);
+    }
+    else {
+        if (body && !body.endsWith('\n')) {
+            body += '\n';
+        }
+        body += `- Note: ${note}\n`;
+    }
+    return body;
+}
+
+function upsertCallResult({ body, result }) {
+    const resultRegex = RegExp('- Result: (.+?)\n');
+    if (resultRegex.test(body)) {
+        body = body.replace(resultRegex, `- Result: ${result}\n`);
+    } else {
+        body += `- Result: ${result}\n`;
+    }
+    return body;
+}
+
+function upsertCallDuration({ body, duration }) {
+    const durationRegex = /- Duration: (.+?)(?=\n|$)/g;
+    if (durationRegex.test(body)) {
+        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
+    } else {
+        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
+    }
+    return body;
+}
+
+function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
+    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
+    if (phoneNumberRegex.test(body)) {
+        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
+    } else {
+        body += `- Contact Number: ${phoneNumber}\n`;
+    }
+    return body;
+}
+
+function upsertCallRecording({ body, recordingLink }) {
+    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
+    if (!!recordingLink && recordingLinkRegex.test(body)) {
+        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+    } else if (!!recordingLink) {
+        // if not end with new line, add new line
+        if (body && !body.endsWith('\n')) {
+            body += '\n';
+        }
+        body += `- Call recording link: ${recordingLink}\n`;
+    }
+    return body;
+}
+
+function upsertCallSubject({ body, title }) {
+    const subjectRegex = RegExp('- Summary: (.+?)\n');
+    if (subjectRegex.test(body)) {
+        body = body.replace(subjectRegex, `- Summary: ${title}\n`);
+    } else {
+        body += `- Summary: ${title}\n`;
+    }
+    return body;
+}
+
+function upsertCallDateTime({ body, startTime, timezoneOffset }) {
+    const dateTimeRegex = RegExp('- Date/Time: (.+?)\n');
+    if (dateTimeRegex.test(body)) {
+        const updatedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
+        body = body.replace(dateTimeRegex, `- Date/Time: ${updatedDateTime}\n`);
+    } else {
+        body += `- Date/Time: ${moment(startTime).format('YYYY-MM-DD hh:mm:ss A')}\n`;
+    }
+    return body;
+}
+
+function upsertAiNote({ body, aiNote }) {
+    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
+    const clearedAiNote = aiNote.replace(/\n+$/, '');
+    if (aiNoteRegex.test(body)) {
+        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
+    } else {
+        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
+    }
+    return body;
+}
+
+function upsertTranscript({ body, transcript }) {
+    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
+    if (transcriptRegex.test(body)) {
+        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
+    } else {
+        body += `- Transcript:\n${transcript}\n--- END\n`;
+    }
+    return body;
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;

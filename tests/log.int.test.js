@@ -19,6 +19,7 @@ const thirdPartyLogId = 'thirdPartyLogId';
 const unknownThirdPartyLogId = 'unknownThirdPartyLogId';
 const sessionId = 'sessionId';
 const unknownSessionId = 'unknownSessionId';
+const unknownTelephonySessionId = 'unknownTelephonySessionId';
 const accessToken = 'accessToken';
 const phoneNumber = '+17206789819';
 const messageLogId = 'messageLogId';
@@ -166,7 +167,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId)).toEqual(undefined);
                 }
             });
             test('known and unknown call log - first matched and second not matched', async () => {
@@ -185,7 +186,7 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
-                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId)).toEqual(undefined);
                 }
             });
         });
@@ -250,6 +251,7 @@ describe('call&message log tests', () => {
                         logInfo: {
                             id: unknownCallId,
                             sessionId: unknownSessionId,
+                            telephonySessionId: unknownTelephonySessionId,
                             platform: platform.name,
                             direction: 'Inbound',
                             from: {
@@ -289,7 +291,7 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logId).toEqual(unknownThirdPartyLogId);
-                    const newLog = await CallLogModel.findByPk(unknownCallId);
+                    const newLog = await CallLogModel.findByPk(unknownTelephonySessionId);
                     expect(newLog).not.toBeNull();
 
                     // Clean up

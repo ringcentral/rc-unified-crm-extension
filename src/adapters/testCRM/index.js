@@ -151,11 +151,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     console.log(`phone number: ${phoneNumber}`)
     console.log(`is extesnion number? ${isExtension}`)
     const numberToQueryArray = [];
-    if(isExtension)
-    {
+    if (isExtension) {
         numberToQueryArray.push(phoneNumber);
     }
-    else{
+    else {
         numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     }
     // You can use parsePhoneNumber functions to further parse the phone number
@@ -289,7 +288,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 // - duration: more accurate duration will be patched to this update function shortly after the call ends
 // - result: final result will be patched to this update function shortly after the call ends
 // - recordingLink: recordingLink updated from RingCentral. It's separated from createCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result  }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
     // ---------------------------------------
     // ---TODO.6: Implement call log update---
     // ---------------------------------------

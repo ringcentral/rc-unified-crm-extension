@@ -20,9 +20,9 @@ async function userSettingsByAdmin({ rcAccessToken }) {
 }
 
 async function updateUserSettings({ user, userSettings }) {
-    const keys = Object.keys(userSettings);
+    const keys = Object.keys(userSettings || {});
     let updatedSettings = {
-        ...user.userSettings
+        ...(user.userSettings || {})
     };
     for (const k of keys) {
         updatedSettings[k] = userSettings[k];
