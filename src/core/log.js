@@ -41,6 +41,8 @@ async function createCallLog({ platform, userId, incomingData }) {
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         const note = incomingData.note;
+        const aiNote = incomingData.aiNote;
+        const transcript = incomingData.transcript;
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -72,7 +74,7 @@ async function createCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission });
+        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript });
         if (!!logId) {
             await CallLogModel.create({
                 id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
@@ -198,7 +200,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 note: incomingData.note,
                 startTime: incomingData.startTime,
                 duration: incomingData.duration,
-                result: incomingData.result
+                result: incomingData.result,
+                aiNote: incomingData.aiNote,
+                transcript: incomingData.transcript
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
