@@ -827,6 +827,10 @@
                 {
                     "display": "Contact",
                     "value": "Contact"
+                },
+                {
+                    "display": "Lead",
+                    "value": "Lead"
                 }
             ],
             "settings": [

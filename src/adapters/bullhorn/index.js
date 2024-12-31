@@ -205,6 +205,26 @@ async function findContact({ user, phoneNumber }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
+    // check for Lead
+    const leadPersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone'`,
+        {
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
+    for (const result of leadPersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Lead',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
     extraDataTracking = {
         ratelimitRemaining: candidatePersonInfo.headers['ratelimit-remaining'],
         ratelimitAmount: candidatePersonInfo.headers['ratelimit-limit'],
@@ -226,6 +246,40 @@ async function findContact({ user, phoneNumber }) {
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
     let extraDataTracking;
     switch (newContactType) {
+        case 'Lead':
+            const leadPostBody = {
+                name: newContactName,
+                firstName: newContactName.split(' ')[0],
+                lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
+                phone: phoneNumber.replace(' ', '+')
+            }
+            const leadInfoResp = await axios.put(
+                `${user.platformAdditionalInfo.restUrl}entity/Lead`,
+                leadPostBody,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                }
+            );
+            extraDataTracking = {
+                ratelimitRemaining: leadInfoResp.headers['ratelimit-remaining'],
+                ratelimitAmount: leadInfoResp.headers['ratelimit-limit'],
+                ratelimitReset: leadInfoResp.headers['ratelimit-reset']
+            }
+
+            return {
+                contactInfo: {
+                    id: leadInfoResp.data.changedEntityId,
+                    name: newContactName
+                },
+                returnMessage: {
+                    message: `New ${newContactType} created.`,
+                    messageType: 'success',
+                    ttl: 3000
+                },
+                extraDataTracking
+            }
         case 'Candidate':
             const candidatePostBody = {
                 name: newContactName,
