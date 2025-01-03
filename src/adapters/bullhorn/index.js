@@ -388,7 +388,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    let comments = '<b>Agent notes</b>';;
+    let comments = '<b>Agent notes</b><br>';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
     comments += '<b>Call details</b><ul>';
     if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
@@ -709,6 +709,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
     const logBody = getLogRes.data.data.comments;
     const note = logBody.split('<b>Agent notes</b><br>')[1]?.split('<br><br>')[0] ?? '';
+    const subject = logBody.split('</ul>')[0]?.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
@@ -719,7 +720,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
     return {
         callLogInfo: {
-            subject: getLogRes.data.data.comments.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '',
+            subject,
             note,
             contactName: `${contact.firstName} ${contact.lastName}`
         },
@@ -753,7 +754,7 @@ function upsertCallAgentNote({ body, note }) {
         body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
     }
     else {
-        body += `<br>${note}<br><br>`;
+        body += `${note}<br><br>`;
     }
     return body;
 }
