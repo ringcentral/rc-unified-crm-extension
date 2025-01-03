@@ -372,7 +372,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     const logBody = getLogRes.data.data.note;
-    const note = logBody.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
+    const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const relatedContact = getLogRes.data.related_objects?.person;
     let contactName = 'Unknown';
     if (!!relatedContact) {
@@ -392,9 +392,9 @@ function upsertCallAgentNote({ body, note }) {
     if (!!!note) {
         return body;
     }
-    const noteRegex = RegExp('<b>Agent notes</b><br>([\\s\\S]+?)<br><br>');
+    const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
+        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
     }
     else {
         body += `<br>${note}<br><br>`;

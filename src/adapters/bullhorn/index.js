@@ -388,7 +388,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    let comments = '<b>Agent notes</b><br>';;
+    let comments = '<b>Agent notes</b>';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
     comments += '<b>Call details</b><ul>';
     if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
@@ -708,7 +708,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     }
     const logBody = getLogRes.data.data.comments;
-    const note = logBody.split('<b>Agent notes</b><br>')[1]?.split('<br><br>')[0] ?? '';
+    const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const subject = logBody.split('</ul>')[0]?.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
@@ -749,12 +749,12 @@ function upsertCallAgentNote({ body, note }) {
     if (!!!note) {
         return body;
     }
-    const noteRegex = RegExp('<b>Agent notes</b><br>([\\s\\S]+?)<br><br>');
+    const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
+        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
     }
     else {
-        body += `${note}<br><br>`;
+        body += `<br>${note}<br><br>`;
     }
     return body;
 }
