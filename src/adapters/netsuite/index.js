@@ -208,6 +208,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 });
             if (customerInfo.data.items.length > 0) {
                 for (var result of customerInfo.data.items) {
+                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
+                    let salesOrders = [];
+                    for (const salesOrder of salesOrderResponse?.data?.items) {
+                        salesOrders.push({
+                            const: salesOrder?.id,
+                            title: salesOrder?.trandisplayname
+                        });
+                    }
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
                     let lastName = result.lastname ?? '';
@@ -219,7 +227,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         homephone: result.homephone ?? '',
                         mobilephone: result.mobilephone ?? '',
                         altphone: result.altphone ?? '',
-                        additionalInfo: null,
+                        additionalInfo: salesOrders.length > 0 ? { salesorder: salesOrders } : {},
                         type: 'custjob'
                     })
                 }
@@ -309,26 +317,23 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 headers: { 'Authorization': authHeader }
             });
         const callLogId = extractIdFromUrl(addLogRes.headers.location);
-        /*
-        const phoneCallResponse = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: `SELECT * FROM PhoneCall WHERE title = '${title}' AND message = '${temporedMessage}'`
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        let callLogId = null;
-        if (phoneCallResponse.data.items.length > 0) {
-            callLogId = phoneCallResponse.data.items[0].id;
+
+        if (additionalSubmission && additionalSubmission.salesorder) {
+            try {
+                const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+                const postBody = {
+                    salesOrderId: additionalSubmission.salesorder,
+                    noteTitle: title,
+                    noteText: note
+                };
+                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+                    headers: { 'Authorization': authHeader }
+                });
+                console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
+            } catch (error) {
+                console.log({ message: "Error in logging calls against salesOrder" });
+            }
         }
-        await axios.patch(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${callLogId}`,
-            {
-                message: originalMessage
-            },
-            {
-                headers: { 'Authorization': authHeader }
-            });*/
         return {
             logId: callLogId,
             returnMessage: {
@@ -338,7 +343,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
-        console.log({ error });
         let errorMessage = netSuiteErrorDetails(error, "Error in Creating Call Log");
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
@@ -884,6 +888,51 @@ function upsertTranscript({ body, transcript }) {
     }
     return body;
 }
+
+async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
+    const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactId} ORDER BY createddate desc`;
+    const salesOrderInfo = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        {
+            q: salesOrderQuery
+        },
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
+    console.log({ salesOrderInfo });
+    return salesOrderInfo;
+}
+// async function logCallsAgainstSalesOrder({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+//     try {
+//         console.log("Inside logCallsAgainstSalesOrder");
+//         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+//         const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactInfo.id} ORDER BY createddate desc`;
+//         const salesOrderInfo = await axios.post(
+//             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+//             {
+//                 q: salesOrderQuery
+//             },
+//             {
+//                 headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+//             });
+//         console.log({ salesOrderInfo });
+//         if (salesOrderInfo.data.items.length > 0) {
+//             console.log("Inside sales order");
+//             const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+//             const postBody = {
+//                 salesOrderId: salesOrderInfo.data.items[0].id,
+//                 noteTitle: title,
+//                 noteText: note
+//             };
+//             const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+//                 headers: { 'Authorization': authHeader }
+//             });
+//             console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
+//         }
+//     } catch (error) {
+//         console.log({ message: "Error in logging calls against salesOrder" });
+//     }
+// }
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
