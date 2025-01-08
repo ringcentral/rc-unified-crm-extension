@@ -55,3 +55,14 @@ Each CRM supported by App Connect may expose custom settings. These settings can
 ## Managing custom adapter settings
 
 App Connect enables developers to build custom adapters to connect to proprietary CRMs, or CRMs not supported natively by App Connect. Users can load a custom adapter under "Developer Settings." Admins however can manage this setting across their entire account under the "Custom adapter" area of the Admin tab. 
+
+## Server side logging (Beta)
+
+Server-side logging offers an alternative to triggering call logging into the CRM from the Chrome extension. With this feature, call data is synchronized directly from the cloud. This means that even if the Chrome extension is closed, or if users make calls using other devices, the call information will still be logged in the CRM.
+
+Currently, this feature is in beta, and there are something you need to know:
+
+1. Enabling server-side logging will disable client-side auto call logging.
+2. Calls to the main company number that are dropped before being redirected to an extension will not be logged.
+3. When a call is made to the main company number and redirected to a user, the call duration recorded may appear longer than the actual time spent by the user. This is because the recorded duration includes the time taken for the call to be redirected.
+
