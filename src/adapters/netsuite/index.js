@@ -329,7 +329,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
                     headers: { 'Authorization': authHeader }
                 });
-                console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
             } catch (error) {
                 console.log({ message: "Error in logging calls against salesOrder" });
             }
@@ -544,7 +543,6 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
                     headers: { 'Authorization': authHeader }
                 });
-                console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
             } catch (error) {
                 console.log({ message: "Error in logging calls against salesOrder" });
             }
@@ -915,7 +913,6 @@ async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
         {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
         });
-    console.log({ salesOrderInfo });
     return salesOrderInfo;
 }
 // async function logCallsAgainstSalesOrder({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
