@@ -533,6 +533,22 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 headers: { 'Authorization': authHeader }
             });
         const callLogId = extractIdFromUrl(addLogRes.headers.location);
+        if (additionalSubmission && additionalSubmission.salesorder) {
+            try {
+                const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+                const postBody = {
+                    salesOrderId: additionalSubmission.salesorder,
+                    noteTitle: title,
+                    noteText: logBody
+                };
+                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+                    headers: { 'Authorization': authHeader }
+                });
+                console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
+            } catch (error) {
+                console.log({ message: "Error in logging calls against salesOrder" });
+            }
+        }
         return {
             logId: callLogId,
             returnMessage: {
