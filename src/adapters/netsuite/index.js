@@ -292,6 +292,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             endTime: endTimeSlot,
             timedEvent: true,
             message: comments,
+            completedDate: callEndTime
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
