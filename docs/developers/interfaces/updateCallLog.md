@@ -21,6 +21,11 @@ It is the developer's responsibility to update the call log record contents as t
 | `recordingLink`        | If the call has a recording associated with it, then this field will contain a link to the voicemail.    |
 | `subject`              | The subject or summary of the call activity. The value may have been changes by the user.                |
 | `note`                 | The notes saved by the user. The value may change if the user has updated the notes they have taken.     |
+| `startTime`                 | Updated value of start date/time of this call. |
+| `duration`                 | Updated value of duration of this call.     |
+| `result`                 | Updated value of result of this call.     |
+
+* Why need `startTime`, `duration` and `result`? Call info could be not as accurate right after the call. Our app uses call info from user local data until it's updated by RingCentral server. If users create call logs before RingCentral server updates the data, another API call will be triggered to call this `updateCallLog` function with true call data.
 
 ### Contact Info
 
