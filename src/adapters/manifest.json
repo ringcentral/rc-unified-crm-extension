@@ -1101,31 +1101,31 @@
                             "id": "addCallLogSubject",
                             "type": "boolean",
                             "name": "Add subject to call log",
-                            "defaultValue": false
+                            "defaultValue": true
                         },
                         {
                             "id": "addCallLogContactNumber",
                             "type": "boolean",
                             "name": "Add contact phone number to call log",
-                            "defaultValue": false
+                            "defaultValue": true
                         },
                         {
                             "id": "addCallLogDateTime",
                             "type": "boolean",
                             "name": "Add date and time to call log",
-                            "defaultValue": false
+                            "defaultValue": true
                         },
                         {
                             "id": "addCallLogDuration",
                             "type": "boolean",
                             "name": "Add duration to call log",
-                            "defaultValue": false
+                            "defaultValue": true
                         },
                         {
                             "id": "addCallLogResult",
                             "type": "boolean",
                             "name": "Add call result to call log",
-                            "defaultValue": false
+                            "defaultValue": true
                         },
                         {
                             "id": "addCallLogRecording",
@@ -1137,14 +1137,14 @@
                             "id": "addCallLogAiNote",
                             "type": "boolean",
                             "name": "Add AI note to call log (if available) - Beta",
-                            "defaultValue": false,
+                            "defaultValue": true,
                             "requiredPermission": "aiNote"
                         },
                         {
                             "id": "addCallLogTranscript",
                             "type": "boolean",
                             "name": "Add transcript to call log (if available) - Beta",
-                            "defaultValue": false,
+                            "defaultValue": true,
                             "requiredPermission": "aiNote"
                         }
                     ]
