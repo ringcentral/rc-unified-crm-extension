@@ -1,6 +1,40 @@
 {
-    "1.3.3":{
-        "global":[
+    "1.3.4": {
+        "global": [
+            {
+                "type": "Upgrade",
+                "description": "More accurate call info, including better tracking on call recording link save status"
+            },
+            {
+                "type": "New",
+                "description": "Call info details can be selectively logged based on new toggles in user settings"
+            },
+            {
+                "type": "New",
+                "description": "(RingCentral AI license only) Smart Notes to be enabled in user advanced settings"
+            },
+            {
+                "type": "Fix",
+                "description": "Admin users can see admin tab on first login now"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Beta",
+                "description": "Server side logging (need to be enabled in admin setting, and not to be used with client side auto logging)"
+            },
+            {
+                "type": "New",
+                "description": "Heartbeat mechanism for auth check. It reminds you if auth becomes invalid"
+            },
+            {
+                "type": "New",
+                "description": "Lead support"
+            }
+        ]
+    },
+    "1.3.3": {
+        "global": [
             {
                 "type": "Update",
                 "description": "- This extension's name is now changed to RingCentral App Connect"
@@ -23,7 +57,7 @@
             }
         ]
     },
-    "1.3.2":{
+    "1.3.2": {
         "global": [
             {
                 "type": "New",
@@ -39,7 +73,7 @@
             }
         ]
     },
-    "1.3.1":{
+    "1.3.1": {
         "global": [
             {
                 "type": "New",
@@ -51,7 +85,7 @@
             }
         ]
     },
-    "1.2.0":{
+    "1.2.0": {
         "global": [
             {
                 "type": "Fix",

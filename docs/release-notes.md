@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.3.4
+
+- Upgrade: More accurate call info, including better tracking on call recording link save status
+- New: Call info details can be selectively logged based on new toggles in user settings
+- New: (RingCentral AI license only) Smart Notes to be enabled in user advanced settings
+- Bullhorn(Beta): Server side logging (not to be used with client side auto logging)
+- Bullhorn: Heartbeat mechanism for auth check. It reminds you if auth becomes invalid
+- Bullhron: Lead support
+- Fix: Admin users can see admin tab on first login now
+
 ## 1.3.3
 
 - Update: This extension's name is now changed to RingCentral App Connect
