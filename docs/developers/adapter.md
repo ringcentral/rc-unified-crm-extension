@@ -35,9 +35,9 @@ The framework currently contains a total of five natively supported CRMs. These 
 |Clio|OAuth|Contact|Clio API only supports exact match for contact match by phone number, so users need to use [overriding formats](../users//settings.md#phone-number-formats)|
 |Pipedrive|OAuth|Contact|Pipedrive has unique auth process behind OAuth, it's not recommended to be used as OAuth reference|
 |Insightly|api key|Lead and Contact|Insightly API only supports exact match for contact match by phone number, so users need to use [overriding formats](../users//settings.md#phone-number-formats)|
-|Bullhorn|OAuth|Candidate and Contact|Bullhorn has unique auth process behind OAuth, it's not recommended to be used as OAuth reference|
+|Bullhorn|OAuth|Lead, Candidate and Contact|Bullhorn has unique auth process behind OAuth, it's not recommended to be used as OAuth reference|
 |Redtail|api key (username & password)|Contact|None|
-|NetSuite|OAuth|Contact|NetSuite API only supports exact match for contact match by phone number, so users need to use [overriding formats](../users//settings.md#phone-number-formats)|
+|NetSuite|OAuth|Contact and Customer|None|
 
 ## Development process
 
