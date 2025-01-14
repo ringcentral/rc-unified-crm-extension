@@ -446,6 +446,19 @@
             "contactPageUrl": "https://{hostname}/nc/#/contacts/{contactId}",
             "settings": [
                 {
+                    "id": "clioDefaults",
+                    "type": "section",
+                    "name": "Clio defaults",
+                    "items": [
+                        {
+                            "id": "clioDefaultTimeEntryTick",
+                            "type": "boolean",
+                            "name": "Log time entry",
+                            "defaultValue": true
+                        }
+                    ]
+                },
+                {
                     "id": "clioCallLogDetails",
                     "type": "section",
                     "name": "Call log details",
@@ -511,7 +524,15 @@
                             "title": "Log time entry",
                             "type": "checkbox",
                             "contactDependent": false,
-                            "defaultValue": true
+                            "defaultSettingId": "clioDefaults",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "clioDefaultTimeEntryTick"
+                                },
+                                "outboundCall": {
+                                    "settingId": "clioDefaultTimeEntryTick"
+                                }
+                            }
                         }
                     ]
                 },
