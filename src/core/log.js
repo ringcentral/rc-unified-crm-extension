@@ -267,6 +267,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                         }
                     ],
                     ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }
@@ -289,6 +292,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     }
                 ],
                 ttl: 5000
+            },
+            extraDataTracking: {
+                statusCode: e.response?.status,
             }
         };
     }

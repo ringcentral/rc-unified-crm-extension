@@ -106,7 +106,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
@@ -172,6 +172,7 @@ async function findContact({ user, phoneNumber }) {
                     }
                 });
         }
+        extraDataTracking['statusCode'] = e.response.status;
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -489,6 +490,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                     }
                 });
         }
+        extraDataTracking['statusCode'] = e.response.status;
     }
     let comments = getLogRes.data.data.comments;
 
@@ -717,6 +719,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+            extraDataTracking['statusCode'] = e.response.status;
         }
     }
     const logBody = getLogRes.data.data.comments;

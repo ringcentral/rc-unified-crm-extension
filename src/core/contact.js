@@ -80,6 +80,9 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                         }
                     ],
                     ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }
@@ -102,6 +105,9 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                     }
                 ],
                 ttl: 5000
+            },
+            extraDataTracking: {
+                statusCode: e.response?.status,
             }
         };
     }
