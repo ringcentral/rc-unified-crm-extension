@@ -1,6 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
@@ -103,7 +104,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
@@ -209,6 +210,18 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         returnMessage: {
             messageType: 'success',
             message: 'Successfully found contact.',
+            detaisl: [
+                {
+                    title: 'Details',
+                    items: [
+                        {
+                            id: '1',
+                            type: 'text',
+                            text: `Found ${matchedContactInfo.length} contacts`
+                        }
+                    ]
+                }
+            ],
             ttl: 3000
         }
     };  //[{id, name, phone, additionalInfo}]
@@ -218,10 +231,18 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 // - callLog: same as in https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord
 // - note: note submitted by user
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     // ------------------------------------
     // ---TODO.4: Implement call logging---
     // ------------------------------------
+    let body = '';
+    if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
+    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
+    if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
+    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
 
     // const postBody = {
     //     subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
@@ -236,12 +257,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     //         headers: { 'Authorization': authHeader }
     //     });
     console.log(`adding call log... \n${JSON.stringify(callLog, null, 2)}`);
-    console.log(`with note... \n${note}`);
+    console.log(`body... \n${body}`);
     console.log(`with additional info... \n${JSON.stringify(additionalSubmission, null, 2)}`);
     mockCallLog = {
         id: 'testCallLogId',
         subject: callLog.customSubject,
-        note,
+        note: body,
         contactName: contactInfo.name
     }
     const addLogRes = {
@@ -262,6 +283,76 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
+function upsertCallAgentNote({ body, note }) {
+    if (!!!note) {
+        return body;
+    }
+    const noteRegex = RegExp('- Agent note: ([\\s\\S]+?)\n');
+    if (noteRegex.test(body)) {
+        body = body.replace(noteRegex, `- Agent note: ${note}\n`);
+    }
+    else {
+        body += `- Agent note: ${note}\n`;
+    }
+    return body;
+}
+function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
+    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
+    if (phoneNumberRegex.test(body)) {
+        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
+    } else {
+        body += `- Contact Number: ${phoneNumber}\n`;
+    }
+    return body;
+}
+function upsertCallResult({ body, result }) {
+    const resultRegex = RegExp('- Result: (.+?)\n');
+    if (resultRegex.test(body)) {
+        body = body.replace(resultRegex, `- Result: ${result}\n`);
+    } else {
+        body += `- Result: ${result}\n`;
+    }
+    return body;
+}
+function upsertCallDuration({ body, duration }) {
+    const durationRegex = RegExp('- Duration: (.+?)\n');
+    if (durationRegex.test(body)) {
+        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
+    } else {
+        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
+    }
+    return body;
+}
+function upsertCallRecording({ body, recordingLink }) {
+    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
+    if (!!recordingLink && recordingLinkRegex.test(body)) {
+        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+    } else if (!!recordingLink) {
+        body += `- Call recording link: ${recordingLink}\n`;
+    }
+    return body;
+}
+function upsertAiNote({ body, aiNote }) {
+    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
+    const clearedAiNote = aiNote.replace(/\n+$/, '');
+    if (aiNoteRegex.test(body)) {
+        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
+    } else {
+        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
+    }
+    return body;
+}
+function upsertTranscript({ body, transcript }) {
+    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
+    if (transcriptRegex.test(body)) {
+        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
+    } else {
+        body += `- Transcript:\n${transcript}\n--- END\n`;
+    }
+    return body;
+}
+
+
 async function getCallLog({ user, callLogId, authHeader }) {
     // -----------------------------------------
     // ---TODO.5: Implement call log fetching---
@@ -277,14 +368,16 @@ async function getCallLog({ user, callLogId, authHeader }) {
         subject: mockCallLog.subject,
         note: mockCallLog.note
     }
+    const subject = getLogRes.subject;
+    const note = getLogRes.note.split('- Agent note: ')[1].split('\n')[0];
 
     //-------------------------------------------------------------------------------------
     //---CHECK.5: In extension, for a logged call, click edit to see if info is fetched ---
     //-------------------------------------------------------------------------------------
     return {
         callLogInfo: {
-            subject: getLogRes.subject,
-            note: getLogRes.note
+            subject,
+            note
         },
         returnMessage: {
             message: 'Call log fetched.',
@@ -300,10 +393,17 @@ async function getCallLog({ user, callLogId, authHeader }) {
 // - duration: more accurate duration will be patched to this update function shortly after the call ends
 // - result: final result will be patched to this update function shortly after the call ends
 // - recordingLink: recordingLink updated from RingCentral. It's separated from createCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     // ---------------------------------------
     // ---TODO.6: Implement call log update---
     // ---------------------------------------
+    let body = mockCallLog.note;
+    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
+    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
+    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
+    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
 
     // const existingLogId = existingCallLog.thirdPartyLogId;
     // const getLogRes = await axios.get(
@@ -326,8 +426,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
-    mockCallLog.subject = subject;
-    mockCallLog.note = note;
+    mockCallLog.subject = mockCallLog.subject;
+    mockCallLog.note = body;
     const patchLogRes = {
         data: {
             id: mockCallLog.id
