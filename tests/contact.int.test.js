@@ -75,7 +75,7 @@ describe('contact tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(200);
-                expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                expect(res.body.returnMessage.message).toEqual(`Contact not found`);
                 expect(res.body.successful).toEqual(false);
             }
         });
@@ -106,24 +106,6 @@ describe('contact tests', () => {
 
                 // Clean up
                 platformFindContactScope.done();
-            }
-        });
-        test('contact with just extension number - unsuccessful', async () => {
-            for (const platform of platforms) {
-                // Arrange
-                const jwtToken = jwt.generateJwt({
-                    id: userId,
-                    rcUserNumber,
-                    platform: platform.name
-                });
-
-                // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${extensionNumber}`);
-
-                // Assert
-                expect(res.status).toEqual(200);
-                expect(res.body.successful).toEqual(false);
-                expect(res.body.returnMessage.message).toEqual(`Logging against internal extension number is not supported.`);
             }
         });
         test('known contact - successful', async () => {

@@ -94,7 +94,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connected to Bullhorn.',
+                message: 'Connected to Bullhorn.',
                 ttl: 3000
             }
         };
@@ -105,8 +105,20 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to get user info.',
-                ttl: 3000
+                message: 'Could not load user information',
+                details:[
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Bullhorn was unable to fetch information for the currently logged in user. Please check your permissions in Bullhorn and make sure you have permission to access and read user information.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
             }
         }
     }
@@ -132,7 +144,7 @@ async function unAuthorize({ user }) {
     return {
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully logged out from Bullhorn account.',
+            message: 'Logged out of Bullhorn',
             ttl: 3000
         }
     }
@@ -274,7 +286,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     name: newContactName
                 },
                 returnMessage: {
-                    message: `New ${newContactType} created.`,
+                    message: `${newContactType} created.`,
                     messageType: 'success',
                     ttl: 3000
                 },
@@ -308,7 +320,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     name: newContactName
                 },
                 returnMessage: {
-                    message: `New ${newContactType} created.`,
+                    message: `${newContactType} created.`,
                     messageType: 'success',
                     ttl: 3000
                 },
@@ -376,7 +388,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     name: newContactName
                 },
                 returnMessage: {
-                    message: `New ${newContactType} created.`,
+                    message: `${newContactType} created.`,
                     messageType: 'success',
                     ttl: 3000
                 },
@@ -445,7 +457,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     return {
         logId: addLogRes.data.changedEntityId,
         returnMessage: {
-            message: 'Call log added.',
+            message: 'Call logged',
             messageType: 'success',
             ttl: 3000
         },
@@ -603,7 +615,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     return {
         logId: addLogRes.data.changedEntityId,
         returnMessage: {
-            message: 'Message log added.',
+            message: 'Message logged',
             messageType: 'success',
             ttl: 3000
         },

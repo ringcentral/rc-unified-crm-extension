@@ -123,7 +123,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connected to NetSuite.',
+                message: 'Connected to NetSuite.',
                 ttl: 3000
             }
         };
@@ -157,7 +157,7 @@ async function unAuthorize({ user }) {
     return {
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully logged out from NetSuite account.',
+            message: 'Logged out of NetSuite',
             ttl: 3000
         }
     }
@@ -337,7 +337,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         return {
             logId: callLogId,
             returnMessage: {
-                message: 'Call log added.',
+                message: 'Call logged',
                 messageType: 'success',
                 ttl: 3000
             }
@@ -551,7 +551,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         return {
             logId: callLogId,
             returnMessage: {
-                message: 'Message log added.',
+                message: 'Message logged',
                 messageType: 'success',
                 ttl: 3000
             }

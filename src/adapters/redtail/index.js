@@ -42,7 +42,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connected to Redtail.',
+                message: 'Connected to Redtail.',
                 ttl: 3000
             }
         }
@@ -52,7 +52,19 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to get user info. Please check your credentials.',
+                message: 'Could not load user information Please check your credentials.',
+                details:[
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Redtail was unable to fetch information for the currently logged in user. Please check your permissions in Redtail and make sure you have permission to access and read user information.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 3000
             }
         }
@@ -64,7 +76,7 @@ async function unAuthorize({ user }) {
     return {
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully logged out from Redtail account.',
+            message: 'Logged out of Redtail',
             ttl: 3000
         }
     }
@@ -124,7 +136,7 @@ async function createContact({ user, phoneNumber, newContactName }) {
             name: `${personInfo.data.contact.first_name} ${personInfo.data.contact.last_name}`
         },
         returnMessage: {
-            message: `New contact created.`,
+            message: `Contact created.`,
             messageType: 'success',
             ttl: 3000
         }
@@ -190,7 +202,7 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
     return {
         logId: completeLogRes.data.activity.id,
         returnMessage: {
-            message: 'Call log added.',
+            message: 'Call logged',
             messageType: 'success',
             ttl: 3000
         }
@@ -306,7 +318,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     return {
         logId: completeLogRes.data.activity.id,
         returnMessage: {
-            message: 'Message log added.',
+            message: 'Message logged',
             messageType: 'success',
             ttl: 3000
         }

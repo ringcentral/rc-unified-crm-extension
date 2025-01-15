@@ -31,7 +31,7 @@ async function createCallLog({ platform, userId, incomingData }) {
             return {
                 successful: false,
                 returnMessage: {
-                    message: `Cannot find user with id: ${userId}`,
+                    message: `Contact not found`,
                     messageType: 'warning',
                     ttl: 3000
                 }
@@ -88,9 +88,48 @@ async function createCallLog({ platform, userId, incomingData }) {
     } catch (e) {
         console.log(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
-            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
         }
-        return { successful: false, returnMessage: { message: `Failed to create call log.`, messageType: 'warning', ttl: 5000 } };
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error creating call log`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if your account has permission to CREATE logs.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
     }
 }
 
@@ -102,7 +141,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         }
     });
     if (!user || !user.accessToken) {
-        return { successful: false, message: `Cannot find user with id: ${userId}` };
+        return { successful: false, message: `Contact not found` };
     }
     let logs = [];
     let returnMessage = null;
@@ -176,7 +215,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 }
             });
             if (!user || !user.accessToken) {
-                return { successful: false, message: `Cannot find user with id: ${userId}` };
+                return { successful: false, message: `Contact not found` };
             }
             const authType = platformModule.getAuthType();
             let authHeader = '';
@@ -210,14 +249,48 @@ async function updateCallLog({ platform, userId, incomingData }) {
     } catch (e) {
         console.log(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
-            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
         }
-        if (!!incomingData.recordingLink) {
-            return { successful: false, returnMessage: { message: `Failed to upload call recording link.`, messageType: 'warning', ttl: 5000 } };
-        }
-        else {
-            return { successful: false, returnMessage: { message: `Failed to update call log. Please check if the log entity still exist on ${platform}`, messageType: 'warning', ttl: 5000 } };
-        }
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error updating call log`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if the log entity still exist on ${platform} and your account has permission to EDIT logs.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
     }
 }
 
@@ -250,7 +323,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 successful: false,
                 returnMessage:
                 {
-                    message: `Cannot find user with id: ${userId}`,
+                    message: `Contact not found`,
                     messageType: 'warning',
                     ttl: 3000
                 }
@@ -344,9 +417,48 @@ async function createMessageLog({ platform, userId, incomingData }) {
     catch (e) {
         console.log(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
-            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
         }
-        return { successful: false, returnMessage: { message: `Failed to create message log.`, messageType: 'warning', ttl: 5000 } };
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error creating message log`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if your account has permission to CREATE logs.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
     }
 }
 

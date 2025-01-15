@@ -13,7 +13,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             return {
                 successful: false,
                 returnMessage: {
-                    message: `Cannot find user with id: ${userId}`,
+                    message: `Contact not found`,
                     messageType: 'warning',
                     ttl: 3000
                 }
@@ -34,18 +34,76 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 break;
         }
         const { matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
-        if (matchedContactInfo != null && matchedContactInfo.length > 0) {
+        if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
             return { successful: true, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
-            return { successful: false, returnMessage };
+            return {
+                successful: true,
+                returnMessage:
+                {
+                    message: `Contact not found`,
+                    messageType: 'warning',
+                    details: [{
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `A contact with the phone number ${phoneNumber} could not be found in your ${platform} account.`
+                            }
+                        ]
+                    }]
+                },
+                contact: matchedContactInfo,
+                extraDataTracking
+            };
         }
     } catch (e) {
         console.log(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
-            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
         }
-        return { successful: false, returnMessage: { message: `Failed to find contact.`, messageType: 'warning' } };
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error finding contacts`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if your account has permission to VIEW and LIST contacts`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
     }
 }
 
@@ -58,7 +116,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
             }
         });
         if (!user || !user.accessToken) {
-            return { successful: false, message: `Cannot find user with id: ${userId}` };
+            return { successful: false, message: `Contact not found` };
         }
         const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
@@ -84,9 +142,48 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
     } catch (e) {
         console.log(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
-            return { successful: false, returnMessage: { message: `${platform} rate limit reached. Please try again the next minute.`, messageType: 'warning', ttl: 5000 } };
+            return {
+                successful: false,
+                returnMessage:
+                {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
         }
-        return { successful: false, returnMessage: { message: `Failed to create contact.`, messageType: 'warning' } };
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error creating contact`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `A contact with the phone number ${phoneNumber} could not be created. Make sure you have permission to create contacts in ${platform}.`
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
     }
 }
 

@@ -39,7 +39,7 @@ async function getUserInfo({ authHeader }) {
             },
             returnMessage: {
                 messageType: 'success',
-                message: 'Successfully connected to Clio.',
+                message: 'Connected to Clio.',
                 ttl: 3000
             }
         };
@@ -49,7 +49,19 @@ async function getUserInfo({ authHeader }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to get user info.',
+                message: 'Could not load user information',
+                details:[
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Clio was unable to fetch information for the currently logged in user. Please check your permissions in Clio and make sure you have permission to access and read user information.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 3000
             }
         }
@@ -70,7 +82,7 @@ async function unAuthorize({ user }) {
     return {
         returnMessage: {
             messageType: 'success',
-            message: 'Successfully logged out from Clio account.',
+            message: 'Logged out of Clio',
             ttl: 3000
         }
     }
@@ -165,7 +177,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             name: personInfo.data.data.name
         },
         returnMessage: {
-            message: `New contact created.`,
+            message: `Contact created.`,
             messageType: 'success',
             ttl: 3000
         }
@@ -246,7 +258,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     return {
         logId: communicationId,
         returnMessage: {
-            message: 'Call log added.',
+            message: 'Call logged',
             messageType: 'success',
             ttl: 3000
         }
@@ -388,7 +400,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
-            message: 'Message log added.',
+            message: 'Message logged',
             messageType: 'success',
             ttl: 3000
         }

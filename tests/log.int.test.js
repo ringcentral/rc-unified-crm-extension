@@ -235,7 +235,7 @@ describe('call&message log tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.returnMessage.message).toEqual(`Contact not found`);
                     expect(res.body.successful).toEqual(false);
                 }
             });
@@ -473,7 +473,7 @@ describe('call&message log tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.returnMessage.message).toEqual(`Cannot find user with id: ${unknownUserId}`);
+                    expect(res.body.returnMessage.message).toEqual(`Contact not found`);
                     expect(res.body.successful).toEqual(false);
                 }
             });

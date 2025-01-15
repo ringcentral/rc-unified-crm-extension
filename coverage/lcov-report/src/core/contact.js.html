@@ -252,7 +252,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat }) 
             return {
                 successful: false,
                 returnMessage: {
-                    message: `Cannot find user with id: ${userId}`,
+                    message: `Contact not found`,
                     messageType: 'warning',
                     ttl: 3000
                 }
@@ -294,7 +294,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
             }
         });
         <span class="missing-if-branch" title="if path not taken" >I</span>if (!user || !user.accessToken) {
-<span class="cstat-no" title="statement not covered" >            return { successful: false, message: `Cannot find user with id: ${userId}` };</span>
+<span class="cstat-no" title="statement not covered" >            return { successful: false, message: `Contact not found` };</span>
         }
         const platformModule = require(`../adapters/${platform}`);
         const authType = platformModule.getAuthType();
