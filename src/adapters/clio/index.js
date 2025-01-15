@@ -124,7 +124,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberToQuery,
-                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters, logTimeEntry: user.userSettings.clioDefaultTimeEntryTick ?? true } : { logTimeEntry: user.userSettings.clioDefaultTimeEntryTick ?? true }
+                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters, logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true } : { logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true }
                 })
             }
         }
