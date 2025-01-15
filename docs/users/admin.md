@@ -65,4 +65,5 @@ Currently, this feature is in beta, and there are something you need to know:
 1. Enabling server-side logging will disable client-side auto call logging.
 2. Calls to the main company number that are dropped before being redirected to an extension will not be logged.
 3. When a call is made to the main company number and redirected to a user, the call duration recorded may appear longer than the actual time spent by the user. This is because the recorded duration includes the time taken for the call to be redirected.
+4. Logs created through server-side logging use admin credentials, so extension users may not be able to edit them. Normal users require the appropriate CRM permissions to update log data.
 
