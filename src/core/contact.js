@@ -15,7 +15,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 returnMessage: {
                     message: `Contact not found`,
                     messageType: 'warning',
-                    ttl: 3000
+                    ttl: 2000
                 }
             };
         }
@@ -53,7 +53,8 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                                 text: `A contact with the phone number ${phoneNumber} could not be found in your ${platform} account.`
                             }
                         ]
-                    }]
+                    }],
+                    ttl: 2000
                 },
                 contact: matchedContactInfo,
                 extraDataTracking
@@ -187,7 +188,8 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                             }
                         ]
                     }
-                ]
+                ],
+                ttl: 5000
             }
         };
     }

@@ -124,7 +124,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             returnMessage: {
                 messageType: 'success',
                 message: 'Connected to NetSuite.',
-                ttl: 3000
+                ttl: 1000
             }
         };
     } catch (error) {
@@ -339,7 +339,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             returnMessage: {
                 message: 'Call logged',
                 messageType: 'success',
-                ttl: 3000
+                ttl: 2000
             }
         };
     } catch (error) {
@@ -449,7 +449,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             returnMessage: {
                 message: 'Call log updated.',
                 messageType: 'success',
-                ttl: 3000
+                ttl: 2000
             }
         };
     } catch (error) {
@@ -553,7 +553,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             returnMessage: {
                 message: 'Message logged',
                 messageType: 'success',
-                ttl: 3000
+                ttl: 1000
             }
         };
     } catch (error) {

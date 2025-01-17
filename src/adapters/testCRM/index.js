@@ -94,7 +94,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             returnMessage: {
                 messageType: 'success',
                 message: 'Connected to TestCRM.',
-                ttl: 3000
+                ttl: 1000
             }
         };
     }
@@ -145,7 +145,7 @@ async function unAuthorize({ user }) {
         returnMessage: {
             messageType: 'success',
             message: 'Logged out of TestCRM',
-            ttl: 3000
+            ttl: 1000
         }
     }
 
@@ -278,7 +278,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         returnMessage: {
             message: 'Call logged',
             messageType: 'success',
-            ttl: 3000
+            ttl: 2000
         }
     };
 }
@@ -441,7 +441,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         returnMessage: {
             message: 'Call log updated.',
             messageType: 'success',
-            ttl: 3000
+            ttl: 2000
         }
     };
 }
@@ -486,7 +486,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         returnMessage: {
             message: 'Message logged',
             messageType: 'success',
-            ttl: 3000
+            ttl: 1000
         }
     };
 }
@@ -589,7 +589,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         returnMessage: {
             message: `Contact created.`,
             messageType: 'success',
-            ttl: 3000
+            ttl: 2000
         }
     }
 }
