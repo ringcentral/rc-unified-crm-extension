@@ -318,12 +318,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
             if (!!existingSameDateMessageLog) {
                 const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
-                returnMessage = updateMessageResult.returnMessage;
+                returnMessage = updateMessageResult?.returnMessage;
             }
             else {
                 const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
                 crmLogId = createMessageLogResult.logId;
-                returnMessage = createMessageLogResult.returnMessage;
+                returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
             }
             if (!!crmLogId) {
