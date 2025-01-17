@@ -243,13 +243,25 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
-        let errorMessage = netSuiteErrorDetails(error, "Error in Finding Contact.");
+        let errorMessage = netSuiteErrorDetails(error, "Contact not found");
         errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
             successful: false,
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `A contact with the phone number ${phoneNumber} could not be found in your NetSuite account.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -447,7 +459,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         return {
             updatedNote: note,
             returnMessage: {
-                message: 'Call log updated.',
+                message: 'Call log updated',
                 messageType: 'success',
                 ttl: 2000
             }
@@ -679,7 +691,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: netSuiteErrorDetails(error, "Error in Creating Contact"),
+                            message: netSuiteErrorDetails(error, "Error creating contact"),
                             messageType: 'danger',
                             ttl: 5000
                         }
@@ -716,7 +728,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: netSuiteErrorDetails(error, "Error in Creating Customer"),
+                            message: netSuiteErrorDetails(error, "Error creating customer"),
                             messageType: 'danger',
                             ttl: 5000
                         }
@@ -726,7 +738,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
         const displayMessage = newContactType === 'contact'
             ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
-            : 'New Customer Created';
+            : 'Customer created';
         return {
             contactInfo: {
                 id: contactId,
@@ -739,7 +751,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
         }
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in Creating Contact/Customer");
+        const errorMessage = netSuiteErrorDetails(error, "Error creating contact");
         return {
             returnMessage: {
                 messageType: 'danger',
