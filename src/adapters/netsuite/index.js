@@ -281,6 +281,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             });
             const timeZone = timeZoneResponse?.data?.userTimezone;
             callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+
             startTimeSLot = callStartTime.format('HH:mm');
 
         } catch (error) {
@@ -292,7 +293,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
-        let comments = '';
+        let comments = '';;
+        console.log({ callStartTime });
         if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
         if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
@@ -699,7 +701,19 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         returnMessage: {
                             message: netSuiteErrorDetails(error, "Error creating contact"),
                             messageType: 'danger',
-                            ttl: 5000
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `A contact with the phone number ${phoneNumber} could not be created. Make sure you have permission to create contacts in NetSuite, and that the contact you are creating is not a duplicate.`
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 3000
                         }
                     }
                 }
@@ -762,7 +776,19 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
-                ttl: 60000
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `NetSuite was unable to create an activity entry for the ${objectType} named ${contactName}. If this issues persists, please contact your NetSuite administrator. `
+                            }
+                        ]
+                    }
+                ],
+                ttl: 3000
             }
         }
     }
