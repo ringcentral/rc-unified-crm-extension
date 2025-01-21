@@ -145,7 +145,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
     let logs = [];
     let returnMessage = null;
-    let extraDataTracking;
+    let extraDataTracking = {};;
     const sessionIdsArray = sessionIds.split(',');
     if (!!requireDetails) {
         const platformModule = require(`../adapters/${platform}`);
@@ -303,7 +303,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
 async function createMessageLog({ platform, userId, incomingData }) {
     try {
         let returnMessage = null;
-        let extraDataTracking;
+        let extraDataTracking = {};;
         if (incomingData.logInfo.messages.length === 0) {
             return {
                 successful: false,

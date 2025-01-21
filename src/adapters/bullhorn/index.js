@@ -152,7 +152,7 @@ async function unAuthorize({ user }) {
 
 async function findContact({ user, phoneNumber }) {
     let commentActionListResponse;
-    let extraDataTracking;
+    let extraDataTracking = {};
     try {
         commentActionListResponse = await axios.get(
             `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
@@ -257,7 +257,7 @@ async function findContact({ user, phoneNumber }) {
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
-    let extraDataTracking;
+    let extraDataTracking = {};
     switch (newContactType) {
         case 'Lead':
             const leadPostBody = {
@@ -424,7 +424,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         minutesSpent: callLog.duration / 60
     }
     let addLogRes;
-    let extraDataTracking;
+    let extraDataTracking = {};;
     try {
         addLogRes = await axios.put(
             `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -469,7 +469,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
-    let extraDataTracking;
+    let extraDataTracking = {};;
     try {
         getLogRes = await axios.get(
             `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
@@ -536,7 +536,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
-    let extraDataTracking;
+    let extraDataTracking = {};;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
@@ -628,7 +628,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
-    let extraDataTracking;
+    let extraDataTracking = {};;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
@@ -694,7 +694,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 
 async function getCallLog({ user, callLogId, authHeader }) {
     let getLogRes;
-    let extraDataTracking;
+    let extraDataTracking = {};;
     try {
         getLogRes = await axios.get(
             `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
