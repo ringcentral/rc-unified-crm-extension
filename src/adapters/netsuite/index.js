@@ -260,7 +260,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
-        let callStartTime = moment(moment(callLog.startTime).toISOString());
+        let callStartTime = moment(callLog.startTime).toISOString();
         let startTimeSLot = moment(callLog.startTime).format('HH:mm');
         try {
             const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
@@ -280,7 +280,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
-        let comments = '';;
+        let comments = '';
         if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
         if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
@@ -295,12 +295,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             phone: contactInfo?.phoneNumber || '',
             priority: "MEDIUM",
             status: "COMPLETE",
-            startDate: moment(callLog.startTime).toISOString(),
+            startDate: callStartTime.format('YYYY-MM-DD'),
             startTime: startTimeSLot,
             endTime: endTimeSlot,
             timedEvent: true,
             message: comments,
-            completedDate: callEndTime
+            completedDate: callEndTime.format('YYYY-MM-DD')
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
             const contactInfoRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, {
