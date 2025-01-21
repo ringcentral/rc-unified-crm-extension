@@ -455,6 +455,12 @@
                             "type": "boolean",
                             "name": "Log time entry",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "clioDefaultNonBillableTick",
+                            "type": "boolean",
+                            "name": "Non-billable",
+                            "defaultValue": false
                         }
                     ]
                 },
@@ -531,6 +537,21 @@
                                 },
                                 "outboundCall": {
                                     "settingId": "clioDefaultTimeEntryTick"
+                                }
+                            }
+                        },
+                        {
+                            "const": "nonBillable",
+                            "title": "Non-billable",
+                            "type": "checkbox",
+                            "contactDependent": false,
+                            "defaultSettingId": "clioDefaults",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "clioDefaultNonBillableTick"
+                                },
+                                "outboundCall": {
+                                    "settingId": "clioDefaultNonBillableTick"
                                 }
                             }
                         }

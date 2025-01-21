@@ -50,7 +50,7 @@ async function getUserInfo({ authHeader }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
@@ -136,7 +136,15 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberToQuery,
-                    additionalInfo: returnedMatters.length > 0 ? { matters: returnedMatters, logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true } : { logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true }
+                    additionalInfo: returnedMatters.length > 0 ?
+                        {
+                            matters: returnedMatters,
+                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+                            nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                        } :
+                        {
+                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+                        }
                 })
             }
         }
@@ -245,7 +253,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 },
                 quantity: callLog.duration,
                 date: moment(callLog.startTime).toISOString(),
-                type: 'TimeEntry'
+                type: 'TimeEntry',
+                non_billable: additionalSubmission.nonBillable
             }
         }
         const addTimerRes = await axios.post(
