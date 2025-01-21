@@ -1,4 +1,18 @@
 {
+    "1.3.5": {
+        "global": [
+            {
+                "type": "Upgrade",
+                "description": "Error messages are more accurate"
+            }
+        ],
+        "clio":[
+            {
+                "type": "New",
+                "description": "Support user setting customization with logging time entry and non-billable default values"
+            }
+        ]
+    },
     "1.3.4": {
         "global": [
             {

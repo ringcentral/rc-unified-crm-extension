@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.3.5
+
+- Upgrade: Error messages are more accurate
+- Clio: Support user setting customization with logging time entry and non-billable default values
+
 ## 1.3.4
 
 - Upgrade: More accurate call info, including better tracking on call recording link save status
