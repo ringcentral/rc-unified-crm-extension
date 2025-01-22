@@ -448,7 +448,7 @@
                 {
                     "id": "clioDefaults",
                     "type": "section",
-                    "name": "Clio defaults",
+                    "name": "Clio options",
                     "items": [
                         {
                             "id": "clioDefaultTimeEntryTick",
