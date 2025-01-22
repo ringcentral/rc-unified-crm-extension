@@ -33,7 +33,7 @@ async function createCallLog({ platform, userId, incomingData }) {
                 returnMessage: {
                     message: `Contact not found`,
                     messageType: 'warning',
-                    ttl: 2000
+                    ttl: 5000
                 }
             };
         }
@@ -64,7 +64,7 @@ async function createCallLog({ platform, userId, incomingData }) {
                 returnMessage: {
                     message: `Contact not found for number ${contactNumber}`,
                     messageType: 'warning',
-                    ttl: 2000
+                    ttl: 5000
                 }
             };
         }
@@ -331,7 +331,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 {
                     message: `Contact not found`,
                     messageType: 'warning',
-                    ttl: 2000
+                    ttl: 5000
                 }
             };
         }
@@ -356,7 +356,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 {
                     message: `Contact not found for number ${contactNumber}`,
                     messageType: 'warning',
-                    ttl: 2000
+                    ttl: 5000
                 }
             };
         }
