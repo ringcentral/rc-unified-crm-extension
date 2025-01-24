@@ -254,6 +254,7 @@ async function findContact({ user, phoneNumber }) {
         additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null,
         isNewContact: true
     });
+
     return {
         matchedContactInfo,
         extraDataTracking
@@ -748,6 +749,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 async function refreshSessionToken(user) {
+    const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
+    const { access_token: accessToken, refresh_token: refreshToken } = refreshTokenResponse.data;
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
     const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
     const { BhRestToken, restUrl } = userLoginResponse.data;
     let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
