@@ -80,15 +80,19 @@ app.get('/authValidation', async (req, res) => {
     let platformName = null;
     let success = false;
     let validationPass = false;
+    let reason = '';
+    let statusCode = 200;
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, returnMessage } = await authCore.authValidation({ platform, userId });
+            const { successful, returnMessage, failReason, status } = await authCore.authValidation({ platform, userId });
             success = true;
             validationPass = successful;
+            reason = failReason;
+            statusCode = status;
             res.status(200).send({ successful, returnMessage });
         }
         else {
@@ -114,7 +118,9 @@ app.get('/authValidation', async (req, res) => {
         ip,
         author,
         extras: {
-            validationPass
+            validationPass,
+            reason,
+            statusCode
         }
     });
 });

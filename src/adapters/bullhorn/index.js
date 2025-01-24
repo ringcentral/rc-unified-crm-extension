@@ -18,7 +18,8 @@ async function authValidation({ user }) {
                 }
             });
         return {
-            successful: true
+            successful: true,
+            status: 200
         }
     }
     catch (e) {
@@ -32,7 +33,8 @@ async function authValidation({ user }) {
                         }
                     });
                 return {
-                    successful: true
+                    successful: true,
+                    status: 200
                 }
             }
             catch (e) {
@@ -42,7 +44,8 @@ async function authValidation({ user }) {
                         messageType: 'warning',
                         message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
                         ttl: 3000
-                    }
+                    },
+                    status: e.response.status
                 }
             }
         }
@@ -52,7 +55,8 @@ async function authValidation({ user }) {
                 messageType: 'warning',
                 message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
                 ttl: 3000
-            }
+            },
+            status: e.response.status
         }
     }
 }
