@@ -1,3 +1,6 @@
+---
+title: "App Connect Developer Framework"
+---
 # Integrating with CRMs using the App Connect framework
 
 {! docs/developers/beta_notice.inc !}
