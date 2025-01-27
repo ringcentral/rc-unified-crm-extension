@@ -29,7 +29,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         const id = additionalInfo.username;
         const name = additionalInfo.username;
         const timezoneName = '';
-        const timezoneOffset = null;
+        const timezoneOffset = Number(additionalInfo.timezone) === NaN ? 0 : Number(additionalInfo.timezone);
         return {
             successful: true,
             platformUserInfo: {
@@ -53,7 +53,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information Please check your credentials.',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
