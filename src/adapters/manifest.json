@@ -1,5 +1,5 @@
 {
-    "serverUrl": "unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -690,6 +690,12 @@
                                 "uiSchema": {
                                     "ui:widget": "password"
                                 }
+                            },
+                            {
+                                "const": "timezone",
+                                "title": "timezone (number ONLY, eg. +2)",
+                                "type": "string",
+                                "required": true
                             }
                         ]
                     }
