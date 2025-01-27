@@ -429,7 +429,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         minutesSpent: callLog.duration / 60
     }
     let addLogRes;
-    let extraDataTracking = {};;
+    let extraDataTracking = {
+        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
+        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
+    };
     try {
         addLogRes = await axios.put(
             `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -440,11 +443,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
         );
-        extraDataTracking = {
-            ratelimitRemaining: addLogRes.headers['ratelimit-remaining'],
-            ratelimitAmount: addLogRes.headers['ratelimit-limit'],
-            ratelimitReset: addLogRes.headers['ratelimit-reset']
-        }
+        extraDataTracking.ratelimitRemaining = addLogRes.headers['ratelimit-remaining'];
+        extraDataTracking.ratelimitAmount = addLogRes.headers['ratelimit-limit'];
+        extraDataTracking.ratelimitReset = addLogRes.headers['ratelimit-reset'];
     }
     catch (e) {
         if (isAuthError(e.response.status)) {

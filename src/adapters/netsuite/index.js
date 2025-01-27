@@ -290,6 +290,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
         if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
         if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
+
+        let extraDataTracking = {
+            withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
+            withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
+        };
         let postBody = {
             title: title,
             phone: contactInfo?.phoneNumber || '',
@@ -340,7 +345,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 message: 'Call logged',
                 messageType: 'success',
                 ttl: 2000
-            }
+            },
+            extraDataTracking
         };
     } catch (error) {
         let errorMessage = netSuiteErrorDetails(error, "Error in Creating Call Log");

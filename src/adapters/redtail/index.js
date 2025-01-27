@@ -160,6 +160,10 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
     if (!!aiNote && (user.userSettings?.addAiNote?.value ?? true)) { description = upsertAiNote({ body: description, aiNote }); }
     if (!!transcript && (user.userSettings?.addTranscript?.value ?? true)) { description = upsertTranscript({ body: description, transcript }); }
 
+    let extraDataTracking = {
+        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
+        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
+    };
     const postBody = {
         subject,
         description,
@@ -205,7 +209,8 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
             message: 'Call logged',
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     };
 }
 

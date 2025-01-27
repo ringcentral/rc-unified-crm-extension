@@ -220,6 +220,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
 
+    let extraDataTracking = {
+        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
+        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
+    };
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
@@ -270,7 +274,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             message: 'Call logged',
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     };
 }
 
