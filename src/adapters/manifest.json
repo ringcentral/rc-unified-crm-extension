@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -469,12 +469,6 @@
                     "name": "Clio options",
                     "items": [
                         {
-                            "id": "clioDefaultTimeEntryTick",
-                            "type": "boolean",
-                            "name": "Log time entry",
-                            "defaultValue": true
-                        },
-                        {
                             "id": "clioDefaultNonBillableTick",
                             "type": "boolean",
                             "name": "Non-billable",
@@ -550,21 +544,6 @@
                             "title": "Matter",
                             "type": "selection",
                             "contactDependent": true
-                        },
-                        {
-                            "const": "logTimeEntry",
-                            "title": "Log time entry",
-                            "type": "checkbox",
-                            "contactDependent": false,
-                            "defaultSettingId": "clioDefaults",
-                            "defaultSettingValues": {
-                                "inboundCall": {
-                                    "settingId": "clioDefaultTimeEntryTick"
-                                },
-                                "outboundCall": {
-                                    "settingId": "clioDefaultTimeEntryTick"
-                                }
-                            }
                         },
                         {
                             "const": "nonBillable",

@@ -249,25 +249,24 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
-    if (additionalSubmission?.logTimeEntry === undefined || additionalSubmission.logTimeEntry) {
-        const addTimerBody = {
-            data: {
-                communication: {
-                    id: communicationId
-                },
-                quantity: callLog.duration,
-                date: moment(callLog.startTime).toISOString(),
-                type: 'TimeEntry',
-                non_billable: additionalSubmission.nonBillable
-            }
+    const addTimerBody = {
+        data: {
+            communication: {
+                id: communicationId
+            },
+            quantity: callLog.duration,
+            date: moment(callLog.startTime).toISOString(),
+            type: 'TimeEntry',
+            non_billable: additionalSubmission.nonBillable,
+            note: body
         }
-        const addTimerRes = await axios.post(
-            `https://${user.hostname}/api/v4/activities.json`,
-            addTimerBody,
-            {
-                headers: { 'Authorization': authHeader }
-            });
     }
+    const addTimerRes = await axios.post(
+        `https://${user.hostname}/api/v4/activities.json`,
+        addTimerBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
     return {
         logId: communicationId,
         returnMessage: {
