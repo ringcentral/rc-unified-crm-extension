@@ -96,3 +96,12 @@ NetSuite requires that every contact be associated with a company. When logging 
 2. Edit the contact to associate it with a more appropriate company stored in NetSuite. 
 
 In this way, App Connect ensures that all contacts created by it conform to the requirements of NetSuite so that all contact records are complete. 
+
+## Concurrency limits
+
+If you receive an error indicating, "concurrency limit exceeded," then you may need to purchase SuiteCloud Plus add-on module. This is what NetSuite support shared:
+
+> Depending on the customers’ service tier level, the concurrency limit is from 5 (shared and tier 3) to 20 (tier 0).
+If additional processor/concurrency is required, the customer could purchase the SuiteCloud Plus add on module, which will include an additional 10 units per SuiteCloud plus license.
+> 
+> Please refer to the [Concurrency Governance Cheat Sheet](https://nlcorp.app.netsuite.com/core/media/media.nl?id=127925362&c=NLCORP&h=8742ad8b887aa6881f85&_xt=.pdf) found in the SDN SAFE Guide for more details.
