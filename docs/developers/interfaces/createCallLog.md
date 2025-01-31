@@ -29,10 +29,10 @@ This interface is responsible for creating a new call log record in the associat
 
 An object with following properties:
 
-| Parameter              | Description                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-|`logId`| ID of the log entry created within the CRM|
-|`returnMessage`|`message`, `messageType` and `ttl`|
+| Parameter       | Description                                |
+|-----------------|--------------------------------------------|
+| `logId`         | ID of the log entry created within the CRM |
+| `returnMessage` | `message`, `messageType` and `ttl`         |
 
 **Example**
 ```js
@@ -51,13 +51,13 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:202-244] !}
+    {!> src/adapters/testCRM/index.js [ln:230-284] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:165-197] !}
+    {!> src/adapters/pipedrive/index.js [ln:185-234] !}
 	```
 
 ### Example Call Log Schema
