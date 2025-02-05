@@ -100,7 +100,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please disconnect and reconnect your ${platform} account within this extension.`
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
                                 }
                             ]
                         }
@@ -209,7 +209,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please disconnect and reconnect your ${platform} account within this extension.`
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
                                 }
                             ]
                         }
