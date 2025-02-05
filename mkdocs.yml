@@ -77,13 +77,29 @@ nav:
    - 'Redtail CRM': crm/redtail.md
    - 'NetSuite': crm/netsuite.md
 - 'User guide':
-  - 'Basic usage': users/access.md
-  - 'Making and receiving calls': users/making-calls.md
-  - 'Logging calls': users/logging.md
-  - 'Sending SMS': users/sms.md
-  - 'Presence': users/presence.md
-  - 'Settings': users/settings.md
-  - 'Administration': users/admin.md
+  - 'Using App Connect': 
+    - 'Accessing App Connect': users/access.md
+    - 'Making and receiving calls': users/making-calls.md
+    - 'Sending SMS': users/sms.md
+    - 'Presence': users/presence.md
+  - 'Administration':
+    - 'Becoming an admin': users/admin.md
+    - 'Managed settings': users/managed-settings.md
+    - 'Custom adapters': users/custom-adapters.md
+  - 'Call Logging':
+    - 'Logging calls manually': users/logging.md
+    - 'Server-side call logging': users/server-side-logging.md
+  - 'Settings':
+    - 'Audio input/output': users/audio.md
+    - 'Call log prompts': users/prompts.md
+    - 'Call-pop': users/call-pop.md
+    - 'Phone number formats': users/phone-number-formats.md
+    - 'Preferred device': users/preferred-device.md
+    - 'Region': users/region.md
+    - Advanced options:
+      - 'Developer options': users/developer-options.md
+      - 'Browser options': users/extension-options.md
+
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
