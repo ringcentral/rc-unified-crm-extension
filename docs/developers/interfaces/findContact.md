@@ -29,7 +29,7 @@ This interface is called in the following circumstances:
 | `overridingFormat` | (Optional) If defined by the user under advanced settings, this will contain alternative formats the user may wish to use when searching for the `phoneNumber` |
 
 !!! warning "Alternative formats"
-    Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/settings.md#phone-number-formats) which they often use when entering phone numbers into the CRM. It is the intention that each adapter when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
+    Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/phone-number-formats.md) which they often use when entering phone numbers into the CRM. It is the intention that each adapter when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
 	
 	*Remember: only a single call the* `getContact` *interface will be made. The developer is responsible for searching for each alternative format.*
 

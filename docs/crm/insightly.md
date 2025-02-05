@@ -43,7 +43,7 @@ And with that, you will be connected to Insightly and ready to begin using the i
 
 Insightly's contact lookup method is very strict. As a result, if the phone numbers in Insightly are not stored using the E.164 standard, e.g. `+1##########`, then App Connect will fail to find the contact record for call logging and call pop. 
 
-To address this, short of reformatting every phone number stored in Insightly, is to go to [Phone number format alternatives](../users/settings.md#phone-number-formats) under the "Contacts" settings and set the phone number formats to conform with the conventions used by your company. 
+To address this, short of reformatting every phone number stored in Insightly, is to go to [Phone number format alternatives](../users/phone-number-formats.md) under the "Contacts" settings and set the phone number formats to conform with the conventions used by your company. 
 
 ![Overriding formats in settings](../img/overriding-format-setup.png){ .mw-300 }
   

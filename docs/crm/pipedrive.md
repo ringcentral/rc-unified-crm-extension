@@ -37,6 +37,6 @@ And with that, you will be connected to Pipedrive and ready to begin using the i
 
 Pipedrive's system exhibits a relatively uncommon behavior that is the result of a perfectly normal function of the frameworks used by their engineers. However, this behavior is unfortunate because it causes the dialer to be removed from the page after it has loaded. You may see it appear briefly, and then POOF! It is gone. 
 
-To address this, go our [advanced settings](../users/settings.md#advanced-configuration-options) and set the config option called "Click-to-dial inject delay" to `2` or `3`. Depending upon network latencies, you may need to increase this number, but usually a value of `2` is sufficient. 
+To address this, go our [advanced settings](../users/extension-options.md#click-to-dial-inject-delay) and set the config option called "Click-to-dial inject delay" to `2` or `3`. Depending upon network latencies, you may need to increase this number, but usually a value of `2` is sufficient. 
 
 

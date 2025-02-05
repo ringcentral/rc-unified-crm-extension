@@ -49,7 +49,7 @@ When no contact can be found associated with a given phone number, App Connect m
 It is the intention for someone to edit the placeholder contact after the call has been logged, to make sure all the correct and appropriate information about the contact has been captured. 
 
 !!! tip "What if no contact was found, when a contact is known to exist?"
-    Sometimes a contact is not found, even though one knows for a fact that the contact exists. This happens with some CRMs whose search mechanisms are overly strict. You can address this through [advanced settings](settings.md#phone-number-formats).
+    Sometimes a contact is not found, even though one knows for a fact that the contact exists. This happens with some CRMs whose search mechanisms are overly strict. You can address this through [advanced settings](phone-number-formats.md).
 
 ## Resolving logging conflicts
 
