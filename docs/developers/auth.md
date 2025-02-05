@@ -102,7 +102,7 @@ Within your adapter's `index.js` file, implement the following methods.
 
 Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
 
-1. Refresh and or save the [Custom CRM config url](../users/settings.md#loading-custom-crm-adapter) setting under the extension's options. 
+1. Refresh and or save the [Custom CRM config url](../users/developer-options.md#loading-custom-crm-adapter) setting under the extension's options. 
    2. Access the Chrome extension. 
 3. Log out and log back into your CRM using the "Connect" button under the Settings tab, or by going through the appropriate CRM login and authorization flow for your adapter.
 4. Finally, check to see if any user info was saved in the database (`CHECK.1`)
