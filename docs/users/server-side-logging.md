@@ -10,12 +10,22 @@
 !!! info "Server-side call logging may become a premium feature"
     The costs associated with operating a server-side call logging service may require us to charge for this feature in the future. 
 	
-Right out of the box App Connect allows users to log calls from the App Connect client (Chrome extension). App Connect can even be configured to [log calls automatically](logging.md#automatically-logging-calls). However, when logging is done exclusively from the client, it may present some trade-offs or risks. This includes the following:
+## Seamless Call Logging with App Connect
 
-* Not all calls will be logging in real-time. 
-* Only calls for users who have installed App Connect can be logged.
+Out of the box, App Connect enables users to log calls directly from the App Connect client (Chrome extension). It can even be configured to log calls automatically for added convenience.
 
-Server-side call logging addresses these issues because it is a service that operates across all users within your entire organization, even if they do not have App Connect installed. It also logs calls as soon as the call is completed, ensuring with greater reliability that all calls will be logged in a timely manner. 
+However, relying solely on client-side logging comes with certain limitations:
+
+* **Delayed Logging**: Not all calls may be logged in real-time.
+
+* **Limited Coverage**: Only calls from users who have the App Connect extension installed will be logged.
+
+## Server-Side Call Logging: A Reliable Solution
+
+Server-side call logging eliminates these challenges. Operating at the organizational level, it logs calls for all users—whether or not they have App Connect installed. Additionally, it captures call data immediately after each call ends, ensuring comprehensive, timely, and reliable logging across your entire organization.
+
+!!! tip "We still recommend all users install the App Connect client."
+    Installing the App Connect client ensures that all users have the ability to quickly resolve issues preventing calls from being logged. For example, when zero, or more than one contact is matched to a phone number. 
 
 ## Enabling server-side call logging
 
