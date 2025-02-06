@@ -173,10 +173,6 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         let returnMessage = null;
         let extraDataTracking = {};;
         let sessionIdsArray = sessionIds.split(',');
-        // temporary fix to limit the number of logs to be fetched
-        if (sessionIdsArray.length > 5) {
-            sessionIdsArray = sessionIdsArray.slice(0, 5);
-        }
         if (!!requireDetails) {
             const platformModule = require(`../adapters/${platform}`);
             const authType = platformModule.getAuthType();
@@ -199,15 +195,17 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     }
                 }
             });
-            for (const callLog of callLogs) {
+            for (const sId of sessionIdsArray) {
+                const callLog = callLogs.find(c => c.sessionId === sId);
                 if (!!!callLog) {
-                    logs.push({ sessionId: callLog.sessionId, matched: false });
-                    continue;
+                    logs.push({ sessionId: sId, matched: false });
                 }
-                const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-                returnMessage = getCallLogResult.returnMessage;
-                extraDataTracking = getCallLogResult.extraDataTracking;
-                logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
+                else {
+                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+                    returnMessage = getCallLogResult.returnMessage;
+                    extraDataTracking = getCallLogResult.extraDataTracking;
+                    logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
+                }
             }
         }
         else {
@@ -218,12 +216,14 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     }
                 }
             });
-            for (const callLog of callLogs) {
+            for (const sId of sessionIdsArray) {
+                const callLog = callLogs.find(c => c.sessionId === sId);
                 if (!!!callLog) {
-                    logs.push({ sessionId: callLog.sessionId, matched: false });
-                    continue;
+                    logs.push({ sessionId: sId, matched: false });
                 }
-                logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId });
+                else {
+                    logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId });
+                }
             }
         }
         return { successful: true, logs, returnMessage, extraDataTracking };
@@ -281,7 +281,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
             successful: false,
             returnMessage:
             {
-                message: `Error creating call log`,
+                message: `Error getting call log`,
                 messageType: 'warning',
                 details: [
                     {
