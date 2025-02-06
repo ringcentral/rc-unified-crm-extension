@@ -109,6 +109,31 @@ async function createCallLog({ platform, userId, incomingData }) {
                 }
             };
         }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
+                }
+            };
+        }
         return {
             successful: false,
             returnMessage:
@@ -134,73 +159,146 @@ async function createCallLog({ platform, userId, incomingData }) {
 }
 
 async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
-    let user = await UserModel.findOne({
-        where: {
-            id: userId,
-            platform
-        }
-    });
-    if (!user || !user.accessToken) {
-        return { successful: false, message: `Contact not found` };
-    }
-    let logs = [];
-    let returnMessage = null;
-    let extraDataTracking = {};;
-    let sessionIdsArray = sessionIds.split(',');
-    // temporary fix to limit the number of logs to be fetched
-    if (sessionIdsArray.length > 5) {
-        sessionIdsArray = sessionIdsArray.slice(0, 5);
-    }
-    if (!!requireDetails) {
-        const platformModule = require(`../adapters/${platform}`);
-        const authType = platformModule.getAuthType();
-        let authHeader = '';
-        switch (authType) {
-            case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
-                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
-                authHeader = `Bearer ${user.accessToken}`;
-                break;
-            case 'apiKey':
-                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
-                authHeader = `Basic ${basicAuth}`;
-                break;
-        }
-        const callLogs = await CallLogModel.findAll({
+    try {
+        let user = await UserModel.findOne({
             where: {
-                sessionId: {
-                    [Op.in]: sessionIdsArray
-                }
+                id: userId,
+                platform
             }
         });
-        for (const callLog of callLogs) {
-            if (!!!callLog) {
-                logs.push({ sessionId: callLog.sessionId, matched: false });
-                continue;
-            }
-            const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
-            returnMessage = getCallLogResult.returnMessage;
-            extraDataTracking = getCallLogResult.extraDataTracking;
-            logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
+        if (!user || !user.accessToken) {
+            return { successful: false, message: `Contact not found` };
         }
-    }
-    else {
-        const callLogs = await CallLogModel.findAll({
-            where: {
-                sessionId: {
-                    [Op.in]: sessionIdsArray
+        let logs = [];
+        let returnMessage = null;
+        let extraDataTracking = {};;
+        let sessionIdsArray = sessionIds.split(',');
+        if (!!requireDetails) {
+            const platformModule = require(`../adapters/${platform}`);
+            const authType = platformModule.getAuthType();
+            let authHeader = '';
+            switch (authType) {
+                case 'oauth':
+                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    authHeader = `Bearer ${user.accessToken}`;
+                    break;
+                case 'apiKey':
+                    const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                    authHeader = `Basic ${basicAuth}`;
+                    break;
+            }
+            const callLogs = await CallLogModel.findAll({
+                where: {
+                    sessionId: {
+                        [Op.in]: sessionIdsArray
+                    }
+                }
+            });
+            for (const sId of sessionIdsArray) {
+                const callLog = callLogs.find(c => c.sessionId === sId);
+                if (!!!callLog) {
+                    logs.push({ sessionId: sId, matched: false });
+                }
+                else {
+                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+                    returnMessage = getCallLogResult.returnMessage;
+                    extraDataTracking = getCallLogResult.extraDataTracking;
+                    logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
                 }
             }
-        });
-        for (const callLog of callLogs) {
-            if (!!!callLog) {
-                logs.push({ sessionId: callLog.sessionId, matched: false });
-                continue;
-            }
-            logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId });
         }
+        else {
+            const callLogs = await CallLogModel.findAll({
+                where: {
+                    sessionId: {
+                        [Op.in]: sessionIdsArray
+                    }
+                }
+            });
+            for (const sId of sessionIdsArray) {
+                const callLog = callLogs.find(c => c.sessionId === sId);
+                if (!!!callLog) {
+                    logs.push({ sessionId: sId, matched: false });
+                }
+                else {
+                    logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId });
+                }
+            }
+        }
+        return { successful: true, logs, returnMessage, extraDataTracking };
     }
-    return { successful: true, logs, returnMessage, extraDataTracking };
+    catch (e) {
+        console.log(`platform: ${platform} \n${e.stack}`);
+        if (e.response?.status === 429) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Rate limit exceeded`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
+                }
+            };
+        }
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error getting call log`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if your account has permission to CREATE logs.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
+    }
 }
 
 async function updateCallLog({ platform, userId, incomingData }) {
@@ -266,6 +364,31 @@ async function updateCallLog({ platform, userId, incomingData }) {
                                     id: '1',
                                     type: 'text',
                                     text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
+                }
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
                                 }
                             ]
                         }
@@ -445,6 +568,31 @@ async function createMessageLog({ platform, userId, incomingData }) {
                         }
                     ],
                     ttl: 5000
+                }
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }

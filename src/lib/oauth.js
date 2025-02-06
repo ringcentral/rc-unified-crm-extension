@@ -20,7 +20,7 @@ async function checkAndRefreshAccessToken(oauthApp, user) {
     if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
         // Unique: Bullhorn
         if (user.platform === 'bullhorn') {
-            await bullhornTokenRefresh(oauthApp, user);
+            await bullhornTokenRefresh(user);
         }
         else {
             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
@@ -34,14 +34,23 @@ async function checkAndRefreshAccessToken(oauthApp, user) {
     return user;
 }
 
-async function bullhornTokenRefresh(oauthApp, user) {
-    const refreshUrl = `${oauthApp.options.accessTokenUri}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${oauthApp.options.clientId}&client_secret=${oauthApp.options.clientSecret}`;
-    const refreshResponse = await axios.post(refreshUrl);
-    user.accessToken = refreshResponse.data.access_token;
-    user.refreshToken = refreshResponse.data.refresh_token;
+async function bullhornTokenRefresh(user) {
+    const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
+    const { access_token: accessToken, refresh_token: refreshToken } = refreshTokenResponse.data;
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
+    const { BhRestToken, restUrl } = userLoginResponse.data;
+    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
+    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
+    updatedPlatformAdditionalInfo.restUrl = restUrl;
+    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
+    user.platformAdditionalInfo = {};
+    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     const date = new Date();
-    user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshResponse.data.expires_in);
+    user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshTokenResponse.data.expires_in);
     await user.save();
+    return user;
 }
 
 exports.checkAndRefreshAccessToken = checkAndRefreshAccessToken;
