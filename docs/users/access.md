@@ -1,4 +1,4 @@
-# Accessing the extension to make calls
+# Accessing the phone dialer to make calls
 
 App Connect makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
 

@@ -80,6 +80,7 @@ nav:
   - 'Using App Connect': 
     - 'Accessing App Connect': users/access.md
     - 'Making and receiving calls': users/making-calls.md
+    - 'AI Assistant': users/ai.md
     - 'Sending SMS': users/sms.md
     - 'Presence': users/presence.md
   - 'Administration':
