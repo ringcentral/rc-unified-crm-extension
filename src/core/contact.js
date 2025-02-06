@@ -87,6 +87,31 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 }
             };
         }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
+                }
+            };
+        }
         return {
             successful: false,
             returnMessage:
@@ -168,6 +193,31 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                         }
                     ],
                     ttl: 5000
+                }
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Authorization error`,
+                    messageType: 'warning',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }
