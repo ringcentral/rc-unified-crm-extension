@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://chorus-generators-consortium-elimination.trycloudflare.com",
+    "serverUrl": "https://ultra-spaces-ability-wifi.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1322,7 +1322,7 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
-                    "clientId": "0bc4b1f329aefe9320d80ae080216faccd19c9cf11c19256d7440b25df6b1b5a",
+                    "clientId": "18059336069d5ff69ffbd455cf6bbc6918a46a4018250c1245c4b361f9b3e221",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
                     "customState": "fillerString,platform=netsuite"
@@ -1547,6 +1547,22 @@
                     "videoLink": "https://youtu.be/pQgdsAR1UCI"
                 }
             },
+            "settings": [
+                {
+                    "id": "netsuiteDefaultNoteAction",
+                    "type": "section",
+                    "name": "Google Sheets options",
+                    "items": [
+                        {
+                            "id": "googleSheetUrlId",
+                            "type": "inputField",
+                            "name": "Google Sheet URL",
+                            "placeholder": "Enter action value",
+                            "defaultValue": ""
+                        }
+                    ]
+                }
+            ],
             "page": {
                 "feedback": {
                     "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
