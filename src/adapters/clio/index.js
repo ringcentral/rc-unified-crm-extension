@@ -461,7 +461,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.data.body.split('- Note: ')[1].split('\n')[0];
+    const note = getLogRes.data.data.body.split('- Note: ')[1]?.split('\n')[0];
     const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
         getLogRes.data.data.senders[0].id :
         getLogRes.data.data.receivers[0].id;

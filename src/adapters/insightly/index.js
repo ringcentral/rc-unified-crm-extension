@@ -410,7 +410,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.DETAILS.split('- Agent note: ')[1].split('\n')[0];
+    const note = getLogRes.data.DETAILS.split('- Agent note: ')[1]?.split('\n')[0];
     const contactRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${getLogRes.data.LINKS[0].LINK_OBJECT_NAME}s/${getLogRes.data.LINKS[0].LINK_OBJECT_ID}`,
         {
