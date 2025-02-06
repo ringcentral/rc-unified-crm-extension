@@ -92,7 +92,7 @@ nav:
     - 'Resolving logging conflicts': users/logging-conflicts.md
     - 'Logging calls automatically': users/automatic-logging.md
     - 'Server-side call logging': users/server-side-logging.md
-  - 'Settings':
+  - 'User settings':
     - 'Audio input/output': users/audio.md
     - 'Call log prompts': users/prompts.md
     - 'Call-pop': users/call-pop.md
