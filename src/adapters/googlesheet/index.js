@@ -111,9 +111,21 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
-                message: "To log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.",
-                ttl: 30000
+                messageType: 'warning',
+                message: 'No sheet selected',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
             }
         }
     }
@@ -173,6 +185,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     try {
         const response = await axios.post(url, data, { headers });
         console.log('Response:', response.data);
+        const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: spreadsheetId + "space" + nextLogRow,
             returnMessage: {
@@ -201,9 +214,21 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
-                message: "To Update log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.",
-                ttl: 30000
+                messageType: 'warning',
+                message: 'No sheet selected',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
             }
         }
     }
@@ -306,14 +331,27 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
     //const sheetName = user?.userSettings?.googleSheetNameId?.value;
     let sheetName = "";
+
     console.log({ sheetName, sheetUrl });
     if (!!!sheetUrl) {
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
-                message: "To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.",
-                ttl: 30000
+                messageType: 'warning',
+                message: 'No sheet selected',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
             }
         }
     }
