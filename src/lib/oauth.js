@@ -41,6 +41,8 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 15)
         if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
             const cache = await CacheModel.create({
                 id: `${user.id}-tokenLock`,
+                userId: user.id,
+                cacheKey: 'tokenLock',
                 status: 'locked',
                 expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
             })
