@@ -17,11 +17,11 @@ The main difference between these two options is when the call is logged. When u
 
 App Connect has the ability to automatically log calls for its users. Rest assured, App Connect will log all calls it is able to, regards of whether you have select client-side or server-side logging. However, it is important customers understand certain limitations with client-side logging. 
 	
-    * It CAN automatically log the calls for any user who has the extension installed, and has connected the extension to both RingCentral and their CRM.
-	* It CANNOT log calls for anyone who does not have the extension installed in their browser. 
-	* It CANNOT log calls for anyone who has not connected the extension to their CRM. 
-	* It CANNOT log calls automatically for people whose browser is closed. 
-	* It CANNOT log calls automatically for people whose App Connect window is closed. 
+* It CAN automatically log the calls for any user who has the extension installed, and has connected the extension to both RingCentral and their CRM.
+* It CANNOT log calls for anyone who does not have the extension installed in their browser. 
+* It CANNOT log calls for anyone who has not connected the extension to their CRM. 
+* It CANNOT log calls automatically for people whose browser is closed. 
+* It CANNOT log calls automatically for people whose App Connect window is closed. 
 	
 ## Setting up automatic call logging
 
