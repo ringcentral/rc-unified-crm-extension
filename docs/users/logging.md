@@ -1,3 +1,6 @@
+---
+title: Logging calls in your CRM using App Connect
+---
 # Logging phone calls in your CRM
 
 App Connect’s call logging system is designed to help users efficiently track and manage their calls. It offers the following features and capabilities:
