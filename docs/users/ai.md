@@ -4,6 +4,9 @@
 
 In App Connect, RingCentral's [AI Assistant](https://www.ringcentral.com/ringex/ai-assistant.html) helps save you time by taking critical call notes for you, so that you can place a greater focus on the person you are speaking with. 
 
+!!! tip "AI assistant can be enabled independently"
+    Disabling AI Assistant in App Connect will not disable AI assistent in the RingCentral desktop application, and vice-versa.
+
 ## Live transcription
 
 AI Assistant, when enabled for your phone call, will show you a live transcript of your call.
