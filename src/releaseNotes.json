@@ -7,6 +7,10 @@
             },
             {
                 "type": "Better",
+                "description": "- User settings are synced more frequently and stably"
+            },
+            {
+                "type": "Better",
                 "description": "- Some settings now have additional explanations of how it works"
             },
             {

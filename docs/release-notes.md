@@ -3,6 +3,7 @@
 ## 1.3.6
 
 - Fix: Retro call logging now has recording link if applicable, instead of showing "(pending...)"
+- Better: User settings are synced more frequently and stably
 - Better: Some settings now have additional explanations of how it works
 - Change: "Call log details" setting is now under "Call and SMS logging" 
 - New: Server side logging (BETA) has a trial mode now which only works for admin user's extension only instead of across the whole account
