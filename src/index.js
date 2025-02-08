@@ -235,7 +235,7 @@ app.get('/admin/settings', async function (req, res) {
             }
             else {
                 res.status(401).send('Admin validation failed');
-                success = false;
+                success = true;
             }
         }
         else {
