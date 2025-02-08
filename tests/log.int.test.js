@@ -167,7 +167,7 @@ describe('call&message log tests', () => {
                     // Assert
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
-                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId)).toEqual(undefined);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
                 }
             });
             test('known and unknown call log - first matched and second not matched', async () => {
@@ -186,7 +186,7 @@ describe('call&message log tests', () => {
                     expect(res.status).toEqual(200);
                     expect(res.body.successful).toEqual(true);
                     expect(res.body.logs.find(l => l.sessionId === sessionId).matched).toEqual(true);
-                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId)).toEqual(undefined);
+                    expect(res.body.logs.find(l => l.sessionId === unknownSessionId).matched).toEqual(false);
                 }
             });
         });
