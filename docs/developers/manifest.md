@@ -143,7 +143,7 @@ Currently welcome pages are relatively simple, providing developers with the abi
 
 ## User settings for default log form values
 
-This topic is closely related to the use of [auto log](../users//logging.md#automatically-logging-calls). For manual log cases, using Bullhorn as example, users would need to manually select one of the `Note action` codes. In auto log scenarios, the extension would refuse to auto log because it misses selection for `Note action` code value. Now, default log form values would be able to help. It has 4 cases: `inbound call`, `outbound call`, `message` and `voicemail` where we can predefine default values.
+This topic is closely related to the use of [auto log](../users/automatic-logging.md). For manual log cases, using Bullhorn as example, users would need to manually select one of the `Note action` codes. In auto log scenarios, the extension would refuse to auto log because it misses selection for `Note action` code value. Now, default log form values would be able to help. It has 4 cases: `inbound call`, `outbound call`, `message` and `voicemail` where we can predefine default values.
 
 Here's the example from Bullhorn. In `settings`, we want to add a new custom setting, and on log page render, we want to link the default values from user settings.
 

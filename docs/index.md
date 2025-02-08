@@ -68,7 +68,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 
     Ensure every inbound and outbound call is recorded in your CRM, with an "Unlogged" tab for quick fixes.
 
-    [:octicons-arrow-right-24: Learn more](users/logging.md#automatically-logging-calls)
+    [:octicons-arrow-right-24: Learn more](users/automatic-logging.md)
 
 -   :material-account-reactivate-outline:{ .lg .middle } __Call pop__
 
