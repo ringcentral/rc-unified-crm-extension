@@ -9,18 +9,20 @@ RingCentral's App Connect for RingEX provides support for a number of different 
 
 <div class="grid cards" markdown>
 
--    [![Bullhorn Logo](../img/bullhorn-logo.png){.crm-logo}](bullhorn.md)
+-    [![Bullhorn Logo](../img/crm-logo-bullhorn.png){.crm-logo}](bullhorn.md)
      [Bullhorn](bullhorn.md)
--    [![Clio Logo](../img/clio-logo.png){.crm-logo}](clio.md)
+-    [![Clio Logo](../img/crm-logo-clio.png){.crm-logo}](clio.md)
      [Clio](clio.md)
--    [![Insightly Logo](../img/insightly-logo.png){.crm-logo}](insightly.md)
+-    [![Insightly Logo](../img/crm-logo-insightly.png){.crm-logo}](insightly.md)
      [Insightly](insightly.md)
--    [![Pipedrive Logo](../img/pipedrive-logo.png){.crm-logo}](pipedrive.md)
-     [Pipedrive](pipedrive.md)
--    [![Redtail Logo](../img/redtail-logo.png){.crm-logo}](redtail.md)
-     [Redtail CRM](redtail.md)
--    [![NetSuite Logo](../img/netsuite-logo.png){.crm-logo}](netsuite.md)
+-    [![NetSuite Logo](../img/crm-logo-netsuite.png){.crm-logo}](netsuite.md)
      [NetSuite](netsuite.md)
+-    [![Pipedrive Logo](../img/crm-logo-pipedrive.png){.crm-logo}](pipedrive.md)
+     [Pipedrive](pipedrive.md)
+-    [![Redtail Logo](../img/crm-logo-redtail.png){.crm-logo}](redtail.md)
+     [Redtail CRM](redtail.md)
+-    [![ServiceNow Logo](../img/crm-logo-servicenow.png){.crm-logo}](servicenow.md)
+     [ServiceNow](servicenow.md)
 
 </div>
 

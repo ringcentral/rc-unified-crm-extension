@@ -73,9 +73,10 @@ nav:
    - 'Bullhorn': crm/bullhorn.md
    - 'Clio': crm/clio.md
    - 'Insightly': crm/insightly.md
+   - 'NetSuite': crm/netsuite.md
    - 'Pipedrive': crm/pipedrive.md
    - 'Redtail CRM': crm/redtail.md
-   - 'NetSuite': crm/netsuite.md
+   - 'ServiceNow': crm/servicenow.md
 - 'User guide':
   - 'Using App Connect': 
     - 'Accessing App Connect': users/access.md

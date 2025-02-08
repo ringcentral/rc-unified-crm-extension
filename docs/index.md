@@ -6,13 +6,13 @@ hide:
 <div class="qs-hero" markdown>
 <div class="carousel container">
   <h3>Benefit Spotlight</h3>
-  <h2>Track all communications seamlessly in your CRM</h2>
+  <h2>Track all RingEX&trade; communications in your CRM</h2>
   <div class="row">
     <div class="column">
       <img src="./img/app-connect-logging.png" class="d-block mx-lg-auto img-fluid" alt="RingCentral App Connect call logging" loading="lazy">
     </div>
     <div class="column">
-      <p>RingCentral <a href="https://ringcentral.github.io/rc-unified-crm-extension/">App Connect</a>, powered by <a href="https://ringcentral.github.io/ringcentral-embeddable/">Embeddable 2.0</a>, is an all-in-one CRM integration solution. It embeds a full-featured communications client into almost any app, reliably logging all communications. Developers can easily integrate with both SaaS products and proprietary CRMs using a simple framework.</p>
+      <p>RingCentral <a href="https://ringcentral.github.io/rc-unified-crm-extension/">App Connect</a>, powered by <a href="https://ringcentral.github.io/ringcentral-embeddable/">Embeddable 2.0</a>, is an all-in-one CRM integration solution. It embeds a full-featured communications client into almost any app, reliably logging all communications. If your CRM is not currently supported, developers can easily integrate with both SaaS products and proprietary CRMs using a simple framework.</p>
       <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh"><img src="img/chrome-web-store.png"></a>
     </div>
   </div>
@@ -26,12 +26,12 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 ## Supported CRMs
 
 * <span class="helper"></span>[![Bullhorn](img/crm-logo-bullhorn-bw.png)![Bullhorn](img/crm-logo-bullhorn.png)](crm/bullhorn.md)
-* <span class="helper"></span>[![Pipedrive](img/crm-logo-pipedrive-bw.png)![Pipedrive](img/crm-logo-pipedrive.png)](crm/pipedrive.md)
-* <span class="helper"></span>[![NetSuite](img/crm-logo-netsuite-bw.png)![NetSuite](img/crm-logo-netsuite.png)](crm/netsuite.md)
-* <span class="helper"></span>[![Redtail](img/crm-logo-redtail-bw.png)![Redtail](img/crm-logo-redtail.png)](crm/redtail.md)
 * <span class="helper"></span>[![Clio](img/crm-logo-clio-bw.png)![Clio](img/crm-logo-clio.png)](crm/clio.md)
-* <span class="helper"></span>[![ServiceNow](img/crm-logo-servicenow-bw.png)![ServiceNow](img/crm-logo-servicenow.png)](crm/servicenow.md)
 * <span class="helper"></span>[![Insightly](img/crm-logo-insightly-bw.png)![Insightly](img/crm-logo-insightly.png)](crm/insightly.md)
+* <span class="helper"></span>[![NetSuite](img/crm-logo-netsuite-bw.png)![NetSuite](img/crm-logo-netsuite.png)](crm/netsuite.md)
+* <span class="helper"></span>[![Pipedrive](img/crm-logo-pipedrive-bw.png)![Pipedrive](img/crm-logo-pipedrive.png)](crm/pipedrive.md)
+* <span class="helper"></span>[![Redtail](img/crm-logo-redtail-bw.png)![Redtail](img/crm-logo-redtail.png)](crm/redtail.md)
+* <span class="helper"></span>[![ServiceNow](img/crm-logo-servicenow-bw.png)![ServiceNow](img/crm-logo-servicenow.png)](crm/servicenow.md)
 *  
 
 ## Highlighted Features
@@ -68,7 +68,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 
     Ensure every inbound and outbound call is recorded in your CRM, with an "Unlogged" tab for quick fixes.
 
-    [:octicons-arrow-right-24: Learn more](users/logging.md#automatically-logging-calls)
+    [:octicons-arrow-right-24: Learn more](users/automatic-logging.md)
 
 -   :material-account-reactivate-outline:{ .lg .middle } __Call pop__
 
