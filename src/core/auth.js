@@ -113,7 +113,8 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
             accessToken,
             refreshToken,
             tokenExpiry,
-            platformAdditionalInfo
+            platformAdditionalInfo,
+            userSettings: {}
         });
     }
     return {
