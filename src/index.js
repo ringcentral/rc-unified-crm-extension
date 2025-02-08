@@ -5,6 +5,7 @@ const { UserModel } = require('./models/userModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
+const { CacheModel } = require('./models/cacheModel');
 const cors = require('cors')
 const jwt = require('./lib/jwt');
 const logCore = require('./core/log');
@@ -32,6 +33,7 @@ async function initDB() {
     await CallLogModel.sync();
     await MessageLogModel.sync();
     await AdminConfigModel.sync();
+    await CacheModel.sync();
     console.log('db tables created');
 }
 

@@ -122,8 +122,9 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     };
 }
 
+// Just for oauth ATM
 async function authValidation({ platform, userId }) {
-    const existingUser = await UserModel.findOne({
+    let existingUser = await UserModel.findOne({
         where: {
             [Op.and]: [
                 {
@@ -135,6 +136,8 @@ async function authValidation({ platform, userId }) {
     });
     if (!!existingUser) {
         const platformModule = require(`../adapters/${platform}`);
+        const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname })));
+        existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);
         const { successful, returnMessage, status } = await platformModule.authValidation({ user: existingUser });
         return {
             successful,
