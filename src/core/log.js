@@ -249,6 +249,9 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                         }
                     ],
                     ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }
@@ -296,6 +299,9 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     }
                 ],
                 ttl: 5000
+            },
+            extraDataTracking: {
+                statusCode: e.response?.status,
             }
         };
     }
@@ -568,6 +574,9 @@ async function createMessageLog({ platform, userId, incomingData }) {
                         }
                     ],
                     ttl: 5000
+                },
+                extraDataTracking: {
+                    statusCode: e.response?.status,
                 }
             };
         }
@@ -615,6 +624,9 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     }
                 ],
                 ttl: 5000
+            },
+            extraDataTracking: {
+                statusCode: e.response?.status,
             }
         };
     }
