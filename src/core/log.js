@@ -343,6 +343,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 existingCallLog,
                 authHeader,
                 recordingLink: incomingData.recordingLink,
+                recordingDownloadLink: incomingData.recordingDownloadLink,
                 subject: incomingData.subject,
                 note: incomingData.note,
                 startTime: incomingData.startTime,
