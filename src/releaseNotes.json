@@ -1,4 +1,42 @@
 {
+    "1.3.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Retro call logging now has recording link if applicable, instead of showing '(pending...)'"
+            },
+            {
+                "type": "Better",
+                "description": "- Some settings now have additional explanations of how it works"
+            },
+            {
+                "type": "Change",
+                "description": "- 'Call log details' setting is now under 'Call and SMS logging'"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Change",
+                "description": "- 'Time entry' is now always TRUE, only 'non-billable' is tickable"
+            }
+        ],
+        "redtail": [
+            {
+                "type": "New",
+                "description": "- You can now define your timezone offset value in authorization page. Re-auth if you already logged in"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Better",
+                "description": "- Authorization checker is updated to be more reliable and check if user's current session is valid"
+            },
+            {
+                "type": "Fix",
+                "description": "- Appointment draft page now won't attach unintended logo"
+            }
+        ]
+    },
     "1.3.5": {
         "global": [
             {
@@ -6,7 +44,7 @@
                 "description": "Error messages are more accurate"
             }
         ],
-        "clio":[
+        "clio": [
             {
                 "type": "New",
                 "description": "Support user setting customization with logging time entry and non-billable default values"

@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.3.6
+
+- Fix: Retro call logging now has recording link if applicable, instead of showing "(pending...)"
+- Better: Some settings now have additional explanations of how it works
+- Change: "Call log details" setting is now under "Call and SMS logging" 
+- New: Server side logging (BETA) has a trial mode now which only works for admin user's extension only instead of across the whole account
+- Clio: "Time entry" is now always TRUE, only "non-billable" is tickable
+- Redtail: You can now define your timezone in authorization page. Re-auth if you already logged in
+- Bullhorn: Authorization checker is updated to be more reliable and check if user's current session is valid
+- Bullhorn: Appointment draft page now won't attach unintended logo
+
 ## 1.3.5
 
 - Upgrade: Error messages are more accurate
