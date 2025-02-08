@@ -12,9 +12,7 @@
 	
 ## Seamless Call Logging with App Connect
 
-Out of the box, App Connect enables users to log calls directly from the App Connect client (Chrome extension). It can even be configured to log calls automatically for added convenience.
-
-However, relying solely on client-side logging comes with certain limitations:
+Out of the box, App Connect enables users to log calls directly from the App Connect client (Chrome extension). We call this "client-side logging." App Connect can even be configured to log calls automatically for added convenience. However, relying solely on client-side logging comes with certain limitations:
 
 * **Delayed Logging**: Not all calls may be logged in real-time.
 
