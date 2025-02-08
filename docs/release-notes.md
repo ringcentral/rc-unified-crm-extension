@@ -11,6 +11,7 @@
 - Redtail: You can now define your timezone offset value in authorization page. Re-auth if you already logged in
 - Bullhorn: Authorization checker is updated to be more reliable and check if user's current session is valid
 - Bullhorn: Appointment draft page now won't attach unintended logo
+- NetSuite: Fix empty note won't create sales order issue
 
 ## 1.3.5
 

@@ -39,6 +39,12 @@
                 "type": "Fix",
                 "description": "- Appointment draft page now won't attach unintended logo"
             }
+        ],
+        "netsuite":[
+            {
+                "type": "Fix",
+                "description": "- Fix empty note won't create sales order issue"
+            }
         ]
     },
     "1.3.5": {

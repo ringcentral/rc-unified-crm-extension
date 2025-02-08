@@ -330,7 +330,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 const postBody = {
                     salesOrderId: additionalSubmission.salesorder,
                     noteTitle: title,
-                    noteText: note
+                    noteText: note ?? 'empty'
                 };
                 const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
                     headers: { 'Authorization': authHeader }
