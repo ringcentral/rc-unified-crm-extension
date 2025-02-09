@@ -97,6 +97,24 @@ NetSuite requires that every contact be associated with a company. When logging 
 
 In this way, App Connect ensures that all contacts created by it conform to the requirements of NetSuite so that all contact records are complete. 
 
+## Contact matching via phone numbers
+
+When attempting to find and match a phone call to a customer or contact record, the NetSuite integration searches the following fields:
+
+Contacts:
+* `phone`
+* `homePhone`
+* `mobilePhone`
+* `officePhone`
+
+Customers:
+* `phone`
+* `homePhone`
+* `mobilePhone`
+* `altPhone`
+
+The integration does not search custom phone fields. 
+
 ## Concurrency limits
 
 If you receive an error indicating, "concurrency limit exceeded," then you may need to purchase SuiteCloud Plus add-on module. This is what NetSuite support shared:
