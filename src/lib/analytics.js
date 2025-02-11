@@ -7,7 +7,8 @@ try {
 catch (e) {
     packageJson = require('../../package.json');
 }
-const appName = 'RingCentral CRM Extension';
+const appName = 'App Connect';
+const eventAddedVia = 'server';
 const version = packageJson.version;
 let mixpanel = null;
 
@@ -34,6 +35,7 @@ exports.track = function track({ eventName, interfaceName, adapterName, accountI
         collectedFrom: 'server',
         version,
         appName,
+        eventAddedVia,
         $browser: ua.browser.name,
         $os: ua.os.name,
         $device: ua.device.type,
