@@ -619,10 +619,10 @@ app.get('/contact', async function (req, res) {
             if (successful) {
                 const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
                 resultCount = nonNewContact.length;
-                success = true;
-                if (!!extraDataTracking) {
-                    extraData = extraDataTracking;
-                }
+            }
+            success = successful;
+            if (!!extraDataTracking) {
+                extraData = extraDataTracking;
             }
         }
         else {
