@@ -33,6 +33,10 @@ Currently the server-side call logging feature is in beta, and can be enabled fr
 
 Click "Server side logging" to enable the feature.
 
+#### Trial-mode
+
+If you are unsure of turning on server-side call logging across your entire account, the admin in your account can enable server-side call logging for their extension exclusively. It is the intent of this feature to allow admins to try the feature out for a period of time before enabling it for other users. 
+
 ## Configuring server-side call logging
 
 From the Server side logging page, an admin can enable call logging for their entire organization. Once enabled, automatic logging from the client will be disabled across your entire organization. Users will still be able to log calls manually, or edit call log entries made by the server-side call logging service. 
