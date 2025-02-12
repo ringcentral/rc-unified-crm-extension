@@ -173,6 +173,9 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         let returnMessage = null;
         let extraDataTracking = {};;
         let sessionIdsArray = sessionIds.split(',');
+        if(sessionIdsArray.length > 5){
+            sessionIdsArray = sessionIdsArray.slice(0, 5);
+        }
         if (!!requireDetails) {
             const platformModule = require(`../adapters/${platform}`);
             const authType = platformModule.getAuthType();
