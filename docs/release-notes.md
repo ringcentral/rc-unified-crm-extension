@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.3.7
+
+- Fix: Timeout issue (mostly affecting call logging)
+- Fix: Admin users now get admin setting right after login
+- New: A new setting to turn ON/OFF retroactive call logging
+
 ## 1.3.6
 
 - Fix: Retro call logging now has recording link if applicable, instead of showing "(pending...)"
