@@ -4,7 +4,16 @@
 
 In App Connect, RingCentral's [AI Assistant](https://www.ringcentral.com/ringex/ai-assistant.html) helps save you time by taking critical call notes for you, so that you can place a greater focus on the person you are speaking with. 
 
-!!! tip "AI assistant can be enabled independently"
+## Turning on AI Assistant
+
+App Connect's AI features are currently in beta. During this phase, you can enable these features by navigating to Settings > Advanced features and toggling "Smart Note (Beta)" on. 
+
+<figure markdown>
+  ![Quick Access badge](../img/ai-assistant-settings.png){ .mw-400 }
+  <figcaption>Turning on AI Assistant and Smart Notes under Settings</figcaption>
+</figure>
+
+!!! tip "AI assistant can be enabled independently on every device"
     Disabling AI Assistant in App Connect will not disable AI assistent in the RingCentral desktop application, and vice-versa.
 
 ## Live transcription
