@@ -7,3 +7,4 @@ To customize your preferred input and output devices, e.g. headphones, laptop sp
   <figcaption>The settings screen for customizing audio devices</figcaption>
 </figure>
 
+!!! tip "You cannot modify your microphone settings while a call is active.""
