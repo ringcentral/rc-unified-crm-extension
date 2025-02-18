@@ -90,6 +90,7 @@ async function unAuthorize({ user }) {
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
+    let extraDataTracking = {};
     numberToQueryArray.push(phoneNumber.replace(' ', '+'));
     if (overridingFormat !== '') {
         const formats = overridingFormat.split(',');
@@ -105,7 +106,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
     }
-
     const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
@@ -113,6 +113,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             {
                 headers: { 'Authorization': authHeader }
             });
+        extraDataTracking = {
+            ratelimitRemaining: personInfo.headers['x-ratelimit-remaining'],
+            ratelimitAmount: personInfo.headers['x-ratelimit-limit'],
+            ratelimitReset: personInfo.headers['x-ratelimit-reset']
+        };
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
                 const matterInfo = await axios.get(
@@ -126,6 +131,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     {
                         headers: { 'Authorization': authHeader }
                     });
+                extraDataTracking = {
+                    ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
+                    ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
+                    ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
+                };
                 const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number } }) : null;
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
@@ -155,10 +165,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         additionalInfo: { logTimeEntry: true },
         isNewContact: true
     });
-    return { matchedContactInfo };
+    return {
+        matchedContactInfo,
+        extraDataTracking
+    };
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+    let extraDataTracking = {};
     const personInfo = await axios.post(
         `https://${user.hostname}/api/v4/contacts.json`,
         {
@@ -178,6 +192,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             headers: { 'Authorization': authHeader }
         }
     );
+    extraDataTracking = {
+        ratelimitRemaining: personInfo.headers['x-ratelimit-remaining'],
+        ratelimitAmount: personInfo.headers['x-ratelimit-limit'],
+        ratelimitReset: personInfo.headers['x-ratelimit-reset']
+    };
 
     return {
         contactInfo: {
@@ -188,7 +207,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             message: `Contact created.`,
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     }
 }
 
@@ -267,6 +287,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: addTimerRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: addTimerRes.headers['x-ratelimit-limit'],
+        ratelimitReset: addTimerRes.headers['x-ratelimit-reset']
+    };
     return {
         logId: communicationId,
         returnMessage: {
@@ -280,6 +305,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    let extraDataTracking = {};
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body,id`,
         {
@@ -329,17 +355,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
+    };
     return {
         updatedNote: patchBody.data?.body,
         returnMessage: {
             message: 'Call log updated.',
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+    let extraDataTracking = {};
     const sender =
     {
         id: contactInfo.id,
@@ -410,17 +443,24 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: addLogRes.headers['x-ratelimit-reset']
+    };
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
             message: 'Message logged',
             messageType: 'success',
             ttl: 1000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+    let extraDataTracking = {};
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
@@ -456,9 +496,19 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
+
+    extraDataTracking = {
+        ratelimitRemaining: addTimerRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: addTimerRes.headers['x-ratelimit-limit'],
+        ratelimitReset: addTimerRes.headers['x-ratelimit-reset']
+    };
+    return {
+        extraDataTracking
+    }
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
+    let extraDataTracking = {};
     const formattedLogId = callLogId.split('.')[0];
     const getLogRes = await axios.get(
         `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers`,
@@ -474,12 +524,18 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: contactRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: contactRes.headers['x-ratelimit-limit'],
+        ratelimitReset: contactRes.headers['x-ratelimit-reset']
+    };
     return {
         callLogInfo: {
             subject: getLogRes.data.data.subject,
             note,
             contactName: contactRes.data.data.name
-        }
+        },
+        extraDataTracking
     }
 }
 
