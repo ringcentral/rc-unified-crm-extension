@@ -20,61 +20,74 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 15) {
     const dateNow = new Date();
     if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
-        let tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
-        if (tokenLockCache?.status === 'locked' && tokenLockCache?.expiry < dateNow) {
-            tokenLockCache.status = 'unlocked';
+        // let tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
+        // if (tokenLockCache?.status === 'locked' && tokenLockCache?.expiry < dateNow) {
+        //     tokenLockCache.status = 'unlocked';
+        // }
+        // // Hard lock: status
+        // // Soft lock: 15 seconds expiry
+        // switch (tokenLockCache?.status) {
+        //     case 'locked':
+        //         let processTime = 0;
+        //         while (!!tokenLockCache && tokenLockCache?.status === 'locked' && processTime < tokenLockTimeout) {
+        //             await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
+        //             processTime += 2;
+        //             tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
+        //         }
+        //         // Timeout -> let users try another time
+        //         if (processTime > tokenLockTimeout) {
+        //             throw new Error('Token lock timeout');
+        //         }
+        //         user = await UserModel.findByPk(user.id);
+        //         break;
+        //     case 'unlocked':
+        //     default:
+        //         let newCache;
+        //         if (!!tokenLockCache) {
+        //             newCache = await tokenLockCache.update({
+        //                 status: 'locked',
+        //                 expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
+        //             });
+        //         }
+        //         else {
+        //             newCache = await CacheModel.create({
+        //                 id: `${user.id}-tokenLock`,
+        //                 userId: user.id,
+        //                 cacheKey: 'tokenLock',
+        //                 status: 'locked',
+        //                 expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
+        //             })
+        //         }
+        //         // Unique: Bullhorn
+        //         if (user.platform === 'bullhorn') {
+        //             await bullhornTokenRefresh(user);
+        //         }
+        //         else {
+        //             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+        //             const { accessToken, refreshToken, expires } = await token.refresh();
+        //             user.accessToken = accessToken;
+        //             user.refreshToken = refreshToken;
+        //             user.tokenExpiry = expires;
+        //         }
+        //         await user.save();
+        //         await newCache.update({
+        //             status: 'unlocked'
+        //         });
+        //         break;
+        // }
+
+        // Unique: Bullhorn
+        if (user.platform === 'bullhorn') {
+            user = await bullhornTokenRefresh(user);
         }
-        // Hard lock: status
-        // Soft lock: 15 seconds expiry
-        switch (tokenLockCache?.status) {
-            case 'locked':
-                let processTime = 0;
-                while (!!tokenLockCache && tokenLockCache?.status === 'locked' && processTime < tokenLockTimeout) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
-                    processTime += 2;
-                    tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
-                }
-                // Timeout -> let users try another time
-                if (processTime > tokenLockTimeout) {
-                    throw new Error('Token lock timeout');
-                }
-                user = await UserModel.findByPk(user.id);
-                break;
-            case 'unlocked':
-            default:
-                let newCache;
-                if (!!tokenLockCache) {
-                    newCache = await tokenLockCache.update({
-                        status: 'locked',
-                        expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
-                    });
-                }
-                else {
-                    newCache = await CacheModel.create({
-                        id: `${user.id}-tokenLock`,
-                        userId: user.id,
-                        cacheKey: 'tokenLock',
-                        status: 'locked',
-                        expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
-                    })
-                }
-                // Unique: Bullhorn
-                if (user.platform === 'bullhorn') {
-                    await bullhornTokenRefresh(user);
-                }
-                else {
-                    const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-                    const { accessToken, refreshToken, expires } = await token.refresh();
-                    user.accessToken = accessToken;
-                    user.refreshToken = refreshToken;
-                    user.tokenExpiry = expires;
-                }
-                await user.save();
-                await newCache.update({
-                    status: 'unlocked'
-                });
-                break;
+        else {
+            const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+            const { accessToken, refreshToken, expires } = await token.refresh();
+            user.accessToken = accessToken;
+            user.refreshToken = refreshToken;
+            user.tokenExpiry = expires;
         }
+        await user.save();
     }
     return user;
 }
