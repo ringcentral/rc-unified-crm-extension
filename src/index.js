@@ -28,13 +28,15 @@ catch (e) {
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
 
 async function initDB() {
-    console.log('creating db tables if not exist...');
-    await UserModel.sync();
-    await CallLogModel.sync();
-    await MessageLogModel.sync();
-    await AdminConfigModel.sync();
-    await CacheModel.sync();
-    console.log('db tables created');
+    if (!process.env.DISABLE_SYNC_DB_TABLE) {
+        console.log('creating db tables if not exist...');
+        await UserModel.sync();
+        await CallLogModel.sync();
+        await MessageLogModel.sync();
+        await AdminConfigModel.sync();
+        await CacheModel.sync();
+        console.log('db tables created');
+    }
 }
 
 const app = express();
@@ -908,7 +910,7 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     }
 }
 
-exports.getServer = function getServer(){
+exports.getServer = function getServer() {
     initDB();
     analytics.init();
     return app;
