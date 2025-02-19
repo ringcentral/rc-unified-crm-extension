@@ -3,7 +3,7 @@
  * lambda file
  */
 const serverlessHTTP = require('serverless-http');
-const { server } = require('./index');
+const { getServer } = require('./index');
 
-exports.app = serverlessHTTP(server);
+exports.app = serverlessHTTP(getServer());
 
