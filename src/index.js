@@ -37,8 +37,6 @@ async function initDB() {
     console.log('db tables created');
 }
 
-initDB();
-analytics.init();
 const app = express();
 app.use(bodyParser.json())
 
@@ -909,4 +907,9 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
         author
     }
 }
-exports.server = app;
+
+exports.getServer = function getServer(){
+    initDB();
+    analytics.init();
+    return app;
+}
