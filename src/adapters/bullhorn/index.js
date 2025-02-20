@@ -42,7 +42,7 @@ async function authValidation({ user }) {
                     successful: false,
                     returnMessage: {
                         messageType: 'warning',
-                        message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
+                        message: 'It seems like your Bullhorn session has expired. Please re-connect.',
                         ttl: 3000
                     },
                     status: e.response.status
@@ -53,7 +53,7 @@ async function authValidation({ user }) {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'It seems like your Bullhorn session has expired. Please re-authenticate.',
+                message: 'It seems like your Bullhorn session has expired. Please re-connect.',
                 ttl: 3000
             },
             status: e.response.status
