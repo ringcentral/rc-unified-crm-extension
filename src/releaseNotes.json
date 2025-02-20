@@ -12,6 +12,10 @@
         ],
         "bullhorn": [
             {
+                "type": "New",
+                "description": "- Server side logging now has AI summary and transcript"
+            },
+            {
                 "type": "Fix",
                 "description": "- User authorization validation issue"
             }
