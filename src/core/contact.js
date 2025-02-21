@@ -61,7 +61,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             };
         }
     } catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,

@@ -21,12 +21,7 @@ async function createCallLog({ platform, userId, incomingData }) {
                 }
             }
         }
-        let user = await UserModel.findOne({
-            where: {
-                id: userId,
-                platform
-            }
-        });
+        let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
             return {
                 successful: false,
@@ -86,7 +81,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         }
         return { successful: true, logId, returnMessage, extraDataTracking };
     } catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,
@@ -160,12 +155,7 @@ async function createCallLog({ platform, userId, incomingData }) {
 
 async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     try {
-        let user = await UserModel.findOne({
-            where: {
-                id: userId,
-                platform
-            }
-        });
+        let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
             return { successful: false, message: `Contact not found` };
         }
@@ -232,7 +222,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         return { successful: true, logs, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,
@@ -319,12 +309,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
         });
         if (existingCallLog) {
             const platformModule = require(`../adapters/${platform}`);
-            let user = await UserModel.findOne({
-                where: {
-                    id: userId,
-                    platform
-                }
-            });
+            let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
@@ -359,7 +344,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
         }
         return { successful: false };
     } catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,
@@ -455,12 +440,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const platformModule = require(`../adapters/${platform}`);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
-        let user = await UserModel.findOne({
-            where: {
-                id: userId,
-                platform
-            }
-        });
+        let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
             return {
                 successful: false,

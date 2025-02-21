@@ -209,12 +209,7 @@ app.get('/admin/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -289,12 +284,7 @@ app.get('/user/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -366,12 +356,7 @@ app.post('/user/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -408,12 +393,7 @@ app.get('/hostname', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -551,12 +531,7 @@ app.post('/unAuthorize', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const userToLogout = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const userToLogout = await UserModel.findByPk(unAuthData.id);
             if (!!!userToLogout) {
                 res.status(400).send('Unknown user');
                 return;
