@@ -855,7 +855,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `NetSuite was unable to create an activity entry for the ${objectType} named ${contactName}. If this issues persists, please contact your NetSuite administrator. `
+                                text: `NetSuite was unable to create an activity entry for the ${newContactType} named ${newContactName}. If this issues persists, please contact your NetSuite administrator. `
                             }
                         ]
                     }
