@@ -36,7 +36,6 @@ async function initDB() {
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
-        console.log('db tables created');
     }
 }
 
