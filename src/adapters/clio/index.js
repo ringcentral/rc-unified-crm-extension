@@ -498,9 +498,9 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         });
 
     extraDataTracking = {
-        ratelimitRemaining: addTimerRes.headers['x-ratelimit-remaining'],
-        ratelimitAmount: addTimerRes.headers['x-ratelimit-limit'],
-        ratelimitReset: addTimerRes.headers['x-ratelimit-reset']
+        ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
     return {
         extraDataTracking
