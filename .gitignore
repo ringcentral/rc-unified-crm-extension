@@ -24,3 +24,4 @@ client/src/manifest.json
 /build/*
 /src/test.js
 /.vscode/settings.json
+tests/highTrafficRun.js

@@ -13,6 +13,7 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const adminCore = require('./core/admin');
 const userCore = require('./core/user');
+const mock = require('./adapters/mock');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
@@ -869,6 +870,59 @@ app.post('/messageLog', async function (req, res) {
         }
     });
 });
+
+if (process.env.IS_PROD === 'false') {
+    app.post('/registerMockUser', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const mockUser = await mock.createUser({ userName: req.body.userName });
+            res.status(200).send(!!mockUser ? 'Mock user registered' : 'Mock user already existed');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.delete('/deleteMockUser', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const foundAndDeleted = await mock.deleteUser({ userName: req.query.userName });
+            res.status(200).send(foundAndDeleted ? 'Mock user deleted' : 'Mock user not found');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.get('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds });
+            res.status(200).send(callLogs);
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.post('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            await mock.createCallLog({ sessionId: req.body.sessionId });
+            res.status(200).send('Mock call log created');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.delete('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            await mock.cleanUpMockLogs();
+            res.status(200).send('Mock call logs cleaned up');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+}
 
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
