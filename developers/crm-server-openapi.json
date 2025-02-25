@@ -1,0 +1,1235 @@
+{
+    "openapi": "3.1.0",
+    "x-stoplight": {
+        "id": "ax9bati9jfiia"
+    },
+    "info": {
+        "title": "CRM Server",
+        "version": "1.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000"
+        }
+    ],
+    "paths": {
+        "/is-alive": {
+            "get": {
+                "summary": "Check alive",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "operationId": "get-is-alive",
+                "x-stoplight": {
+                    "id": "wsrp3bw48gyo5"
+                },
+                "description": "Check if the service is alive"
+            }
+        },
+        "/apiKeyLogin": {
+            "post": {
+                "summary": "API Key login",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "jwtToken": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "10qqb5ehrljhk"
+                                            }
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "4vq6f6mqq6zsa"
+                                            },
+                                            "description": "user name"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "post-apiKeyLogin",
+                "x-stoplight": {
+                    "id": "crildy7xiek3f"
+                },
+                "description": "Login with api key",
+                "parameters": [],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "platform",
+                                    "apiKey",
+                                    "rcUserNumber"
+                                ],
+                                "properties": {
+                                    "platform": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "n05gfacsxrdip"
+                                        }
+                                    },
+                                    "apiKey": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "i5wityc2cmuel"
+                                        }
+                                    },
+                                    "hostname": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "h1t2viitn4xj5"
+                                        }
+                                    },
+                                    "addiotionalInfo": {
+                                        "type": "object",
+                                        "x-stoplight": {
+                                            "id": "j0220db63h14m"
+                                        }
+                                    },
+                                    "rcUserNumber": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "oebn0qtnvkopd"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/oauth-callback": {
+            "get": {
+                "summary": "OAuth callback",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "jwtToken": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "5vxbz26z6l9oy"
+                                            }
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "tfe69r2iqiwvx"
+                                            },
+                                            "description": "user name"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "get-oauth-callback",
+                "x-stoplight": {
+                    "id": "ehkb42r05v7e2"
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "callbackUri",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "state",
+                        "description": "platform={platformName}",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "hostname",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "tokenUrl",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "apiUrl"
+                    },
+                    {
+                        "name": "apiUrl"
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "rcUserNumber"
+                    }
+                ]
+            }
+        },
+        "/unAuthorize": {
+            "post": {
+                "summary": "Unauthorize",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "post-unAuthorize",
+                "x-stoplight": {
+                    "id": "nacapxxr3q4il"
+                },
+                "description": "Disconnect user from CRM platform and this server",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    }
+                ]
+            }
+        },
+        "/contact": {
+            "get": {
+                "summary": "Get contact by phone number",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "2f52v91xunc4i"
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "exzrm4pbywter"
+                                            }
+                                        },
+                                        "contact": {
+                                            "type": "array",
+                                            "x-stoplight": {
+                                                "id": "r9cjdaan7yyh7"
+                                            },
+                                            "items": {
+                                                "$ref": "#/components/schemas/Contact",
+                                                "x-stoplight": {
+                                                    "id": "gy35197gthefq"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "get-contact",
+                "x-stoplight": {
+                    "id": "ys0wfqnv9umky"
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    },
+                    {
+                        "$ref": "#/components/parameters/phoneNumber"
+                    },
+                    {
+                        "$ref": "#/components/parameters/overridingFormat"
+                    }
+                ],
+                "description": "Get matched contact by phone number"
+            },
+            "post": {
+                "summary": "Create new contact",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "6fdsa8bl8bhbu"
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "9u77teo9zp0cb"
+                                            }
+                                        },
+                                        "contact": {
+                                            "type": "object",
+                                            "x-stoplight": {
+                                                "id": "qxv3apix2otos"
+                                            },
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "x-stoplight": {
+                                                        "id": "6cy9w8szm97xm"
+                                                    }
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "x-stoplight": {
+                                                        "id": "ijrdza44ug58r"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "post-contact",
+                "x-stoplight": {
+                    "id": "r0q1du1ktryl3"
+                },
+                "description": "Create a new contact",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    },
+                    {
+                        "$ref": "#/components/parameters/phoneNumber"
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "newContactName",
+                        "required": true
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "newContactType"
+                    }
+                ]
+            }
+        },
+        "/callLog": {
+            "get": {
+                "summary": "Get call log",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "jct667j77gql5"
+                                            }
+                                        },
+                                        "logs": {
+                                            "type": "array",
+                                            "x-stoplight": {
+                                                "id": "dlzvgv9rz8xgf"
+                                            },
+                                            "items": {
+                                                "$ref": "#/components/schemas/CallLog",
+                                                "x-stoplight": {
+                                                    "id": "vohdhwnc0p8bx"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "get-callLog",
+                "x-stoplight": {
+                    "id": "woyocv23ekr6i"
+                },
+                "description": "Get a call log",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    },
+                    {
+                        "schema": {
+                            "type": "string"
+                        },
+                        "in": "query",
+                        "name": "sessionIds",
+                        "description": "rc call session ids, separated by ','"
+                    }
+                ]
+            },
+            "post": {
+                "summary": "Create call log",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "739cjrgtqqlr8"
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "5m354yj9nehu9"
+                                            }
+                                        },
+                                        "logId": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "zguuos0ut9hsx"
+                                            },
+                                            "description": "crm log id"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "post-callLog",
+                "x-stoplight": {
+                    "id": "a8qukn395u0u2"
+                },
+                "description": "Create a call log",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "logInfo": {
+                                        "$ref": "#/components/schemas/LogInfo",
+                                        "x-stoplight": {
+                                            "id": "23wbzs8vvmh58"
+                                        }
+                                    },
+                                    "additionalSubmission": {
+                                        "type": "object",
+                                        "x-stoplight": {
+                                            "id": "ahhkqiplywoz6"
+                                        }
+                                    },
+                                    "note": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "oe8sm13mqvh1f"
+                                        }
+                                    },
+                                    "contactId": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "2xegvtrsxurpo"
+                                        }
+                                    },
+                                    "contactType": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "e01zhn6e7gk2k"
+                                        }
+                                    },
+                                    "contactName": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "6reewjsinuupk"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update call log",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "l6aholr3se9r6"
+                                            }
+                                        },
+                                        "logId": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "87oorc4x9q7x4"
+                                            },
+                                            "description": "CRM log id"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "patch-callLog",
+                "x-stoplight": {
+                    "id": "9nx2iv9vlwl4p"
+                },
+                "description": "Update an existing call log",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "sessionId": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "to6ajlgvdpn3w"
+                                        }
+                                    },
+                                    "recordingLink": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "oi0k450vd58e4"
+                                        }
+                                    },
+                                    "subject": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "4n2v45ot95zqh"
+                                        }
+                                    },
+                                    "note": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "7vmsmt3oc2bbk"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/messageLog": {
+            "post": {
+                "summary": "Create message log",
+                "tags": [],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "successful": {
+                                            "type": "boolean",
+                                            "x-stoplight": {
+                                                "id": "9k5zkbk6t9n36"
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "x-stoplight": {
+                                                "id": "2zvj6yhjtfkqu"
+                                            }
+                                        },
+                                        "logs": {
+                                            "type": "array",
+                                            "x-stoplight": {
+                                                "id": "hetojdzchqx5p"
+                                            },
+                                            "items": {
+                                                "x-stoplight": {
+                                                    "id": "cwoiq3b9ig1hb"
+                                                },
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    }
+                },
+                "operationId": "post-messageLog",
+                "x-stoplight": {
+                    "id": "x01j7m5l5zyo9"
+                },
+                "description": "Create message log for conversation grouped by day",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/jwtToken"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "logInfo": {
+                                        "$ref": "#/components/schemas/MessageLogInfo",
+                                        "x-stoplight": {
+                                            "id": "h7cd988gldzy3"
+                                        }
+                                    },
+                                    "additionalSubmission": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "kqr92h2m6db7s"
+                                        }
+                                    },
+                                    "contactId": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "yjw1jt7u81c7o"
+                                        }
+                                    },
+                                    "contactName": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "gecaa62dam73k"
+                                        }
+                                    },
+                                    "contactType": {
+                                        "type": "string",
+                                        "x-stoplight": {
+                                            "id": "uk3pmbi4mqmr4"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Contact": {
+                "title": "Contact",
+                "x-stoplight": {
+                    "id": "3ymdfye4pri44"
+                },
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "x-stoplight": {
+                            "id": "9560cbe1rf235"
+                        }
+                    },
+                    "name": {
+                        "type": "string",
+                        "x-stoplight": {
+                            "id": "0nv6pkgvnq4e3"
+                        }
+                    },
+                    "phone": {
+                        "type": "string",
+                        "x-stoplight": {
+                            "id": "p71pyljk4izb3"
+                        }
+                    },
+                    "additionalInfo": {
+                        "type": "object",
+                        "x-stoplight": {
+                            "id": "szzyct04i03rx"
+                        }
+                    }
+                }
+            },
+            "CallLog": {
+                "title": "CallLog",
+                "x-stoplight": {
+                    "id": "al5qijw6fx9kp"
+                },
+                "type": "object",
+                "properties": {
+                    "matched": {
+                        "type": "boolean",
+                        "x-stoplight": {
+                            "id": "aueuh8t7f01cc"
+                        }
+                    },
+                    "sessionId": {
+                        "type": "string",
+                        "x-stoplight": {
+                            "id": "djjfc32adp6vc"
+                        }
+                    },
+                    "logId": {
+                        "type": "string",
+                        "x-stoplight": {
+                            "id": "kvia31dbfp0h5"
+                        },
+                        "description": "crm log id"
+                    },
+                    "logData": {
+                        "type": "object",
+                        "x-stoplight": {
+                            "id": "l9tqlw40il91r"
+                        }
+                    }
+                }
+            },
+            "CallLogInfo": {
+                "type": "object",
+                "x-stoplight": {
+                    "id": "16d06b2d7dc24"
+                },
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "sessionId": {
+                        "type": "string"
+                    },
+                    "startTime": {
+                        "type": "integer"
+                    },
+                    "duration": {
+                        "type": "integer"
+                    },
+                    "durationMs": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "internalType": {
+                        "type": "string"
+                    },
+                    "direction": {
+                        "type": "string"
+                    },
+                    "action": {
+                        "type": "string"
+                    },
+                    "result": {
+                        "type": "string"
+                    },
+                    "to": {
+                        "type": "object",
+                        "properties": {
+                            "phoneNumber": {
+                                "type": "string"
+                            },
+                            "location": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "from": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "phoneNumber": {
+                                "type": "string"
+                            },
+                            "extensionId": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "extension": {
+                        "type": "object",
+                        "properties": {
+                            "uri": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "delegationType": {
+                        "type": "string"
+                    },
+                    "telephonySessionId": {
+                        "type": "string"
+                    },
+                    "partyId": {
+                        "type": "string"
+                    },
+                    "fromName": {
+                        "type": "string"
+                    },
+                    "toName": {
+                        "type": "string"
+                    },
+                    "fromMatches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    },
+                    "toMatches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "type": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "phoneNumbers": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "phoneNumber": {
+                                                "type": "string"
+                                            },
+                                            "phoneType": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "entityType": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "activityMatches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
+                },
+                "x-examples": {
+                    "Example 1": {
+                        "id": "LByZ2jyZk-cMzUA",
+                        "sessionId": "533278004020",
+                        "startTime": 1713752379489,
+                        "duration": 13,
+                        "durationMs": 12721,
+                        "type": "Voice",
+                        "internalType": "LongDistance",
+                        "direction": "Outbound",
+                        "action": "VoIP Call",
+                        "result": "Call connected",
+                        "to": {
+                            "phoneNumber": "+16508446672",
+                            "location": "San Mateo, CA"
+                        },
+                        "from": {
+                            "name": "Da Kong",
+                            "phoneNumber": "+18885287464",
+                            "extensionId": "4024345020"
+                        },
+                        "extension": {
+                            "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020",
+                            "id": 4024345020
+                        },
+                        "delegationType": "Unknown",
+                        "telephonySessionId": "s-a0d7aba0b6f6fz18f039a0f91z1b6725b0000",
+                        "partyId": "p-a0d7aba0b6f6fz18f039a0f91z1b6725b0000-2",
+                        "fromName": "Da Kong",
+                        "toName": "+16508446672",
+                        "fromMatches": [],
+                        "toMatches": [
+                            {
+                                "id": 2013707553,
+                                "type": "clio",
+                                "name": "Test 123",
+                                "phoneNumbers": [
+                                    {
+                                        "phoneNumber": "+16508446672",
+                                        "phoneType": "direct"
+                                    }
+                                ],
+                                "entityType": "clio"
+                            }
+                        ],
+                        "activityMatches": []
+                    }
+                }
+            },
+            "MessageLogInfo": {
+                "type": "object",
+                "properties": {
+                    "conversationLogId": {
+                        "type": "string"
+                    },
+                    "conversationId": {
+                        "type": "string"
+                    },
+                    "creationTime": {
+                        "type": "integer"
+                    },
+                    "date": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer"
+                                },
+                                "to": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "phoneNumber": {
+                                                "type": "string"
+                                            },
+                                            "location": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "from": {
+                                    "type": "object",
+                                    "properties": {
+                                        "phoneNumber": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "location": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "type": {
+                                    "type": "string"
+                                },
+                                "creationTime": {
+                                    "type": "integer"
+                                },
+                                "readStatus": {
+                                    "type": "string"
+                                },
+                                "priority": {
+                                    "type": "string"
+                                },
+                                "attachments": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer"
+                                            },
+                                            "uri": {
+                                                "type": "string"
+                                            },
+                                            "type": {
+                                                "type": "string"
+                                            },
+                                            "contentType": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                },
+                                "direction": {
+                                    "type": "string"
+                                },
+                                "availability": {
+                                    "type": "string"
+                                },
+                                "subject": {
+                                    "type": "string"
+                                },
+                                "messageStatus": {
+                                    "type": "string"
+                                },
+                                "smsSendingAttemptsCount": {
+                                    "type": "integer"
+                                },
+                                "conversationId": {
+                                    "type": "string"
+                                },
+                                "lastModifiedTime": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "conversationLogMatches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    },
+                    "self": {
+                        "type": "object",
+                        "properties": {
+                            "phoneNumber": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "location": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "correspondents": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "phoneNumber": {
+                                    "type": "string"
+                                },
+                                "location": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-examples": {
+                    "Example 1": {
+                        "conversationLogId": "2052636401630275685/4/17/2024",
+                        "conversationId": "2052636401630275685",
+                        "creationTime": 1713322040000,
+                        "date": "4/17/2024",
+                        "type": "SMS",
+                        "messages": [
+                            {
+                                "id": 2354773896020,
+                                "to": [
+                                    {
+                                        "phoneNumber": "+13133982125",
+                                        "location": "Detroit, MI"
+                                    }
+                                ],
+                                "from": {
+                                    "phoneNumber": "+17206789819",
+                                    "name": "Da Kong",
+                                    "location": "Denver, CO"
+                                },
+                                "type": "SMS",
+                                "creationTime": 1713322040000,
+                                "readStatus": "Read",
+                                "priority": "Normal",
+                                "attachments": [
+                                    {
+                                        "id": 2354773896020,
+                                        "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020/message-store/2354773896020/content/2354773896020",
+                                        "type": "Text",
+                                        "contentType": "text/plain"
+                                    }
+                                ],
+                                "direction": "Outbound",
+                                "availability": "Alive",
+                                "subject": "test 7",
+                                "messageStatus": "DeliveryFailed",
+                                "smsSendingAttemptsCount": 1,
+                                "conversationId": "2052636401630275685",
+                                "lastModifiedTime": 1713322042372
+                            },
+                            {
+                                "id": 2354773534020,
+                                "to": [
+                                    {
+                                        "phoneNumber": "+13133982125",
+                                        "location": "Detroit, MI"
+                                    }
+                                ],
+                                "from": {
+                                    "phoneNumber": "+17206789819",
+                                    "name": "Da Kong",
+                                    "location": "Denver, CO"
+                                },
+                                "type": "SMS",
+                                "creationTime": 1713319980000,
+                                "readStatus": "Read",
+                                "priority": "Normal",
+                                "attachments": [
+                                    {
+                                        "id": 2354773534020,
+                                        "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020/message-store/2354773534020/content/2354773534020",
+                                        "type": "Text",
+                                        "contentType": "text/plain"
+                                    }
+                                ],
+                                "direction": "Outbound",
+                                "availability": "Alive",
+                                "subject": "test 6",
+                                "messageStatus": "DeliveryFailed",
+                                "smsSendingAttemptsCount": 1,
+                                "conversationId": "2052636401630275685",
+                                "lastModifiedTime": 1713319982724
+                            }
+                        ],
+                        "conversationLogMatches": [],
+                        "self": {
+                            "phoneNumber": "+17206789819",
+                            "name": "Da Kong",
+                            "location": "Denver, CO"
+                        },
+                        "correspondents": [
+                            {
+                                "phoneNumber": "+13133982125",
+                                "location": "Detroit, MI"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        "parameters": {
+            "jwtToken": {
+                "name": "jwtToken",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                },
+                "description": "auth token between client and server"
+            },
+            "phoneNumber": {
+                "name": "phoneNumber",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                },
+                "description": "contact phone number, in E.164 format"
+            },
+            "overridingFormat": {
+                "name": "overridingFormat",
+                "in": "query",
+                "required": false,
+                "schema": {
+                    "type": "string"
+                },
+                "description": "Formatter to modify number format (eg. (***) ***-****. for +11234567890 -> (123) 456-7890) "
+            }
+        }
+    }
+}
