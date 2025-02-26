@@ -295,7 +295,7 @@ app.get('/user/settings', async function (req, res) {
             }
 
             // For non-readonly admin settings, user use its own setting
-            let userSettings = await user.userSettings;
+            let userSettings = await user?.userSettings;
             let result = {};
             if (!!!userSettingsByAdmin?.userSettings) {
                 result = userSettings;
@@ -355,10 +355,18 @@ app.post('/user/settings', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
+            platformName = unAuthData?.platform;
+            if(!platformName)
+            {
+                res.status(400).send('Unknown platform');
+            }
             const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
+            }
+            if(!!!user?.userSettings)
+            {
+                res.status(500).send('Cannot found user settings');
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
             res.status(200).send('User settings updated');

@@ -146,7 +146,7 @@ async function createContact({ user, phoneNumber, newContactName }) {
 async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcript }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
-    let description = '<b>Agent notes</b>';
+    let description = '';
     if (user.userSettings?.addCallLogNote?.value ?? true) { description = upsertCallAgentNote({ body: description, note }); }
     description += '<b>Call details</b><ul>';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
@@ -264,11 +264,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let description = '';
     switch (messageType) {
         case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
             description =
                 `<br><b>${subject}</b><br>` +
                 '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+                `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}<br>` +
                 'Participants<br>' +
                 `<ul><li><b>${userName}</b><br></li>` +
                 `<li><b>${contactInfo.name}</b></li></ul><br>` +
@@ -276,7 +276,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'BEGIN<br>' +
                 '------------<br>' +
                 '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
                 `<b>${message.subject}</b></li>` +
                 '</ul>' +
                 '------------<br>' +
@@ -284,11 +284,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral App Connect';
             break;
         case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
             description = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
             break;
         case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
             description = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
             break;
     }
@@ -370,7 +370,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
         });
     const logBody = getLogRes.data.activity.description;
-    const note = logBody.match(/<br>(.+?)<br><br>/)[1];
+    const note = logBody.match(/<br>(.+?)<br><br>/)?.length > 1 ? logBody.match(/<br>(.+?)<br><br>/)[1] : '';
     return {
         callLogInfo: {
             subject: getLogRes.data.activity.subject,
@@ -398,7 +398,7 @@ function upsertCallAgentNote({ body, note }) {
         body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
     }
     else {
-        body += `<br>${note}<br><br>`;
+        body += `<b>Agent notes</b><br>${note}<br><br>`;
     }
     return body;
 }
