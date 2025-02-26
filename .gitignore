@@ -26,3 +26,4 @@ client/src/manifest.json
 /.vscode/settings.json
 tests/highTrafficRun.js
 tests/burstTrafficRun.js
+.dynamodb/shared-local-instance.db

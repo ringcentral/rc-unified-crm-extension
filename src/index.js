@@ -18,12 +18,18 @@ const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
+const dynamoose = require('dynamoose');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
 }
 catch (e) {
     packageJson = require('../package.json');
+}
+
+// For using dynamodb in local env
+if (process.env.DYNAMODB_LOCALHOST) {
+    dynamoose.aws.ddb.local(process.env.DYNAMODB_LOCALHOST);
 }
 
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
@@ -356,16 +362,14 @@ app.post('/user/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData?.platform;
-            if(!platformName)
-            {
+            if (!platformName) {
                 res.status(400).send('Unknown platform');
             }
             const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
-            if(!!!user?.userSettings)
-            {
+            if (!!!user?.userSettings) {
                 res.status(500).send('Cannot found user settings');
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
