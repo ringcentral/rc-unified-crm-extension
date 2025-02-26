@@ -72,7 +72,10 @@ async function getUserInfo({ authHeader, additionalInfo }) {
 }
 
 async function unAuthorize({ user }) {
-    await user.destroy();
+    // remove user credentials
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
     return {
         returnMessage: {
             messageType: 'success',
