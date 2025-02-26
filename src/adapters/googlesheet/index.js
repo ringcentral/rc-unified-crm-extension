@@ -49,6 +49,7 @@ async function unAuthorize({ user }) {
         );
         await user.destroy();
         return {
+            successful: true,
             returnMessage: {
                 messageType: 'success',
                 message: 'Logged out of GoogleSheet',
@@ -102,92 +103,91 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
 
-    console.log({ userSetting: user?.userSettings });
-    const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
-    //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
-    let sheetName = "";
-    console.log({ sheetUrl });
-    if (!!!sheetUrl) {
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'warning',
-                message: 'No sheet selected',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
+    console.log({ message: "Hit Create CallLog.." });
+    try {
+        const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
+        //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
+        let sheetName = "";
+        console.log({ sheetUrl });
+        if (!!!sheetUrl) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'No sheet selected',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
             }
         }
-    }
-    const spreadsheetId = extractSheetId(sheetUrl);
-    const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
-    const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
-        headers: {
-            Authorization: authHeader,
-        },
-    });
-    const sheets = sheetResponse.data?.sheets;
-    console.log({ sheets });
-    for (const sheet of sheets) {
-        if (sheet.properties?.sheetId === parseInt(gid)) {
-            sheetName = sheet.properties.title;
-            break;
-        }
-    }
-    console.log({ message: "SheetName is", sheetName });
-    if (sheetName === "") {
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'danger',
-                message: "Invalid SheetName",
-                ttl: 30000
+        const spreadsheetId = extractSheetId(sheetUrl);
+        const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+        const sheets = sheetResponse.data?.sheets;
+        console.log({ sheets });
+        for (const sheet of sheets) {
+            if (sheet.properties?.sheetId === parseInt(gid)) {
+                sheetName = sheet.properties.title;
+                break;
             }
         }
-    }
-    // const sheetName = 'Sheet1';
-    const range = `${sheetName}!A1:append`;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+        console.log({ message: "SheetName is", sheetName });
+        if (sheetName === "") {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid SheetName",
+                    ttl: 30000
+                }
+            }
+        }
+        // const sheetName = 'Sheet1';
+        const range = `${sheetName}!A1:append`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
 
-    const headers = {
-        'Authorization': `Bearer ${user.accessToken}`,
-        'Content-Type': 'application/json',
-    };
-    const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    let callStartTime = moment(callLog.startTime).toISOString();
-    const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
-    const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
-        headers: {
+        const headers = {
             'Authorization': `Bearer ${user.accessToken}`,
             'Content-Type': 'application/json',
-        }
-    });
-    console.log({ Data: spreadsheetData.data, values: spreadsheetData.data.values });
-    const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
-    console.log({ spreadsheetData, nextLogRow });
-    const data = {
-        values: [
-            [spreadsheetId + "space" + nextLogRow, title, contactInfo.phoneNumber, callStartTime, callEndTime, note]
-        ],
-    };
-
-
-    try {
+        };
+        const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+        let callStartTime = moment(callLog.startTime).toISOString();
+        const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
+        const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
+            headers: {
+                'Authorization': `Bearer ${user.accessToken}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        console.log({ Data: spreadsheetData.data, values: spreadsheetData.data.values });
+        const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
+        console.log({ spreadsheetData, nextLogRow });
+        const data = {
+            values: [
+                [spreadsheetId + "space" + nextLogRow, title, contactInfo.phoneNumber, callStartTime, callEndTime, note]
+            ],
+        };
         const response = await axios.post(url, data, { headers });
         console.log('Response:', response.data);
         const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: spreadsheetId + "space" + nextLogRow,
+            successful: true,
             returnMessage: {
                 message: 'Call logged',
                 messageType: 'success',
@@ -195,27 +195,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
-        console.error('Error:', error.response?.data || error.message);
-        return {
-            returnMessage: {
-                messageType: 'danger',
-                message: "Error while logging call",
-                ttl: 60000
-            }
-        }
-    }
-}
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
-    //console.log({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript });
-    const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
-    console.log({ sheetUrl });
-    let sheetName = "";
-    if (!!!sheetUrl) {
+        console.log({ error });
         return {
             successful: false,
             returnMessage: {
-                messageType: 'warning',
-                message: 'No sheet selected',
+                messageType: 'danger',
+                message: 'Error logging call',
                 details: [
                     {
                         title: 'Details',
@@ -223,107 +208,159 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                text: `An error occurred while logging the call, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Options.`
                             }
                         ]
                     }
                 ],
-                ttl: 5000
+                ttl: 60000
             }
         }
     }
-    // const splitValues = callLogId.split("space");
-    const spreadsheetId = extractSheetId(sheetUrl);
-    const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
-    const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
-        headers: {
-            Authorization: authHeader,
-        },
-    });
-    const sheets = sheetResponse.data?.sheets;
-    console.log({ sheets });
-    for (const sheet of sheets) {
-        if (sheet.properties?.sheetId === parseInt(gid)) {
-            sheetName = sheet.properties.title;
-            break;
-        }
-    }
-    console.log({ message: "SheetName is", sheetName });
-    if (sheetName === "") {
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'danger',
-                message: "Invalid SheetName",
-                ttl: 30000
-            }
-        }
-    }
-
-    const existingLogId = existingCallLog.thirdPartyLogId;
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`;
-
-    const response = await axios.get(url, {
-        headers: {
-            Authorization: authHeader,
-        },
-    });
-
-    const rows = response.data.values;
-    console.log({ rows });
-    // // Find the record where Name matches searchKey
-    // const header = rows[0];
-    // const nameIndex = header.indexOf("ID");
-    // const record = rows.find(row => row[nameIndex] === callLogId);
-    let rowIndex = -1;
-    for (let i = 0; i < rows.length; i++) {
-        if (rows[i][0] === existingLogId) { // Assuming column A is index 0
-            rowIndex = i + 1; // Convert to 1-based index (Sheets starts from 1)
-            break;
-        }
-    }
-    if (rowIndex === -1) {
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'danger',
-                message: 'Call log not updated',
-                ttl: 3000
-            }
-        }
-    } else {
-        const response = await axios.post(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
-            {
-                valueInputOption: "RAW",
-                data: [
-                    {
-                        range: `${sheetName}!B${rowIndex}`,
-                        values: [[subject]]
-                    },
-                    {
-                        range: `${sheetName}!F${rowIndex}`,
-                        values: [[note]]
-                    }
-                ]
-            },
-            {
-                headers: {
-                    "Authorization": authHeader,
-                    "Content-Type": "application/json"
+}
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+    //console.log({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript });
+    console.log({ message: "Update CallLog.." });
+    const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
+    console.log({ sheetUrl });
+    let sheetName = "";
+    try {
+        if (!!!sheetUrl) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'No sheet selected',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
                 }
             }
-        );
-        return {
-            updatedNote: note,
-            returnMessage: {
-                message: 'Call log updated.',
-                messageType: 'success',
-                ttl: 2000
+        }
+        // const splitValues = callLogId.split("space");
+        const spreadsheetId = extractSheetId(sheetUrl);
+        const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+        const sheets = sheetResponse.data?.sheets;
+        console.log({ sheets });
+        for (const sheet of sheets) {
+            if (sheet.properties?.sheetId === parseInt(gid)) {
+                sheetName = sheet.properties.title;
+                break;
             }
-        };
-    }
+        }
+        console.log({ message: "SheetName is", sheetName });
+        if (sheetName === "") {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid SheetName",
+                    ttl: 30000
+                }
+            }
+        }
 
+        const existingLogId = existingCallLog.thirdPartyLogId;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`;
+
+        const response = await axios.get(url, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+
+        const rows = response.data.values;
+        console.log({ rows });
+        // // Find the record where Name matches searchKey
+        // const header = rows[0];
+        // const nameIndex = header.indexOf("ID");
+        // const record = rows.find(row => row[nameIndex] === callLogId);
+        let rowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i][0] === existingLogId) { // Assuming column A is index 0
+                rowIndex = i + 1; // Convert to 1-based index (Sheets starts from 1)
+                break;
+            }
+        }
+        if (rowIndex === -1) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: 'Call log not updated',
+                    ttl: 3000
+                }
+            }
+        } else {
+            const response = await axios.post(
+                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+                {
+                    valueInputOption: "RAW",
+                    data: [
+                        {
+                            range: `${sheetName}!B${rowIndex}`,
+                            values: [[subject]]
+                        },
+                        {
+                            range: `${sheetName}!F${rowIndex}`,
+                            values: [[note]]
+                        }
+                    ]
+                },
+                {
+                    headers: {
+                        "Authorization": authHeader,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+            return {
+                updatedNote: note,
+                successful: true,
+                returnMessage: {
+                    message: 'Call log updated.',
+                    messageType: 'success',
+                    ttl: 2000
+                }
+            };
+        }
+    } catch (error) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: 'Error Updating call',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `An error occurred while updating the call log, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Options.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 60000
+            }
+        }
+    }
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
@@ -351,7 +388,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
                         ]
                     }
                 ],
-                ttl: 5000
+                ttl: 60000
             }
         }
     }

@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://personality-markers-above-battle.trycloudflare.com",
+    "serverUrl": "https://twist-signs-pre-climb.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1539,7 +1539,7 @@
             },
             "platform": "googlesheet",
             "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
-            "canOpenLogPage": true,
+            "canOpenLogPage": false,
             "contactTypes": [],
             "embeddedOnCrmPage": {
                 "welcomePage": {
