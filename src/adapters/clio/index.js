@@ -338,8 +338,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         if (!!getTimerRes.data.data[0]) {
             const patchTimerBody = {
                 data: {
-                    quantity: duration
+                    quantity: duration,
+                    note: logBody,
                 }
+            }
+            if (!!startTime) {
+                patchTimerBody.data.date = moment(startTime).toISOString();
             }
             const patchTimerRes = await axios.patch(
                 `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
