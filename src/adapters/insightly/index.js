@@ -587,7 +587,7 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('- Duration: (.+?)\n');
+    const durationRegex = RegExp('- Duration: (.+?)?\n');
     if (durationRegex.test(body)) {
         body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
     } else {
