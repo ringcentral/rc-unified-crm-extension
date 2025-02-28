@@ -338,8 +338,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         if (!!getTimerRes.data.data[0]) {
             const patchTimerBody = {
                 data: {
-                    quantity: duration
+                    quantity: duration,
+                    note: logBody,
                 }
+            }
+            if (!!startTime) {
+                patchTimerBody.data.date = moment(startTime).toISOString();
             }
             const patchTimerRes = await axios.patch(
                 `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
@@ -573,7 +577,7 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('- Duration: (.+?)\n');
+    const durationRegex = RegExp('- Duration: (.+?)?\n');
     if (durationRegex.test(body)) {
         body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
     } else {
