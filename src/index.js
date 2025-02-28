@@ -593,7 +593,6 @@ app.get('/contact', async function (req, res) {
     let platformName = null;
     let success = false;
     let resultCount = 0;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -619,7 +618,7 @@ app.get('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -637,7 +636,6 @@ app.get('/contact', async function (req, res) {
         author,
         extras: {
             resultCount,
-            statusCode,
             ...extraData
         },
     });
@@ -646,7 +644,6 @@ app.post('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -668,7 +665,7 @@ app.post('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -685,7 +682,6 @@ app.post('/contact', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -694,7 +690,6 @@ app.get('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -716,6 +711,7 @@ app.get('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -732,7 +728,6 @@ app.get('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -741,7 +736,6 @@ app.post('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -763,7 +757,7 @@ app.post('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -780,7 +774,6 @@ app.post('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -789,7 +782,6 @@ app.patch('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -811,7 +803,7 @@ app.patch('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -828,7 +820,6 @@ app.patch('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
