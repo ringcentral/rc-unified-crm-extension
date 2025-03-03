@@ -690,12 +690,6 @@
                                 "uiSchema": {
                                     "ui:widget": "password"
                                 }
-                            },
-                            {
-                                "const": "timezone",
-                                "title": "timezone (number ONLY, eg. +2)",
-                                "type": "string",
-                                "required": true
                             }
                         ]
                     }
