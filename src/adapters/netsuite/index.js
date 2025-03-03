@@ -25,23 +25,11 @@ async function getOauthInfo({ hostname }) {
 async function getUserInfo({ authHeader, additionalInfo, query }) {
     try {
         let getCurrentLoggedInUserResponse;
-        try {
-            const getCurrentLoggedInUserUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getcurrentuser&deploy=customdeploy_getcurrentuser`;
-            getCurrentLoggedInUserResponse = await axios.get(getCurrentLoggedInUserUrl, {
-                headers: { 'Authorization': authHeader }
-            });
-        } catch (error) {
-            console.log({ message: "Error in getting employee information using RestLet" });
-            let errorMessage = netSuiteRestLetError(error, "Error in Finding Current User");
-            return {
-                successful: false,
-                returnMessage: {
-                    messageType: 'danger',
-                    message: errorMessage,
-                    ttl: 60000
-                }
-            }
-        }
+
+        const getCurrentLoggedInUserUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getcurrentuser&deploy=customdeploy_getcurrentuser`;
+        getCurrentLoggedInUserResponse = await axios.get(getCurrentLoggedInUserUrl, {
+            headers: { 'Authorization': authHeader }
+        });
         let oneWorldEnabled;
         try {
             const checkOneWorldLicenseUrl = `https://${query.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getoneworldlicense_scriptid&deploy=customdeploy_getoneworldlicense_deployid`;
@@ -128,13 +116,25 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             }
         };
     } catch (error) {
-        const errorDetails = netSuiteErrorDetails(error, "Error in getting NetSuite User Info.");
+        const errorDetails = netSuiteErrorDetails(error, "Could not load user information");
         console.log({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, errorDetails, responseHeader: error?.response?.headers });
         return {
             successful: false,
             returnMessage: {
                 messageType: 'danger',
                 message: errorDetails,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `NetSuite was unable to fetch information for the currently logged in user. Please check your permissions in NetSuite and make sure you have permission to access and read user information.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -243,13 +243,25 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
-        let errorMessage = netSuiteErrorDetails(error, "Error in Finding Contact.");
+        let errorMessage = netSuiteErrorDetails(error, "Contact not found");
         errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
             successful: false,
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `A contact with the phone number ${phoneNumber} could not be found in your NetSuite account.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -269,6 +281,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             });
             const timeZone = timeZoneResponse?.data?.userTimezone;
             callStartTime = moment(moment(callLog.startTime).toISOString()).tz(timeZone);
+
             startTimeSLot = callStartTime.format('HH:mm');
 
         } catch (error) {
@@ -280,7 +293,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
-        let comments = '';
+        let comments = '';;
+        console.log({ callStartTime });
         if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
         if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
@@ -349,7 +363,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             extraDataTracking
         };
     } catch (error) {
-        let errorMessage = netSuiteErrorDetails(error, "Error in Creating Call Log");
+        let errorMessage = netSuiteErrorDetails(error, "Error logging call");
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
         }
@@ -357,6 +371,18 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `There was an error in creating an activity entry for this phone call in NetSuite. If issues persist, please contact your NetSuite administrator.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -391,11 +417,23 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in getting NetSuite Call Log.");
+        const errorMessage = netSuiteErrorDetails(error, "Error loading call log");
         return {
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `There was an error loading an activity entry for this phone call in NetSuite. If issues persist, please contact your NetSuite administrator.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -453,17 +491,29 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         return {
             updatedNote: note,
             returnMessage: {
-                message: 'Call log updated.',
+                message: 'Call log updated',
                 messageType: 'success',
                 ttl: 2000
             }
         };
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in getting NetSuite Call Log.");
+        const errorMessage = netSuiteErrorDetails(error, "Error updating activity");
         return {
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `There was an error in updating the activity entry for this phone call in NetSuite. If issues persist, please contact your NetSuite administrator.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -563,11 +613,23 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         };
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in Creating Message Log");
+        const errorMessage = netSuiteErrorDetails(error, "Error logging text message");
         return {
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `There was an error in creating an activity entry for this SMS conversation in NetSuite. If issues persist, please contact your NetSuite administrator.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -604,17 +666,29 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         return {
             logId: existingLogId,
             returnMessage: {
-                message: 'Message log Updated.',
+                message: 'Message log updated',
                 messageType: 'success',
                 ttl: 3000
             }
         };
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in Updating Message Log");
+        const errorMessage = netSuiteErrorDetails(error, "Error updating activity");
         return {
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `There was an error in updating the activity entry for this SMS conversation in NetSuite. If issues persist, please contact your NetSuite administrator.`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 60000
             }
         }
@@ -685,9 +759,21 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: netSuiteErrorDetails(error, "Error in Creating Contact"),
+                            message: netSuiteErrorDetails(error, "Error creating contact"),
                             messageType: 'danger',
-                            ttl: 5000
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `A contact with the phone number ${phoneNumber} could not be created. Make sure you have permission to create contacts in NetSuite, and that the contact you are creating is not a duplicate.`
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 3000
                         }
                     }
                 }
@@ -722,9 +808,21 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             name: newContactName
                         },
                         returnMessage: {
-                            message: netSuiteErrorDetails(error, "Error in Creating Customer"),
+                            message: netSuiteErrorDetails(error, "Error creating customer"),
                             messageType: 'danger',
-                            ttl: 5000
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `NetSuite was unable to create an activity entry for the Customer named ${newContactName}. If this issues persists, please contact your NetSuite administrator. `
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 3000
                         }
                     }
                 }
@@ -732,7 +830,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
         const displayMessage = newContactType === 'contact'
             ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
-            : 'New Customer Created';
+            : 'Customer created';
         return {
             contactInfo: {
                 id: contactId,
@@ -745,12 +843,24 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             }
         }
     } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error in Creating Contact/Customer");
+        const errorMessage = netSuiteErrorDetails(error, "Error creating contact");
         return {
             returnMessage: {
                 messageType: 'danger',
                 message: errorMessage,
-                ttl: 60000
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `NetSuite was unable to create an activity entry for the ${newContactType} named ${newContactName}. If this issues persists, please contact your NetSuite administrator. `
+                            }
+                        ]
+                    }
+                ],
+                ttl: 3000
             }
         }
     }
