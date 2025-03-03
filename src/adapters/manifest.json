@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://twist-signs-pre-climb.trycloudflare.com",
+    "serverUrl": "https://tee-ambassador-responsibility-cargo.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1540,7 +1540,6 @@
             "platform": "googlesheet",
             "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
             "canOpenLogPage": false,
-            "contactTypes": [],
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
@@ -1554,9 +1553,16 @@
                     "name": "Google Sheets options",
                     "items": [
                         {
-                            "id": "googleSheetUrlId",
+                            "id": "googleSheetCallLogUrlId",
                             "type": "inputField",
-                            "name": "Google Sheet URL",
+                            "name": "Call Log Google Sheets URL",
+                            "placeholder": "Enter action value",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "googleSheetContactSearchUrlId",
+                            "type": "inputField",
+                            "name": "Contacts Google Sheets URL",
                             "placeholder": "Enter action value",
                             "defaultValue": ""
                         }

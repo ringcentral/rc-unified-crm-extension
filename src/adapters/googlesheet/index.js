@@ -1,6 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
+const { parsePhoneNumber } = require('awesome-phonenumber');
 function getAuthType() {
     return 'oauth';
 }
@@ -68,47 +69,214 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    const matchedContactInfo = [];
-    const response = await axios.get(
-        'https://www.googleapis.com/drive/v3/files',
-        {
-            headers: {
-                'Authorization': `Bearer ${user.accessToken}`,
-            },
-            params: {
-                q: "mimeType='application/vnd.google-apps.spreadsheet'",
-                fields: "files(id,name,createdTime)",
-                orderBy: "createdTime desc"
+    try {
+        const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
+        let sheetName = "";
+        console.log({ phoneNumber });
+        const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+        console.log({ phoneNumberObj });
+        const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+        console.log({ phoneNumberWithoutCountryCode });
+        if (!!!contactSheetUrl) {
+            console.log({ message: "Inside" });
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'No sheet selected to search for contacts',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet under Contacts Google Sheets URL.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
             }
         }
-    );
-    for (const file of response.data.files) {
-        matchedContactInfo.push({
-            id: file.id,
-            name: file.name,
-            createdTime: file.createdTime
+        const spreadsheetId = extractSheetId(contactSheetUrl);
+        const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: authHeader,
+            },
         });
+        const sheets = sheetResponse.data?.sheets;
+        console.log({ sheets });
+        for (const sheet of sheets) {
+            if (sheet.properties?.sheetId === parseInt(gid)) {
+                sheetName = sheet.properties.title;
+                break;
+            }
+        }
+        console.log({ message: "SheetName is", sheetName });
+        if (sheetName === "") {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid SheetName",
+                    ttl: 30000
+                }
+            }
+        }
+        const matchedContactInfo = [];
+        const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+            }
+        });
+
+        console.log({ message: "Finding Contacts", Data: spreadsheetData.data, values: spreadsheetData.data.values });
+        const data = spreadsheetData.data.values;
+        const results = data.slice(0).filter(row => row[2] === phoneNumberWithoutCountryCode);
+        console.log({ message: "Results", results });
+        for (const row of results) {
+            matchedContactInfo.push({
+                id: row[0],
+                name: row[1],
+                phoneNumber: row[2]
+            });
+
+        }
+        matchedContactInfo.push({
+            id: 'createNewContact',
+            name: 'Create new Contact',
+            additionalInfo: null,
+            isNewContact: true
+        });
+
+        console.log({ message: 'Matched Contact Info:', matchedContactInfo });
+        return {
+            matchedContactInfo,
+        };
     }
-    console.log({ message: 'Response:', response, Data: response.data, matchedContactInfo });
-    matchedContactInfo.push({
-        id: 'createNewContact',
-        name: 'Create new Sheet',
-        additionalInfo: null,
-        isNewContact: true
-    });
-    return {
-        matchedContactInfo,
-    };
+
+    // const response = await axios.get(
+    //     'https://www.googleapis.com/drive/v3/files',
+    //     {
+    //         headers: {
+    //             'Authorization':authHeader,
+    //         },
+    //         params: {
+    //             q: "mimeType='application/vnd.google-apps.spreadsheet'",
+    //             fields: "files(id,name,createdTime)",
+    //             orderBy: "createdTime desc"
+    //         }
+    //     }
+    // );
+    // for (const file of response.data.files) {
+    //     matchedContactInfo.push({
+    //         id: file.id,
+    //         name: file.name,
+    //         createdTime: file.createdTime
+    //     });
+    // }
+    // console.log({ message: 'Response:', response, Data: response.data, matchedContactInfo });
+
+    catch (e) {
+        console.log({ e });
+    }
+
 }
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
+    let sheetName = "";
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    if (!!!contactSheetUrl) {
+        console.log({ message: "Inside" });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'No sheet selected to create contacts',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet under Contacts Google Sheets URL.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        }
+    }
+    const spreadsheetId = extractSheetId(contactSheetUrl);
+    const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+    const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+        headers: {
+            Authorization: authHeader,
+        },
+    });
+    const sheets = sheetResponse.data?.sheets;
+    for (const sheet of sheets) {
+        if (sheet.properties?.sheetId === parseInt(gid)) {
+            sheetName = sheet.properties.title;
+            break;
+        }
+    }
+    if (sheetName === "") {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: "Invalid SheetName",
+                ttl: 30000
+            }
+        }
+    }
+    const range = `${sheetName}!A1:append`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
 
+    const headers = {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+    };
+
+    const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
+        headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+        }
+    });
+    const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
+    let contactId = spreadsheetId + "space" + nextLogRow;
+    const data = {
+        values: [
+            [contactId, newContactName, phoneNumberWithoutCountryCode]
+        ],
+    };
+    const response = await axios.post(url, data, { headers });
+    return {
+        contactInfo: {
+            id: contactId,
+            name: newContactName
+        },
+        returnMessage: {
+            message: 'Contact created',
+            messageType: 'success',
+            ttl: 5000
+        }
+    }
+}
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-
-    console.log({ message: "Hit Create CallLog.." });
     try {
-        const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
+        const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
         let sheetName = "";
-        console.log({ sheetUrl });
         if (!!!sheetUrl) {
             return {
                 successful: false,
@@ -139,14 +307,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             },
         });
         const sheets = sheetResponse.data?.sheets;
-        console.log({ sheets });
         for (const sheet of sheets) {
             if (sheet.properties?.sheetId === parseInt(gid)) {
                 sheetName = sheet.properties.title;
                 break;
             }
         }
-        console.log({ message: "SheetName is", sheetName });
         if (sheetName === "") {
             return {
                 successful: false,
@@ -160,9 +326,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         // const sheetName = 'Sheet1';
         const range = `${sheetName}!A1:append`;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
-
         const headers = {
-            'Authorization': `Bearer ${user.accessToken}`,
+            'Authorization': authHeader,
             'Content-Type': 'application/json',
         };
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
@@ -170,20 +335,17 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
         const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
             headers: {
-                'Authorization': `Bearer ${user.accessToken}`,
+                'Authorization': authHeader,
                 'Content-Type': 'application/json',
             }
         });
-        console.log({ Data: spreadsheetData.data, values: spreadsheetData.data.values });
         const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
-        console.log({ spreadsheetData, nextLogRow });
         const data = {
             values: [
                 [spreadsheetId + "space" + nextLogRow, title, contactInfo.phoneNumber, callStartTime, callEndTime, note]
             ],
         };
         const response = await axios.post(url, data, { headers });
-        console.log('Response:', response.data);
         const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: spreadsheetId + "space" + nextLogRow,
@@ -219,10 +381,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     }
 }
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
-    //console.log({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript });
-    console.log({ message: "Update CallLog.." });
-    const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
-    console.log({ sheetUrl });
+    const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
     let sheetName = "";
     try {
         if (!!!sheetUrl) {
@@ -256,14 +415,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             },
         });
         const sheets = sheetResponse.data?.sheets;
-        console.log({ sheets });
         for (const sheet of sheets) {
             if (sheet.properties?.sheetId === parseInt(gid)) {
                 sheetName = sheet.properties.title;
                 break;
             }
         }
-        console.log({ message: "SheetName is", sheetName });
         if (sheetName === "") {
             return {
                 successful: false,
@@ -277,15 +434,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
         const existingLogId = existingCallLog.thirdPartyLogId;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`;
-
         const response = await axios.get(url, {
             headers: {
                 Authorization: authHeader,
             },
         });
-
         const rows = response.data.values;
-        console.log({ rows });
         // // Find the record where Name matches searchKey
         // const header = rows[0];
         // const nameIndex = header.indexOf("ID");
@@ -364,12 +518,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
-    console.log({ user, callLogId, authHeader });
-    const sheetUrl = user?.userSettings?.googleSheetUrlId?.value;
+    const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
     //const sheetName = user?.userSettings?.googleSheetNameId?.value;
     let sheetName = "";
-
-    console.log({ sheetName, sheetUrl });
     if (!!!sheetUrl) {
         return {
             successful: false,
@@ -401,14 +552,12 @@ async function getCallLog({ user, callLogId, authHeader }) {
         },
     });
     const sheets = sheetResponse.data?.sheets;
-    console.log({ sheets });
     for (const sheet of sheets) {
         if (sheet.properties?.sheetId === parseInt(gid)) {
             sheetName = sheet.properties.title;
             break;
         }
     }
-    console.log({ message: "SheetName is", sheetName });
     if (sheetName === "") {
         return {
             successful: false,
@@ -428,7 +577,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
     });
 
     const rows = response.data.values;
-    console.log({ rows });
     // // Find the record where Name matches searchKey
     // const header = rows[0];
     // const nameIndex = header.indexOf("ID");
@@ -483,3 +631,4 @@ exports.findContact = findContact;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
+exports.createContact = createContact;
