@@ -94,7 +94,10 @@ async function unAuthorize({ user }) {
         {
             headers: { 'Authorization': `Basic ${basicAuthHeader}` }
         });
-    await user.destroy();
+    // remove user credentials
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
     return {
         returnMessage: {
             messageType: 'success',
@@ -208,7 +211,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     const orgId = personResponse.data.data.org_id?.value ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
-    let noteBody = '<b>Agent notes</b>';;
+    let noteBody = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { noteBody = upsertCallAgentNote({ body: noteBody, note }); }
     noteBody += '<b>Call details</b><ul>';
     if (user.userSettings?.addCallLogContactNumber?.value ?? true) { noteBody = upsertContactPhoneNumber({ body: noteBody, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
@@ -470,7 +473,7 @@ function upsertCallAgentNote({ body, note }) {
         body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
     }
     else {
-        body += `<br>${note}<br><br>`;
+        body = `<b>Agent notes</b><br>${note}<br><br>` + body;
     }
     return body;
 }

@@ -79,7 +79,7 @@ async function createCallLog({ platform, userId, incomingData }) {
                 userId
             });
         }
-        return { successful: true, logId, returnMessage, extraDataTracking };
+        return { successful: !!logId, logId, returnMessage, extraDataTracking };
     } catch (e) {
         console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {

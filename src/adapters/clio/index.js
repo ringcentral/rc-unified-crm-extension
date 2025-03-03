@@ -78,7 +78,10 @@ async function unAuthorize({ user }) {
         {
             headers: { 'Authorization': `Bearer ${user.accessToken}` }
         });
-    await user.destroy();
+    // remove user credentials
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
     return {
         returnMessage: {
             messageType: 'success',

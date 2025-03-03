@@ -29,14 +29,12 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         const id = additionalInfo.username;
         const name = additionalInfo.username;
         const timezoneName = '';
-        const timezoneOffset = Number(additionalInfo.timezone) === NaN ? 0 : Number(additionalInfo.timezone);
         return {
             successful: true,
             platformUserInfo: {
                 id,
                 name,
                 timezoneName,
-                timezoneOffset,
                 overridingApiKey: additionalInfo.userResponse.user_key,
                 platformAdditionalInfo: additionalInfo
             },
@@ -72,7 +70,10 @@ async function getUserInfo({ authHeader, additionalInfo }) {
 }
 
 async function unAuthorize({ user }) {
-    await user.destroy();
+    // remove user credentials
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
     return {
         returnMessage: {
             messageType: 'success',
@@ -146,13 +147,13 @@ async function createContact({ user, phoneNumber, newContactName }) {
 async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcript }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
-    let description = '<b>Agent notes</b>';
+    let description = '';
     if (user.userSettings?.addCallLogNote?.value ?? true) { description = upsertCallAgentNote({ body: description, note }); }
     description += '<b>Call details</b><ul>';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
     if (user.userSettings?.addCallLogSubject?.value ?? true) { description = upsertCallSubject({ body: description, subject }); }
     if (user.userSettings?.addCallLogContactNumber?.value ?? true) { description = upsertContactPhoneNumber({ body: description, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogDateTime?.value ?? true) { description = upsertCallDateTime({ body: description, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
+    if (user.userSettings?.addCallLogDateTime?.value ?? true) { description = upsertCallDateTime({ body: description, startTime: callLog.startTime, timezoneOffset: user.userSettings?.redtailCustomTimezone?.value ?? 0 }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { description = upsertCallDuration({ body: description, duration: callLog.duration }); }
     if (user.userSettings?.addCallLogResult?.value ?? true) { description = upsertCallResult({ body: description, result: callLog.result }); }
     if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { description = upsertCallRecording({ body: description, recordingLink: callLog.recording.link }); }
@@ -225,7 +226,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let logBody = getLogRes.data.activity.description;
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
     if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { logBody = upsertCallSubject({ body: logBody, subject }); }
-    if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = upsertCallDateTime({ body: logBody, startTime, timezoneOffset: user.timezoneOffset }); }
+    if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = upsertCallDateTime({ body: logBody, startTime, timezoneOffset: user.userSettings?.redtailCustomTimezone?.value ?? 0 }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink }); }
@@ -264,11 +265,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let description = '';
     switch (messageType) {
         case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
             description =
                 `<br><b>${subject}</b><br>` +
                 '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}<br>` +
+                `${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('dddd, MMMM DD, YYYY')}<br>` +
                 'Participants<br>' +
                 `<ul><li><b>${userName}</b><br></li>` +
                 `<li><b>${contactInfo.name}</b></li></ul><br>` +
@@ -276,7 +277,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'BEGIN<br>' +
                 '------------<br>' +
                 '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('hh:mm A')}<br>` +
                 `<b>${message.subject}</b></li>` +
                 '</ul>' +
                 '------------<br>' +
@@ -284,11 +285,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral App Connect';
             break;
         case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
             description = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
             break;
         case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
             description = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
             break;
     }
@@ -370,7 +371,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
         });
     const logBody = getLogRes.data.activity.description;
-    const note = logBody.match(/<br>(.+?)<br><br>/)[1];
+    const note = logBody.match(/<br>(.+?)<br><br>/)?.length > 1 ? logBody.match(/<br>(.+?)<br><br>/)[1] : '';
     return {
         callLogInfo: {
             subject: getLogRes.data.activity.subject,
@@ -398,7 +399,7 @@ function upsertCallAgentNote({ body, note }) {
         body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br>`);
     }
     else {
-        body += `<br>${note}<br><br>`;
+        body += `<b>Agent notes</b><br>${note}<br><br>`;
     }
     return body;
 }

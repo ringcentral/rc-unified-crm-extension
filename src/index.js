@@ -18,12 +18,18 @@ const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
+const dynamoose = require('dynamoose');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
 }
 catch (e) {
     packageJson = require('../package.json');
+}
+
+// For using dynamodb in local env
+if (process.env.DYNAMODB_LOCALHOST) {
+    dynamoose.aws.ddb.local(process.env.DYNAMODB_LOCALHOST);
 }
 
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
@@ -295,7 +301,7 @@ app.get('/user/settings', async function (req, res) {
             }
 
             // For non-readonly admin settings, user use its own setting
-            let userSettings = await user.userSettings;
+            let userSettings = await user?.userSettings;
             let result = {};
             if (!!!userSettingsByAdmin?.userSettings) {
                 result = userSettings;
@@ -355,10 +361,16 @@ app.post('/user/settings', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
+            platformName = unAuthData?.platform;
+            if (!platformName) {
+                res.status(400).send('Unknown platform');
+            }
             const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
+            }
+            if (!!!user?.userSettings) {
+                res.status(500).send('Cannot found user settings');
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
             res.status(200).send('User settings updated');
@@ -581,7 +593,6 @@ app.get('/contact', async function (req, res) {
     let platformName = null;
     let success = false;
     let resultCount = 0;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -607,7 +618,7 @@ app.get('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -625,7 +636,6 @@ app.get('/contact', async function (req, res) {
         author,
         extras: {
             resultCount,
-            statusCode,
             ...extraData
         },
     });
@@ -634,7 +644,6 @@ app.post('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -656,7 +665,7 @@ app.post('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -673,7 +682,6 @@ app.post('/contact', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -682,7 +690,6 @@ app.get('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -704,6 +711,7 @@ app.get('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -720,7 +728,6 @@ app.get('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -729,7 +736,6 @@ app.post('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -751,7 +757,7 @@ app.post('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -768,7 +774,6 @@ app.post('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -777,7 +782,6 @@ app.patch('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -799,7 +803,7 @@ app.patch('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -816,7 +820,6 @@ app.patch('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
