@@ -19,7 +19,8 @@
     "deploy": "node ./scripts/serverless-deploy",
     "build-test": "node ./scripts/serverless-build-test",
     "deploy-test": "node ./scripts/serverless-deploy-test",
-    "dynamo-local": "node ./scripts/dynamo-local.js"
+    "dynamo-local": "node ./scripts/dynamo-local.js",
+    "htt": "node ./tests/highTrafficTestRun.js"
   },
   "repository": {
     "type": "git",
