@@ -13,10 +13,12 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const adminCore = require('./core/admin');
 const userCore = require('./core/user');
+const mock = require('./adapters/mock');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
+const dynamoose = require('dynamoose');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
@@ -25,20 +27,24 @@ catch (e) {
     packageJson = require('../package.json');
 }
 
+// For using dynamodb in local env
+if (process.env.DYNAMODB_LOCALHOST) {
+    dynamoose.aws.ddb.local(process.env.DYNAMODB_LOCALHOST);
+}
+
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
 
 async function initDB() {
-    console.log('creating db tables if not exist...');
-    await UserModel.sync();
-    await CallLogModel.sync();
-    await MessageLogModel.sync();
-    await AdminConfigModel.sync();
-    await CacheModel.sync();
-    console.log('db tables created');
+    if (!process.env.DISABLE_SYNC_DB_TABLE) {
+        console.log('creating db tables if not exist...');
+        await UserModel.sync();
+        await CallLogModel.sync();
+        await MessageLogModel.sync();
+        await AdminConfigModel.sync();
+        await CacheModel.sync();
+    }
 }
 
-initDB();
-analytics.init();
 const app = express();
 app.use(bodyParser.json())
 
@@ -209,12 +215,7 @@ app.get('/admin/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -289,12 +290,7 @@ app.get('/user/settings', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -305,7 +301,7 @@ app.get('/user/settings', async function (req, res) {
             }
 
             // For non-readonly admin settings, user use its own setting
-            let userSettings = await user.userSettings;
+            let userSettings = await user?.userSettings;
             let result = {};
             if (!!!userSettingsByAdmin?.userSettings) {
                 result = userSettings;
@@ -365,15 +361,16 @@ app.post('/user/settings', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            platformName = unAuthData?.platform;
+            if (!platformName) {
+                res.status(400).send('Unknown platform');
+            }
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
+            }
+            if (!!!user?.userSettings) {
+                res.status(500).send('Cannot found user settings');
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
             res.status(200).send('User settings updated');
@@ -408,12 +405,7 @@ app.get('/hostname', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            const user = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const user = await UserModel.findByPk(unAuthData.id);
             if (!!!user) {
                 res.status(400).send('Unknown user');
             }
@@ -551,12 +543,7 @@ app.post('/unAuthorize', async function (req, res) {
         if (!!jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
-            const userToLogout = await UserModel.findOne({
-                where: {
-                    id: unAuthData.id,
-                    platform: unAuthData.platform
-                }
-            });
+            const userToLogout = await UserModel.findByPk(unAuthData.id);
             if (!!!userToLogout) {
                 res.status(400).send('Unknown user');
                 return;
@@ -606,7 +593,6 @@ app.get('/contact', async function (req, res) {
     let platformName = null;
     let success = false;
     let resultCount = 0;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -632,7 +618,7 @@ app.get('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -650,7 +636,6 @@ app.get('/contact', async function (req, res) {
         author,
         extras: {
             resultCount,
-            statusCode,
             ...extraData
         },
     });
@@ -659,7 +644,6 @@ app.post('/contact', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -681,7 +665,7 @@ app.post('/contact', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -698,7 +682,6 @@ app.post('/contact', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -707,7 +690,6 @@ app.get('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -729,6 +711,7 @@ app.get('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -745,7 +728,6 @@ app.get('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -754,7 +736,6 @@ app.post('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -776,7 +757,7 @@ app.post('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -793,7 +774,6 @@ app.post('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -802,7 +782,6 @@ app.patch('/callLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    let statusCode = 200;
     let extraData = {};
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
@@ -824,7 +803,7 @@ app.patch('/callLog', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        statusCode = e.response?.status ?? 'unknown';
+        extraData.statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
@@ -841,7 +820,6 @@ app.patch('/callLog', async function (req, res) {
         ip,
         author,
         extras: {
-            statusCode,
             ...extraData
         }
     });
@@ -895,6 +873,59 @@ app.post('/messageLog', async function (req, res) {
     });
 });
 
+if (process.env.IS_PROD === 'false') {
+    app.post('/registerMockUser', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const mockUser = await mock.createUser({ userName: req.body.userName });
+            res.status(200).send(!!mockUser ? 'Mock user registered' : 'Mock user already existed');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.delete('/deleteMockUser', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const foundAndDeleted = await mock.deleteUser({ userName: req.query.userName });
+            res.status(200).send(foundAndDeleted ? 'Mock user deleted' : 'Mock user not found');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.get('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds });
+            res.status(200).send(callLogs);
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.post('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            await mock.createCallLog({ sessionId: req.body.sessionId });
+            res.status(200).send('Mock call log created');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+    app.delete('/mockCallLog', async function (req, res) {
+        const secretKey = req.query.secretKey;
+        if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
+            await mock.cleanUpMockLogs();
+            res.status(200).send('Mock call logs cleaned up');
+        }
+        else {
+            res.status(401).send('Unauthorized');
+        }
+    });
+}
+
 function getAnalyticsVariablesInReqHeaders({ headers }) {
     const hashedExtensionId = headers['rc-extension-id'];
     const hashedAccountId = headers['rc-account-id'];
@@ -909,4 +940,9 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
         author
     }
 }
-exports.server = app;
+
+exports.getServer = function getServer() {
+    initDB();
+    analytics.init();
+    return app;
+}

@@ -1,6 +1,6 @@
 const request = require('supertest');
 const nock = require('nock');
-const { server } = require('../src/index');
+const { getServer } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const platforms = require('../tests/platformInfo.json');
 const { UserModel } = require('../src/models/userModel');
@@ -47,14 +47,14 @@ describe('contact tests', () => {
         describe('get jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
+                const res = await request(getServer()).get(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).get(`/contact?phoneNumber=${phoneNumber}`)
+                const res = await request(getServer()).get(`/contact?phoneNumber=${phoneNumber}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -71,7 +71,7 @@ describe('contact tests', () => {
                 });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
+                const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -97,7 +97,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${unknownPhoneNumber}`);
+                const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${unknownPhoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -145,7 +145,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
+                const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -172,7 +172,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
+                const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -198,7 +198,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
+                const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -213,14 +213,14 @@ describe('contact tests', () => {
         describe('get jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
+                const res = await request(getServer()).post(`/contact?jwtToken=${unknownJwt}&phoneNumber=${phoneNumber}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/contact?phoneNumber=${phoneNumber}`)
+                const res = await request(getServer()).post(`/contact?phoneNumber=${phoneNumber}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -246,7 +246,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
+                const res = await request(getServer()).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -272,7 +272,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
+                const res = await request(getServer()).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
 
                 // Assert
                 expect(res.status).toEqual(200);
@@ -298,7 +298,7 @@ describe('contact tests', () => {
                     });
 
                 // Act
-                const res = await request(server).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
+                const res = await request(getServer()).post(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}&newContactName${newContactName}}`);
 
                 // Assert
                 expect(res.status).toEqual(200);

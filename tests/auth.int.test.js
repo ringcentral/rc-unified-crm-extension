@@ -1,7 +1,7 @@
 const request = require('supertest');
 const nock = require('nock');
 const platforms = require('./platformInfo.json');
-const { server } = require('../src/index');
+const { getServer } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const { UserModel } = require('../src/models/userModel');
 const oauth = require('../src/lib/oauth');
@@ -37,7 +37,7 @@ describe('auth tests', () => {
             describe('validations', () => {
                 test('no callbackUri - error', async () => {
                     // Act
-                    const res = await request(server).get(`/oauth-callback`)
+                    const res = await request(getServer()).get(`/oauth-callback`)
 
                     // Assert
                     expect(res.status).toEqual(400);
@@ -45,7 +45,7 @@ describe('auth tests', () => {
                 })
                 test('no platform - error', async () => {
                     // Act
-                    const res = await request(server).get(`/oauth-callback?callbackUri=https://callback?state=platformName=platformName`)
+                    const res = await request(getServer()).get(`/oauth-callback?callbackUri=https://callback?state=platformName=platformName`)
 
                     // Assert
                     expect(res.status).toEqual(400);
@@ -83,7 +83,7 @@ describe('auth tests', () => {
                         });
 
                         // Act
-                        const res = await request(server).get(`/oauth-callback?${requestQuery}`)
+                        const res = await request(getServer()).get(`/oauth-callback?${requestQuery}`)
 
                         // Assert
                         expect(res.status).toEqual(200);
@@ -100,7 +100,7 @@ describe('auth tests', () => {
             describe('validations', () => {
                 test('no platform - error', async () => {
                     // Act
-                    const res = await request(server).post(`/apiKeyLogin`).send({
+                    const res = await request(getServer()).post(`/apiKeyLogin`).send({
                         apiKey: 'apiKey'
                     });
 
@@ -109,7 +109,7 @@ describe('auth tests', () => {
                 })
                 test('no api key - error', async () => {
                     // Act
-                    const res = await request(server).post(`/apiKeyLogin`).send({
+                    const res = await request(getServer()).post(`/apiKeyLogin`).send({
                         platform: 'platformName'
                     });
 
@@ -123,14 +123,14 @@ describe('auth tests', () => {
         describe('get jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/unAuthorize?jwtToken=${unknownJwt}`)
+                const res = await request(getServer()).post(`/unAuthorize?jwtToken=${unknownJwt}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/unAuthorize`)
+                const res = await request(getServer()).post(`/unAuthorize`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -147,7 +147,7 @@ describe('auth tests', () => {
                         platform: platform.name
                     });
                     // Act
-                    const res = await request(server).post(`/unAuthorize?jwtToken=${jwtToken}`)
+                    const res = await request(getServer()).post(`/unAuthorize?jwtToken=${jwtToken}`)
 
                     // Assert
                     expect(res.status).toEqual(400);
@@ -183,7 +183,7 @@ describe('auth tests', () => {
 
 
                     // Act
-                    const res = await request(server).post(`/unAuthorize?jwtToken=${jwtToken}`)
+                    const res = await request(getServer()).post(`/unAuthorize?jwtToken=${jwtToken}`)
 
                     // Assert
                     expect(res.status).toEqual(200);

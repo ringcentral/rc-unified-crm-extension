@@ -210,5 +210,46 @@ describe('oauth manage', () => {
             expect(returnedUser.accessToken).toBe(newAccessToken);
             expect(returnedUser.refreshToken).toBe(newRefreshToken);
         });
+        test('expired, 2 requests with small time gap (200ms), locked then cleared - use refreshed tokens', async () => {
+            // Arrange
+            const user = await UserModel.create({
+                id: userId,
+                accessToken,
+                refreshToken,
+                tokenExpiry: '2025-01-01T00:00:00.000Z'
+            });
+            // Mock oauthApp
+            const oauthApp = {
+                createToken: (accessToken, refreshToken) => {
+                    return {
+                        refresh: () => {
+                            return {
+                                accessToken: newAccessToken,
+                                refreshToken: newRefreshToken,
+                                expires: '2035-01-01T00:00:00.000Z'
+                            }
+                        }
+                    }
+                }
+            };
+            let returnedUser1, returnedUser2;
+            const request1 = async () => {
+                returnedUser1 = await checkAndRefreshAccessToken(oauthApp, user);
+            }
+            const request2 = async () => {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                returnedUser2 = await checkAndRefreshAccessToken(oauthApp, user);
+            }
+
+            // Act
+            request1();
+            await request2();
+
+            // Assert
+            expect(returnedUser1.accessToken).toBe(newAccessToken);
+            expect(returnedUser1.refreshToken).toBe(newRefreshToken);
+            expect(returnedUser2.accessToken).toBe(newAccessToken);
+            expect(returnedUser2.refreshToken).toBe(newRefreshToken);
+        });
     })
 })

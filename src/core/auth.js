@@ -77,16 +77,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
 async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform
-                }
-            ]
-        }
-    });
+    const existingUser = await UserModel.findByPk(id);
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo;

@@ -55,7 +55,7 @@ async function getUserInfo({ authHeader, hostname }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
@@ -94,7 +94,10 @@ async function unAuthorize({ user }) {
         {
             headers: { 'Authorization': `Basic ${basicAuthHeader}` }
         });
-    await user.destroy();
+    // remove user credentials
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
     return {
         returnMessage: {
             messageType: 'success',
@@ -105,6 +108,7 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    let extraDataTracking = {};
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
     if (!phoneNumber.includes('+')) {
@@ -127,6 +131,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: personInfo.headers['x-ratelimit-remaining'],
+        ratelimitAmount: personInfo.headers['x-ratelimit-limit'],
+        ratelimitReset: personInfo.headers['x-ratelimit-reset']
+    };
     const matchedContactInfo = [];
     for (const person of personInfo.data.data.items) {
         const dealsResponse = await axios.get(
@@ -134,6 +143,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             {
                 headers: { 'Authorization': authHeader }
             });
+        extraDataTracking = {
+            ratelimitRemaining: dealsResponse.headers['x-ratelimit-remaining'],
+            ratelimitAmount: dealsResponse.headers['x-ratelimit-limit'],
+            ratelimitReset: dealsResponse.headers['x-ratelimit-reset']
+        };
         const relatedDeals = dealsResponse.data.data ?
             dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
             : null;
@@ -144,7 +158,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         name: 'Create new contact...',
         isNewContact: true
     });
-    return { matchedContactInfo };
+    return {
+        matchedContactInfo,
+        extraDataTracking
+    };
 }
 
 function formatContact(rawContactInfo, relatedDeals) {
@@ -154,11 +171,11 @@ function formatContact(rawContactInfo, relatedDeals) {
         phone: rawContactInfo.phones[0],
         organization: rawContactInfo.organization?.name ?? '',
         additionalInfo: relatedDeals ? { deals: relatedDeals } : null
-
     }
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+    let extraDataTracking = {};
     const postBody = {
         name: newContactName,
         phone: phoneNumber
@@ -169,6 +186,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: createContactRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: createContactRes.headers['x-ratelimit-limit'],
+        ratelimitReset: createContactRes.headers['x-ratelimit-reset']
+    };
     return {
         contactInfo: {
             id: createContactRes.data.data.id,
@@ -178,7 +200,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
             message: `Contact created.`,
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     }
 }
 
@@ -188,7 +211,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     const orgId = personResponse.data.data.org_id?.value ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
-    let noteBody = '<b>Agent notes</b>';;
+    let noteBody = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { noteBody = upsertCallAgentNote({ body: noteBody, note }); }
     noteBody += '<b>Call details</b><ul>';
     if (user.userSettings?.addCallLogContactNumber?.value ?? true) { noteBody = upsertContactPhoneNumber({ body: noteBody, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
@@ -199,7 +222,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     noteBody += '</ul>';
     if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { noteBody = upsertAiNote({ body: noteBody, aiNote }); }
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { noteBody = upsertTranscript({ body: noteBody, transcript }); }
-    
+
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
@@ -222,6 +245,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: addLogRes.headers['x-ratelimit-reset']
+    };
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
@@ -234,6 +262,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+    let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
@@ -262,17 +291,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: putLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: putLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: putLogRes.headers['x-ratelimit-reset']
+    };
     return {
         updatedNote: putBody.note,
         returnMessage: {
             message: 'Call log updated.',
             messageType: 'success',
             ttl: 2000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+    let extraDataTracking = {};
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -337,17 +373,24 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: addLogRes.headers['x-ratelimit-reset']
+    };
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
             message: 'Message logged',
             messageType: 'success',
             ttl: 1000
-        }
+        },
+        extraDataTracking
     };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+    let extraDataTracking = {};
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
         headers: {
@@ -380,15 +423,29 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: putLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: putLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: putLogRes.headers['x-ratelimit-reset']
+    };
+    return {
+        extraDataTracking
+    }
 }
 
 
 async function getCallLog({ user, callLogId, authHeader }) {
+    let extraDataTracking = {};
     const getLogRes = await axios.get(
         `https://${user.hostname}/v1/activities/${callLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
+    extraDataTracking = {
+        ratelimitRemaining: getLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: getLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: getLogRes.headers['x-ratelimit-reset']
+    };
     const logBody = getLogRes.data.data.note;
     const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const relatedContact = getLogRes.data.related_objects?.person;
@@ -402,7 +459,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
             subject: getLogRes.data.data.subject,
             note,
             contactName
-        }
+        },
+        extraDataTracking
     }
 }
 
@@ -415,7 +473,7 @@ function upsertCallAgentNote({ body, note }) {
         body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
     }
     else {
-        body += `<br>${note}<br><br>`;
+        body = `<b>Agent notes</b><br>${note}<br><br>` + body;
     }
     return body;
 }

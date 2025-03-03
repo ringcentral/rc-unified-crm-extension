@@ -1,6 +1,6 @@
 const request = require('supertest');
 const nock = require('nock');
-const { server } = require('../src/index');
+const { getServer } = require('../src/index');
 const jwt = require('../src/lib/jwt');
 const platforms = require('./platformInfo.json');
 const { CallLogModel } = require('../src/models/callLogModel');
@@ -85,14 +85,14 @@ describe('call&message log tests', () => {
         describe('get jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).get(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
+                const res = await request(getServer()).get(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).get(`/callLog?sessionId=${sessionId}`)
+                const res = await request(getServer()).get(`/callLog?sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -102,14 +102,14 @@ describe('call&message log tests', () => {
         describe('post jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
+                const res = await request(getServer()).post(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/callLog?sessionId=${sessionId}`)
+                const res = await request(getServer()).post(`/callLog?sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -119,14 +119,14 @@ describe('call&message log tests', () => {
         describe('patch jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).patch(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
+                const res = await request(getServer()).patch(`/callLog?jwtToken=${unknownJwt}&sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).patch(`/callLog?sessionId=${sessionId}`)
+                const res = await request(getServer()).patch(`/callLog?sessionId=${sessionId}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -144,7 +144,7 @@ describe('call&message log tests', () => {
                     });
 
                     // Act
-                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId}`)
+                    const res = await request(getServer()).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -162,7 +162,7 @@ describe('call&message log tests', () => {
                     });
 
                     // Act
-                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
+                    const res = await request(getServer()).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -180,7 +180,7 @@ describe('call&message log tests', () => {
                     });
 
                     // Act
-                    const res = await request(server).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId},${unknownSessionId}`)
+                    const res = await request(getServer()).get(`/callLog?jwtToken=${jwtToken}&sessionIds=${sessionId},${unknownSessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -207,7 +207,7 @@ describe('call&message log tests', () => {
                     };
 
                     // Act
-                    const res = await request(server).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -231,7 +231,7 @@ describe('call&message log tests', () => {
                     };
 
                     // Act
-                    const res = await request(server).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -285,7 +285,7 @@ describe('call&message log tests', () => {
                         });
 
                     // Act
-                    const res = await request(server).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/callLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -311,7 +311,7 @@ describe('call&message log tests', () => {
                         platform: platform.name
                     });
                     // Act
-                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
+                    const res = await request(getServer()).patch(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -345,7 +345,7 @@ describe('call&message log tests', () => {
 
 
                     // Act
-                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
+                    const res = await request(getServer()).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -385,7 +385,7 @@ describe('call&message log tests', () => {
 
 
                     // Act
-                    const res = await request(server).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
+                    const res = await request(getServer()).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -404,14 +404,14 @@ describe('call&message log tests', () => {
         describe('post jwt validation', () => {
             test('bad jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/messageLog?jwtToken=${unknownJwt}`)
+                const res = await request(getServer()).post(`/messageLog?jwtToken=${unknownJwt}`)
 
                 // Assert
                 expect(res.status).toEqual(400);
             });
             test('no jwt - 400', async () => {
                 // Act
-                const res = await request(server).post(`/messageLog`)
+                const res = await request(getServer()).post(`/messageLog`)
 
                 // Assert
                 expect(res.status).toEqual(400);
@@ -435,7 +435,7 @@ describe('call&message log tests', () => {
                     };
 
                     // Act
-                    const res = await request(server).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -469,7 +469,7 @@ describe('call&message log tests', () => {
                     };
 
                     // Act
-                    const res = await request(server).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -538,7 +538,7 @@ describe('call&message log tests', () => {
                         });
 
                     // Act
-                    const res = await request(server).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
+                    const res = await request(getServer()).post(`/messageLog?jwtToken=${jwtToken}`).send(postBody);
 
                     // Assert
                     expect(res.status).toEqual(200);

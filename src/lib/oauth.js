@@ -1,6 +1,6 @@
 const ClientOAuth2 = require('client-oauth2');
 const axios = require('axios');
-const { CacheModel } = require('../models/cacheModel');
+const { Lock } = require('../models/dynamo/lockSchema');
 const { UserModel } = require('../models/userModel');
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
@@ -17,35 +17,35 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 }
 
 
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 15) {
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10) {
     const dateNow = new Date();
-    let tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
-    if (!!tokenLockCache && (tokenLockCache.expiry < dateNow || tokenLockCache.status === 'unlocked')) {
-        await tokenLockCache.destroy();
-        tokenLockCache = null;
-    }
-    if (!!tokenLockCache && tokenLockCache?.status === 'locked') {
-        let time = 0;
-        // 15 seconds timeout
-        while (!!tokenLockCache && tokenLockCache?.status === 'locked' && time < tokenLockTimeout) {
-            await new Promise(resolve => setTimeout(resolve, 1000));    // wait for 1 second
-            time += 1;
-            tokenLockCache = await CacheModel.findByPk(`${user.id}-tokenLock`);
-        }
-        if (time > tokenLockTimeout) {
-            throw new Error('Token lock timeout');
-        }
-        user = await UserModel.findByPk(user.id);
-    }
-    else {
-        if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
-            const cache = await CacheModel.create({
-                id: `${user.id}-tokenLock`,
-                userId: user.id,
-                cacheKey: 'tokenLock',
-                status: 'locked',
-                expiry: new Date(dateNow.setSeconds(dateNow.getSeconds() + tokenLockTimeout))
-            })
+    if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
+        // case: use dynamoDB to manage token refresh lock
+        if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
+            let lock = await Lock.get({ userId: user.id });
+            let newLock;
+            if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
+                await lock.delete();
+                lock = null;
+            }
+            if (!!lock) {
+                let processTime = 0;
+                while (!!lock && processTime < tokenLockTimeout) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
+                    processTime += 2;
+                    lock = await Lock.get({ userId: user.id });
+                }
+                // Timeout -> let users try another time
+                if (processTime >= tokenLockTimeout) {
+                    throw new Error('Token lock timeout');
+                }
+                user = await UserModel.findByPk(user.id);
+            }
+            else {
+                newLock = await Lock.create({
+                    userId: user.id
+                });
+            }
             // Unique: Bullhorn
             if (user.platform === 'bullhorn') {
                 await bullhornTokenRefresh(user);
@@ -56,12 +56,28 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 15)
                 user.accessToken = accessToken;
                 user.refreshToken = refreshToken;
                 user.tokenExpiry = expires;
-                await user.save();
             }
-            await cache.update({
-                status: 'unlocked'
-            });
+            await user.save();
+            if (!!newLock) {
+                await newLock.delete();
+            }
         }
+        // case: run withou token refresh lock
+        else {
+            // Unique: Bullhorn
+            if (user.platform === 'bullhorn') {
+                user = await bullhornTokenRefresh(user);
+            }
+            else {
+                const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+                const { accessToken, refreshToken, expires } = await token.refresh();
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                user.tokenExpiry = expires;
+            }
+            await user.save();
+        }
+
     }
     return user;
 }
@@ -81,7 +97,6 @@ async function bullhornTokenRefresh(user) {
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     const date = new Date();
     user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshTokenResponse.data.expires_in);
-    await user.save();
     return user;
 }
 

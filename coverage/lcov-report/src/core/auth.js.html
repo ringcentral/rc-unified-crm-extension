@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">61.36% </span>
+                <span class="strong">58.69% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>27/44</span>
+                <span class='fraction'>27/46</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">31.25% </span>
+                <span class="strong">27.77% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>5/16</span>
+                <span class='fraction'>5/18</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">61.36% </span>
+                <span class="strong">58.69% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>27/44</span>
+                <span class='fraction'>27/46</span>
             </div>
         
             
@@ -214,8 +214,7 @@
 <a name='L149'></a><a href='#L149'>149</a>
 <a name='L150'></a><a href='#L150'>150</a>
 <a name='L151'></a><a href='#L151'>151</a>
-<a name='L152'></a><a href='#L152'>152</a>
-<a name='L153'></a><a href='#L153'>153</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<a name='L152'></a><a href='#L152'>152</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -295,15 +294,6 @@
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -333,6 +323,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -340,6 +331,22 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -348,18 +355,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -446,16 +444,7 @@ async function <span class="fstat-no" title="function not covered" >onApiKeyLogi
 async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
-    const existingUser = await UserModel.findOne({
-        where: {
-            [Op.and]: [
-                {
-                    id,
-                    platform
-                }
-            ]
-        }
-    });
+    const existingUser = await UserModel.findByPk(id);
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo;
@@ -482,7 +471,8 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
             accessToken,
             refreshToken,
             tokenExpiry,
-            platformAdditionalInfo
+            platformAdditionalInfo,
+            userSettings: {}
         });
     }
     return {
@@ -491,8 +481,9 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     };
 }
 &nbsp;
+// Just for oauth ATM
 async function <span class="fstat-no" title="function not covered" >authValidation(</span>{ platform, userId }) {
-    const existingUser = <span class="cstat-no" title="statement not covered" >await UserModel.findOne({</span>
+    let existingUser = <span class="cstat-no" title="statement not covered" >await UserModel.findOne({</span>
         where: {
             [Op.and]: [
                 {
@@ -504,15 +495,21 @@ async function <span class="fstat-no" title="function not covered" >authValidati
     });
 <span class="cstat-no" title="statement not covered" >    if (!!existingUser) {</span>
         const platformModule = <span class="cstat-no" title="statement not covered" >require(`../adapters/${platform}`);</span>
-        const { successful, returnMessage } = <span class="cstat-no" title="statement not covered" >await platformModule.authValidation({ user: existingUser });</span>
+        const oauthApp = <span class="cstat-no" title="statement not covered" >oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname })));</span>
+<span class="cstat-no" title="statement not covered" >        existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);</span>
+        const { successful, returnMessage, status } = <span class="cstat-no" title="statement not covered" >await platformModule.authValidation({ user: existingUser });</span>
 <span class="cstat-no" title="statement not covered" >        return {</span>
             successful,
-            returnMessage
+            returnMessage,
+            status,
+            failReason: successful ? '' : 'CRM. API failed'
         }
     }
     else {
 <span class="cstat-no" title="statement not covered" >        return {</span>
-            successful: false
+            successful: false,
+            status: 404,
+            failReason: 'App Connect. User not found in database'
         }
     }
 }
@@ -526,7 +523,7 @@ exports.authValidation = authValidation;</pre></td></tr></table></pre>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-01-15T09:09:56.058Z
+                at 2025-02-24T07:07:06.140Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

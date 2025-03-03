@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.3.8
+
+- Fix: Contact match timeout issue
+- Fix: Auto log in user setting isn't set unless reloaded
+- Bullhorn: User authorization validation issue
+- Bullhorn: Server side logging now has AI summary and transcript
+
 ## 1.3.7
 
 - Fix: Timeout issue (mostly affecting call logging)

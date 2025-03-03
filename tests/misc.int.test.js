@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { server } = require('../src/index');
+const { getServer } = require('../src/index');
 const { UserModel } = require('../src/models/userModel');
 const platforms = require('../tests/platformInfo.json');
 const jwt = require('../src/lib/jwt');
@@ -42,7 +42,7 @@ describe('misc tests', () => {
     describe('get manifest', ()=>{
         test('get manifest- no platformName - return default', async()=>{
             // Act
-            const res = await request(server).get('/crmManifest');
+            const res = await request(getServer()).get('/crmManifest');
 
             // Assert
             expect(res.status).toEqual(200);
@@ -50,7 +50,7 @@ describe('misc tests', () => {
         })
         test('get manifest- has platformName - return platform manifest', async()=>{
             // Act
-            const res = await request(server).get('/crmManifest?platformName=testCRM');
+            const res = await request(getServer()).get('/crmManifest?platformName=testCRM');
 
             // Assert
             expect(res.status).toEqual(200);
@@ -58,7 +58,7 @@ describe('misc tests', () => {
         })
         test('get manifest- has platformName but not valid - return error', async()=>{
             // Act
-            const res = await request(server).get('/crmManifest?platformName=unknownCRM');
+            const res = await request(getServer()).get('/crmManifest?platformName=unknownCRM');
 
             // Assert
             expect(res.status).toEqual(400);
@@ -68,7 +68,7 @@ describe('misc tests', () => {
     describe('user info hash', () => {
         test('extensionId hash', async () => {
             // Act
-            const res = await request(server).get(`/userInfoHash?extensionId=${extensionId}&accountId=${accountId}`);
+            const res = await request(getServer()).get(`/userInfoHash?extensionId=${extensionId}&accountId=${accountId}`);
 
             // Assert
             expect(res.status).toEqual(200);
@@ -79,7 +79,7 @@ describe('misc tests', () => {
     describe('get hostname', () => {
         test('no jwt - 400', async () => {
             // Act
-            const res = await request(server).get(`/hostname`)
+            const res = await request(getServer()).get(`/hostname`)
 
             // Assert
             expect(res.status).toEqual(400);
@@ -87,7 +87,7 @@ describe('misc tests', () => {
         });
         test('bad jwt - 500', async () => {
             // Act
-            const res = await request(server).get(`/hostname?jwtToken=randomJwt`)
+            const res = await request(getServer()).get(`/hostname?jwtToken=randomJwt`)
 
             // Assert
             expect(res.status).toEqual(500);
@@ -102,7 +102,7 @@ describe('misc tests', () => {
                 });
 
                 // Act
-                const res = await request(server).get(`/hostname?jwtToken=${jwtToken}`)
+                const res = await request(getServer()).get(`/hostname?jwtToken=${jwtToken}`)
 
                 // Assert
                 expect(res.status).toEqual(200);
