@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://tee-ambassador-responsibility-cargo.trycloudflare.com",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1533,7 +1533,7 @@
                     "authUrl": "https://accounts.google.com/o/oauth2/auth",
                     "clientId": "367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
-                    "scope": "scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+                    "scope": "access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
                     "customState": "platform=googlesheet"
                 }
             },
