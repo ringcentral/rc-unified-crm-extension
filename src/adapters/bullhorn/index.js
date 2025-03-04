@@ -265,7 +265,30 @@ async function findContact({ user, phoneNumber }) {
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    let commentActionListResponse;
     let extraDataTracking = {};
+    try {
+        commentActionListResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+    }
+    catch (e) {
+        if (isAuthError(e.response.status)) {
+            user = await refreshSessionToken(user);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+        }
+        extraDataTracking['statusCode'] = e.response.status;
+    }
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
     switch (newContactType) {
         case 'Lead':
             const leadPostBody = {
@@ -292,7 +315,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             return {
                 contactInfo: {
                     id: leadInfoResp.data.changedEntityId,
-                    name: newContactName
+                    name: newContactName,
+                    additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
                 },
                 returnMessage: {
                     message: `${newContactType} created.`,
@@ -326,7 +350,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             return {
                 contactInfo: {
                     id: candidateInfoResp.data.changedEntityId,
-                    name: newContactName
+                    name: newContactName,
+                    additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
                 },
                 returnMessage: {
                     message: `${newContactType} created.`,
@@ -394,7 +419,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             return {
                 contactInfo: {
                     id: contactInfoResp.data.changedEntityId,
-                    name: newContactName
+                    name: newContactName,
+                    additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
                 },
                 returnMessage: {
                     message: `${newContactType} created.`,
