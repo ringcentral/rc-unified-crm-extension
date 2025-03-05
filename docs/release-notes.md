@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.3.9
+
+- New: User settings for ai related features (applicable accounts only)
+- Better: Token refresh lock to reduce issues of invalid authorization
+- Fix: Clio not able to log message issue
+- Fix: Bullhorn log page bug of not having NoteAction field in a few cases
+- Fix: Agent note title inserted in log description when there's no note
+- Fix: Fix spamming of contact not found warning notification
+- Fix: Fix contact match issue on multiple contact case
+- Better: Clearer sign on case where auto call log setting disabled by Server Side Call Logging
+- Better: User settings are kept after logout and auto-loaded after re-connect
+- Better: Redtail timezone in user setting
+
 ## 1.3.8
 
 - Fix: Contact match timeout issue
