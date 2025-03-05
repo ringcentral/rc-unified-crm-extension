@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1645,5 +1645,5 @@
             }
         }
     },
-    "version": "1.3.8"
+    "version": "1.3.9"
 }
