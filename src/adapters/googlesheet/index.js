@@ -253,7 +253,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     });
     const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
-    let contactId = spreadsheetId + "space" + nextLogRow;
+    let contactId = spreadsheetId + nextLogRow;
     const data = {
         values: [
             [contactId, newContactName, phoneNumberWithoutCountryCode]
@@ -276,6 +276,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     try {
         const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
+        console.log({ callLog, contactInfo });
         let sheetName = "";
         if (!!!sheetUrl) {
             return {
@@ -342,13 +343,13 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
         const data = {
             values: [
-                [spreadsheetId + "space" + nextLogRow, title, contactInfo.phoneNumber, callStartTime, callEndTime, note]
+                [nextLogRow, spreadsheetId, title, contactInfo.phoneNumber, callStartTime, callEndTime, note, callLog.sessionId, contactInfo.name]
             ],
         };
         const response = await axios.post(url, data, { headers });
         const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
-            logId: spreadsheetId + "space" + nextLogRow,
+            logId: nextLogRow,
             successful: true,
             returnMessage: {
                 message: 'Call logged',
@@ -467,11 +468,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                     valueInputOption: "RAW",
                     data: [
                         {
-                            range: `${sheetName}!B${rowIndex}`,
+                            range: `${sheetName}!C${rowIndex}`,
                             values: [[subject]]
                         },
                         {
-                            range: `${sheetName}!F${rowIndex}`,
+                            range: `${sheetName}!G${rowIndex}`,
                             values: [[note]]
                         }
                     ]
@@ -598,7 +599,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         }
     } else {
         const resultResponse = await axios.get(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${sheetName}!B${rowIndex}&ranges=${sheetName}!F${rowIndex}`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${sheetName}!C${rowIndex}&ranges=${sheetName}!G${rowIndex}`,
             {
                 headers: { Authorization: authHeader }
             }
