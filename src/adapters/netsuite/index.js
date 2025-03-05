@@ -211,13 +211,17 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 });
             if (customerInfo.data.items.length > 0) {
                 for (var result of customerInfo.data.items) {
-                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                     let salesOrders = [];
-                    for (const salesOrder of salesOrderResponse?.data?.items) {
-                        salesOrders.push({
-                            const: salesOrder?.id,
-                            title: salesOrder?.trandisplayname
-                        });
+                    try {
+                        const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
+                        for (const salesOrder of salesOrderResponse?.data?.items) {
+                            salesOrders.push({
+                                const: salesOrder?.id,
+                                title: salesOrder?.trandisplayname
+                            });
+                        }
+                    } catch (e) {
+                        console.log({ message: "Error in SalesOrder search" });
                     }
                     let firstName = result.firstname ?? '';
                     let middleName = result.middlename ?? '';
@@ -246,6 +250,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             matchedContactInfo,
         };
     } catch (error) {
+        console.log({ message: "Error in finding contact", error });
         let errorMessage = netSuiteErrorDetails(error, "Contact not found");
         errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
