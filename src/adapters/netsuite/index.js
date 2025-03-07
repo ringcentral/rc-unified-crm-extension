@@ -171,9 +171,81 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
         const matchedContactInfo = [];
+        const requestStartTime = new Date().getTime();
         if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
-            const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
-            const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            console.log({ phoneNumberWithoutCountryCode });
+            //const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            //const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            //Remove % from end of query
+            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            //const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            const contactQuery = `SELECT 
+    id,
+    firstName,
+    middleName,
+    lastName,
+    entitytitle,
+    phone,
+    homephone,
+    mobilephone,
+    officephone
+FROM (
+    SELECT 
+        id,
+        firstName,
+        middleName,
+        lastName,
+        entitytitle,
+        phone,
+        homephone,
+        mobilephone,
+        officephone,
+        REPLACE(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanPhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(homephone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanHomePhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(mobilephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanMobilePhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(officephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanOfficePhone
+    FROM contact
+) AS ProcessedContacts
+WHERE 
+    INSTR(cleanPhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanHomePhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanMobilePhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanOfficePhone, '${phoneNumberWithoutCountryCode}') > 0
+`;
+
+            const customerQuery = `SELECT 
+    id,
+    firstName,
+    middleName,
+    lastName,
+    entitytitle,
+    phone,
+    homephone,
+    mobilephone,
+    altphone
+FROM (
+    SELECT 
+        id,
+        firstName,
+        middleName,
+        lastName,
+        entitytitle,
+        phone,
+        homephone,
+        mobilephone,
+        altphone,
+        REPLACE(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanPhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(homephone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanHomePhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(mobilephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanMobilePhone,
+        REPLACE(REPLACE(REPLACE(REPLACE(altphone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanAltPhone
+    FROM customer
+) AS ProcessedCustomers
+WHERE 
+    INSTR(cleanPhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanHomePhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanMobilePhone, '${phoneNumberWithoutCountryCode}') > 0
+    OR INSTR(cleanAltPhone, '${phoneNumberWithoutCountryCode}') > 0
+`;
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
@@ -246,6 +318,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
+        const requestEndTime = new Date().getTime();
+        console.log({ message: "In Contact Search", requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
         return {
             matchedContactInfo,
         };
@@ -751,6 +825,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                         contactPayLoad.subsidiary = { id: subsidiaryId };
                     }
+                    console.log({ contactPayLoad });
                     const createContactRes = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
                         contactPayLoad
