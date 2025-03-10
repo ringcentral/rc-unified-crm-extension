@@ -1,4 +1,54 @@
 {
+    "1.3.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- User settings for ai related features (applicable accounts only)"
+            },
+            {
+                "type": "Better",
+                "description": "- User settings are kept after logout and auto-loaded after re-connect"
+            },
+            {
+                "type": "Better",
+                "description": "- Token refresh lock to reduce issues of invalid authorization"
+            },
+            {
+                "type": "Better",
+                "description": "- Clearer sign on case where auto call log setting disabled by Server Side Call Logging"
+            },
+            {
+                "type": "Fix",
+                "description": "- Agent note title inserted in log description when there's no note"
+            },
+            {
+                "type": "Fix",
+                "description": "- Fix spamming of contact not found warning notification"
+            },
+            {
+                "type": "Fix",
+                "description": "- Fix contact match issue on multiple contact case"
+            }
+        ],
+        "clio":[
+            {
+                "type": "Fix",
+                "description": "- Issue of not able to log messages"
+            }
+        ],
+        "bullhorn":[
+            {
+                "type": "Fix",
+                "description": "- Log page bug of not having NoteAction field in a few cases"
+            }
+        ],
+        "redtail":[
+            {
+                "type": "Better",
+                "description": "- Timezone setup in user setting"
+            }
+        ]
+    },
     "1.3.8": {
         "global": [
             {

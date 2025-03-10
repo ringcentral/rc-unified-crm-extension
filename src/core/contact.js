@@ -38,6 +38,14 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             return { successful: true, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
+            if (!!returnMessage) {
+                return {
+                    successful: true,
+                    returnMessage,
+                    extraDataTracking,
+                    contact: matchedContactInfo,
+                }
+            }
             return {
                 successful: true,
                 returnMessage:
