@@ -51,7 +51,7 @@ REST Web Services is default to be invisible. We'll need to turn on the feature 
 We recommend using the "RingCentral App Connect" role created for you when you install the SuiteApp. However, if you would like to create a custom role that includes the permissions necessary to allow this extension to operate fully, consult the table below. 
 
 | Category     | Permission                           | Level                       |
-| ------------ | ------------------------------------ | -----                       |
+| ------------ | ------------------------------------ | --------------------------- |
 | Lists        | Contacts                             | Full                        |
 | Lists        | Customers                            | Full                        |
 | Lists        | Phone Calls                          | Full                        |
@@ -61,6 +61,7 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Setup        | REST Web Services                    | Full                        |
 | Setup        | User Access Tokens                   | Full                        |
 | Transactions | Sales Order                          | Full                        |
+| Transactions | Find Transaction                     | View                        |
 
 ## Install the Chrome/Edge extension
 
