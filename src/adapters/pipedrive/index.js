@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
@@ -281,7 +282,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
     putBody.note = logBody;
 
-    if (!!subject) {
+    if (subject) {
         putBody.subject = subject;
     }
 
@@ -322,7 +323,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
 
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let note = '';
     switch (messageType) {
@@ -450,7 +451,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const relatedContact = getLogRes.data.related_objects?.person;
     let contactName = 'Unknown';
-    if (!!relatedContact) {
+    if (relatedContact) {
         const contactKeys = Object.keys(relatedContact);
         contactName = relatedContact[contactKeys[0]].name;
     }
@@ -465,7 +466,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
@@ -521,7 +522,7 @@ function upsertCallResult({ body, result }) {
 
 function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (!!recordingLink) {
+    if (recordingLink) {
         if (recordingLinkRegex.test(body)) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
@@ -545,7 +546,7 @@ function upsertCallRecording({ body, recordingLink }) {
 }
 
 function upsertAiNote({ body, aiNote }) {
-    if (!!!aiNote) {
+    if (!aiNote) {
         return body;
     }
     const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -560,7 +561,7 @@ function upsertAiNote({ body, aiNote }) {
 }
 
 function upsertTranscript({ body, transcript }) {
-    if (!!!transcript) {
+    if (!transcript) {
         return body;
     }
     const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');

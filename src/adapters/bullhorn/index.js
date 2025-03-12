@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
@@ -593,7 +594,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
     const userData = userInfoResponse.data.data[0];
     const userName = userData.name;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let comments = '';
     switch (messageType) {
@@ -796,7 +797,7 @@ function isAuthError(statusCode) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
@@ -861,7 +862,7 @@ function upsertCallResult({ body, result }) {
 
 function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (!!recordingLink) {
+    if (recordingLink) {
         if (recordingLinkRegex.test(body)) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
@@ -885,7 +886,7 @@ function upsertCallRecording({ body, recordingLink }) {
 }
 
 function upsertAiNote({ body, aiNote }) {
-    if (!!!aiNote) {
+    if (!aiNote) {
         return body;
     }
     const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -899,7 +900,7 @@ function upsertAiNote({ body, aiNote }) {
 }
 
 function upsertTranscript({ body, transcript }) {
-    if (!!!transcript) {
+    if (!transcript) {
         return body;
     }
     const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');

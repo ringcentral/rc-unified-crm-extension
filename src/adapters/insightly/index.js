@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
@@ -155,7 +157,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.organisation) {
+                    if (!singlePersonInfo.additionalInfo.organisation) {
                         singlePersonInfo.additionalInfo.organisation = [];
                     }
                     singlePersonInfo.additionalInfo.organisation.push({
@@ -169,7 +171,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.opportunity) {
+                    if (!singlePersonInfo.additionalInfo.opportunity) {
                         singlePersonInfo.additionalInfo.opportunity = [];
                     }
                     singlePersonInfo.additionalInfo.opportunity.push({
@@ -183,7 +185,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.project) {
+                    if (!singlePersonInfo.additionalInfo.project) {
                         singlePersonInfo.additionalInfo.project = [];
                     }
                     singlePersonInfo.additionalInfo.project.push({
@@ -441,7 +443,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });;
     const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let details = '';
     let title = '';
     switch (messageType) {
@@ -576,7 +578,7 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('- Agent note: ([\\s\\S]+?)\n');
@@ -604,7 +606,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         body += `- Call recording link: ${recordingLink}\n`;
     }
     return body;

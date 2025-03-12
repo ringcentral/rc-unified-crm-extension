@@ -19,6 +19,40 @@ async function userSettingsByAdmin({ rcAccessToken }) {
     };
 }
 
+async function getUserSettings({ user, rcAccessToken }) {
+    let userSettingsByAdmin = [];
+    if (rcAccessToken) {
+        userSettingsByAdmin = await userSettingsByAdmin({ rcAccessToken });
+    }
+
+    // For non-readonly admin settings, user use its own setting
+    let userSettings = await user?.userSettings;
+    let result = {};
+    if (!userSettingsByAdmin?.userSettings) {
+        result = userSettings;
+    }
+    else {
+        if (!!userSettingsByAdmin?.userSettings && !!userSettings) {
+            const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
+            // distinct keys
+            for (const key of new Set(keys)) {
+                // from user's own settings
+                if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
+                    result[key] = {
+                        customizable: true,
+                        value: userSettings[key].value
+                    };
+                }
+                // from admin settings
+                else {
+                    result[key] = userSettingsByAdmin.userSettings[key];
+                }
+            }
+        }
+    }
+    return result;
+}
+
 async function updateUserSettings({ user, userSettings }) {
     const keys = Object.keys(userSettings || {});
     let updatedSettings = {
@@ -33,4 +67,5 @@ async function updateUserSettings({ user, userSettings }) {
 }
 
 exports.userSettingsByAdmin = userSettingsByAdmin;
+exports.getUserSettings = getUserSettings;
 exports.updateUserSettings = updateUserSettings;
