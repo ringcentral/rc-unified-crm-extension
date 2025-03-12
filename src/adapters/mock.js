@@ -36,7 +36,7 @@ async function getCallLog({ sessionIds }) {
     const logs = [];
     for (const sId of sessionIdsArray) {
         const callLog = callLogs.find(c => c.sessionId === sId);
-        if (!!!callLog) {
+        if (!callLog) {
             logs.push({ sessionId: sId, matched: false });
         }
         else {

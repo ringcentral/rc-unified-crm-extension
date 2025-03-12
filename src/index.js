@@ -13,6 +13,7 @@ const contactCore = require('./core/contact');
 const authCore = require('./core/auth');
 const adminCore = require('./core/admin');
 const userCore = require('./core/user');
+const dispositionCore = require('./core/disposition');
 const mock = require('./adapters/mock');
 const releaseNotes = require('./releaseNotes.json');
 const axios = require('axios');
@@ -58,14 +59,14 @@ app.get('/releaseNotes', async function (req, res) {
 
 app.get('/crmManifest', (req, res) => {
     try {
-        if (!!!req.query.platformName) {
+        if (!req.query.platformName) {
             const defaultCrmManifest = require('./adapters/manifest.json');
             res.json(defaultCrmManifest);
             return;
         }
         const crmManifest = require(`./adapters/${req.query.platformName}/manifest.json`);
-        if (!!crmManifest) {
-            if (!!!crmManifest.author?.name) {
+        if (crmManifest) {
+            if (!crmManifest.author?.name) {
                 throw 'author name is required';
             }
             res.json(crmManifest);
@@ -93,7 +94,7 @@ app.get('/authValidation', async (req, res) => {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, returnMessage, failReason, status } = await authCore.authValidation({ platform, userId });
@@ -212,18 +213,18 @@ app.get('/admin/settings', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
             const user = await UserModel.findByPk(unAuthData.id);
-            if (!!!user) {
+            if (!user) {
                 res.status(400).send('Unknown user');
             }
             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
             if (isValidated) {
                 const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
-                if (!!adminSettings) {
+                if (adminSettings) {
                     res.status(200).send(adminSettings);
                 }
                 else {
@@ -266,7 +267,7 @@ app.get('/admin/settings', async function (req, res) {
 app.get('/user/preloadSettings', async function (req, res) {
     try {
         const rcAccessToken = req.query.rcAccessToken;
-        if (!!rcAccessToken) {
+        if (rcAccessToken) {
             const userSettings = await userCore.userSettingsByAdmin({ rcAccessToken });
             res.status(200).send(userSettings);
         }
@@ -287,46 +288,17 @@ app.get('/user/settings', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
             const user = await UserModel.findByPk(unAuthData.id);
-            if (!!!user) {
+            if (!user) {
                 res.status(400).send('Unknown user');
             }
             const rcAccessToken = req.query.rcAccessToken;
-            let userSettingsByAdmin = [];
-            if (!!rcAccessToken) {
-                userSettingsByAdmin = await userCore.userSettingsByAdmin({ rcAccessToken });
-            }
-
-            // For non-readonly admin settings, user use its own setting
-            let userSettings = await user?.userSettings;
-            let result = {};
-            if (!!!userSettingsByAdmin?.userSettings) {
-                result = userSettings;
-            }
-            else {
-                if (!!userSettingsByAdmin?.userSettings && !!userSettings) {
-                    const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
-                    // distinct keys
-                    for (const key of new Set(keys)) {
-                        // from user's own settings
-                        if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
-                            result[key] = {
-                                customizable: true,
-                                value: userSettings[key].value
-                            };
-                        }
-                        // from admin settings
-                        else {
-                            result[key] = userSettingsByAdmin.userSettings[key];
-                        }
-                    }
-                }
-            }
+            const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
             success = true;
-            res.status(200).send(result);
+            res.status(200).send(userSettings);
         }
         else {
             success = false;
@@ -359,17 +331,17 @@ app.post('/user/settings', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData?.platform;
             if (!platformName) {
                 res.status(400).send('Unknown platform');
             }
             const user = await UserModel.findByPk(unAuthData.id);
-            if (!!!user) {
+            if (!user) {
                 res.status(400).send('Unknown user');
             }
-            if (!!!user?.userSettings) {
+            if (!user?.userSettings) {
                 res.status(500).send('Cannot found user settings');
             }
             await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
@@ -403,10 +375,10 @@ app.post('/user/settings', async function (req, res) {
 app.get('/hostname', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData.id);
-            if (!!!user) {
+            if (!user) {
                 res.status(400).send('Unknown user');
             }
             res.status(200).send(user.hostname);
@@ -428,23 +400,24 @@ app.get('/oauth-callback', async function (req, res) {
     let success = false;
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
-        if (!!!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
+        if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
             throw 'Missing callbackUri';
         }
-        platformName = platform = req.query.state ?
+        platformName = req.query.state ?
             req.query.state.split('platform=')[1] :
             decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
         const hostname = req.query.hostname;
         const tokenUrl = req.query.tokenUrl;
-        if (!platform) {
+        if (!platformName) {
             throw 'Missing platform name';
         }
         const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
         if (!hasAuthCodeInCallbackUri) {
+            // eslint-disable-next-line no-param-reassign
             req.query.callbackUri = `${req.query.callbackUri}&code=${req.query.code}`;
         }
         const { userInfo, returnMessage } = await authCore.onOAuthCallback({
-            platform,
+            platform: platformName,
             hostname,
             tokenUrl,
             callbackUri: req.query.callbackUri,
@@ -452,10 +425,10 @@ app.get('/oauth-callback', async function (req, res) {
             username: req.query.username,
             query: req.query
         });
-        if (!!userInfo) {
+        if (userInfo) {
             const jwtToken = jwt.generateJwt({
                 id: userInfo.id.toString(),
-                platform: platform
+                platform: platformName
             });
             res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
             success = true;
@@ -502,7 +475,7 @@ app.post('/apiKeyLogin', async function (req, res) {
             throw 'Missing api key';
         }
         const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
-        if (!!userInfo) {
+        if (userInfo) {
             const jwtToken = jwt.generateJwt({
                 id: userInfo.id.toString(),
                 platform: platform
@@ -541,11 +514,11 @@ app.post('/unAuthorize', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             platformName = unAuthData.platform;
             const userToLogout = await UserModel.findByPk(unAuthData.id);
-            if (!!!userToLogout) {
+            if (!userToLogout) {
                 res.status(400).send('Unknown user');
                 return;
             }
@@ -598,7 +571,7 @@ app.get('/contact', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
@@ -608,7 +581,7 @@ app.get('/contact', async function (req, res) {
                 resultCount = nonNewContact.length;
             }
             success = successful;
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
         }
@@ -649,13 +622,13 @@ app.post('/contact', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
             res.status(200).send({ successful, returnMessage, contact });
             success = true;
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
         }
@@ -695,13 +668,13 @@ app.get('/callLog', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, logs, returnMessage, extraDataTracking } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
             res.status(200).send({ successful, logs, returnMessage });
             success = true;
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
         }
@@ -741,11 +714,11 @@ app.post('/callLog', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
             res.status(200).send({ successful, logId, returnMessage });
@@ -787,11 +760,11 @@ app.patch('/callLog', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
             res.status(200).send({ successful, logId, updatedNote, returnMessage });
@@ -825,6 +798,66 @@ app.patch('/callLog', async function (req, res) {
         }
     });
 });
+app.post('/callDisposition', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    let extraData = {};
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            platformName = platform;
+            const user = await UserModel.findByPk(userId);
+            if (!user) {
+                res.status(400).send('Unknown user');
+            }
+            const userSettings = await userCore.getUserSettings({
+                user,
+                rcAccessToken: req.query.rcAccessToken
+            });
+            const { successful, returnMessage, extraDataTracking } = await dispositionCore.createCallDisposition({
+                platform,
+                user,
+                sessionId: req.body.sessionId,
+                dispositionInfo: req.body.dispositionInfo,
+                userSettings
+            });
+            if (extraDataTracking) {
+                extraData = extraDataTracking;
+            }
+            res.status(200).send({ successful, returnMessage });
+            success = true;
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
+        }
+    }
+    catch (e) {
+        console.log(`platform: ${platformName} \n${e.stack}`);
+        extraData.statusCode = e.response?.status ?? 'unknown';
+        res.status(400).send(e);
+        success = false;
+    }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Create call log',
+        interfaceName: 'createCallLog',
+        adapterName: platformName,
+        accountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        extras: {
+            ...extraData
+        }
+    });
+});
 app.post('/messageLog', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
@@ -834,11 +867,11 @@ app.post('/messageLog', async function (req, res) {
     const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
-        if (!!jwtToken) {
+        if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             const { successful, returnMessage, logIds, extraDataTracking } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
-            if (!!extraDataTracking) {
+            if (extraDataTracking) {
                 extraData = extraDataTracking;
             }
             res.status(200).send({ successful, returnMessage, logIds });
@@ -879,7 +912,7 @@ if (process.env.IS_PROD === 'false') {
         const secretKey = req.query.secretKey;
         if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
             const mockUser = await mock.createUser({ userName: req.body.userName });
-            res.status(200).send(!!mockUser ? 'Mock user registered' : 'Mock user already existed');
+            res.status(200).send(mockUser ? 'Mock user registered' : 'Mock user already existed');
         }
         else {
             res.status(401).send('Unauthorized');

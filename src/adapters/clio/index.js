@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
@@ -328,24 +330,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             body: logBody
         }
     }
-    if (!!subject) { patchBody.data.subject = subject; }
-    if (!!startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
+    if (subject) { patchBody.data.subject = subject; }
+    if (startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
-    if (!!duration) {
+    if (duration) {
         const getTimerRes = await axios.get(
             `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
             {
                 headers: { 'Authorization': authHeader }
             }
         )
-        if (!!getTimerRes.data.data[0]) {
+        if (getTimerRes.data.data[0]) {
             const patchTimerBody = {
                 data: {
                     quantity: duration,
                     note: logBody,
                 }
             }
-            if (!!startTime) {
+            if (startTime) {
                 patchTimerBody.data.date = moment(startTime).toISOString();
             }
             const patchTimerRes = await axios.patch(
@@ -396,7 +398,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let logBody = '';
     let logSubject = '';
     switch (messageType) {
@@ -566,7 +568,7 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
@@ -594,7 +596,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         body += `- Call recording link: ${recordingLink}\n`;
     }
     return body;
