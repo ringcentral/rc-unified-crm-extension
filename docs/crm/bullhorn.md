@@ -57,3 +57,7 @@ Bullhorn requires that every contact be associated with a company. When logging 
 2. Edit the contact to associate it with a more appropriate company stored in Bullhorn. 
 
 In this way, App Connect ensures that all contacts created by it conform to the requirements of Bullhorn so that all contact records are complete. 
+
+## Screen-pop for multiple contacts
+
+A feature of App Connect is to allow a user to open all matched contacts when they receive a phone call. However, Bullhorn's API does not support this feature. Therefore in App Connect, we can only support the option "Prompt to select" under Call-pop settings. 
