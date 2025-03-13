@@ -19,7 +19,7 @@ function getRandomPhoneNumber() {
 async function runRequests(times) {
     const requests = [];
     let firstName = "SushilTest";
-    for (let i = 43418; i < times; i++) {
+    for (let i = 75942; i < times; i++) {
         let contactPayLoad = {
             firstName: firstName + i,
             lastName: "Mall",
@@ -44,4 +44,4 @@ async function runRequests(times) {
 }
 
 // Run the API call 100 times
-runRequests(50000);
+runRequests(100000);

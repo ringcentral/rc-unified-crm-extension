@@ -174,78 +174,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const requestStartTime = new Date().getTime();
         if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
             console.log({ phoneNumberWithoutCountryCode });
-            //const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
-            //const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
-            //Remove % from end of query
-            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
-            //const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
-            const contactQuery = `SELECT 
-    id,
-    firstName,
-    middleName,
-    lastName,
-    entitytitle,
-    phone,
-    homephone,
-    mobilephone,
-    officephone
-FROM (
-    SELECT 
-        id,
-        firstName,
-        middleName,
-        lastName,
-        entitytitle,
-        phone,
-        homephone,
-        mobilephone,
-        officephone,
-        REPLACE(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanPhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(homephone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanHomePhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(mobilephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanMobilePhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(officephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanOfficePhone
-    FROM contact
-) AS ProcessedContacts
-WHERE 
-    INSTR(cleanPhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanHomePhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanMobilePhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanOfficePhone, '${phoneNumberWithoutCountryCode}') > 0
-`;
+            // const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            // const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
+            //   Remove % from end of query
+            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE lastmodifieddate >= to_date('2020-01-01 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE lastmodifieddate >= to_date('2020-01-01 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
 
-            const customerQuery = `SELECT 
-    id,
-    firstName,
-    middleName,
-    lastName,
-    entitytitle,
-    phone,
-    homephone,
-    mobilephone,
-    altphone
-FROM (
-    SELECT 
-        id,
-        firstName,
-        middleName,
-        lastName,
-        entitytitle,
-        phone,
-        homephone,
-        mobilephone,
-        altphone,
-        REPLACE(REPLACE(REPLACE(REPLACE(phone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanPhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(homephone, '-', ''), ' ', ''), '(', ''), ')', '') AS cleanHomePhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(mobilephone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanMobilePhone,
-        REPLACE(REPLACE(REPLACE(REPLACE(altphone, '-', ''), ' ', ''), ')', ''), ' ', '') AS cleanAltPhone
-    FROM customer
-) AS ProcessedCustomers
-WHERE 
-    INSTR(cleanPhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanHomePhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanMobilePhone, '${phoneNumberWithoutCountryCode}') > 0
-    OR INSTR(cleanAltPhone, '${phoneNumberWithoutCountryCode}') > 0
-`;
+            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            // const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
@@ -255,21 +191,40 @@ WHERE
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                 });
             if (personInfo.data.items.length > 0) {
-                for (var result of personInfo.data.items) {
-                    let firstName = result.firstname ?? '';
-                    let middleName = result.middlename ?? '';
-                    let lastName = result.lastname ?? '';
-                    const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                // for (var result of personInfo.data.items) {
+                //     let firstName = result.firstname ?? '';
+                //     let middleName = result.middlename ?? '';
+                //     let lastName = result.lastname ?? '';
+                //     const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                //     matchedContactInfo.push({
+                //         id: result.id,
+                //         name: contactName,
+                //         phone: result.phone ?? '',
+                //         homephone: result.homephone ?? '',
+                //         mobilephone: result.mobilephone ?? '',
+                //         officephone: result.officephone ?? '',
+                //         additionalInfo: null,
+                //         type: 'contact'
+                //     })
+                // }
+                for (const result of personInfo.data.items) {
+                    const { id, firstname = '', middlename = '', lastname = '', entitytitle, phone = '', homephone = '', mobilephone = '', officephone = '' } = result;
+
+                    // Avoid unnecessary concatenation
+                    const contactName = firstname || middlename || lastname
+                        ? [firstname, middlename, lastname].filter(Boolean).join(' ')
+                        : entitytitle;
+
                     matchedContactInfo.push({
-                        id: result.id,
+                        id,
                         name: contactName,
-                        phone: result.phone ?? '',
-                        homephone: result.homephone ?? '',
-                        mobilephone: result.mobilephone ?? '',
-                        officephone: result.officephone ?? '',
+                        phone,
+                        homephone,
+                        mobilephone,
+                        officephone,
                         additionalInfo: null,
                         type: 'contact'
-                    })
+                    });
                 }
             }
             //For Customer search
@@ -285,13 +240,13 @@ WHERE
                 for (var result of customerInfo.data.items) {
                     let salesOrders = [];
                     try {
-                        const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
-                        for (const salesOrder of salesOrderResponse?.data?.items) {
-                            salesOrders.push({
-                                const: salesOrder?.id,
-                                title: salesOrder?.trandisplayname
-                            });
-                        }
+                        // const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
+                        // for (const salesOrder of salesOrderResponse?.data?.items) {
+                        //     salesOrders.push({
+                        //         const: salesOrder?.id,
+                        //         title: salesOrder?.trandisplayname
+                        //     });
+                        // }
                     } catch (e) {
                         console.log({ message: "Error in SalesOrder search" });
                     }
@@ -318,8 +273,8 @@ WHERE
             additionalInfo: null,
             isNewContact: true
         });
-        const requestEndTime = new Date().getTime();
-        console.log({ message: "In Contact Search", requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
+        //const requestEndTime = new Date().getTime();
+        //console.log({ message: "In Contact Search", requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
         return {
             matchedContactInfo,
         };
