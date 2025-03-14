@@ -20,6 +20,10 @@ function getHashValue(string, secretKey) {
 }
 
 function secondsToHoursMinutesSeconds(seconds) {
+    // If not a number, return the input directly
+    if (isNaN(seconds)) {
+        return seconds;
+    }
     const hours = Math.floor(seconds / 3600);
     const hoursString = hours > 0 ? `${hours} ${hours > 1 ? 'hours' : 'hour'}` : '';
     const minutes = Math.floor((seconds % 3600) / 60);
