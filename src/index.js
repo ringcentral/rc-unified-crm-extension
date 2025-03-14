@@ -268,7 +268,7 @@ app.get('/user/preloadSettings', async function (req, res) {
     try {
         const rcAccessToken = req.query.rcAccessToken;
         if (rcAccessToken) {
-            const userSettings = await userCore.userSettingsByAdmin({ rcAccessToken });
+            const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken });
             res.status(200).send(userSettings);
         }
         else {
