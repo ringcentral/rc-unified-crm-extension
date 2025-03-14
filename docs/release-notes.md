@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.3.10
+
+- Fix: New users cannot save auto log setting
+- Fix: Randomly dial previous number
+
 ## 1.3.9
 
 - New: User settings for ai related features (applicable accounts only)

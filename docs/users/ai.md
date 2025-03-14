@@ -16,6 +16,10 @@ App Connect's AI features are currently in beta. During this phase, you can enab
 !!! tip "AI assistant can be enabled independently on every device"
     Disabling AI Assistant in App Connect will not disable AI assistent in the RingCentral desktop application, and vice-versa.
 
+### Auto-enabling AI Assistant
+
+Users can toggle the "Auto-start AI Assistant" feature to automatically generate smart notes and transcription for every call. 
+
 ## Live transcription
 
 AI Assistant, when enabled for your phone call, will show you a live transcript of your call.
