@@ -28,7 +28,6 @@ graph TD
   O --> P@{ shape: "lean-r", label: "updateCallLog or createCallLog called" }
   N --> Z
   P --> Z
-
 ```
 
 ## Implement server endpoints
@@ -38,6 +37,10 @@ Ultimately, the key to logging calls successfully is in implementing the followi
 * [`createCallLog`](interfaces/createCallLog.md)
 * [`updateCallLog`](interfaces/updateCallLog.md)
 * [`getCallLog`](interfaces/getCallLog.md)
+
+### Facilitating a manual update to a call log entry
+
+The `getCallLog` interface is invoked when a user is requesting to the edit the contents of an activity record in the CRM via the App Connect client. Using this interface, App Connect can fetch the source of record from the CRM and then display it in the call log editor. 
 
 ### Logging data to structued fields
 
