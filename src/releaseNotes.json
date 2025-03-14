@@ -1,4 +1,16 @@
 {
+    "1.3.10": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- New users cannot save auto log setting"
+            },
+            {
+                "type": "Fix",
+                "description": "- Randomly dial previous number"
+            }
+        ]
+    },
     "1.3.9": {
         "global": [
             {
@@ -30,19 +42,19 @@
                 "description": "- Fix contact match issue on multiple contact case"
             }
         ],
-        "clio":[
+        "clio": [
             {
                 "type": "Fix",
                 "description": "- Issue of not able to log messages"
             }
         ],
-        "bullhorn":[
+        "bullhorn": [
             {
                 "type": "Fix",
                 "description": "- Log page bug of not having NoteAction field in a few cases"
             }
         ],
-        "redtail":[
+        "redtail": [
             {
                 "type": "Better",
                 "description": "- Timezone setup in user setting"
