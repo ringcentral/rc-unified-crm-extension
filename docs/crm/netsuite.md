@@ -103,12 +103,14 @@ In this way, App Connect ensures that all contacts created by it conform to the 
 When attempting to find and match a phone call to a customer or contact record, the NetSuite integration searches the following fields:
 
 Contacts:
+
 * `phone`
 * `homePhone`
 * `mobilePhone`
 * `officePhone`
 
 Customers:
+
 * `phone`
 * `homePhone`
 * `mobilePhone`
