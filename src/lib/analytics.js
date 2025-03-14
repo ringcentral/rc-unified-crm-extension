@@ -28,7 +28,7 @@ exports.track = function track({ eventName, interfaceName, adapterName, accountI
         distinct_id: extensionId,
         interfaceName,
         adapterName,
-        accountId,
+        rcAccountId: accountId,
         extensionId,
         success,
         requestDuration,
