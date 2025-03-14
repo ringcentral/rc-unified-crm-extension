@@ -41,7 +41,13 @@ Ultimately, the key to logging calls successfully is in implementing the followi
 
 ### Logging data to structued fields
 
-Most CRMs utilize different nomenclatures for referring to call log data. For example, in Bullhorn calls are logged using a Note object, while in NetSuite calls are logged using an Activity object. These objects may also have different schemas and data models associated with them. It is the responsibility of the adapter developer to determine the best way to store call log data within a target CRM or system. Consider Clio which has a structured data element into which a call's duration is expected to be placed. Bullhorn on the other hand has no such field, so the duration is placed in an open text field where other metadata about the call is also recorded. 
+When implementing these endpoints, it's crucial to map call data to the appropriate structured fields within the CRM. This ensures that information is organized, searchable, and aligns with the CRM's data schema.
+
+**Key Considerations**
+
+* Field Mapping: Identify corresponding fields in the CRM for each piece of call data (e.g., call duration, caller ID, notes).
+* Data Validation: Ensure that the data conforms to the CRM's field requirements, such as data types and length constraints.
+* Error Handling: Implement robust error handling to manage scenarios where data fails validation or the CRM API returns errors.
 
 ### Updating existing call log records
 
@@ -75,6 +81,9 @@ In the above scenario, if the developer is not careful, any edits the user may h
 ### Logging call recordings
 
 If a `recordingLink` data element is transmitted to the adapter via the `updateCallLog` or `createCallLog` interfaces, then a recording exists for the associated phone call. The value of `recordingLink` is a URL that directs users to the `media.ringcentral.com` service where users can access and/or listen to or watch the associated media. RingCentral will enforce access controls to the associated file so that only those permitted to access the media do so. 
+
+!!! tip "Call recordings take time to process"
+    Be aware that it may take some time for RingCentral's servers to process and upload recordings. The delay can range from seconds to minutes, depending on the call's duration and server load. 
 
 #### Downloading the call recording
 
