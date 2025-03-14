@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../src/models/adminConfigModel');
 const { getHashValue } = require('../src/lib/util');
-const { userSettingsByAdmin, updateUserSettings } = require('../src/core/user');
+const { getUserSettingsByAdmin, updateUserSettings } = require('../src/core/user');
 
 jest.mock('axios');
 jest.mock('../src/models/adminConfigModel');
@@ -32,7 +32,7 @@ describe('user.js tests', () => {
             getHashValue.mockReturnValue(hashedRcAccountId);
             AdminConfigModel.findByPk.mockResolvedValue(adminConfig);
 
-            const result = await userSettingsByAdmin({ rcAccessToken });
+            const result = await getUserSettingsByAdmin({ rcAccessToken });
 
             expect(result).toEqual({
                 customManifestUrl: 'http://example.com/adapter',
@@ -61,7 +61,7 @@ describe('user.js tests', () => {
             getHashValue.mockReturnValue(hashedRcAccountId);
             AdminConfigModel.findByPk.mockResolvedValue(null);
 
-            const result = await userSettingsByAdmin({ rcAccessToken });
+            const result = await getUserSettingsByAdmin({ rcAccessToken });
 
             expect(result).toEqual({
                 customManifestUrl: undefined,

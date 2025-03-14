@@ -2,7 +2,7 @@ const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const { getHashValue } = require('../lib/util');
 
-async function userSettingsByAdmin({ rcAccessToken }) {
+async function getUserSettingsByAdmin({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
         {
@@ -22,7 +22,7 @@ async function userSettingsByAdmin({ rcAccessToken }) {
 async function getUserSettings({ user, rcAccessToken }) {
     let userSettingsByAdmin = [];
     if (rcAccessToken) {
-        userSettingsByAdmin = await userSettingsByAdmin({ rcAccessToken });
+        userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken });
     }
 
     // For non-readonly admin settings, user use its own setting
@@ -66,6 +66,6 @@ async function updateUserSettings({ user, userSettings }) {
     });
 }
 
-exports.userSettingsByAdmin = userSettingsByAdmin;
+exports.getUserSettingsByAdmin = getUserSettingsByAdmin;
 exports.getUserSettings = getUserSettings;
 exports.updateUserSettings = updateUserSettings;
