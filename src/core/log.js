@@ -35,7 +35,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         }
         const platformModule = require(`../adapters/${platform}`);
         const callLog = incomingData.logInfo;
-        const additionalSubmission = incomingData.additionalSubmission; // DEPRECATED
+        const additionalSubmission = incomingData.additionalSubmission;
         const note = incomingData.note;
         const aiNote = incomingData.aiNote;
         const transcript = incomingData.transcript;

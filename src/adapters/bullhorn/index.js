@@ -434,7 +434,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? '';
+    const noteActions = additionalSubmission.noteActions ?? null;
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
@@ -450,13 +450,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
     const putBody = {
         comments,
-        action: noteActions,
         personReference: {
             id: contactInfo.id
         },
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
+    }
+    if (noteActions) {
+        putBody.action = noteActions;
     }
     let addLogRes;
     let extraDataTracking = {
@@ -567,6 +569,32 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         },
         extraDataTracking
     };
+}
+
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    let extraDataTracking = {};
+
+    const existingBullhornLogId = existingCallLog.thirdPartyLogId;
+    const postBody = {
+        action: dispositions.noteActions
+    }
+    const upsertDispositionRes = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+        postBody,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: upsertDispositionRes.headers['ratelimit-remaining'],
+        ratelimitAmount: upsertDispositionRes.headers['ratelimit-limit'],
+        ratelimitReset: upsertDispositionRes.headers['ratelimit-reset']
+    }
+    return {
+        logId: existingBullhornLogId,
+        extraDataTracking
+    }
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
@@ -733,7 +761,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     let extraDataTracking = {};;
     try {
         getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts,action`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -749,7 +777,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts,action`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -761,6 +789,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const logBody = getLogRes.data.data.comments;
     const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const subject = logBody.split('</ul>')[0]?.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
+    const action = getLogRes.data.data.action;
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
@@ -773,7 +802,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject,
             note,
-            contactName: `${contact.firstName} ${contact.lastName}`
+            contactName: `${contact.firstName} ${contact.lastName}`,
+            dispositions: {
+                noteActions: action
+            }
         },
         extraDataTracking
     }
@@ -920,6 +952,7 @@ exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;

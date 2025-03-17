@@ -4,20 +4,16 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const userCore = require('../core/user');
+const errorMessage = require('../lib/generalErrorMessage');
 
-// default cases:
-// 1. inboundCall
-// 2. outboundCall
-// 3. message
-// 4. voicemail
-async function createCallDisposition({ platform, user, logInfo, dispositionInfo, userSettings }) {
+async function upsertCallDisposition({ platform, userId, sessionId, dispositions, additionalSubmission, userSettings }) {
     try {
         const log = await CallLogModel.findOne({
             where: {
-                sessionId: logInfo.sessionId
+                sessionId
             }
         });
-        if (log) {
+        if (!log) {
             return {
                 successful: false,
                 returnMessage: {
@@ -27,18 +23,78 @@ async function createCallDisposition({ platform, user, logInfo, dispositionInfo,
                 }
             }
         }
-        const platformModule = require(`../adapters/${platform}`);
-        // Defaulting logic
-        const platformManifest = require('../adapters/manifest.json').platforms[platform];
-        const caseType = logInfo.direction === 'Inbound' ? 'inboundCall' : 'outboundCall';
-        const defaultableFields = platformManifest.page.callLog.additionFields.filter(f => !!f?.defaultSettingValues[caseType]);
-        for (const f of defaultableFields) {
-            dispositionInfo[f.const].defaultValue = userSettings[f.const]?.value ?? "";
+        let user = await UserModel.findByPk(userId);
+        if (!user) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `Cannot find user`,
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            }
         }
+        const platformModule = require(`../adapters/${platform}`);
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const { logId, returnMessage, extraDataTracking } = await platformModule.upsertCallDisposition({
+            user,
+            existingCallLog: log,
+            authHeader,
+            dispositions
+        });
+        return { successful: !!logId, logId, returnMessage, extraDataTracking };
     }
     catch (e) {
-        /* empty */
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
+        if (e.response?.status === 429) {
+            return {
+                successful: false,
+                returnMessage: errorMessage.rateLimitErrorMessage({ platform })
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
+                extraDataTracking: {
+                    statusCode: e.response?.status,
+                }
+            };
+        }
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error dispositioning call log`,
+                messageType: 'warning',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Please check if your account has permission to CREATE logs.`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 5000
+            }
+        };
     }
 }
 
-exports.createCallDisposition = createCallDisposition;
+exports.upsertCallDisposition = upsertCallDisposition;
