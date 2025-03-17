@@ -50,7 +50,7 @@ const app = express();
 app.use(bodyParser.json())
 
 app.use(cors({
-    methods: ['GET', 'POST', 'PATCH']
+    methods: ['GET', 'POST', 'PATCH', 'PUT']
 }));
 
 app.get('/releaseNotes', async function (req, res) {
@@ -798,7 +798,7 @@ app.patch('/callLog', async function (req, res) {
         }
     });
 });
-app.post('/callDisposition', async function (req, res) {
+app.put('/callDisposition', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
@@ -809,20 +809,15 @@ app.post('/callDisposition', async function (req, res) {
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const user = await UserModel.findByPk(userId);
-            if (!user) {
+            if (!userId) {
                 res.status(400).send('Unknown user');
             }
-            const userSettings = await userCore.getUserSettings({
-                user,
-                rcAccessToken: req.query.rcAccessToken
-            });
-            const { successful, returnMessage, extraDataTracking } = await dispositionCore.createCallDisposition({
+            const { successful, returnMessage, extraDataTracking } = await dispositionCore.upsertCallDisposition({
                 platform,
-                user,
+                userId,
                 sessionId: req.body.sessionId,
-                dispositionInfo: req.body.dispositionInfo,
-                userSettings
+                dispositions: req.body.dispositions,
+                additionalSubmission: req.body.additionalSubmission
             });
             if (extraDataTracking) {
                 extraData = extraDataTracking;
