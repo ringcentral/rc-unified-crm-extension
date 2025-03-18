@@ -7,7 +7,6 @@ function getAuthType() {
 }
 
 async function getOauthInfo({ hostname }) {
-    console.log({ hostname });
     return {
         clientId: process.env.GOOGLESHEET_CLIENT_ID,
         clientSecret: process.env.GOOGLESHEET_CLIENT_SECRET,
@@ -72,13 +71,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     try {
         const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
         let sheetName = "";
-        console.log({ phoneNumber });
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-        console.log({ phoneNumberObj });
-        const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-        console.log({ phoneNumberWithoutCountryCode });
+        const phoneNumberE164 = phoneNumberObj.number.e164;
         if (!!!contactSheetUrl) {
-            console.log({ message: "Inside" });
             return {
                 successful: false,
                 returnMessage: {
@@ -108,14 +103,12 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             },
         });
         const sheets = sheetResponse.data?.sheets;
-        console.log({ sheets });
         for (const sheet of sheets) {
             if (sheet.properties?.sheetId === parseInt(gid)) {
                 sheetName = sheet.properties.title;
                 break;
             }
         }
-        console.log({ message: "SheetName is", sheetName });
         if (sheetName === "") {
             return {
                 successful: false,
@@ -133,11 +126,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 'Content-Type': 'application/json',
             }
         });
-
-        console.log({ message: "Finding Contacts", Data: spreadsheetData.data, values: spreadsheetData.data.values });
         const data = spreadsheetData.data.values;
-        const results = data.slice(0).filter(row => row[2] === phoneNumberWithoutCountryCode);
-        console.log({ message: "Results", results });
+        const results = data.slice(0).filter(row => row[2] === phoneNumberE164);
         for (const row of results) {
             matchedContactInfo.push({
                 id: row[0],
@@ -152,35 +142,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
-
-        console.log({ message: 'Matched Contact Info:', matchedContactInfo });
         return {
             matchedContactInfo,
         };
     }
-
-    // const response = await axios.get(
-    //     'https://www.googleapis.com/drive/v3/files',
-    //     {
-    //         headers: {
-    //             'Authorization':authHeader,
-    //         },
-    //         params: {
-    //             q: "mimeType='application/vnd.google-apps.spreadsheet'",
-    //             fields: "files(id,name,createdTime)",
-    //             orderBy: "createdTime desc"
-    //         }
-    //     }
-    // );
-    // for (const file of response.data.files) {
-    //     matchedContactInfo.push({
-    //         id: file.id,
-    //         name: file.name,
-    //         createdTime: file.createdTime
-    //     });
-    // }
-    // console.log({ message: 'Response:', response, Data: response.data, matchedContactInfo });
-
     catch (e) {
         console.log({ e });
     }
@@ -190,9 +155,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
     let sheetName = "";
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
-    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    const phoneNumberE164 = phoneNumberObj.number.e164;
     if (!!!contactSheetUrl) {
-        console.log({ message: "Inside" });
         return {
             successful: false,
             returnMessage: {
@@ -256,7 +220,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     let contactId = spreadsheetId + nextLogRow;
     const data = {
         values: [
-            [contactId, newContactName, phoneNumberWithoutCountryCode]
+            [contactId, newContactName, phoneNumberE164]
         ],
     };
     const response = await axios.post(url, data, { headers });
@@ -276,7 +240,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     try {
         const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
-        console.log({ callLog, contactInfo });
         let sheetName = "";
         if (!!!sheetUrl) {
             return {
@@ -343,7 +306,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
         const data = {
             values: [
-                [nextLogRow, spreadsheetId, title, contactInfo.phoneNumber, callStartTime, callEndTime, note, callLog.sessionId, contactInfo.name]
+                [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
             ],
         };
         const response = await axios.post(url, data, { headers });
@@ -358,7 +321,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
-        console.log({ error });
         return {
             successful: false,
             returnMessage: {
@@ -462,17 +424,37 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 }
             }
         } else {
+            const headerResponse = await axios.get(
+                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
+                { headers: { Authorization: authHeader } }
+            );
+
+            const headers = headerResponse.data.values[0]; // First row as headers
+            const columnCIndex = headers.indexOf("Subject");
+            const columnDIndex = headers.indexOf("Note");
+
+            if (columnCIndex === -1 || columnDIndex === -1) {
+                return {
+                    returnMessage: {
+                        messageType: 'warning',
+                        message: 'Error logging out of GoogleSheet',
+                        ttl: 3000
+                    }
+                }
+            }
+            const subjectColumn = String.fromCharCode(65 + columnCIndex);
+            const noteColumn = String.fromCharCode(65 + columnDIndex);
             const response = await axios.post(
                 `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
                 {
                     valueInputOption: "RAW",
                     data: [
                         {
-                            range: `${sheetName}!C${rowIndex}`,
+                            range: `${sheetName}!${subjectColumn}${rowIndex}`,
                             values: [[subject]]
                         },
                         {
-                            range: `${sheetName}!G${rowIndex}`,
+                            range: `${sheetName}!${noteColumn}${rowIndex}`,
                             values: [[note]]
                         }
                     ]
@@ -598,8 +580,28 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
     } else {
+        const headerResponse = await axios.get(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
+            { headers: { Authorization: authHeader } }
+        );
+
+        const headers = headerResponse.data.values[0]; // First row as headers
+        const columnCIndex = headers.indexOf("Subject");
+        const columnDIndex = headers.indexOf("Note");
+
+        if (columnCIndex === -1 || columnDIndex === -1) {
+            return {
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Error logging out of GoogleSheet',
+                    ttl: 3000
+                }
+            }
+        }
+        const subjectColumn = String.fromCharCode(65 + columnCIndex);
+        const noteColumn = String.fromCharCode(65 + columnDIndex);
         const resultResponse = await axios.get(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${sheetName}!C${rowIndex}&ranges=${sheetName}!G${rowIndex}`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchGet?ranges=${sheetName}!${subjectColumn}${rowIndex}&ranges=${sheetName}!${noteColumn}${rowIndex}`,
             {
                 headers: { Authorization: authHeader }
             }
