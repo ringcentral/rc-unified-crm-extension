@@ -424,13 +424,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             },
         });
         const rows = response.data.values;
-        // // Find the record where Name matches searchKey
-        // const header = rows[0];
-        // const nameIndex = header.indexOf("ID");
-        // const record = rows.find(row => row[nameIndex] === callLogId);
+        const headers = response.data.values[0]; // First row as headers
+        const idColumnIndex = headers.indexOf("ID");
         let rowIndex = -1;
         for (let i = 0; i < rows.length; i++) {
-            if (rows[i][0] === existingLogId) { // Assuming column A is index 0
+            if (rows[i][idColumnIndex] === existingLogId) { // Assuming column A is index 0
                 rowIndex = i + 1; // Convert to 1-based index (Sheets starts from 1)
                 break;
             }
@@ -445,12 +443,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 }
             }
         } else {
-            const headerResponse = await axios.get(
-                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
-                { headers: { Authorization: authHeader } }
-            );
-
-            const headers = headerResponse.data.values[0]; // First row as headers
             const columnCIndex = headers.indexOf("Subject");
             const columnDIndex = headers.indexOf("Note");
 
@@ -581,13 +573,11 @@ async function getCallLog({ user, callLogId, authHeader }) {
     });
 
     const rows = response.data.values;
-    // // Find the record where Name matches searchKey
-    // const header = rows[0];
-    // const nameIndex = header.indexOf("ID");
-    // const record = rows.find(row => row[nameIndex] === callLogId);
+    const headers = response.data.values[0]; // First row as headers
+    const idColumnIndex = headers.indexOf("ID");
     let rowIndex = -1;
     for (let i = 0; i < rows.length; i++) {
-        if (rows[i][0] === callLogId) { // Assuming column A is index 0
+        if (rows[i][idColumnIndex] === callLogId) { // Assuming column A is index 0
             rowIndex = i + 1; // Convert to 1-based index (Sheets starts from 1)
             break;
         }
@@ -601,12 +591,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
     } else {
-        const headerResponse = await axios.get(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
-            { headers: { Authorization: authHeader } }
-        );
-
-        const headers = headerResponse.data.values[0]; // First row as headers
+        // const headerResponse = await axios.get(
+        //     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
+        //     { headers: { Authorization: authHeader } }
+        // );
         const columnCIndex = headers.indexOf("Subject");
         const columnDIndex = headers.indexOf("Note");
 
