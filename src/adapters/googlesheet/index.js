@@ -127,12 +127,16 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         });
         const data = spreadsheetData.data.values;
-        const results = data.slice(0).filter(row => row[2] === phoneNumberE164);
+        const headers = data[0];
+        const idColumnIndex = headers.indexOf("ID");
+        const nameColumnIndex = headers.indexOf("ContactName");
+        const phoneColumnIndex = headers.indexOf("PhoneNumber");
+        const results = data.slice(0).filter(row => row[phoneColumnIndex] === phoneNumberE164);
         for (const row of results) {
             matchedContactInfo.push({
-                id: row[0],
-                name: row[1],
-                phoneNumber: row[2]
+                id: row[idColumnIndex],
+                name: row[nameColumnIndex],
+                phoneNumber: row[phoneColumnIndex]
             });
 
         }
@@ -217,13 +221,26 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     });
     const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
-    let contactId = spreadsheetId + nextLogRow;
-    const data = {
-        values: [
-            [contactId, newContactName, phoneNumberE164]
-        ],
+    let contactId = nextLogRow;
+    const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+    const rowData = new Array(Object.keys(columnIndexes).length).fill("");
+    // const data = {
+    //     values: [
+    //         [contactId, newContactName, phoneNumberE164]
+    //     ],
+    // };
+    const requestData = {
+        "ID": nextLogRow,
+        "SheetId": spreadsheetId,
+        "ContactName": newContactName,
+        "PhoneNumber": phoneNumberE164
     };
-    const response = await axios.post(url, data, { headers });
+    Object.entries(requestData).forEach(([key, value]) => {
+        if (columnIndexes[key] !== undefined) {
+            rowData[columnIndexes[key]] = value;
+        }
+    });
+    const response = await axios.post(url, { values: [rowData] }, { headers });
     return {
         contactInfo: {
             id: contactId,
