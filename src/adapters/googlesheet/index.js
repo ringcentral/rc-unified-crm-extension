@@ -304,12 +304,33 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         });
         const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
-        const data = {
-            values: [
-                [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
-            ],
+        // const data = {
+        //     values: [
+        //         [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
+        //     ],
+        // };
+        const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        const rowData = new Array(Object.keys(columnIndexes).length).fill("");
+        const requestData = {
+            "ID": nextLogRow,
+            "SheetId": spreadsheetId,
+            "Subject": title,
+            "ContactName": contactInfo.name,
+            "Note": note,
+            "Phone": contactInfo.phoneNumber,
+            "CallCreation Time": callStartTime,
+            "CallEnd Time": callEndTime,
+            "Call Duration (Second)": callLog.duration,
+            "SessionId": callLog.sessionId,
+            "CallDirection": callLog.direction
         };
-        const response = await axios.post(url, data, { headers });
+        Object.entries(requestData).forEach(([key, value]) => {
+            if (columnIndexes[key] !== undefined) {
+                rowData[columnIndexes[key]] = value;
+            }
+        });
+
+        const response = await axios.post(url, { values: [rowData] }, { headers });
         const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: nextLogRow,
@@ -626,6 +647,19 @@ function extractSheetId(url) {
     const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : "Invalid URL";
 }
+async function getColumnIndexes(spreadsheetId, sheetName, authHeader) {
+    const res = await axios.get(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}!1:1`,
+        { headers: { Authorization: authHeader } }
+    );
+
+    const headers = res.data.values[0]; // First row is headers
+    return headers.reduce((map, name, index) => {
+        map[name] = index; // Map column name to its index
+        return map;
+    }, {});
+}
+
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
