@@ -354,7 +354,7 @@ app.post('/user/settings', async function (req, res) {
             if (!user?.userSettings) {
                 res.status(500).send('Cannot found user settings');
             }
-            await userCore.updateUserSettings({ user, userSettings: req.body.userSettings });
+            await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
             res.status(200).send('User settings updated');
             success = true;
         }
