@@ -422,6 +422,7 @@ app.get('/hostname', async function (req, res) {
 })
 
 app.get('/oauth-callback', async function (req, res) {
+    console.log({ message: "Oauth CallBack", req });
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
