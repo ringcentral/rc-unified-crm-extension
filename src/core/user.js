@@ -19,7 +19,7 @@ async function userSettingsByAdmin({ rcAccessToken }) {
     };
 }
 
-async function updateUserSettings({ user, userSettings }) {
+async function updateUserSettings({ user, userSettings, platformName }) {
     const keys = Object.keys(userSettings || {});
     let updatedSettings = {
         ...(user.userSettings || {})
@@ -27,9 +27,24 @@ async function updateUserSettings({ user, userSettings }) {
     for (const k of keys) {
         updatedSettings[k] = userSettings[k];
     }
-    await user.update({
-        userSettings: updatedSettings
-    });
+    const platformModule = require(`../adapters/${platformName}`);
+    if (platformModule.onUpdateUserSettings) {
+        const { successful, returnMessage } = await platformModule.onUpdateUserSettings({ user, userSettings, updatedSettings });
+        if (successful) {
+            await user.update({
+                userSettings: updatedSettings
+            });
+        }
+        return {
+            successful,
+            returnMessage
+        };
+    }
+    else {
+        await user.update({
+            userSettings: updatedSettings
+        });
+    }
 }
 
 exports.userSettingsByAdmin = userSettingsByAdmin;
