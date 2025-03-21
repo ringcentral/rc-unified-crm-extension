@@ -380,6 +380,38 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    let extraDataTracking = {};
+    if (!dispositions.matters) {
+        return {
+            logId: null
+        };
+    }
+    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const patchBody = {
+        data: {
+            matter: {
+                id: dispositions.matters
+            }
+        }
+    }
+    const upsertDispositionRes = await axios.patch(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
+        patchBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: upsertDispositionRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: upsertDispositionRes.headers['x-ratelimit-limit'],
+        ratelimitReset: upsertDispositionRes.headers['x-ratelimit-reset']
+    };
+    return {
+        logId: existingClioLogId,
+        extraDataTracking
+    }
+}
+
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let extraDataTracking = {};
     const sender =
@@ -542,7 +574,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject: getLogRes.data.data.subject,
             note,
-            contactName: contactRes.data.data.name
+            contactName: contactRes.data.data.name,
+            dispositions: {
+                matters: getLogRes.data.data.matter?.id
+            }
         },
         extraDataTracking
     }
@@ -628,6 +663,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.getCallLog = getCallLog;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;

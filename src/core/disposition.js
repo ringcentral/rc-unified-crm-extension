@@ -86,7 +86,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
+                                text: `Please check if your account has permission to UPDATE logs.`
                             }
                         ]
                     }
