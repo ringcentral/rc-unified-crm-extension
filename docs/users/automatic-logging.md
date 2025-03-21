@@ -48,3 +48,8 @@ Automatic call logging allows for calls to be logged, even if you are not active
 !!! info "Retroactively logging calls may take time"
 	To help prevent server overload, App Connect will retroactively log calls in the background slowly over time, processing calls in groups of ten every minute for ten minutes. Therefore, it will only attempt to log 100 calls in this way. If you failed to log more than 100, then the remainder will need to be logged manually. 
 
+You can disable retroactive call logging under "Call and SMS logging" settings area. 
+
+<figure markdown>
+  ![Disable retroactive call logging](../img/retroactive-logging.png){ .mw-400 }
+</figure>
