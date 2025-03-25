@@ -215,8 +215,8 @@ app.get('/admin/settings', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
-            const user = await UserModel.findByPk(unAuthData.id);
+            platformName = unAuthData?.platform ?? 'Unknown';
+            const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
             }
@@ -290,8 +290,8 @@ app.get('/user/settings', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
-            const user = await UserModel.findByPk(unAuthData.id);
+            platformName = unAuthData?.platform ?? 'Unknown';
+            const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
             }
@@ -337,7 +337,7 @@ app.post('/user/settings', async function (req, res) {
             if (!platformName) {
                 res.status(400).send('Unknown platform');
             }
-            const user = await UserModel.findByPk(unAuthData.id);
+            const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
             }
@@ -377,7 +377,7 @@ app.get('/hostname', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            const user = await UserModel.findByPk(unAuthData.id);
+            const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
             }
@@ -516,13 +516,13 @@ app.post('/unAuthorize', async function (req, res) {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
-            platformName = unAuthData.platform;
-            const userToLogout = await UserModel.findByPk(unAuthData.id);
+            platformName = unAuthData?.platform ?? 'Unknown';
+            const userToLogout = await UserModel.findByPk(unAuthData?.id);
             if (!userToLogout) {
                 res.status(400).send('Unknown user');
                 return;
             }
-            const platformModule = require(`./adapters/${unAuthData.platform}`);
+            const platformModule = require(`./adapters/${unAuthData?.platform ?? 'Unknown'}`);
             const { returnMessage } = await platformModule.unAuthorize({ user: userToLogout });
             res.status(200).send({ returnMessage });
             success = true;
