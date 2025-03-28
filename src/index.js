@@ -307,7 +307,6 @@ app.get('/user/settings', async function (req, res) {
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        res.status(400).send(e);
     }
     const requestEndTime = new Date().getTime();
     analytics.track({
