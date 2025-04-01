@@ -3,7 +3,7 @@ async function createNewSheet({ user, data }) {
     console.log(data)
     let isSheetExist = data?.name;
     let sheetName = '';
-    let sheetUrl = '';
+    let sheetUrl = ''
     // if not, create a new sheet
     if (isSheetExist) {
         // Reason: This file might not following our format, so need to change it to comply with our format
