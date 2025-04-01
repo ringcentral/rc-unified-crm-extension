@@ -9,10 +9,10 @@ function getAuthType() {
 }
 
 async function authValidation({ user }) {
-    let commentActionListResponse;
+    let pingResponse;
     try {
-        commentActionListResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+        pingResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}ping`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -27,7 +27,7 @@ async function authValidation({ user }) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             try {
-                commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`,
                     {
                         headers: {
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
