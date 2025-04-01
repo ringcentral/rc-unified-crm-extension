@@ -140,6 +140,17 @@ app.get('/serverVersionInfo', (req, res) => {
     res.send({ version: defaultCrmManifest.version });
 });
 
+// Unique: Google Sheets
+app.get('/google-sheets-file-picker', function (req, res) {
+    try {
+        res.sendFile(path.join(__dirname, 'adapters/googleSheets/GooglePickerImp.html'));
+    }
+    catch (e) {
+        console.log(`platform: google-sheets \n${e.stack}`);
+        res.status(500).send(e);
+    }
+})
+
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
     try {
