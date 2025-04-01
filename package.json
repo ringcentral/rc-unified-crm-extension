@@ -45,6 +45,7 @@
     "dotenv": "^16.0.3",
     "dynamoose": "^4.0.3",
     "express": "^4.18.2",
+    "googleapis": "^148.0.0",
     "jsonwebtoken": "^8.5.1",
     "mixpanel": "^0.18.0",
     "moment": "^2.29.4",

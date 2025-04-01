@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://incentive-continuity-banana-kay.trycloudflare.com",
+    "serverUrl": "https://originally-ooo-mixed-organizer.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1518,26 +1518,26 @@
                 }
             }
         },
-        "googlesheet": {
+        "googleSheets": {
             "logoUrl": "/Users/sushilmall/Downloads/LabsProject/rc-unified-crm-extension/docs/img/CRMLogos/Google_Sheets_Logo_256px.png",
             "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm",
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "docs.google.com/spreadsheets/*",
-            "name": "googlesheet",
-            "displayName": "GoogleSheet(Beta)",
+            "name": "googleSheets",
+            "displayName": "Google Sheets (Beta)",
             "auth": {
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://accounts.google.com/o/oauth2/auth",
-                    "clientId": "367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com",
+                    "clientId": "1027442773593-a4v5oq4dqeu0ftqug0vsiqhi8k57ur24.apps.googleusercontent.com",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
-                    "customState": "platform=googlesheet"
+                    "customState": "platform=googleSheets"
                 }
             },
-            "platform": "googlesheet",
+            "platform": "googleSheets",
             "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
             "canOpenLogPage": false,
             "embeddedOnCrmPage": {
@@ -1547,27 +1547,6 @@
                 }
             },
             "settings": [
-                {
-                    "id": "netsuiteDefaultNoteAction",
-                    "type": "section",
-                    "name": "Google Sheets options",
-                    "items": [
-                        {
-                            "id": "googleSheetCallLogUrlId",
-                            "type": "inputField",
-                            "name": "Call Log Google Sheets URL",
-                            "placeholder": "Enter action value",
-                            "defaultValue": ""
-                        },
-                        {
-                            "id": "googleSheetContactSearchUrlId",
-                            "type": "inputField",
-                            "name": "Contacts Google Sheets URL",
-                            "placeholder": "Enter action value",
-                            "defaultValue": ""
-                        }
-                    ]
-                }
             ],
             "page": {
                 "feedback": {

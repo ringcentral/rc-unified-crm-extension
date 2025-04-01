@@ -68,6 +68,7 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    console.log({ message: "Find Contact" });
     try {
         const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
         let sheetName = "";
@@ -254,6 +255,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+    console.log({ message: "Create CallLog" });
     try {
         const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
