@@ -79,6 +79,9 @@ async function updateUserSettings({ user, userSettings, platformName }) {
             userSettings: updatedSettings
         });
     }
+    return {
+        userSettings: user.userSettings
+    };
 }
 
 exports.getUserSettingsByAdmin = getUserSettingsByAdmin;

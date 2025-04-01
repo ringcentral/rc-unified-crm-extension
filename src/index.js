@@ -20,6 +20,7 @@ const axios = require('axios');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const dynamoose = require('dynamoose');
+const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
@@ -141,15 +142,72 @@ app.get('/serverVersionInfo', (req, res) => {
 });
 
 // Unique: Google Sheets
-app.get('/google-sheets-file-picker', function (req, res) {
+app.get('/googleSheets/filePicker', function (req, res) {
     try {
-        res.sendFile(path.join(__dirname, 'adapters/googleSheets/GooglePickerImp.html'));
+        const filePath = path.join(__dirname, 'adapters/googleSheets/GooglePickerImp.html');
+        let fileContent = require('fs').readFileSync(filePath, 'utf8');
+        fileContent = fileContent.replace('{token}', req.query.token);
+        fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
+        res.send(fileContent);
     }
     catch (e) {
-        console.log(`platform: google-sheets \n${e.stack}`);
+        console.log(`platform: googleSheets \n${e.stack}`);
         res.status(500).send(e);
     }
 })
+// Unique: Google Sheets
+app.post('/googleSheets/sheet', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('Unknown user');
+            }
+            const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
+            if (successful) {
+                res.status(200).send({
+                    name: sheetName,
+                    url: sheetUrl
+                });
+            }
+            else {
+                res.status(500).send('Failed to create new sheet');
+            }
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(`platform: googleSheets \n${e.stack}`);
+        res.status(500).send(e);
+    }
+});
+
+// Unique: Google Sheets
+app.delete('/googleSheets/sheet', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('Unknown user');
+            }
+            await googleSheetsExtra.removeSheet({ user });
+            res.status(200).send('Sheet removed');
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+        }
+    }
+    catch (e) {
+        console.log(`platform: googleSheets \n${e.stack}`);
+        res.status(500).send(e);
+    }
+});
 
 // Unique: Pipedrive
 app.get('/pipedrive-redirect', function (req, res) {
@@ -351,11 +409,8 @@ app.post('/user/settings', async function (req, res) {
             if (!user) {
                 res.status(400).send('Unknown user');
             }
-            if (!user?.userSettings) {
-                res.status(500).send('Cannot found user settings');
-            }
-            await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
-            res.status(200).send('User settings updated');
+            const { userSettings } = await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
+            res.status(200).send({ userSettings });
             success = true;
         }
         else {
