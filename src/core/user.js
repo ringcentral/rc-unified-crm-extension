@@ -19,7 +19,7 @@ async function getUserSettingsByAdmin({ rcAccessToken }) {
     };
 }
 
-async function updateUserSettings({ user, userSettings, platformName }) {
+async function getUserSettings({ user, rcAccessToken }) {
     let userSettingsByAdmin = [];
     if (rcAccessToken) {
         userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken });
@@ -53,6 +53,7 @@ async function updateUserSettings({ user, userSettings, platformName }) {
     return result;
 }
 
+async function updateUserSettings({ user, userSettings, platformName }) {
     const keys = Object.keys(userSettings || {});
     let updatedSettings = {
         ...(user.userSettings || {})
@@ -78,6 +79,9 @@ async function updateUserSettings({ user, userSettings, platformName }) {
             userSettings: updatedSettings
         });
     }
+    return {
+        userSettings: user.userSettings
+    };
 }
 
 exports.getUserSettingsByAdmin = getUserSettingsByAdmin;

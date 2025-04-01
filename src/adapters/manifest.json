@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://lite-http-tunnel-s52m.onrender.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -211,6 +211,10 @@
             "urlIdentifier": "insightly.com",
             "name": "insightly",
             "displayName": "Insightly",
+            "serverSideLogging": {
+                "url": "https://da-web-tunnel-7d0fe54e5f68.herokuapp.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "auth": {
                 "type": "apiKey",
                 "apiKey": {
@@ -451,6 +455,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
+            "serverSideLogging": {
+                "url": "https://da-web-tunnel-7d0fe54e5f68.herokuapp.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Clio",
             "auth": {
                 "type": "oauth",
@@ -1039,7 +1047,7 @@
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
             "serverSideLogging": {
-                "url": "https://crm-logging.labs.ringcentral.com",
+                "url": "https://da-web-tunnel-7d0fe54e5f68.herokuapp.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
             },
             "displayName": "Bullhorn",
