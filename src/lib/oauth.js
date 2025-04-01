@@ -67,7 +67,19 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
         else {
             // Unique: Bullhorn
             if (user.platform === 'bullhorn') {
-                user = await bullhornTokenRefresh(user);
+                try {
+                    const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
+                        headers: {
+                            Authorization: `Bearer ${user.platformAdditionalInfo.bhRestToken}`,
+                        },
+                    });
+                    if (pingResponse.status !== 200) {
+                        user = await bullhornTokenRefresh(user);
+                    }
+                }
+                catch (e) {
+                    user = await bullhornTokenRefresh(user);
+                }
             }
             else {
                 const token = oauthApp.createToken(user.accessToken, user.refreshToken);
