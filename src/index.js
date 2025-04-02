@@ -164,6 +164,7 @@ app.post('/googleSheets/sheet', async function (req, res) {
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
+                return;
             }
             const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
             if (successful) {
@@ -171,13 +172,16 @@ app.post('/googleSheets/sheet', async function (req, res) {
                     name: sheetName,
                     url: sheetUrl
                 });
+                return;
             }
             else {
                 res.status(500).send('Failed to create new sheet');
+                return;
             }
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
+            return;
         }
     }
     catch (e) {
@@ -364,10 +368,12 @@ app.get('/user/settings', async function (req, res) {
             if (!user) {
                 res.status(400).send('Unknown user');
             }
-            const rcAccessToken = req.query.rcAccessToken;
-            const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
-            success = true;
-            res.status(200).send(userSettings);
+            else {
+                const rcAccessToken = req.query.rcAccessToken;
+                const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
+                success = true;
+                res.status(200).send(userSettings);
+            }
         }
         else {
             success = false;
