@@ -126,13 +126,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
                 const matterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description`,
+                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description } }) : null;
-                const associatedMatterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description}`,
+                let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+                matters = matters?.filter(m => m.status !== 'Closed');
+                let associatedMatterInfo = await axios.get(
+                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
@@ -141,7 +142,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
                     ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
                 };
-                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description } }) : null;
+                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+                associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
                 returnedMatters = returnedMatters.concat(associatedMatters ?? []);
