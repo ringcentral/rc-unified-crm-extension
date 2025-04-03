@@ -173,7 +173,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const matchedContactInfo = [];
         const { searchContactPhone = false, disableCustomerSearch = false, disableSalesOrderLogging = false } = user.userSettings;
         if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
-            console.log({ phoneNumberWithoutCountryCode });
             let contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
             let customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
             const dateBeforeThreeYear = getThreeYearsBeforeDate();
@@ -182,7 +181,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
 
             }
-            const requestStartTime = new Date().getTime();
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
@@ -1055,37 +1053,37 @@ async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
         });
     return salesOrderInfo;
 }
-async function logCallsAgainstSalesOrder({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    try {
-        console.log("Inside logCallsAgainstSalesOrder");
-        const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-        const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactInfo.id} ORDER BY createddate desc`;
-        const salesOrderInfo = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: salesOrderQuery
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        console.log({ salesOrderInfo });
-        if (salesOrderInfo.data.items.length > 0) {
-            console.log("Inside sales order");
-            const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
-            const postBody = {
-                salesOrderId: salesOrderInfo.data.items[0].id,
-                noteTitle: title,
-                noteText: note
-            };
-            const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
-                headers: { 'Authorization': authHeader }
-            });
-            console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
-        }
-    } catch (error) {
-        console.log({ message: "Error in logging calls against salesOrder" });
-    }
-}
+// async function logCallsAgainstSalesOrder({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+//     try {
+//         console.log("Inside logCallsAgainstSalesOrder");
+//         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+//         const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactInfo.id} ORDER BY createddate desc`;
+//         const salesOrderInfo = await axios.post(
+//             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+//             {
+//                 q: salesOrderQuery
+//             },
+//             {
+//                 headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+//             });
+//         console.log({ salesOrderInfo });
+//         if (salesOrderInfo.data.items.length > 0) {
+//             console.log("Inside sales order");
+//             const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+//             const postBody = {
+//                 salesOrderId: salesOrderInfo.data.items[0].id,
+//                 noteTitle: title,
+//                 noteText: note
+//             };
+//             const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+//                 headers: { 'Authorization': authHeader }
+//             });
+//             console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
+//         }
+//     } catch (error) {
+//         console.log({ message: "Error in logging calls against salesOrder" });
+//     }
+// }
 
 function getThreeYearsBeforeDate() {
     const date = new Date();
