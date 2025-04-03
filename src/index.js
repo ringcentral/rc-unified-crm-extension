@@ -623,7 +623,7 @@ app.get('/contact', async function (req, res) {
         success = false;
     }
     const requestEndTime = new Date().getTime();
-    console.log({ requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
+    console.log({ message: "Find Contact Time Taken", requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
     analytics.track({
         eventName: 'Find contact',
         interfaceName: 'findContact',

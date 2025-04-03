@@ -172,16 +172,48 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
         const matchedContactInfo = [];
         const requestStartTime = new Date().getTime();
+        const phoneNumberWithE164Format = phoneNumber.replace(' ', '+');
+        console.log({ phoneNumberWithE164Format });
         if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
             console.log({ phoneNumberWithoutCountryCode });
             // const contactQuery = `SELECT * FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
             //const customerQuery = `SELECT * FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`;
-            //   Remove % from end of query
-            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE lastmodifieddate >= to_date('2022-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
-            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE lastmodifieddate >= to_date('2022-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
 
-            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
-            // const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            //   Remove % from end of query
+            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE lastmodifieddate >= to_date('2022-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+            //const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE lastmodifieddate >= to_date('2022-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+
+            // Removing other fields from query 1.
+
+            console.log({ searchContactWithPhone: user.userSettings.searchContactPhoneId, disableCustomerSearch: user.userSettings.disableCustomerSearchId, salesOrderCallLog: user.userSettings.enableSalesOrderLoggingId })
+            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('2023-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+            // const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('2023-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+
+            // Search without REGEXP_REPLACE and with equals 2.
+            //const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE phone ='${phoneNumberWithE164Format}'`;
+
+
+            //It does not contains lastModifiedDate  3.
+
+            //  const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,officephone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            //  const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,homephone,mobilephone,altphone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+
+
+            //It does not contains lastModifiedDate with all fields 4.
+
+            // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(officePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+            // const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE REGEXP_REPLACE(phone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(homePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(mobilePhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}' OR REGEXP_REPLACE(altPhone, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}'`;
+
+
+            //Byrne Query Not Producing correct result
+
+            // const contactQuery = `SELECT id, firstName, middleName, lastName, entityTitle, phone, homePhone, mobilePhone, officePhone FROM contact WHERE lastModifiedDate >= TO_DATE('2022-03-16 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND EXISTS(SELECT 1 FROM(SELECT phone AS number FROM contact  UNION ALL SELECT homePhone FROM contact UNION ALL SELECT mobilePhone FROM contact UNION ALL SELECT officePhone FROM contact) sub WHERE REGEXP_REPLACE(sub.number, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+            // const customerQuery = `SELECT id, firstName, middleName, lastName, entityTitle, phone, homePhone, mobilePhone, altPhone FROM customer WHERE lastModifiedDate >= TO_DATE('2022-03-16 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AND EXISTS(SELECT 1 FROM(SELECT phone AS number FROM contact     UNION ALL SELECT homePhone FROM contact UNION ALL SELECT mobilePhone FROM contact UNION ALL SELECT altPhone FROM contact) sub WHERE REGEXP_REPLACE(sub.number, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}')`;
+
+            //Experimental Query
+            //const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('2023-03-16 00:00:00', 'yyyy-mm-dd hh24:mi:ss') AND (REGEXP_REPLACE(phone, '^[+]?[0-9]{1,3}[[:space:].-]?|[^0-9]', '') = '${phoneNumberWithoutCountryCode}')`;
+
+            const requestStartTime = new Date().getTime();
             const personInfo = await axios.post(
                 `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                 {
@@ -191,6 +223,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                 });
             console.log({ Length: personInfo.data.items.length });
+            const requestEndTime = new Date().getTime();
+            console.log({ message: "Time Taken", requestStartTime, requestEndTime, Duration: (requestEndTime - requestStartTime) / 1000 });
             if (personInfo.data.items.length > 0) {
                 // for (var result of personInfo.data.items) {
                 //     let firstName = result.firstname ?? '';
@@ -228,45 +262,46 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     });
                 }
             }
-            //For Customer search
-            const customerInfo = await axios.post(
-                `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                {
-                    q: customerQuery
-                },
-                {
-                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                });
-            if (customerInfo.data.items.length > 0) {
-                for (var result of customerInfo.data.items) {
-                    let salesOrders = [];
-                    try {
-                        // const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
-                        // for (const salesOrder of salesOrderResponse?.data?.items) {
-                        //     salesOrders.push({
-                        //         const: salesOrder?.id,
-                        //         title: salesOrder?.trandisplayname
-                        //     });
-                        // }
-                    } catch (e) {
-                        console.log({ message: "Error in SalesOrder search" });
-                    }
-                    let firstName = result.firstname ?? '';
-                    let middleName = result.middlename ?? '';
-                    let lastName = result.lastname ?? '';
-                    const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                    matchedContactInfo.push({
-                        id: result.id,
-                        name: customerName,
-                        phone: result.phone ?? '',
-                        homephone: result.homephone ?? '',
-                        mobilephone: result.mobilephone ?? '',
-                        altphone: result.altphone ?? '',
-                        additionalInfo: salesOrders.length > 0 ? { salesorder: salesOrders } : {},
-                        type: 'custjob'
-                    })
-                }
-            }
+            //   For Customer search
+            // const customerInfo = await axios.post(
+            //     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+            //     {
+            //         q: customerQuery
+            //     },
+            //     {
+            //         headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+            //     });
+            //console.log({ message: "Customer length", Length: customerInfo.data.items.length });
+            // if (customerInfo.data.items.length > 0) {
+            //     for (var result of customerInfo.data.items) {
+            //         let salesOrders = [];
+            //         try {
+            //             // const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
+            //             // for (const salesOrder of salesOrderResponse?.data?.items) {
+            //             //     salesOrders.push({
+            //             //         const: salesOrder?.id,
+            //             //         title: salesOrder?.trandisplayname
+            //             //     });
+            //             // }
+            //         } catch (e) {
+            //             console.log({ message: "Error in SalesOrder search" });
+            //         }
+            //         let firstName = result.firstname ?? '';
+            //         let middleName = result.middlename ?? '';
+            //         let lastName = result.lastname ?? '';
+            //         const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+            //         matchedContactInfo.push({
+            //             id: result.id,
+            //             name: customerName,
+            //             phone: result.phone ?? '',
+            //             homephone: result.homephone ?? '',
+            //             mobilephone: result.mobilephone ?? '',
+            //             altphone: result.altphone ?? '',
+            //             additionalInfo: salesOrders.length > 0 ? { salesorder: salesOrders } : {},
+            //             type: 'custjob'
+            //         })
+            //     }
+            // }
         }
         matchedContactInfo.push({
             id: 'createNewContact',
@@ -308,6 +343,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     try {
+        console.log({ contactInfo, message: "Creating CallLog" });
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         let callStartTime = moment(callLog.startTime).toISOString();
