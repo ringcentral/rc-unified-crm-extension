@@ -213,7 +213,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
             //  For Customer search
             if (disableCustomerSearch.value !== true) {
-                console.log({ message: "Customer search" });
                 const customerInfo = await axios.post(
                     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                     {
@@ -294,7 +293,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     try {
-        console.log({ contactInfo, message: "Creating CallLog" });
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
         let callStartTime = moment(callLog.startTime).toISOString();
@@ -768,7 +766,6 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
                         contactPayLoad.subsidiary = { id: subsidiaryId };
                     }
-                    console.log({ contactPayLoad });
                     const createContactRes = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact`,
                         contactPayLoad
