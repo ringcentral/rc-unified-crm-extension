@@ -1330,29 +1330,29 @@
             },
             "settings": [
                 {
-                    "id": "netsuitedefault",
+                    "id": "netSuiteDefaultOptions",
                     "type": "section",
                     "name": "NetSuite Options",
                     "items": [
                         {
-                            "id": "searchContactPhoneId",
+                            "id": "searchContactPhone",
                             "type": "boolean",
-                            "name": "Search Contact with Phone Fields",
-                            "description": "Search the contact using all phone fields, such as phone, home phone, and mobile phone. If enabled, search with only the phone field.",
+                            "name": "Search Contact using Phone Fields",
+                            "description": "If enabled, the search will be performed using the phone fields.",
                             "defaultValue": false
                         },
                          {
-                            "id": "disableCustomerSearchId",
+                            "id": "disableCustomerSearch",
                             "type": "boolean",
                             "name": "Search only for contacts and disable customer search.",
-                            "description": "Search only for contacts and disable customer search. If disabled, search with both contacts and customers.",
+                            "description": "If enabled Search only for contacts otherwise, search for both customers and contacts.",
                             "defaultValue": false
                         },
                          {
-                            "id": "enableSalesOrderLoggingId",
+                            "id": "disableSalesOrderLogging",
                             "type": "boolean",
-                            "name": "Log the Calls against Sales Order",
-                            "description": "When enabled, the call logs will be created against the sales order.",
+                            "name": "Off/Disable Log the Calls against Sales Order",
+                            "description": "If enabled, the call will not be logged against the sales order.",
                             "defaultValue": false
                         }
                     ]
@@ -1427,29 +1427,7 @@
                             "description": "Log the AI-generated transcript of the call, if it exists",
                             "defaultValue": true,
                             "requiredPermission": "aiNote"
-                        },
-                         {
-                            "id": "searchContactPhone",
-                            "type": "boolean",
-                            "name": "Search Contact with All Phone Fields",
-                            "description": "Search the contact using all phone fields, such as phone, home phone, and mobile phone. If enabled, search with only the phone field.",
-                            "defaultValue": false
-                        },
-                         {
-                            "id": "disableCustomerSearch",
-                            "type": "boolean",
-                            "name": "Search only for contacts and disable customer search.",
-                            "description": "Search only for contacts and disable customer search. If disabled, search with both contacts and customers.",
-                            "defaultValue": false
-                        },
-                         {
-                            "id": "enableSalesOrderLogging",
-                            "type": "boolean",
-                            "name": "Log the Calls against Sales Order",
-                            "description": "When enabled, the call logs will be created against the sales order.",
-                            "defaultValue": false
                         }
-
                     ]
                 }
             ],
