@@ -114,5 +114,40 @@ async function createSpreadsheetWithHeaders(accessToken) {
     }
 }
 
+async function updateSelectedSheet({ user, data }) {
+    const sheetData = data.sheetData;
+    const updatedUserSettings = user.userSettings;
+    updatedUserSettings.googleSheetsName = {
+        value: sheetData?.name
+    };
+    updatedUserSettings.googleSheetsUrl = {
+        value: sheetData.url
+    };
+    // eslint-disable-next-line no-param-reassign
+    user.userSettings = {};
+    // eslint-disable-next-line no-param-reassign
+    user.userSettings = updatedUserSettings;
+    await user.save();
+    return {
+        successful: true,
+        sheetName: sheetData?.name,
+        sheetUrl: sheetData?.url
+    }
+
+}
+
+function pickerCallback(data) {
+    console.log({ message: "Data is", data });
+
+    if (data.action === google.picker.Action.PICKED) {
+        //const document = data[google.picker.Response.DOCUMENTS][0];
+        //document.getElementById('content').innerText = `Selected File: ${document[google.picker.Document.NAME]}`;
+        const field = data.docs[0].id;
+        alert("User selected file is " + field + " " + data.docs[0].name + " " + data.docs[0].url);
+        updateSelectedSheet(accessToken, field);
+    }
+}
+
 exports.createNewSheet = createNewSheet;
 exports.removeSheet = removeSheet;
+exports.updateSelectedSheet = updateSelectedSheet;

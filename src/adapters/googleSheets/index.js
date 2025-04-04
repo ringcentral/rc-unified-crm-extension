@@ -5,6 +5,8 @@ const { parsePhoneNumber } = require('awesome-phonenumber');
 function getAuthType() {
     return 'oauth';
 }
+const predefinedContactSheetName = "Contacts";
+const predefinedCallLogSheetName = "Call Log";
 
 async function getOauthInfo({ hostname }) {
     return {
@@ -68,9 +70,9 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    console.log({ message: "Find Contact" });
+    console.log({ message: "Find Contact", uerSettings: user?.userSettings });
     try {
-        const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
+        const contactSheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberE164 = phoneNumberObj.number.e164;
@@ -97,7 +99,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             }
         }
         const spreadsheetId = extractSheetId(contactSheetUrl);
-        const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        //  const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
         const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
             headers: {
                 Authorization: authHeader,
@@ -105,7 +107,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         });
         const sheets = sheetResponse.data?.sheets;
         for (const sheet of sheets) {
-            if (sheet.properties?.sheetId === parseInt(gid)) {
+            if (sheet.properties?.title === predefinedContactSheetName) {
                 sheetName = sheet.properties.title;
                 break;
             }
@@ -120,6 +122,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 }
             }
         }
+        console.log({ sheetName });
         const matchedContactInfo = [];
         const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
             headers: {
@@ -157,7 +160,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 }
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
-    const contactSheetUrl = user?.userSettings?.googleSheetContactSearchUrlId?.value;
+    const contactSheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberE164 = phoneNumberObj.number.e164;
@@ -184,7 +187,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     }
     const spreadsheetId = extractSheetId(contactSheetUrl);
-    const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+    // const gid = contactSheetUrl.split('gid=')[1].split(/[#&?]/)[0];
     const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
         headers: {
             Authorization: authHeader,
@@ -192,7 +195,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     });
     const sheets = sheetResponse.data?.sheets;
     for (const sheet of sheets) {
-        if (sheet.properties?.sheetId === parseInt(gid)) {
+        if (sheet.properties?.title === predefinedContactSheetName) {
             sheetName = sheet.properties.title;
             break;
         }
@@ -257,7 +260,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     console.log({ message: "Create CallLog" });
     try {
-        const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
+        const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
         let sheetName = "";
         if (!!!sheetUrl) {
@@ -283,7 +286,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         }
         const spreadsheetId = extractSheetId(sheetUrl);
-        const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        // const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
         const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
             headers: {
                 Authorization: authHeader,
@@ -291,7 +294,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         });
         const sheets = sheetResponse.data?.sheets;
         for (const sheet of sheets) {
-            if (sheet.properties?.sheetId === parseInt(gid)) {
+            if (sheet.properties?.title === predefinedCallLogSheetName) {
                 sheetName = sheet.properties.title;
                 break;
             }
@@ -350,7 +353,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         });
 
         const response = await axios.post(url, { values: [rowData] }, { headers });
-        const logId = `${spreadsheetId}/edit?gid=${gid}`;
+        // const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: nextLogRow,
             successful: true,
@@ -361,6 +364,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
+        console.log({ error });
         return {
             successful: false,
             returnMessage: {
@@ -384,7 +388,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     }
 }
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
-    const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
+    const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     try {
         if (!!!sheetUrl) {
@@ -411,7 +415,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
         // const splitValues = callLogId.split("space");
         const spreadsheetId = extractSheetId(sheetUrl);
-        const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        // const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
         const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
             headers: {
                 Authorization: authHeader,
@@ -419,7 +423,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
         const sheets = sheetResponse.data?.sheets;
         for (const sheet of sheets) {
-            if (sheet.properties?.sheetId === parseInt(gid)) {
+            if (sheet.properties?.title === predefinedCallLogSheetName) {
                 sheetName = sheet.properties.title;
                 break;
             }
@@ -533,7 +537,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
-    const sheetUrl = user?.userSettings?.googleSheetCallLogUrlId?.value;
+    const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     //const sheetName = user?.userSettings?.googleSheetNameId?.value;
     let sheetName = "";
     if (!!!sheetUrl) {
@@ -560,7 +564,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
     // const splitValues = callLogId.split("space");
     const spreadsheetId = extractSheetId(sheetUrl);
-    const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+    //  const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
     const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
         headers: {
             Authorization: authHeader,
@@ -568,7 +572,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     });
     const sheets = sheetResponse.data?.sheets;
     for (const sheet of sheets) {
-        if (sheet.properties?.sheetId === parseInt(gid)) {
+        if (sheet.properties?.title === predefinedCallLogSheetName) {
             sheetName = sheet.properties.title;
             break;
         }
@@ -666,6 +670,12 @@ async function getColumnIndexes(spreadsheetId, sheetName, authHeader) {
         return map;
     }, {});
 }
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    const existingGoogleSheetLogId = existingCallLog.thirdPartyLogId;
+    return {
+        logId: existingGoogleSheetLogId
+    }
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
@@ -676,3 +686,4 @@ exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
 exports.createContact = createContact;
+exports.upsertCallDisposition = upsertCallDisposition;

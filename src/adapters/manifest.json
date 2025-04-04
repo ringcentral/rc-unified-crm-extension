@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://originally-ooo-mixed-organizer.trycloudflare.com",
+    "serverUrl": "https://sides-ie-ethernet-spring.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1531,7 +1531,7 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://accounts.google.com/o/oauth2/auth",
-                    "clientId": "1027442773593-a4v5oq4dqeu0ftqug0vsiqhi8k57ur24.apps.googleusercontent.com",
+                    "clientId": "367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
                     "customState": "platform=googleSheets"

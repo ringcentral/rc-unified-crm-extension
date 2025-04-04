@@ -186,6 +186,26 @@ app.post('/googleSheets/sheet', async function (req, res) {
     }
 });
 
+app.post('/googleSheets/selectedSheet', async function (req, res) {
+    console.log({ message: `googleSheets/selectedSheet`, Body: req.body });
+
+    const authHeader = `Bearer ${req.body.accessToken}`;
+    const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: {
+            Authorization: authHeader
+        }
+    });
+    const data = response?.data;
+    console.log({ UserId: data?.sub });
+    const user = await UserModel.findByPk(data?.sub);
+    if (!user) {
+        res.status(400).send('Unknown user');
+    }
+    const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
+
+    res.status(200).send({ message: 'Sheet selected', Id: req.body.field });
+});
+
 // Unique: Google Sheets
 app.delete('/googleSheets/sheet', async function (req, res) {
     try {
