@@ -136,18 +136,6 @@ async function updateSelectedSheet({ user, data }) {
 
 }
 
-function pickerCallback(data) {
-    console.log({ message: "Data is", data });
-
-    if (data.action === google.picker.Action.PICKED) {
-        //const document = data[google.picker.Response.DOCUMENTS][0];
-        //document.getElementById('content').innerText = `Selected File: ${document[google.picker.Document.NAME]}`;
-        const field = data.docs[0].id;
-        alert("User selected file is " + field + " " + data.docs[0].name + " " + data.docs[0].url);
-        updateSelectedSheet(accessToken, field);
-    }
-}
-
 exports.createNewSheet = createNewSheet;
 exports.removeSheet = removeSheet;
 exports.updateSelectedSheet = updateSelectedSheet;
