@@ -135,6 +135,17 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const idColumnIndex = headers.indexOf("ID");
         const nameColumnIndex = headers.indexOf("ContactName");
         const phoneColumnIndex = headers.indexOf("PhoneNumber");
+        if (idColumnIndex === -1 || nameColumnIndex === -1 || phoneColumnIndex === -1) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid Headers, First Row of Sheet should be ID,SheetId, ContactName, PhoneNumber",
+                    ttl: 30000
+                }
+            }
+        }
+
         const results = data.slice(0).filter(row => row[phoneColumnIndex] === phoneNumberE164);
         for (const row of results) {
             matchedContactInfo.push({
@@ -156,6 +167,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     }
     catch (e) {
         console.log({ e });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: "Error Finding Contact",
+                ttl: 30000
+            }
+        }
     }
 
 }
@@ -258,7 +277,6 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    console.log({ message: "Create CallLog" });
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
@@ -377,7 +395,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `An error occurred while logging the call, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Options.`
+                                text: `An error occurred while logging the call, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Config.`
                             }
                         ]
                     }
@@ -404,7 +422,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                    text: `To Edit log calls, please go to Settings > Google Sheets Config and add Google Sheet to log calls to.`
                                 }
                             ]
                         }
@@ -525,7 +543,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `An error occurred while updating the call log, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Options.`
+                                text: `An error occurred while updating the call log, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Config.`
                             }
                         ]
                     }

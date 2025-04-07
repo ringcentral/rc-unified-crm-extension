@@ -116,7 +116,7 @@
               
             if (data.action === google.picker.Action.PICKED) {    
                 const field = data.docs[0].id;
-                await axios.post('https://sides-ie-ethernet-spring.trycloudflare.com/googleSheets/selectedSheet', {
+                await axios.post('https://unified-crm-extension.labs.ringcentral.com/googleSheets/selectedSheet', {
                         accessToken: accessToken,
                         sheetData: data.docs[0]
                     });
