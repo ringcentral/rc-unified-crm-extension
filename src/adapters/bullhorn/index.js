@@ -18,6 +18,9 @@ async function authValidation({ user }) {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+            if(new Date(pingResponse.data.sessionExpires) < new Date()) {
+                user = await refreshSessionToken(user);
+            }
         return {
             successful: true,
             status: 200

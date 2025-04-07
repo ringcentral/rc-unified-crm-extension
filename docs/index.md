@@ -5,15 +5,15 @@ hide:
 ---
 <div class="qs-hero" markdown>
 <div class="carousel container">
-  <h3>Benefit Spotlight</h3>
   <h2>Track all RingEX&trade; communications in your CRM</h2>
   <div class="row">
     <div class="column">
       <img src="./img/app-connect-logging.png" class="d-block mx-lg-auto img-fluid" alt="RingCentral App Connect call logging" loading="lazy">
     </div>
-    <div class="column">
+    <div class="column md-typeset">
       <p>RingCentral <a href="https://ringcentral.github.io/rc-unified-crm-extension/">App Connect</a>, powered by <a href="https://ringcentral.github.io/ringcentral-embeddable/">Embeddable 2.0</a>, is an all-in-one CRM integration solution. It embeds a full-featured communications client into almost any app, reliably logging all communications. If your CRM is not currently supported, developers can easily integrate with both SaaS products and proprietary CRMs using a simple framework.</p>
-      <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh"><img src="img/chrome-web-store.png"></a>
+      <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh"><img class="mw-300" src="img/chrome-web-store.png"></a>
+      <a href="https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl"><img class="mw-300" src="img/edge-store.png"></a>
     </div>
   </div>
 </div>

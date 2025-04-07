@@ -213,7 +213,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 });
             if (customerInfo.data.items.length > 0) {
                 for (const result of customerInfo.data.items) {
-                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                     let salesOrders = [];
                     try {
                         const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });

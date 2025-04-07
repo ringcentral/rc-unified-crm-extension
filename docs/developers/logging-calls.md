@@ -49,10 +49,6 @@ Ultimately, the key to logging calls successfully is in implementing the followi
 * [`updateCallLog`](interfaces/updateCallLog.md)
 * [`getCallLog`](interfaces/getCallLog.md)
 
-### Facilitating a manual update to a call log entry
-
-The `getCallLog` interface is invoked when a user is requesting to the edit the contents of an activity record in the CRM via the App Connect client. Using this interface, App Connect can fetch the source of record from the CRM and then display it in the call log editor. 
-
 ### Logging data to structued fields
 
 When implementing these endpoints, it's crucial to map call data to the appropriate structured fields within the CRM. This ensures that information is organized, searchable, and aligns with the CRM's data schema.

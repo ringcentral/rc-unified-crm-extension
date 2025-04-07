@@ -73,7 +73,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                             Authorization: `Bearer ${user.platformAdditionalInfo.bhRestToken}`,
                         },
                     });
-                    if (pingResponse.status !== 200) {
+                    if (new Date(pingResponse.data.sessionExpires) < new Date()) {
                         user = await bullhornTokenRefresh(user);
                     }
                 }

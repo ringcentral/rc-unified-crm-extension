@@ -164,6 +164,7 @@ app.post('/googleSheets/sheet', async function (req, res) {
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
+                return;
             }
             const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
             if (successful) {
@@ -171,39 +172,22 @@ app.post('/googleSheets/sheet', async function (req, res) {
                     name: sheetName,
                     url: sheetUrl
                 });
+                return;
             }
             else {
                 res.status(500).send('Failed to create new sheet');
+                return;
             }
         }
         else {
             res.status(400).send('Please go to Settings and authorize CRM platform');
+            return;
         }
     }
     catch (e) {
         console.log(`platform: googleSheets \n${e.stack}`);
         res.status(500).send(e);
     }
-});
-
-app.post('/googleSheets/selectedSheet', async function (req, res) {
-    console.log({ message: `googleSheets/selectedSheet`, Body: req.body });
-
-    const authHeader = `Bearer ${req.body.accessToken}`;
-    const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-        headers: {
-            Authorization: authHeader
-        }
-    });
-    const data = response?.data;
-    console.log({ UserId: data?.sub });
-    const user = await UserModel.findByPk(data?.sub);
-    if (!user) {
-        res.status(400).send('Unknown user');
-    }
-    const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
-
-    res.status(200).send({ message: 'Sheet selected', Id: req.body.field });
 });
 
 // Unique: Google Sheets
@@ -384,10 +368,12 @@ app.get('/user/settings', async function (req, res) {
             if (!user) {
                 res.status(400).send('Unknown user');
             }
-            const rcAccessToken = req.query.rcAccessToken;
-            const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
-            success = true;
-            res.status(200).send(userSettings);
+            else {
+                const rcAccessToken = req.query.rcAccessToken;
+                const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
+                success = true;
+                res.status(200).send(userSettings);
+            }
         }
         else {
             success = false;
@@ -479,7 +465,6 @@ app.get('/hostname', async function (req, res) {
 })
 
 app.get('/oauth-callback', async function (req, res) {
-    console.log({ message: "Oauth CallBack", req });
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
