@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
@@ -210,7 +212,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                 });
             if (customerInfo.data.items.length > 0) {
-                for (var result of customerInfo.data.items) {
+                for (const result of customerInfo.data.items) {
                     let salesOrders = [];
                     try {
                         const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
@@ -541,7 +543,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             type: 'User'
         }
         const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
-        const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
         let logBody = '';
         let title = '';
         switch (messageType) {
@@ -926,7 +928,7 @@ function netSuiteRestLetError(error, message) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = /^- Note:[^\n]*(?:\n(?!- ).*)*/m;
@@ -976,7 +978,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = /- Call recording link: (.+?)(?=\n|$)/g;
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         // if not end with new line, add new line
         if (body && !body.endsWith('\n')) {
             body += '\n';

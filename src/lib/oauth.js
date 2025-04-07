@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const ClientOAuth2 = require('client-oauth2');
 const axios = require('axios');
 const { Lock } = require('../models/dynamo/lockSchema');
@@ -28,7 +29,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                 await lock.delete();
                 lock = null;
             }
-            if (!!lock) {
+            if (lock) {
                 let processTime = 0;
                 while (!!lock && processTime < tokenLockTimeout) {
                     await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
@@ -58,7 +59,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                 user.tokenExpiry = expires;
             }
             await user.save();
-            if (!!newLock) {
+            if (newLock) {
                 await newLock.delete();
             }
         }
@@ -66,7 +67,19 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
         else {
             // Unique: Bullhorn
             if (user.platform === 'bullhorn') {
-                user = await bullhornTokenRefresh(user);
+                try {
+                    const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
+                        headers: {
+                            Authorization: `Bearer ${user.platformAdditionalInfo.bhRestToken}`,
+                        },
+                    });
+                    if (new Date(pingResponse.data.sessionExpires) < new Date()) {
+                        user = await bullhornTokenRefresh(user);
+                    }
+                }
+                catch (e) {
+                    user = await bullhornTokenRefresh(user);
+                }
             }
             else {
                 const token = oauthApp.createToken(user.accessToken, user.refreshToken);

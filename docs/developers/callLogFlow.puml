@@ -1,24 +1,54 @@
 @startuml
 start
-:A phone call;
-:The call ends;
-if (Log call) then (yes)
-    :Call log is created without accurate result, duration and (if applicable) recording link;
-    :Call result and duration are sent to updateCallLog API;
-    :(If applicable) Call recording is sent to updateCallLog API;
-else (no)
-    :After a few seconds;
-    :Result & duration are ready;
-    if(Log call) then (yes)
-        :Call log is created without (if applicable) recording link;
-        :(If applicable) Call recording is sent to updateCallLog API;
-    else (no)
-        :After a few seconds to a few minutes;
-        :Call recording is ready;
-        :Log call;
-        :Call log is created with all data;
+
+:Call Initiated;
+if (Auto Log?) then (Yes)
+  :Call Connects (SSCL);
+  note right
+    [AUTO - CREATE log]
+    Data: a few fields
+  end note
+
+  :Call Ends (SSCL);
+  note right
+    [AUTO - UPDATE log]
+    Data: most fields except accurate duration, recording link etc.
+  end note
+
+  :Call Record Available in Call History;
+
+    if(Can go in parallel) then ( )
+        :User Can Perform Disposition;
+        note right
+          [MANUAL - UPSERT call disposition]
+          Data: agent notes, associations etc
+        end note
+    else ( )
+        :Call Data Fully Ready (SSCL);
+        note right
+          [AUTO - UPDATE log]
+          Data: accurate duration, recording link etc.
+        end note
+    endif
+
+
+else (No)
+  :Call Ends;
+  :Call Record Available in Call History;
+    if(Can go in parallel) then ( )
+        :User Can Perform Logging and Disposition;
+        note right
+          [MANUAL - UPSERT call logging and disposition]
+          Data: agent notes, associations etc
+        end note
+    else ( )
+        :Call Data Fully Ready;
+        note right
+          [AUTO - UPDATE log if exsist]
+          Data: accurate duration, recording link etc.
+        end note
     endif
 endif
-:Done;
+
 stop
 @enduml

@@ -14,6 +14,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Pipedrive",
             "auth": {
                 "type": "oauth",
@@ -210,6 +214,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Insightly",
             "auth": {
                 "type": "apiKey",
@@ -451,6 +459,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Clio",
             "auth": {
                 "type": "oauth",
@@ -660,6 +672,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "redtailtechnology.com",
             "name": "redtail",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "auth": {
                 "type": "apiKey",
                 "apiKey": {
@@ -1317,6 +1333,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "NetSuite",
             "auth": {
                 "type": "oauth",

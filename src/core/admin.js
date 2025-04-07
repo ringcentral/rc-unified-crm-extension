@@ -17,7 +17,7 @@ async function validateAdminRole({ rcAccessToken }) {
 
 async function upsertAdminSettings({ hashedRcAccountId, adminSettings }) {
     let existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
-    if (!!existingAdminConfig) {
+    if (existingAdminConfig) {
         await existingAdminConfig.update({
             ...adminSettings
         });
