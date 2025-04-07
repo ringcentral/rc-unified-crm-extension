@@ -1350,6 +1350,34 @@
             },
             "settings": [
                 {
+                    "id": "netSuiteDefaultOptions",
+                    "type": "section",
+                    "name": "NetSuite Options",
+                    "items": [
+                        {
+                            "id": "searchContactPhone",
+                            "type": "boolean",
+                            "name": "Search Contact using Phone Fields",
+                            "description": "If enabled, the search will be performed using the phone fields.",
+                            "defaultValue": false
+                        },
+                         {
+                            "id": "disableCustomerSearch",
+                            "type": "boolean",
+                            "name": "Search only for contacts and disable customer search.",
+                            "description": "If enabled Search only for contacts otherwise, search for both customers and contacts.",
+                            "defaultValue": false
+                        },
+                         {
+                            "id": "disableSalesOrderLogging",
+                            "type": "boolean",
+                            "name": "Off/Disable Log the Calls against Sales Order",
+                            "description": "If enabled, the call will not be logged against the sales order.",
+                            "defaultValue": false
+                        }
+                    ]
+                },
+                {
                     "id": "netsuiteCallLogDetails",
                     "type": "section",
                     "name": "Call log details",
