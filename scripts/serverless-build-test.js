@@ -45,6 +45,9 @@ cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 const manifestPath = resolve(projectPath, 'serverless-deploy-test/adapters/manifest.json');
 const manifest = require(manifestPath);
 manifest.serverUrl = 'https://unified-crm-extension-test.labs.ringcentral.com';
+for (var k of Object.keys(manifest.platforms)) {
+    manifest.platforms[k].serverSideLogging.url = "https://crm-logging-test.labs.ringcentral.com";
+}
 const fs = require('fs');
 fs.writeFile(manifestPath, JSON.stringify(manifest), function writeJSON(err) {
     if (err) return console.log(err);
