@@ -186,7 +186,6 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
             const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
                 headers: { 'Authorization': authHeader }
             });
-            console.log({ message: "SalesOrder logging response", createUserNotesResponse });
         } catch (error) {
             console.log({ message: "Error in logging calls against salesOrder" });
         }
