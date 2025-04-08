@@ -135,7 +135,7 @@ describe('contact tests', () => {
                         }
                     });
                 const platformGetDealScope = nock(platform.domain)
-                    .get(`${platform.contactPath}/${contactId}/deals?status=open`)
+                    .get(`${platform.contactDealPath}/${contactId}/deals?status=open`)
                     .once()
                     .reply(200, {
                         data: [{
