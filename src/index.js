@@ -469,6 +469,7 @@ app.get('/hostname', async function (req, res) {
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send('Unknown user');
+                return;
             }
             res.status(200).send(user.hostname);
         }
@@ -664,7 +665,7 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
-            if (successful) {
+        if (successful) {
                 const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
                 resultCount = nonNewContact.length;
             }

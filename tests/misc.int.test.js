@@ -85,12 +85,12 @@ describe('misc tests', () => {
             expect(res.status).toEqual(400);
             expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
         });
-        test('bad jwt - 500', async () => {
+        test('bad jwt - 400', async () => {
             // Act
             const res = await request(getServer()).get(`/hostname?jwtToken=randomJwt`)
 
             // Assert
-            expect(res.status).toEqual(500);
+            expect(res.status).toEqual(400);
         });
         test('has jwt - 200', async () => {
             for (const platform of platforms) {

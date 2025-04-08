@@ -140,7 +140,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     const matchedContactInfo = [];
     for (const person of personInfo.data.data.items) {
         const dealsResponse = await axios.get(
-            `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
+            `https://${user.hostname}/api/v2/persons/${person.item.id}/deals?status=open`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -337,7 +337,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const patchBody = {
-        deal_id: dispositions.deals
+        deal_id: dispositions.deals                   
     }
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
