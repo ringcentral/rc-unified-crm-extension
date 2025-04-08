@@ -167,7 +167,34 @@ async function unAuthorize({ user }) {
         }
     }
 }
-
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingClioLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let note = getLogRes.data.message;
+    let title = getLogRes.data.title;
+    if (dispositions && dispositions.salesorder) {
+        try {
+            const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+            const postBody = {
+                salesOrderId: dispositions.salesorder,
+                noteTitle: title,
+                noteText: note ?? 'empty'
+            };
+            const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+                headers: { 'Authorization': authHeader }
+            });
+            console.log({ message: "SalesOrder logging response", createUserNotesResponse });
+        } catch (error) {
+            console.log({ message: "Error in logging calls against salesOrder" });
+        }
+    }
+    return {
+        logId: existingClioLogId,
+    }
+}
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -359,21 +386,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             });
         const callLogId = extractIdFromUrl(addLogRes.headers.location);
 
-        if (additionalSubmission && additionalSubmission.salesorder) {
-            try {
-                const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
-                const postBody = {
-                    salesOrderId: additionalSubmission.salesorder,
-                    noteTitle: title,
-                    noteText: note ?? 'empty'
-                };
-                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
-                    headers: { 'Authorization': authHeader }
-                });
-            } catch (error) {
-                console.log({ message: "Error in logging calls against salesOrder" });
-            }
-        }
         return {
             logId: callLogId,
             returnMessage: {
@@ -1103,3 +1115,4 @@ exports.updateMessageLog = updateMessageLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.upsertCallDisposition = upsertCallDisposition;
