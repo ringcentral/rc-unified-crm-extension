@@ -160,6 +160,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         isNewContact: true
     });
     return {
+        successful: true,
         matchedContactInfo,
         extraDataTracking
     };

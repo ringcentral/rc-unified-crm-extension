@@ -17,9 +17,9 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        const CLIENT_ID = '367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com';
-        const key = 'AIzaSyDEEg6ULiELX2zK642HfivWFPzy8Ug0BpI';
-        const project_id = '367818015386';
+        const CLIENT_ID = '{clientId}';
+        const key = '{key}';
+        const project_id = '{projectId}';
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
         let accessToken = null;
@@ -116,7 +116,7 @@
               
             if (data.action === google.picker.Action.PICKED) {    
                 const field = data.docs[0].id;
-                await axios.post('https://unified-crm-extension.labs.ringcentral.com/googleSheets/selectedSheet', {
+                await axios.post('{serverUrl}/googleSheets/selectedSheet', {
                         accessToken: accessToken,
                         sheetData: data.docs[0]
                     });

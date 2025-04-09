@@ -76,7 +76,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         let sheetName = "";
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberE164 = phoneNumberObj.number.e164;
-        if (!!!contactSheetUrl) {
+        if (!contactSheetUrl) {
             return {
                 successful: false,
                 returnMessage: {
@@ -162,6 +162,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             isNewContact: true
         });
         return {
+            successful: true,
             matchedContactInfo,
         };
     }
@@ -183,7 +184,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     let sheetName = "";
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberE164 = phoneNumberObj.number.e164;
-    if (!!!contactSheetUrl) {
+    if (!contactSheetUrl) {
         return {
             successful: false,
             returnMessage: {
@@ -281,7 +282,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
         let sheetName = "";
-        if (!!!sheetUrl) {
+        if (!sheetUrl) {
             return {
                 successful: false,
                 returnMessage: {
@@ -409,7 +410,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     try {
-        if (!!!sheetUrl) {
+        if (!sheetUrl) {
             return {
                 successful: false,
                 returnMessage: {
@@ -558,7 +559,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     //const sheetName = user?.userSettings?.googleSheetNameId?.value;
     let sheetName = "";
-    if (!!!sheetUrl) {
+    if (!sheetUrl) {
         return {
             successful: false,
             returnMessage: {

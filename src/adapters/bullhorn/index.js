@@ -263,6 +263,7 @@ async function findContact({ user, phoneNumber }) {
     });
 
     return {
+        successful: true,
         matchedContactInfo,
         extraDataTracking
     };

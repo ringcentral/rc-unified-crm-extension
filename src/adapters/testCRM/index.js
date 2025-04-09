@@ -208,6 +208,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     //---CHECK.3: In console, if contact info is printed---
     //-----------------------------------------------------
     return {
+        successful: true,
         matchedContactInfo,
         returnMessage: {
             messageType: 'success',

@@ -1361,14 +1361,14 @@
                             "description": "If enabled, the search will be performed using the phone fields.",
                             "defaultValue": false
                         },
-                         {
+                        {
                             "id": "disableCustomerSearch",
                             "type": "boolean",
                             "name": "Search only for contacts and disable customer search.",
                             "description": "If enabled Search only for contacts otherwise, search for both customers and contacts.",
                             "defaultValue": false
                         },
-                         {
+                        {
                             "id": "disableSalesOrderLogging",
                             "type": "boolean",
                             "name": "Off/Disable Log the Calls against Sales Order",
@@ -1595,6 +1595,79 @@
                 }
             },
             "settings": [
+                {
+                    "id": "googleSheetsCallLogDetails",
+                    "type": "section",
+                    "name": "Call log details",
+                    "group": "logging",
+                    "items": [
+                        {
+                            "id": "addCallLogNote",
+                            "type": "boolean",
+                            "name": "Agent-entered notes",
+                            "description": "Log the notes manually entered by yourself",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogSubject",
+                            "type": "boolean",
+                            "name": "Call subject",
+                            "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogContactNumber",
+                            "type": "boolean",
+                            "name": "Contact's phone number",
+                            "description": "Log the contact information of the other participant",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDateTime",
+                            "type": "boolean",
+                            "name": "Date and time",
+                            "description": "Log the call's explicit start and end date/times",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDuration",
+                            "type": "boolean",
+                            "name": "Call duration",
+                            "description": "Log the call duration, noted in minutes and seconds",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogResult",
+                            "type": "boolean",
+                            "name": "Call result",
+                            "description": "Log the result of the call, e.g. Call connected",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogRecording",
+                            "type": "boolean",
+                            "name": "Link to the recording",
+                            "description": "Provide a link to the call's recording, if it exists",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Smart summary",
+                            "description": "Log the AI-generated summary of the call, if it exists",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Call transcript",
+                            "description": "Log the AI-generated transcript of the call, if it exists",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        }
+                    ]
+                }
             ],
             "page": {
                 "feedback": {

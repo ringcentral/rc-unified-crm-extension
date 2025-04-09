@@ -146,7 +146,9 @@ app.get('/googleSheets/filePicker', function (req, res) {
     try {
         const filePath = path.join(__dirname, 'adapters/googleSheets/GooglePickerImp.html');
         let fileContent = require('fs').readFileSync(filePath, 'utf8');
-        fileContent = fileContent.replace('{token}', req.query.token);
+        fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
+        fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
+        fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
         fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
         res.send(fileContent);
     }

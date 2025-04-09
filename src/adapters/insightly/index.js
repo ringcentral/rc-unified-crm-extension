@@ -203,7 +203,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         additionalInfo: null,
         isNewContact: true
     });
-    return { matchedContactInfo };
+    return {
+        successful: true,
+        matchedContactInfo
+    };
 }
 
 function formatContact(rawContactInfo) {

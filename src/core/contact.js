@@ -34,21 +34,21 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
+        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
-            return { successful: true, returnMessage, contact: matchedContactInfo, extraDataTracking };
+            return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
             if (returnMessage) {
                 return {
-                    successful: true,
+                    successful,
                     returnMessage,
                     extraDataTracking,
                     contact: matchedContactInfo,
                 }
             }
             return {
-                successful: true,
+                successful,
                 returnMessage:
                 {
                     message: `Contact not found`,

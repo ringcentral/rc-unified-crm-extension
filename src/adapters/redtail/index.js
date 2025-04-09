@@ -108,7 +108,10 @@ async function findContact({ user, phoneNumber }) {
         additionalInfo: null,
         isNewContact: true
     });
-    return { matchedContactInfo };
+    return {
+        successful: true,
+        matchedContactInfo
+    };
 }
 
 async function createContact({ user, phoneNumber, newContactName }) {
