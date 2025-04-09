@@ -168,8 +168,8 @@ async function unAuthorize({ user }) {
     }
 }
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
-    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
-    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingClioLogId}`,
+    const existingCallLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingCallLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -177,21 +177,46 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     let title = getLogRes.data.title;
     if (dispositions && dispositions.salesorder) {
         try {
+            const noteId = extractNoteIdFromNote({ note, targetSalesOrderId: dispositions.salesorder });
             const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
-            const postBody = {
-                salesOrderId: dispositions.salesorder,
-                noteTitle: title,
-                noteText: note ?? 'empty'
-            };
-            const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
-                headers: { 'Authorization': authHeader }
-            });
+            if (noteId === undefined) {
+                const postBody = {
+                    salesOrderId: dispositions.salesorder,
+                    noteTitle: title,
+                    noteText: note ?? 'empty'
+                };
+                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+                    headers: { 'Authorization': authHeader }
+                });
+                if (createUserNotesResponse?.data?.success) {
+                    const userNoteUrl = `https://${user.hostname.split(".")[0]}.app.netsuite.com//app/crm/common/note.nl?id=${createUserNotesResponse?.data?.noteId}`;
+                    console.log({ message: "User note created successfully", userNoteUrl });
+                    const updatedNote = upsertNetSuiteUserNoteUrl({ body: note, userNoteUrl, salesOrderId: dispositions.salesorder });
+
+                    const patchLogRes = await axios.patch(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingCallLogId}`,
+                        {
+                            message: updatedNote,
+                        },
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                }
+            } else {
+                const postBody = {
+                    noteTitle: title,
+                    noteText: note ?? 'empty',
+                    noteId: noteId
+                };
+                await axios.put(createUserNotesUrl, postBody, { headers: { 'Authorization': authHeader } });
+            }
+
         } catch (error) {
             console.log({ message: "Error in logging calls against salesOrder" });
         }
     }
     return {
-        logId: existingClioLogId,
+        logId: existingCallLogId,
     }
 }
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
@@ -440,6 +465,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Date\/Time: .*/, '');
         note = note?.replace(/\n- Duration: .*/, '');
         note = note?.replace(/\n- Call recording link: .*/, '');
+        note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
@@ -954,16 +980,38 @@ function upsertCallAgentNote({ body, note }) {
     if (!note) {
         return body;
     }
-    const noteRegex = /^- Note:[^\n]*(?:\n(?!- ).*)*/m;
+    const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Note: ${note}`);
+        body = body.replace(noteRegex, `- Note: ${note}\n`);
     }
     else {
-        if (body && !body.endsWith('\n')) {
-            body += '\n';
-        }
         body += `- Note: ${note}\n`;
     }
+    return body;
+}
+
+function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
+    // if (!userNoteUrl) {
+    //     return body;
+    // }
+    // const userNoteRegex = /^- SalesOrderNoteUrl:[^\n]*(?:\n(?!- ).*)*/m;
+    // if (userNoteRegex.test(body)) {
+    //     body = body.replace(userNoteRegex, `- SalesOrderNoteUrl: ${userNoteUrl}`);
+    // }
+    // else {
+    //     if (body && !body.endsWith('\n')) {
+    //         body += '\n';
+    //     }
+    //     body += `- SalesOrderNoteUrl: ${userNoteUrl}\n`;
+    // }
+    // const userNoteRegex = RegExp('- SalesOrderNoteUrl: (.+?)\n');
+    // if (userNoteRegex.test(body)) {
+    //     body = body.replace(userNoteRegex, `- SalesOrderNoteUrl: ${userNoteUrl}`);
+    // } else {
+    //     body += `\n- SalesOrderNoteUrl: ${userNoteUrl}`;
+    // }
+
+    body += `\n- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}`;
     return body;
 }
 
@@ -978,9 +1026,9 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallDuration({ body, duration }) {
-    const durationRegex = /- Duration: (.+?)(?=\n|$)/g;
+    const durationRegex = RegExp('- Duration: (.+?)?\n');
     if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}`);
+        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
     } else {
         body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
     }
@@ -998,7 +1046,7 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
 }
 
 function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = /- Call recording link: (.+?)(?=\n|$)/g;
+    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}`);
     } else if (recordingLink) {
@@ -1103,6 +1151,29 @@ function getThreeYearsBeforeDate() {
     date.setHours(0, 0, 0, 0);
     return date.toISOString().slice(0, 10) + " 00:00:00"; //Date formate 2022-04-03 00:00:00
 };
+
+function extractNoteIdFromNote({ note, targetSalesOrderId }) {
+    // Extract the userNoteUrl from the string
+    try {
+        const regex = /SalesOrderNoteUrl:\s*(https?:\/\/[^\s]+)\s+SalesOrderId:\s*(\d+)/g;
+        let match;
+        while ((match = regex.exec(note)) !== null) {
+            const url = match[1];
+            const salesOrderId = match[2];
+
+            if (salesOrderId === targetSalesOrderId.toString()) {
+                const idMatch = url.match(/id=(\d+)/);
+                if (idMatch) {
+                    return idMatch[1]; // return the id from URL
+                }
+            }
+        }
+        return undefined; // if not found
+    } catch (e) {
+        return undefined;
+    }
+
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
