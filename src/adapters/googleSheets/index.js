@@ -6,7 +6,7 @@ function getAuthType() {
     return 'oauth';
 }
 const predefinedContactSheetName = "Contacts";
-const predefinedCallLogSheetName = "Call Log";
+const predefinedCallLogSheetName = "Call Logs";
 
 async function getOauthInfo({ hostname }) {
     return {
@@ -70,7 +70,6 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    console.log({ message: "Find Contact", uerSettings: user?.userSettings });
     try {
         const contactSheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
@@ -89,7 +88,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet under Contacts Google Sheets URL.`
+                                    text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                                 }
                             ]
                         }
@@ -122,7 +121,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 }
             }
         }
-        console.log({ sheetName });
         const matchedContactInfo = [];
         const spreadsheetData = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`, {
             headers: {
@@ -133,8 +131,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const data = spreadsheetData.data.values;
         const headers = data[0];
         const idColumnIndex = headers.indexOf("ID");
-        const nameColumnIndex = headers.indexOf("ContactName");
-        const phoneColumnIndex = headers.indexOf("PhoneNumber");
+        const nameColumnIndex = headers.indexOf("Contact name");
+        const phoneColumnIndex = headers.indexOf("Phone");
         if (idColumnIndex === -1 || nameColumnIndex === -1 || phoneColumnIndex === -1) {
             return {
                 successful: false,
@@ -167,7 +165,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         };
     }
     catch (e) {
-        console.log({ e });
         return {
             successful: false,
             returnMessage: {
@@ -197,7 +194,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet under Contacts Google Sheets URL.`
+                                text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                             }
                         ]
                     }
@@ -255,9 +252,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     // };
     const requestData = {
         "ID": nextLogRow,
-        "SheetId": spreadsheetId,
-        "ContactName": newContactName,
-        "PhoneNumber": phoneNumberE164
+        "Sheet Id": spreadsheetId,
+        "Contact name": newContactName,
+        "Phone": phoneNumberE164
     };
     Object.entries(requestData).forEach(([key, value]) => {
         if (columnIndexes[key] !== undefined) {
@@ -295,7 +292,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `To log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                    text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                                 }
                             ]
                         }
@@ -354,16 +351,18 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const rowData = new Array(Object.keys(columnIndexes).length).fill("");
         const requestData = {
             "ID": nextLogRow,
-            "SheetId": spreadsheetId,
+            "Sheet Id": spreadsheetId,
             "Subject": title,
-            "ContactName": contactInfo.name,
-            "Note": note,
+            "Contact name": contactInfo.name,
+            "Notes": note,
             "Phone": contactInfo.phoneNumber,
-            "CallCreation Time": callStartTime,
-            "CallEnd Time": callEndTime,
-            "Call Duration (Second)": callLog.duration,
-            "SessionId": callLog.sessionId,
-            "CallDirection": callLog.direction
+            "Start time": callStartTime,
+            "End time": callEndTime,
+            "Duration": callLog.duration,
+            "Session Id": callLog.sessionId,
+            "Direction": callLog.direction,
+            "Call Result": callLog.result,
+            "Call Recording": callLog?.recording?.link !== undefined ? callLog.recording.link : "",
         };
         Object.entries(requestData).forEach(([key, value]) => {
             if (columnIndexes[key] !== undefined) {
@@ -383,7 +382,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
-        console.log({ error });
         return {
             successful: false,
             returnMessage: {
@@ -396,7 +394,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `An error occurred while logging the call, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Config.`
+                                text: `An error occurred while logging the call, or no sheet has been selected. To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                             }
                         ]
                     }
@@ -423,7 +421,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                                 {
                                     id: '1',
                                     type: 'text',
-                                    text: `To Edit log calls, please go to Settings > Google Sheets Config and add Google Sheet to log calls to.`
+                                    text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                                 }
                             ]
                         }
@@ -486,7 +484,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         } else {
             const columnCIndex = headers.indexOf("Subject");
-            const columnDIndex = headers.indexOf("Note");
+            const columnDIndex = headers.indexOf("Notes");
+            const columnDurationIndex = headers.indexOf("Duration");
+            const columnResultIndex = headers.indexOf("Call Result");
+            const columnRecordingIndex = headers.indexOf("Call Recording");
 
             if (columnCIndex === -1 || columnDIndex === -1) {
                 return {
@@ -499,20 +500,38 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
             const subjectColumn = String.fromCharCode(65 + columnCIndex);
             const noteColumn = String.fromCharCode(65 + columnDIndex);
+            const durationColumn = String.fromCharCode(65 + columnDurationIndex);
+            const resultColumn = String.fromCharCode(65 + columnResultIndex);
+            const recordingColumn = String.fromCharCode(65 + columnRecordingIndex);
+            const updateRequestData = [
+                {
+                    range: `${sheetName}!${subjectColumn}${rowIndex}`,
+                    values: [[subject]]
+                },
+                {
+                    range: `${sheetName}!${noteColumn}${rowIndex}`,
+                    values: [[note]]
+                },
+                {
+                    range: `${sheetName}!${durationColumn}${rowIndex}`,
+                    values: [[duration]]
+                },
+                {
+                    range: `${sheetName}!${resultColumn}${rowIndex}`,
+                    values: [[result]]
+                }
+            ];
+            if (recordingLink !== undefined) {
+                updateRequestData.push({
+                    range: `${sheetName}!${recordingColumn}${rowIndex}`,
+                    values: [[recordingLink]]
+                });
+            }
             const response = await axios.post(
                 `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
                 {
                     valueInputOption: "RAW",
-                    data: [
-                        {
-                            range: `${sheetName}!${subjectColumn}${rowIndex}`,
-                            values: [[subject]]
-                        },
-                        {
-                            range: `${sheetName}!${noteColumn}${rowIndex}`,
-                            values: [[note]]
-                        }
-                    ]
+                    data: updateRequestData
                 },
                 {
                     headers: {
@@ -544,7 +563,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `An error occurred while updating the call log, or no sheet has been selected. Please provide a valid sheet URL under Settings > Google Sheets Config.`
+                                text: `An error occurred while updating the call log, or no sheet has been selected. To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                             }
                         ]
                     }
@@ -572,7 +591,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `To Edit log calls, please go to Settings > Google Sheets options and add Google Sheet to log calls to.`
+                                text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
                             }
                         ]
                     }
@@ -638,7 +657,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         //     { headers: { Authorization: authHeader } }
         // );
         const columnCIndex = headers.indexOf("Subject");
-        const columnDIndex = headers.indexOf("Note");
+        const columnDIndex = headers.indexOf("Notes");
 
         if (columnCIndex === -1 || columnDIndex === -1) {
             return {
