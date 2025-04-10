@@ -1574,6 +1574,10 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "docs.google.com/spreadsheets/*",
             "name": "googleSheets",
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Google Sheets (Beta)",
             "auth": {
                 "type": "oauth",
