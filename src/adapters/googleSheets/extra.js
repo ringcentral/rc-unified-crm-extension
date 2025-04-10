@@ -85,7 +85,7 @@ async function createSpreadsheetWithHeaders(accessToken) {
             {
                 properties: { title: newFixedSheetName },
                 sheets: [
-                    { properties: { title: "Call Log" } },
+                    { properties: { title: "Call Logs" } },
                     { properties: { title: "Contacts" } },
                 ],
             },
@@ -93,10 +93,10 @@ async function createSpreadsheetWithHeaders(accessToken) {
         );
 
 
-        let range = `Call Log!A1:append`;
-        const requestCallLogHeaderData = ["ID", "SheetId", "Subject", "ContactName", "Note", "Phone", "CallCreation Time", "CallEnd Time", "Call Duration (Second)", "SessionId", "CallDirection"];
+        let range = `Call Logs!A1:append`;
+        const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording"];
 
-        const requestContactHeaderData = ["ID", "SheetId", "ContactName", "PhoneNumber"];
+        const requestContactHeaderData = ["ID", "Sheet Id", "Contact name", "Phone"];
         await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${response.data.spreadsheetId}/values/${range}?valueInputOption=RAW`, { values: [requestCallLogHeaderData] }, {
             headers: { Authorization: `Bearer  ${accessToken}`, "Content-Type": "application/json" }
         });
