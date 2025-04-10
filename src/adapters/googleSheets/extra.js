@@ -1,9 +1,12 @@
 const { google } = require('googleapis');
 const axios = require('axios');
+const oauth = require('../../lib/oauth');
 const newFixedSheetName = 'RingCentral App Connect Sheet';
+const platformModule = require(`../googleSheets`);
 async function createNewSheet({ user, data }) {
     // check if sheet exists, if so, directly return name and url
-    console.log(data)
+    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
     //  let isSheetExist = data?.name;
     const spreadsheets = await listSpreadsheets(user.accessToken);
     //await createSpreadsheetWithHeaders(user.accessToken);
@@ -23,7 +26,6 @@ async function createNewSheet({ user, data }) {
     if (isExist === false) {
 
         const sheetCreationResponse = await createSpreadsheetWithHeaders(user.accessToken);
-        console.log({ sheetCreationResponse });
         sheetName = sheetCreationResponse.name;
         sheetUrl = sheetCreationResponse.url;
     }
@@ -72,7 +74,6 @@ async function listSpreadsheets(accessToken) {
 
         return response.data.files || [];
     } catch (error) {
-        console.error("Error listing spreadsheets:", error.response?.data || error);
         return [];
     }
 }
