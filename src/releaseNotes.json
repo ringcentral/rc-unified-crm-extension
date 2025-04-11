@@ -24,10 +24,6 @@
             },
             {
                 "type": "New",
-                "description": "- Checkbox in extension options to allow embedding click-to-dial and quick access button for all webpages"
-            },
-            {
-                "type": "New",
                 "description": "- Google Sheets is now supported"
             },
             {
