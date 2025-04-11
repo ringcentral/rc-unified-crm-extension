@@ -1,9 +1,9 @@
 const { google } = require('googleapis');
 const axios = require('axios');
 const oauth = require('../../lib/oauth');
-const newFixedSheetName = 'RingCentral App Connect Sheet';
 const platformModule = require(`../googleSheets`);
 async function createNewSheet({ user, data }) {
+    const newSheetName = data.name ?? 'RingCentral App Connect Sheet';
     // check if sheet exists, if so, directly return name and url
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
@@ -16,8 +16,8 @@ async function createNewSheet({ user, data }) {
     let isExist = false;
 
     for (const sheet of spreadsheets) {
-        if (sheet.name === newFixedSheetName) {
-            sheetName = newFixedSheetName;
+        if (sheet.name === newSheetName) {
+            sheetName = newSheetName;
             sheetUrl = sheet.webViewLink;
             isExist = true;
         }
@@ -25,7 +25,7 @@ async function createNewSheet({ user, data }) {
     // if not, create a new sheet
     if (isExist === false) {
 
-        const sheetCreationResponse = await createSpreadsheetWithHeaders(user.accessToken);
+        const sheetCreationResponse = await createSpreadsheetWithHeaders({ accessToken: user.accessToken, newSheetName });
         sheetName = sheetCreationResponse.name;
         sheetUrl = sheetCreationResponse.url;
     }
@@ -78,13 +78,13 @@ async function listSpreadsheets(accessToken) {
     }
 }
 
-async function createSpreadsheetWithHeaders(accessToken) {
+async function createSpreadsheetWithHeaders({ accessToken, newSheetName }) {
 
     try {
         const response = await axios.post(
             "https://sheets.googleapis.com/v4/spreadsheets",
             {
-                properties: { title: newFixedSheetName },
+                properties: { title: newSheetName },
                 sheets: [
                     { properties: { title: "Call Logs" } },
                     { properties: { title: "Contacts" } },
