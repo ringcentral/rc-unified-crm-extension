@@ -3,10 +3,7 @@ const axios = require('axios');
 const oauth = require('../../lib/oauth');
 const platformModule = require(`../googleSheets`);
 async function createNewSheet({ user, data }) {
-    let newSheetName = 'RingCentral App Connect Sheet';
-    if (data?.name) {
-        newSheetName = data?.name;
-    }
+    const newSheetName = data.name ?? 'RingCentral App Connect Sheet';
     // check if sheet exists, if so, directly return name and url
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
