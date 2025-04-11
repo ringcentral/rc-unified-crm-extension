@@ -6,7 +6,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const platformModule = require(`../adapters/${platform}`);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
 
-    if (!!oauthInfo.failMessage) {
+    if (oauthInfo.failMessage) {
         return {
             userInfo: null,
             returnMessage: {
@@ -32,7 +32,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             tokenUrl,
             apiUrl,
             username,
-            hostname: !!platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
+            hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
             accessToken,
             refreshToken,
             tokenExpiry: expires
@@ -126,7 +126,7 @@ async function authValidation({ platform, userId }) {
             ]
         }
     });
-    if (!!existingUser) {
+    if (existingUser) {
         const platformModule = require(`../adapters/${platform}`);
         const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname })));
         existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);

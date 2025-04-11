@@ -7,27 +7,38 @@ One of the most used features across all of RingCentral's CRM integrations is th
 ``` mermaid
 graph TD
   A[**Call received** or **call placed**] --> B{Automatically<br>log call?}
-  B -->|Yes| C([Call is connected])
+  B -->|Yes| OT{One-time log?}
+  OT -->|Yes| C1([Call is connected])
+  C1 --> C2([Call ends])
+  C2 --> C3([Call log data finalized])
+  C3 --> C4@{ shape: "lean-r", label: "createCallLog called" }
+  C4 --> Z
+  OT -->|No| C([Call is connected])
   C --> D@{ shape: "lean-r", label: "createCallLog called" }
   D --> E([Call ends])
   E --> F@{ shape: "lean-r", label: "updateCallLog called" }
   F --> G([Call recording becomes available])
-  G --> H@{ shape: "trap-t", label: "User dispositions call"}
-  H --> I@{ shape: "lean-r", label: "updateCallLog called" }
   G --> G2([Call log data finalized])
   G2 --> G3@{ shape: "lean-r", label: "updateCallLog called" }
-  G3 --> Z@{ shape: "dbl-circ", label: "Call log<br>complete"}
-  I --> Z
+  G3 --> Z@{ shape: "dbl-circ", label: "Call logged"}
   
-  B -->|No| J([Call is connected])
+  B -->|No| OT1{One-time log?}
+  OT1 -->|YES| J1([Call is connected])
+  J1 --> J2([Call ends])
+  J2 --> J3([Call recording becomes available])
+  J3 --> J4([Call log data finalized])
+  J4--> J5@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
+  J5 --> Z
+  OT1 -->|No| J([Call is connected])
   J --> K([Call ends])
-  K --> L([Call recording becomes available])
-  L --> M@{ shape: "trap-t", label: "User dispositions call"}
-  M --> N@{ shape: "lean-r", label: "updateCallLog or createCallLog called" }
+  K--> P@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
+  P --> L([Call recording becomes available])
   L --> O([Call log data finalized])
-  O --> P@{ shape: "lean-r", label: "updateCallLog or createCallLog called" }
-  N --> Z
-  P --> Z
+  O--> O1@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
+  O1 --> Z
+
+  Z --> Z1@{ shape: "lean-r", label: "user disposition call" }
+
 ```
 
 ## Implement server endpoints
@@ -37,10 +48,6 @@ Ultimately, the key to logging calls successfully is in implementing the followi
 * [`createCallLog`](interfaces/createCallLog.md)
 * [`updateCallLog`](interfaces/updateCallLog.md)
 * [`getCallLog`](interfaces/getCallLog.md)
-
-### Facilitating a manual update to a call log entry
-
-The `getCallLog` interface is invoked when a user is requesting to the edit the contents of an activity record in the CRM via the App Connect client. Using this interface, App Connect can fetch the source of record from the CRM and then display it in the call log editor. 
 
 ### Logging data to structued fields
 

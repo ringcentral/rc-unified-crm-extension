@@ -235,7 +235,7 @@ describe('call&message log tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    expect(res.body.returnMessage.message).toEqual(`Contact not found`);
+                    expect(res.body.returnMessage.message).toEqual(`User not found`);
                     expect(res.body.successful).toEqual(false);
                 }
             });
@@ -310,8 +310,11 @@ describe('call&message log tests', () => {
                         rcUserNumber,
                         platform: platform.name
                     });
+                    const patchBody = {
+                        sessionId: unknownSessionId
+                    }
                     // Act
-                    const res = await request(getServer()).patch(`/callLog?jwtToken=${jwtToken}&sessionIds=${unknownSessionId}`)
+                    const res = await request(getServer()).patch(`/callLog?jwtToken=${jwtToken}`).send(patchBody);
 
                     // Assert
                     expect(res.status).toEqual(200);
@@ -339,7 +342,7 @@ describe('call&message log tests', () => {
                             }
                         });
                     const platformPatchLogScope = nock(platform.domain)
-                        .put(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .patch(`${platform.callLogPath}/${thirdPartyLogId}`)
                         .once()
                         .reply(200);
 
@@ -379,7 +382,7 @@ describe('call&message log tests', () => {
                             }
                         });
                     const platformPatchLogScope = nock(platform.domain)
-                        .put(`${platform.callLogPath}/${thirdPartyLogId}`)
+                        .patch(`${platform.callLogPath}/${thirdPartyLogId}`)
                         .once()
                         .reply(200);
 
@@ -520,6 +523,18 @@ describe('call&message log tests', () => {
                                 data: {
                                     name: username
                                 }
+                            }
+                        });
+                    const platformPersonScope = nock(platform.domain)
+                        .get(`${platform.contactPath}/${contactId}`)
+                        .once()
+                        .reply(200, {
+                            data: {
+                                id: contactId,
+                                name: username,
+                                phoneNumbers: [{
+                                    phoneNumber
+                                }]
                             }
                         });
                     const platformActivityTypeScope = nock(platform.domain)

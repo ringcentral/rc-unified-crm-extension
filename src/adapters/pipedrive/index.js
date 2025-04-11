@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
@@ -127,7 +128,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
     const personInfo = await axios.get(
-        `https://${user.hostname}/v1/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone`,
+        `https://${user.hostname}/api/v2/persons/search?term=${phoneNumberWithoutCountryCode}&fields=phone`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -159,6 +160,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         isNewContact: true
     });
     return {
+        successful: true,
         matchedContactInfo,
         extraDataTracking
     };
@@ -181,7 +183,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
         phone: phoneNumber
     }
     const createContactRes = await axios.post(
-        `https://${user.hostname}/v1/persons`,
+        `https://${user.hostname}/api/v2/persons`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -205,10 +207,22 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
+function secondsToHoursMinutesSecondsInPipedriveFormat(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+        return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
-    const personResponse = await axios.get(`https://${user.hostname}/v1/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
-    const orgId = personResponse.data.data.org_id?.value ?? '';
+    const personResponse = await axios.get(`https://${user.hostname}/api/v2/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
+    const orgId = personResponse.data.data.org_id ?? '';
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
     let noteBody = '';;
@@ -228,19 +242,27 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
     const postBody = {
-        user_id: user.id,
+        owner_id: Number(user.id),
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        duration: callLog.duration,    // secs
-        person_id: contactInfo.id,
-        org_id: orgId,
+        duration: secondsToHoursMinutesSecondsInPipedriveFormat(callLog.duration),    // secs
         deal_id: dealId,
         note: noteBody,
         done: true,
         due_date: dateUtc,
-        due_time: timeUtc
+        due_time: timeUtc,
+        participants:[
+            {
+                person_id: Number(contactInfo.id),
+                primary: true
+            }
+        ]
+    }
+    if(orgId)
+    {
+        postBody.org_id = orgId;
     }
     const addLogRes = await axios.post(
-        `https://${user.hostname}/v1/activities`,
+        `https://${user.hostname}/api/v2/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -265,11 +287,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
-        `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
+        `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
-    let putBody = {};
+    let patchBody = {};
     let logBody = getLogRes.data.data.note;
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
@@ -279,25 +301,25 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink }); }
     if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
-    putBody.note = logBody;
+    patchBody.note = logBody;
 
-    if (!!subject) {
-        putBody.subject = subject;
+    if (subject) {
+        patchBody.subject = subject;
     }
 
-    const putLogRes = await axios.put(
-        `https://${user.hostname}/v1/activities/${existingPipedriveLogId}`,
-        putBody,
+    const patchLogRes = await axios.patch(
+        `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
+        patchBody,
         {
             headers: { 'Authorization': authHeader }
         });
     extraDataTracking = {
-        ratelimitRemaining: putLogRes.headers['x-ratelimit-remaining'],
-        ratelimitAmount: putLogRes.headers['x-ratelimit-limit'],
-        ratelimitReset: putLogRes.headers['x-ratelimit-reset']
+        ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
     return {
-        updatedNote: putBody.note,
+        updatedNote: patchBody.note,
         returnMessage: {
             message: 'Call log updated.',
             messageType: 'success',
@@ -307,6 +329,34 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    let extraDataTracking = {};
+    if (!dispositions.deals) {
+        return {
+            logId: null
+        };
+    }
+    const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
+    const patchBody = {
+        deal_id: dispositions.deals                   
+    }
+    const patchLogRes = await axios.patch(
+        `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
+        patchBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
+    };
+    return {
+        logId: existingPipedriveLogId,
+        extraDataTracking
+    }
+}
+
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let extraDataTracking = {};
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
@@ -314,15 +364,17 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             'Authorization': authHeader
         }
     });
+    const personResponse = await axios.get(`https://${user.hostname}/api/v2/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
+
     const userName = userInfoResponse.data.data.name;
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
-    const orgId = contactInfo.organization ? contactInfo.organization.id : '';
+    const orgId = personResponse.data.data.org_id ?? '';
     const timeUtc = moment(message.creationTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
-    const hasSMSType = activityTypesResponse.data.data.some(t => t.name === 'SMS' && t.active_flag);
+    const smsType = activityTypesResponse.data.data.find(t => t.name === 'SMS' && t.active_flag);
 
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let note = '';
     switch (messageType) {
@@ -356,19 +408,27 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             break;
     }
     const postBody = {
-        user_id: user.id,
+        owner_id: Number(user.id),
         subject,
-        person_id: contactInfo.id,
-        org_id: orgId,
         deal_id: dealId,
         note,
         done: true,
         due_date: dateUtc,
         due_time: timeUtc,
-        type: hasSMSType ? 'SMS' : 'Call'
+        type: smsType ? smsType.key_string : 'call',
+        participants:[
+            {
+                person_id: Number(contactInfo.id),
+                primary: true
+            }
+        ]
+    }
+    if(orgId)
+    {
+        postBody.org_id = orgId;
     }
     const addLogRes = await axios.post(
-        `https://${user.hostname}/v1/activities`,
+        `https://${user.hostname}/api/v2/activities`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
@@ -399,12 +459,12 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     });
     const userName = userInfoResponse.data.data.name;
     const getLogRes = await axios.get(
-        `https://${user.hostname}/v1/activities/${existingLogId}`,
+        `https://${user.hostname}/api/v2/activities/${existingLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
     let logBody = getLogRes.data.data.note;
-    let putBody = {};
+    let patchBody = {};
     const newMessageLog =
         `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
@@ -414,19 +474,19 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const matchResult = regex.exec(logBody);
     logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
 
-    putBody = {
+    patchBody = {
         note: logBody
     }
-    const putLogRes = await axios.put(
-        `https://${user.hostname}/v1/activities/${existingLogId}`,
-        putBody,
+    const patchLogRes = await axios.patch(
+        `https://${user.hostname}/api/v2/activities/${existingLogId}`,
+        patchBody,
         {
             headers: { 'Authorization': authHeader }
         });
     extraDataTracking = {
-        ratelimitRemaining: putLogRes.headers['x-ratelimit-remaining'],
-        ratelimitAmount: putLogRes.headers['x-ratelimit-limit'],
-        ratelimitReset: putLogRes.headers['x-ratelimit-reset']
+        ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
+        ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
     return {
         extraDataTracking
@@ -437,7 +497,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 async function getCallLog({ user, callLogId, authHeader }) {
     let extraDataTracking = {};
     const getLogRes = await axios.get(
-        `https://${user.hostname}/v1/activities/${callLogId}`,
+        `https://${user.hostname}/api/v2/activities/${callLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -450,7 +510,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const relatedContact = getLogRes.data.related_objects?.person;
     let contactName = 'Unknown';
-    if (!!relatedContact) {
+    if (relatedContact) {
         const contactKeys = Object.keys(relatedContact);
         contactName = relatedContact[contactKeys[0]].name;
     }
@@ -458,14 +518,17 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject: getLogRes.data.data.subject,
             note,
-            contactName
+            contactName,
+            dispositions: {
+                deals: getLogRes.data.data.deal_id
+            }
         },
         extraDataTracking
     }
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
@@ -521,7 +584,7 @@ function upsertCallResult({ body, result }) {
 
 function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (!!recordingLink) {
+    if (recordingLink) {
         if (recordingLinkRegex.test(body)) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
@@ -545,7 +608,7 @@ function upsertCallRecording({ body, recordingLink }) {
 }
 
 function upsertAiNote({ body, aiNote }) {
-    if (!!!aiNote) {
+    if (!aiNote) {
         return body;
     }
     const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -560,7 +623,7 @@ function upsertAiNote({ body, aiNote }) {
 }
 
 function upsertTranscript({ body, transcript }) {
-    if (!!!transcript) {
+    if (!transcript) {
         return body;
     }
     const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -579,6 +642,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;

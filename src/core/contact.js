@@ -1,5 +1,6 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
+const errorMessage = require('../lib/generalErrorMessage');
 
 async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension }) {
     try {
@@ -33,21 +34,21 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
+        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
-            return { successful: true, returnMessage, contact: matchedContactInfo, extraDataTracking };
+            return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
-            if (!!returnMessage) {
+            if (returnMessage) {
                 return {
-                    successful: true,
+                    successful,
                     returnMessage,
                     extraDataTracking,
                     contact: matchedContactInfo,
                 }
             }
             return {
-                successful: true,
+                successful,
                 returnMessage:
                 {
                     message: `Contact not found`,
@@ -73,23 +74,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         if (e.response?.status === 429) {
             return {
                 successful: false,
-                returnMessage: {
-                    message: `Rate limit exceeded`,
-                    messageType: 'warning',
-                    details: [
-                        {
-                            title: 'Details',
-                            items: [
-                                {
-                                    id: '1',
-                                    type: 'text',
-                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
-                                }
-                            ]
-                        }
-                    ],
-                    ttl: 5000
-                },
+                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
                 extraDataTracking: {
                     statusCode: e.response?.status,
                 }
@@ -98,23 +83,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         else if (e.response?.status >= 400 && e.response?.status < 410) {
             return {
                 successful: false,
-                returnMessage: {
-                    message: `Authorization error`,
-                    messageType: 'warning',
-                    details: [
-                        {
-                            title: 'Details',
-                            items: [
-                                {
-                                    id: '1',
-                                    type: 'text',
-                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
-                                }
-                            ]
-                        }
-                    ],
-                    ttl: 5000
-                },
+                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
                 extraDataTracking: {
                     statusCode: e.response?.status,
                 }
@@ -184,46 +153,13 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
         if (e.response?.status === 429) {
             return {
                 successful: false,
-                returnMessage:
-                {
-                    message: `Rate limit exceeded`,
-                    messageType: 'warning',
-                    details: [
-                        {
-                            title: 'Details',
-                            items: [
-                                {
-                                    id: '1',
-                                    type: 'text',
-                                    text: `You have exceeded the maximum number of requests allowed by ${platform}. Please try again in the next minute. If the problem persists please contact support.`
-                                }
-                            ]
-                        }
-                    ],
-                    ttl: 5000
-                }
+                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
             };
         }
         else if (e.response?.status >= 400 && e.response?.status < 410) {
             return {
                 successful: false,
-                returnMessage: {
-                    message: `Authorization error`,
-                    messageType: 'warning',
-                    details: [
-                        {
-                            title: 'Details',
-                            items: [
-                                {
-                                    id: '1',
-                                    type: 'text',
-                                    text: `It seems like there's something wrong with your authorization of ${platform}. Please Logout and then Connect your ${platform} account within this extension.`
-                                }
-                            ]
-                        }
-                    ],
-                    ttl: 5000
-                },
+                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
                 extraDataTracking: {
                     statusCode: e.response?.status,
                 }

@@ -14,6 +14,13 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
+            "embedUrls":[
+                "https://*.pipedrive.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Pipedrive",
             "auth": {
                 "type": "oauth",
@@ -210,6 +217,13 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
+            "embedUrls":[
+                "https://*.insightly.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Insightly",
             "auth": {
                 "type": "apiKey",
@@ -451,6 +465,13 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
+            "embedUrls":[
+                "https://*.clio.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "Clio",
             "auth": {
                 "type": "oauth",
@@ -660,6 +681,13 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "redtailtechnology.com",
             "name": "redtail",
+            "embedUrls":[
+                "https://*.redtailtechnology.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "auth": {
                 "type": "apiKey",
                 "apiKey": {
@@ -1038,6 +1066,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
+            "embedUrls":[
+                "https://*.bullhornstaffing.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -1317,6 +1348,13 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
+            "embedUrls":[
+                "https://*.app.netsuite.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
             "displayName": "NetSuite",
             "auth": {
                 "type": "oauth",
@@ -1329,6 +1367,34 @@
                 }
             },
             "settings": [
+                {
+                    "id": "netSuiteDefaultOptions",
+                    "type": "section",
+                    "name": "NetSuite Options",
+                    "items": [
+                        {
+                            "id": "searchContactPhone",
+                            "type": "boolean",
+                            "name": "Search Contact using Phone Fields",
+                            "description": "If enabled, the search will be performed using the phone fields.",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "disableCustomerSearch",
+                            "type": "boolean",
+                            "name": "Search only for contacts and disable customer search.",
+                            "description": "If enabled Search only for contacts otherwise, search for both customers and contacts.",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "disableSalesOrderLogging",
+                            "type": "boolean",
+                            "name": "Off/Disable Log the Calls against Sales Order",
+                            "description": "If enabled, the call will not be logged against the sales order.",
+                            "defaultValue": false
+                        }
+                    ]
+                },
                 {
                     "id": "netsuiteCallLogDetails",
                     "type": "section",
@@ -1517,7 +1583,192 @@
                     ]
                 }
             }
+        },
+        "googleSheets": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Google_Sheets_Logo_256px.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+            "urlIdentifier": "docs.google.com/spreadsheets",
+            "name": "googleSheets",
+            "embedUrls":[
+                "https://docs.google.com/*"
+            ],
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+            },
+            "displayName": "Google Sheets (Beta)",
+            "auth": {
+                "type": "oauth",
+                "oauth": {
+                    "authUrl": "https://accounts.google.com/o/oauth2/auth",
+                    "clientId": "367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com",
+                    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+                    "scope": "access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+                    "customState": "platform=googleSheets"
+                }
+            },
+            "platform": "googleSheets",
+            "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
+            "canOpenLogPage": false,
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "settings": [
+                {
+                    "id": "googleSheetsCallLogDetails",
+                    "type": "section",
+                    "name": "Call log details",
+                    "group": "logging",
+                    "items": [
+                        {
+                            "id": "addCallLogNote",
+                            "type": "boolean",
+                            "name": "Agent-entered notes",
+                            "description": "Log the notes manually entered by yourself",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogSubject",
+                            "type": "boolean",
+                            "name": "Call subject",
+                            "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogContactNumber",
+                            "type": "boolean",
+                            "name": "Contact's phone number",
+                            "description": "Log the contact information of the other participant",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDateTime",
+                            "type": "boolean",
+                            "name": "Date and time",
+                            "description": "Log the call's explicit start and end date/times",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDuration",
+                            "type": "boolean",
+                            "name": "Call duration",
+                            "description": "Log the call duration, noted in minutes and seconds",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogResult",
+                            "type": "boolean",
+                            "name": "Call result",
+                            "description": "Log the result of the call, e.g. Call connected",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogRecording",
+                            "type": "boolean",
+                            "name": "Link to the recording",
+                            "description": "Provide a link to the call's recording, if it exists",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Smart summary",
+                            "description": "Log the AI-generated summary of the call, if it exists",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Call transcript",
+                            "description": "Log the AI-generated transcript of the call, if it exists",
+                            "defaultValue": false,
+                            "requiredPermission": "aiNote"
+                        }
+                    ]
+                }
+            ],
+            "page": {
+                "feedback": {
+                    "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
+                    "elements": [
+                        {
+                            "const": "pageDescription",
+                            "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+                            "type": "string",
+                            "bold": false
+                        },
+                        {
+                            "const": "scoreDescription",
+                            "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+                            "type": "string",
+                            "bold": true
+                        },
+                        {
+                            "const": "score",
+                            "title": "Score from 1 to 10",
+                            "type": "selection",
+                            "selections": [
+                                {
+                                    "const": "1",
+                                    "title": "1"
+                                },
+                                {
+                                    "const": "2",
+                                    "title": "2"
+                                },
+                                {
+                                    "const": "3",
+                                    "title": "3"
+                                },
+                                {
+                                    "const": "4",
+                                    "title": "4"
+                                },
+                                {
+                                    "const": "5",
+                                    "title": "5"
+                                },
+                                {
+                                    "const": "6",
+                                    "title": "6"
+                                },
+                                {
+                                    "const": "7",
+                                    "title": "7"
+                                },
+                                {
+                                    "const": "8",
+                                    "title": "8"
+                                },
+                                {
+                                    "const": "9",
+                                    "title": "9"
+                                },
+                                {
+                                    "const": "10",
+                                    "title": "10"
+                                }
+                            ],
+                            "required": true
+                        },
+                        {
+                            "const": "feedback",
+                            "title": "Feedback",
+                            "type": "inputField",
+                            "placeholder": "Please share your feedback...",
+                            "required": true
+                        }
+                    ]
+                }
+            }
         }
     },
-    "version": "1.3.10"
+    "version": "1.4.0"
 }

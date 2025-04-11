@@ -13,14 +13,14 @@ const version = packageJson.version;
 let mixpanel = null;
 
 exports.init = function init() {
-    if (!!!process.env.MIXPANEL_TOKEN) {
+    if (!process.env.MIXPANEL_TOKEN) {
         return;
     }
     mixpanel = Mixpanel.init(process.env.MIXPANEL_TOKEN);
 }
 
 exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip, author, extras = null }) {
-    if (!!!mixpanel) {
+    if (!mixpanel) {
         return;
     }
     const ua = parser(userAgent);

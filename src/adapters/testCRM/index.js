@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
@@ -206,6 +208,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     //---CHECK.3: In console, if contact info is printed---
     //-----------------------------------------------------
     return {
+        successful: true,
         matchedContactInfo,
         returnMessage: {
             messageType: 'success',
@@ -284,7 +287,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('- Agent note: ([\\s\\S]+?)\n');
@@ -327,7 +330,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         body += `- Call recording link: ${recordingLink}\n`;
     }
     return body;
@@ -398,12 +401,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     // ---TODO.6: Implement call log update---
     // ---------------------------------------
     let body = mockCallLog.note;
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
+    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { body = upsertCallAgentNote({ body, note }); }
+    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { body = upsertCallDuration({ body, duration }); }
+    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { body = upsertCallResult({ body, result }); }
+    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: decodeURIComponent(recordingLink) }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
 
     // const existingLogId = existingCallLog.thirdPartyLogId;
     // const getLogRes = await axios.get(
@@ -426,7 +429,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
-    mockCallLog.subject = mockCallLog.subject;
+    mockCallLog.subject = subject;
     mockCallLog.note = body;
     const patchLogRes = {
         data: {
@@ -468,7 +471,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     //     {
     //         headers: { 'Authorization': authHeader }
     //     });
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     console.log(`adding message log... \n\n${JSON.stringify(message, null, 2)}`);
     mockMessageLog = {
         id: 'testMessageLogId'

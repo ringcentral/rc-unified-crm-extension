@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
@@ -8,15 +9,18 @@ function getAuthType() {
 }
 
 async function authValidation({ user }) {
-    let commentActionListResponse;
+    let pingResponse;
     try {
-        commentActionListResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+        pingResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}ping`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+            if(new Date(pingResponse.data.sessionExpires) < new Date()) {
+                user = await refreshSessionToken(user);
+            }
         return {
             successful: true,
             status: 200
@@ -26,7 +30,7 @@ async function authValidation({ user }) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             try {
-                commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`,
                     {
                         headers: {
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -259,6 +263,7 @@ async function findContact({ user, phoneNumber }) {
     });
 
     return {
+        successful: true,
         matchedContactInfo,
         extraDataTracking
     };
@@ -433,7 +438,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? '';
+    const noteActions = additionalSubmission.noteActions ?? null;
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
@@ -449,13 +454,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
     const putBody = {
         comments,
-        action: noteActions,
         personReference: {
             id: contactInfo.id
         },
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
+    }
+    if (noteActions) {
+        putBody.action = noteActions;
     }
     let addLogRes;
     let extraDataTracking = {
@@ -568,6 +575,32 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    let extraDataTracking = {};
+
+    const existingBullhornLogId = existingCallLog.thirdPartyLogId;
+    const postBody = {
+        action: dispositions.noteActions
+    }
+    const upsertDispositionRes = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+        postBody,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: upsertDispositionRes.headers['ratelimit-remaining'],
+        ratelimitAmount: upsertDispositionRes.headers['ratelimit-limit'],
+        ratelimitReset: upsertDispositionRes.headers['ratelimit-reset']
+    }
+    return {
+        logId: existingBullhornLogId,
+        extraDataTracking
+    }
+}
+
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission.noteActions ?? '';
     let userInfoResponse;
@@ -593,7 +626,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
     const userData = userInfoResponse.data.data[0];
     const userName = userData.name;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let comments = '';
     switch (messageType) {
@@ -732,7 +765,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     let extraDataTracking = {};;
     try {
         getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts,action`,
             {
                 headers: {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -748,7 +781,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts`,
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${callLogId}?fields=comments,candidates,clientContacts,action`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -760,6 +793,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     const logBody = getLogRes.data.data.comments;
     const note = logBody.split('<b>Agent notes</b>')[1]?.split('<b>Call details</b>')[0]?.replaceAll('<br>', '') ?? '';
     const subject = logBody.split('</ul>')[0]?.split('<li><b>Summary</b>: ')[1]?.split('<li><b>')[0] ?? '';
+    const action = getLogRes.data.data.action;
     const totalContactCount = getLogRes.data.data.clientContacts.total + getLogRes.data.data.candidates.total;
     let contact = {
         firstName: '',
@@ -772,7 +806,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject,
             note,
-            contactName: `${contact.firstName} ${contact.lastName}`
+            contactName: `${contact.firstName} ${contact.lastName}`,
+            dispositions: {
+                noteActions: action
+            }
         },
         extraDataTracking
     }
@@ -796,7 +833,7 @@ function isAuthError(statusCode) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
@@ -861,7 +898,7 @@ function upsertCallResult({ body, result }) {
 
 function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (!!recordingLink) {
+    if (recordingLink) {
         if (recordingLinkRegex.test(body)) {
             body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
         }
@@ -885,7 +922,7 @@ function upsertCallRecording({ body, recordingLink }) {
 }
 
 function upsertAiNote({ body, aiNote }) {
-    if (!!!aiNote) {
+    if (!aiNote) {
         return body;
     }
     const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -899,7 +936,7 @@ function upsertAiNote({ body, aiNote }) {
 }
 
 function upsertTranscript({ body, transcript }) {
-    if (!!!transcript) {
+    if (!transcript) {
         return body;
     }
     const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
@@ -919,6 +956,7 @@ exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;

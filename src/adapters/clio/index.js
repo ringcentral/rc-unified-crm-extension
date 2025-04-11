@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
@@ -124,13 +126,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
                 const matterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}`,
+                    `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                const matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number } }) : null;
-                const associatedMatterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter`,
+                let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+                matters = matters?.filter(m => m.status !== 'Closed');
+                let associatedMatterInfo = await axios.get(
+                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
                     {
                         headers: { 'Authorization': authHeader }
                     });
@@ -139,7 +142,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
                     ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
                 };
-                const associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number } }) : null;
+                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+                associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
                 returnedMatters = returnedMatters.concat(associatedMatters ?? []);
@@ -169,6 +173,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         isNewContact: true
     });
     return {
+        successful: true,
         matchedContactInfo,
         extraDataTracking
     };
@@ -328,24 +333,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             body: logBody
         }
     }
-    if (!!subject) { patchBody.data.subject = subject; }
-    if (!!startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
+    if (subject) { patchBody.data.subject = subject; }
+    if (startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
-    if (!!duration) {
+    if (duration) {
         const getTimerRes = await axios.get(
             `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
             {
                 headers: { 'Authorization': authHeader }
             }
         )
-        if (!!getTimerRes.data.data[0]) {
+        if (getTimerRes.data.data[0]) {
             const patchTimerBody = {
                 data: {
                     quantity: duration,
                     note: logBody,
                 }
             }
-            if (!!startTime) {
+            if (startTime) {
                 patchTimerBody.data.date = moment(startTime).toISOString();
             }
             const patchTimerRes = await axios.patch(
@@ -378,6 +383,38 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    let extraDataTracking = {};
+    if (!dispositions.matters) {
+        return {
+            logId: null
+        };
+    }
+    const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
+    const patchBody = {
+        data: {
+            matter: {
+                id: dispositions.matters
+            }
+        }
+    }
+    const upsertDispositionRes = await axios.patch(
+        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json`,
+        patchBody,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: upsertDispositionRes.headers['x-ratelimit-remaining'],
+        ratelimitAmount: upsertDispositionRes.headers['x-ratelimit-limit'],
+        ratelimitReset: upsertDispositionRes.headers['x-ratelimit-reset']
+    };
+    return {
+        logId: existingClioLogId,
+        extraDataTracking
+    }
+}
+
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let extraDataTracking = {};
     const sender =
@@ -396,7 +433,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let logBody = '';
     let logSubject = '';
     switch (messageType) {
@@ -540,7 +577,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject: getLogRes.data.data.subject,
             note,
-            contactName: contactRes.data.data.name
+            contactName: contactRes.data.data.name,
+            dispositions: {
+                matters: getLogRes.data.data.matter?.id
+            }
         },
         extraDataTracking
     }
@@ -566,7 +606,7 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
@@ -594,7 +634,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         body += `- Call recording link: ${recordingLink}\n`;
     }
     return body;
@@ -626,6 +666,7 @@ exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.getCallLog = getCallLog;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;

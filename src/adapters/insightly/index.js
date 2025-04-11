@@ -1,3 +1,5 @@
+/* eslint-disable no-control-regex */
+/* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
@@ -47,7 +49,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             returnMessage: {
                 messageType: 'warning',
                 message: 'Could not load user information Please check your API key and try again.',
-                details:[
+                details: [
                     {
                         title: 'Details',
                         items: [
@@ -155,7 +157,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.organisation) {
+                    if (!singlePersonInfo.additionalInfo.organisation) {
                         singlePersonInfo.additionalInfo.organisation = [];
                     }
                     singlePersonInfo.additionalInfo.organisation.push({
@@ -169,7 +171,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.opportunity) {
+                    if (!singlePersonInfo.additionalInfo.opportunity) {
                         singlePersonInfo.additionalInfo.opportunity = [];
                     }
                     singlePersonInfo.additionalInfo.opportunity.push({
@@ -183,7 +185,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         {
                             headers: { 'Authorization': authHeader }
                         });
-                    if (!!!singlePersonInfo.additionalInfo.project) {
+                    if (!singlePersonInfo.additionalInfo.project) {
                         singlePersonInfo.additionalInfo.project = [];
                     }
                     singlePersonInfo.additionalInfo.project.push({
@@ -201,7 +203,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         additionalInfo: null,
         isNewContact: true
     });
-    return { matchedContactInfo };
+    return {
+        successful: true,
+        matchedContactInfo
+    };
 }
 
 function formatContact(rawContactInfo) {
@@ -336,7 +341,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                         headers: { 'Authorization': authHeader }
                     });
             }
-            // add org link
+            // add project link
             if (additionalSubmission.project != null) {
                 await axios.post(
                     `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${addLogRes.data.EVENT_ID}/links`,
@@ -425,12 +430,101 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         }
     );
+    const dispositions = {};
+    for (const l of getLogRes.data.LINKS) {
+        if (l.LINK_OBJECT_NAME === 'contact') {
+            continue;
+        }
+        dispositions[l.LINK_OBJECT_NAME.toLowerCase()] = l.LINK_OBJECT_ID;
+    }
     return {
         callLogInfo: {
             subject: getLogRes.data.TITLE,
             note,
-            contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`
+            contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`,
+            dispositions
         }
+    }
+}
+
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    if (!dispositions.organisation && !dispositions.opportunity && !dispositions.project) {
+        return {
+            logId: null
+        };
+    }
+    const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
+
+    const getLogRes = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    // org: if different, DELETE link then CREATE
+    const orgLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Organisation');
+    if (dispositions.organisation) {
+        if (orgLink && orgLink.LINK_OBJECT_ID !== dispositions.organisation) {
+            await axios.delete(
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${orgLink.LINK_ID}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
+            {
+                LINK_OBJECT_NAME: 'Organisation',
+                LINK_OBJECT_ID: dispositions.organisation
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+
+    // opportunity
+    const opportunityLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Opportunity');
+    if (dispositions.opportunity) {
+        if (opportunityLink && opportunityLink.LINK_OBJECT_ID !== dispositions.opportunity) {
+            await axios.delete(
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${opportunityLink.LINK_ID}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
+            {
+                LINK_OBJECT_NAME: 'Opportunity',
+                LINK_OBJECT_ID: dispositions.opportunity
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+
+    // project
+    const projectLink = getLogRes.data.LINKS.find(l => l.LINK_OBJECT_NAME === 'Project');
+    if (dispositions.project) {
+        if (projectLink && projectLink.LINK_OBJECT_ID !== dispositions.project) {
+            await axios.delete(
+                `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links/${projectLink.LINK_ID}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        }
+        await axios.post(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}/links`,
+            {
+                LINK_OBJECT_NAME: 'Project',
+                LINK_OBJECT_ID: dispositions.project
+            },
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+
+    return {
+        logId: existingInsightlyLogId
     }
 }
 
@@ -441,7 +535,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });;
     const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    const messageType = !!recordingLink ? 'Voicemail' : (!!faxDocLink ? 'Fax' : 'SMS');
+    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let details = '';
     let title = '';
     switch (messageType) {
@@ -576,7 +670,7 @@ function upsertCallResult({ body, result }) {
 }
 
 function upsertCallAgentNote({ body, note }) {
-    if (!!!note) {
+    if (!note) {
         return body;
     }
     const noteRegex = RegExp('- Agent note: ([\\s\\S]+?)\n');
@@ -604,7 +698,7 @@ function upsertCallRecording({ body, recordingLink }) {
     const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
     if (!!recordingLink && recordingLinkRegex.test(body)) {
         body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (!!recordingLink) {
+    } else if (recordingLink) {
         body += `- Call recording link: ${recordingLink}\n`;
     }
     return body;
@@ -636,6 +730,7 @@ exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
