@@ -14,6 +14,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
+            "embedUrls":[
+                "https://*.pipedrive.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -214,6 +217,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
+            "embedUrls":[
+                "https://*.insightly.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -459,6 +465,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.clio.com",
             "name": "clio",
+            "embedUrls":[
+                "https://*.clio.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -672,6 +681,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "redtailtechnology.com",
             "name": "redtail",
+            "embedUrls":[
+                "https://*.redtailtechnology.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -1054,6 +1066,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
+            "embedUrls":[
+                "https://*.bullhornstaffing.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -1333,6 +1348,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
+            "embedUrls":[
+                "https://*.app.netsuite.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
@@ -1574,6 +1592,9 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "docs.google.com/spreadsheets",
             "name": "googleSheets",
+            "embedUrls":[
+                "https://docs.google.com/*"
+            ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46"
