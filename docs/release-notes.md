@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.4.0
+
+- New: One-time log in user setting to reduce Rate Limit issue and make logging more stable
+- New: Server side call logging for all platforms
+- New: Hide or show tabs in user settings
+- New: Call queue presence setting
+- New: Display voicemail transcript
+- New: Checkbox in extension options to allow embedding click-to-dial and quick access button for all webpages
+- New: Google Sheets is now supported
+- Better: Auto-logging happens right after call is connected (unless one-time log is ON)
+- Better: Bullhorn authorization management
+- Better: Multiple matched contact handling
+- Fix: Clio should not return closed matters
+- New: Matter description for Clio
+
 ## 1.3.10
 
 - Fix: New users cannot save auto log setting

@@ -1,4 +1,61 @@
 {
+    "1.4.0":{
+        
+        "global": [
+            {
+                "type": "New",
+                "description": "- Server side call logging for all platforms"
+            },
+            {
+                "type": "New",
+                "description": "- One-time log in user setting to reduce Rate Limit issue and make logging more stable"
+            },
+            {
+                "type": "New",
+                "description": "- Hide or show tabs in user settings"
+            },
+            {
+                "type": "New",
+                "description": "- Call queue presence setting"
+            },
+            {
+                "type": "New",
+                "description": "- Display voicemail transcript"
+            },
+            {
+                "type": "New",
+                "description": "- Checkbox in extension options to allow embedding click-to-dial and quick access button for all webpages"
+            },
+            {
+                "type": "New",
+                "description": "- Google Sheets is now supported"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto-logging happens right after call is connected (unless one-time log is ON)"
+            },
+            {
+                "type": "Better",
+                "description": "- Multiple matched contact handling"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Better",
+                "description": "- Improved authorization management"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "- Clio should not return closed matters"
+            },
+            {
+                "type": "New",
+                "description": "- Matter description for Clio"
+            }
+        ]
+    },
     "1.3.10": {
         "global": [
             {
