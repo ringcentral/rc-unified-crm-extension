@@ -47,7 +47,7 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Call result** - what did RingCentral observe as the result of the call, e.g. "call connected," "voicemail," "missed," etc. 
 * **Recording** - if there is a recording for the call, a link to the recording will be embedded 
 * **AI notes/summary** - AI-generated summary of the call (requires RingSense subscription)
-* **Transcipt** - A transcript of the call (requires RingSense subscription)
+* **Transcript** - A transcript of the call (requires RingSense subscription)
 
 <figure markdown>
   ![Call log settings](../img/call-log-details.png){ .mw-400 }
