@@ -8,6 +8,13 @@
 .md-typeset img.mw-500 { max-width: 500px; }
 .md-typeset img.mw-600 { max-width: 600px; }
 
+.md-typeset .ml-10 { margin-left: 10px; }
+.md-typeset .ml-20 { margin-left: 20px; }
+.md-typeset .ml-30 { margin-left: 30px; }
+.md-typeset .mb-10 { margin-bottom: 10px; }
+.md-typeset .mb-20 { margin-bottom: 20px; }
+.md-typeset .mb-30 { margin-bottom: 30px; }
+
 .carousel .column {
   float: left;
   width: 50%;
