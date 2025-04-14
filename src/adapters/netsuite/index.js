@@ -175,6 +175,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         });
     let note = getLogRes.data.message;
     let title = getLogRes.data.title;
+    let newSalesOrderUserNote = sanitizeNote({ note });
     if (dispositions && dispositions.salesorder) {
         try {
             const noteId = extractNoteIdFromNote({ note, targetSalesOrderId: dispositions.salesorder });
@@ -183,7 +184,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
                 const postBody = {
                     salesOrderId: dispositions.salesorder,
                     noteTitle: title,
-                    noteText: note ?? 'empty'
+                    noteText: newSalesOrderUserNote ?? 'empty'
                 };
                 const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
                     headers: { 'Authorization': authHeader }
@@ -205,7 +206,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
             } else {
                 const postBody = {
                     noteTitle: title,
-                    noteText: note ?? 'empty',
+                    noteText: newSalesOrderUserNote ?? 'empty',
                     noteId: noteId
                 };
                 await axios.put(createUserNotesUrl, postBody, { headers: { 'Authorization': authHeader } });
@@ -466,6 +467,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Duration: .*/, '');
         note = note?.replace(/\n- Call recording link: .*/, '');
         note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
+        note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
@@ -991,26 +993,10 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
-    // if (!userNoteUrl) {
-    //     return body;
-    // }
-    // const userNoteRegex = /^- SalesOrderNoteUrl:[^\n]*(?:\n(?!- ).*)*/m;
-    // if (userNoteRegex.test(body)) {
-    //     body = body.replace(userNoteRegex, `- SalesOrderNoteUrl: ${userNoteUrl}`);
-    // }
-    // else {
-    //     if (body && !body.endsWith('\n')) {
-    //         body += '\n';
-    //     }
-    //     body += `- SalesOrderNoteUrl: ${userNoteUrl}\n`;
-    // }
-    // const userNoteRegex = RegExp('- SalesOrderNoteUrl: (.+?)\n');
-    // if (userNoteRegex.test(body)) {
-    //     body = body.replace(userNoteRegex, `- SalesOrderNoteUrl: ${userNoteUrl}`);
-    // } else {
-    //     body += `\n- SalesOrderNoteUrl: ${userNoteUrl}`;
-    // }
-
+    const salesOrderText = "Sales Order Call Logs (Do Not Edit)"
+    if (!(body.includes(salesOrderText))) {
+        body += `\n\n ${salesOrderText}`;
+    }
     body += `\n- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}`;
     return body;
 }
@@ -1175,6 +1161,11 @@ function extractNoteIdFromNote({ note, targetSalesOrderId }) {
 
 }
 
+function sanitizeNote({ note }) {
+    note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
+    note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
+    return note;
+}
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
