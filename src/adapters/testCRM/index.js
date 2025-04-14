@@ -286,6 +286,16 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
+async function upsertCallDisposition({ user, existingCallLog, authHeader, callDisposition }) {
+    const existingLogId = existingCallLog.thirdPartyLogId;
+    if (callDisposition?.dispositionItem) {
+        // If has disposition item, check existence. If existing, update it, otherwise create it.
+    }
+    return {
+        logId: existingLogId
+    }
+}
+
 function upsertCallAgentNote({ body, note }) {
     if (!note) {
         return body;
@@ -380,7 +390,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
     return {
         callLogInfo: {
             subject,
-            note
+            note,
+            dispositions:{
+                testDispositionId: 'test disposition value'
+            }
         },
         returnMessage: {
             message: 'Call log fetched.',
