@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.4.1
+
+- Fix: Backward compatibility on disposition
+
 ## 1.4.0
 
 - New: One-time log in user setting to reduce Rate Limit issue and make logging more stable
