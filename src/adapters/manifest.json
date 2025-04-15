@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://horizon-char-liquid-threats.trycloudflare.com",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1366,7 +1366,7 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
-                    "clientId": "18059336069d5ff69ffbd455cf6bbc6918a46a4018250c1245c4b361f9b3e221",
+                    "clientId": "0bc4b1f329aefe9320d80ae080216faccd19c9cf11c19256d7440b25df6b1b5a",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
                     "customState": "fillerString,platform=netsuite"
