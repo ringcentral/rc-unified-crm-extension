@@ -222,6 +222,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    //  const requestStartTime = new Date().getTime();
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -244,11 +245,27 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             contactFields.push('officePhone');
         }
         const { enableSalesOrderLogging = false } = user.userSettings;
-        if (phoneNumberWithoutCountryCode !== 'undefined' && phoneNumberWithoutCountryCode !== null && phoneNumberWithoutCountryCode !== '') {
-            const dateBeforeThreeYear = getThreeYearsBeforeDate();
-            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, phoneNumberWithoutCountryCode)})`;
-            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, phoneNumberWithoutCountryCode)})`;
-            console.log({ message: "Contact Query", contactQuery, customerQuery });
+        const dateBeforeThreeYear = getThreeYearsBeforeDate();
+        const numberToQueryArray = [];
+        if (overridingFormat !== '') {
+            const formats = overridingFormat.split(',');
+            for (var format of formats) {
+                const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+                if (phoneNumberObj.valid) {
+                    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+                    let formattedNumber = format;
+                    for (const numberBit of phoneNumberWithoutCountryCode) {
+                        formattedNumber = formattedNumber.replace('*', numberBit);
+                    }
+                    numberToQueryArray.push(formattedNumber);
+                }
+            }
+        } else {
+            numberToQueryArray.push(phoneNumberWithoutCountryCode);
+        }
+        for (var numberToQuery of numberToQueryArray) {
+            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
+            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
             if (contactSearch.includes('contact')) {
                 const personInfo = await axios.post(
                     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
@@ -326,6 +343,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
+        // const requestEndTime = new Date().getTime();
+        // console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
         return {
             successful: true,
             matchedContactInfo,
@@ -771,6 +790,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+    const phoneNumberObj = parsePhoneNumber(phoneNumber);
+    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     try {
         const nameParts = splitName(newContactName);
         let contactId = 0;
@@ -812,7 +833,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         firstName: nameParts.firstName,
                         middleName: nameParts.middleName,
                         lastName: nameParts.lastName,
-                        phone: phoneNumber || '',
+                        phone: formatPhoneNumber(phoneNumberWithoutCountryCode) || '',
                         company: { id: companyId }
                     };
                     if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
@@ -859,7 +880,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     middleName: nameParts.middleName,
                     lastName: lastName,
                     entityId: nameParts.firstName + " " + lastName,
-                    phone: phoneNumber || '',
+                    phone: formatPhoneNumber(phoneNumberWithoutCountryCode) || '',
                     isPerson: true
 
                 };
@@ -1181,11 +1202,19 @@ function sanitizeNote({ note }) {
     note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
     return note;
 }
-const buildContactSearchCondition = (fields, phoneNumberWithoutCountryCode) => {
-    return fields.map(field =>
-        `REGEXP_REPLACE(${field}, '[^0-9]', '') LIKE '%${phoneNumberWithoutCountryCode}%'`
-    ).join(' OR ');
+const buildContactSearchCondition = (fields, numberToQuery, overridingFormat) => {
+    if (overridingFormat !== '') {
+        return fields.map(field => `${field}='${numberToQuery}'`).join(' OR ');
+    } else {
+        return fields.map(field =>
+            `REGEXP_REPLACE(${field}, '[^0-9]', '') LIKE '%${numberToQuery}'`
+        ).join(' OR ');
+    }
 };
+function formatPhoneNumber(phoneNumber) {
+    return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
+}
+
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
