@@ -77,6 +77,7 @@ nav:
    - 'Overview': crm/index.md
    - 'Bullhorn': crm/bullhorn.md
    - 'Clio': crm/clio.md
+   - 'Google Sheets': crm/google-sheets.md
    - 'Insightly': crm/insightly.md
    - 'NetSuite': crm/netsuite.md
    - 'Pipedrive': crm/pipedrive.md

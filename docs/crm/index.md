@@ -13,6 +13,8 @@ RingCentral's App Connect for RingEX provides support for a number of different 
      [Bullhorn](bullhorn.md)
 -    [![Clio Logo](../img/crm-logo-clio.png){.crm-logo}](clio.md)
      [Clio](clio.md)
+-    [![Google Sheets Logo](../img/crm-logo-googlesheets.png){.crm-logo}](google-sheets.md)
+     [Google Sheets](google-sheets.md)
 -    [![Insightly Logo](../img/crm-logo-insightly.png){.crm-logo}](insightly.md)
      [Insightly](insightly.md)
 -    [![NetSuite Logo](../img/crm-logo-netsuite.png){.crm-logo}](netsuite.md)

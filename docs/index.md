@@ -28,11 +28,12 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 * <span class="helper"></span>[![Bullhorn](img/crm-logo-bullhorn-bw.png)![Bullhorn](img/crm-logo-bullhorn.png)](crm/bullhorn.md)
 * <span class="helper"></span>[![Clio](img/crm-logo-clio-bw.png)![Clio](img/crm-logo-clio.png)](crm/clio.md)
 * <span class="helper"></span>[![Insightly](img/crm-logo-insightly-bw.png)![Insightly](img/crm-logo-insightly.png)](crm/insightly.md)
+* <span class="helper"></span>[![Google Sheets](img/crm-logo-googlesheets-bw.png)![ServiceNow](img/crm-logo-googlesheets.png)](crm/google-sheets.md)
 * <span class="helper"></span>[![NetSuite](img/crm-logo-netsuite-bw.png)![NetSuite](img/crm-logo-netsuite.png)](crm/netsuite.md)
 * <span class="helper"></span>[![Pipedrive](img/crm-logo-pipedrive-bw.png)![Pipedrive](img/crm-logo-pipedrive.png)](crm/pipedrive.md)
 * <span class="helper"></span>[![Redtail](img/crm-logo-redtail-bw.png)![Redtail](img/crm-logo-redtail.png)](crm/redtail.md)
 * <span class="helper"></span>[![ServiceNow](img/crm-logo-servicenow-bw.png)![ServiceNow](img/crm-logo-servicenow.png)](crm/servicenow.md)
-*  
+*   
 
 ## Highlighted Features
 
