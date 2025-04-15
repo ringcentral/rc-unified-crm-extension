@@ -118,6 +118,14 @@ Customers:
 
 The integration does not search custom phone fields. 
 
+## Optimize Contact Search
+
+If you are experiencing a timeout issue during contact search, you can follow the steps below to optimize the search process:
+
+* Navigate to Settings → NetSuite Options and enable  `Search Contact using Phone Fields`. This will exclude other fields (e.g., HomePhone, MobilePhone, OfficePhone) while searching the contact and include phone field only. 
+* Navigate to Settings → NetSuite Options and enable  `Off/Disable Log the Calls against Sales Order`. Enabling this option prevents calls from being logged against sales orders.
+* Navigate to Settings → NetSuite Options and enable  `Search only for contacts and disable customer search`. This restricts the search to contact records only, excluding customer records.
+
 ## Concurrency limits
 
 If you receive an error indicating, "concurrency limit exceeded," then you may need to purchase SuiteCloud Plus add-on module. This is what NetSuite support shared:
