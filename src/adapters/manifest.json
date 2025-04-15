@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://horizon-char-liquid-threats.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1366,7 +1366,7 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
-                    "clientId": "0bc4b1f329aefe9320d80ae080216faccd19c9cf11c19256d7440b25df6b1b5a",
+                    "clientId": "18059336069d5ff69ffbd455cf6bbc6918a46a4018250c1245c4b361f9b3e221",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "scope": "scope=restlets+rest_webservices",
                     "customState": "fillerString,platform=netsuite"
@@ -1374,33 +1374,59 @@
             },
             "settings": [
                 {
-                    "id": "netSuiteDefaultOptions",
-                    "type": "section",
-                    "name": "NetSuite options",
-                    "items": [
-                        {
-                            "id": "searchContactPhone",
-                            "type": "boolean",
-                            "name": "Search Contact using Phone Fields",
-                            "description": "If enabled, the search will be performed using the phone fields.",
-                            "defaultValue": false
-                        },
-                        {
-                            "id": "disableCustomerSearch",
-                            "type": "boolean",
-                            "name": "Search only for contacts and disable customer search.",
-                            "description": "If enabled Search only for contacts otherwise, search for both customers and contacts.",
-                            "defaultValue": false
-                        },
-                        {
-                            "id": "disableSalesOrderLogging",
-                            "type": "boolean",
-                            "name": "Off/Disable Log the Calls against Sales Order",
-                            "description": "If enabled, the call will not be logged against the sales order.",
-                            "defaultValue": false
-                        }
-                    ]
+                "id": "netSuiteDefaultOptions",
+                "type": "section",
+                "name": "NetSuite options",
+                "items": [{
+                "id": "phoneFieldsId",
+                "type": "option",
+                "name":"Phone fields to search",
+                 "options": [{
+                  "id": "phone",
+                  "name": "Main Phone"
+                }, {
+                  "id": "mobilePhone",
+                  "name": "Mobile Phone"
+                }, {
+                  "id": "homePhone",
+                  "name": "Home Phone"
+                }, {
+                  "id": "officePhone",
+                  "name": "Office Phone"
+                }, {
+                  "id": "altPhone",
+                  "name": "Alternate Phone"
+                }],
+                "multiple": true,
+                "required": false,
+                "checkbox": true,
+                "value": ["phone", "mobilePhone"],
+                "description": "Select the fields to search. The fewer searched, the more performant lookups will be."
                 },
+                {
+                "id": "contactsSearchId",
+                "type": "option",
+                "name":"Entities to search",
+                 "options": [{
+                  "id": "contact",
+                  "name": "Contacts"
+                }, {
+                  "id": "customer",
+                  "name": "Customers"
+                }],
+                "multiple": true,
+                "required": false,
+                "checkbox": true,
+                "description": "Select the entities to search for. The fewer searched, the more performant lookups will be"
+                },
+                {
+                    "id": "enableSalesOrderLogging",
+                    "type": "boolean",
+                    "name": "Sales Order logging",
+                    "description": "When enabled, calls can be optionally associated with sales orders.",
+                    "defaultValue": false
+                }]
+              } ,
                 {
                     "id": "netsuiteCallLogDetails",
                     "type": "section",
