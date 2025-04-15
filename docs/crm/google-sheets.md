@@ -34,7 +34,7 @@ And with that, you will be connected to Google Sheets and ready to begin using t
 
 ## Creating a Google Sheet to log to
 
-Due to security restrictions imposed on App Connect by Google, App Connect can only log communications and contacts to a Google Sheet that it created. Therefore, to begin logging communications, navigate to "Google Sheets options" under Settings, enter a name for the file, and click "Create new sheet."
+To begin logging, you need to create or select a Google sheet to log communications and contacts to. Navigate to "Google Sheets options" under Settings, enter a name for the file, and click "Create new sheet."
 
 You are then welcome to share the Google Sheet created by App Connect with your co-workers. Your co-workers then would link to an existing sheet rather than create their own. 
 
@@ -45,7 +45,7 @@ You are then welcome to share the Google Sheet created by App Connect with your 
 
 ### Linking to an existing Google Sheet
 
-Once a sheet has been created by App Connect, others within your company can log their calls to the same document as well. However, those users could click the button "Select existing sheet." Doing so will launch the Google sheet selector modal dialog. Select the sheet and click Continue. 
+You may also select a Google sheet to log communications to. This is especially helpful if you have multiple people within the company all logging calls to a shared sheet. To link to an existing sheet, users should click the button "Select existing sheet." Doing so will launch the Google sheet selector modal dialog. Select the sheet and click Continue. 
 
 <figure markdown>
   ![Link to Google Sheet](../img/google-link-sheet.png)
