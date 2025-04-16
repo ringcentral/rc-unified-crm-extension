@@ -308,7 +308,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     for (const result of customerInfo.data.items) {
                         let salesOrders = [];
                         try {
-                            if (enableSalesOrderLogging.value === true) {
+                            if (enableSalesOrderLogging.value) {
                                 const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                                 for (const salesOrder of salesOrderResponse?.data?.items) {
                                     salesOrders.push({
