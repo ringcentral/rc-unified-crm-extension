@@ -1,27 +1,35 @@
-# Presence and status
+# Managing presence and call queue status
 
-Using the embedded phone provided by App Connect one can easily set their presence and/or status and instantly have that synced across the network. Similarly, your presence status will always be reflected in your embedded dialer as it changes via mechanisms outside of the extension. 
+App Connect’s embedded phone makes it easy to set and sync your presence and status across the network. Any changes to your status—whether made directly in the dialer or through other mechanisms—are automatically reflected in the embedded dialer.
 
-There are two ways to change your status:
+## Changing your presence status
 
-* Click the presence indicator in the upper-left corner of the embedded dialer
+There are two ways to change your presence:
 
-     ![Change presence](../img/presence.png)
+1. **Using the Embedded Dialer**
+    Click the presence indicator in the upper-left corner of the embedded dialer.
+    
+    ![Change presence](../img/presence.png)
 
-* Navigate to the Settings page under the more menu and modify it from there
+2. **Via the Settings Page**
+    Navigate to the Settings page under the More menu and update your presence status from there.
+	
+    ![Change presence from settings](../img/presence-settings.png)
 
-     ![Change presence from settings](../img/presence-settings.png)
+## Call queue presence management
 
-## Call queue presence
+If you're a member of a call queue, you can manage your call queue presence through the Status Settings section in App Connect.
 
-If a user is part of a call queue, App Connect allows them to manage their call queue presence in the status settings section.
+### Accept calls from call queues
 
-* **Accept calls from call queue**: When disabled, the user will not receive calls from any call queue.
+Toggle this setting to control whether you receive calls from any call queue. When disabled, you won't receive call queue calls.
+   
+![Accept call queue calls](../img/call-queue-presence.png)
 
-     ![Accept call queue calls](../img/call-queue-presence.png)
+### Manage call queue presence
 
-* **Manage call queue presence**: Allows the user to opt out of receiving calls from specific call queues.
+Use this option to opt out of specific call queues, allowing finer control over which queues you're available for.
+   
+![Change presence](../img/call-queue-presence-list.png)
 
-     ![Change presence](../img/call-queue-presence-list.png)
-
-!!! tip "The user must have the appropriate permissions to change their call queue presence, and the call queue must be configured to allow members to update their presence in the RingCentral admin portal."
+!!! note "To change call queue presence, you must have the necessary permissions, and the call queue must be configured to allow member presence updates in the RingCentral admin portal."
