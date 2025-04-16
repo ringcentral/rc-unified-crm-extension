@@ -317,7 +317,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                                 }
                             }
                         } catch (e) {
-                            console.log({ message: "Error in SalesOrder search", e });
+                            console.log({ message: "Error in SalesOrder search" });
                         }
                         let firstName = result.firstname ?? '';
                         let middleName = result.middlename ?? '';
