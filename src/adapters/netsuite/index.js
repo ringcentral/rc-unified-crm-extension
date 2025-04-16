@@ -249,6 +249,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const numberToQueryArray = [];
         if (overridingFormat !== '') {
             const formats = overridingFormat.split(',');
+            numberToQueryArray.push(phoneNumber.replace(' ', '+')); //This is an E.164 format search, as the new contact was created by App Connect using the E.164 format.
             for (var format of formats) {
                 const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
                 if (phoneNumberObj.valid) {
@@ -790,8 +791,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
-    const phoneNumberObj = parsePhoneNumber(phoneNumber);
-    const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     try {
         const nameParts = splitName(newContactName);
         let contactId = 0;
@@ -833,7 +832,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         firstName: nameParts.firstName,
                         middleName: nameParts.middleName,
                         lastName: nameParts.lastName,
-                        phone: formatPhoneNumber(phoneNumberWithoutCountryCode) || '',
+                        phone: phoneNumber || '',
                         company: { id: companyId }
                     };
                     if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
@@ -880,7 +879,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     middleName: nameParts.middleName,
                     lastName: lastName,
                     entityId: nameParts.firstName + " " + lastName,
-                    phone: formatPhoneNumber(phoneNumberWithoutCountryCode) || '',
+                    phone: phoneNumber || '',
                     isPerson: true
 
                 };
@@ -1211,9 +1210,6 @@ const buildContactSearchCondition = (fields, numberToQuery, overridingFormat) =>
         ).join(' OR ');
     }
 };
-function formatPhoneNumber(phoneNumber) {
-    return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3");
-}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
