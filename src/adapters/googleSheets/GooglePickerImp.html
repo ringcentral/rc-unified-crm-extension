@@ -58,14 +58,14 @@
     </style>
 </head>
 
-<body style="color: lightgrey;">
-    <div class="container">
+<body style="color: lightgrey;" onload="showPicker()">
+    <!-- <div class="container">
         <h2 style="color: navy;">RingCentral App Connect</h2>
         <button onclick="showPicker()">Select Google Sheet</button>
         <div class="ringcentral-branding">
             Powered by <a href="https://www.ringcentral.com/" target="_blank">RingCentral</a>
         </div>
-    </div>
+    </div> -->
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script type="text/javascript">
         // Replace with your actual API key and OAuth token
@@ -113,7 +113,8 @@
                     sheetData: data.docs[0]
                 });
             }
-            alert('You have successfully attached a file with App Connect.\nFile Name: ' + data.docs[0].name + ' \nPlease close the tab and go to App Connect Google Sheets Config.');
+            alert('You have successfully attached a file with App Connect.\nFile Name: ' + data.docs[0].name + ' \nPlease go to App Connect Google Sheets Config.');
+            window.close();
         }
     </script>
 
