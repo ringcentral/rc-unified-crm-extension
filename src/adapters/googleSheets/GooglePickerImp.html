@@ -72,6 +72,7 @@
         
         const key = '{key}';
         const ACCESS_TOKEN = '{accessToken}';
+        const project_id = '{projectId}';
 
         let pickerApiLoaded = false;
 
@@ -94,6 +95,7 @@
                 const picker = new google.picker.PickerBuilder()
                     .addView(view)
                     .setOAuthToken(ACCESS_TOKEN)
+                    .setAppId(project_id)
                     .setDeveloperKey(key)
                     .setCallback(pickerCallback)
                     .setTitle("Select a Google Sheet")
