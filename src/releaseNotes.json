@@ -3,51 +3,53 @@
         "global": [
             {
                 "type": "New",
-                "description": "- Server side call logging for all platforms"
+                "description": "- Server-side call logging support using user credentials if possible"
             },
             {
                 "type": "New",
-                "description": "- One-time log in user setting to reduce Rate Limit issue and make logging more stable"
+                "description": "- Server-side call logging new selection for logging by Agent/User (if possible) OR Admin"
             },
             {
-                "type": "New",
-                "description": "- Hide or show tabs in user settings"
+                "type": "Change",
+                "description": "- 'Tabs' setting is renamed as 'Customize tabs' and is moved under 'General' setting"
             },
             {
-                "type": "New",
-                "description": "- Call queue presence setting"
-            },
-            {
-                "type": "New",
-                "description": "- Display voicemail transcript"
-            },
-            {
-                "type": "New",
-                "description": "- Google Sheets is now supported"
-            },
-            {
-                "type": "Better",
-                "description": "- Auto-logging happens right after call is connected (unless one-time log is ON)"
-            },
-            {
-                "type": "Better",
-                "description": "- Multiple matched contact handling"
+                "type": "Fix",
+                "description": "- Call queue not answered cannot be logged"
             }
         ],
         "bullhorn": [
             {
-                "type": "Better",
-                "description": "- Improved authorization management"
+                "type": "Fix",
+                "description": "- Authorization error and Note Action missing. If user does not have EDIT permission, instead of creating Note then updating Note Action, one-time logging setting should be turned ON"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Change",
+                "description": "- File picker now has more polished UI"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "- Now support contact match customization"
+            },
+            {
+                "type": "Change",
+                "description": "- Number formats are moved to options setting"
             }
         ],
         "clio": [
             {
-                "type": "Fix",
-                "description": "- Clio should not return closed matters"
-            },
+                "type": "Change",
+                "description": "- Number formats are moved to options setting"
+            }
+        ],
+        "insightly": [
             {
-                "type": "New",
-                "description": "- Matter description for Clio"
+                "type": "Change",
+                "description": "- Number formats are moved to options setting"
             }
         ]
     },
