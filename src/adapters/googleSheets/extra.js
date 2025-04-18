@@ -2,6 +2,20 @@ const { google } = require('googleapis');
 const axios = require('axios');
 const oauth = require('../../lib/oauth');
 const platformModule = require(`../googleSheets`);
+const path = require('path');
+async function renderPickerFile({ user }) {
+    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+    const filePath = path.join(__dirname, 'GooglePickerImp.html');
+    let fileContent = require('fs').readFileSync(filePath, 'utf8');
+    fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
+    fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
+    fileContent = fileContent.replace('{accessToken}', user.accessToken);
+    fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
+    fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
+    console.log({ APP_SERVER: process.env.APP_SERVER });
+    return fileContent;
+}
 async function createNewSheet({ user, data }) {
     const newSheetName = data.name ?? 'RingCentral App Connect Sheet';
     // check if sheet exists, if so, directly return name and url
@@ -140,3 +154,4 @@ async function updateSelectedSheet({ user, data }) {
 exports.createNewSheet = createNewSheet;
 exports.removeSheet = removeSheet;
 exports.updateSelectedSheet = updateSelectedSheet;
+exports.renderPickerFile = renderPickerFile;

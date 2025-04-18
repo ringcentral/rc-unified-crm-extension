@@ -26,6 +26,25 @@ It may take some time in order for a call log's record in the CRM to be complete
 !!! info "Needed permissions for successful call log updates"
     Some customers have a policy that states agents can only create call logs, they are NOT permitted to update call logs. Be aware, this policy will make it difficult for App Connect to successfully create a complete log entry for a call, as it requires the ability to update records. Look into [server side call logging](server-side-logging.md) as a possible remedy. 
 
+## Incremental versus all-at-once logging
+
+App Connect can log calls in one of two ways:
+
+* **Incremental** logging means that App Connect will attempt to log calls in near real-time. Logging begins the moment the call is connected, and then as the call progresses, and call artifacts are made available, the call log entry is updated with newer information. 
+
+* **All-at-once** logging means that App Connect will wait until all artifacts are ready before logging the call. This means that there could be a short delay in seeing the call being logged in the CRM. Users are free to enter and notes at any time. When the call is ready to log, any notes taken will be logged to the CRM.
+
+**Why would someone choose all-at-once logging?**
+
+Some companies have policies that restrict a user's ability to update notes once they have been created. For some companies this is a matter of compliance -- the consider the notes taken during a call to be inviolate, and thus must prevent call log entries from ever being tampered with. If a company has a policy such as this, incremental logging is not possible because the call log entry is created and updated multiple times. The remedy is simple: enable all-at-once logging, and App Connect will wait and create a complete call log entry via a single create action. 
+
+
+
+<figure markdown>
+  ![Logging calls](../img/logging-all-at-once.png)
+  <figcaption>The setting to manage whether calls are logged incrementally or all-at-once.</figcaption>
+</figure>
+
 ## Taking notes during an active call
 
 While a call is active, click the "Notes" icon found in the lower right-hand corner of the dialer to open up a notes page into which you free type notes. When the call is complete, the notes will be saved locally, and when you log the call in the CRM the notes will transmitted to and saved in the CRM.
