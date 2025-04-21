@@ -103,29 +103,22 @@ In this way, App Connect ensures that all contacts created by it conform to the 
 
 When attempting to find and match a phone call to a customer or contact record, the NetSuite integration searches the following fields:
 
-Contacts:
+* Main Phone
+* Home Phone
+* Mobile Phone
+* Office Phone
 
-* `phone`
-* `homePhone`
-* `mobilePhone`
-* `officePhone`
+In addition, App Connect will search the "Office Phone" field for contacts, and the "Alternate Phone" field for customer entities. 
 
-Customers:
+!!! warning "App Connect does not search custom phone fields."
 
-* `phone`
-* `homePhone`
-* `mobilePhone`
-* `altPhone`
+## Optimizing contact matching performance
 
-The integration does not search custom phone fields. 
+If you are experiencing a timeout issue during contact search, you can follow the steps below to optimize the search process. First navigate to Settings → NetSuite Options, then:
 
-## Optimize Contact Search
-
-If you are experiencing a timeout issue during contact search, you can follow the steps below to optimize the search process:
-
-* Navigate to Settings → NetSuite Options and enable  `Search Contact using Phone Fields`. This will exclude other fields (e.g., HomePhone, MobilePhone, OfficePhone) while searching the contact and include phone field only. 
-* Navigate to Settings → NetSuite Options and enable  `Off/Disable Log the Calls against Sales Order`. Enabling this option prevents calls from being logged against sales orders.
-* Navigate to Settings → NetSuite Options and enable  `Search only for contacts and disable customer search`. This restricts the search to contact records only, excluding customer records.
+* Under "Phone fields to search," limit your search to only the fields you use.
+* Under "Entities to search," limit your search to only those object types you want returned in your results.
+* Disable  "Sales Order logging" to prevents calls from being logged against sales orders.
 
 ![NetSuite contact matching optimization](../img/netsuite-optimization.png){ .mw-200 }
 
