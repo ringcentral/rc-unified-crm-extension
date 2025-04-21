@@ -62,6 +62,10 @@ app.get('/crmManifest', (req, res) => {
     try {
         if (!req.query.platformName) {
             const defaultCrmManifest = require('./adapters/manifest.json');
+            if (process.env.OVERRIDE_APP_SERVER) {
+                defaultCrmManifest.serverUrl = process.env.OVERRIDE_APP_SERVER;
+            }
+            console.log(defaultCrmManifest.serverUrl)
             res.json(defaultCrmManifest);
             return;
         }
@@ -142,15 +146,23 @@ app.get('/serverVersionInfo', (req, res) => {
 });
 
 // Unique: Google Sheets
-app.get('/googleSheets/filePicker', function (req, res) {
+app.get('/googleSheets/filePicker', async function (req, res) {
     try {
-        const filePath = path.join(__dirname, 'adapters/googleSheets/GooglePickerImp.html');
-        let fileContent = require('fs').readFileSync(filePath, 'utf8');
-        fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
-        fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
-        fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
-        fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-        res.send(fileContent);
+        const jwtToken = req.query.token;
+        console.log({ message: "In file picker", jwtToken, Query: req.query });
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            console.log({ accessToken: user.accessToken });
+            if (!user) {
+                res.status(400).send('Unknown user');
+                return;
+            }
+            const fileContent = await googleSheetsExtra.renderPickerFile({ user });
+            res.send(fileContent);
+        }
+
+
     }
     catch (e) {
         console.log(`platform: googleSheets \n${e.stack}`);
@@ -667,7 +679,7 @@ app.get('/contact', async function (req, res) {
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
-        if (successful) {
+            if (successful) {
                 const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
                 resultCount = nonNewContact.length;
             }

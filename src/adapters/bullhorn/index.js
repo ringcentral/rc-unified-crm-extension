@@ -18,9 +18,9 @@ async function authValidation({ user }) {
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
-            if(new Date(pingResponse.data.sessionExpires) < new Date()) {
-                user = await refreshSessionToken(user);
-            }
+        if (new Date(pingResponse.data.sessionExpires) < new Date()) {
+            user = await refreshSessionToken(user);
+        }
         return {
             successful: true,
             status: 200
@@ -520,6 +520,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                     BhRestToken: user.platformAdditionalInfo.bhRestToken
                 }
             });
+        extraDataTracking = {
+            ratelimitRemaining: getLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: getLogRes.headers['ratelimit-limit'],
+            ratelimitReset: getLogRes.headers['ratelimit-reset']
+        }
     }
     catch (e) {
         if (isAuthError(e.response.status)) {
@@ -551,18 +556,44 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
-    const postLogRes = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
-        postBody,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    try {
+        const postLogRes = await axios.post(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+            postBody,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        extraDataTracking = {
+            ratelimitRemaining: postLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: postLogRes.headers['ratelimit-limit'],
+            ratelimitReset: postLogRes.headers['ratelimit-reset']
+        }
+    }
+    catch (e) {
+        if (e.response.status === 403) {
+            return {
+                extraDataTracking,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'It seems like your Bullhorn account does not have permission to update Note. Refer to details for more information.',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `Please go to user settings -> Call and SMS logging and turn ON one-time call logging and try again.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 3000
+                }
             }
-        });
-    extraDataTracking = {
-        ratelimitRemaining: postLogRes.headers['ratelimit-remaining'],
-        ratelimitAmount: postLogRes.headers['ratelimit-limit'],
-        ratelimitReset: postLogRes.headers['ratelimit-reset']
+        }
     }
     return {
         updatedNote: postBody.comments,
@@ -582,18 +613,44 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     const postBody = {
         action: dispositions.noteActions
     }
-    const upsertDispositionRes = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
-        postBody,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    try {
+        const upsertDispositionRes = await axios.post(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+            postBody,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        extraDataTracking = {
+            ratelimitRemaining: upsertDispositionRes.headers['ratelimit-remaining'],
+            ratelimitAmount: upsertDispositionRes.headers['ratelimit-limit'],
+            ratelimitReset: upsertDispositionRes.headers['ratelimit-reset']
+        }
+    }
+    catch (e) {
+        if (e.response.status === 403) {
+            return {
+                extraDataTracking,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'It seems like your Bullhorn account does not have permission to update Note. Refer to details for more information.',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `Please go to user settings -> Call and SMS logging and turn ON one-time call logging and try again.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 3000
+                }
             }
-        });
-    extraDataTracking = {
-        ratelimitRemaining: upsertDispositionRes.headers['ratelimit-remaining'],
-        ratelimitAmount: upsertDispositionRes.headers['ratelimit-limit'],
-        ratelimitReset: upsertDispositionRes.headers['ratelimit-reset']
+        }
     }
     return {
         logId: existingBullhornLogId,
@@ -741,19 +798,45 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         comments: logBody,
         dateAdded: message.creationTime
     }
-    // I dunno, Bullhorn uses POST as PATCH
-    const patchLogRes = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}`,
-        patchBody,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    try {
+        // I dunno, Bullhorn uses POST as PATCH
+        const patchLogRes = await axios.post(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}`,
+            patchBody,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        extraDataTracking = {
+            ratelimitRemaining: patchLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: patchLogRes.headers['ratelimit-limit'],
+            ratelimitReset: patchLogRes.headers['ratelimit-reset']
+        }
+    }
+    catch (e) {
+        if (e.response.status === 403) {
+            return {
+                extraDataTracking,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'It seems like your Bullhorn account does not have permission to update Note. Refer to details for more information.',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `Please go to user settings -> Call and SMS logging and turn ON one-time call logging and try again.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 3000
+                }
             }
-        });
-    extraDataTracking = {
-        ratelimitRemaining: patchLogRes.headers['ratelimit-remaining'],
-        ratelimitAmount: patchLogRes.headers['ratelimit-limit'],
-        ratelimitReset: patchLogRes.headers['ratelimit-reset']
+        }
     }
     return {
         extraDataTracking

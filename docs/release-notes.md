@@ -2,7 +2,15 @@
 
 ## 1.4.1
 
-- Fix: Backward compatibility on disposition
+- New: Netsuite now supports contact match customization
+- New: Server-side call logging support using user credentials if possbile
+- New: Server-side call logging new selection for logging by Agent/user (if possible) OR Admin
+- Change: "Tabs" setting is renamed as "Customize tabs" and is moved under "General" setting
+- Change: Netsuite, Clio and Insightly -> Number formats are moved to options setting
+- Change: Relocate active call auto logging to call log event
+- Change: Google Sheet file picker now has more polished UI
+- Fix: Call queue not answered cannot be logged
+- Fix: Authorization error and Note Action missing. If user does not have EDIT permission, instead of creating Note then update Note Action, one-time logging setting should be turned ON
 
 ## 1.4.0
 
