@@ -62,6 +62,10 @@ app.get('/crmManifest', (req, res) => {
     try {
         if (!req.query.platformName) {
             const defaultCrmManifest = require('./adapters/manifest.json');
+            if (process.env.OVERRIDE_APP_SERVER) {
+                defaultCrmManifest.serverUrl = process.env.OVERRIDE_APP_SERVER;
+            }
+            console.log(defaultCrmManifest.serverUrl)
             res.json(defaultCrmManifest);
             return;
         }
