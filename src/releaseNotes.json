@@ -1,4 +1,16 @@
 {
+    "1.4.2": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Show 'Cannot find call log' and 'Cannot find contact' even when contact is known"
+            },
+            {
+                "type": "Fix",
+                "description": "- Contact call-pop for known contact"
+            }
+        ]
+    },
     "1.4.1": {
         "global": [
             {

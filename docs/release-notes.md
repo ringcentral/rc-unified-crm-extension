@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.4.2
+
+- Fix: Show "Cannot find call log" and "Cannot find contact" even when contact is known
+- Fix: Contact call-pop for known contact
+
 ## 1.4.1
 
 - New: Netsuite now supports contact match customization
