@@ -31,17 +31,40 @@ Currently the server-side call logging feature is in beta, and can be enabled fr
 
 ![Server-side call logging setup](../img/sscl-setup.png)
 
-Click "Server side logging" to enable the feature.
+Under **Enable server side logging**, select "Enable for account", and then save to enable this feature.
+
+!!! tip "To make sure server-side logging is functioning properly, it is best for the admin to maintain an active session in the CRM to keep the CRM connected and authorized in App Connect."
 
 #### Trial-mode
 
 If you are unsure of turning on server-side call logging across your entire account, the admin in your account can enable server-side call logging for their extension exclusively. It is the intent of this feature to allow admins to try the feature out for a period of time before enabling it for other users. 
 
+![Server-side call logging trial setup](../img/sscl-trial-mode.png)
+
+Under **Enable server side logging**, select "Enable for admin only (trial mode)", and save.
+
 ## Configuring server-side call logging
 
 From the Server side logging page, an admin can enable call logging for their entire organization. Once enabled, automatic logging from the client will be disabled across your entire organization. Users will still be able to log calls manually, or edit call log entries made by the server-side call logging service. 
 
-![Server-side call logging setup](../img/sscl-config.png)
+![Server-side call logging setup](../img/sscl-setup.png)
+
+### Activity record owner
+
+When App Connect's server-side logging service is enabled, the service will use the RingCentral admin's credentials who initialy enabled the feature to subscribe all new call events across the entire organization, as well as to save activity records in CRM. As a result, the owner of all activity records will be the admin. 
+
+This is sometimes desirable, but other's may prefer for audit trail purposes to have the owner be the person who conducted the phone call, as that is deemed more accurate. 
+
+To override this behavior, set **Activity record owner** to "Agent/user (if possible)," This will assign the record owner to the user when following conditions are true:
+
+1. The user has previously connected to the CRM via App Connect. 
+2. The user has access permissions in the CRM that allow them to create activity records.
+
+If none of those conditions are true, the activity record owner will default to the admin that setup server side logging.
+
+To always assign ownership of the activity record to the admin, set **Activity record owner** to `Admin`. 
+
+![Server-side call logging setup](../img/sscl-admin-owner.png)
 
 ### Blocking some phones from being logged
 
