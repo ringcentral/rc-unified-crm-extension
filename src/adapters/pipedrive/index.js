@@ -183,7 +183,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
         phone: phoneNumber
     }
     const createContactRes = await axios.post(
-        `https://${user.hostname}/api/v2/persons`,
+        `https://${user.hostname}/api/v1/persons`,
         postBody,
         {
             headers: { 'Authorization': authHeader }
