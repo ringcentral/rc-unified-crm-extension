@@ -26,3 +26,4 @@ client/src/manifest.json
 /.vscode/settings.json
 .dynamodb/shared-local-instance.db
 
+local.session.sql
