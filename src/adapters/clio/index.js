@@ -509,7 +509,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 )
                 logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `Fax uploaded to Clio successfully.\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details \n\n--- Created via RingCentral App Connect`;
+                    logBody = `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                 }
                 else {
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
