@@ -189,5 +189,87 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
     }
 }
 
+async function findContactWithName({ platform, userId, name }) {
+    try {
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
+        if (!user || !user.accessToken) {
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `No Contact found with name ${name}`,
+                    messageType: 'warning',
+                    ttl: 5000
+                }
+            };
+        }
+        const platformModule = require(`../adapters/${platform}`);
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const { successful, matchedContactInfo, returnMessage } = await platformModule.findContactWithName({ user, authHeader, name });
+        if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
+            return { successful, returnMessage, contact: matchedContactInfo };
+        }
+        else {
+            if (returnMessage) {
+                return {
+                    successful,
+                    returnMessage,
+                    contact: matchedContactInfo,
+                }
+            }
+            return {
+                successful,
+                returnMessage:
+                {
+                    message: `No Contact found with name ${name} `,
+                    messageType: 'warning',
+                    ttl: 5000
+                },
+                contact: matchedContactInfo
+            };
+        }
+    } catch (e) {
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
+        if (e.response?.status === 429) {
+            return {
+                successful: false,
+                returnMessage: errorMessage.rateLimitErrorMessage({ platform })
+            };
+        }
+        else if (e.response?.status >= 400 && e.response?.status < 410) {
+            return {
+                successful: false,
+                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
+            };
+        }
+        return {
+            successful: false,
+            returnMessage:
+            {
+                message: `Error finding contacts`,
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+}
+
 exports.findContact = findContact;
 exports.createContact = createContact;
+exports.findContactWithName = findContactWithName;
