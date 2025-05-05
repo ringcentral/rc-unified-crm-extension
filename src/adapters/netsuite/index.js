@@ -222,7 +222,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    //  const requestStartTime = new Date().getTime();
+    const requestStartTime = new Date().getTime();
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -267,6 +267,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         for (var numberToQuery of numberToQueryArray) {
             const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
             const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
+            console.log({ contactQuery, customerQuery });
             if (contactSearch.includes('contact')) {
                 const personInfo = await axios.post(
                     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
@@ -344,8 +345,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
-        // const requestEndTime = new Date().getTime();
-        // console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
+        matchedContactInfo.push({
+            id: 'searchContact',
+            name: 'Find contact.',
+            additionalInfo: null,
+            isFindContact: true
+        });
+        const requestEndTime = new Date().getTime();
+        console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
         return {
             successful: true,
             matchedContactInfo,
@@ -376,8 +383,44 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         }
     }
 }
+async function findContactWithName({ user, authHeader, name }) {
+    console.log({ message: "Under find Contact with name", name });
+    const matchedContactInfo = [];
+    const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}'`;
+    const personInfo = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        {
+            q: contactQuery
+        },
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
+    if (personInfo.data.items.length > 0) {
+        for (var result of personInfo.data.items) {
+            let firstName = result.firstname ?? '';
+            let middleName = result.middlename ?? '';
+            let lastName = result.lastname ?? '';
+            const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+            matchedContactInfo.push({
+                id: result.id,
+                name: contactName,
+                phone: result.phone ?? '',
+                homephone: result.homephone ?? '',
+                mobilephone: result.mobilephone ?? '',
+                officephone: result.officephone ?? '',
+                additionalInfo: null,
+                type: 'contact'
+            })
+        }
+    }
+    return {
+        successful: true,
+        matchedContactInfo
+    }
+}
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+    console.log({ Duration: callLog.duration });
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
@@ -408,7 +451,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
         if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
         if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
+        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = ({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
         if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
         if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
         if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
@@ -457,6 +500,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             extraDataTracking
         };
     } catch (error) {
+        console.log({ error });
         let errorMessage = netSuiteErrorDetails(error, "Error logging call");
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
@@ -1235,3 +1279,4 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.upsertCallDisposition = upsertCallDisposition;
+exports.findContactWithName = findContactWithName;
