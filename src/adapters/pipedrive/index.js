@@ -250,15 +250,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         done: true,
         due_date: dateUtc,
         due_time: timeUtc,
-        participants:[
+        participants: [
             {
                 person_id: Number(contactInfo.id),
                 primary: true
             }
         ]
     }
-    if(orgId)
-    {
+    if (orgId) {
         postBody.org_id = orgId;
     }
     const addLogRes = await axios.post(
@@ -338,7 +337,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const patchBody = {
-        deal_id: dispositions.deals                   
+        deal_id: dispositions.deals
     }
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
@@ -416,15 +415,14 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         due_date: dateUtc,
         due_time: timeUtc,
         type: smsType ? smsType.key_string : 'call',
-        participants:[
+        participants: [
             {
                 person_id: Number(contactInfo.id),
                 primary: true
             }
         ]
     }
-    if(orgId)
-    {
+    if (orgId) {
         postBody.org_id = orgId;
     }
     const addLogRes = await axios.post(
@@ -449,7 +447,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission }) {
+    const dealId = additionalSubmission ? additionalSubmission.deals : '';
     let extraDataTracking = {};
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
@@ -475,7 +474,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
 
     patchBody = {
-        note: logBody
+        note: logBody,
+        deal_id: dealId
     }
     const patchLogRes = await axios.patch(
         `https://${user.hostname}/api/v2/activities/${existingLogId}`,
