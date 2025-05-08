@@ -201,7 +201,7 @@ async function findContactWithName({ platform, userId, name }) {
             return {
                 successful: false,
                 returnMessage: {
-                    message: `No Contact found with name ${name}`,
+                    message: `No contact found with name ${name}`,
                     messageType: 'warning',
                     ttl: 5000
                 }
@@ -237,7 +237,7 @@ async function findContactWithName({ platform, userId, name }) {
                 successful,
                 returnMessage:
                 {
-                    message: `No Contact found with name ${name} `,
+                    message: `No contact found with name ${name} `,
                     messageType: 'warning',
                     ttl: 5000
                 },

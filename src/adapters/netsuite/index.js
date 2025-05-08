@@ -347,7 +347,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         });
         matchedContactInfo.push({
             id: 'searchContact',
-            name: 'Find contact.',
+            name: 'Search NetSuite',
             additionalInfo: null,
             isFindContact: true
         });
