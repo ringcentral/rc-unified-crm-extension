@@ -438,7 +438,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let logSubject = '';
     switch (messageType) {
         case 'SMS':
-            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
             logBody =
                 '\nConversation summary\n' +
                 `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
@@ -455,23 +455,23 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral App Connect';
             break;
         case 'Voicemail':
-            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
             logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
             break;
         case 'Fax':
             try {
                 // download media from server mediaLink (application/pdf) - do this first because RC Access Token might expire during the process
                 const mediaRes = await axios.get(faxDownloadLink, { responseType: 'arraybuffer' });
-
                 const documentUploadIdResponse = await axios.post(`
                     https://${user.hostname}/api/v4/documents?fields=id,latest_document_version{uuid,put_url,put_headers}`,
                     {
                         data: {
-                            name: `${message.direction} Fax - ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}.pdf`,
+                            name: `${message.direction} Fax - ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}.pdf`,
                             parent: {
                                 id: additionalSubmission.matters ?? contactInfo.id,
                                 type: additionalSubmission.matters ? 'Matter' : 'Contact'
-                            }
+                            },
+                            received_at: moment(message.creationTime).toISOString()
                         }
                     },
                     {
