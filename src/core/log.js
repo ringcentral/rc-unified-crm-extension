@@ -407,8 +407,10 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
             }
             let faxDocLink = null;
+            let faxDownloadLink = null;
             if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
                 faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+                faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
             }
             const existingSameDateMessageLog = await MessageLogModel.findOne({
                 where: {
@@ -422,7 +424,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;

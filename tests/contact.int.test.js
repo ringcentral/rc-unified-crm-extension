@@ -135,7 +135,7 @@ describe('contact tests', () => {
                         }
                     });
                 const platformGetDealScope = nock(platform.domain)
-                    .get(`${platform.contactDealPath}/${contactId}/deals?status=open`)
+                    .get(`${platform.dealPath}?person_id=${contactId}&&status=open`)
                     .once()
                     .reply(200, {
                         data: [{
@@ -236,7 +236,7 @@ describe('contact tests', () => {
                     platform: platform.name
                 });
                 const platformCreateContactScope = nock(platform.domain)
-                    .post(platform.contactPath)
+                    .post(platform.oldContactPath)
                     .once()
                     .reply(200, {
                         data: {
@@ -265,7 +265,7 @@ describe('contact tests', () => {
                     platform: platform.name
                 });
                 const platformCreateContactScope = nock(platform.domain)
-                    .post(platform.contactPath)
+                    .post(platform.oldContactPath)
                     .once()
                     .reply(429, {
                         message: 'Rate limit exceeded'
@@ -291,7 +291,7 @@ describe('contact tests', () => {
                     platform: platform.name
                 });
                 const platformCreateContactScope = nock(platform.domain)
-                    .post(platform.contactPath)
+                    .post(platform.oldContactPath)
                     .once()
                     .reply(500, {
                         message: 'Internal server error'
