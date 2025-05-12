@@ -9,9 +9,10 @@
         "messageLogPath": "/api/v2/activities",
         "activityTypesPath": "/v1/activityTypes",
         "contactPath": "/api/v2/persons",
-        "contactDealPath": "/v1/persons",
+        "oldContactPath": "/v1/persons",
         "oauthDomain": "https://oauth.pipedrive.com",
         "oauthTokenPath": "/oauth/token",
-        "tokenRevokePath": "/oauth/revoke"
+        "tokenRevokePath": "/oauth/revoke",
+        "dealPath": "/api/v2/deals"
     }
 ]
