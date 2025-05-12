@@ -1144,6 +1144,13 @@
                             "defaultValue": ""
                         },
                         {
+                            "id": "bullhornFaxNoteAction",
+                            "type": "inputField",
+                            "name": "Default action for faxes",
+                            "placeholder": "Enter action value",
+                            "defaultValue": ""
+                        },
+                        {
                             "id": "allowBullhornCustomNoteAction",
                             "type": "boolean",
                             "name": "Allow custom note action",
@@ -1261,6 +1268,9 @@
                                 },
                                 "voicemail": {
                                     "settingId": "bullhornVoicemailNoteAction"
+                                },
+                                "fax":{
+                                    "settingId": "bullhornFaxNoteAction"
                                 }
                             }
                         }

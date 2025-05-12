@@ -415,7 +415,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink }) {
     let extraDataTracking = {};
     const sender =
     {
@@ -427,7 +427,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         id: user.id,
         type: 'User'
     }
-    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=name', {
+    const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
         headers: {
             'Authorization': authHeader
         }
@@ -438,7 +438,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     let logSubject = '';
     switch (messageType) {
         case 'SMS':
-            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
             logBody =
                 '\nConversation summary\n' +
                 `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
@@ -455,12 +455,70 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 '--- Created via RingCentral App Connect';
             break;
         case 'Voicemail':
-            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
             logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
             break;
         case 'Fax':
-            logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+            try {
+                // download media from server mediaLink (application/pdf) - do this first because RC Access Token might expire during the process
+                const mediaRes = await axios.get(faxDownloadLink, { responseType: 'arraybuffer' });
+                const documentUploadIdResponse = await axios.post(`
+                    https://${user.hostname}/api/v4/documents?fields=id,latest_document_version{uuid,put_url,put_headers}`,
+                    {
+                        data: {
+                            name: `${message.direction} Fax - ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}.pdf`,
+                            parent: {
+                                id: additionalSubmission.matters ?? contactInfo.id,
+                                type: additionalSubmission.matters ? 'Matter' : 'Contact'
+                            },
+                            received_at: moment(message.creationTime).toISOString()
+                        }
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    }
+                )
+                const documentId = documentUploadIdResponse.data.data.id;
+                const uuid = documentUploadIdResponse.data.data.latest_document_version.uuid;
+                const putUrl = documentUploadIdResponse.data.data.latest_document_version.put_url;
+                const putHeaders = documentUploadIdResponse.data.data.latest_document_version.put_headers.reduce((acc, header) => {
+                    acc[header.name] = header.value;
+                    return acc;
+                }, {});
+                const putDocumentResponse = await axios.put(
+                    putUrl,
+                    mediaRes.data,
+                    {
+                        headers: {
+                            'Connection': 'keep-alive',
+                            ...putHeaders
+                        }
+                    }
+                );
+                const patchDocResponse = await axios.patch(
+                    `https://${user.hostname}/api/v4/documents/${documentId}?fields=id,latest_document_version{fully_uploaded}`,
+                    {
+                        data: {
+                            uuid,
+                            fully_uploaded: true
+                        }
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    }
+                )
+                logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
+                    logBody = `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                }
+                else {
+                    logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                }
+            }
+            catch (e) {
+                logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+            }
             break;
     }
     const postBody = {

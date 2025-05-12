@@ -140,7 +140,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     const matchedContactInfo = [];
     for (const person of personInfo.data.data.items) {
         const dealsResponse = await axios.get(
-            `https://${user.hostname}/v1/persons/${person.item.id}/deals?status=open`,
+            `https://${user.hostname}/api/v2/deals?person_id=${person.item.id}&&status=open`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -183,7 +183,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
         phone: phoneNumber
     }
     const createContactRes = await axios.post(
-        `https://${user.hostname}/api/v1/persons`,
+        `https://${user.hostname}/v1/persons`,
         postBody,
         {
             headers: { 'Authorization': authHeader }

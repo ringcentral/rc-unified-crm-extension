@@ -162,8 +162,8 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
     if (user.userSettings?.addCallLogResult?.value ?? true) { description = upsertCallResult({ body: description, result: callLog.result }); }
     if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { description = upsertCallRecording({ body: description, recordingLink: callLog.recording.link }); }
     description += '</ul>';
-    if (!!aiNote && (user.userSettings?.addAiNote?.value ?? true)) { description = upsertAiNote({ body: description, aiNote }); }
-    if (!!transcript && (user.userSettings?.addTranscript?.value ?? true)) { description = upsertTranscript({ body: description, transcript }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { description = upsertAiNote({ body: description, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { description = upsertTranscript({ body: description, transcript }); }
 
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
@@ -234,8 +234,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink }); }
-    if (!!aiNote && (user.userSettings?.addAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-    if (!!transcript && (user.userSettings?.addTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
+    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
+    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
     let putBody = {};
 
     if (subject) {
