@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.5.0
+
+- New: Fax log support
+- New: If user is admin, '(Admin)' will be shown after user name on user setting page
+- New: Clio now supports upload fax document files
+- Fix: Redtail AI transcript setting turned OFF but still logging transcript
+- Fix: Netsuite log failure when local computer time is ahead
+- Fix: Pipedrive SMS logging not associated with deal
+
+
 ## 1.4.2
 
 - Fix: Show "Cannot find call log" and "Cannot find contact" even when contact is known

@@ -1,4 +1,40 @@
 {
+    "1.5.0":{
+        "global":[
+            {
+                "type": "New",
+                "description": "- Fax log support"
+            },
+            {
+                "type": "New",
+                "description": "- If user is admin, '(Admin)' will be shown after user name on user setting page"
+            }
+        ],
+        "clio":[
+            {
+                "type": "New",
+                "description": "- Clio now supports upload fax document files"
+            }
+        ],
+        "redtail":[
+            {
+                "type": "Fix",
+                "description": "- Redtail AI transcript setting turned OFF but still logging transcript"
+            }
+        ],
+        "netsuite":[
+            {
+                "type": "Fix",
+                "description": "- Netsuite log failure when local computer time is ahead"
+            }
+        ],
+        "pipedrive":[
+            {
+                "type": "Fix",
+                "description": "- Pipedrive SMS logging not associated with deal"
+            }
+        ]
+    },
     "1.4.2": {
         "global": [
             {
