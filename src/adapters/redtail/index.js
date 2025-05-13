@@ -155,6 +155,7 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
     if (user.userSettings?.addCallLogNote?.value ?? true) { description = upsertCallAgentNote({ body: description, note }); }
     description += '<b>Call details</b><ul>';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
+    if (user.userSettings?.addCallSessionId?.value ?? false) { description = upsertCallSessionId({ body: description, id: callLog.sessionId }); }
     if (user.userSettings?.addCallLogSubject?.value ?? true) { description = upsertCallSubject({ body: description, subject }); }
     if (user.userSettings?.addCallLogContactNumber?.value ?? true) { description = upsertContactPhoneNumber({ body: description, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
     if (user.userSettings?.addCallLogDateTime?.value ?? true) { description = upsertCallDateTime({ body: description, startTime: callLog.startTime, timezoneOffset: user.userSettings?.redtailCustomTimezone?.value ?? 0 }); }
@@ -229,6 +230,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         });
     let logBody = getLogRes.data.activity.description;
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
     if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { logBody = upsertCallSubject({ body: logBody, subject }); }
     if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = upsertCallDateTime({ body: logBody, startTime, timezoneOffset: user.userSettings?.redtailCustomTimezone?.value ?? 0 }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
@@ -413,6 +415,16 @@ function upsertCallSubject({ body, subject }) {
         body = body.replace(subjectRegex, (match, p1) => `<li><b>Summary</b>: ${subject}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`);
     } else {
         body += `<li><b>Summary</b>: ${subject}</li>`;
+    }
+    return body;
+}
+
+function upsertCallSessionId({ body, id }) {
+    const idRegex = RegExp('<li><b>Session id</b>: (.+?)(?:<li>|</ul>)');
+    if (idRegex.test(body)) {
+        body = body.replace(idRegex, (match, p1) => `<li><b>Session id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Session id</b>: ${id}<li>`;
     }
     return body;
 }

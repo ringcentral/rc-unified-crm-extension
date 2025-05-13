@@ -404,8 +404,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
         let comments = '';
         if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
+        if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
-        if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+        if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
         if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
         if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
         if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
@@ -568,6 +569,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             patchBody.endTime = endTimeSlot;
         }
         if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
+        if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
         if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, title: subject }); }
         if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
         if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
@@ -1042,6 +1044,16 @@ function upsertCallResult({ body, result }) {
         body = body.replace(resultRegex, `- Result: ${result}\n`);
     } else {
         body += `- Result: ${result}\n`;
+    }
+    return body;
+}
+
+function upsertCallSessionId({ body, id }) {
+    const sessionIdRegex = RegExp('- Session id: (.+?)\n');
+    if (sessionIdRegex.test(body)) {
+        body = body.replace(sessionIdRegex, `- Session id: ${id}\n`);
+    } else {
+        body += `- Session id: ${id}\n`;
     }
     return body;
 }
