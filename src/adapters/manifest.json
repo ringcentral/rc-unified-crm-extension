@@ -45,6 +45,14 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
+            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -479,7 +487,7 @@
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "*.app.clio.com",
+      "urlIdentifier": "app.clio.com",
       "name": "clio",
       "embedUrls": ["https://*.clio.com/*"],
       "serverSideLogging": {
@@ -523,6 +531,14 @@
               "name": "Agent-entered notes",
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
+            },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
             },
             {
               "id": "addCallSessionId",
@@ -692,23 +708,7 @@
           "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
           "videoLink": "https://youtu.be/pQgdsAR1UCI"
         }
-      },
-      "override": [
-        {
-          "triggerType": "hostname",
-          "triggerValue": "au.app.clio.com",
-          "overrideObjects": [
-            {
-              "path": "auth.oauth.authUrl",
-              "value": "https://au.app.clio.com/oauth/authorize"
-            },
-            {
-              "path": "auth.oauth.clientId",
-              "value": "74rCbGWW1bUIMd2Zgz07baA29dAtZoH1Wsu7xgkb"
-            }
-          ]
-        }
-      ]
+      }
     },
     "redtail": {
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
@@ -955,6 +955,14 @@
               "name": "Agent-entered notes",
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
+            },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
             },
             {
               "id": "addCallSessionId",
@@ -1254,6 +1262,14 @@
               "name": "Agent-entered notes",
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
+            },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
             },
             {
               "id": "addCallSessionId",
@@ -1557,6 +1573,14 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
+            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -1787,6 +1811,14 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
+
+            {
+              "id": "addCallSessionId",
+              "type": "boolean",
+              "name": "Call session id",
+              "description": "Log RingCentral call session id",
+              "defaultValue": false
+            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -1931,5 +1963,5 @@
       }
     }
   },
-  "version": "1.5.1"
+  "version": "1.5.0"
 }
