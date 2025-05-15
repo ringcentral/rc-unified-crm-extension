@@ -20,7 +20,9 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10) {
     const dateNow = new Date();
-    if (user && user.accessToken && user.refreshToken && user.tokenExpiry < dateNow) {
+    const tokenExpiry = new Date(user.tokenExpiry);
+    const expiryBuffer = 1000 * 60 * 2; // 2 minutes
+    if (user && user.accessToken && user.refreshToken && tokenExpiry.getTime() < (dateNow.getTime() + expiryBuffer)) {
         // case: use dynamoDB to manage token refresh lock
         if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
             let lock = await Lock.get({ userId: user.id });
@@ -70,7 +72,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                 try {
                     const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
                         headers: {
-                            Authorization: `Bearer ${user.platformAdditionalInfo.bhRestToken}`,
+                            'BhRestToken': user.platformAdditionalInfo.bhRestToken,
                         },
                     });
                     if (new Date(pingResponse.data.sessionExpires) < new Date()) {
@@ -96,6 +98,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
 }
 
 async function bullhornTokenRefresh(user) {
+    console.log('Bullhorn token refreshing...')
     const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
     const { access_token: accessToken, refresh_token: refreshToken } = refreshTokenResponse.data;
     user.accessToken = accessToken;
@@ -110,6 +113,7 @@ async function bullhornTokenRefresh(user) {
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     const date = new Date();
     user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshTokenResponse.data.expires_in);
+    console.log('Bullhorn token refreshing finished')
     return user;
 }
 
