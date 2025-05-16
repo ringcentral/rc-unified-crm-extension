@@ -10,12 +10,22 @@ function getAuthType() {
     return 'oauth';
 }
 
-async function getOauthInfo() {
-    return {
-        clientId: process.env.CLIO_CLIENT_ID,
-        clientSecret: process.env.CLIO_CLIENT_SECRET,
-        accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
-        redirectUri: process.env.CLIO_REDIRECT_URI
+async function getOauthInfo({ hostname }) {
+    if (hostname.startsWith('au.')) {
+        return {
+            clientId: process.env.CLIO_AU_CLIENT_ID,
+            clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI_AU
+        }
+    }
+    else {
+        return {
+            clientId: process.env.CLIO_CLIENT_ID,
+            clientSecret: process.env.CLIO_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI
+        }
     }
 }
 
@@ -324,7 +334,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let patchBody = {};
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body:logBody, id: existingCallLog.sessionId }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }

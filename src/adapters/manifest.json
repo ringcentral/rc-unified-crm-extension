@@ -47,7 +47,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -531,7 +530,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -700,7 +698,23 @@
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
                     "videoLink": "https://youtu.be/pQgdsAR1UCI"
                 }
-            }
+            },
+            "override": [
+                {
+                    "triggerType": "hostname",
+                    "triggerValue": "au.app.clio.com",
+                    "overrideObjects": [
+                        {
+                            "path": "auth.oauth.authUrl",
+                            "value": "https://au.app.clio.com/oauth/authorize"
+                        },
+                        {
+                            "path": "auth.oauth.clientId",
+                            "value": "{TBD}"
+                        }
+                    ]
+                }
+            ]
         },
         "redtail": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
@@ -942,7 +956,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1202,7 +1215,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1308,7 +1320,7 @@
                                 "voicemail": {
                                     "settingId": "bullhornVoicemailNoteAction"
                                 },
-                                "fax":{
+                                "fax": {
                                     "settingId": "bullhornFaxNoteAction"
                                 }
                             }
@@ -1510,7 +1522,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1743,7 +1754,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
