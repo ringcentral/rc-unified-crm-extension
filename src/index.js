@@ -65,7 +65,6 @@ app.get('/crmManifest', (req, res) => {
             if (process.env.OVERRIDE_APP_SERVER) {
                 defaultCrmManifest.serverUrl = process.env.OVERRIDE_APP_SERVER;
             }
-            console.log(defaultCrmManifest.serverUrl)
             res.json(defaultCrmManifest);
             return;
         }
