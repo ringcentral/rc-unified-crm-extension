@@ -677,7 +677,7 @@ app.get('/contact', async function (req, res) {
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
+            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
             if (successful) {
                 const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
