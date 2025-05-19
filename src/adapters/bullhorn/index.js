@@ -438,7 +438,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? null;
+    const noteActions = additionalSubmission.noteActions ?? 'pending note';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
@@ -461,9 +461,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
-    }
-    if (noteActions) {
-        putBody.action = noteActions;
     }
     let addLogRes;
     let extraDataTracking = {
