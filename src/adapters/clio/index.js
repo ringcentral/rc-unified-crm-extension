@@ -104,6 +104,7 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+    console.log({ message: "Under find Contact Clio", phoneNumber });
     const numberToQueryArray = [];
     let extraDataTracking = {};
     const numberFromRc = phoneNumber.replace(' ', '+');
@@ -186,11 +187,79 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         additionalInfo: { logTimeEntry: true },
         isNewContact: true
     });
+    matchedContactInfo.push({
+        id: 'searchContact',
+        name: 'Search Clio',
+        additionalInfo: null,
+        isFindContact: true
+    });
     return {
         successful: true,
         matchedContactInfo,
         extraDataTracking
     };
+}
+
+async function findContactWithName({ user, authHeader, name }) {
+    console.log({ message: "Under find Contact with name", name });
+    const matchedContactInfo = [];
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
+        headers: { 'Authorization': authHeader }
+    });
+    extraDataTracking = {
+        ratelimitRemaining: personInfo.headers['x-ratelimit-remaining'],
+        ratelimitAmount: personInfo.headers['x-ratelimit-limit'],
+        ratelimitReset: personInfo.headers['x-ratelimit-reset']
+    };
+    if (personInfo.data.data.length > 0) {
+        for (var result of personInfo.data.data) {
+            const matterInfo = await axios.get(
+                `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+            matters = matters?.filter(m => m.status !== 'Closed');
+            let associatedMatterInfo = await axios.get(
+                `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            extraDataTracking = {
+                ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
+                ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
+                ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
+            };
+            let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+            associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
+            let returnedMatters = [];
+            returnedMatters = returnedMatters.concat(matters ?? []);
+            returnedMatters = returnedMatters.concat(associatedMatters ?? []);
+            matchedContactInfo.push({
+                id: result.id,
+                name: result.name,
+                title: result.title ?? "",
+                type: 'contact',
+                company: result.company?.name ?? "",
+                phone: result.primary_phone_number ?? "",
+                additionalInfo: returnedMatters.length > 0 ?
+                    {
+                        matters: returnedMatters,
+                        logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+                        nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                    } :
+                    {
+                        logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+                    }
+            })
+        }
+    }
+    console.log({ message: "Matched Contact Info", matchedContactInfo });
+
+    return {
+        successful: true,
+        matchedContactInfo
+    }
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName }) {
@@ -744,7 +813,6 @@ function upsertTranscript({ body, transcript }) {
     }
     return body;
 }
-
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
@@ -757,3 +825,4 @@ exports.updateMessageLog = updateMessageLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;
