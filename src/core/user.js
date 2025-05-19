@@ -40,7 +40,9 @@ async function getUserSettings({ user, rcAccessToken }) {
                 if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
                     result[key] = {
                         customizable: true,
-                        value: userSettings[key].value
+                        value: userSettings[key].value,
+                        defaultValue: userSettings[key].defaultValue,
+                        options: userSettings[key].options
                     };
                 }
                 // from admin settings

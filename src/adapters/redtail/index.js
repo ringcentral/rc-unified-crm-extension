@@ -98,15 +98,28 @@ async function findContact({ user, phoneNumber }) {
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
+    const categoriesResp = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/lists/categories`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    const activeCategories = categoriesResp.data.categories.filter(c => !c.deleted);
     for (let rawPersonInfo of personInfo.data.contacts) {
         rawPersonInfo['phoneNumber'] = phoneNumber;
-        matchedContactInfo.push(formatContact(rawPersonInfo));
+        matchedContactInfo.push(formatContact(rawPersonInfo, activeCategories));
     }
     matchedContactInfo.push({
         id: 'createNewContact',
         name: 'Create new contact...',
-        additionalInfo: null,
-        isNewContact: true
+        isNewContact: true,
+        additionalInfo: {
+            category: activeCategories.map(c => {
+                return {
+                    const: c.id,
+                    title: c.name
+                }
+            })
+        }
     });
     return {
         successful: true,
@@ -148,7 +161,7 @@ async function createContact({ user, phoneNumber, newContactName }) {
     }
 }
 
-async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
     let description = '';
@@ -176,6 +189,7 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
         start_date: moment(callLog.startTime).utc().toISOString(),
         end_date: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
         activity_code_id: 3,
+        category_id: additionalSubmission?.category ?? 2,
         repeats: 'never',
         linked_contacts: [
             {
@@ -193,7 +207,7 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
         const addNoteRes = await axios.post(
             `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}/notes`,
             {
-                category_id: 2,
+                category_id: additionalSubmission?.category ?? 2,
                 note_type: 1,
                 body: note
             },
@@ -209,6 +223,9 @@ async function createCallLog({ user, contactInfo, callLog, note, aiNote, transcr
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
+
+    await updateCategoryToUserSetting({ user, authHeader: overrideAuthHeader });
+
     return {
         logId: completeLogRes.data.activity.id,
         returnMessage: {
@@ -387,12 +404,20 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
-function formatContact(rawContactInfo) {
+function formatContact(rawContactInfo, categories) {
     return {
         id: rawContactInfo.id,
         name: `${rawContactInfo.full_name}`,
         phone: rawContactInfo.phoneNumber,
-        title: rawContactInfo.job_title ?? ""
+        title: rawContactInfo.job_title ?? "",
+        additionalInfo: {
+            category: categories.map(c => {
+                return {
+                    const: c.id,
+                    title: c.name
+                }
+            })
+        }
     }
 }
 
@@ -521,6 +546,31 @@ function upsertTranscript({ body, transcript }) {
         body += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
     }
     return body;
+}
+
+async function updateCategoryToUserSetting({ user, authHeader }) {
+    const categoriesResp = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/lists/categories`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    const activeCategories = categoriesResp.data.categories.filter(c => !c.deleted);
+    let updatedSettings = {
+        ...(user.userSettings || {})
+    };
+    updatedSettings.defaultCategory = {
+        value: updatedSettings.defaultCategory?.value ?? 2,
+        customizable: updatedSettings.defaultCategory?.customizable ?? true,
+        options: activeCategories.map(c => {
+            return {
+                id: c.id,
+                name: c.name
+            }
+        })
+    }
+    await user.update({
+        userSettings: updatedSettings
+    });
 }
 
 exports.getAuthType = getAuthType;

@@ -47,7 +47,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -531,7 +530,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -759,6 +757,14 @@
                     "name": "Redtail options",
                     "items": [
                         {
+                            "id": "defaultCategory",
+                            "type": "option",
+                            "name": "Default category",
+                            "defaultValue": 2,
+                            "dynamicOptions": true,
+                            "options": []
+                        },
+                        {
                             "id": "redtailCustomTimezone",
                             "type": "option",
                             "name": "Timezone",
@@ -942,7 +948,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1012,6 +1017,47 @@
                 }
             ],
             "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "category",
+                            "title": "Category",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "defaultSettingId": "redtailOptions",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "outboundCall": {
+                                    "settingId": "defaultCategory"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "category",
+                            "title": "Category",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "defaultSettingId": "redtailOptions",
+                            "defaultSettingValues": {
+                                "message": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "voicemail": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "fax": {
+                                    "settingId": "defaultCategory"
+                                }
+                            }
+                        }
+                    ]
+                },
                 "feedback": {
                     "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
                     "elements": [
@@ -1086,6 +1132,7 @@
                 }
             },
             "canOpenLogPage": true,
+            "disableDisposition": true,
             "contactPageUrl": "https://{hostname}/contacts/{contactId}",
             "logPageUrl": "https://{hostname}/activities/{logId}",
             "embeddedOnCrmPage": {
@@ -1202,7 +1249,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1308,7 +1354,7 @@
                                 "voicemail": {
                                     "settingId": "bullhornVoicemailNoteAction"
                                 },
-                                "fax":{
+                                "fax": {
                                     "settingId": "bullhornFaxNoteAction"
                                 }
                             }
@@ -1510,7 +1556,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
@@ -1743,7 +1788,6 @@
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
                         },
-                        
                         {
                             "id": "addCallSessionId",
                             "type": "boolean",
