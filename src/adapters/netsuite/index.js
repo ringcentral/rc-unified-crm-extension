@@ -345,12 +345,13 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
-        matchedContactInfo.push({
-            id: 'searchContact',
-            name: 'Search NetSuite',
-            additionalInfo: null,
-            isFindContact: true
-        });
+        //Enable this after testing
+        // matchedContactInfo.push({
+        //     id: 'searchContact',
+        //     name: 'Search NetSuite',
+        //     additionalInfo: null,
+        //     isFindContact: true
+        // });
         const requestEndTime = new Date().getTime();
         console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
         return {
