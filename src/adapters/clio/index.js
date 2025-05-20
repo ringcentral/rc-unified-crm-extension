@@ -104,7 +104,6 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    console.log({ message: "Under find Contact Clio", phoneNumber });
     const numberToQueryArray = [];
     let extraDataTracking = {};
     const numberFromRc = phoneNumber.replace(' ', '+');
@@ -201,7 +200,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 }
 
 async function findContactWithName({ user, authHeader, name }) {
-    console.log({ message: "Under find Contact with name", name });
     const matchedContactInfo = [];
     const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
@@ -254,7 +252,6 @@ async function findContactWithName({ user, authHeader, name }) {
             })
         }
     }
-    console.log({ message: "Matched Contact Info", matchedContactInfo });
 
     return {
         successful: true,

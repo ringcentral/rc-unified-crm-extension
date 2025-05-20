@@ -222,7 +222,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    const requestStartTime = new Date().getTime();
+    // const requestStartTime = new Date().getTime();
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -267,7 +267,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         for (var numberToQuery of numberToQueryArray) {
             const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
             const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
-            console.log({ contactQuery, customerQuery });
             if (contactSearch.includes('contact')) {
                 const personInfo = await axios.post(
                     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
@@ -352,8 +351,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         //     additionalInfo: null,
         //     isFindContact: true
         // });
-        const requestEndTime = new Date().getTime();
-        console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
+        // const requestEndTime = new Date().getTime();
+        // console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
         return {
             successful: true,
             matchedContactInfo,
@@ -385,7 +384,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
     }
 }
 async function findContactWithName({ user, authHeader, name }) {
-    console.log({ message: "Under find Contact with name", name });
     const matchedContactInfo = [];
     const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}'`;
     const personInfo = await axios.post(
@@ -452,7 +450,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
         if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
         if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = ({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
+        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
         if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
         if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
         if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
@@ -501,7 +499,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             extraDataTracking
         };
     } catch (error) {
-        console.log({ error });
         let errorMessage = netSuiteErrorDetails(error, "Error logging call");
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
