@@ -94,7 +94,6 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    console.log({ message: "Under find Contact Clio", phoneNumber });
     const numberToQueryArray = [];
     let extraDataTracking = {};
     numberToQueryArray.push(phoneNumber.replace(' ', '+'));
@@ -187,7 +186,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 }
 
 async function findContactWithName({ user, authHeader, name }) {
-    console.log({ message: "Under find Contact with name", name });
     const matchedContactInfo = [];
     const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
@@ -240,7 +238,6 @@ async function findContactWithName({ user, authHeader, name }) {
             })
         }
     }
-    console.log({ message: "Matched Contact Info", matchedContactInfo });
 
     return {
         successful: true,
@@ -393,7 +390,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let patchBody = {};
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body:logBody, id: existingCallLog.sessionId }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
