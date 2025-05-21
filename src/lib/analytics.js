@@ -20,9 +20,14 @@ exports.init = function init() {
 }
 
 exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip, author, extras = null }) {
-    if (!mixpanel) {
+    if (!mixpanel || !extensionId) {
         return;
     }
+    mixpanel.people.set_once(extensionId, {
+        version,
+        appName,
+        crmPlatform: adapterName
+    });
     const ua = parser(userAgent);
     mixpanel.track(eventName, {
         distinct_id: extensionId,
