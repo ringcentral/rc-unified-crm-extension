@@ -16,7 +16,7 @@ async function getOauthInfo({ hostname }) {
             clientId: process.env.CLIO_AU_CLIENT_ID,
             clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI_AU
+            redirectUri: process.env.CLIO_REDIRECT_URI
         }
     }
     else {
@@ -29,9 +29,9 @@ async function getOauthInfo({ hostname }) {
     }
 }
 
-async function getUserInfo({ authHeader }) {
+async function getUserInfo({ authHeader, hostname }) {
     try {
-        const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
+        const userInfoResponse = await axios.get(`https://${hostname}/api/v4/users/who_am_i.json?fields=id,name,time_zone`, {
             headers: {
                 'Authorization': authHeader
             }
@@ -80,7 +80,7 @@ async function getUserInfo({ authHeader }) {
     }
 }
 async function unAuthorize({ user }) {
-    const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
+    const revokeUrl = `https://${user.hostname}/oauth/deauthorize`;
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
@@ -581,7 +581,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
-    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=name', {
+    const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
         headers: {
             'Authorization': authHeader
         }

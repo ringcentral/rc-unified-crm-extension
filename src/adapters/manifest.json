@@ -483,7 +483,7 @@
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-            "urlIdentifier": "app.clio.com",
+            "urlIdentifier": "*.app.clio.com",
             "name": "clio",
             "embedUrls": [
                 "https://*.clio.com/*"
@@ -710,7 +710,7 @@
                         },
                         {
                             "path": "auth.oauth.clientId",
-                            "value": "{TBD}"
+                            "value": "74rCbGWW1bUIMd2Zgz07baA29dAtZoH1Wsu7xgkb"
                         }
                     ]
                 }
