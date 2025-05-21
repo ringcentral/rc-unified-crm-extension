@@ -96,11 +96,12 @@ async function unAuthorize({ user }) {
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     const numberToQueryArray = [];
     let extraDataTracking = {};
-    numberToQueryArray.push(phoneNumber.replace(' ', '+'));
+    const numberFromRc = phoneNumber.replace(' ', '+');
+    numberToQueryArray.push(numberFromRc);
     if (overridingFormat !== '') {
         const formats = overridingFormat.split(',');
         for (var format of formats) {
-            const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+            const phoneNumberObj = parsePhoneNumber(numberFromRc);
             if (phoneNumberObj.valid) {
                 const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
                 let formattedNumber = format;
@@ -125,6 +126,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         };
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
+                if(matchedContactInfo.some(c => c.id === result.id)){
+                    continue;
+                }
                 const matterInfo = await axios.get(
                     `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                     {
@@ -152,7 +156,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     name: result.name,
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
-                    phone: numberToQuery,
+                    phone: numberFromRc,
                     additionalInfo: returnedMatters.length > 0 ?
                         {
                             matters: returnedMatters,
@@ -324,7 +328,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let patchBody = {};
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body:logBody, id: existingCallLog.sessionId }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
