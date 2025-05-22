@@ -21,6 +21,7 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const dynamoose = require('dynamoose');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
+const { truncate } = require('fs');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
@@ -1019,6 +1020,32 @@ app.post('/messageLog', async function (req, res) {
     });
 });
 
+app.get('/custom/contact/search', async function (req, res) {
+    let platformName = null;
+    let success = false;
+    let resultCount = 0;
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            platformName = platform;
+            const { successful, returnMessage, contact } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
+            res.status(200).send({ successful, returnMessage, contact });
+            success = successful;
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
+        }
+    }
+    catch (e) {
+        console.log(`platform: ${platformName} \n${e.stack}`);
+        extraData.statusCode = e.response?.status ?? 'unknown';
+        res.status(400).send(e);
+        success = false;
+    }
+
+});
 if (process.env.IS_PROD === 'false') {
     app.post('/registerMockUser', async function (req, res) {
         const secretKey = req.query.secretKey;

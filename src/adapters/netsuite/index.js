@@ -222,7 +222,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
-    //  const requestStartTime = new Date().getTime();
+    // const requestStartTime = new Date().getTime();
     try {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -344,6 +344,13 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             additionalInfo: null,
             isNewContact: true
         });
+        //Enable this after testing
+        // matchedContactInfo.push({
+        //     id: 'searchContact',
+        //     name: 'Search NetSuite',
+        //     additionalInfo: null,
+        //     isFindContact: true
+        // });
         // const requestEndTime = new Date().getTime();
         // console.log({ message: "Time taken to find contact", time: (requestEndTime - requestStartTime) / 1000 });
         return {
@@ -376,8 +383,43 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         }
     }
 }
+async function findContactWithName({ user, authHeader, name }) {
+    const matchedContactInfo = [];
+    const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}'`;
+    const personInfo = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        {
+            q: contactQuery
+        },
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
+    if (personInfo.data.items.length > 0) {
+        for (var result of personInfo.data.items) {
+            let firstName = result.firstname ?? '';
+            let middleName = result.middlename ?? '';
+            let lastName = result.lastname ?? '';
+            const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+            matchedContactInfo.push({
+                id: result.id,
+                name: contactName,
+                phone: result.phone ?? '',
+                homephone: result.homephone ?? '',
+                mobilephone: result.mobilephone ?? '',
+                officephone: result.officephone ?? '',
+                additionalInfo: null,
+                type: 'contact'
+            })
+        }
+    }
+    return {
+        successful: true,
+        matchedContactInfo
+    }
+}
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+    console.log({ Duration: callLog.duration });
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
@@ -1235,3 +1277,4 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.upsertCallDisposition = upsertCallDisposition;
+exports.findContactWithName = findContactWithName;
