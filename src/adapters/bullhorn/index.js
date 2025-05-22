@@ -458,6 +458,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         personReference: {
             id: contactInfo.id
         },
+        action: noteActions,
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
