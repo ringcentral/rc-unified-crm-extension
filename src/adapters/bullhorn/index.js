@@ -231,9 +231,9 @@ async function findContact({ user, phoneNumber }) {
     }
     // check for Lead
     const leadPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Converted"`
         },
         {
             headers: {
