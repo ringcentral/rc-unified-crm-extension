@@ -45,14 +45,6 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -532,14 +524,6 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -956,14 +940,6 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -1262,14 +1238,6 @@
               "name": "Agent-entered notes",
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
-            },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
             },
             {
               "id": "addCallSessionId",
@@ -1573,14 +1541,6 @@
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
             },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
             {
               "id": "addCallSessionId",
               "type": "boolean",
@@ -1810,14 +1770,6 @@
               "name": "Agent-entered notes",
               "description": "Log the notes manually entered by yourself",
               "defaultValue": true
-            },
-
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
             },
             {
               "id": "addCallSessionId",

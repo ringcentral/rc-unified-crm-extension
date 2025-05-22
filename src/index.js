@@ -1021,9 +1021,12 @@ app.post('/messageLog', async function (req, res) {
 });
 
 app.get('/custom/contact/search', async function (req, res) {
+    const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
     let resultCount = 0;
+    let statusCode = 200;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -1037,13 +1040,30 @@ app.get('/custom/contact/search', async function (req, res) {
             res.status(400).send('Please go to Settings and authorize CRM platform');
             success = false;
         }
+
     }
     catch (e) {
         console.log(`platform: ${platformName} \n${e.stack}`);
-        extraData.statusCode = e.response?.status ?? 'unknown';
+        statusCode = e.response?.status ?? 'unknown';
         res.status(400).send(e);
         success = false;
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Contact Search by Name',
+        interfaceName: 'contactSearchByName',
+        adapterName: platformName,
+        rcAccountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        extras: {
+            statusCode
+        }
+    });
 
 });
 if (process.env.IS_PROD === 'false') {
