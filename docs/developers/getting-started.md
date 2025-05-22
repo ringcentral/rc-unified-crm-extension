@@ -78,6 +78,12 @@ Now, the extension is setup with a manifest that serves `testCRM`. From the mani
 
 Open the extension on the page and login with your RingCentral account. Then you should be able to play with mock data and see how this extension works.
 
+#### Other ways to configure manifest url
+
+1. Inside App Connect chrome extension, under user settings -> Advanced Settings, developer mode can be turned ON. And you'll be able to edit manfiest url in developer settings.
+
+2. Admin (RingCentral Admin user in your organization) is able to control end users' custom manifest urls. It's under Admin tab -> Custom adapter
+
 ## Next step: edit your manifest file
 
 !!! hint "Fork this repo and track changes better"
