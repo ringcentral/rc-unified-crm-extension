@@ -1,4 +1,4 @@
-# addCallLog
+# createCallLog
 
 This interface is responsible for creating a new call log record in the associated CRM. The call must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. 
 
@@ -51,13 +51,13 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:230-284] !}
+    {!> src/adapters/testCRM/index.js [ln:237-288] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:185-234] !}
+    {!> src/adapters/pipedrive/index.js [ln:222-284] !}
 	```
 
 ### Example Call Log Schema

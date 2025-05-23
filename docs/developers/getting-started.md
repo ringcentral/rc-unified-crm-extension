@@ -5,27 +5,43 @@
 Every CRM adapter requires a manifest file which provides developers a way to configure and customize the framework properly for the associated CRM. Via the adapter's manifest, developers can:
 
 * Provide CRM connectivity and authorization details
-* Define custom fields for:
-    * call logging and disposition forms
-    * SMS and messagig logging forms
+* Define custom fields for call and SMS logging
 * Customize the "Connect to CRM" or authorization screen
 * Define custom contact record types/categories
-* Customize the welcome screen for a given CRM
 
-### Clone or fork the framework's repository
+## The App Connect development process
 
-Let's begin by downloading the framework to your development machine.
+Before we dive into the details, it may be helpful to understand the specific high-level steps you will need to follow as a developer. They are:
+
+1. Create and host an App Connect adapter server
+2. Publish your manifest file at a publicly accessible URL
+3. Install App Connect 
+4. Point App Connect to your custom manifest file URL
+
+When you are done development, your users will only need to follow steps 3 and 4 above. Alternatively, an administrator can set the custom manifest URL across their entire organization using the [managed settings](../users/managed-settings.md) feature. 
+
+## Building an adapter
+
+Let's get started. Begin by [installing](../getting-started.md) App Connect. 
+
+### Fork the framework's repository
+
+We provide developers with a ready-made App Connect adapter server, ready to be customized to the CRM you are integrating with. Bundled with our server are a number of reference implementations of other adapters which you can refer to when building your own. 
+
+To begin, download the adapter framework to your development machine.
 
     > git clone https://github.com/ringcentral/rc-unified-crm-extension.git
     > cd rc-unified-crm-extension
 
-Next, copy the contents of the test CRM adapter to a new folder where your adapter will be placed.
+### Copy your adapter from a template
+
+Copy the contents of the `testCRM` adapter that comes bundled with App Connect to a new folder where your adapter will reside.
 
     > cp src/adapters/testCRM src/adapters/my-crm-adatper
+	
+### Start your adapter's server
 
-### Setup and start your server
-
-Each adapter requires a server to be running. This server exposes a canonical API to the App Connect framework, and in a sense acts as a broker or proxy between the front-end client, and the CRM. Let's setup and start the sample server bundled with the framework. 
+An App Connect adapter exposes a set of canonicalized APIs that the App Connect client knows how to talk to. In this way, your adapter acts as a broker or proxy between the front-end client (the Microsoft Edge or Google Chrome extension) and the CRM being integrated with. Let's setup and start the sample server bundled with the framework. 
 
 Open up a console and within it, follow these instructions.
 
@@ -61,35 +77,45 @@ Open up a console and within it, follow these instructions.
 	npm run start
 	```
 
-### Install and configure the client
+### Turn on developer mode, and configure the client
 
-Download Chrome extension from [Chrome Web Store](https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhhd)
+Next, turn on Developer mode under "Advanced features." This will expose a new menu called "Developer settings."
 
-Right click extension's icon and go to Options, change Custom CRM manifest url to the following URL:
+<figure markdown>
+  ![Developer mode setting](../img/developer-mode.png)
+  <figcaption>Turning on Developer mode in advanced settings</figcaption>
+</figure>
 
-https://xxxx.ngrok.app/crmManifest?platformName=testCRM
+Under "Developer settings" change the "Custom manifest URL" field to the URL of your adapter's manifest file. Your manifest file can typically be accessed in the following way:
 
-Click "Save."
+> https://xxxx.ngrok.app/crmManifest?platformName=testCRM
 
-!!! hint "What to do if saving options doesn't work"
-    If the option save failed, please try if you can manually open the manifest file from browser. Sometimes there's network policy that blocks web tunnel like ngrok.
+The value of the `platformName` query parameter should correspond to your adapter's platform key, highlighted below:
 
-Now, the extension is setup with a manifest that serves `testCRM`. From the manifest file we can tell that the variable `okatforms.testCRM.urlIdentifier` = "\*.labs.ringcentral.com/\*". Let's use https://unified-crm-extension.labs.ringcentral.com/is-alive as the test CRM homepage.
+```js hl_lines="9"
+{! src/adapters/testCRM/manifest.json [ln:1-11] !}
+```
 
-Open the extension on the page and login with your RingCentral account. Then you should be able to play with mock data and see how this extension works.
+!!! tip "We recommend using a unique value for your adapter's platform key"
 
-#### Other ways to configure manifest url
+<figure markdown>
+  ![Changing App Connect's default manifest URL](../img/developer-settings.png)
+  <figcaption>Change the default manifest URL for App Connect</figcaption>
+</figure>
 
-1. Inside App Connect chrome extension, under user settings -> Advanced Settings, developer mode can be turned ON. And you'll be able to edit manfiest url in developer settings.
+Click "submit."
 
-2. Admin (RingCentral Admin user in your organization) is able to control end users' custom manifest urls. It's under Admin tab -> Custom adapter
+!!! tip "What to do if saving options doesn't work"
+    If saving failed, please check to see if you can manually open the manifest file from your browser. It is possible there is a network policy in effect that is blocking ngrok.
 
 ## Next step: edit your manifest file
 
-!!! hint "Fork this repo and track changes better"
-    Under this framework, there are 1 javascript file and 1 manifest.json file that you'll need to create which are new files therefore won't prevent you from fetching the latest changes from this repo. Please don't change anything outside of that in case of conflicts in pull actions.
+App Connect is now connected to your custom adapter. From this point you can begin implementing your adapter by doing two things:
 
-With this step complete, you now have a shell of an adapter in place and you are ready to begin development. Let's start by customizing your adapter's manifest file. 
+1. Customize your [manifest file](manifest.md) to the CRM you are connecting to. 
+2. Implement each of the required [interfaces](interfaces.md) that App Connect speaks to.
+
+The first thing you will need to implement is a way to connect to your CRM. 
 
 [Implement an authorization layer](auth.md){.md-button}
 

@@ -11,15 +11,16 @@ This function is to add following messages on the same day to the same contact. 
 - `message`: message text
 
 #### Reference
+
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:373-403] !}
+    {!> src/adapters/testCRM/index.js [ln:511-541] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:320-353] !}
+    {!> src/adapters/pipedrive/index.js [ln:452-496] !}
 	```
 
