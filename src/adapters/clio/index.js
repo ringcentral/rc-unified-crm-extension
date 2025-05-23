@@ -190,7 +190,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         id: 'searchContact',
         name: 'Search Clio',
         additionalInfo: null,
-        isFindContact: true
+        isFindContact: true,
+        type: "utility"
     });
     return {
         successful: true,
