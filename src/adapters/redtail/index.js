@@ -445,11 +445,11 @@ function upsertCallSubject({ body, subject }) {
 }
 
 function upsertCallSessionId({ body, id }) {
-    const idRegex = RegExp('<li><b>Session id</b>: (.+?)(?:<li>|</ul>)');
+    const idRegex = RegExp('<li><b>Session Id</b>: (.+?)(?:<li>|</ul>)');
     if (idRegex.test(body)) {
-        body = body.replace(idRegex, (match, p1) => `<li><b>Session id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+        body = body.replace(idRegex, (match, p1) => `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
     } else {
-        body += `<li><b>Session id</b>: ${id}<li>`;
+        body += `<li><b>Session Id</b>: ${id}<li>`;
     }
     return body;
 }
