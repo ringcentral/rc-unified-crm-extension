@@ -694,11 +694,11 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertCallSessionId({ body, id }) {
-    const sessionIdRegex = RegExp('- Session id: (.+?)\n');
+    const sessionIdRegex = RegExp('- Session Id: (.+?)\n');
     if (sessionIdRegex.test(body)) {
-        body = body.replace(sessionIdRegex, `- Session id: ${id}\n`);
+        body = body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
     } else {
-        body += `- Session id: ${id}\n`;
+        body += `- Session Id: ${id}\n`;
     }
     return body;
 }
