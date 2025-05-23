@@ -186,13 +186,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         additionalInfo: { logTimeEntry: true },
         isNewContact: true
     });
-    matchedContactInfo.push({
-        id: 'searchContact',
-        name: 'Search Clio',
-        additionalInfo: null,
-        isFindContact: true,
-        type: "utility"
-    });
     return {
         successful: true,
         matchedContactInfo,

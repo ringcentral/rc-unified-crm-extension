@@ -685,7 +685,8 @@
               "required": true
             }
           ]
-        }
+        },
+        "useContactSearch": true
       },
       "embeddedOnCrmPage": {
         "welcomePage": {
