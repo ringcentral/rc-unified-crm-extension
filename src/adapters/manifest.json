@@ -1722,7 +1722,8 @@
               "required": true
             }
           ]
-        }
+        },
+        "useContactSearch": true
       }
     },
     "googleSheets": {
