@@ -8,7 +8,7 @@ catch (e) {
     packageJson = require('../../package.json');
 }
 const appName = 'App Connect';
-const eventAddedVia = 'server';
+const defaultEventAddedVia = 'server';
 const version = packageJson.version;
 let mixpanel = null;
 
@@ -19,10 +19,16 @@ exports.init = function init() {
     mixpanel = Mixpanel.init(process.env.MIXPANEL_TOKEN);
 }
 
-exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip, author, extras = null }) {
-    if (!mixpanel) {
+exports.track = function track({ eventName, interfaceName, adapterName, accountId, extensionId, success, requestDuration, userAgent, ip, author, eventAddedVia, extras = null }) {
+    if (!mixpanel || !extensionId) {
         return;
     }
+    const inUseEventAddedVia = eventAddedVia || defaultEventAddedVia;
+    mixpanel.people.set_once(extensionId, {
+        version,
+        appName,
+        crmPlatform: adapterName
+    });
     const ua = parser(userAgent);
     mixpanel.track(eventName, {
         distinct_id: extensionId,
@@ -35,7 +41,7 @@ exports.track = function track({ eventName, interfaceName, adapterName, accountI
         collectedFrom: 'server',
         version,
         appName,
-        eventAddedVia,
+        eventAddedVia: inUseEventAddedVia,
         $browser: ua.browser.name,
         $os: ua.os.name,
         $device: ua.device.type,

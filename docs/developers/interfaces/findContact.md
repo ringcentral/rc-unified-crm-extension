@@ -1,4 +1,4 @@
-# getContact
+# findContact
 
 This interface is central to App Connect's framework as it is responsible for matching phone numbers with contacts in the target CRM. This interface powers the following key features:
 
@@ -75,12 +75,12 @@ This interface returns a single object. That object describes the contacts that 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:157-228] !}
+    {!> src/adapters/testCRM/index.js [ln:161-231] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:107-148] !}
+    {!> src/adapters/pipedrive/index.js [ln:111-167] !}
 	```
 

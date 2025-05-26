@@ -10,18 +10,28 @@ function getAuthType() {
     return 'oauth';
 }
 
-async function getOauthInfo() {
-    return {
-        clientId: process.env.CLIO_CLIENT_ID,
-        clientSecret: process.env.CLIO_CLIENT_SECRET,
-        accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
-        redirectUri: process.env.CLIO_REDIRECT_URI
+async function getOauthInfo({ hostname }) {
+    if (hostname.startsWith('au.')) {
+        return {
+            clientId: process.env.CLIO_AU_CLIENT_ID,
+            clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI
+        }
+    }
+    else {
+        return {
+            clientId: process.env.CLIO_CLIENT_ID,
+            clientSecret: process.env.CLIO_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI
+        }
     }
 }
 
-async function getUserInfo({ authHeader }) {
+async function getUserInfo({ authHeader, hostname }) {
     try {
-        const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=id,name,time_zone', {
+        const userInfoResponse = await axios.get(`https://${hostname}/api/v4/users/who_am_i.json?fields=id,name,time_zone`, {
             headers: {
                 'Authorization': authHeader
             }
@@ -70,7 +80,7 @@ async function getUserInfo({ authHeader }) {
     }
 }
 async function unAuthorize({ user }) {
-    const revokeUrl = 'https://app.clio.com/oauth/deauthorize';
+    const revokeUrl = `https://${user.hostname}/oauth/deauthorize`;
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
@@ -244,7 +254,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             type: 'User'
         }
     let body = '\n';
-    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallSessionId?.value ?? false) { body = upsertCallSessionId({ body, id: callLog.sessionId }); }
+    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
     if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
     if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
@@ -327,6 +338,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let patchBody = {};
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
     if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
     if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
@@ -573,7 +585,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
-    const userInfoResponse = await axios.get('https://app.clio.com/api/v4/users/who_am_i.json?fields=name', {
+    const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
         headers: {
             'Authorization': authHeader
         }
@@ -677,6 +689,16 @@ function upsertCallAgentNote({ body, note }) {
     }
     else {
         body += `- Note: ${note}\n`;
+    }
+    return body;
+}
+
+function upsertCallSessionId({ body, id }) {
+    const sessionIdRegex = RegExp('- Session Id: (.+?)\n');
+    if (sessionIdRegex.test(body)) {
+        body = body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
+    } else {
+        body += `- Session Id: ${id}\n`;
     }
     return body;
 }

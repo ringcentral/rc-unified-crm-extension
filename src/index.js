@@ -65,7 +65,6 @@ app.get('/crmManifest', (req, res) => {
             if (process.env.OVERRIDE_APP_SERVER) {
                 defaultCrmManifest.serverUrl = process.env.OVERRIDE_APP_SERVER;
             }
-            console.log(defaultCrmManifest.serverUrl)
             res.json(defaultCrmManifest);
             return;
         }
@@ -96,7 +95,7 @@ app.get('/authValidation', async (req, res) => {
     let validationPass = false;
     let reason = '';
     let statusCode = 200;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -136,7 +135,8 @@ app.get('/authValidation', async (req, res) => {
             validationPass,
             reason,
             statusCode
-        }
+        },
+        eventAddedVia
     });
 });
 
@@ -155,7 +155,7 @@ app.get('/googleSheets/filePicker', async function (req, res) {
             const user = await UserModel.findByPk(unAuthData?.id);
             console.log({ accessToken: user.accessToken });
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
                 return;
             }
             const fileContent = await googleSheetsExtra.renderPickerFile({ user });
@@ -177,7 +177,7 @@ app.post('/googleSheets/sheet', async function (req, res) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
                 return;
             }
             const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
@@ -212,7 +212,7 @@ app.delete('/googleSheets/sheet', async function (req, res) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
             }
             await googleSheetsExtra.removeSheet({ user });
             res.status(200).send('Sheet removed');
@@ -238,7 +238,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
     console.log({ UserId: data?.sub });
     const user = await UserModel.findByPk(data?.sub);
     if (!user) {
-        res.status(400).send('Unknown user');
+        res.status(400).send();
     }
     const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
 
@@ -279,7 +279,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 app.post('/admin/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
         const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
@@ -307,7 +307,8 @@ app.post('/admin/settings', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 });
 
@@ -315,7 +316,7 @@ app.get('/admin/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -323,7 +324,7 @@ app.get('/admin/settings', async function (req, res) {
             platformName = unAuthData?.platform ?? 'Unknown';
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
             }
             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
@@ -365,7 +366,8 @@ app.get('/admin/settings', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 });
 
@@ -390,7 +392,7 @@ app.get('/user/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -398,7 +400,7 @@ app.get('/user/settings', async function (req, res) {
             platformName = unAuthData?.platform ?? 'Unknown';
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
             }
             else {
                 const rcAccessToken = req.query.rcAccessToken;
@@ -426,7 +428,8 @@ app.get('/user/settings', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 });
 
@@ -434,7 +437,7 @@ app.post('/user/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -445,7 +448,7 @@ app.post('/user/settings', async function (req, res) {
             }
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
             }
             const { userSettings } = await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
             res.status(200).send({ userSettings });
@@ -471,7 +474,8 @@ app.post('/user/settings', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 });
 
@@ -482,7 +486,7 @@ app.get('/hostname', async function (req, res) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
                 return;
             }
             res.status(200).send(user.hostname);
@@ -501,7 +505,7 @@ app.get('/oauth-callback', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
             throw 'Missing callbackUri';
@@ -557,14 +561,15 @@ app.get('/oauth-callback', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 })
 app.post('/apiKeyLogin', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const platform = req.body.platform;
         platformName = platform;
@@ -607,14 +612,15 @@ app.post('/apiKeyLogin', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 })
 app.post('/unAuthorize', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let platformName = null;
     let success = false;
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -622,7 +628,7 @@ app.post('/unAuthorize', async function (req, res) {
             platformName = unAuthData?.platform ?? 'Unknown';
             const userToLogout = await UserModel.findByPk(unAuthData?.id);
             if (!userToLogout) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
                 return;
             }
             const platformModule = require(`./adapters/${unAuthData?.platform ?? 'Unknown'}`);
@@ -651,7 +657,8 @@ app.post('/unAuthorize', async function (req, res) {
         requestDuration: (requestEndTime - requestStartTime) / 1000,
         userAgent,
         ip,
-        author
+        author,
+        eventAddedVia
     });
 });
 app.get('/userInfoHash', async function (req, res) {
@@ -671,13 +678,13 @@ app.get('/contact', async function (req, res) {
     let success = false;
     let resultCount = 0;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber, overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
+            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
             if (successful) {
                 const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
@@ -715,6 +722,7 @@ app.get('/contact', async function (req, res) {
             resultCount,
             ...extraData
         },
+        eventAddedVia
     });
 });
 app.post('/contact', async function (req, res) {
@@ -722,7 +730,7 @@ app.post('/contact', async function (req, res) {
     let platformName = null;
     let success = false;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -760,7 +768,8 @@ app.post('/contact', async function (req, res) {
         author,
         extras: {
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 app.get('/callLog', async function (req, res) {
@@ -768,7 +777,7 @@ app.get('/callLog', async function (req, res) {
     let platformName = null;
     let success = false;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -806,7 +815,8 @@ app.get('/callLog', async function (req, res) {
         author,
         extras: {
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 app.post('/callLog', async function (req, res) {
@@ -814,7 +824,7 @@ app.post('/callLog', async function (req, res) {
     let platformName = null;
     let success = false;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -852,7 +862,8 @@ app.post('/callLog', async function (req, res) {
         author,
         extras: {
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 app.patch('/callLog', async function (req, res) {
@@ -860,7 +871,7 @@ app.patch('/callLog', async function (req, res) {
     let platformName = null;
     let success = false;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -898,7 +909,8 @@ app.patch('/callLog', async function (req, res) {
         author,
         extras: {
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 app.put('/callDisposition', async function (req, res) {
@@ -906,14 +918,14 @@ app.put('/callDisposition', async function (req, res) {
     let platformName = null;
     let success = false;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
             if (!userId) {
-                res.status(400).send('Unknown user');
+                res.status(400).send();
             }
             const { successful, returnMessage, extraDataTracking } = await dispositionCore.upsertCallDisposition({
                 platform,
@@ -953,7 +965,8 @@ app.put('/callDisposition', async function (req, res) {
         author,
         extras: {
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 app.post('/messageLog', async function (req, res) {
@@ -962,7 +975,7 @@ app.post('/messageLog', async function (req, res) {
     let success = false;
     let statusCode = 200;
     let extraData = {};
-    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -1001,7 +1014,8 @@ app.post('/messageLog', async function (req, res) {
         extras: {
             statusCode,
             ...extraData
-        }
+        },
+        eventAddedVia
     });
 });
 
@@ -1064,12 +1078,14 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     const ip = headers['x-forwarded-for']?.split(',')?.find(i => !i.startsWith('10.'));
     const userAgent = headers['user-agent'];
     const author = headers['developer-author-name'];
+    const eventAddedVia = headers['eventAddedVia'];
     return {
         hashedAccountId,
         hashedExtensionId,
         ip,
         userAgent,
-        author
+        author,
+        eventAddedVia
     }
 }
 

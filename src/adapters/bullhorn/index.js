@@ -231,9 +231,9 @@ async function findContact({ user, phoneNumber }) {
     }
     // check for Lead
     const leadPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Converted"`
         },
         {
             headers: {
@@ -438,13 +438,14 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? null;
+    const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
     comments += '<b>Call details</b><ul>';
+    if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
     if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
     if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
     if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
@@ -457,12 +458,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         personReference: {
             id: contactInfo.id
         },
+        action: noteActions,
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
-    }
-    if (noteActions) {
-        putBody.action = noteActions;
     }
     let addLogRes;
     let extraDataTracking = {
@@ -542,6 +541,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let comments = getLogRes.data.data.comments;
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
     if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, subject }); }
     if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
@@ -608,10 +608,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     let extraDataTracking = {};
+    const noteActions = (dispositions.noteActions ?? '') || 'pending note';
 
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     const postBody = {
-        action: dispositions.noteActions
+        action: noteActions
     }
     try {
         const upsertDispositionRes = await axios.post(
@@ -928,6 +929,17 @@ function upsertCallAgentNote({ body, note }) {
     }
     return body;
 }
+
+function upsertCallSessionId({ body, id }) {
+    const idRegex = RegExp('<li><b>Session Id</b>: (.+?)(?:<li>|</ul>)');
+    if (idRegex.test(body)) {
+        body = body.replace(idRegex, (match, p1) => `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Session Id</b>: ${id}<li>`;
+    }
+    return body;
+}
+
 function upsertCallSubject({ body, subject }) {
     const subjectRegex = RegExp('<li><b>Summary</b>: (.+?)(?:<li>|</ul>)');
     if (subjectRegex.test(body)) {

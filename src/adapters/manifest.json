@@ -48,6 +48,13 @@
                             "defaultValue": true
                         },
                         {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "addCallLogSubject",
                             "type": "boolean",
                             "name": "Call subject",
@@ -292,6 +299,13 @@
                             "defaultValue": true
                         },
                         {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "addCallLogContactNumber",
                             "type": "boolean",
                             "name": "Contact's phone number",
@@ -469,7 +483,7 @@
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-            "urlIdentifier": "app.clio.com",
+            "urlIdentifier": "*.app.clio.com",
             "name": "clio",
             "embedUrls": [
                 "https://*.clio.com/*"
@@ -515,6 +529,13 @@
                             "name": "Agent-entered notes",
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
                         },
                         {
                             "id": "addCallLogContactNumber",
@@ -677,7 +698,23 @@
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
                     "videoLink": "https://youtu.be/pQgdsAR1UCI"
                 }
-            }
+            },
+            "override": [
+                {
+                    "triggerType": "hostname",
+                    "triggerValue": "au.app.clio.com",
+                    "overrideObjects": [
+                        {
+                            "path": "auth.oauth.authUrl",
+                            "value": "https://au.app.clio.com/oauth/authorize"
+                        },
+                        {
+                            "path": "auth.oauth.clientId",
+                            "value": "74rCbGWW1bUIMd2Zgz07baA29dAtZoH1Wsu7xgkb"
+                        }
+                    ]
+                }
+            ]
         },
         "redtail": {
             "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
@@ -735,6 +772,14 @@
                     "type": "section",
                     "name": "Redtail options",
                     "items": [
+                        {
+                            "id": "defaultCategory",
+                            "type": "option",
+                            "name": "Default category",
+                            "defaultValue": 2,
+                            "dynamicOptions": true,
+                            "options": []
+                        },
                         {
                             "id": "redtailCustomTimezone",
                             "type": "option",
@@ -920,6 +965,13 @@
                             "defaultValue": true
                         },
                         {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "addCallLogSubject",
                             "type": "boolean",
                             "name": "Call subject",
@@ -981,6 +1033,47 @@
                 }
             ],
             "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "category",
+                            "title": "Category",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "defaultSettingId": "redtailOptions",
+                            "defaultSettingValues": {
+                                "inboundCall": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "outboundCall": {
+                                    "settingId": "defaultCategory"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "category",
+                            "title": "Category",
+                            "type": "selection",
+                            "contactDependent": false,
+                            "defaultSettingId": "redtailOptions",
+                            "defaultSettingValues": {
+                                "message": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "voicemail": {
+                                    "settingId": "defaultCategory"
+                                },
+                                "fax": {
+                                    "settingId": "defaultCategory"
+                                }
+                            }
+                        }
+                    ]
+                },
                 "feedback": {
                     "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
                     "elements": [
@@ -1055,6 +1148,7 @@
                 }
             },
             "canOpenLogPage": true,
+            "disableDisposition": true,
             "contactPageUrl": "https://{hostname}/contacts/{contactId}",
             "logPageUrl": "https://{hostname}/activities/{logId}",
             "embeddedOnCrmPage": {
@@ -1172,6 +1266,13 @@
                             "defaultValue": true
                         },
                         {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "addCallLogSubject",
                             "type": "boolean",
                             "name": "Call subject",
@@ -1269,7 +1370,7 @@
                                 "voicemail": {
                                     "settingId": "bullhornVoicemailNoteAction"
                                 },
-                                "fax":{
+                                "fax": {
                                     "settingId": "bullhornFaxNoteAction"
                                 }
                             }
@@ -1470,6 +1571,13 @@
                             "name": "Agent-entered notes",
                             "description": "Log the notes manually entered by yourself",
                             "defaultValue": true
+                        },
+                        {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
                         },
                         {
                             "id": "addCallLogSubject",
@@ -1697,6 +1805,13 @@
                             "defaultValue": true
                         },
                         {
+                            "id": "addCallSessionId",
+                            "type": "boolean",
+                            "name": "Call session id",
+                            "description": "Log RingCentral call session id",
+                            "defaultValue": false
+                        },
+                        {
                             "id": "addCallLogSubject",
                             "type": "boolean",
                             "name": "Call subject",
@@ -1833,5 +1948,5 @@
             }
         }
     },
-    "version": "1.5.0"
+    "version": "1.5.1"
 }

@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.5.1
+
+- New: Redtail now supports categories for notes. Default value can be set up in user/admin settings
+- New: Clio now supports Australia region
+- New: Call session id can now be included in call log notes. This can be turned ON in user settings
+- Fix: Developer mode can be turned ON before connecting to CRM
+- Fix: User setting now shows correct connect status right after open
+- Fix: Bullhorn. If Note Action is empty, it'll now show 'pending note'
+- Fix: Clio now won't show duplicated contacts
+- Fix: User settings are not applied immediately after connecting to CRM
+- Fix: Bullhorn now won't show converted Leads
+- Fix: Call queue calls cannot be logged in a few cases
+
 ## 1.5.0
 
 - New: Fax log support

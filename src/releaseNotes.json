@@ -1,4 +1,50 @@
 {
+    "1.5.1":{
+        "global":[
+            {
+                "type": "New",
+                "description": "- Call session id can now be included in call log notes. This can be turned ON/OFF in user settings"
+            },
+            {
+                "type": "Fix",
+                "description": "- Developer mode can be turned ON before connecting to CRM"
+            },
+            {
+                "type": "Fix",
+                "description": "- User setting now shows correct connect status right after open"
+            },
+            {
+                "type": "Fix",
+                "description": "- Call queue calls cannot be logged in a few cases"
+            }
+        ],
+        "redtail":[
+            {
+                "type": "New",
+                "description": "- Redtail now supports categories for notes. Default value can be set up in user/admin settings"
+            }
+        ],
+        "clio":[
+            {
+                "type": "New",
+                "description": "- Clio now supports Australia region"
+            },
+            {
+                "type": "Fix",
+                "description": "- Clio now won't show duplicated contacts"
+            }
+        ],
+        "bullhorn":[
+            {
+                "type": "Fix",
+                "description": "- If Note Action is empty, it'll now show 'pending note'"
+            },
+            {
+                "type": "Fix",
+                "description": "- Bullhorn now won't show converted Leads"
+            }
+        ]
+    },
     "1.5.0":{
         "global":[
             {
