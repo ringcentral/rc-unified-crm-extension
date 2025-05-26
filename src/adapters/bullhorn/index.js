@@ -463,6 +463,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
     }
+    const commentingPersonId = additionalSubmission?.commentingPersonId;
+    if (commentingPersonId) {
+        putBody.commentingPerson = {
+            id: commentingPersonId
+        }
+    }
     let addLogRes;
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
