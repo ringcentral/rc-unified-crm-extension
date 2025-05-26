@@ -438,7 +438,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? 'pending note';
+    const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
@@ -608,10 +608,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     let extraDataTracking = {};
+    const noteActions = (dispositions.noteActions ?? '') || 'pending note';
 
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     const postBody = {
-        action: dispositions.noteActions
+        action: noteActions
     }
     try {
         const upsertDispositionRes = await axios.post(
