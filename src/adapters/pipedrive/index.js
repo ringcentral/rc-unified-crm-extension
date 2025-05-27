@@ -178,6 +178,43 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         extraDataTracking
     };
 }
+async function findContactWithName({ user, authHeader, name }) {
+    let extraDataTracking = {};
+    const personInfo = await axios.get(
+        `https://${user.hostname}/api/v2/persons/search?term=${name}&fields=name`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    extraDataTracking = {
+        ratelimitRemaining: personInfo.headers['x-ratelimit-remaining'],
+        ratelimitAmount: personInfo.headers['x-ratelimit-limit'],
+        ratelimitReset: personInfo.headers['x-ratelimit-reset']
+    };
+
+    const matchedContactInfo = [];
+    for (const person of personInfo.data.data.items) {
+        console.log({ Item: person.item })
+        const dealsResponse = await axios.get(
+            `https://${user.hostname}/api/v2/deals?person_id=${person.item.id}&&status=open`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        extraDataTracking = {
+            ratelimitRemaining: dealsResponse.headers['x-ratelimit-remaining'],
+            ratelimitAmount: dealsResponse.headers['x-ratelimit-limit'],
+            ratelimitReset: dealsResponse.headers['x-ratelimit-reset']
+        };
+        const relatedDeals = dealsResponse.data.data ?
+            dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
+            : null;
+        matchedContactInfo.push(formatContact(person.item, relatedDeals));
+    }
+    return {
+        successful: true,
+        matchedContactInfo,
+        extraDataTracking
+    };
+}
 
 function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
     const additionalInfo = {};
@@ -192,8 +229,8 @@ function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
         name: rawContactInfo.name,
         phone: rawContactInfo.phones[0],
         organization: rawContactInfo.organization?.name ?? '',
-        additionalInfo: additionalInfo ?? null
-        additionalInfo: relatedDeals && relatedDeals.length > 0 ? { deals: relatedDeals } : null
+        additionalInfo: additionalInfo ?? null,
+        type: 'contact'
     }
 }
 
