@@ -21,6 +21,7 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const dynamoose = require('dynamoose');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
+const { truncate } = require('fs');
 let packageJson = null;
 try {
     packageJson = require('./package.json');
@@ -1019,6 +1020,52 @@ app.post('/messageLog', async function (req, res) {
     });
 });
 
+app.get('/custom/contact/search', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
+    let resultCount = 0;
+    let statusCode = 200;
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            platformName = platform;
+            const { successful, returnMessage, contact } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
+            res.status(200).send({ successful, returnMessage, contact });
+            success = successful;
+        }
+        else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            success = false;
+        }
+
+    }
+    catch (e) {
+        console.log(`platform: ${platformName} \n${e.stack}`);
+        statusCode = e.response?.status ?? 'unknown';
+        res.status(400).send(e);
+        success = false;
+    }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Contact Search by Name',
+        interfaceName: 'contactSearchByName',
+        adapterName: platformName,
+        rcAccountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        extras: {
+            statusCode
+        }
+    });
+
+});
 if (process.env.IS_PROD === 'false') {
     app.post('/registerMockUser', async function (req, res) {
         const secretKey = req.query.secretKey;

@@ -691,7 +691,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             },
             "embeddedOnCrmPage": {
                 "welcomePage": {
@@ -1752,7 +1753,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             }
         },
         "googleSheets": {
