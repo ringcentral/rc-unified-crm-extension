@@ -181,10 +181,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
     const additionalInfo = {};
-    if (relatedDeals) {
+    if (relatedDeals && relatedDeals.length > 0) {
         additionalInfo.deals = relatedDeals;
     }
-    if (relatedLeads) {
+    if (relatedLeads && relatedLeads.length > 0) {
         additionalInfo.leads = relatedLeads;
     }
     return {
