@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://uruguay-rehabilitation-ga-indian.trycloudflare.com",
+    "serverUrl": "https://nz-chubby-abandoned-laboratory.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -1171,7 +1171,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             },
             "canOpenLogPage": true,
             "disableDisposition": true,
