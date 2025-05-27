@@ -193,6 +193,7 @@ function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
         phone: rawContactInfo.phones[0],
         organization: rawContactInfo.organization?.name ?? '',
         additionalInfo: additionalInfo ?? null
+        additionalInfo: relatedDeals && relatedDeals.length > 0 ? { deals: relatedDeals } : null
     }
 }
 
@@ -700,3 +701,4 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;

@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+    "serverUrl": "https://uruguay-rehabilitation-ga-indian.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -26,8 +26,8 @@
                 "type": "oauth",
                 "oauth": {
                     "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
-                    "clientId": "5d4736e322561f57",
-                    "redirectUri": "https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect"
+                    "clientId": "df3e09bb3e2cfa7a",
+                    "redirectUri": "https://uruguay-rehabilitation-ga-indian.trycloudflare.com/pipedrive-redirect"
                 }
             },
             "canOpenLogPage": false,
@@ -231,7 +231,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             },
             "embeddedOnCrmPage": {
                 "welcomePage": {
