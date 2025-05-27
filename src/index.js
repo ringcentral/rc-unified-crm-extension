@@ -228,6 +228,7 @@ app.delete('/googleSheets/sheet', async function (req, res) {
     }
 });
 
+// Unique: Google Sheets
 app.post('/googleSheets/selectedSheet', async function (req, res) {
     const authHeader = `Bearer ${req.body.accessToken}`;
     const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {

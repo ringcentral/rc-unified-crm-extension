@@ -13,6 +13,7 @@
         "oauthDomain": "https://oauth.pipedrive.com",
         "oauthTokenPath": "/oauth/token",
         "tokenRevokePath": "/oauth/revoke",
-        "dealPath": "/api/v2/deals"
+        "dealPath": "/api/v2/deals",
+        "leadPath": "/v1/leads"
     }
 ]

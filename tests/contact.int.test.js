@@ -143,6 +143,15 @@ describe('contact tests', () => {
                             title: 'dealTitle'
                         }]
                     });
+                const platformGetLeadScope = nock(platform.domain)
+                    .get(`${platform.leadPath}?person_id=${contactId}`)
+                    .once()
+                    .reply(200, {
+                        data: [{
+                            id: 'leadId',
+                            title: 'leadTitle'
+                        }]
+                    });
 
                 // Act
                 const res = await request(getServer()).get(`/contact?jwtToken=${jwtToken}&phoneNumber=${phoneNumber}`);
