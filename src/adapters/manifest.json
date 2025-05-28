@@ -123,6 +123,18 @@
                             "title": "Deal",
                             "type": "selection",
                             "contactDependent": true
+                        },
+                        {
+                            "const": "leadWarning",
+                            "type": "warning",
+                            "title": "Lead warning",
+                            "description": "Lead assignment will be overridden by Deal assignment if any"
+                        },
+                        {
+                            "const": "leads",
+                            "title": "Lead",
+                            "type": "selection",
+                            "contactDependent": true
                         }
                     ]
                 },
@@ -131,6 +143,18 @@
                         {
                             "const": "deals",
                             "title": "Deal",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "leadWarning",
+                            "type": "warning",
+                            "title": "Lead warning",
+                            "description": "Lead assignment will be overridden by Deal assignment if any"
+                        },
+                        {
+                            "const": "leads",
+                            "title": "Lead",
                             "type": "selection",
                             "contactDependent": true
                         }
@@ -691,7 +715,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             },
             "embeddedOnCrmPage": {
                 "welcomePage": {
@@ -1752,7 +1777,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             }
         },
         "googleSheets": {
