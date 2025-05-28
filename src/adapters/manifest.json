@@ -253,7 +253,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "user",
+                        "title": "Agent/user (if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "displayName": "Insightly",
             "auth": {
@@ -514,7 +524,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "user",
+                        "title": "Agent/user (if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "displayName": "Clio",
             "auth": {
@@ -754,7 +774,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "user",
+                        "title": "Agent/user (if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "auth": {
                 "type": "apiKey",
@@ -1196,7 +1226,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "adminAssignedUser",
+                        "title": "Admin assigned user(if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "displayName": "Bullhorn",
             "auth": {
@@ -1495,7 +1535,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "user",
+                        "title": "Agent/user (if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "displayName": "NetSuite",
             "auth": {
@@ -1794,7 +1844,17 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "activityOwner": [
+                    {
+                        "const": "user",
+                        "title": "Agent/user (if possible)"
+                    },
+                    {
+                        "const": "admin",
+                        "title": "Admin"
+                    }
+                ]
             },
             "displayName": "Google Sheets (Beta)",
             "auth": {
