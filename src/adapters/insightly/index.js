@@ -230,11 +230,10 @@ async function findContactWithName({ user, authHeader, name }) {
     const filteredContacts = uniqueContacts.filter(c =>
         `${c.FIRST_NAME} ${c.LAST_NAME}`.toLowerCase().includes(name.toLowerCase())
     );
-
     const rawContacts = [];
     for (let rawContactInfo of filteredContacts) {
         rawContactInfo.contactType = 'contactPhone';
-        rawContacts.push(formatContact(rawContactInfo));
+        rawContacts.push(rawContactInfo);
     }
 
     const leadInforByFirstName = await axios.get(
@@ -257,73 +256,64 @@ async function findContactWithName({ user, authHeader, name }) {
     const filteredLeads = uniqueLeads.filter(c =>
         `${c.FIRST_NAME} ${c.LAST_NAME}`.toLowerCase().includes(name.toLowerCase())
     );
-    for (let rawContactInfo of filteredLeads) {
-        rawContactInfo.contactType = 'leadPhone';
-        rawContacts.push(formatContact(rawContactInfo));
+    for (let rawLeadInfo of filteredLeads) {
+        rawLeadInfo.contactType = 'leadPhone';
+        rawContacts.push(rawLeadInfo);
     }
-
-    // const matchedContactInfo = [];
-    // for (let singlePersonInfo of rawContacts) {
-    //     singlePersonInfo.additionalInfo = {};
-    //     if (singlePersonInfo.type === 'Contact') {
-    //         singlePersonInfo.contactType = 'contactPhone';
-    //     }
-    //     if (singlePersonInfo.type === 'Lead') {
-    //         singlePersonInfo.contactType = 'leadPhone';
-    //     }
-    //     if (Array.isArray(singlePersonInfo.LINKS)) {
-    //         for (const link of singlePersonInfo.LINKS) {
-    //             switch (link.LINK_OBJECT_NAME) {
-    //                 case 'Organisation':
-    //                     const orgRes = await axios.get(
-    //                         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
-    //                         {
-    //                             headers: { 'Authorization': authHeader }
-    //                         });
-    //                     if (!singlePersonInfo.additionalInfo.organisation) {
-    //                         singlePersonInfo.additionalInfo.organisation = [];
-    //                     }
-    //                     singlePersonInfo.additionalInfo.organisation.push({
-    //                         title: orgRes.data.ORGANISATION_NAME,
-    //                         const: orgRes.data.ORGANISATION_ID
-    //                     });
-    //                     break;
-    //                 case 'Opportunity':
-    //                     const opportunityRes = await axios.get(
-    //                         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
-    //                         {
-    //                             headers: { 'Authorization': authHeader }
-    //                         });
-    //                     if (!singlePersonInfo.additionalInfo.opportunity) {
-    //                         singlePersonInfo.additionalInfo.opportunity = [];
-    //                     }
-    //                     singlePersonInfo.additionalInfo.opportunity.push({
-    //                         title: opportunityRes.data.OPPORTUNITY_NAME,
-    //                         const: opportunityRes.data.OPPORTUNITY_ID
-    //                     });
-    //                     break;
-    //                 case 'Project':
-    //                     const projectRes = await axios.get(
-    //                         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
-    //                         {
-    //                             headers: { 'Authorization': authHeader }
-    //                         });
-    //                     if (!singlePersonInfo.additionalInfo.project) {
-    //                         singlePersonInfo.additionalInfo.project = [];
-    //                     }
-    //                     singlePersonInfo.additionalInfo.project.push({
-    //                         title: projectRes.data.PROJECT_NAME,
-    //                         const: projectRes.data.PROJECT_ID
-    //                     });
-    //                     break;
-    //             }
-    //         }
-    //     }
-    //     matchedContactInfo.push(formatContact(singlePersonInfo));
-    // }
+    const matchedContactInfo = [];
+    for (let singlePersonInfo of rawContacts) {
+        singlePersonInfo.additionalInfo = {};
+        for (const link of singlePersonInfo.LINKS) {
+            switch (link.LINK_OBJECT_NAME) {
+                case 'Organisation':
+                    const orgRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.organisation) {
+                        singlePersonInfo.additionalInfo.organisation = [];
+                    }
+                    singlePersonInfo.additionalInfo.organisation.push({
+                        title: orgRes.data.ORGANISATION_NAME,
+                        const: orgRes.data.ORGANISATION_ID
+                    });
+                    break;
+                case 'Opportunity':
+                    const opportunityRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.opportunity) {
+                        singlePersonInfo.additionalInfo.opportunity = [];
+                    }
+                    singlePersonInfo.additionalInfo.opportunity.push({
+                        title: opportunityRes.data.OPPORTUNITY_NAME,
+                        const: opportunityRes.data.OPPORTUNITY_ID
+                    });
+                    break;
+                case 'Project':
+                    const projectRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.project) {
+                        singlePersonInfo.additionalInfo.project = [];
+                    }
+                    singlePersonInfo.additionalInfo.project.push({
+                        title: projectRes.data.PROJECT_NAME,
+                        const: projectRes.data.PROJECT_ID
+                    });
+                    break;
+            }
+        }
+        matchedContactInfo.push(formatContact(singlePersonInfo));
+    }
     return {
         successful: true,
-        matchedContactInfo: rawContacts
+        matchedContactInfo: matchedContactInfo
     };
 }
 
