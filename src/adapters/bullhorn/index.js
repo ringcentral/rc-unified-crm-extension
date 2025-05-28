@@ -478,6 +478,105 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
+async function findContactWithName({ user, authHeader, name }) {
+    let commentActionListResponse;
+    let extraDataTracking = {};
+    try {
+        commentActionListResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+    }
+    catch (e) {
+        if (isAuthError(e.response.status)) {
+            user = await refreshSessionToken(user);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+        }
+        extraDataTracking['statusCode'] = e.response.status;
+    }
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const matchedContactInfo = [];
+    const contactPersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
+        {
+            query: `name:${name} AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        });
+    for (const result of contactPersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Contact',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+    const candidatePersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
+        {
+            query: `name:${name} AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    for (const result of candidatePersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Candidate',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+
+    const leadPersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
+        {
+            query: `name:${name} AND isDeleted:false`
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    for (const result of leadPersonInfo.data.data) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Lead',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+    extraDataTracking = {
+        ratelimitRemaining: leadPersonInfo.headers['ratelimit-remaining'],
+        ratelimitAmount: leadPersonInfo.headers['ratelimit-limit'],
+        ratelimitReset: leadPersonInfo.headers['ratelimit-reset']
+    };
+
+    return {
+        successful: true,
+        matchedContactInfo,
+        extraDataTracking
+    };
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
