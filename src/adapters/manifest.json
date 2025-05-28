@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://nz-chubby-abandoned-laboratory.trycloudflare.com",
+    "serverUrl": "https://relay-belkin-newest-possibly.trycloudflare.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -493,7 +493,8 @@
                             "required": true
                         }
                     ]
-                }
+                },
+                "useContactSearch": true
             },
             "embeddedOnCrmPage": {
                 "welcomePage": {
