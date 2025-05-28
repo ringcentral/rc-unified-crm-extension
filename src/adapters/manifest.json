@@ -1359,6 +1359,17 @@
                 }
             ],
             "page": {
+                "newContact": {
+                    "additionalFields": [
+                        {
+                            "const": "status",
+                            "title": "Status",
+                            "type": "selection",
+                            "required": true,
+                            "contactTypeDependent": true
+                        }
+                    ]
+                },
                 "callLog": {
                     "additionalFields": [
                         {

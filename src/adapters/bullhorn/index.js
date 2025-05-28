@@ -255,12 +255,50 @@ async function findContact({ user, phoneNumber }) {
         ratelimitReset: candidatePersonInfo.headers['ratelimit-reset']
     };
 
-    matchedContactInfo.push({
-        id: 'createNewContact',
-        name: 'Create new contact...',
-        additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null,
-        isNewContact: true
-    });
+    if (matchedContactInfo.length === 0) {
+        const leadMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        const leadStatuses = leadMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        const candidateMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        const candidateStatuses = candidateMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        const contactMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        const contactStatuses = contactMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        const newContactAdditionalInfo = {
+            Lead: {
+                status: leadStatuses
+            },
+            Candidate: {
+                status: candidateStatuses
+            },
+            Contact: {
+                status: contactStatuses
+            }
+        }
+        if (commentActionList?.length > 0) {
+            newContactAdditionalInfo.noteActions = commentActionList;
+        }
+        matchedContactInfo.push({
+            id: 'createNewContact',
+            name: 'Create new contact...',
+            additionalInfo: newContactAdditionalInfo ?? null,
+            isNewContact: true,
+            defaultContactType: 'Lead'
+        });
+    }
 
     return {
         successful: true,
@@ -269,7 +307,7 @@ async function findContact({ user, phoneNumber }) {
     };
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
@@ -300,7 +338,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 name: newContactName,
                 firstName: newContactName.split(' ')[0],
                 lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
-                phone: phoneNumber.replace(' ', '+')
+                phone: phoneNumber.replace(' ', '+'),
+                status: additionalSubmission.status
             }
             const leadInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Lead`,
@@ -335,7 +374,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 name: newContactName,
                 firstName: newContactName.split(' ')[0],
                 lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
-                phone: phoneNumber.replace(' ', '+')
+                phone: phoneNumber.replace(' ', '+'),
+                status: additionalSubmission.status
             }
             const candidateInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Candidate`,
@@ -403,7 +443,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 phone: phoneNumber.replace(' ', '+'),
                 clientCorporation: {
                     id: companyId
-                }
+                },
+                status: additionalSubmission.status
             }
             const contactInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/ClientContact`,

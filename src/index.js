@@ -738,7 +738,7 @@ app.post('/contact', async function (req, res) {
         if (jwtToken) {
             const { id: userId, platform } = jwt.decodeJwt(jwtToken);
             platformName = platform;
-            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType });
+            const { successful, returnMessage, contact, extraDataTracking } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType, additionalSubmission: req.body.additionalSubmission });
             res.status(200).send({ successful, returnMessage, contact });
             success = true;
             if (extraDataTracking) {
