@@ -1099,3 +1099,4 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;  
