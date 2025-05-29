@@ -177,6 +177,8 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     let title = getLogRes.data.title;
     let newSalesOrderUserNote = sanitizeNote({ note });
     const isSalesOrderCallLogEnable = user.userSettings?.enableSalesOrderLogging?.value ?? false;
+
+    // Handle Sales Order logging
     if (dispositions && dispositions.salesorder && isSalesOrderCallLogEnable) {
         try {
             const noteId = extractNoteIdFromNote({ note, targetSalesOrderId: dispositions.salesorder });
@@ -212,11 +214,42 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
                 };
                 await axios.put(createUserNotesUrl, postBody, { headers: { 'Authorization': authHeader } });
             }
-
         } catch (error) {
             console.log({ message: "Error in logging calls against salesOrder" });
         }
     }
+
+    // Handle Opportunity logging
+    if (dispositions && dispositions.opportunity) {
+        try {
+            const createOpportunityNoteUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createopportunitynotes&deploy=customdeploy_createopportunitynotes`;
+            const postBody = {
+                salesOrderId: dispositions.opportunity,
+                noteTitle: title,
+                noteText: newSalesOrderUserNote ?? 'empty'
+            };
+            const createOpportunityNoteResponse = await axios.post(createOpportunityNoteUrl, postBody, {
+                headers: { 'Authorization': authHeader }
+            });
+            if (createOpportunityNoteResponse?.data?.success) {
+                const opportunityNoteUrl = `https://${user.hostname.split(".")[0]}.app.netsuite.com//app/crm/common/note.nl?id=${createOpportunityNoteResponse?.data?.noteId}`;
+                console.log({ message: "Opportunity note created successfully", opportunityNoteUrl });
+                const updatedNote = upsertNetSuiteOpportunityNoteUrl({ body: note, opportunityNoteUrl, opportunityId: dispositions.opportunity });
+
+                const patchLogRes = await axios.patch(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingCallLogId}`,
+                    {
+                        message: updatedNote,
+                    },
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+            }
+        } catch (error) {
+            console.log({ message: "Error in logging calls against opportunity", error });
+        }
+    }
+
     return {
         logId: existingCallLogId,
     }
@@ -245,6 +278,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             contactFields.push('officePhone');
         }
         const { enableSalesOrderLogging = false } = user.userSettings;
+        const { enableOpportunityLogging = { value: false } } = user.userSettings;
+        console.log({ enableSalesOrderLogging, enableOpportunityLogging });
         const dateBeforeThreeYear = getThreeYearsBeforeDate();
         const numberToQueryArray = [];
         if (overridingFormat !== '') {
@@ -307,8 +342,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                 if (customerInfo.data.items.length > 0) {
                     for (const result of customerInfo.data.items) {
                         let salesOrders = [];
+                        let opportunities = [];
                         try {
                             if (enableSalesOrderLogging.value) {
+
                                 const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                                 for (const salesOrder of salesOrderResponse?.data?.items) {
                                     salesOrders.push({
@@ -317,8 +354,18 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                                     });
                                 }
                             }
+                            console.log({ Salesorder: "Salesorder finding pass. finding opportunity" });
+                            if (enableOpportunityLogging.value) {
+                                const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
+                                for (const opportunity of opportunityResponse?.data?.items) {
+                                    opportunities.push({
+                                        const: opportunity?.id,
+                                        title: opportunity?.trandisplayname
+                                    });
+                                }
+                            }
                         } catch (e) {
-                            console.log({ message: "Error in SalesOrder search" });
+                            console.log({ message: "Error in SalesOrder/Opportunity search", e });
                         }
                         let firstName = result.firstname ?? '';
                         let middleName = result.middlename ?? '';
@@ -331,7 +378,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                             homephone: result.homephone ?? '',
                             mobilephone: result.mobilephone ?? '',
                             altphone: result.altphone ?? '',
-                            additionalInfo: salesOrders.length > 0 ? { salesorder: salesOrders } : {},
+                            additionalInfo: {
+                                ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                                ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                            },
                             type: 'custjob'
                         })
                     }
@@ -390,6 +440,7 @@ async function findContactWithName({ user, authHeader, name }) {
         contactSearch.push('contact', 'customer');
     }
     const { enableSalesOrderLogging = false } = user.userSettings;
+    const { enableOpportunityLogging = { value: false } } = user.userSettings;
     // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}' OR lastname ='${name}' OR (firstname || ' ' || lastname) ='${name}'`;
     const contactQuery = `SELECT * FROM contact WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
     const customerQuery = `SELECT * FROM customer WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
@@ -433,6 +484,7 @@ async function findContactWithName({ user, authHeader, name }) {
         if (customerInfo.data.items.length > 0) {
             for (const result of customerInfo.data.items) {
                 let salesOrders = [];
+                let opportunities = [];
                 try {
                     if (enableSalesOrderLogging.value) {
                         const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
@@ -443,8 +495,18 @@ async function findContactWithName({ user, authHeader, name }) {
                             });
                         }
                     }
+                    // Add opportunity search
+                    if (enableOpportunityLogging.value) {
+                        const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
+                        for (const opportunity of opportunityResponse?.data?.items) {
+                            opportunities.push({
+                                const: opportunity?.id,
+                                title: opportunity?.title
+                            });
+                        }
+                    }
                 } catch (e) {
-                    console.log({ message: "Error in SalesOrder search" });
+                    console.log({ message: "Error in SalesOrder/Opportunity search" });
                 }
                 let firstName = result.firstname ?? '';
                 let middleName = result.middlename ?? '';
@@ -457,7 +519,10 @@ async function findContactWithName({ user, authHeader, name }) {
                     homephone: result.homephone ?? '',
                     mobilephone: result.mobilephone ?? '',
                     altphone: result.altphone ?? '',
-                    additionalInfo: salesOrders.length > 0 ? { salesorder: salesOrders } : {},
+                    additionalInfo: {
+                        ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                        ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                    },
                     type: 'custjob'
                 })
             }
@@ -1132,6 +1197,15 @@ function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
     return body;
 }
 
+function upsertNetSuiteOpportunityNoteUrl({ body, opportunityNoteUrl, opportunityId }) {
+    const opportunityText = "Opportunity Call Logs (Do Not Edit)"
+    if (!(body.includes(opportunityText))) {
+        body += `\n\n ${opportunityText}`;
+    }
+    body += `\n- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}`;
+    return body;
+}
+
 function upsertCallResult({ body, result }) {
     const resultRegex = RegExp('- Result: (.+?)\n');
     if (resultRegex.test(body)) {
@@ -1242,7 +1316,7 @@ function upsertTranscript({ body, transcript }) {
 }
 
 async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
-    const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactId} ORDER BY createddate desc`;
+    const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactId} AND type='SalesOrd' ORDER BY createddate desc`;
     const salesOrderInfo = await axios.post(
         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
         {
@@ -1251,39 +1325,22 @@ async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
         {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
         });
+    console.log({ message: "SalesOrderInfo", Ites: salesOrderInfo?.data?.items });
     return salesOrderInfo;
 }
-// async function logCallsAgainstSalesOrder({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-//     try {
-//         console.log("Inside logCallsAgainstSalesOrder");
-//         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-//         const salesOrderQuery = `SELECT * FROM transaction WHERE entity = ${contactInfo.id} ORDER BY createddate desc`;
-//         const salesOrderInfo = await axios.post(
-//             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-//             {
-//                 q: salesOrderQuery
-//             },
-//             {
-//                 headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-//             });
-//         console.log({ salesOrderInfo });
-//         if (salesOrderInfo.data.items.length > 0) {
-//             console.log("Inside sales order");
-//             const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
-//             const postBody = {
-//                 salesOrderId: salesOrderInfo.data.items[0].id,
-//                 noteTitle: title,
-//                 noteText: note
-//             };
-//             const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
-//                 headers: { 'Authorization': authHeader }
-//             });
-//             console.log({ message: "UserNotes Created Successful", createUserNotesResponse });
-//         }
-//     } catch (error) {
-//         console.log({ message: "Error in logging calls against salesOrder" });
-//     }
-// }
+
+async function findOpportunitiesAgainstContact({ user, authHeader, contactId }) {
+    const opportunityQuery = `SELECT * FROM transaction WHERE entity = ${contactId} AND type='Opprtnty' ORDER BY createddate desc`;
+    const opportunityInfo = await axios.post(
+        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+        {
+            q: opportunityQuery
+        },
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
+    return opportunityInfo;
+}
 
 function getThreeYearsBeforeDate() {
     const date = new Date();
