@@ -208,6 +208,114 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         matchedContactInfo
     };
 }
+async function findContactWithName({ user, authHeader, name }) {
+    const { firstName, lastName } = splitName(name);
+    const contactInfoByFirstName = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=FIRST_NAME&field_value=${firstName}&brief=false`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let contactInfoByLastName = [];
+    if (lastName) {
+        contactInfoByLastName = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=LAST_NAME&field_value=${lastName}&brief=false`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+    const allContacts = [...contactInfoByFirstName.data, ...contactInfoByLastName?.data ?? []];
+    const uniqueContacts = Array.from(
+        new Map(allContacts.map(c => [c.CONTACT_ID, c])).values()
+    );
+    const filteredContacts = uniqueContacts.filter(c =>
+        `${c.FIRST_NAME} ${c.LAST_NAME}`.toLowerCase().includes(name.toLowerCase())
+    );
+    const rawContacts = [];
+    for (let rawContactInfo of filteredContacts) {
+        rawContactInfo.contactType = 'contactPhone';
+        rawContacts.push(rawContactInfo);
+    }
+
+    const leadInforByFirstName = await axios.get(
+        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=FIRST_NAME&field_value=${name}&brief=false`,
+        {
+            headers: { 'Authorization': authHeader }
+        });
+    let leadInfoByLastName = [];
+    if (lastName) {
+        leadInfoByLastName = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=LAST_NAME&field_value=${lastName}&brief=false`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+    const allLeads = [...leadInforByFirstName.data, ...leadInfoByLastName?.data ?? []];
+    const uniqueLeads = Array.from(
+        new Map(allLeads.map(c => [c.LEAD_ID, c])).values()
+    );
+    const filteredLeads = uniqueLeads.filter(c =>
+        `${c.FIRST_NAME} ${c.LAST_NAME}`.toLowerCase().includes(name.toLowerCase())
+    );
+    for (let rawLeadInfo of filteredLeads) {
+        rawLeadInfo.contactType = 'leadPhone';
+        rawContacts.push(rawLeadInfo);
+    }
+    const matchedContactInfo = [];
+    for (let singlePersonInfo of rawContacts) {
+        singlePersonInfo.additionalInfo = {};
+        for (const link of singlePersonInfo.LINKS) {
+            switch (link.LINK_OBJECT_NAME) {
+                case 'Organisation':
+                    const orgRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/organisations/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.organisation) {
+                        singlePersonInfo.additionalInfo.organisation = [];
+                    }
+                    singlePersonInfo.additionalInfo.organisation.push({
+                        title: orgRes.data.ORGANISATION_NAME,
+                        const: orgRes.data.ORGANISATION_ID
+                    });
+                    break;
+                case 'Opportunity':
+                    const opportunityRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/opportunities/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.opportunity) {
+                        singlePersonInfo.additionalInfo.opportunity = [];
+                    }
+                    singlePersonInfo.additionalInfo.opportunity.push({
+                        title: opportunityRes.data.OPPORTUNITY_NAME,
+                        const: opportunityRes.data.OPPORTUNITY_ID
+                    });
+                    break;
+                case 'Project':
+                    const projectRes = await axios.get(
+                        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/projects/${link.LINK_OBJECT_ID}`,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    if (!singlePersonInfo.additionalInfo.project) {
+                        singlePersonInfo.additionalInfo.project = [];
+                    }
+                    singlePersonInfo.additionalInfo.project.push({
+                        title: projectRes.data.PROJECT_NAME,
+                        const: projectRes.data.PROJECT_ID
+                    });
+                    break;
+            }
+        }
+        matchedContactInfo.push(formatContact(singlePersonInfo));
+    }
+    return {
+        successful: true,
+        matchedContactInfo: matchedContactInfo
+    };
+}
 
 function formatContact(rawContactInfo) {
     switch (rawContactInfo.contactType) {
@@ -735,6 +843,12 @@ function upsertTranscript({ body, transcript }) {
     }
     return body;
 }
+function splitName(fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    const firstName = parts[0];
+    const lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    return { firstName, lastName };
+}
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
@@ -748,3 +862,4 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;

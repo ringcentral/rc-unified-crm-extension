@@ -127,6 +127,31 @@ async function findContact({ user, phoneNumber }) {
     };
 }
 
+async function findContactWithName({ user, name }) {
+    const matchedContactInfo = [];
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const personInfo = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?name=${name}`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+
+    console.log({ COntacts: personInfo.data.contacts, Data: personInfo.data });
+    const categoriesResp = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/lists/categories`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    const activeCategories = categoriesResp.data.categories.filter(c => !c.deleted);
+    for (let rawPersonInfo of personInfo.data.contacts) {
+        matchedContactInfo.push(formatContact(rawPersonInfo, activeCategories));
+    }
+    return {
+        successful: true,
+        matchedContactInfo
+    };
+}
+
 async function createContact({ user, phoneNumber, newContactName }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -410,6 +435,7 @@ function formatContact(rawContactInfo, categories) {
         name: `${rawContactInfo.full_name}`,
         phone: rawContactInfo.phoneNumber,
         title: rawContactInfo.job_title ?? "",
+        type: 'contact',
         additionalInfo: {
             category: categories.map(c => {
                 return {
@@ -584,3 +610,4 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;
