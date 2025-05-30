@@ -116,7 +116,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
     }
 }
 
-async function createContact({ platform, userId, phoneNumber, newContactName, newContactType }) {
+async function createContact({ platform, userId, phoneNumber, newContactName, newContactType, additionalSubmission }) {
     try {
         let user = await UserModel.findOne({
             where: {
@@ -141,7 +141,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { contactInfo, returnMessage, extraDataTracking } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType });
+        const { contactInfo, returnMessage, extraDataTracking } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission });
         if (contactInfo != null) {
             return { successful: true, returnMessage, contact: contactInfo, extraDataTracking };
         }

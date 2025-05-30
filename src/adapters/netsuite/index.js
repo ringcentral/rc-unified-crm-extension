@@ -470,7 +470,6 @@ async function findContactWithName({ user, authHeader, name }) {
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    console.log({ Duration: callLog.duration });
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
@@ -596,6 +595,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Call recording link: .*/, '');
         note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
         note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
+        note = note?.replace(/\n- Transcript:[\s\S]*?--- END\n?/g, '').trim();
+        note = note?.replace(/\n- AI Note:[\s\S]*?--- END\n?/g, '').trim();
         return {
             callLogInfo: {
                 subject: getLogRes.data.title,
@@ -1223,6 +1224,19 @@ function upsertTranscript({ body, transcript }) {
         body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
     } else {
         body += `- Transcript:\n${transcript}\n--- END\n`;
+    }
+    try {
+        if (body.length > 3900) {
+            // Calculate available space for transcript
+            const bodyWithoutTranscript = body.replace(/- Transcript:[\s\S]*?--- END\n?/, '');
+            const availableSpace = 3900 - bodyWithoutTranscript.length - '- Transcript:\n\n--- END\n'.length - 'Transcript too large. To view the whole transcript, log into RingCentral.\n'.length;
+            // Truncate transcript and add message
+            const truncatedTranscript = transcript.substring(0, availableSpace) + '\n\nTranscript too large. To view the whole transcript, log into RingCentral.';
+            body = bodyWithoutTranscript + `- Transcript:\n${truncatedTranscript}\n--- END\n`;
+        }
+
+    } catch (error) {
+        console.log({ m: "Error in upsertTranscript" });
     }
     return body;
 }
