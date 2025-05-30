@@ -3,6 +3,8 @@ const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('../../lib/util');
+const jwt = require('../../lib/jwt');
+const { UserModel } = require('../../models/userModel');
 
 function getAuthType() {
     return 'oauth';
@@ -86,6 +88,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
         const timezoneOffset = userData.timeZoneOffsetEST - 5 * 60;
         const timezoneName = '';
         const platformAdditionalInfo = {
+            id: userData.id,
             tokenUrl,
             restUrl,
             loginUrl: apiUrl,
@@ -480,6 +483,19 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
+    let assigneeId = null;
+    if (additionalSubmission.adminAssignedUserToken) {
+        try {
+            const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+            const assigneeUser = await UserModel.findByPk(unAuthData.id);
+            if (assigneeUser) {
+                assigneeId = assigneeUser.platformAdditionalInfo.id;
+            }
+        }
+        catch (e) {
+            console.log('Error decoding admin assigned user token', e);
+        }
+    }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
@@ -504,10 +520,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
     }
-    const commentingPersonId = additionalSubmission?.commentingPersonId;
-    if (commentingPersonId) {
+    if (assigneeId) {
         putBody.commentingPerson = {
-            id: commentingPersonId
+            id: assigneeId
         }
     }
     let addLogRes;

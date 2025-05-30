@@ -19,7 +19,8 @@
             ],
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
-                "rcClientId": "Y4m1YREFKbXdDoet5djv46"
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "useAdminAssignedUserToken": false
             },
             "displayName": "Pipedrive",
             "auth": {
@@ -254,16 +255,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "user",
-                        "title": "Agent/user (if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": false
             },
             "displayName": "Insightly",
             "auth": {
@@ -525,16 +517,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "user",
-                        "title": "Agent/user (if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": false
             },
             "displayName": "Clio",
             "auth": {
@@ -775,16 +758,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "user",
-                        "title": "Agent/user (if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": false
             },
             "auth": {
                 "type": "apiKey",
@@ -1227,16 +1201,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "adminAssignedUser",
-                        "title": "Admin assigned user(if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": true
             },
             "displayName": "Bullhorn",
             "auth": {
@@ -1547,16 +1512,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "user",
-                        "title": "Agent/user (if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": false
             },
             "displayName": "NetSuite",
             "auth": {
@@ -1856,16 +1812,7 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "activityOwner": [
-                    {
-                        "const": "user",
-                        "title": "Agent/user (if possible)"
-                    },
-                    {
-                        "const": "admin",
-                        "title": "Admin"
-                    }
-                ]
+                "useAdminAssignedUserToken": false
             },
             "displayName": "Google Sheets (Beta)",
             "auth": {
