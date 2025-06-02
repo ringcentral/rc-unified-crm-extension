@@ -73,14 +73,12 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             const permissionsResponse = await axios.post(checkPermissionSetUrl, requestData, {
                 headers: { 'Authorization': authHeader }
             });
-            console.log({ Data: permissionsResponse.data });
             const missingPermissions = Object.keys(permissionsResponse?.data?.permissionResults).filter(permission => {
                 if (permission === "LIST_SUBSIDIARY" && !oneWorldEnabled) {
                     return false; // Skip this permission if oneWorldEnabled is false
                 }
                 return !permissionsResponse?.data?.permissionResults[permission]; // Include other permissions that are not granted
             });
-            console.log({ missingPermissions });
             if (missingPermissions.length > 0) {
                 const missingSpecificPermissions = missingPermissions.filter(permission => permissionMessages[permission]);
                 let requiredPermissions = `To connect, you need the following specific permissions: ${missingSpecificPermissions.map(permission => permissionMessages[permission]).join(", ")}.`;
@@ -254,7 +252,6 @@ async function handleDispositionNote({
 
             if (createNoteResponse?.data?.success) {
                 const noteUrl = `${baseUrl}.app.netsuite.com/app/crm/common/note.nl?id=${createNoteResponse.data.noteId}`;
-                console.log(`${dispositionType} note created successfully:`, noteUrl);
                 let updatedNote = sanitizedNote;
                 switch (dispositionType) {
                     case 'salesorder':
@@ -314,7 +311,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         }
         const { enableSalesOrderLogging = false } = user.userSettings;
         const { enableOpportunityLogging = { value: false } } = user.userSettings;
-        console.log({ enableSalesOrderLogging, enableOpportunityLogging });
         const dateBeforeThreeYear = getThreeYearsBeforeDate();
         const numberToQueryArray = [];
         if (overridingFormat !== '') {
@@ -389,7 +385,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                                     });
                                 }
                             }
-                            console.log({ Salesorder: "Salesorder finding pass. finding opportunity" });
                             if (enableOpportunityLogging.value) {
                                 const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
                                 for (const opportunity of opportunityResponse?.data?.items) {
@@ -1226,40 +1221,30 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
-    console.log({ message: "Starting upsertNetSuiteUserNoteUrl", body, userNoteUrl, salesOrderId });
     const salesOrderText = "Sales Order Call Logs (Do Not Edit)";
     if (!(body.includes(salesOrderText))) {
-        console.log({ message: "Adding Sales Order Call Logs section" });
         body += `\n\n ${salesOrderText}`;
     }
     const salesOrderNoteUrlRegex = RegExp('- SalesOrderNoteUrl: (.+?)\n');
     if (salesOrderNoteUrlRegex.test(body)) {
-        console.log({ message: "Replacing existing SalesOrderNoteUrl" });
         body = body.replace(salesOrderNoteUrlRegex, `- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}\n`);
     } else {
-        console.log({ message: "Adding new SalesOrderNoteUrl" });
         body += `\n- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}`;
     }
-    console.log({ message: "Upserted SalesOrderNoteUrl", finalBody: body });
     return body;
 }
 
 function upsertNetSuiteOpportunityNoteUrl({ body, opportunityNoteUrl, opportunityId }) {
-    console.log({ message: "Starting upsertNetSuiteOpportunityNoteUrl", body, opportunityNoteUrl, opportunityId });
     const opportunityText = "Opportunity Call Logs (Do Not Edit)";
     if (!(body.includes(opportunityText))) {
-        console.log({ message: "Adding Opportunity Call Logs section" });
         body += `\n\n ${opportunityText}`;
     }
     const opportunityNoteUrlRegex = RegExp('- OpportunityNoteUrl: (.+?)\n');
     if (opportunityNoteUrlRegex.test(body)) {
-        console.log({ message: "Replacing existing OpportunityNoteUrl" });
         body = body.replace(opportunityNoteUrlRegex, `- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}\n`);
     } else {
-        console.log({ message: "Adding new OpportunityNoteUrl" });
         body += `\n- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}`;
     }
-    console.log({ message: "Upserted OpportunityNoteUrl", finalBody: body });
     return body;
 }
 
@@ -1382,7 +1367,6 @@ async function findSalesOrdersAgainstContact({ user, authHeader, contactId }) {
         {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
         });
-    console.log({ message: "SalesOrderInfo", Ites: salesOrderInfo?.data?.items });
     return salesOrderInfo;
 }
 
