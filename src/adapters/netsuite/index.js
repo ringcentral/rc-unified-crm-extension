@@ -169,91 +169,126 @@ async function unAuthorize({ user }) {
 }
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     const existingCallLogId = existingCallLog.thirdPartyLogId.split('.')[0];
-    const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingCallLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    let note = getLogRes.data.message;
-    let title = getLogRes.data.title;
-    let newSalesOrderUserNote = sanitizeNote({ note });
-    const isSalesOrderCallLogEnable = user.userSettings?.enableSalesOrderLogging?.value ?? false;
+    const baseUrl = `https://${user.hostname.split(".")[0]}`;
 
-    // Handle Sales Order logging
-    if (dispositions && dispositions.salesorder && isSalesOrderCallLogEnable) {
-        try {
-            const noteId = extractNoteIdFromNote({ note, targetSalesOrderId: dispositions.salesorder });
-            const createUserNotesUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
-            if (noteId === undefined) {
-                const postBody = {
-                    salesOrderId: dispositions.salesorder,
-                    noteTitle: title,
-                    noteText: newSalesOrderUserNote ?? 'empty'
-                };
-                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
-                    headers: { 'Authorization': authHeader }
-                });
-                if (createUserNotesResponse?.data?.success) {
-                    const userNoteUrl = `https://${user.hostname.split(".")[0]}.app.netsuite.com//app/crm/common/note.nl?id=${createUserNotesResponse?.data?.noteId}`;
-                    console.log({ message: "User note created successfully", userNoteUrl });
-                    const updatedNote = upsertNetSuiteUserNoteUrl({ body: note, userNoteUrl, salesOrderId: dispositions.salesorder });
+    try {
+        const getLogRes = await axios.get(
+            `${baseUrl}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingCallLogId}`,
+            { headers: { 'Authorization': authHeader } }
+        );
 
-                    const patchLogRes = await axios.patch(
-                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingCallLogId}`,
-                        {
-                            message: updatedNote,
-                        },
-                        {
-                            headers: { 'Authorization': authHeader }
-                        });
-                }
-            } else {
-                const postBody = {
-                    noteTitle: title,
-                    noteText: newSalesOrderUserNote ?? 'empty',
-                    noteId: noteId
-                };
-                await axios.put(createUserNotesUrl, postBody, { headers: { 'Authorization': authHeader } });
-            }
-        } catch (error) {
-            console.log({ message: "Error in logging calls against salesOrder" });
-        }
-    }
+        const note = getLogRes.data.message;
+        const title = getLogRes.data.title;
+        let sanitizedNote = sanitizeNote({ note });
+        const isSalesOrderCallLogEnable = user.userSettings?.enableSalesOrderLogging?.value ?? false;
 
-    // Handle Opportunity logging
-    if (dispositions && dispositions.opportunity) {
-        try {
-            const createOpportunityNoteUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createopportunitynotes&deploy=customdeploy_createopportunitynotes`;
-            const postBody = {
-                salesOrderId: dispositions.opportunity,
-                noteTitle: title,
-                noteText: newSalesOrderUserNote ?? 'empty'
-            };
-            const createOpportunityNoteResponse = await axios.post(createOpportunityNoteUrl, postBody, {
-                headers: { 'Authorization': authHeader }
+        // Handle Sales Order logging
+        if (dispositions?.salesorder && isSalesOrderCallLogEnable) {
+            sanitizedNote = await handleDispositionNote({
+                baseUrl,
+                authHeader,
+                note,
+                title,
+                sanitizedNote,
+                dispositionId: dispositions.salesorder,
+                dispositionType: 'salesorder',
+                existingCallLogId
             });
-            if (createOpportunityNoteResponse?.data?.success) {
-                const opportunityNoteUrl = `https://${user.hostname.split(".")[0]}.app.netsuite.com//app/crm/common/note.nl?id=${createOpportunityNoteResponse?.data?.noteId}`;
-                console.log({ message: "Opportunity note created successfully", opportunityNoteUrl });
-                const updatedNote = upsertNetSuiteOpportunityNoteUrl({ body: note, opportunityNoteUrl, opportunityId: dispositions.opportunity });
-
-                const patchLogRes = await axios.patch(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingCallLogId}`,
-                    {
-                        message: updatedNote,
-                    },
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-            }
-        } catch (error) {
-            console.log({ message: "Error in logging calls against opportunity", error });
         }
-    }
 
-    return {
-        logId: existingCallLogId,
+        // Handle Opportunity logging
+        if (dispositions?.opportunity) {
+            sanitizedNote = await handleDispositionNote({
+                baseUrl,
+                authHeader,
+                note,
+                title,
+                sanitizedNote,
+                dispositionId: dispositions.opportunity,
+                dispositionType: 'opportunity',
+                existingCallLogId
+            });
+        }
+
+        return { logId: existingCallLogId };
+    } catch (error) {
+        console.error('Error in upsertCallDisposition:', error);
+        throw error;
     }
 }
+
+async function handleDispositionNote({
+    baseUrl,
+    authHeader,
+    note,
+    title,
+    sanitizedNote,
+    dispositionId,
+    dispositionType,
+    existingCallLogId
+}) {
+    const createUserNotesUrl = `${baseUrl}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createusernotes&deploy=customdeploy_createusernotes`;
+
+    try {
+        let noteId = undefined;
+        switch (dispositionType) {
+            case 'salesorder':
+                noteId = extractNoteIdFromNote({ note, targetSalesOrderId: dispositionId });
+                break;
+            case 'opportunity':
+                noteId = extractNoteIdFromOpportunityNote({ note, targetOpportunityId: dispositionId });
+                break;
+        }
+
+        if (!noteId) {
+            // Create new note
+            const postBody = {
+                salesOrderId: dispositionId,
+                noteTitle: title,
+                noteText: sanitizedNote ?? 'empty'
+            };
+
+            const createNoteResponse = await axios.post(createUserNotesUrl, postBody, {
+                headers: { 'Authorization': authHeader }
+            });
+
+            if (createNoteResponse?.data?.success) {
+                const noteUrl = `${baseUrl}.app.netsuite.com/app/crm/common/note.nl?id=${createNoteResponse.data.noteId}`;
+                console.log(`${dispositionType} note created successfully:`, noteUrl);
+                let updatedNote = sanitizedNote;
+                switch (dispositionType) {
+                    case 'salesorder':
+                        updatedNote = upsertNetSuiteUserNoteUrl({ body: sanitizedNote, userNoteUrl: noteUrl, salesOrderId: dispositionId });
+                        break;
+                    case 'opportunity':
+                        updatedNote = upsertNetSuiteOpportunityNoteUrl({ body: sanitizedNote, opportunityNoteUrl: noteUrl, opportunityId: dispositionId });
+                        break;
+                }
+                await axios.patch(
+                    `${baseUrl}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingCallLogId}`,
+                    { message: updatedNote },
+                    { headers: { 'Authorization': authHeader } }
+                );
+                return updatedNote;
+            }
+        } else {
+            // Update existing note
+            const updateBody = {
+                noteTitle: title,
+                noteText: sanitizedNote ?? 'empty',
+                noteId
+            };
+            await axios.put(createUserNotesUrl, updateBody, {
+                headers: { 'Authorization': authHeader }
+            });
+            return sanitizedNote;
+        }
+    } catch (error) {
+        console.error(`Error in logging calls against ${dispositionType}:`, error);
+        throw error;
+    }
+}
+
 async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
     // const requestStartTime = new Date().getTime();
     try {
@@ -659,7 +694,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Duration: .*/, '');
         note = note?.replace(/\n- Call recording link: .*/, '');
         note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
+        note = note?.replace(/- OpportunityNoteUrl:.*OpportunityId:.*\n?/g, '').trim();
         note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
+        note = note?.replace("Opportunity Call Logs (Do Not Edit)", '').trim();
         note = note?.replace(/\n- Transcript:[\s\S]*?--- END\n?/g, '').trim();
         note = note?.replace(/\n- AI Note:[\s\S]*?--- END\n?/g, '').trim();
         return {
@@ -1189,20 +1226,40 @@ function upsertCallAgentNote({ body, note }) {
 }
 
 function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
-    const salesOrderText = "Sales Order Call Logs (Do Not Edit)"
+    console.log({ message: "Starting upsertNetSuiteUserNoteUrl", body, userNoteUrl, salesOrderId });
+    const salesOrderText = "Sales Order Call Logs (Do Not Edit)";
     if (!(body.includes(salesOrderText))) {
+        console.log({ message: "Adding Sales Order Call Logs section" });
         body += `\n\n ${salesOrderText}`;
     }
-    body += `\n- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}`;
+    const salesOrderNoteUrlRegex = RegExp('- SalesOrderNoteUrl: (.+?)\n');
+    if (salesOrderNoteUrlRegex.test(body)) {
+        console.log({ message: "Replacing existing SalesOrderNoteUrl" });
+        body = body.replace(salesOrderNoteUrlRegex, `- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}\n`);
+    } else {
+        console.log({ message: "Adding new SalesOrderNoteUrl" });
+        body += `\n- SalesOrderNoteUrl: ${userNoteUrl} SalesOrderId: ${salesOrderId}`;
+    }
+    console.log({ message: "Upserted SalesOrderNoteUrl", finalBody: body });
     return body;
 }
 
 function upsertNetSuiteOpportunityNoteUrl({ body, opportunityNoteUrl, opportunityId }) {
-    const opportunityText = "Opportunity Call Logs (Do Not Edit)"
+    console.log({ message: "Starting upsertNetSuiteOpportunityNoteUrl", body, opportunityNoteUrl, opportunityId });
+    const opportunityText = "Opportunity Call Logs (Do Not Edit)";
     if (!(body.includes(opportunityText))) {
+        console.log({ message: "Adding Opportunity Call Logs section" });
         body += `\n\n ${opportunityText}`;
     }
-    body += `\n- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}`;
+    const opportunityNoteUrlRegex = RegExp('- OpportunityNoteUrl: (.+?)\n');
+    if (opportunityNoteUrlRegex.test(body)) {
+        console.log({ message: "Replacing existing OpportunityNoteUrl" });
+        body = body.replace(opportunityNoteUrlRegex, `- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}\n`);
+    } else {
+        console.log({ message: "Adding new OpportunityNoteUrl" });
+        body += `\n- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}`;
+    }
+    console.log({ message: "Upserted OpportunityNoteUrl", finalBody: body });
     return body;
 }
 
@@ -1372,9 +1429,35 @@ function extractNoteIdFromNote({ note, targetSalesOrderId }) {
 
 }
 
+function extractNoteIdFromOpportunityNote({ note, targetOpportunityId }) {
+    // Extract the userNoteUrl from the string
+    try {
+        const regex = /OpportunityNoteUrl:\s*(https?:\/\/[^\s]+)\s+OpportunityId:\s*(\d+)/g;
+        let match;
+        while ((match = regex.exec(note)) !== null) {
+            const url = match[1];
+            const opportunityId = match[2];
+
+            if (opportunityId === targetOpportunityId.toString()) {
+                const idMatch = url.match(/id=(\d+)/);
+                if (idMatch) {
+                    return idMatch[1]; // return the id from URL
+                }
+            }
+        }
+        return undefined; // if not found
+    } catch (e) {
+        return undefined;
+    }
+
+}
+
 function sanitizeNote({ note }) {
+    // Remove both sales order and opportunity sections
     note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
+    note = note?.replace(/- OpportunityNoteUrl:.*OpportunityId:.*\n?/g, '').trim();
     note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
+    note = note?.replace("Opportunity Call Logs (Do Not Edit)", '').trim();
     return note;
 }
 const buildContactSearchCondition = (fields, numberToQuery, overridingFormat) => {
