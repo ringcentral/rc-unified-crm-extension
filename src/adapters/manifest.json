@@ -1602,7 +1602,15 @@
                             "name": "Sales Order logging",
                             "description": "When enabled, calls can be optionally associated with sales orders.",
                             "defaultValue": false
+                        },
+                        {
+                            "id": "enableOpportunityLogging",
+                            "type": "boolean",
+                            "name": "Opportunity logging",
+                            "description": "When enabled, calls can be optionally associated with opportunities",
+                            "defaultValue": false
                         }
+
                     ]
                 },
                 {
@@ -1714,6 +1722,12 @@
                             "title": "SalesOrder",
                             "type": "selection",
                             "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
                         }
                     ]
                 },
@@ -1724,7 +1738,14 @@
                             "title": "SalesOrder",
                             "type": "selection",
                             "contactDependent": true
+                        },
+                        {
+                            "const": "opportunity",
+                            "title": "Opportunity",
+                            "type": "selection",
+                            "contactDependent": true
                         }
+
                     ]
                 },
                 "feedback": {
