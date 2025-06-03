@@ -152,17 +152,21 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const relatedDeals = dealsResponse.data.data ?
             dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
             : null;
-        const leadsResponse = await axios.get(
-            `https://${user.hostname}/v1/leads?person_id=${person.item.id}`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        extraDataTracking = {
-            ratelimitRemaining: leadsResponse.headers['x-ratelimit-remaining'],
-            ratelimitAmount: leadsResponse.headers['x-ratelimit-limit'],
-            ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
-        };
-        const relatedLeads = leadsResponse.data.data ?
+        let leadsResponse = null;
+        try {
+            leadsResponse = await axios.get(
+                `https://${user.hostname}/v1/leads?person_id=${person.item.id}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            extraDataTracking = {
+                ratelimitRemaining: leadsResponse.headers['x-ratelimit-remaining'],
+                ratelimitAmount: leadsResponse.headers['x-ratelimit-limit'],
+                ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
+            };
+        }
+        catch (e) { leadsResponse = null; }
+        const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
         matchedContactInfo.push(formatContact(person.item, relatedDeals, relatedLeads));
