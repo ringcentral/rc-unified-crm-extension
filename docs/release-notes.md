@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.5.2
+- New: Contact search in call/message log page to add contact searched by name
+- New: Pipedrive now supports Lead (need to log out and log back in to activate)
+- New: Bullhorn users can now create Contact/Candidate/Lead with Status field
+- New: Include tab visibility control in Admin settings
+- New: NetSuite now supports selecting Opportunity in call/message log page
+- Better: Bullhorn server-side logging will now try to create Note from admin role and assign to users (require users to connect to Bullhorn first)
+- Better: If Bullhorn session becomes invalid, the extension will try to re-connect automatically
+- Fix: Netsuite now truncates AI transcript if it's over 4000 words
+
 ## 1.5.1
 
 - New: Redtail now supports categories for notes. Default value can be set up in user/admin settings

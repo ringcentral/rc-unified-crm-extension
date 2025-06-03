@@ -1,6 +1,48 @@
 {
-    "1.5.1":{
-        "global":[
+    "1.5.2": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Contact search in call/message log page to add contact searched by name"
+            },
+            {
+                "type": "New",
+                "description": "- Include tab visibility control in Admin settings"
+            }
+        ],
+        "pipedrive": [
+            {
+                "type": "New",
+                "description": "- Pipedrive now supports Lead (need to log out and log back in to activate)"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "New",
+                "description": "- Bullhorn now supports Contact/Candidate/Lead with Status field"
+            },
+            {
+                "type": "Better",
+                "description": "- Bullhorn server-side logging will now try to create Note from admin role and assign to users (require users to connect to Bullhorn first)"
+            },
+            {
+                "type": "Better",
+                "description": "- If Bullhorn session becomes invalid, the extension will try to re-connect automatically"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "- NetSuite now supports selecting Opportunity in call/message log page"
+            },
+            {
+                "type": "Fix",
+                "description": "- NetSuite now truncates AI transcript if it's over 4000 words"
+            }
+        ]
+    },
+    "1.5.1": {
+        "global": [
             {
                 "type": "New",
                 "description": "- Call session id can now be included in call log notes. This can be turned ON/OFF in user settings"
@@ -18,13 +60,13 @@
                 "description": "- Call queue calls cannot be logged in a few cases"
             }
         ],
-        "redtail":[
+        "redtail": [
             {
                 "type": "New",
                 "description": "- Redtail now supports categories for notes. Default value can be set up in user/admin settings"
             }
         ],
-        "clio":[
+        "clio": [
             {
                 "type": "New",
                 "description": "- Clio now supports Australia region"
@@ -34,7 +76,7 @@
                 "description": "- Clio now won't show duplicated contacts"
             }
         ],
-        "bullhorn":[
+        "bullhorn": [
             {
                 "type": "Fix",
                 "description": "- If Note Action is empty, it'll now show 'pending note'"
@@ -45,8 +87,8 @@
             }
         ]
     },
-    "1.5.0":{
-        "global":[
+    "1.5.0": {
+        "global": [
             {
                 "type": "New",
                 "description": "- Fax log support"
@@ -56,25 +98,25 @@
                 "description": "- If user is admin, '(Admin)' will be shown after user name on user setting page"
             }
         ],
-        "clio":[
+        "clio": [
             {
                 "type": "New",
                 "description": "- Clio now supports upload fax document files"
             }
         ],
-        "redtail":[
+        "redtail": [
             {
                 "type": "Fix",
                 "description": "- Redtail AI transcript setting turned OFF but still logging transcript"
             }
         ],
-        "netsuite":[
+        "netsuite": [
             {
                 "type": "Fix",
                 "description": "- Netsuite log failure when local computer time is ahead"
             }
         ],
-        "pipedrive":[
+        "pipedrive": [
             {
                 "type": "Fix",
                 "description": "- Pipedrive SMS logging not associated with deal"
