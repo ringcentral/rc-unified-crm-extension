@@ -583,16 +583,41 @@ async function findContactWithName({ user, authHeader, name }) {
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
     let assigneeId = null;
-    if (additionalSubmission.adminAssignedUserToken) {
-        try {
-            const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
-            const assigneeUser = await UserModel.findByPk(unAuthData.id);
-            if (assigneeUser) {
-                assigneeId = assigneeUser.platformAdditionalInfo.id;
+    if (additionalSubmission.isAssignedToUser) {
+        if (additionalSubmission.adminAssignedUserToken) {
+            try {
+                const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+                const assigneeUser = await UserModel.findByPk(unAuthData.id);
+                if (assigneeUser) {
+                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                }
+            }
+            catch (e) {
+                console.log('Error decoding admin assigned user token', e);
             }
         }
-        catch (e) {
-            console.log('Error decoding admin assigned user token', e);
+
+        if (!assigneeId) {
+            try {
+                const userInfoResponse = await axios.get(
+                    `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
+                    {
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
+                    }
+                );
+                if (userInfoResponse?.data?.data?.length > 0) {
+                    const targetUserRcName = callLog.direction === 'Inbound' ? callLog.to.name : callLog.from.name;
+                    const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
+                    if (targetUser) {
+                        assigneeId = targetUser.id;
+                    }
+                }
+            }
+            catch (e) {
+                console.log('Error getting user data from phone number', e);
+            }
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
