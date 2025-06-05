@@ -322,7 +322,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
                     let formattedNumber = format;
                     for (const numberBit of phoneNumberWithoutCountryCode) {
-                        formattedNumber = formattedNumber.replace('*', numberBit);
+                        formattedNumber = formattedNumber.replace(/[*#]/, numberBit);
                     }
                     numberToQueryArray.push(formattedNumber);
                 }
