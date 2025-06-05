@@ -195,6 +195,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 
 async function findContactWithName({ user, authHeader, name }) {
     const matchedContactInfo = [];
+    let extraDataTracking = {};
     const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
@@ -249,7 +250,8 @@ async function findContactWithName({ user, authHeader, name }) {
 
     return {
         successful: true,
-        matchedContactInfo
+        matchedContactInfo,
+        extraDataTracking
     }
 }
 
