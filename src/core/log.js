@@ -275,7 +275,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 duration: incomingData.duration,
                 result: incomingData.result,
                 aiNote: incomingData.aiNote,
-                transcript: incomingData.transcript
+                transcript: incomingData.transcript,
+                additionalSubmission: incomingData.additionalSubmission
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }

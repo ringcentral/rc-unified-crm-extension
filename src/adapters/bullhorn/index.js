@@ -608,7 +608,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                     }
                 );
                 if (userInfoResponse?.data?.data?.length > 0) {
-                    const targetUserRcName = callLog.direction === 'Inbound' ? callLog.to.name : callLog.from.name;
+                    const targetUserRcName = additionalSubmission.adminAssignedUserName;
                     const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
                     if (targetUser) {
                         assigneeId = targetUser.id;
@@ -693,7 +693,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};;
@@ -736,11 +736,40 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
+    // case: reassign to user
+    let assigneeId = null;
+    if (additionalSubmission.isAssignedToUser) {
+        try {
+            const userInfoResponse = await axios.get(
+                `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                }
+            );
+            if (userInfoResponse?.data?.data?.length > 0) {
+                const targetUserRcName = additionalSubmission.adminAssignedUserName;
+                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
+                if (targetUser) {
+                    assigneeId = targetUser.id;
+                }
+            }
+        }
+        catch (e) {
+            console.log('Error getting user data from phone number', e);
+        }
+    }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
         comments,
         dateAdded: startTime,
         minutesSpent: duration / 60
+    }
+    if (assigneeId) {
+        postBody.commentingPerson = {
+            id: assigneeId
+        }
     }
     try {
         const postLogRes = await axios.post(
