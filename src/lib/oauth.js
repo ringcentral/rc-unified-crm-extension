@@ -21,7 +21,7 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10) {
     const dateNow = new Date();
     const tokenExpiry = new Date(user.tokenExpiry);
-    const expiryBuffer = 1000 * 60 * 2; // 2 minutes
+    const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     if (user && user.accessToken && user.refreshToken && tokenExpiry.getTime() < (dateNow.getTime() + expiryBuffer)) {
         // case: use dynamoDB to manage token refresh lock
         if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
@@ -51,7 +51,24 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
             }
             // Unique: Bullhorn
             if (user.platform === 'bullhorn') {
-                await bullhornTokenRefresh(user);
+                try {
+                    const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
+                        headers: {
+                            'BhRestToken': user.platformAdditionalInfo.bhRestToken,
+                        },
+                    });
+                    // Session expired
+                    if (new Date(pingResponse.data.sessionExpires - expiryBuffer) < new Date()) {
+                        user = await bullhornTokenRefresh(user);
+                    }
+                    // Session not expired
+                    else {
+                        return user;
+                    }
+                }
+                catch (e) {
+                    console.log('Bullhorn ping failed', e);
+                }
             }
             else {
                 const token = oauthApp.createToken(user.accessToken, user.refreshToken);
@@ -75,7 +92,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                             'BhRestToken': user.platformAdditionalInfo.bhRestToken,
                         },
                     });
-                    if (new Date(pingResponse.data.sessionExpires) < new Date()) {
+                    if (new Date(pingResponse.data.sessionExpires - expiryBuffer) < new Date()) {
                         user = await bullhornTokenRefresh(user);
                     }
                 }
