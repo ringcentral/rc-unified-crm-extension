@@ -177,18 +177,9 @@ async function findContact({ user, phoneNumber }) {
             });
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-        }
         extraDataTracking['statusCode'] = e.response.status;
     }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const commentActionList = commentActionListResponse ? commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } }) : [];
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
@@ -259,27 +250,45 @@ async function findContact({ user, phoneNumber }) {
     };
 
     if (matchedContactInfo.length === 0) {
-        const leadMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-        const leadStatuses = leadMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
-        const candidateMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-        const candidateStatuses = candidateMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
-        const contactMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-        const contactStatuses = contactMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        let leadStatuses = [];
+        try {
+            const leadMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            leadStatuses = leadMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
+        let candidateStatuses = [];
+        try {
+            const candidateMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            candidateStatuses = candidateMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
+        let contactStatuses = [];
+        try {
+            const contactMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            contactStatuses = contactMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
         const newContactAdditionalInfo = {
             Lead: {
                 status: leadStatuses
