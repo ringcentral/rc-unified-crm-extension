@@ -648,6 +648,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (errorMessage.includes("'Subsidiary' was not found.")) {
             errorMessage = errorMessage + " OR Permission violation: You need the 'Lists -> Subsidiaries -> View' permission to access this page. "
         }
+        // We receive this error which is not understabdle for customer Invalid value for the resource or sub-resource field 'company'. Provide a valid value.
+        if (errorMessage.includes("Invalid value for the resource or sub-resource field 'company'")) {
+            errorMessage = "Could not create call log.\n No company is associated with this contact. Log in to NetSuite and link the contact to a company.";
+        }
         return {
             returnMessage: {
                 messageType: 'danger',
