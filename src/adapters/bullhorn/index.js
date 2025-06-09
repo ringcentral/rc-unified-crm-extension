@@ -590,9 +590,9 @@ async function findContactWithName({ user, authHeader, name }) {
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = (additionalSubmission.noteActions ?? '') || 'pending note';
+    const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
-    if (additionalSubmission.isAssignedToUser) {
+    if (additionalSubmission?.isAssignedToUser) {
         if (additionalSubmission.adminAssignedUserToken) {
             try {
                 const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
@@ -747,7 +747,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
     // case: reassign to user
     let assigneeId = null;
-    if (additionalSubmission.isAssignedToUser) {
+    if (additionalSubmission?.isAssignedToUser) {
         try {
             const userInfoResponse = await axios.get(
                 `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
@@ -884,7 +884,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
-    const noteActions = additionalSubmission.noteActions ?? '';
+    const noteActions = additionalSubmission?.noteActions ?? '';
     let userInfoResponse;
     let extraDataTracking = {};;
     try {
