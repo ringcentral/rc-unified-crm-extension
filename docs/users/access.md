@@ -27,3 +27,11 @@ You can open App Connect's dialer by finding the extension in your list of insta
 	
     ![Chrome location bar with pinned extension](../img/chrome-pinning-ext.png)
 
+## Embed quick access badge and click-to-dial components into other websites
+
+By default, quick access badge and click-to-dial only work on your CRM pages. There's a way to extend this to any other websites you set. It is done through a whitelist in user settings:
+
+1. Go to User Settings page
+2. General
+3. Allowed pages
+4. Type in website urls, seperated by comma. Use * as wildcard.

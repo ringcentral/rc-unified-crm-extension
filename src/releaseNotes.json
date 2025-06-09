@@ -31,6 +31,12 @@
                 "type": "Better",
                 "description": "- Able to use # or * in alternative number formats"
             }
+        ],
+        "netsuite":[
+            {
+                "type": "Better",
+                "description": "- Improved error message when attempting to log calls for contacts without an associated company. A clearer guidance is now provided when a contact is not linked to a company"
+            }
         ]
     },
     "1.5.2": {

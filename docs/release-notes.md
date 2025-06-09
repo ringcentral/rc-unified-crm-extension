@@ -5,6 +5,7 @@
 - Better: Bullhorn Server-side call logging will use admin's role and try to find user role to assign Note to if user's Bullhorn name matches with user's RingCentral profile name 
 - Better: Clio and Insightly users can use # or * in alternative number formats
 - Better: Bullhorn authorization is more stable now
+- Better: NetSuite improved error message when attempting to log calls for contacts without an associated company. A clearer guidance is now provided when a contact is not linked to a company
 - Fix: Bullhorn issue when creating a new Contact/Candidate/Lead
 
 ## 1.5.2
