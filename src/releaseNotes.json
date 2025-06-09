@@ -1,4 +1,38 @@
 {
+    "1.5.3":{
+        "global": [
+            {
+                "type": "New",
+                "description": "- Quick access button and click-to-dial can be configured to be shown on other pages rather than CRM page. Set it up in user settings -> general -> allowed pages"
+            }   
+        ],
+        "bullhorn": [
+            {
+                "type": "Better",
+                "description": "- Bullhorn Server-side call logging will use admin's role and try to find user role to assign Note to if user's Bullhorn name matches with user's RingCentral profile name"
+            },
+            {
+                "type": "Better",
+                "description": "- Authorization is more stable now"
+            },
+            {
+                "type": "Fix",
+                "description": "- Fixed issue when creating a new Contact/Candidate/Lead"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Better",
+                "description": "- Able to use # or * in alternative number formats"
+            }
+        ],
+        "insightly": [
+            {
+                "type": "Better",
+                "description": "- Able to use # or * in alternative number formats"
+            }
+        ]
+    },
     "1.5.2": {
         "global": [
             {

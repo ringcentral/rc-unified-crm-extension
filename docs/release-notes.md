@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.5.3
+- New: Quick access button and click-to-dial can be configured to be shown on other pages rather than CRM page. Set it up in user settings -> general -> allowed pages
+- Better: Bullhorn Server-side call logging will use admin's role and try to find user role to assign Note to if user's Bullhorn name matches with user's RingCentral profile name 
+- Better: Clio and Insightly users can use # or * in alternative number formats
+- Better: Bullhorn authorization is more stable now
+- Fix: Bullhorn issue when creating a new Contact/Candidate/Lead
+
 ## 1.5.2
 - New: Contact search in call/message log page to add contact searched by name
 - New: Pipedrive now supports Lead (need to log out and log back in to activate)
