@@ -516,17 +516,54 @@ async function findContactWithName({ user, authHeader, name }) {
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
     const matchedContactInfo = [];
-    const contactPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
-        {
-            query: `name:${name} AND isDeleted:false`
-        },
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    // Search by full name components
+    const nameComponents = name.trim().split(' ');
+    const searchQueries = [];
+
+    // Full name exact match
+    searchQueries.push(`name:"${name}" AND isDeleted:false`);
+
+    // First + Last name combinations
+    if (nameComponents.length >= 2) {
+        const firstName = nameComponents[0];
+        const lastName = nameComponents[nameComponents.length - 1];
+        searchQueries.push(`firstName:${firstName} AND lastName:${lastName} AND isDeleted:false`);
+    }
+
+    // First name only
+    searchQueries.push(`firstName:${nameComponents[0]} AND isDeleted:false`);
+
+    // Last name only if provided
+    if (nameComponents.length > 1) {
+        searchQueries.push(`lastName:${nameComponents[nameComponents.length - 1]} AND isDeleted:false`);
+    }
+
+    // Execute all search queries
+    const searchResults = await Promise.all(searchQueries.map(query =>
+        axios.post(
+            `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
+            { query },
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
             }
-        });
-    for (const result of contactPersonInfo.data.data) {
+        )
+    ));
+
+    const seenIds = new Set();
+    const uniqueContactResults = [];
+    searchResults.forEach(response => {
+        if (response?.data?.data) {
+            response.data.data.forEach(result => {
+                if (!seenIds.has(result.id)) {
+                    seenIds.add(result.id);
+                    uniqueContactResults.push(result);
+                }
+            });
+        }
+    });
+    for (const result of uniqueContactResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -535,18 +572,33 @@ async function findContactWithName({ user, authHeader, name }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
-    const candidatePersonInfo = await axios.post(
+
+    // Search Candidates
+    const candidatePersonInfo = await Promise.all(searchQueries.map(query => axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
         {
-            query: `name:${name} AND isDeleted:false`
+            query
         },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         }
-    );
-    for (const result of candidatePersonInfo.data.data) {
+    )));
+    const candidateIds = new Set();
+    const uniqueCandidateResults = [];
+    candidatePersonInfo.forEach(response => {
+        if (response?.data?.data) {
+            response.data.data.forEach(result => {
+                if (!candidateIds.has(result.id)) {
+                    candidateIds.add(result.id);
+                    uniqueCandidateResults.push(result);
+                }
+            });
+        }
+    });
+
+    for (const result of uniqueCandidateResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -556,18 +608,32 @@ async function findContactWithName({ user, authHeader, name }) {
         });
     }
 
-    const leadPersonInfo = await axios.post(
+
+    //Search Candidates
+    const leadPersonInfo = await Promise.all(searchQueries.map(query => axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query: `name:${name} AND isDeleted:false`
+            query
         },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         }
-    );
-    for (const result of leadPersonInfo.data.data) {
+    )));
+    const leadIds = new Set();
+    const uniqueLeadResults = [];
+    leadPersonInfo.forEach(response => {
+        if (response?.data?.data) {
+            response.data.data.forEach(result => {
+                if (!leadIds.has(result.id)) {
+                    leadIds.add(result.id);
+                    uniqueLeadResults.push(result);
+                }
+            });
+        }
+    });
+    for (const result of uniqueLeadResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -576,12 +642,13 @@ async function findContactWithName({ user, authHeader, name }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
-    extraDataTracking = {
-        ratelimitRemaining: leadPersonInfo.headers['ratelimit-remaining'],
-        ratelimitAmount: leadPersonInfo.headers['ratelimit-limit'],
-        ratelimitReset: leadPersonInfo.headers['ratelimit-reset']
-    };
-
+    if (leadPersonInfo.length >= 1) {
+        extraDataTracking = {
+            ratelimitRemaining: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-remaining'],
+            ratelimitAmount: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-limit'],
+            ratelimitReset: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-reset']
+        };
+    }
     return {
         successful: true,
         matchedContactInfo,
