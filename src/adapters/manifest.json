@@ -530,8 +530,9 @@
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
                 }
             },
-            "canOpenLogPage": false,
+            "canOpenLogPage": true,
             "contactPageUrl": "https://{hostname}/nc/#/contacts/{contactId}",
+            "logPageUrl": "https://{hostname}/nc/#/contacts/{contactId}/communications",
             "settings": [
                 {
                     "id": "clioDefaults",
