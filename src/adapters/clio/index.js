@@ -136,7 +136,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         };
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
-                if(matchedContactInfo.some(c => c.id === result.id)){
+                if (matchedContactInfo.some(c => c.id === result.id)) {
                     continue;
                 }
                 const matterInfo = await axios.get(
@@ -196,6 +196,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
 async function findContactWithName({ user, authHeader, name }) {
     const matchedContactInfo = [];
     let extraDataTracking = {};
+    /*
+    Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
+    It handles all variations without requiring the query to be split
+    */
     const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
