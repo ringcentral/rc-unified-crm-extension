@@ -516,17 +516,49 @@ async function findContactWithName({ user, authHeader, name }) {
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
     const matchedContactInfo = [];
-    const contactPersonInfo = await axios.post(
+    // Search by full name components
+    const nameComponents = name.trim().split(' ');
+    const searchQueries = [];
+
+    // Full name exact match
+    searchQueries.push(`name:"${name}" AND isDeleted:false`);
+
+    // First + Last name combinations
+    // if (nameComponents.length >= 2) {
+    //     const firstName = nameComponents[0];
+    //     const lastName = nameComponents[nameComponents.length - 1];
+    //     searchQueries.push(`firstName:${firstName} AND lastName:${lastName} AND isDeleted:false`);
+    // }
+
+    // First name only
+    searchQueries.push(`firstName:${nameComponents[0]} AND isDeleted:false`);
+
+    // Last name only if provided
+    if (nameComponents.length > 1) {
+        searchQueries.push(`lastName:${nameComponents[nameComponents.length - 1]} AND isDeleted:false`);
+    }
+    const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
+    // Make single API call with combined query
+    const contactSearchResponse = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
-        {
-            query: `name:${name} AND isDeleted:false`
-        },
+        { query: combinedQuery },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
+        }
+    );
+    const seenIds = new Set();
+    const uniqueContactResults = [];
+    if (!!contactSearchResponse?.data?.data) {
+        contactSearchResponse.data.data.forEach(result => {
+            if (!seenIds.has(result.id)) {
+                seenIds.add(result.id);
+                uniqueContactResults.push(result);
+            }
         });
-    for (const result of contactPersonInfo.data.data) {
+    }
+    for (const result of uniqueContactResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -535,10 +567,11 @@ async function findContactWithName({ user, authHeader, name }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
+
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
         {
-            query: `name:${name} AND isDeleted:false`
+            query: combinedQuery
         },
         {
             headers: {
@@ -546,7 +579,17 @@ async function findContactWithName({ user, authHeader, name }) {
             }
         }
     );
-    for (const result of candidatePersonInfo.data.data) {
+    const candidateIds = new Set();
+    const uniqueCandidateResults = [];
+    if (candidatePersonInfo?.data?.data) {
+        candidatePersonInfo.data.data.forEach(result => {
+            if (!candidateIds.has(result.id)) {
+                candidateIds.add(result.id);
+                uniqueCandidateResults.push(result);
+            }
+        });
+    }
+    for (const result of uniqueCandidateResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -556,10 +599,11 @@ async function findContactWithName({ user, authHeader, name }) {
         });
     }
 
+    //Search Candidates
     const leadPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query: `name:${name} AND isDeleted:false`
+            query: combinedQuery
         },
         {
             headers: {
@@ -567,7 +611,17 @@ async function findContactWithName({ user, authHeader, name }) {
             }
         }
     );
-    for (const result of leadPersonInfo.data.data) {
+    const leadIds = new Set();
+    const uniqueLeadResults = [];
+    if (leadPersonInfo?.data?.data) {
+        leadPersonInfo.data.data.forEach(result => {
+            if (!leadIds.has(result.id)) {
+                leadIds.add(result.id);
+                uniqueLeadResults.push(result);
+            }
+        });
+    }
+    for (const result of uniqueLeadResults) {
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -581,7 +635,6 @@ async function findContactWithName({ user, authHeader, name }) {
         ratelimitAmount: leadPersonInfo.headers['ratelimit-limit'],
         ratelimitReset: leadPersonInfo.headers['ratelimit-reset']
     };
-
     return {
         successful: true,
         matchedContactInfo,
