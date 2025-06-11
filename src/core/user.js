@@ -5,7 +5,7 @@ const { getHashValue } = require('../lib/util');
 async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     let hashedRcAccountId = null;
     if (rcAccountId) {
-        hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        hashedRcAccountId = rcAccountId;
     }
     else {
         const rcExtensionResponse = await axios.get(
