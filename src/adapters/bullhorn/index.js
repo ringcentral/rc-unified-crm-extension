@@ -538,7 +538,6 @@ async function findContactWithName({ user, authHeader, name }) {
         searchQueries.push(`lastName:${nameComponents[nameComponents.length - 1]} AND isDeleted:false`);
     }
     const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
-    console.log({ message: "Combined Querry", combinedQuery });
     // Make single API call with combined query
     const contactSearchResponse = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
