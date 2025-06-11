@@ -524,11 +524,11 @@ async function findContactWithName({ user, authHeader, name }) {
     searchQueries.push(`name:"${name}" AND isDeleted:false`);
 
     // First + Last name combinations
-    if (nameComponents.length >= 2) {
-        const firstName = nameComponents[0];
-        const lastName = nameComponents[nameComponents.length - 1];
-        searchQueries.push(`firstName:${firstName} AND lastName:${lastName} AND isDeleted:false`);
-    }
+    // if (nameComponents.length >= 2) {
+    //     const firstName = nameComponents[0];
+    //     const lastName = nameComponents[nameComponents.length - 1];
+    //     searchQueries.push(`firstName:${firstName} AND lastName:${lastName} AND isDeleted:false`);
+    // }
 
     // First name only
     searchQueries.push(`firstName:${nameComponents[0]} AND isDeleted:false`);
