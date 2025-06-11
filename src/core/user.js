@@ -2,16 +2,21 @@ const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const { getHashValue } = require('../lib/util');
 
-async function getUserSettingsByAdmin({ rcAccessToken }) {
-    const rcExtensionResponse = await axios.get(
-        'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
-        {
-            headers: {
-                Authorization: `Bearer ${rcAccessToken}`,
-            },
-        });
-    const rcAccountId = rcExtensionResponse.data.account.id;
-    const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
+    let hashedRcAccountId = null;
+    if (rcAccountId) {
+        hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+    }
+    else {
+        const rcExtensionResponse = await axios.get(
+            'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
+            {
+                headers: {
+                    Authorization: `Bearer ${rcAccessToken}`,
+                },
+            });
+        hashedRcAccountId = getHashValue(rcExtensionResponse.data.account.id, process.env.HASH_KEY);
+    }
     const adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     return {
         customManifestUrl: adminConfig?.customAdapter,
@@ -19,10 +24,10 @@ async function getUserSettingsByAdmin({ rcAccessToken }) {
     };
 }
 
-async function getUserSettings({ user, rcAccessToken }) {
+async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
     let userSettingsByAdmin = [];
-    if (rcAccessToken) {
-        userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken });
+    if (rcAccessToken || rcAccountId) {
+        userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
     }
 
     // For non-readonly admin settings, user use its own setting

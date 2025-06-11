@@ -375,8 +375,9 @@ app.get('/admin/settings', async function (req, res) {
 app.get('/user/preloadSettings', async function (req, res) {
     try {
         const rcAccessToken = req.query.rcAccessToken;
-        if (rcAccessToken) {
-            const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken });
+        const rcAccountId = req.query.rcAccountId;
+        if (rcAccessToken || rcAccountId) {
+            const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
             res.status(200).send(userSettings);
         }
         else {
@@ -405,7 +406,8 @@ app.get('/user/settings', async function (req, res) {
             }
             else {
                 const rcAccessToken = req.query.rcAccessToken;
-                const userSettings = await userCore.getUserSettings({ user, rcAccessToken });
+                const rcAccountId = req.query.rcAccountId;
+                const userSettings = await userCore.getUserSettings({ user, rcAccessToken, rcAccountId });
                 success = true;
                 res.status(200).send(userSettings);
             }
