@@ -537,32 +537,28 @@ async function findContactWithName({ user, authHeader, name }) {
     if (nameComponents.length > 1) {
         searchQueries.push(`lastName:${nameComponents[nameComponents.length - 1]} AND isDeleted:false`);
     }
-
-    // Execute all search queries
-    const searchResults = await Promise.all(searchQueries.map(query =>
-        axios.post(
-            `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
-            { query },
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
+    const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
+    console.log({ message: "Combined Querry", combinedQuery });
+    // Make single API call with combined query
+    const contactSearchResponse = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
+        { query: combinedQuery },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
-        )
-    ));
-
+        }
+    );
     const seenIds = new Set();
     const uniqueContactResults = [];
-    searchResults.forEach(response => {
-        if (response?.data?.data) {
-            response.data.data.forEach(result => {
-                if (!seenIds.has(result.id)) {
-                    seenIds.add(result.id);
-                    uniqueContactResults.push(result);
-                }
-            });
-        }
-    });
+    if (!!contactSearchResponse?.data?.data) {
+        contactSearchResponse.data.data.forEach(result => {
+            if (!seenIds.has(result.id)) {
+                seenIds.add(result.id);
+                uniqueContactResults.push(result);
+            }
+        });
+    }
     for (const result of uniqueContactResults) {
         matchedContactInfo.push({
             id: result.id,
@@ -573,31 +569,27 @@ async function findContactWithName({ user, authHeader, name }) {
         });
     }
 
-    // Search Candidates
-    const candidatePersonInfo = await Promise.all(searchQueries.map(query => axios.post(
+    const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
         {
-            query
+            query: combinedQuery
         },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         }
-    )));
+    );
     const candidateIds = new Set();
     const uniqueCandidateResults = [];
-    candidatePersonInfo.forEach(response => {
-        if (response?.data?.data) {
-            response.data.data.forEach(result => {
-                if (!candidateIds.has(result.id)) {
-                    candidateIds.add(result.id);
-                    uniqueCandidateResults.push(result);
-                }
-            });
-        }
-    });
-
+    if (candidatePersonInfo?.data?.data) {
+        candidatePersonInfo.data.data.forEach(result => {
+            if (!candidateIds.has(result.id)) {
+                candidateIds.add(result.id);
+                uniqueCandidateResults.push(result);
+            }
+        });
+    }
     for (const result of uniqueCandidateResults) {
         matchedContactInfo.push({
             id: result.id,
@@ -608,31 +600,28 @@ async function findContactWithName({ user, authHeader, name }) {
         });
     }
 
-
     //Search Candidates
-    const leadPersonInfo = await Promise.all(searchQueries.map(query => axios.post(
+    const leadPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query
+            query: combinedQuery
         },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         }
-    )));
+    );
     const leadIds = new Set();
     const uniqueLeadResults = [];
-    leadPersonInfo.forEach(response => {
-        if (response?.data?.data) {
-            response.data.data.forEach(result => {
-                if (!leadIds.has(result.id)) {
-                    leadIds.add(result.id);
-                    uniqueLeadResults.push(result);
-                }
-            });
-        }
-    });
+    if (leadPersonInfo?.data?.data) {
+        leadPersonInfo.data.data.forEach(result => {
+            if (!leadIds.has(result.id)) {
+                leadIds.add(result.id);
+                uniqueLeadResults.push(result);
+            }
+        });
+    }
     for (const result of uniqueLeadResults) {
         matchedContactInfo.push({
             id: result.id,
@@ -642,13 +631,11 @@ async function findContactWithName({ user, authHeader, name }) {
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
-    if (leadPersonInfo.length >= 1) {
-        extraDataTracking = {
-            ratelimitRemaining: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-remaining'],
-            ratelimitAmount: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-limit'],
-            ratelimitReset: leadPersonInfo[leadPersonInfo.length - 1].headers['ratelimit-reset']
-        };
-    }
+    extraDataTracking = {
+        ratelimitRemaining: leadPersonInfo.headers['ratelimit-remaining'],
+        ratelimitAmount: leadPersonInfo.headers['ratelimit-limit'],
+        ratelimitReset: leadPersonInfo.headers['ratelimit-reset']
+    };
     return {
         successful: true,
         matchedContactInfo,
