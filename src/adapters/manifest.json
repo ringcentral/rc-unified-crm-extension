@@ -744,6 +744,34 @@
                             "value": "74rCbGWW1bUIMd2Zgz07baA29dAtZoH1Wsu7xgkb"
                         }
                     ]
+                },
+                {
+                    "triggerType": "hostname",
+                    "triggerValue": "eu.app.clio.com",
+                    "overrideObjects": [
+                        {
+                            "path": "auth.oauth.authUrl",
+                            "value": "https://eu.app.clio.com/oauth/authorize"
+                        },
+                        {
+                            "path": "auth.oauth.clientId",
+                            "value": "p0c2TY3v8kw8XVxvc326AGug9uWywbm9nT8iEN2S"
+                        }
+                    ]
+                },
+                {
+                    "triggerType": "hostname",
+                    "triggerValue": "ca.app.clio.com",
+                    "overrideObjects": [
+                        {
+                            "path": "auth.oauth.authUrl",
+                            "value": "https://ca.app.clio.com/oauth/authorize"
+                        },
+                        {
+                            "path": "auth.oauth.clientId",
+                            "value": "jcy0BQTrQKOespMA7hoxfCxRY7keRQRVndOxrEyC"
+                        }
+                    ]
                 }
             ]
         },

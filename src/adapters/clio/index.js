@@ -19,7 +19,22 @@ async function getOauthInfo({ hostname }) {
             redirectUri: process.env.CLIO_REDIRECT_URI
         }
     }
-    else {
+    else if (hostname.startsWith('eu.')) {
+        return {
+            clientId: process.env.CLIO_EU_CLIENT_ID,
+            clientSecret: process.env.CLIO_EU_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_EU_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI
+        }
+    }
+    else if (hostname.startsWith('ca.')) {
+        return {
+            clientId: process.env.CLIO_CA_CLIENT_ID,
+            clientSecret: process.env.CLIO_CA_CLIENT_SECRET,
+            accessTokenUri: process.env.CLIO_CA_ACCESS_TOKEN_URI,
+            redirectUri: process.env.CLIO_REDIRECT_URI
+        }
+    } else {
         return {
             clientId: process.env.CLIO_CLIENT_ID,
             clientSecret: process.env.CLIO_CLIENT_SECRET,
@@ -136,7 +151,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         };
         if (personInfo.data.data.length > 0) {
             for (var result of personInfo.data.data) {
-                if(matchedContactInfo.some(c => c.id === result.id)){
+                if (matchedContactInfo.some(c => c.id === result.id)) {
                     continue;
                 }
                 const matterInfo = await axios.get(
