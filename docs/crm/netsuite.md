@@ -56,12 +56,14 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Lists        | Customers                            | Full                        |
 | Lists        | Phone Calls                          | Full                        |
 | Lists        | Subsidiaries                         | View  (OneWorld users only) |
-| Lists        | Notes Tab                            | Full                        |        
+| Lists        | Notes Tab                            | Full                        |
+| Lists        | Documents and Files                  | Full                        |
 | Reports      | SuiteAnalytics Workbook              | Edit                        |
 | Setup        | Log in using OAuth 2.0 Access Tokens | Full                        |
 | Setup        | REST Web Services                    | Full                        |
 | Setup        | User Access Tokens                   | Full                        |
 | Transactions | Sales Order                          | Full                        |
+| Transactions | Opportunity                          | Full                        |
 | Transactions | Find Transaction                     | View                        |
 
 ## Install the Chrome/Edge extension
