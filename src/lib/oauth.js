@@ -151,6 +151,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout) {
         if (newLock) {
             await newLock.delete();
         }
+        console.error('Bullhorn token refreshing failed', e);
     }
     return user;
 }
