@@ -33,7 +33,7 @@ Gate6 specializes in connecting your business applications, platforms, and data 
 
 <div class="grid cards" markdown>
 
--    [![ServiceNow](img/servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
+-    [![ServiceNow](img/crm-logo-servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
      
      Currently in beta, Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
 
@@ -51,11 +51,7 @@ Loyally's mission "is to support customer service worldwide by giving them the r
 
 <div class="grid cards" markdown>
 
--    ![FreshDesk](img/freshdesk-logo.png){ .mw-250 }
-     
-     Coming soon.
-
--    ![FreshService](img/freshservice-logo.png){ .mw-250 }
+-    ![FreshDesk](img/crm-logo-freshdesk.png){ .mw-250 }
      
      Coming soon.
 
