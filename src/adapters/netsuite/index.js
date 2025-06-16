@@ -627,6 +627,47 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             });
             postBody.contact = { id: contactInfo.id };
             postBody.company = { id: contactInfoRes.data?.company?.id };
+            if (!!!contactInfoRes.data?.company?.id) {
+                let companyId = undefined;
+                const companyInfo = await axios.post(
+                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                    {
+                        q: `SELECT * FROM customer WHERE companyName = 'RingCentral_CRM_Extension_Placeholder_Company'`
+                    },
+                    {
+                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                    }
+                )
+                if (companyInfo.data.count > 0 && companyInfo.data.items[0].companyname === 'RingCentral_CRM_Extension_Placeholder_Company') {
+                    companyId = companyInfo.data.items[0].id;
+                }
+                else {
+                    let companyPostBody = {
+                        companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                        comments: "This company was created automatically by the RingCentral App Connect. Feel free to edit, or associate this company's contacts to more appropriate records.",
+                    };
+                    if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                        companyPostBody.subsidiary = { id: subsidiaryId };
+                    }
+                    const createCompany = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                        companyPostBody
+                        ,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        });
+                    companyId = extractIdFromUrl(createCompany.headers.location)
+                }
+                const patchBody = {
+                    company: { id: companyId }
+                }
+                await axios.patch(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/contact/${contactInfo.id}`, patchBody, {
+                    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+
+                });
+                postBody.company = {
+                    id: companyId
+                };
+            }
         } else if (contactInfo.type === 'custjob') {
             postBody.company = { id: contactInfo.id };
         }
