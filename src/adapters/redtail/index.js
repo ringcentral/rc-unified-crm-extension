@@ -130,6 +130,10 @@ async function findContact({ user, phoneNumber }) {
 async function findContactWithName({ user, name }) {
     const matchedContactInfo = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    /*
+    Redtail contact search functionality works correctly with name-based queries, including first name, last name, and full name.
+     It handles all variations without requiring the query to be split
+    */
     const personInfo = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?name=${name}`,
         {

@@ -599,6 +599,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
         if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
         if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
+        let isMessageBodyTooLong = false;
+        if (!!transcript && (comments.length + transcript.length) > 3900) {
+            isMessageBodyTooLong = true;
+        }
         if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
         let extraDataTracking = {
@@ -633,7 +637,13 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 headers: { 'Authorization': authHeader }
             });
         const callLogId = extractIdFromUrl(addLogRes.headers.location);
-
+        if (isMessageBodyTooLong) {
+            try {
+                await attachFileWithPhoneCall({ callLogId, transcript, authHeader, user, fileName: title });
+            } catch (error) {
+                console.log({ message: "Error in attaching file with phone call" });
+            }
+        }
         return {
             logId: callLogId,
             returnMessage: {
@@ -772,9 +782,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
         if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
         if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
         if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
-
+        let isMessageBodyTooLong = false;
+        if (!!transcript && (comments.length + transcript.length) > 3900) {
+            isMessageBodyTooLong = true;
+        }
+        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
         patchBody.message = comments;
         const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
@@ -782,6 +795,13 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             {
                 headers: { 'Authorization': authHeader }
             });
+        if (isMessageBodyTooLong && !!subject) {
+            try {
+                await attachFileWithPhoneCall({ callLogId: existingLogId, transcript, authHeader, user, fileName: subject });
+            } catch (error) {
+
+            }
+        }
         return {
             updatedNote: note,
             returnMessage: {
@@ -1351,9 +1371,9 @@ function upsertTranscript({ body, transcript }) {
         if (body.length > 3900) {
             // Calculate available space for transcript
             const bodyWithoutTranscript = body.replace(/- Transcript:[\s\S]*?--- END\n?/, '');
-            const availableSpace = 3900 - bodyWithoutTranscript.length - '- Transcript:\n\n--- END\n'.length - 'Transcript too large. To view the whole transcript, log into RingCentral.\n'.length;
+            const availableSpace = 3900 - bodyWithoutTranscript.length - '- Transcript:\n\n--- END\n'.length - 'Transcript too large. To view the whole transcript, Goto Communictaion and open attach file.\n'.length;
             // Truncate transcript and add message
-            const truncatedTranscript = transcript.substring(0, availableSpace) + '\n\nTranscript too large. To view the whole transcript, log into RingCentral.';
+            const truncatedTranscript = transcript.substring(0, availableSpace) + '\n\nTranscript too large. To view the whole transcript, Goto Communictaion and open attach file.';
             body = bodyWithoutTranscript + `- Transcript:\n${truncatedTranscript}\n--- END\n`;
         }
 
@@ -1459,6 +1479,61 @@ const buildContactSearchCondition = (fields, numberToQuery, overridingFormat) =>
         ).join(' OR ');
     }
 };
+
+async function attachFileWithPhoneCall({ callLogId, transcript, authHeader, user, fileName }) {
+    const folderName = "App Connect Phone Calls";
+    // Check if folder exists, if not create it
+    const folderResponde = await axios.get(
+        `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_getappconnectfolderbyname&deploy=customdeploy_getappconnectfolderbyname&name=${folderName}`,
+        {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+        }
+    );
+    let folderId = undefined;
+    // If folder does not exist, create it
+    if (folderResponde.data.success === false && folderResponde.data.message.includes("No folder found with name")) {
+        const createFolderRes = await axios.post(
+            `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createappconnectfolder&deploy=customdeploy_createappconnectfolder`,
+            {
+                folderName: folderName
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        folderId = createFolderRes.data.folderId;
+    } else if (folderResponde.data.success === true) {
+        folderId = folderResponde?.data?.results?.length > 0 ? folderResponde.data.results[0].id : undefined;
+    }
+    /**
+     * If folderId is still undefined, it means folder creation failed or folder was not found.
+     * If folder exist or created successfully, proceed to create file and attach it to the phone call log.
+     */
+    if (folderId) {
+        const fileResponse = await axios.post(
+            `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createappconnectfile&deploy=customdeploy_createappconnectfile`,
+            {
+                folderId: folderId,
+                fileName: fileName + " " + callLogId,
+                content: transcript,
+                note: "This file was generated via RingCentral App Connect"
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        const attachFileRes = await axios.post(
+            `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_attachfilewithphonecalls&deploy=customdeploy_attachfilewithphonecalls`,
+            {
+                phoneCallId: callLogId,
+                fileId: fileResponse.data.fileId
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+    }
+}
 
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
