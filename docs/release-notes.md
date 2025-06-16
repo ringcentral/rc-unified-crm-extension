@@ -1,6 +1,17 @@
 # Release notes
 
+## 1.5.4
+
+- New: Clio now supports EU and CA
+- New: Notification-level setting to control what types of notification would be shown
+- Better: DisableRetroCallLogging in user setting is changed to EnableRetroCallLogging
+- Better: Clio view log will go to contact communication tab
+- Better: Contacts are shown with source icon
+- Fix: An issue when opening contact page
+- Fix: An issue when getting user settings
+
 ## 1.5.3
+
 - New: Quick access button and click-to-dial can be configured to be shown on other pages rather than CRM page. Set it up in user settings -> general -> allowed pages
 - Better: Bullhorn Server-side call logging will use admin's role and try to find user role to assign Note to if user's Bullhorn name matches with user's RingCentral profile name 
 - Better: Clio and Insightly users can use # or * in alternative number formats
@@ -9,6 +20,7 @@
 - Fix: Bullhorn issue when creating a new Contact/Candidate/Lead
 
 ## 1.5.2
+
 - New: Contact search in call/message log page to add contact searched by name
 - New: Pipedrive now supports Lead (need to log out and log back in to activate)
 - New: Bullhorn users can now create Contact/Candidate/Lead with Status field

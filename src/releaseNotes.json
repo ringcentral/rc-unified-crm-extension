@@ -1,4 +1,38 @@
 {
+    "1.5.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Notification-level setting to control what types of notification would be shown"
+            },
+            {
+                "type": "Better",
+                "description": "- DisableRetroCallLogging in user setting is changed to EnableRetroCallLogging"
+            },
+            {
+                "type": "Better",
+                "description": "- Contacts are shown with source icon"
+            },
+            {
+                "type": "Fix",
+                "description": "- An issue when opening contact page"
+            },
+            {
+                "type": "Fix",
+                "description": "- An issue when getting user settings"
+            }
+        ],
+        "clio":[
+            {
+                "type": "New",
+                "description": "- Clio now supports EU and CA"
+            },
+            {
+                "type": "Better",
+                "description": "- Clio view log will go to contact communication tab"
+            }
+        ]
+    },
     "1.5.3":{
         "global": [
             {
