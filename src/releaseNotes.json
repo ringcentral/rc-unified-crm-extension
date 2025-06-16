@@ -31,6 +31,12 @@
                 "type": "Better",
                 "description": "- Clio view log will go to contact communication tab"
             }
+        ],
+        "netsuite": [
+            {
+                "type": "Better",
+                "description": "- When users log calls against contacts that have no company, a placeholder company will be assigned so to be able to associate the log with the contact"
+            }
         ]
     },
     "1.5.3":{

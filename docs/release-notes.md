@@ -7,6 +7,7 @@
 - Better: DisableRetroCallLogging in user setting is changed to EnableRetroCallLogging
 - Better: Clio view log will go to contact communication tab
 - Better: Contacts are shown with source icon
+- Better: When Netsuite users log calls against contacts that have no company, a placeholder company will be assigned so to be able to associate the log with the contact
 - Fix: An issue when opening contact page
 - Fix: An issue when getting user settings
 
