@@ -125,6 +125,26 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             rawContactInfo.contactType = 'contactMobile';
             rawContacts.push(rawContactInfo);
         }
+        const extraPhoneFieldNamesForContact = user.userSettings?.insightlyExtraPhoneFieldNameForContact?.value ? user.userSettings?.insightlyExtraPhoneFieldNameForContact?.value?.split(',') : [];
+        // try Contact by extra phone fields
+        for (const extraPhoneFieldName of extraPhoneFieldNamesForContact) {
+            try {
+                const contactExtraPhonePersonInfo = await axios.get(
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/contacts/search?field_name=${extraPhoneFieldName}&field_value=${numberToQuery}&brief=false`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                for (let rawContactInfo of contactExtraPhonePersonInfo.data) {
+                    rawContactInfo.contactType = 'contactExtraPhone';
+                    rawContactInfo.extraPhoneFieldName = extraPhoneFieldName;
+                    rawContactInfo.extraPhoneFieldNameValue = rawContactInfo.CUSTOMFIELDS.find(f => f.FIELD_NAME === extraPhoneFieldName)?.FIELD_VALUE;
+                    rawContacts.push(rawContactInfo);
+                }
+            }
+            catch (e) {
+                console.log('Insightly extra phone field not found');
+            }
+        }
         // try Lead by PHONE
         const leadPhonePersonInfo = await axios.get(
             `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=PHONE&field_value=${numberToQuery}&brief=false`,
@@ -144,6 +164,26 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         for (let rawContactInfo of leadMobileInfo.data) {
             rawContactInfo.contactType = 'leadMobile';
             rawContacts.push(rawContactInfo);
+        }
+        // try Lead by extra phone fields
+        const extraPhoneFieldNamesForLead = user.userSettings?.insightlyExtraPhoneFieldNameForLead?.value ? user.userSettings?.insightlyExtraPhoneFieldNameForLead?.value?.split(',') : [];
+        for (const extraPhoneFieldName of extraPhoneFieldNamesForLead) {
+            try {
+                const leadExtraPhonePersonInfo = await axios.get(
+                    `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/leads/search?field_name=${extraPhoneFieldName}&field_value=${numberToQuery}&brief=false`,
+                    {
+                        headers: { 'Authorization': authHeader }
+                    });
+                for (let rawContactInfo of leadExtraPhonePersonInfo.data) {
+                    rawContactInfo.contactType = 'leadExtraPhone';
+                    rawContactInfo.extraPhoneFieldName = extraPhoneFieldName;
+                    rawContactInfo.extraPhoneFieldNameValue = rawContactInfo.CUSTOMFIELDS.find(f => f.FIELD_NAME === extraPhoneFieldName)?.FIELD_VALUE;
+                    rawContacts.push(rawContactInfo);
+                }
+            }
+            catch (e) {
+                console.log('Insightly extra phone field not found');
+            }
         }
     }
     const matchedContactInfo = [];
@@ -337,6 +377,15 @@ function formatContact(rawContactInfo) {
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
             };
+        case 'contactExtraPhone':
+            return {
+                id: rawContactInfo.CONTACT_ID,
+                name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
+                phone: rawContactInfo.extraPhoneFieldNameValue,
+                title: rawContactInfo.TITLE,
+                additionalInfo: rawContactInfo.additionalInfo,
+                type: 'Contact'
+            };
         case 'leadPhone':
             return {
                 id: rawContactInfo.LEAD_ID,
@@ -351,6 +400,15 @@ function formatContact(rawContactInfo) {
                 id: rawContactInfo.LEAD_ID,
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.MOBILE,
+                title: rawContactInfo.TITLE,
+                additionalInfo: rawContactInfo.additionalInfo,
+                type: 'Lead'
+            };
+        case 'leadExtraPhone':
+            return {
+                id: rawContactInfo.LEAD_ID,
+                name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
+                phone: rawContactInfo.extraPhoneFieldNameValue,
                 title: rawContactInfo.TITLE,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'

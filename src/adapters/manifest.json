@@ -310,7 +310,28 @@
                     "id": "insightlyOptions",
                     "type": "section",
                     "name": "Insightly options",
-                    "items": []
+                    "items": [
+                        {
+                            "id": "extraPhoneFieldWarning",
+                            "name": "Extra phone field warning",
+                            "type": "warning",
+                            "value": "Warning: extra phone fields will slightly slow the contact match process"
+                        },
+                        {
+                            "id": "insightlyExtraPhoneFieldNameForContact",
+                            "type": "inputField",
+                            "name": "Extra phone field name for contact",
+                            "description": "The name of the extra phone field to search for contacts in Insightly. Separate multiple fields with comma.",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "insightlyExtraPhoneFieldNameForLead",
+                            "type": "inputField",
+                            "name": "Extra phone field name for lead",
+                            "description": "The name of the extra phone field to search for leads in Insightly. Separate multiple fields with comma.",
+                            "defaultValue": ""
+                        }
+                    ]
                 },
                 {
                     "id": "insightlyCallLogDetails",
