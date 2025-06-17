@@ -36,7 +36,7 @@ For each page, you will define an array of `additionalFields`. Each additional f
 In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:63-78] !}
+{! src/adapters/testCRM/manifest.json [ln:113-129] !}
 ```
 
 #### Custom SMS log fields
@@ -44,7 +44,7 @@ In the following example, a "Deals" pull-down menu with three options, and an "A
 Setup the same fields as above, but associated with the SMS logging page.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:79-94] !}
+{! src/adapters/testCRM/manifest.json [ln:130-145] !}
 ```
 
 ### Feedback page

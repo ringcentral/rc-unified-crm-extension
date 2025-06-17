@@ -70,6 +70,6 @@ This interface returns a single object. That object describes the contact that w
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:179-208] !}
+    {!> src/adapters/pipedrive/index.js [ln:241-270] !}
 	```
 

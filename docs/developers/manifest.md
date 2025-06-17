@@ -89,7 +89,7 @@ There are a number of pages within the App Connect client application that often
 === "Insightly adapter"
 
     ```js
-    {!> src/adapters/manifest.json [ln:139-170] !}
+    {!> src/adapters/manifest.json [ln:262-294] !}
     ```
 
     ![Auth page](../img/insightly-auth-page.png)
@@ -121,7 +121,7 @@ Set up associated deals as dropdown options:
 And then setup "Address" as free input field.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:62-78] !}
+{! src/adapters/testCRM/manifest.json [ln:113-129] !}
 ```
 
 #### Custom SMS log fields
@@ -129,7 +129,7 @@ And then setup "Address" as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:79-94] !}
+{! src/adapters/testCRM/manifest.json [ln:130-145] !}
 ```
 
 ## Customizing the welcome message

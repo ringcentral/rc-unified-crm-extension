@@ -81,6 +81,6 @@ This interface returns a single object. That object describes the contacts that 
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:111-167] !}
+    {!> src/adapters/pipedrive/index.js [ln:111-184] !}
 	```
 

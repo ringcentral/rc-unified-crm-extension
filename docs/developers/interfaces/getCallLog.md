@@ -50,6 +50,6 @@ This interface should return the associated call log record in a prescribed form
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:499-530] !}
+    {!> src/adapters/pipedrive/index.js [ln:579-611] !}
 	```
 

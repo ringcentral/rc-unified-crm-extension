@@ -70,6 +70,6 @@ An object with following properties:
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:286-331] !}
+    {!> src/adapters/pipedrive/index.js [ln:352-397] !}
 	```
 

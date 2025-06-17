@@ -57,7 +57,7 @@ An object with following properties:
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:222-284] !}
+    {!> src/adapters/pipedrive/index.js [ln:284-350] !}
 	```
 
 ### Example Call Log Schema

@@ -21,6 +21,6 @@ This function is to add following messages on the same day to the same contact. 
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:452-496] !}
+    {!> src/adapters/pipedrive/index.js [ln:528-576] !}
 	```
 
