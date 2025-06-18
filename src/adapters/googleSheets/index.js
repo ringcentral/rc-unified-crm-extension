@@ -677,8 +677,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         );
         const result = resultResponse.data.valueRanges;
-        const subject = result[0].values[0][0];
-        const note = result[1].values[0][0];
+        const subject = result[0]?.values?.[0]?.[0] ?? "";
+        const note = result[1]?.values?.[0]?.[0] ?? "";
         return {
             callLogInfo: {
                 subject,
