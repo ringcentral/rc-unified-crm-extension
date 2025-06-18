@@ -27,7 +27,12 @@ async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
 async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
     let userSettingsByAdmin = [];
     if (rcAccessToken || rcAccountId) {
-        userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
+        try {
+            userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
+        }
+        catch (e) {
+            userSettingsByAdmin = [];
+        }
     }
 
     // For non-readonly admin settings, user use its own setting
