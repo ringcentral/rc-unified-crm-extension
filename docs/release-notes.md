@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.5.5:
+
+- New: Add Freskdesk and Gohighlevel 
+- New: Insightly has new setting in Insightly options to input custom phone field names
+- Better: Google Sheets users will get notified with clearer information to set up the sheet
+- Better: Click-to-dial enablement is now controled by user settings with 4 modes. (previous whitelist is deprecated)
+- Fix: Google Sheets issue on undefined values in fields
+- Fix: A bug on GoogleSheet getting call log if no note provide while editing call log
+
 ## 1.5.4
 
 - New: Clio now supports EU and CA
