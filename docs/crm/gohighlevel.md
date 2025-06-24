@@ -20,7 +20,7 @@ Once the App Connect extension has been installed, follow these steps to setup a
 
 3. Navigate to the Settings screen in App Connect, and find the option labeled "Freshdesk."
 
-    ![Connect to Freshdesk](../img/freshdesk-connect.png){ .mw-300 }
+    ![Connect to Freshdesk](../img/highlevel-connect.png){ .mw-300 }
 
 4. Click the "Connect" button. 
 
