@@ -2202,7 +2202,7 @@
                     "overrideObjects": [
                         {
                             "path": "serverUrl",
-                            "value": "https://fd-rc-appconnect.loyally.nl"
+                            "value": "https://ghl-rc-appconnect.loyally.nl"
                         },
                         {
                             "path": "author.name",
