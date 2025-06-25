@@ -733,12 +733,39 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         }
         if (sheetName === "") {
-            return {
-                successful: false,
-                returnMessage: {
-                    messageType: 'danger',
-                    message: "Invalid SheetName",
-                    ttl: 30000
+            //Handle Cases CallLog Sheet and Contact sheets are already created but message log sheet is not created
+            try {
+                // First, create the new sheet
+                await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`, {
+                    requests: [{
+                        addSheet: {
+                            properties: {
+                                title: predefinedMessageLogSheetName
+                            }
+                        }
+                    }]
+                }, {
+                    headers: { Authorization: authHeader, "Content-Type": "application/json" }
+                });
+
+                // Then add the headers to the new sheet
+                const requestMessageHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Message", "Phone", "Message Type", "Message Time", "Direction"];
+                const sheetRange = `'${predefinedMessageLogSheetName}'!A1:append`;
+                await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetRange}?valueInputOption=RAW`, {
+                    values: [requestMessageHeaderData]
+                }, {
+                    headers: { Authorization: authHeader, "Content-Type": "application/json" }
+                });
+                sheetName = predefinedMessageLogSheetName;
+            } catch (e) {
+                console.log({ message: "Error creating Message Log Sheet", e });
+                return {
+                    successful: false,
+                    returnMessage: {
+                        messageType: 'danger',
+                        message: "Error creating Message Log Sheet",
+                        ttl: 30000
+                    }
                 }
             }
         }
