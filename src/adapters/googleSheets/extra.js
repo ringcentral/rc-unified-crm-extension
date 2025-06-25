@@ -13,7 +13,6 @@ async function renderPickerFile({ user }) {
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
     fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    console.log({ APP_SERVER: process.env.APP_SERVER });
     return fileContent;
 }
 async function createNewSheet({ user, data }) {

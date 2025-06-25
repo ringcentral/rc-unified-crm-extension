@@ -7,6 +7,7 @@ function getAuthType() {
 }
 const predefinedContactSheetName = "Contacts";
 const predefinedCallLogSheetName = "Call Logs";
+const predefinedMessageLogSheetName = "Message Logs";
 
 async function getOauthInfo({ hostname }) {
     return {
@@ -692,6 +693,296 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+    try {
+        const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
+        let sheetName = "";
+        if (!sheetUrl) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'No sheet selected',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 60000
+                }
+            }
+        }
+        const spreadsheetId = extractSheetId(sheetUrl);
+        const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+        const sheets = sheetResponse.data?.sheets;
+        for (const sheet of sheets) {
+            if (sheet.properties?.title === predefinedMessageLogSheetName) {
+                sheetName = sheet.properties.title;
+                break;
+            }
+        }
+        if (sheetName === "") {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid SheetName",
+                    ttl: 30000
+                }
+            }
+        }
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`;
+        const spreadsheetData = await axios.get(url, {
+            headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+            }
+        });
+        const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
+        const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        const rowData = new Array(Object.keys(columnIndexes).length).fill("");
+        const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'GoogleSheetCRM';
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+        let logBody = '';
+        let title = '';
+        switch (messageType) {
+            case 'SMS':
+                title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody =
+                    '\nConversation summary\n' +
+                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                    'Participants\n' +
+                    `    ${userName}\n` +
+                    `    ${contactInfo.name}\n` +
+                    '\nConversation(1 messages)\n' +
+                    'BEGIN\n' +
+                    '------------\n' +
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${message.subject}\n` +
+                    '------------\n' +
+                    'END\n\n' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                const decodedRecordingLink = decodeURIComponent(recordingLink);
+                title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
+                break;
+            case 'Fax':
+                title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                break;
+        }
+
+        const requestData = {
+            "ID": nextLogRow,
+            "Sheet Id": spreadsheetId,
+            "Subject": title,
+            "Contact name": contactInfo.name,
+            "Phone": contactInfo.phoneNumber,
+            "Message": logBody,
+            "Message Type": messageType,
+            "Message Time": moment(message.creationTime).format('YYYY-MM-DD HH:mm:ss'),
+            "Direction": message.direction,
+        };
+        Object.entries(requestData).forEach(([key, value]) => {
+            if (columnIndexes[key] !== undefined) {
+                rowData[columnIndexes[key]] = value;
+            }
+        });
+        const range = `${sheetName}!A1:append`;
+        const createMessageUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+        const response = await axios.post(createMessageUrl, { values: [rowData] }, {
+            headers: { 'Authorization': authHeader }
+        });
+        return {
+            logId: nextLogRow,
+            successful: true,
+            returnMessage: {
+                message: 'Message logged',
+                messageType: 'success',
+                ttl: 1000
+            }
+        };
+    } catch (error) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: 'Error logging message',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Error logging message`
+                            }
+                        ]
+                    }
+                ],
+                ttl: 60000
+            }
+        }
+    }
+}
+
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+    try {
+        const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
+        let sheetName = "";
+        if (!sheetUrl) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'No sheet selected',
+                    details: [
+                        {
+                            title: 'Details',
+                            items: [
+                                {
+                                    id: '1',
+                                    type: 'text',
+                                    text: `To log calls, please go to Settings > Google Sheets Config, and either create a new sheet or attach an existing one.`
+                                }
+                            ]
+                        }
+                    ],
+                    ttl: 5000
+                }
+            }
+        }
+        // const splitValues = callLogId.split("space");
+        const spreadsheetId = extractSheetId(sheetUrl);
+        // const gid = sheetUrl.split('gid=')[1].split(/[#&?]/)[0];
+        const sheetResponse = await axios.get(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+        const sheets = sheetResponse.data?.sheets;
+        for (const sheet of sheets) {
+            if (sheet.properties?.title === predefinedMessageLogSheetName) {
+                sheetName = sheet.properties.title;
+                break;
+            }
+        }
+        if (sheetName === "") {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: "Invalid SheetName",
+                    ttl: 30000
+                }
+            }
+        }
+
+        const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}`;
+        const response = await axios.get(url, {
+            headers: {
+                Authorization: authHeader,
+            },
+        });
+        const rows = response.data.values;
+        const headers = response.data.values[0]; // First row as headers
+        const idColumnIndex = headers.indexOf("ID");
+        let rowIndex = -1;
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i][idColumnIndex] === existingLogId) { // Assuming column A is index 0
+                rowIndex = i;
+                break;
+            }
+        }
+        if (rowIndex === -1) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'danger',
+                    message: 'Error while adding message',
+                    ttl: 3000
+                }
+            }
+        } else {
+            const messageColumnIndex = headers.indexOf("Message");
+            if (messageColumnIndex === -1) {
+                return {
+                    returnMessage: {
+                        messageType: 'warning',
+                        message: 'Error logging out of GoogleSheet',
+                        ttl: 3000
+                    }
+                }
+            }
+            const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'GoogleSheetCRM';
+            const messageColumn = String.fromCharCode(65 + messageColumnIndex);
+            let logBody = rows[rowIndex][messageColumnIndex];
+            let patchBody = {};
+            const originalNote = logBody.split('BEGIN\n------------\n')[1];
+            const newMessageLog =
+                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                `${message.subject}\n`;
+            logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+
+            const regex = RegExp('Conversation.(.*) messages.');
+            const matchResult = regex.exec(logBody);
+            logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+            const updateRequestData = [
+                {
+                    range: `${sheetName}!${messageColumn}${rowIndex + 1}`,// rowIndex is 0-based, so we add 1 for Sheets
+                    values: [[logBody]]
+                }
+            ];
+            const response = await axios.post(
+                `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+                {
+                    valueInputOption: "RAW",
+                    data: updateRequestData
+                },
+                {
+                    headers: {
+                        "Authorization": authHeader,
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+            return {
+                successful: true,
+                returnMessage: {
+                    message: 'Message log updated.',
+                    messageType: 'success',
+                    ttl: 2000
+                }
+            };
+
+        }
+    } catch (error) {
+        console.log({ message: "Error updating message log" });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'danger',
+                message: 'Error updating message',
+                ttl: 60000
+            }
+        }
+    }
+}
+
 function extractSheetId(url) {
     const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     return match ? match[1] : "Invalid URL";
@@ -725,3 +1016,5 @@ exports.updateCallLog = updateCallLog;
 exports.getCallLog = getCallLog;
 exports.createContact = createContact;
 exports.upsertCallDisposition = upsertCallDisposition;
+exports.createMessageLog = createMessageLog;
+exports.updateMessageLog = updateMessageLog;
