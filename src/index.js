@@ -278,6 +278,12 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 })
 
+app.get('/ringcentral/oauth/callback', async function (req, res) {
+    const { code, rcAccountId } = req.query;
+    await authCore.onRingcentralOAuthCallback({ code, rcAccountId });
+    res.status(200).send('OK');
+});
+
 app.post('/admin/settings', async function (req, res) {
     const requestStartTime = new Date().getTime();
     let success = false;

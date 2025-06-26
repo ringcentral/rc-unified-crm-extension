@@ -1,6 +1,8 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const Op = require('sequelize').Op;
+const { RingCentral } = require('../lib/ringcentral');
+const adminCore = require('./admin');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
     const platformModule = require(`../adapters/${platform}`);
@@ -147,6 +149,24 @@ async function authValidation({ platform, userId }) {
     }
 }
 
+// Ringcentral
+async function onRingcentralOAuthCallback({ code, rcAccountId }) {
+    const rcSDK = new RingCentral({
+        server: process.env.RINGCENTRAL_SERVER,
+        clientId: process.env.RINGCENTRAL_CLIENT_ID,
+        clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+        redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+    });
+    const { accessToken, refreshToken, expires } = await rcSDK.generateToken({ code });
+    await adminCore.updateAdminRcTokens({
+        hashedRcAccountId: rcAccountId,
+        adminAccessToken: accessToken,
+        adminRefreshToken: refreshToken,
+        adminTokenExpiry: expires
+    });
+}
+
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
 exports.authValidation = authValidation;
+exports.onRingcentralOAuthCallback = onRingcentralOAuthCallback;

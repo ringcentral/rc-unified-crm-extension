@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 const { sequelize } = require('./sequelize');
 
-// Model for User data
+// Model for Admin data
 exports.AdminConfigModel = sequelize.define('adminConfigs', {
   // hashed rc account ID
   id: {
@@ -13,5 +13,14 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   },
   customAdapter: {
     type: Sequelize.JSON
+  },
+  adminAccessToken: {
+    type: Sequelize.STRING(512),
+  },
+  adminRefreshToken: {
+    type: Sequelize.STRING(512),
+  },
+  adminTokenExpiry: {
+    type: Sequelize.DATE
   }
 });

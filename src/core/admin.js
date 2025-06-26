@@ -34,6 +34,14 @@ async function getAdminSettings({ hashedRcAccountId }) {
     return existingAdminConfig;
 }
 
+async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminRefreshToken, adminTokenExpiry }) {
+    const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+    if (existingAdminConfig) {
+        await existingAdminConfig.update({ adminAccessToken, adminRefreshToken, adminTokenExpiry });
+    }
+}
+
 exports.validateAdminRole = validateAdminRole;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
+exports.updateAdminRcTokens = updateAdminRcTokens;

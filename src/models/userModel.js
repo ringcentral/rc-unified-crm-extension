@@ -3,6 +3,7 @@ const { sequelize } = require('./sequelize');
 
 // Model for User data
 exports.UserModel = sequelize.define('users', {
+  // id = {crmName}-{crmUserId}
   id: {
     type: Sequelize.STRING,
     primaryKey: true,
