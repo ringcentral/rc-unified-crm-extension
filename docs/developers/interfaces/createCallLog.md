@@ -2,6 +2,8 @@
 
 This interface is responsible for creating a new call log record in the associated CRM. The call must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. 
 
+There is an underlying assumption of the framework that there is a one-to-one mapping between notes (or activities) and phone calls. Therefore, when logging a call in the target CRM only create a single log entry. 
+
 ## Input parameters
 
 | Parameter              | Description                                                                                              |
