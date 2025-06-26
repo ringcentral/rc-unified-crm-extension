@@ -13,7 +13,6 @@ async function renderPickerFile({ user }) {
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
     fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    console.log({ APP_SERVER: process.env.APP_SERVER });
     return fileContent;
 }
 async function createNewSheet({ user, data }) {
@@ -101,6 +100,7 @@ async function createSpreadsheetWithHeaders({ accessToken, newSheetName }) {
                 properties: { title: newSheetName },
                 sheets: [
                     { properties: { title: "Call Logs" } },
+                    { properties: { title: "Message Logs" } },
                     { properties: { title: "Contacts" } },
                 ],
             },
@@ -112,11 +112,16 @@ async function createSpreadsheetWithHeaders({ accessToken, newSheetName }) {
         const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording"];
 
         const requestContactHeaderData = ["ID", "Sheet Id", "Contact name", "Phone"];
+        const requestMessageHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Message", "Phone", "Message Type", "Message Time", "Direction"];
         await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${response.data.spreadsheetId}/values/${range}?valueInputOption=RAW`, { values: [requestCallLogHeaderData] }, {
             headers: { Authorization: `Bearer  ${accessToken}`, "Content-Type": "application/json" }
         });
         range = `Contacts!A1:append`;
         await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${response.data.spreadsheetId}/values/${range}?valueInputOption=RAW`, { values: [requestContactHeaderData] }, {
+            headers: { Authorization: `Bearer  ${accessToken}`, "Content-Type": "application/json" }
+        });
+        range = `Message Logs!A1:append`;
+        await axios.post(`https://sheets.googleapis.com/v4/spreadsheets/${response.data.spreadsheetId}/values/${range}?valueInputOption=RAW`, { values: [requestMessageHeaderData] }, {
             headers: { Authorization: `Bearer  ${accessToken}`, "Content-Type": "application/json" }
         });
         return {
