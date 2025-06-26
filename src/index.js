@@ -150,11 +150,9 @@ app.get('/serverVersionInfo', (req, res) => {
 app.get('/googleSheets/filePicker', async function (req, res) {
     try {
         const jwtToken = req.query.token;
-        console.log({ message: "In file picker", jwtToken, Query: req.query });
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData?.id);
-            console.log({ accessToken: user.accessToken });
             if (!user) {
                 res.status(400).send();
                 return;
@@ -237,7 +235,6 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
         }
     });
     const data = response?.data;
-    console.log({ UserId: data?.sub });
     const user = await UserModel.findByPk(data?.sub);
     if (!user) {
         res.status(400).send();
