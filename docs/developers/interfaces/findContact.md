@@ -6,7 +6,9 @@ This interface is central to App Connect's framework as it is responsible for ma
 * call logging
 * sms logging
 
-This interface can return one or more contacts. If multiple contacts are returned, App Connect will prompt the end user to select the specific contact to be used when logging calls. 
+This interface can return zero, one or more contacts. If multiple contacts are returned, App Connect will prompt the end user to select the specific contact to be used when logging calls. 
+
+If no contact is found, do not create a contact in its place. When logging calls, if no contacts are found associated with a phone number, then the framework to prompt the user to create a contact. The user will enter a name, and then call the [createContact](createContact.md) interface, and then call the [createCallLog](createCallLog.md) with the newly created contact ID. 
 
 This interface is called in the following circumstances:
 
