@@ -6,12 +6,9 @@ When no contact can be found associated with a given phone number, or when there
 
 ## "No contact found."
 
-If you receive a call from someone whose phone number is not in your CRM, or whose contact record cannot be found, then the call will not be logged. There are two ways to resolve this conflict:
+If you receive a call from someone whose phone number is not in your CRM, or whose contact record cannot be found, then the call will not be logged. There are a number of ways to resolve this conflict. 
 
-1. Create a new contact with the correct phone number.
-2. Update an existing contact with the correct/new phone number. 
-
-### Creating contacts
+### Create a contact
 
 App Connect will give you the option of creating a new contact whenever a call is logged. Simply select "Create new contact" and you will be prompted to enter a name for the contact. 
 
@@ -30,9 +27,20 @@ We realize that you may want to enter in a lot more information about a contact.
 * If the contact exists in your CRM, but App Connect cannot find it, consider editing the contact and updating its phone number to use the E.164 format favored by RingCentral and App Connect. 
 
 !!! tip "What if no contact was found, when a contact is known to exist?"
-    Sometimes a contact is not found, even though one knows for a fact that the contact exists. This happens with some CRMs whose search mechanisms are overly strict. You can address this through [advanced settings](phone-number-formats.md).
+    Sometimes a contact is not found, even though one knows for a fact that the contact exists. This happens with some CRMs whose search mechanisms are overly strict. You can address this through [advanced settings](phone-number-formats.md), or by searching for the contact by name (see below). 
 
-### "Multiple possible contacts found"
+### Search for a contact
+
+Most App Connect adapters support the ability to search for a contact when one is not able to be found via a phone number. If you adapter supports this capability, you will see a "Search for contact" option in the contact pull-down menu. 
+
+<figure markdown>
+  ![Search contacts in a CRM](../img/search-contacts.png)
+  <figcaption>Searching contacts in a CRM via App Connect</figcaption>
+</figure>
+
+Enter the name of the person to search for, select the desired contact if one is found and App Connect will log the call/SMS against that contact. 
+
+## Multiple possible contacts found
 
 If more than one contact in a CRM shares the same phone number, then multiple contacts are likely to be found. This often happens when communicating with multiple employees from the same company, as it is not uncommon for the incoming phone number of two employees in the same building to present incoming phone numbers of their company's main company number. 
 

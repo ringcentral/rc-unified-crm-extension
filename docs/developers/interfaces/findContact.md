@@ -1,4 +1,4 @@
-# findContact
+# findContact (by Phone)
 
 This interface is central to App Connect's framework as it is responsible for matching phone numbers with contacts in the target CRM. This interface powers the following key features:
 
