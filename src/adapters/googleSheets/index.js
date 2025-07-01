@@ -796,7 +796,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                     'BEGIN\n' +
                     '------------\n' +
                     `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                    `${message.subject}\n` +
+                    `${message.subject}\n\n` +
                     '------------\n' +
                     'END\n\n' +
                     '--- Created via RingCentral App Connect';
@@ -960,10 +960,12 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             let logBody = rows[rowIndex][messageColumnIndex];
             let patchBody = {};
             const originalNote = logBody.split('BEGIN\n------------\n')[1];
+            const endMarker = '------------\nEND';
             const newMessageLog =
                 `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n`;
-            logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+                `${message.subject}\n\n`;
+            // Add new message at the end (before the END marker)
+            logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
             const regex = RegExp('Conversation.(.*) messages.');
             const matchResult = regex.exec(logBody);

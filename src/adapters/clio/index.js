@@ -675,10 +675,11 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.data.body;
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
+    const endMarker = '------------\nEND';
     const newMessageLog =
         `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n`;
-    logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+        `${message.subject}\n\n`;
+    logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
     const regex = RegExp('Conversation.(.*) messages.');
     const matchResult = regex.exec(logBody);
