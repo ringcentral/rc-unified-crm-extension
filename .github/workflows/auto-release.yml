@@ -8,6 +8,9 @@ on:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -142,12 +145,20 @@ jobs:
 
       - name: Create Release
         if: ${{ steps.release-notes.outputs.notes_found == 'true' }}
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ steps.version.outputs.version }}
-          body: ${{ steps.release-notes.outputs.release_notes }}
-          draft: false
-          prerelease: false 
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes "${{ steps.release-notes.outputs.release_notes }}" \
+            --latest
+
+      - name: Create Release (fallback)
+        if: ${{ steps.release-notes.outputs.notes_found == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes "No release notes available for this version." \
+            --latest 
