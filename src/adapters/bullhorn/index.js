@@ -1066,7 +1066,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const newMessageLog =
         `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
         `<b>${message.subject}</b></li>`;
-    logBody = logBody.replace('------------<br><ul>', `------------<br><ul>${newMessageLog}`);
+    // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
+    logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
 
     const regex = RegExp('<br>Conversation.(.*) messages.');
     const matchResult = regex.exec(logBody);
