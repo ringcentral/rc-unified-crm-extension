@@ -31,11 +31,13 @@ Gate6 specializes in connecting your business applications, platforms, and data 
 
 #### Adapters
 
+Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
+
 <div class="grid cards" markdown>
 
 -    [![ServiceNow](img/crm-logo-servicenow.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
-     
-     Currently in beta, Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
+
+- 
 
 </div>
 
@@ -47,14 +49,16 @@ Gate6 specializes in connecting your business applications, platforms, and data 
 
 Loyally's mission "is to support customer service worldwide by giving them the right data at the right time. The help desk employee can help any customer quickly and easily because all systems and data are linked. We combine the strengths of the customer service systems by presenting customer information with one click in one screen. Easy, time-saving and cost-effective." &mdash; Jan Smulders, CEO
 
+Loyally supports a number of CRMs through App Connect. All adapters come with a free 30-day trial, and cost $12/user/month after.
+
 #### Adapters
 
 <div class="grid cards" markdown>
 
--    ![FreshDesk](img/crm-logo-freshdesk.png){ .mw-250 }
+-    [![GoHighLevel](img/crm-logo-highlevel.png){ .mw-250 }](crm/gohighlevel.md)
      
-     Coming soon.
-
+-    [![FreshDesk](img/crm-logo-freshdesk.png){ .mw-250 }](crm/freshdesk.md)
+     
 </div>
 
 [Contact Loyally](https://loyally.eu/contact-us/){ .md-button }
