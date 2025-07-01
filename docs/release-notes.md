@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.5.6:
+
+- New: Users can now log messages in Google Sheets. A new sheet titled "Message Logs" will be created for that.
+- New: Ringtone can now be set up in Audio settings
+- Better: Improve user settings presentation
+- Fix: Bullhorn retroactive call log mistakenly putting 'pending note...' in Note Action
+- Fix: AI notes are now attached when doing retroactive call logging
+
 ## 1.5.5:
 
 - New: Add Freskdesk and Gohighlevel 

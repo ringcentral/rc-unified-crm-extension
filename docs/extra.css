@@ -134,6 +134,14 @@
     display: block;
     margin-bottom: 15px;
 }
+.crm-list li .crm-logo,
+.crm-list li a {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    display: block;
+}
+
 .md-typeset a {
     color: #066fac
 }

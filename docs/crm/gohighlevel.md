@@ -24,7 +24,10 @@ Once the App Connect extension has been installed, follow these steps to setup a
 
 4. Click the "Connect" button. 
 
-5. A window will be opened prompting you to enter your HighLevel username and password. Login to HighLevel. 
+5. A window will be opened to initiate the login and authorization process. Conplete the authorization process.
+
+!!! warning "Multi-step authorization flow" 
+    HighLevel's authorization flow for App Connect is a multi-step process in which a number of windows are opened. This can lead to other browser windows being hidden on your desktop. Some of these windows are required for authorization. Make sure you complete each step until you see a positive indication from HighLevel that you have completed the process. 
 
 When you login successfully, the extension will automatically update to show you are connected to HighLevel. If you are connected, the button next to Freshdesk will say, "logout".
 
