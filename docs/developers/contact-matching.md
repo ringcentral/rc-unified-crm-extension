@@ -9,11 +9,33 @@ A critical function performed by the server is looking up a contact record in th
 	
 	As a workaround, the CRM framework allows users to specify additional phone number formats that they typically store phone numbers in. This list of phone numbers is transmitted to the adapter's server, so that the associated adapter can search for a contact using multiple phone number formats until one is found.
 
+## Searching for a contact by name
+
+When a contact cannot be found via a phone number, users are given the option to search for a contact manually - typically by name. 
+
+<figure markdown>
+  ![Search contacts in a CRM](../img/search-contacts.png)
+  <figcaption>Searching contacts in a CRM via App Connect</figcaption>
+</figure>
+
+When a user elects to do this, the App Connect adapter will be engaged to [search for a name](interfaces/findContactWithName.md) and return a list of possible matches. The user will then select the preferred user, and the call will then be logged against the selected user. 
+
+As a last resort, users will also have the option to create a new contact record. 
+
+<figure markdown>
+  ![Create contact in a CRM](../img/create-contact.png)
+  <figcaption>Creating a contact in a CRM via App Connect</figcaption>
+</figure>
+
+When a user selects this option, they will be prompted for a name, and App Connect will engage the adapter to create a contact with that name. The call will then be associated with this newly created contact.
+
 ## Implement server endpoints
 
 Within your adapter's `index.js` file, implement the following methods.
 
+* [`createContact`](interfaces/createContact.md)
 * [`findContact`](interfaces/findContact.md)
+* [`findContactWithName`](interfaces/findContactWithName.md)
 
 ## Test
 

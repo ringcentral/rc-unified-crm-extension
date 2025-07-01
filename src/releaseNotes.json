@@ -1,4 +1,32 @@
 {
+    "1.5.6": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Ringtone can now be set up in Audio settings"
+            },
+            {
+                "type": "Better",
+                "description": "- Improve user settings presentation"
+            },
+            {
+                "type": "Fix",
+                "description": "- AI notes are now attached when doing retroactive call logging"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Bullhorn retroactive call log mistakenly putting 'pending note...' in Note Action"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "New",
+                "description": "- Users can now log messages in Google Sheets. A new sheet titled 'Message Logs' will be created for that."
+            }
+        ]
+    },
     "1.5.5": {
         "global": [
             {

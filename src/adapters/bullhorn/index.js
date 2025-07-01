@@ -550,7 +550,7 @@ async function findContactWithName({ user, authHeader, name }) {
     );
     const seenIds = new Set();
     const uniqueContactResults = [];
-    if (!!contactSearchResponse?.data?.data) {
+    if (contactSearchResponse?.data?.data?.length > 0) {
         contactSearchResponse.data.data.forEach(result => {
             if (!seenIds.has(result.id)) {
                 seenIds.add(result.id);
@@ -581,7 +581,7 @@ async function findContactWithName({ user, authHeader, name }) {
     );
     const candidateIds = new Set();
     const uniqueCandidateResults = [];
-    if (candidatePersonInfo?.data?.data) {
+    if (candidatePersonInfo?.data?.data?.length > 0) {
         candidatePersonInfo.data.data.forEach(result => {
             if (!candidateIds.has(result.id)) {
                 candidateIds.add(result.id);
@@ -613,7 +613,7 @@ async function findContactWithName({ user, authHeader, name }) {
     );
     const leadIds = new Set();
     const uniqueLeadResults = [];
-    if (leadPersonInfo?.data?.data) {
+    if (leadPersonInfo?.data?.data?.length > 0) {
         leadPersonInfo.data.data.forEach(result => {
             if (!leadIds.has(result.id)) {
                 leadIds.add(result.id);

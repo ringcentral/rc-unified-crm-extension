@@ -12,8 +12,8 @@ hide:
     </div>
     <div class="column md-typeset">
       <p>RingCentral <a href="https://ringcentral.github.io/rc-unified-crm-extension/">App Connect</a>, powered by <a href="https://ringcentral.github.io/ringcentral-embeddable/">Embeddable 2.0</a>, is an all-in-one CRM integration solution. It embeds a full-featured communications client into almost any app, reliably logging all communications. If your CRM is not currently supported, developers can easily integrate with both SaaS products and proprietary CRMs using a simple framework.</p>
-      <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh"><img class="mw-300" src="img/chrome-web-store.png"></a>
-      <a href="https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl"><img class="mw-300" src="img/edge-store.png"></a>
+      <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh"><img class="mw-250" src="img/chrome-web-store.png"></a>
+      <a href="https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl"><img class="mw-250" src="img/edge-store.png"></a>
     </div>
   </div>
 </div>
@@ -29,6 +29,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 * <span class="helper"></span>[![Clio](img/crm-logo-clio-bw.png)![Clio](img/crm-logo-clio.png)](crm/clio.md)
 * <span class="helper"></span>[![Freshdesk](img/crm-logo-freshdesk-bw.png)![Freshdesk](img/crm-logo-freshdesk.png)](crm/freshdesk.md)
 * <span class="helper"></span>[![Insightly](img/crm-logo-insightly-bw.png)![Insightly](img/crm-logo-insightly.png)](crm/insightly.md)
+* <span class="helper"></span>[![GoHighLevel](img/crm-logo-highlevel-bw.png)![GoHighLevel](img/crm-logo-highlevel.png)](crm/gohighlevel.md)
 * <span class="helper"></span>[![Google Sheets](img/crm-logo-googlesheets-bw.png)![ServiceNow](img/crm-logo-googlesheets.png)](crm/google-sheets.md)
 * <span class="helper"></span>[![NetSuite](img/crm-logo-netsuite-bw.png)![NetSuite](img/crm-logo-netsuite.png)](crm/netsuite.md)
 * <span class="helper"></span>[![Pipedrive](img/crm-logo-pipedrive-bw.png)![Pipedrive](img/crm-logo-pipedrive.png)](crm/pipedrive.md)

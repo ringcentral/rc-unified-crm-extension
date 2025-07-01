@@ -113,7 +113,7 @@ Click "submit."
 App Connect is now connected to your custom adapter. From this point you can begin implementing your adapter by doing two things:
 
 1. Customize your [manifest file](manifest.md) to the CRM you are connecting to. 
-2. Implement each of the required [interfaces](interfaces.md) that App Connect speaks to.
+2. Implement each of the required [interfaces](interfaces/index.md) that App Connect speaks to.
 
 The first thing you will need to implement is a way to connect to your CRM. 
 
