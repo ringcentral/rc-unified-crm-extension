@@ -28,7 +28,6 @@ This interface returns a single object. That object describes the contacts that 
 |----------------------|-------------------------------------------------------------------------------------------------|
 | `successful`         | True or false is a contact was found or not.                                                    |
 | `matchedContactInfo` | An array of objects containing `id`, `name` and optionally `additionalInfo` and `isNewContact`. |
-| `extraDataTracking`  | Information relating to rate limited, if applicable.                                            |
 
 **Example**
 
@@ -44,12 +43,7 @@ This interface returns a single object. That object describes the contacts that 
       additionalInfo: null,
       isNewContact: false
     }
-  ],
-  extraDataTracking: {
-    ratelimitRemaining: null,
-    ratelimitAmount: null,
-    ratelimitReset: null
-  }
+  ]
 }
 ```
 
