@@ -414,7 +414,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
-    console.log({ putLogRes });
 }
 
 async function getCallLog({ user, callLogId, authHeader }) {
