@@ -77,7 +77,8 @@ async function createCallLog({ platform, userId, incomingData }) {
                 sessionId: incomingData.logInfo.sessionId,
                 platform,
                 thirdPartyLogId: logId,
-                userId
+                userId,
+                contactId
             });
         }
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
@@ -163,7 +164,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     logs.push({ sessionId: sId, matched: false });
                 }
                 else {
-                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, authHeader });
+                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, contactId: callLog.contactId, authHeader });
                     returnMessage = getCallLogResult.returnMessage;
                     extraDataTracking = getCallLogResult.extraDataTracking;
                     logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
