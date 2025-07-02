@@ -627,7 +627,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             });
             postBody.contact = { id: contactInfo.id };
             postBody.company = { id: contactInfoRes.data?.company?.id };
-            if (!!!contactInfoRes.data?.company?.id) {
+            if (!contactInfoRes.data?.company?.id) {
                 let companyId = undefined;
                 const companyInfo = await axios.post(
                     `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
@@ -904,7 +904,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                     'BEGIN\n' +
                     '------------\n' +
                     `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                    `${message.subject}\n` +
+                    `${message.subject}\n\n` +
                     '------------\n' +
                     'END\n\n' +
                     '--- Created via RingCentral App Connect';
@@ -1002,10 +1002,11 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         let logBody = getLogRes.data.message;
         let patchBody = {};
         const originalNote = logBody.split('BEGIN\n------------\n')[1];
+        const endMarker = '------------\nEND';
         const newMessageLog =
             `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-            `${message.subject}\n`;
-        logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+            `${message.subject}\n\n`;
+        logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
         const regex = RegExp('Conversation.(.*) messages.');
         const matchResult = regex.exec(logBody);
