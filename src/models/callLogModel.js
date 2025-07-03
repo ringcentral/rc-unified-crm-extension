@@ -20,5 +20,8 @@ exports.CallLogModel = sequelize.define('callLogs', {
   },
   userId: {
     type: Sequelize.STRING,
+  },
+  contactId: {
+    type: Sequelize.STRING,
   }
 });

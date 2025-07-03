@@ -2090,8 +2090,8 @@
             "auth": {
                 "type": "oauth",
                 "oauth": {
-                    "authUrl": "https://marketplace.gohighlevel.com/oauth/chooselocation",
-                    "clientId": "67d44b16e0c26a59f94e8065-m88xxyds",
+                    "authUrl": "https://marketplace.leadconnectorhq.com/oauth/chooselocation",
+                    "clientId": "6853f0bbff0de297bfb03756-mc3adi25",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "customState": "",
                     "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
@@ -2202,7 +2202,7 @@
                     "overrideObjects": [
                         {
                             "path": "serverUrl",
-                            "value": "https://fd-rc-appconnect.loyally.nl"
+                            "value": "https://ghl-rc-appconnect.loyally.nl"
                         },
                         {
                             "path": "author.name",
