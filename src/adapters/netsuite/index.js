@@ -331,7 +331,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
             numberToQueryArray.push(phoneNumberWithoutCountryCode);
         }
         for (var numberToQuery of numberToQueryArray) {
-            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
+            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,company FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
             const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
             if (contactSearch.includes('contact')) {
                 const personInfo = await axios.post(
@@ -347,7 +347,34 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         let firstName = result.firstname ?? '';
                         let middleName = result.middlename ?? '';
                         let lastName = result.lastname ?? '';
+                        let salesOrders = [];
+                        let opportunities = [];
                         const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                        if (result?.company) {
+                            try {
+                                if (enableSalesOrderLogging.value) {
+
+                                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
+                                    for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
+                                        salesOrders.push({
+                                            const: salesOrder?.id,
+                                            title: salesOrder?.trandisplayname
+                                        });
+                                    }
+                                }
+                                if (enableOpportunityLogging.value) {
+                                    const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
+                                    for (const opportunity of opportunityResponse?.data?.items ?? []) {
+                                        opportunities.push({
+                                            const: opportunity?.id,
+                                            title: opportunity?.trandisplayname
+                                        });
+                                    }
+                                }
+                            } catch (e) {
+                                console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                            }
+                        }
                         matchedContactInfo.push({
                             id: result.id,
                             name: contactName,
@@ -355,7 +382,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                             homephone: result.homephone ?? '',
                             mobilephone: result.mobilephone ?? '',
                             officephone: result.officephone ?? '',
-                            additionalInfo: null,
+                            additionalInfo: {
+                                ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                                ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                            },
                             type: 'contact'
                         })
                     }
@@ -378,7 +408,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                             if (enableSalesOrderLogging.value) {
 
                                 const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
-                                for (const salesOrder of salesOrderResponse?.data?.items) {
+                                for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
                                     salesOrders.push({
                                         const: salesOrder?.id,
                                         title: salesOrder?.trandisplayname
@@ -387,7 +417,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                             }
                             if (enableOpportunityLogging.value) {
                                 const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
-                                for (const opportunity of opportunityResponse?.data?.items) {
+                                for (const opportunity of opportunityResponse?.data?.items ?? []) {
                                     opportunities.push({
                                         const: opportunity?.id,
                                         title: opportunity?.trandisplayname
@@ -488,7 +518,34 @@ async function findContactWithName({ user, authHeader, name }) {
                 let firstName = result.firstname ?? '';
                 let middleName = result.middlename ?? '';
                 let lastName = result.lastname ?? '';
+                let salesOrders = [];
+                let opportunities = [];
                 const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                if (result?.company) {
+                    try {
+                        if (enableSalesOrderLogging.value) {
+
+                            const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
+                            for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
+                                salesOrders.push({
+                                    const: salesOrder?.id,
+                                    title: salesOrder?.trandisplayname
+                                });
+                            }
+                        }
+                        if (enableOpportunityLogging.value) {
+                            const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
+                            for (const opportunity of opportunityResponse?.data?.items ?? []) {
+                                opportunities.push({
+                                    const: opportunity?.id,
+                                    title: opportunity?.trandisplayname
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                    }
+                }
                 matchedContactInfo.push({
                     id: result.id,
                     name: contactName,
@@ -496,7 +553,10 @@ async function findContactWithName({ user, authHeader, name }) {
                     homephone: result.homephone ?? '',
                     mobilephone: result.mobilephone ?? '',
                     officephone: result.officephone ?? '',
-                    additionalInfo: null,
+                    additionalInfo: {
+                        ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                        ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                    },
                     type: 'contact'
                 })
             }
@@ -518,7 +578,7 @@ async function findContactWithName({ user, authHeader, name }) {
                 try {
                     if (enableSalesOrderLogging.value) {
                         const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
-                        for (const salesOrder of salesOrderResponse?.data?.items) {
+                        for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
                             salesOrders.push({
                                 const: salesOrder?.id,
                                 title: salesOrder?.trandisplayname
@@ -528,7 +588,7 @@ async function findContactWithName({ user, authHeader, name }) {
                     // Add opportunity search
                     if (enableOpportunityLogging.value) {
                         const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
-                        for (const opportunity of opportunityResponse?.data?.items) {
+                        for (const opportunity of opportunityResponse?.data?.items ?? []) {
                             opportunities.push({
                                 const: opportunity?.id,
                                 title: opportunity?.title
@@ -568,6 +628,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
+        const subsidiaryId = user.platformAdditionalInfo?.subsidiaryId;
         let callStartTime = moment(callLog.startTime).toISOString();
         let startTimeSLot = moment(callLog.startTime).format('HH:mm');
         try {
@@ -1076,6 +1137,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     else {
                         let companyPostBody = {
                             companyName: 'RingCentral_CRM_Extension_Placeholder_Company',
+                            entityId: 'RingCentral_CRM_Extension_Placeholder_Company',
                             comments: "This company was created automatically by the RingCentral App Connect. Feel free to edit, or associate this company's contacts to more appropriate records.",
                         };
                         if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
