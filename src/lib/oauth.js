@@ -102,7 +102,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
 async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
     // use password to get code
     console.log('authorize bullhorn by password')
-    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize')
+    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
     const codeResponse = await axios.get(authUrl, {
         params: {
             client_id: process.env.BULLHORN_CLIENT_ID,
@@ -110,6 +110,7 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
             password: serverLoggingSettings.apiPassword,
             response_type: 'code',
             action: 'Login',
+            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
         },
         maxRedirects: 0,
         validateStatus: status => status === 302,
