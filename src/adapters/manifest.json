@@ -2097,8 +2097,14 @@
                     "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
                 }
             },
-            "canOpenLogPage": true,
+            "canOpenLogPage": false,
             "contactPageUrl": "https://{hostname}/v2/location/{contactType}/contacts/detail/{contactId}",
+            "contactTypes": [
+                {
+                    "display": "Contact",
+                    "value": "contact"
+                }
+            ],
             "embeddedOnCrmPage": {
                 "welcomePage": {
                     "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
@@ -2158,36 +2164,10 @@
             ],
             "page": {
                 "callLog": {
-                    "additionalFields": [
-                        {
-                            "const": "associatedDeal",
-                            "title": "Deals",
-                            "type": "selection",
-                            "contactDependent": true
-                        },
-                        {
-                            "const": "address",
-                            "title": "Address",
-                            "type": "inputField",
-                            "contactDependent": false
-                        }
-                    ]
+                    "additionalFields": []
                 },
                 "messageLog": {
-                    "additionalFields": [
-                        {
-                            "const": "associatedDeal",
-                            "title": "Deals",
-                            "type": "selection",
-                            "contactDependent": true
-                        },
-                        {
-                            "const": "address",
-                            "title": "Address",
-                            "type": "inputField",
-                            "contactDependent": false
-                        }
-                    ]
+                    "additionalFields": []
                 }
             },
             "rcAdditionalSubmission": [
