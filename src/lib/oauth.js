@@ -99,15 +99,15 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
     return user;
 }
 
-async function bullhornPasswordAuthorize(user, oauthApp) {
+async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
     // use password to get code
     console.log('authorize bullhorn by password')
     const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize')
     const codeResponse = await axios.get(authUrl, {
         params: {
             client_id: process.env.BULLHORN_CLIENT_ID,
-            username: user.platformAdditionalInfo.username || user.username,
-            password: user.platformAdditionalInfo.password, // TODO: encode/decode password
+            username: serverLoggingSettings.apiUsername,
+            password: serverLoggingSettings.apiPassword,
             response_type: 'code',
             action: 'Login',
         },
@@ -136,7 +136,7 @@ async function bullhornPasswordAuthorize(user, oauthApp) {
         }
     };
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
-    console.log('authorize bullhourn user by password successfully.')
+    console.log('authorize bullhorn user by password successfully.')
     return {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -178,8 +178,12 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
             const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
             authData = refreshTokenResponse.data;
         } catch (e) {
-            if (user.platformAdditionalInfo.username && user.platformAdditionalInfo.password) {
-                authData = await bullhornPasswordAuthorize(user, oauthApp);
+            const platformModule = require(`../adapters/${user.platform}`);
+            const serverLoggingSettings = await platformModule.getServerLoggingSettings({ user });
+            if (serverLoggingSettings.apiUsername && serverLoggingSettings.apiPassword) {
+                authData = await bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings);
+            } else {
+                throw e;
             }
         }
         const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;

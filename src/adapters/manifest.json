@@ -1256,24 +1256,24 @@
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
                 "useAdminAssignedUserToken": true,
                 "additionalFields": [{
-                    "const": "username",
+                    "const": "apiUsername",
                     "title": "Bullhorn API Username",
                     "type": "string"
                 }, {
-                    "const": "password",
+                    "const": "apiPassword",
                     "title": "Bullhorn API Password",
                     "type": "string",
                     "uiSchema": {
                         "ui:widget": "password"
                     }
                 }, {
-                    "const": "passwordHelpText",
+                    "const": "apiPasswordHelpText",
                     "title": "Help",
-                    "description": "Bullhorn API username and password are required to make sure server side logging works event your Bullhorn login session expires. The user should have permission to access all contacts,create/update/assign notes.",
+                    "description": "Bullhorn API username and password are required to make sure server side logging works even if your Bullhorn login session expires. The user should have permission to access all contacts,create/update/assign notes.",
                     "type": "string",
                     "uiSchema": {
                         "ui:field": "admonition",
-                        "ui:severity": "success"
+                        "ui:severity": "warning"
                     }
                 }]
             },

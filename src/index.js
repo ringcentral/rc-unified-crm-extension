@@ -369,6 +369,62 @@ app.get('/admin/settings', async function (req, res) {
     });
 });
 
+app.get('/admin/serverLoggingSettings', async function (req, res) {
+    const jwtToken = req.query.jwtToken;
+    if (!jwtToken) {
+        res.status(400).send('Please go to Settings and authorize CRM platform');
+        return;
+    }
+    try {
+        const unAuthData = jwt.decodeJwt(jwtToken);
+        if (!unAuthData?.id) {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            return;
+        }
+        const user = await UserModel.findByPk(unAuthData?.id);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const serverLoggingSettings = await adminCore.getServerLoggingSettings({ user });
+        res.status(200).send(serverLoggingSettings);
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+});
+
+app.post('/admin/serverLoggingSettings', async function (req, res) {
+    const jwtToken = req.query.jwtToken;
+    if (!jwtToken) {
+        res.status(400).send('Please go to Settings and authorize CRM platform');
+        return;
+    }
+    if (!req.body.additionalFieldValues) {
+        res.status(400).send('Missing additionalFieldValues');
+        return;
+    }
+    try {
+        const unAuthData = jwt.decodeJwt(jwtToken);
+        if (!unAuthData?.id) {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
+            return;
+        }
+        const user = await UserModel.findByPk(unAuthData?.id);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const serverLoggingSettings = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
+        res.status(200).send(serverLoggingSettings);
+    }
+    catch (e) {
+        console.log(`${e.stack}`);
+        res.status(400).send(e);
+    }
+})
+
 app.get('/user/preloadSettings', async function (req, res) {
     try {
         const rcAccessToken = req.query.rcAccessToken;
