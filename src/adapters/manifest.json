@@ -1254,7 +1254,28 @@
             "serverSideLogging": {
                 "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "useAdminAssignedUserToken": true
+                "useAdminAssignedUserToken": true,
+                "additionalFields": [{
+                    "const": "username",
+                    "title": "Bullhorn API Username",
+                    "type": "string"
+                }, {
+                    "const": "password",
+                    "title": "Bullhorn API Password",
+                    "type": "string",
+                    "uiSchema": {
+                        "ui:widget": "password"
+                    }
+                }, {
+                    "const": "passwordHelpText",
+                    "title": "Help",
+                    "description": "Bullhorn API username and password are required to make sure server side logging works event your Bullhorn login session expires. The user should have permission to access all contacts,create/update/assign notes.",
+                    "type": "string",
+                    "uiSchema": {
+                        "ui:field": "admonition",
+                        "ui:severity": "success"
+                    }
+                }]
             },
             "displayName": "Bullhorn",
             "auth": {

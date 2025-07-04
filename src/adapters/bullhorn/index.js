@@ -30,8 +30,8 @@ async function authValidation({ user }) {
     }
     catch (e) {
         if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
             try {
+                user = await refreshSessionToken(user);
                 pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`,
                     {
                         headers: {
