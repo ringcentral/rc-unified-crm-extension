@@ -1,5 +1,5 @@
 {
-    "serverUrl": "http://localhost:6066",
+    "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "RingCentral Labs",
@@ -538,7 +538,7 @@
                 "https://*.clio.com/*"
             ],
             "serverSideLogging": {
-                "url": "https://tunnel.kails.org",
+                "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
                 "useAdminAssignedUserToken": false
             },
@@ -1252,7 +1252,7 @@
                 "https://*.bullhornstaffing.com/*"
             ],
             "serverSideLogging": {
-                "url": "https://tunnel.kails.org",
+                "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
                 "useAdminAssignedUserToken": true,
                 "additionalFields": [{
