@@ -1269,7 +1269,7 @@
                 }, {
                     "const": "apiPasswordHelpText",
                     "title": "Help",
-                    "description": "Bullhorn API username and password are required to make sure server side logging works even if your Bullhorn login session expires. The user should have permission to access all contacts,create/update/assign notes.",
+                    "description": "Enter your Bullhorn API username and password to ensure server-side logging continues to work even after your Bullhorn login session expires. The account should have permissions to access all contacts and to create, update, and assign notes.",
                     "type": "string",
                     "uiSchema": {
                         "ui:field": "admonition",
