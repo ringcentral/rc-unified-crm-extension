@@ -113,10 +113,8 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
             redirect_uri: process.env.BULLHORN_REDIRECT_URI,
         },
         maxRedirects: 0,
+        validateStatus: status => status === 302,
     });
-    if (codeResponse.status !== 302) {
-        throw new Error('Password authorize failure, status: ' + codeResponse.status);
-    }
     const redirectLocation = codeResponse.headers['location'];
     if (!redirectLocation) {
         throw new Error('Authorize failure, missing location');
