@@ -4,6 +4,7 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
+const { composeCallLog, getFormatType } = require('../lib/callLogComposer');
 
 async function createCallLog({ platform, userId, incomingData }) {
     try {
@@ -70,7 +71,55 @@ async function createCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript });
+
+        // Compose call log details centrally
+        const format = getFormatType(platform);
+        let getTimezone = null;
+
+        // Handle platform-specific timezone fetching (e.g., NetSuite)
+        if (platform === 'netsuite') {
+            getTimezone = async () => {
+                try {
+                    const axios = require('axios');
+                    const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+                    const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                        headers: { 'Authorization': authHeader }
+                    });
+                    return timeZoneResponse?.data?.userTimezone;
+                } catch (error) {
+                    console.log('Error getting timezone from NetSuite', error);
+                    return null;
+                }
+            };
+        }
+
+        const composedLogDetails = await composeCallLog({
+            format,
+            callLog,
+            contactInfo,
+            user,
+            note,
+            aiNote,
+            transcript,
+            recordingLink: callLog.recording?.link,
+            subject: callLog.customSubject,
+            startTime: callLog.startTime,
+            duration: callLog.duration,
+            result: callLog.result,
+            getTimezone
+        });
+
+        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
+            user,
+            contactInfo,
+            authHeader,
+            callLog,
+            note,
+            additionalSubmission,
+            aiNote,
+            transcript,
+            composedLogDetails
+        });
         if (logId) {
             await CallLogModel.create({
                 id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
@@ -132,6 +181,12 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         let logs = [];
         let returnMessage = null;
         let extraDataTracking = {};;
+
+        // Handle undefined or null sessionIds
+        if (!sessionIds) {
+            return { successful: false, message: `No session IDs provided` };
+        }
+
         let sessionIdsArray = sessionIds.split(',');
         if (sessionIdsArray.length > 5) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
@@ -264,6 +319,65 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
+            // Compose updated call log details centrally
+            const format = getFormatType(platform);
+            let getTimezone = null;
+
+            // Handle platform-specific timezone fetching (e.g., NetSuite)
+            if (platform === 'netsuite') {
+                getTimezone = async () => {
+                    try {
+                        const axios = require('axios');
+                        const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+                        const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                            headers: { 'Authorization': authHeader }
+                        });
+                        return timeZoneResponse?.data?.userTimezone;
+                    } catch (error) {
+                        console.log('Error getting timezone from NetSuite', error);
+                        return null;
+                    }
+                };
+            }
+
+            // Get existing log details first (for updates we need to compose on top of existing content)
+            let existingBody = '';
+            try {
+                const getLogResult = await platformModule.getCallLog({
+                    user,
+                    callLogId: existingCallLog.thirdPartyLogId,
+                    authHeader
+                });
+                // Extract existing body from the platform-specific response
+                if (getLogResult.callLogInfo?.note) {
+                    existingBody = getLogResult.callLogInfo.note;
+                }
+            } catch (error) {
+                console.log('Error getting existing log details, proceeding with empty body', error);
+            }
+
+            const composedLogDetails = await composeCallLog({
+                format,
+                existingBody,
+                callLog: {
+                    sessionId: existingCallLog.sessionId,
+                    startTime: incomingData.startTime,
+                    duration: incomingData.duration,
+                    result: incomingData.result
+                },
+                contactInfo: null, // Not needed for updates
+                user,
+                note: incomingData.note,
+                aiNote: incomingData.aiNote,
+                transcript: incomingData.transcript,
+                recordingLink: incomingData.recordingLink,
+                subject: incomingData.subject,
+                startTime: incomingData.startTime,
+                duration: incomingData.duration,
+                result: incomingData.result,
+                getTimezone
+            });
+
             const { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
                 user,
                 existingCallLog,
@@ -277,7 +391,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 result: incomingData.result,
                 aiNote: incomingData.aiNote,
                 transcript: incomingData.transcript,
-                additionalSubmission: incomingData.additionalSubmission
+                additionalSubmission: incomingData.additionalSubmission,
+                composedLogDetails
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }

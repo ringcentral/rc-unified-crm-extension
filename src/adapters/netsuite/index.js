@@ -41,6 +41,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             oneWorldEnabled = oneWorldLicenseResponse?.data?.oneWorldEnabled;
         } catch (e) {
             console.log({ message: "Error in getting OneWorldLicense" });
+            const subsidiaryId = getCurrentLoggedInUserResponse?.data?.subsidiary;
             if (subsidiaryId !== undefined && subsidiaryId !== '') {
                 oneWorldEnabled = true;
             }
@@ -624,7 +625,8 @@ async function findContactWithName({ user, authHeader, name }) {
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+    console.log({ message: "composedLogDetails", composedLogDetails });
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
@@ -650,21 +652,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             //If Start Time and End Time are same, then add 1 minute to End Time because endTime can not be less or equal to startTime
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
-        let comments = '';
-        if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
-        if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
-        if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, title }); }
-        if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-        if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-        if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
-        if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
-        if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
-        if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
         let isMessageBodyTooLong = false;
-        if (!!transcript && (comments.length + transcript.length) > 3900) {
+        if (!!transcript && (composedLogDetails.length + transcript.length) > 3900) {
             isMessageBodyTooLong = true;
         }
-        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
+
 
         let extraDataTracking = {
             withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
@@ -679,7 +671,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             startTime: startTimeSLot,
             endTime: endTimeSlot,
             timedEvent: true,
-            message: comments,
+            message: composedLogDetails,
             completedDate: callEndTime.format('YYYY-MM-DD')
         };
         if (contactInfo.type?.toUpperCase() === 'CONTACT') {
@@ -901,7 +893,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             try {
                 await attachFileWithPhoneCall({ callLogId: existingLogId, transcript, authHeader, user, fileName: subject });
             } catch (error) {
-
+                console.log({ message: "Error in attaching file with phone call", error });
             }
         }
         return {
