@@ -370,17 +370,22 @@ app.get('/admin/settings', async function (req, res) {
 });
 
 app.get('/admin/serverLoggingSettings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
     const jwtToken = req.query.jwtToken;
     if (!jwtToken) {
         res.status(400).send('Please go to Settings and authorize CRM platform');
         return;
     }
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const unAuthData = jwt.decodeJwt(jwtToken);
         if (!unAuthData?.id) {
             res.status(400).send('Please go to Settings and authorize CRM platform');
             return;
         }
+        platformName = unAuthData?.platform ?? 'Unknown';
         const user = await UserModel.findByPk(unAuthData?.id);
         if (!user) {
             res.status(400).send('User not found');
@@ -388,14 +393,32 @@ app.get('/admin/serverLoggingSettings', async function (req, res) {
         }
         const serverLoggingSettings = await adminCore.getServerLoggingSettings({ user });
         res.status(200).send(serverLoggingSettings);
+        success = true;
     }
     catch (e) {
         console.log(`${e.stack}`);
         res.status(400).send(e);
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Get server logging settings',
+        interfaceName: 'getServerLoggingSettings',
+        adapterName: platformName,
+        rcAccountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        eventAddedVia
+    });
 });
 
 app.post('/admin/serverLoggingSettings', async function (req, res) {
+    const requestStartTime = new Date().getTime();
+    let platformName = null;
+    let success = false;
     const jwtToken = req.query.jwtToken;
     if (!jwtToken) {
         res.status(400).send('Please go to Settings and authorize CRM platform');
@@ -405,12 +428,14 @@ app.post('/admin/serverLoggingSettings', async function (req, res) {
         res.status(400).send('Missing additionalFieldValues');
         return;
     }
+    const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
     try {
         const unAuthData = jwt.decodeJwt(jwtToken);
         if (!unAuthData?.id) {
             res.status(400).send('Please go to Settings and authorize CRM platform');
             return;
         }
+        platformName = unAuthData?.platform ?? 'Unknown';
         const user = await UserModel.findByPk(unAuthData?.id);
         if (!user) {
             res.status(400).send('User not found');
@@ -418,11 +443,27 @@ app.post('/admin/serverLoggingSettings', async function (req, res) {
         }
         const serverLoggingSettings = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
         res.status(200).send(serverLoggingSettings);
+        success = true;
     }
     catch (e) {
         console.log(`${e.stack}`);
         res.status(400).send(e);
+        success = false;
     }
+    const requestEndTime = new Date().getTime();
+    analytics.track({
+        eventName: 'Set server logging settings',
+        interfaceName: 'setServerLoggingSettings',
+        adapterName: platformName,
+        rcAccountId: hashedAccountId,
+        extensionId: hashedExtensionId,
+        success,
+        requestDuration: (requestEndTime - requestStartTime) / 1000,
+        userAgent,
+        ip,
+        author,
+        eventAddedVia
+    });
 })
 
 app.get('/user/preloadSettings', async function (req, res) {
