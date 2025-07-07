@@ -61,3 +61,22 @@ In this way, App Connect ensures that all contacts created by it conform to the 
 ## Screen-pop for multiple contacts
 
 A feature of App Connect is to allow a user to open all matched contacts when they receive a phone call. However, Bullhorn's API does not support this feature. Therefore in App Connect, we can only support the option "Prompt to select" under Call-pop settings. 
+
+## Bullhorn and server-side call logging
+
+*Coming in App Connect 1.5.7*
+
+To ensure seamless and continuous server-side logging within the application, even if your direct Bullhorn login session expires, it is essential to configure the appropriate Bullhorn API username and password.
+
+These API credentials serve a critical role in allowing the application to authenticate with Bullhorn's services programmatically. This enables the system to maintain a persistent connection for logging purposes, independent of your interactive user session.
+
+### Required Permissions for the API User
+
+The Bullhorn API user associated with these credentials must be granted specific permissions to ensure all necessary data can be accessed and logged. These permissions include:
+
+* **Access to all contacts**: This allows the application to retrieve and log information related to all contact records within your Bullhorn instance.
+* **Create/Update/Assign notes**: This permission is vital for logging activities related to notes, including their creation, any modifications, and assignments.
+
+Without these permissions, the server-side logging functionality may be incomplete or fail to capture critical event data. It is recommended to create a dedicated API user in Bullhorn with only the necessary permissions to adhere to the principle of least privilege.
+
+![Enabling server-side call logging in Bullhorn](../img/bullhorn-sscl-creds.png){ .mw-300 }
