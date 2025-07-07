@@ -90,7 +90,10 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                 accessToken,
                 refreshToken,
                 tokenExpiry,
-                platformAdditionalInfo
+                platformAdditionalInfo: {
+                    ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
+                    ...platformAdditionalInfo,
+                }
             }
         );
     }

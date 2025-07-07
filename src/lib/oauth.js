@@ -32,7 +32,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
             });
             // Session expired
             if (new Date(pingResponse.data.sessionExpires - expiryBuffer) < new Date()) {
-                user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout);
+                user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
             }
             // Session not expired
             else {
@@ -41,7 +41,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
         }
         catch (e) {
             // Session expired
-            user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout);
+            user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
         }
         await user.save();
         return user;
@@ -99,7 +99,53 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
     return user;
 }
 
-async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout) {
+async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
+    // use password to get code
+    console.log('authorize bullhorn by password')
+    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
+    const codeResponse = await axios.get(authUrl, {
+        params: {
+            client_id: process.env.BULLHORN_CLIENT_ID,
+            username: serverLoggingSettings.apiUsername,
+            password: serverLoggingSettings.apiPassword,
+            response_type: 'code',
+            action: 'Login',
+            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+        },
+        maxRedirects: 0,
+        validateStatus: status => status === 302,
+    });
+    const redirectLocation = codeResponse.headers['location'];
+    if (!redirectLocation) {
+        throw new Error('Authorize failure, missing location');
+    }
+    const codeUrl = new URL(redirectLocation);
+    const code = codeUrl.searchParams.get('code');
+    if (!code) {
+        throw new Error('Authorize failure, missing code');
+    }
+    const overridingOAuthOption = {
+        headers: {
+            Authorization: ''
+        },
+        query: {
+            grant_type: 'authorization_code',
+            code,
+            client_id: process.env.BULLHORN_CLIENT_ID,
+            client_secret: process.env.BULLHORN_CLIENT_SECRET,
+            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+        }
+    };
+    const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
+    console.log('authorize bullhorn user by password successfully.')
+    return {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: expires,
+    };
+}
+
+async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     let newLock;
     try {
         if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
@@ -128,8 +174,20 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout) {
             }
         }
         console.log('Bullhorn token refreshing...')
-        const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
-        const { access_token: accessToken, refresh_token: refreshToken } = refreshTokenResponse.data;
+        let authData;
+        try {
+            const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
+            authData = refreshTokenResponse.data;
+        } catch (e) {
+            const platformModule = require(`../adapters/${user.platform}`);
+            const serverLoggingSettings = await platformModule.getServerLoggingSettings({ user });
+            if (serverLoggingSettings.apiUsername && serverLoggingSettings.apiPassword) {
+                authData = await bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings);
+            } else {
+                throw e;
+            }
+        }
+        const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;
         user.accessToken = accessToken;
         user.refreshToken = refreshToken;
         const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
@@ -141,7 +199,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout) {
         user.platformAdditionalInfo = {};
         user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
         const date = new Date();
-        user.tokenExpiry = date.setSeconds(date.getSeconds() + refreshTokenResponse.data.expires_in);
+        user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
         console.log('Bullhorn token refreshing finished')
         if (newLock) {
             await newLock.delete();
@@ -151,7 +209,8 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout) {
         if (newLock) {
             await newLock.delete();
         }
-        console.error('Bullhorn token refreshing failed', e);
+        // do not log error message, it will expose password
+        console.error('Bullhorn token refreshing failed');
     }
     return user;
 }

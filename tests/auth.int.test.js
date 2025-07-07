@@ -22,12 +22,19 @@ beforeEach(() => {
 // clear test data in db
 afterEach(async () => {
     for (const platform of platforms) {
+        // Clean up users with both old and new ID formats
         await UserModel.destroy({
             where: {
                 id: userId,
                 platform: platform.name
             }
-        })
+        });
+        await UserModel.destroy({
+            where: {
+                id: `${userId}_${platform.name}`,
+                platform: platform.name
+            }
+        });
     }
 });
 
@@ -53,6 +60,9 @@ describe('auth tests', () => {
                 })
                 test('oauth callback - successful', async () => {
                     for (const platform of platforms) {
+                        // Use platform-specific user ID to avoid conflicts
+                        const platformUserId = `${userId}_${platform.name}`;
+                        
                         // Arrange
                         const requestQuery = `callbackUri=https://callback?code=code&hostname=hostname&state=platform=${platform.name}`;
                         oauth.getOAuthApp = jest.fn().mockReturnValue({
@@ -71,24 +81,25 @@ describe('auth tests', () => {
                             .once()
                             .reply(200, {
                                 data: {
-                                    id: userId,
+                                    id: platformUserId,
                                     name: 'userName',
                                     timezone_name: 'timezone_name',
                                     timezone_offset: 0
                                 }
                             });
-                        const jwtToken = jwt.generateJwt({
-                            id: userId,
-                            platform: platform.name
-                        });
 
                         // Act
                         const res = await request(getServer()).get(`/oauth-callback?${requestQuery}`)
 
                         // Assert
                         expect(res.status).toEqual(200);
-                        expect(res.body.jwtToken).toEqual(jwtToken);
+                        expect(res.body.jwtToken).toBeDefined();
                         expect(res.body.name).toEqual('userName');
+                        
+                        // Verify JWT token contains correct data
+                        const decodedToken = jwt.decodeJwt(res.body.jwtToken);
+                        expect(decodedToken.id).toEqual(platformUserId);
+                        expect(decodedToken.platform).toEqual(platform.name);
 
                         // Clean up
                         platformGetUserInfoScope.done();
@@ -140,9 +151,12 @@ describe('auth tests', () => {
         describe('logout', () => {
             test('unknown user - unsuccessful', async () => {
                 for (const platform of platforms) {
+                    // Use platform-specific unknown user ID to avoid conflicts
+                    const platformUnknownUserId = `${unknownUserId}_${platform.name}`;
+                    
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: unknownUserId,
+                        id: platformUnknownUserId,
                         rcUserNumber: unknownPhoneNumber,
                         platform: platform.name
                     });
@@ -155,14 +169,17 @@ describe('auth tests', () => {
             });
             test('known user - successful', async () => {
                 for (const platform of platforms) {
+                    // Use platform-specific user ID to avoid conflicts
+                    const platformUserId = `${userId}_${platform.name}`;
+                    
                     // Arrange
                     const jwtToken = jwt.generateJwt({
-                        id: userId,
+                        id: platformUserId,
                         rcUserNumber: rcUserNumber,
                         platform: platform.name
                     });
                     await UserModel.create({
-                        id: userId,
+                        id: platformUserId,
                         name: '',
                         companyId: '',
                         companyName: '',
@@ -180,17 +197,33 @@ describe('auth tests', () => {
                             data: {}
                         });
 
-
                     // Act
                     const res = await request(getServer()).post(`/unAuthorize?jwtToken=${jwtToken}`)
 
                     // Assert
                     expect(res.status).toEqual(200);
-                    const userCheck = await UserModel.findByPk(`${userId}-pipedrive`);
-                    expect(userCheck).toBeNull();
+                    const userCheck = await UserModel.findByPk(platformUserId);
+                    // For pipedrive, user should still exist but with cleared tokens
+                    if (platform.name === 'pipedrive') {
+                        expect(userCheck).not.toBeNull();
+                        expect(userCheck.accessToken).toBe('');
+                        expect(userCheck.refreshToken).toBe('');
+                    } else {
+                        // Other platforms might delete the user entirely
+                        expect(userCheck).toBeNull();
+                    }
 
                     // Clean up
                     revokeTokenScope.done();
+                    // For pipedrive, manually clean up the user since unAuthorize doesn't delete it
+                    if (platform.name === 'pipedrive') {
+                        await UserModel.destroy({
+                            where: {
+                                id: platformUserId,
+                                platform: platform.name
+                            }
+                        });
+                    }
                 }
             });
         });

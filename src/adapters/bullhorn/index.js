@@ -4,6 +4,7 @@ const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 const jwt = require('../../lib/jwt');
+const { encode, decoded } = require('../../lib/encode');
 const { UserModel } = require('../../models/userModel');
 
 function getAuthType() {
@@ -162,6 +163,34 @@ async function unAuthorize({ user }) {
             ttl: 1000
         }
     }
+}
+
+async function getServerLoggingSettings({ user }) {
+    const username = user.platformAdditionalInfo.encodedApiUsername ? decoded(user.platformAdditionalInfo.encodedApiUsername) : '';
+    const password = user.platformAdditionalInfo.encodedApiPassword ? decoded(user.platformAdditionalInfo.encodedApiPassword) : '';
+    return {
+        apiUsername: username,
+        apiPassword: password,
+    };
+}
+
+async function updateServerLoggingSettings({ user, additionalFieldValues }) {
+    const username = additionalFieldValues.apiUsername;
+    const password = additionalFieldValues.apiPassword;
+    user.platformAdditionalInfo = {
+        ...user.platformAdditionalInfo,
+        encodedApiUsername: username ? encode(username) : '',
+        encodedApiPassword: password ? encode(password) : ''
+    }
+    await user.save();
+    return {
+        successful: true,
+        returnMessage: {
+            messageType: 'success',
+            message: 'Server logging settings updated',
+            ttl: 5000
+        },
+    };
 }
 
 async function findContact({ user, phoneNumber }) {
@@ -1336,4 +1365,6 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
-exports.findContactWithName = findContactWithName;  
+exports.findContactWithName = findContactWithName;
+exports.getServerLoggingSettings = getServerLoggingSettings;
+exports.updateServerLoggingSettings = updateServerLoggingSettings;
