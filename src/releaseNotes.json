@@ -12,6 +12,10 @@
             {
                 "type": "Fix",
                 "description": "- AI notes are now attached when doing retroactive call logging"
+            },
+            {
+                "type": "Better",
+                "description": "- Message logs within the CRM are now consistently displayed in chronological order"
             }
         ],
         "bullhorn": [
@@ -24,6 +28,12 @@
             {
                 "type": "New",
                 "description": "- Users can now log messages in Google Sheets. A new sheet titled 'Message Logs' will be created for that."
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "Better",
+                "description": "- Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers."
             }
         ]
     },
