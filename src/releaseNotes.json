@@ -33,7 +33,7 @@
         "netsuite": [
             {
                 "type": "Better",
-                "description": "- Added functionality to log Sales Orders and Opportunities with individual contacts in addition to customers."
+                "description": "- Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers."
             }
         ]
     },

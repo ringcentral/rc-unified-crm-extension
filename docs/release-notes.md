@@ -8,7 +8,7 @@
 - Fix: Bullhorn retroactive call log mistakenly putting 'pending note...' in Note Action
 - Fix: AI notes are now attached when doing retroactive call logging
 - Better: Message logs within the CRM are now consistently displayed in chronological order
-- Better: Added functionality to log Sales Orders and Opportunities with individual contacts in addition to customers.
+- Better: Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers.
 
 ## 1.5.5:
 
