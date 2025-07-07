@@ -509,6 +509,173 @@ describe('oauth manage', () => {
             expect(returnedUser.refreshToken).toBe(newRefreshToken);
             expect(nock.isDone()).toBe(true);
         });
+
+        test('bullhorn token refresh fails, password auth also fails - throws error', async () => {
+            // Arrange
+            process.env.BULLHORN_CLIENT_ID = 'client123';
+            process.env.BULLHORN_CLIENT_SECRET = 'secret123';
+            process.env.BULLHORN_REDIRECT_URI = 'https://app.com/callback';
+            
+            const user = await UserModel.create({
+                id: userId,
+                accessToken,
+                refreshToken,
+                platform: 'bullhorn',
+                tokenExpiry: '2025-01-01T00:00:00.000Z',
+                platformAdditionalInfo: {
+                    restUrl: 'https://rest.bullhorn.com',
+                    bhRestToken: 'bhRestToken123',
+                    tokenUrl: 'https://auth.bullhorn.com/token',
+                    loginUrl: 'https://auth.bullhorn.com'
+                }
+            });
+
+            // Mock ping failure
+            nock('https://rest.bullhorn.com')
+                .get('/ping')
+                .reply(401, 'Unauthorized');
+
+            // Mock token refresh failure
+            nock('https://auth.bullhorn.com')
+                .post('/token')
+                .query(true)
+                .reply(400, 'Bad Request');
+
+            // Mock platform module for password auth
+            jest.doMock('../src/adapters/bullhorn', () => ({
+                getServerLoggingSettings: jest.fn().mockResolvedValue({
+                    apiUsername: 'testuser',
+                    apiPassword: 'testpass'
+                })
+            }));
+
+            // Mock password authorization failure - missing location header
+            nock('https://auth.bullhorn.com')
+                .get('/authorize')
+                .query(true)
+                .reply(302, '', {}); // No location header
+
+            // Mock OAuth app for password auth
+            const oauthApp = {
+                code: {
+                    getToken: jest.fn()
+                }
+            };
+
+            // Act & Assert
+            const returnedUser = await checkAndRefreshAccessToken(oauthApp, user);
+            
+            // Should return user unchanged due to error handling
+            expect(returnedUser.accessToken).toBe(accessToken);
+            expect(returnedUser.refreshToken).toBe(refreshToken);
+            expect(nock.isDone()).toBe(true);
+        });
+
+        test('bullhorn password auth fails with missing code - returns original user', async () => {
+            // Arrange
+            process.env.BULLHORN_CLIENT_ID = 'client123';
+            process.env.BULLHORN_CLIENT_SECRET = 'secret123';
+            process.env.BULLHORN_REDIRECT_URI = 'https://app.com/callback';
+            
+            const user = await UserModel.create({
+                id: userId,
+                accessToken,
+                refreshToken,
+                platform: 'bullhorn',
+                tokenExpiry: '2025-01-01T00:00:00.000Z',
+                platformAdditionalInfo: {
+                    restUrl: 'https://rest.bullhorn.com',
+                    bhRestToken: 'bhRestToken123',
+                    tokenUrl: 'https://auth.bullhorn.com/token',
+                    loginUrl: 'https://auth.bullhorn.com'
+                }
+            });
+
+            // Mock ping failure
+            nock('https://rest.bullhorn.com')
+                .get('/ping')
+                .reply(401, 'Unauthorized');
+
+            // Mock token refresh failure
+            nock('https://auth.bullhorn.com')
+                .post('/token')
+                .query(true)
+                .reply(400, 'Bad Request');
+
+            // Mock platform module for password auth
+            jest.doMock('../src/adapters/bullhorn', () => ({
+                getServerLoggingSettings: jest.fn().mockResolvedValue({
+                    apiUsername: 'testuser',
+                    apiPassword: 'testpass'
+                })
+            }));
+
+            // Mock password authorization failure - redirect without code parameter
+            nock('https://auth.bullhorn.com')
+                .get('/authorize')
+                .query(true)
+                .reply(302, '', {
+                    'location': 'https://app.com/callback?error=access_denied'
+                });
+
+            // Mock OAuth app for password auth
+            const oauthApp = {
+                code: {
+                    getToken: jest.fn()
+                }
+            };
+
+            // Act
+            const returnedUser = await checkAndRefreshAccessToken(oauthApp, user);
+
+            // Assert - should return user unchanged due to error handling
+            expect(returnedUser.accessToken).toBe(accessToken);
+            expect(returnedUser.refreshToken).toBe(refreshToken);
+            expect(nock.isDone()).toBe(true);
+        });
+
+        test('bullhorn password auth without credentials - falls back to original error', async () => {
+            // Arrange
+            const user = await UserModel.create({
+                id: userId,
+                accessToken,
+                refreshToken,
+                platform: 'bullhorn',
+                tokenExpiry: '2025-01-01T00:00:00.000Z',
+                platformAdditionalInfo: {
+                    restUrl: 'https://rest.bullhorn.com',
+                    bhRestToken: 'bhRestToken123',
+                    tokenUrl: 'https://auth.bullhorn.com/token',
+                    loginUrl: 'https://auth.bullhorn.com'
+                }
+            });
+
+            // Mock ping failure
+            nock('https://rest.bullhorn.com')
+                .get('/ping')
+                .reply(401, 'Unauthorized');
+
+            // Mock token refresh failure
+            nock('https://auth.bullhorn.com')
+                .post('/token')
+                .query(true)
+                .reply(400, 'Bad Request');
+
+            // Mock platform module with no credentials
+            jest.doMock('../src/adapters/bullhorn', () => ({
+                getServerLoggingSettings: jest.fn().mockResolvedValue({
+                    // No apiUsername or apiPassword
+                })
+            }));
+
+            // Act
+            const returnedUser = await checkAndRefreshAccessToken({}, user);
+
+            // Assert - should return user unchanged due to error handling
+            expect(returnedUser.accessToken).toBe(accessToken);
+            expect(returnedUser.refreshToken).toBe(refreshToken);
+            expect(nock.isDone()).toBe(true);
+        });
     });
 
     describe('input validation tests', () => {
