@@ -798,6 +798,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note = note?.replace(/\n- Date\/Time: .*/, '');
         note = note?.replace(/\n- Duration: .*/, '');
         note = note?.replace(/\n- Call recording link: .*/, '');
+        note = note?.replace(/\n- Session Id: .*/, '');
         note = note?.replace(/- SalesOrderNoteUrl:.*SalesOrderId:.*\n?/g, '').trim();
         note = note?.replace(/- OpportunityNoteUrl:.*OpportunityId:.*\n?/g, '').trim();
         note = note?.replace("Sales Order Call Logs (Do Not Edit)", '').trim();
@@ -838,8 +839,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
     try {
+        console.log({ message: "composedLogDetails", composedLogDetails });
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let comments = callLogResponse.data.message;
@@ -869,20 +871,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             patchBody.startTime = startTimeSLot;
             patchBody.endTime = endTimeSlot;
         }
-        if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
-        if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
-        if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, title: subject }); }
-        if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime: callStartTime, timezoneOffset: user.timezoneOffset }); }
-        if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
-        if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
-        if (!!aiNote && (user.userSettings?.addCallLogAINote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-        if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
+
         let isMessageBodyTooLong = false;
-        if (!!transcript && (comments.length + transcript.length) > 3900) {
+        if (!!transcript && (composedLogDetails.length + transcript.length) > 3900) {
             isMessageBodyTooLong = true;
         }
-        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
-        patchBody.message = comments;
+        patchBody.message = composedLogDetails;
         const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             patchBody,
@@ -1328,19 +1322,6 @@ function netSuiteRestLetError(error, message) {
     return errorMessage || message;
 }
 
-function upsertCallAgentNote({ body, note }) {
-    if (!note) {
-        return body;
-    }
-    const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
-    if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Note: ${note}\n`);
-    }
-    else {
-        body += `- Note: ${note}\n`;
-    }
-    return body;
-}
 
 function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
     const salesOrderText = "Sales Order Call Logs (Do Not Edit)";
@@ -1366,115 +1347,6 @@ function upsertNetSuiteOpportunityNoteUrl({ body, opportunityNoteUrl, opportunit
         body = body.replace(opportunityNoteUrlRegex, `- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}\n`);
     } else {
         body += `\n- OpportunityNoteUrl: ${opportunityNoteUrl} OpportunityId: ${opportunityId}`;
-    }
-    return body;
-}
-
-function upsertCallResult({ body, result }) {
-    const resultRegex = RegExp('- Result: (.+?)\n');
-    if (resultRegex.test(body)) {
-        body = body.replace(resultRegex, `- Result: ${result}\n`);
-    } else {
-        body += `- Result: ${result}\n`;
-    }
-    return body;
-}
-
-function upsertCallSessionId({ body, id }) {
-    const sessionIdRegex = RegExp('- Session Id: (.+?)\n');
-    if (sessionIdRegex.test(body)) {
-        body = body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
-    } else {
-        body += `- Session Id: ${id}\n`;
-    }
-    return body;
-}
-
-function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('- Duration: (.+?)?\n');
-    if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
-    } else {
-        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
-    }
-    return body;
-}
-
-function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
-    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
-    if (phoneNumberRegex.test(body)) {
-        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
-    } else {
-        body += `- Contact Number: ${phoneNumber}\n`;
-    }
-    return body;
-}
-
-function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
-    if (!!recordingLink && recordingLinkRegex.test(body)) {
-        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}`);
-    } else if (recordingLink) {
-        // if not end with new line, add new line
-        if (body && !body.endsWith('\n')) {
-            body += '\n';
-        }
-        body += `- Call recording link: ${recordingLink}\n`;
-    }
-    return body;
-}
-
-function upsertCallSubject({ body, title }) {
-    const subjectRegex = RegExp('- Summary: (.+?)\n');
-    if (subjectRegex.test(body)) {
-        body = body.replace(subjectRegex, `- Summary: ${title}\n`);
-    } else {
-        body += `- Summary: ${title}\n`;
-    }
-    return body;
-}
-
-function upsertCallDateTime({ body, startTime, timezoneOffset }) {
-    const dateTimeRegex = RegExp('- Date/Time: (.+?)\n');
-    if (dateTimeRegex.test(body)) {
-        const updatedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
-        body = body.replace(dateTimeRegex, `- Date/Time: ${updatedDateTime}\n`);
-    } else {
-        body += `- Date/Time: ${moment(startTime).format('YYYY-MM-DD hh:mm:ss A')}\n`;
-    }
-    return body;
-}
-
-function upsertAiNote({ body, aiNote }) {
-    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
-    const clearedAiNote = aiNote.replace(/\n+$/, '');
-    if (aiNoteRegex.test(body)) {
-        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
-    } else {
-        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
-    }
-    return body;
-}
-
-function upsertTranscript({ body, transcript }) {
-    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
-    if (transcriptRegex.test(body)) {
-        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
-    } else {
-        body += `- Transcript:\n${transcript}\n--- END\n`;
-    }
-    try {
-        if (body.length > 3900) {
-            // Calculate available space for transcript
-            const bodyWithoutTranscript = body.replace(/- Transcript:[\s\S]*?--- END\n?/, '');
-            const availableSpace = 3900 - bodyWithoutTranscript.length - '- Transcript:\n\n--- END\n'.length - 'Transcript too large. To view the whole transcript, Goto Communictaion and open attach file.\n'.length;
-            // Truncate transcript and add message
-            const truncatedTranscript = transcript.substring(0, availableSpace) + '\n\nTranscript too large. To view the whole transcript, Goto Communictaion and open attach file.';
-            body = bodyWithoutTranscript + `- Transcript:\n${truncatedTranscript}\n--- END\n`;
-        }
-
-    } catch (error) {
-        console.log({ m: "Error in upsertTranscript" });
     }
     return body;
 }

@@ -128,16 +128,16 @@ async function composeCallLog(params) {
 
 function upsertCallAgentNote({ body, note, format }) {
     if (!note) return body;
-
+    console.log({ m: "Agent Note Format", format });
     if (format === FORMAT_TYPES.HTML) {
         // HTML format doesn't have a specific agent note pattern in the examples
         // It's usually just prepended to the body
         return `${note}\n${body}`;
     } else {
-        // Plain text format
-        const noteRegex = /- (?:Note|Agent note): ([\s\S]+?)\n/;
+        // Plain text format - FIXED REGEX
+        const noteRegex = /- (?:Note|Agent note): ([\s\S]*?)(?=\n-|\n\n|$)/;
         if (noteRegex.test(body)) {
-            return body.replace(noteRegex, `- Note: ${note}\n`);
+            return body.replace(noteRegex, `- Note: ${note}`);
         } else {
             return body + `- Note: ${note}\n`;
         }
