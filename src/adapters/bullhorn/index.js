@@ -642,7 +642,7 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -683,21 +683,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    let comments = '';;
-    if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
-    comments += '<b>Call details</b><ul>';
-    if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
-    if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
-    if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
-    if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
-    comments += '</ul>';
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
+    console.log({ m: "Bullhorn createCallLog composedLogDetails", composedLogDetails });
     const putBody = {
-        comments,
+        comments: composedLogDetails,
         personReference: {
             id: contactInfo.id
         },
@@ -731,6 +719,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         extraDataTracking.ratelimitReset = addLogRes.headers['ratelimit-reset'];
     }
     catch (e) {
+        console.log({ m: "Bullhorn createCallLog error", e });
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             addLogRes = await axios.put(
@@ -755,7 +744,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};;
@@ -786,17 +775,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
-    let comments = getLogRes.data.data.comments;
-
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
-    if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
     // case: reassign to user
     let assigneeId = null;
@@ -822,9 +800,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             console.log('Error getting user data from phone number', e);
         }
     }
+    console.log({ m: "composedLogDetails", composedLogDetails });
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments,
+        comments: composedLogDetails,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
