@@ -135,7 +135,7 @@ function upsertCallAgentNote({ body, note, format }) {
         return `${note}\n${body}`;
     } else {
         // Plain text format - FIXED REGEX
-        const noteRegex = /- (?:Note|Agent note): ([\s\S]*?)(?=\n-|\n\n|$)/;
+        const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n-|\n\n|$)/;
         if (noteRegex.test(body)) {
             return body.replace(noteRegex, `- Note: ${note}`);
         } else {
