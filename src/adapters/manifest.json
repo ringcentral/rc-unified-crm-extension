@@ -1269,7 +1269,7 @@
                 }, {
                     "const": "apiPasswordHelpText",
                     "title": "Help",
-                    "description": "Enter your Bullhorn API username and password to ensure server-side logging continues to work even after your Bullhorn login session expires. The account should have permissions to access all contacts and to create, update, and assign notes.",
+                    "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
                     "type": "string",
                     "uiSchema": {
                         "ui:field": "admonition",
