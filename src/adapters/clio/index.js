@@ -315,7 +315,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id,
@@ -334,15 +334,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             id: user.id,
             type: 'User'
         }
-    let body = '\n';
-    if (user.userSettings?.addCallSessionId?.value ?? false) { body = upsertCallSessionId({ body, id: callLog.sessionId }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
-    if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
-    if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
-    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
+
 
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
@@ -351,7 +343,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
-            body,
+            body: composedLogDetails,
             type: 'PhoneCommunication',
             received_at: moment(callLog.startTime).toISOString(),
             senders: [sender],
@@ -382,7 +374,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             date: moment(callLog.startTime).toISOString(),
             type: 'TimeEntry',
             non_billable: additionalSubmission.nonBillable,
-            note: body
+            note: composedLogDetails
         }
     }
     const addTimerRes = await axios.post(
@@ -407,7 +399,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     let extraDataTracking = {};
     const getLogRes = await axios.get(
@@ -415,19 +407,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         {
             headers: { 'Authorization': authHeader }
         });
-    let logBody = getLogRes.data.data.body;
     let patchBody = {};
 
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
+
     patchBody = {
         data: {
-            body: logBody
+            body: composedLogDetails
         }
     }
     if (subject) { patchBody.data.subject = subject; }
@@ -444,7 +429,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const patchTimerBody = {
                 data: {
                     quantity: duration,
-                    note: logBody,
+                    note: composedLogDetails,
                 }
             }
             if (startTime) {
