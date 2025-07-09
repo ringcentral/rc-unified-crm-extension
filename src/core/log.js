@@ -106,7 +106,8 @@ async function createCallLog({ platform, userId, incomingData }) {
             startTime: callLog.startTime,
             duration: callLog.duration,
             result: callLog.result,
-            getTimezone
+            getTimezone,
+            platform
         });
 
         const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({

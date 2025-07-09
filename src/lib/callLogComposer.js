@@ -46,7 +46,8 @@ async function composeCallLog(params) {
         startTime,
         duration,
         result,
-        getTimezone
+        getTimezone,
+        platform
     } = params;
 
     let body = existingBody;
@@ -55,7 +56,9 @@ async function composeCallLog(params) {
     // Determine timezone handling
     let resolvedStartTime = startTime || callLog?.startTime;
     let timezoneOffset = user.timezoneOffset;
-
+    if (platform === 'redtail') {
+        timezoneOffset = userSettings?.redtailCustomTimezone?.value ?? 0;
+    }
     if (getTimezone && resolvedStartTime) {
         try {
             const timezone = await getTimezone();
@@ -220,8 +223,6 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, format }) {
     let formattedDateTime;
     if (typeof startTime === 'string') {
         formattedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
-    } else if (startTime._isAMomentObject) {
-        formattedDateTime = startTime.format('YYYY-MM-DD hh:mm:ss A');
     } else {
         formattedDateTime = moment(startTime).utcOffset(Number(timezoneOffset || 0)).format('YYYY-MM-DD hh:mm:ss A');
     }
