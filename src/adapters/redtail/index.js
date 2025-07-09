@@ -401,11 +401,13 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
         });
     const logBody = getLogRes.data.activity.description;
-    const note = logBody.match(/<br>(.+?)<br><br>/)?.length > 1 ? logBody.match(/<br>(.+?)<br><br>/)[1] : '';
+    // const note = logBody.match(/<br>(.+?)<br><br>/)?.length > 1 ? logBody.match(/<br>(.+?)<br><br>/)[1] : '';
+    const note = logBody.match(/<b>Agent notes<\/b><br>(.+?)<br><br>/s)?.[1] || '';
     return {
         callLogInfo: {
             subject: getLogRes.data.activity.subject,
             note,
+            fullBody: logBody,
             contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,
         }
     }

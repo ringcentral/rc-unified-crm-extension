@@ -573,7 +573,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.DETAILS.split('- Agent note: ')[1]?.split('\n')[0];
+    //const note = getLogRes.data.DETAILS.split('- Note: ')[1]?.split('\n')[0];
+    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- |$)/;
+    const note = getLogRes.data.DETAILS.match(noteRegex)?.[1]?.trim();
     const contactRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${getLogRes.data.LINKS[0].LINK_OBJECT_NAME}s/${getLogRes.data.LINKS[0].LINK_OBJECT_ID}`,
         {
@@ -590,6 +592,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     return {
         callLogInfo: {
             subject: getLogRes.data.TITLE,
+            fullBody: getLogRes?.data?.DETAILS,
             note,
             contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`,
             dispositions
