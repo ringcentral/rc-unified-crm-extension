@@ -445,27 +445,18 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    let body = '';
-    if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
-    if (user.userSettings?.addCallSessionId?.value ?? false) { body = upsertCallSessionId({ body, id: callLog.sessionId }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
-    if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
-    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
-
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
     const postBody = {
         TITLE: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        DETAILS: body,
+        DETAILS: composedLogDetails,
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
+    console.log({ m: "Insightly createCallLog postBody", URL: user.platformAdditionalInfo.apiUrl, version: process.env.INSIGHTLY_API_VERSION });
     const addLogRes = await axios.post(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         postBody,
@@ -483,6 +474,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             {
                 headers: { 'Authorization': authHeader }
             });
+        console.log({ m: "Insightly createCallLog composedLogDetails", composedLogDetails });
         if (additionalSubmission != null) {
             // add org link
             if (additionalSubmission.organization != null) {
@@ -544,26 +536,16 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
         {
             headers: { 'Authorization': authHeader }
         });
-    let logBody = getLogRes.data.DETAILS;
-
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
-
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
-        DETAILS: logBody,
+        DETAILS: composedLogDetails,
         TITLE: subject ? subject : getLogRes.data.TITLE,
         START_DATE_UTC: moment(startTime).utc(),
         END_DATE_UTC: moment(startTime).utc().add(duration, 'seconds')
