@@ -700,7 +700,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.data.body.split('- Note: ')[1]?.split('\n')[0];
+    //const note = getLogRes.data.data.body.split('- Note: ')[1]?.split('\n')[0];
+    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n-|\n\n|$)/;
+    const note = getLogRes.data.data.body.match(noteRegex)?.[1]?.trim();
     const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
         getLogRes.data.data.senders[0].id :
         getLogRes.data.data.receivers[0].id;
@@ -718,6 +720,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject: getLogRes.data.data.subject,
             note,
+            fullBody: getLogRes?.data?.data?.body,
             contactName: contactRes.data.data.name,
             dispositions: {
                 matters: getLogRes.data.data.matter?.id

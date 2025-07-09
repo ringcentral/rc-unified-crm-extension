@@ -1147,6 +1147,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject,
             note,
+            fullBody: logBody,
             contactName: `${contact.firstName} ${contact.lastName}`,
             dispositions: {
                 noteActions: action
