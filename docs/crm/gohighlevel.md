@@ -6,6 +6,12 @@ HighLevel is the all-in-one sales & marketing platform that agencies can white-l
 
 !!! warning "The HighLevel adapter is currently in beta. If you experience any diffculty, please reach out via the [App Connect community](https://community.ringcentral.com/groups/app-connect-22)"
 
+## Sign-up for the Beta
+
+The GoHighLevel integration will be a paid integration. For that reason, access to the beta currently requires people to sign-up with Loyally. Please contact Loyally to join the beta now. 
+
+[Sign-up for HighLevel Beta](https://loyally.eu/contact-us/){ .md-button .md-button--primary }
+
 ## Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 

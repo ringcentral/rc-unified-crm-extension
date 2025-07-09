@@ -43,9 +43,13 @@ Each CRM may have a slightly different approach in order to install the extensio
 
 * [Connect and setup Bullhorn](./crm/bullhorn.md)
 * [Connect and setup Clio](./crm/clio.md)
+* [Connect and setup Freshdesk](./crm/freshdesk.md)
 * [Connect and setup Insightly](./crm/insightly.md)
+* [Connect and setup GoHighLevel](./crm/gohighlevel.md)
+* [Connect and setup Google Sheets](./crm/google-sheets.md)
+* [Connect and setup NetSuite](./crm/netsuite.md)
 * [Connect and setup Pipedrive](./crm/pipedrive.md)
 * [Connect and setup Redtail CRM](./crm/redtail.md)
-* [Connect and setup NetSuite](./crm/netsuite.md)
+* [Connect and setup ServiceNow](./crm/servicenow.md)
 
 
