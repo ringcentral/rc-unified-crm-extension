@@ -10,7 +10,7 @@ HighLevel is the all-in-one sales & marketing platform that agencies can white-l
 
 The GoHighLevel integration will be a paid integration. For that reason, access to the beta currently requires people to sign-up with Loyally. Please contact Loyally to join the beta now. 
 
-[Sign-up for HighLevel Beta](https://loyally.eu/contact-us/){ .md-button .md-button--primary }
+[Sign-up for HighLevel Beta](https://buy.stripe.com/9B614n1OBgat8d701LdUY0X){ .md-button .md-button--primary }
 
 ## Install the extension
 
