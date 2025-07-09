@@ -341,7 +341,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
-    console.log({ user });
     let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
     const getLogRes = await axios.get(
@@ -587,6 +586,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             subject: getLogRes.data.data.subject,
             note,
             contactName,
+            fullBody: logBody,
             dispositions: {
                 deals: getLogRes.data.data.deal_id,
                 leads: getLogRes.data.data.lead_id

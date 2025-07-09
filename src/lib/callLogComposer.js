@@ -64,7 +64,6 @@ async function composeCallLog(params) {
             const timezone = await getTimezone();
             resolvedStartTime = moment(resolvedStartTime).tz(timezone);
         } catch (error) {
-            console.log('Error getting timezone, using default', error);
             resolvedStartTime = moment(resolvedStartTime);
         }
     } else if (resolvedStartTime) {
@@ -131,11 +130,15 @@ async function composeCallLog(params) {
 
 function upsertCallAgentNote({ body, note, format }) {
     if (!note) return body;
-    console.log({ m: "Agent Note Format", format });
     if (format === FORMAT_TYPES.HTML) {
-        // HTML format doesn't have a specific agent note pattern in the examples
-        // It's usually just prepended to the body
-        return `${note}\n${body}`;
+        // HTML format with proper Agent notes section handling
+        const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
+        if (noteRegex.test(body)) {
+            return body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
+        }
+        else {
+            return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
+        }
     } else {
         // Plain text format - FIXED REGEX
         const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n-|\n\n|$)/;
@@ -151,13 +154,13 @@ function upsertCallSessionId({ body, id, format }) {
     if (!id) return body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const idRegex = /<li><b>Session Id<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const idRegex = /<li><b>Session Id<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (idRegex.test(body)) {
             return body.replace(idRegex, (match, p1) =>
-                `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            return body + `<li><b>Session Id</b>: ${id}<li>`;
+            return body + `<li><b>Session Id</b>: ${id}</li>`;
         }
     } else {
         const sessionIdRegex = /- Session Id: (.+?)\n/;
@@ -173,13 +176,13 @@ function upsertCallSubject({ body, subject, format }) {
     if (!subject) return body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const subjectRegex = /<li><b>Summary<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const subjectRegex = /<li><b>Summary<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (subjectRegex.test(body)) {
             return body.replace(subjectRegex, (match, p1) =>
-                `<li><b>Summary</b>: ${subject}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>Summary</b>: ${subject}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            return body + `<li><b>Summary</b>: ${subject}<li>`;
+            return body + `<li><b>Summary</b>: ${subject}</li>`;
         }
     } else {
         const subjectRegex = /- Summary: (.+?)\n/;
@@ -198,13 +201,13 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, format }) {
     let result = body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const phoneNumberRegex = new RegExp(`<li><b>${label} phone number</b>: (.+?)(?:<li>|</ul>)`);
+        const phoneNumberRegex = new RegExp(`<li><b>${label} phone number</b>: (.+?)(?:<li>|</li>|</ul>)`);
         if (phoneNumberRegex.test(result)) {
             result = result.replace(phoneNumberRegex, (match, p1) =>
-                `<li><b>${label} phone number</b>: ${phoneNumber}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>${label} phone number</b>: ${phoneNumber}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            result += `<li><b>${label} phone number</b>: ${phoneNumber}<li>`;
+            result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
         }
     } else {
         const phoneNumberRegex = /- Contact Number: (.+?)\n/;
@@ -223,20 +226,21 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, format }) {
     let formattedDateTime;
     if (typeof startTime === 'string') {
         formattedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
+    } else if (moment.isMoment(startTime)) {
+        formattedDateTime = startTime.format('YYYY-MM-DD hh:mm:ss A');
     } else {
         formattedDateTime = moment(startTime).utcOffset(Number(timezoneOffset || 0)).format('YYYY-MM-DD hh:mm:ss A');
     }
-
     let result = body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const dateTimeRegex = /<li><b>Date\/time<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const dateTimeRegex = /<li><b>Date\/time<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (dateTimeRegex.test(result)) {
             result = result.replace(dateTimeRegex, (match, p1) =>
-                `<li><b>Date/time</b>: ${formattedDateTime}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>Date/time</b>: ${formattedDateTime}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            result += `<li><b>Date/time</b>: ${formattedDateTime}<li>`;
+            result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
         }
     } else {
         const dateTimeRegex = /- Date\/Time: (.+?)\n/;
@@ -256,13 +260,13 @@ function upsertCallDuration({ body, duration, format }) {
     let result = body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const durationRegex = /<li><b>Duration<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const durationRegex = /<li><b>Duration<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (durationRegex.test(result)) {
             result = result.replace(durationRegex, (match, p1) =>
-                `<li><b>Duration</b>: ${formattedDuration}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>Duration</b>: ${formattedDuration}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            result += `<li><b>Duration</b>: ${formattedDuration}<li>`;
+            result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
         }
     } else {
         const durationRegex = /- Duration: (.+?)\n/;
@@ -281,13 +285,13 @@ function upsertCallResult({ body, result, format }) {
     let bodyResult = body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const resultRegex = /<li><b>Result<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const resultRegex = /<li><b>Result<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (resultRegex.test(bodyResult)) {
             bodyResult = bodyResult.replace(resultRegex, (match, p1) =>
-                `<li><b>Result</b>: ${result}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                `<li><b>Result</b>: ${result}${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
             );
         } else {
-            bodyResult += `<li><b>Result</b>: ${result}<li>`;
+            bodyResult += `<li><b>Result</b>: ${result}</li>`;
         }
     } else {
         const resultRegex = /- Result: (.+?)\n/;
@@ -306,18 +310,18 @@ function upsertCallRecording({ body, recordingLink, format }) {
     let result = body;
 
     if (format === FORMAT_TYPES.HTML) {
-        const recordingLinkRegex = /<li><b>Call recording link<\/b>: (.+?)(?:<li>|<\/ul>)/;
+        const recordingLinkRegex = /<li><b>Call recording link<\/b>: (.+?)(?:<li>|<\/li>|<\/ul>)/;
         if (recordingLink) {
             if (recordingLinkRegex.test(result)) {
                 result = result.replace(recordingLinkRegex, (match, p1) =>
-                    `<li><b>Call recording link</b>: <a target="_blank" href="${recordingLink}">open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`
+                    `<li><b>Call recording link</b>: <a target="_blank" href="${recordingLink}">open</a>${p1.endsWith('</ul>') ? '</ul>' : '</li>'}`
                 );
             } else {
                 let text = '';
                 if (recordingLink.startsWith('http')) {
-                    text = `<li><b>Call recording link</b>: <a target="_blank" href="${recordingLink}">open</a><li>`;
+                    text = `<li><b>Call recording link</b>: <a target="_blank" href="${recordingLink}">open</a></li>`;
                 } else {
-                    text = '<li><b>Call recording link</b>: (pending...)<li>';
+                    text = '<li><b>Call recording link</b>: (pending...)</li>';
                 }
                 if (result.indexOf('</ul>') === -1) {
                     result += text;

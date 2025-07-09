@@ -350,7 +350,9 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader
                 });
                 // Extract existing body from the platform-specific response
-                if (getLogResult.callLogInfo?.note) {
+                if (getLogResult.callLogInfo?.fullBody) {
+                    existingBody = getLogResult.callLogInfo.fullBody;
+                } else if (getLogResult.callLogInfo?.note) {
                     existingBody = getLogResult.callLogInfo.note;
                 }
             } catch (error) {
