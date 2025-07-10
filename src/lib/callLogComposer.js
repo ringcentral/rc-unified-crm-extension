@@ -162,9 +162,10 @@ function upsertCallSessionId({ body, id, format }) {
             return body + `<li><b>Session Id</b>: ${id}</li>`;
         }
     } else {
-        const sessionIdRegex = /- Session Id: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const sessionIdRegex = /- Session Id: ([^\n-]+)(?=\n-|\n|$)/;
         if (sessionIdRegex.test(body)) {
-            return body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
+            return body.replace(sessionIdRegex, `- Session Id: ${id}`);
         } else {
             return body + `- Session Id: ${id}\n`;
         }
@@ -183,9 +184,10 @@ function upsertCallSubject({ body, subject, format }) {
             return body + `<li><b>Summary</b>: ${subject}</li>`;
         }
     } else {
-        const subjectRegex = /- Summary: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const subjectRegex = /- Summary: ([^\n-]+)(?=\n-|\n|$)/;
         if (subjectRegex.test(body)) {
-            return body.replace(subjectRegex, `- Summary: ${subject}\n`);
+            return body.replace(subjectRegex, `- Summary: ${subject}`);
         } else {
             return body + `- Summary: ${subject}\n`;
         }
@@ -207,9 +209,10 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, format }) {
             result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
         }
     } else {
-        const phoneNumberRegex = /- Contact Number: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const phoneNumberRegex = /- Contact Number: ([^\n-]+)(?=\n-|\n|$)/;
         if (phoneNumberRegex.test(result)) {
-            result = result.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
+            result = result.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}`);
         } else {
             result += `- Contact Number: ${phoneNumber}\n`;
         }
@@ -220,14 +223,19 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, format }) {
 function upsertCallDateTime({ body, startTime, timezoneOffset, format }) {
     if (!startTime) return body;
 
-    let formattedDateTime;
-    if (typeof startTime === 'string') {
-        formattedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
-    } else if (moment.isMoment(startTime)) {
-        formattedDateTime = startTime.format('YYYY-MM-DD hh:mm:ss A');
-    } else {
-        formattedDateTime = moment(startTime).utcOffset(Number(timezoneOffset || 0)).format('YYYY-MM-DD hh:mm:ss A');
+    // Simple approach: convert to moment and apply timezone offset
+    let momentTime = moment(startTime);
+    if (timezoneOffset) {
+        // Handle both string offsets ('+05:30') and numeric offsets (330 minutes or 5.5 hours)
+        if (typeof timezoneOffset === 'string' && timezoneOffset.includes(':')) {
+            // String format like '+05:30' or '-05:00'
+            momentTime = momentTime.utcOffset(timezoneOffset);
+        } else {
+            // Numeric format (minutes or hours)
+            momentTime = momentTime.utcOffset(Number(timezoneOffset));
+        }
     }
+    const formattedDateTime = momentTime.format('YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
     if (format === FORMAT_TYPES.HTML) {
@@ -239,9 +247,10 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, format }) {
             result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
         }
     } else {
-        const dateTimeRegex = /- Date\/Time: (.+?)\n/;
+        // Handle duplicated Date/Time entries and match complete date/time values
+        const dateTimeRegex = /(?:- Date\/Time: [^-]*(?:-[^-]*)*)+/;
         if (dateTimeRegex.test(result)) {
-            result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}\n`);
+            result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
         } else {
             result += `- Date/Time: ${formattedDateTime}\n`;
         }
@@ -264,9 +273,10 @@ function upsertCallDuration({ body, duration, format }) {
             result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
         }
     } else {
-        const durationRegex = /- Duration: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const durationRegex = /- Duration: ([^\n-]+)(?=\n-|\n|$)/;
         if (durationRegex.test(result)) {
-            result = result.replace(durationRegex, `- Duration: ${formattedDuration}\n`);
+            result = result.replace(durationRegex, `- Duration: ${formattedDuration}`);
         } else {
             result += `- Duration: ${formattedDuration}\n`;
         }
@@ -288,9 +298,10 @@ function upsertCallResult({ body, result, format }) {
             bodyResult += `<li><b>Result</b>: ${result}</li>`;
         }
     } else {
-        const resultRegex = /- Result: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const resultRegex = /- Result: ([^\n-]+)(?=\n-|\n|$)/;
         if (resultRegex.test(bodyResult)) {
-            bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}\n`);
+            bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}`);
         } else {
             bodyResult += `- Result: ${result}\n`;
         }
@@ -328,9 +339,10 @@ function upsertCallRecording({ body, recordingLink, format }) {
             }
         }
     } else {
-        const recordingLinkRegex = /- Call recording link: (.+?)\n/;
+        // More flexible regex that handles both with and without newlines
+        const recordingLinkRegex = /- Call recording link: ([^\n-]+)(?=\n-|\n|$)/;
         if (recordingLinkRegex.test(result)) {
-            result = result.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+            result = result.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}`);
         } else {
             if (result && !result.endsWith('\n')) {
                 result += '\n';

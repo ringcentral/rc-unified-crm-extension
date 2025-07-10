@@ -1,7 +1,7 @@
 /* eslint-disable no-control-regex */
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
@@ -25,8 +25,14 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         // We use UTC here for now
         const id = userInfoResponse.data.USER_ID.toString();
         const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-        const timezoneOffset = null;
+        let timezoneOffset = 0;
         const timezoneName = userInfoResponse.data.TIMEZONE_ID;
+        try {
+            const ianaTimeZone = getIanaTimeZone({ timeZone: timezoneName });
+            timezoneOffset = moment.tz(ianaTimeZone).utcOffset() / 60;
+        } catch (error) {
+            timezoneOffset = 0; // Default to UTC if conversion fails
+        }
         return {
             successful: true,
             platformUserInfo: {
@@ -893,6 +899,58 @@ function splitName(fullName) {
     const lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
     return { firstName, lastName };
 }
+
+function getIanaTimeZone({ timeZone }) {
+    // Map Windows timezone names to IANA timezone names
+    const windowsToIANA = {
+        'Dateline Standard Time': 'Etc/GMT+12',
+        'UTC-11': 'Etc/GMT+11',
+        'Hawaiian Standard Time': 'Pacific/Honolulu',
+        'Alaskan Standard Time': 'America/Anchorage',
+        'Pacific Standard Time': 'America/Los_Angeles',
+        'Pacific Daylight Time': 'America/Los_Angeles',
+        'Mountain Standard Time': 'America/Denver',
+        'Mountain Daylight Time': 'America/Denver',
+        'Central Standard Time': 'America/Chicago',
+        'Central Daylight Time': 'America/Chicago',
+        'Eastern Standard Time': 'America/New_York',
+        'Eastern Daylight Time': 'America/New_York',
+        'Atlantic Standard Time': 'America/Halifax',
+        'GMT Standard Time': 'Europe/London',
+        'Greenwich Standard Time': 'Atlantic/Reykjavik',
+        'Central Europe Standard Time': 'Europe/Berlin',
+        'Romance Standard Time': 'Europe/Paris',
+        'W. Europe Standard Time': 'Europe/Berlin',
+        'E. Europe Standard Time': 'Europe/Bucharest',
+        'Egypt Standard Time': 'Africa/Cairo',
+        'South Africa Standard Time': 'Africa/Johannesburg',
+        'FLE Standard Time': 'Europe/Kiev',
+        'Israel Standard Time': 'Asia/Jerusalem',
+        'Arabic Standard Time': 'Asia/Baghdad',
+        'Arab Standard Time': 'Asia/Riyadh',
+        'Russian Standard Time': 'Europe/Moscow',
+        'India Standard Time': 'Asia/Kolkata',
+        'Nepal Standard Time': 'Asia/Kathmandu',
+        'Bangladesh Standard Time': 'Asia/Dhaka',
+        'Myanmar Standard Time': 'Asia/Yangon',
+        'SE Asia Standard Time': 'Asia/Bangkok',
+        'China Standard Time': 'Asia/Shanghai',
+        'North Asia Standard Time': 'Asia/Krasnoyarsk',
+        'Tokyo Standard Time': 'Asia/Tokyo',
+        'Korea Standard Time': 'Asia/Seoul',
+        'AUS Eastern Standard Time': 'Australia/Sydney',
+        'E. Australia Standard Time': 'Australia/Brisbane',
+        'Tasmania Standard Time': 'Australia/Hobart',
+        'West Pacific Standard Time': 'Pacific/Port_Moresby',
+        'New Zealand Standard Time': 'Pacific/Auckland',
+        'UTC': 'Etc/UTC',
+        'GMT': 'Etc/UTC'
+    };
+    // Convert Windows timezone name to IANA if needed
+    const ianaTimeZone = windowsToIANA[timeZone] || timeZone;
+    return ianaTimeZone;
+}
+
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
