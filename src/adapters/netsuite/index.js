@@ -180,6 +180,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         const title = getLogRes.data.title;
         let sanitizedNote = sanitizeNote({ note });
         const isSalesOrderCallLogEnable = user.userSettings?.enableSalesOrderLogging?.value ?? false;
+        const isOpportunityCallLogEnable = user.userSettings?.enableOpportunityLogging?.value ?? false;
 
         // Handle Sales Order logging
         if (dispositions?.salesorder && isSalesOrderCallLogEnable) {
@@ -196,7 +197,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         }
 
         // Handle Opportunity logging
-        if (dispositions?.opportunity) {
+        if (dispositions?.opportunity && isOpportunityCallLogEnable) {
             sanitizedNote = await handleDispositionNote({
                 baseUrl,
                 authHeader,
@@ -212,7 +213,6 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         return { logId: existingCallLogId };
     } catch (error) {
         console.error('Error in upsertCallDisposition:', error);
-        throw error;
     }
 }
 
@@ -626,7 +626,7 @@ async function findContactWithName({ user, authHeader, name }) {
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
-    console.log({ message: "composedLogDetails", composedLogDetails });
+
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
@@ -653,7 +653,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             endTimeSlot = callEndTime.add(1, 'minutes').format('HH:mm');
         }
         let isMessageBodyTooLong = false;
-        if (!!transcript && (composedLogDetails.length + transcript.length) > 3900) {
+        if (!!transcript && composedLogDetails.length > 3400) {
+            composedLogDetails = truncateAiTranscript({ composedLogDetails, transcript });
             isMessageBodyTooLong = true;
         }
 
@@ -809,6 +810,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             callLogInfo: {
                 subject: getLogRes.data.title,
                 note,
+                fullBody: getLogRes?.data?.message,
                 additionalSubmission: {}
             },
             returnMessage: {
@@ -841,7 +843,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
     try {
-        console.log({ message: "composedLogDetails", composedLogDetails });
         const existingLogId = existingCallLog.thirdPartyLogId;
         const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
         let comments = callLogResponse.data.message;
@@ -873,7 +874,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
 
         let isMessageBodyTooLong = false;
-        if (!!transcript && (composedLogDetails.length + transcript.length) > 3900) {
+        if (!!transcript && (composedLogDetails.length) > 3400) {
+            composedLogDetails = truncateAiTranscript({ composedLogDetails, transcript });
             isMessageBodyTooLong = true;
         }
         patchBody.message = composedLogDetails;
@@ -1501,6 +1503,29 @@ async function attachFileWithPhoneCall({ callLogId, transcript, authHeader, user
             }
         );
     }
+}
+
+function truncateAiTranscript({ composedLogDetails, transcript }) {
+    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
+    if (transcriptRegex.test(composedLogDetails)) {
+        composedLogDetails = composedLogDetails.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
+    } else {
+        composedLogDetails += `- Transcript:\n${transcript}\n--- END\n`;
+    }
+    try {
+        if (composedLogDetails.length > 3400) {
+            // Calculate available space for transcript
+            const bodyWithoutTranscript = composedLogDetails.replace(/- Transcript:[\s\S]*?--- END\n?/, '');
+            const availableSpace = 3400 - bodyWithoutTranscript.length - '- Transcript:\n\n--- END\n'.length - 'Transcript too large. To view the whole transcript, Goto Communictaion and open attach file.\n'.length;
+            // Truncate transcript and add message
+            const truncatedTranscript = transcript.substring(0, availableSpace) + '\n\nTranscript too large. To view the whole transcript, Goto Communictaion and open attach file.';
+            composedLogDetails = bodyWithoutTranscript + `\n- Transcript:\n${truncatedTranscript}\n--- END\n`;
+        }
+
+    } catch (error) {
+        console.log({ m: "Error in upsertTranscript" });
+    }
+    return composedLogDetails;
 }
 
 exports.getAuthType = getAuthType;
