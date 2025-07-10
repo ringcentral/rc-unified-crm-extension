@@ -1,4 +1,4 @@
-/* eslint-disable no-control-regex */
+
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment-timezone');
@@ -736,91 +736,6 @@ async function getCallLog({ user, callLogId, authHeader }) {
         },
         extraDataTracking
     }
-}
-
-function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
-    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
-    if (phoneNumberRegex.test(body)) {
-        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
-    } else {
-        body += `- Contact Number: ${phoneNumber}\n`;
-    }
-    return body;
-}
-function upsertCallResult({ body, result }) {
-    const resultRegex = RegExp('- Result: (.+?)\n');
-    if (resultRegex.test(body)) {
-        body = body.replace(resultRegex, `- Result: ${result}\n`);
-    } else {
-        body += `- Result: ${result}\n`;
-    }
-    return body;
-}
-
-function upsertCallAgentNote({ body, note }) {
-    if (!note) {
-        return body;
-    }
-    const noteRegex = RegExp('- Note: ([\\s\\S]+?)\n');
-    if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Note: ${note}\n`);
-    }
-    else {
-        body += `- Note: ${note}\n`;
-    }
-    return body;
-}
-
-function upsertCallSessionId({ body, id }) {
-    const sessionIdRegex = RegExp('- Session Id: (.+?)\n');
-    if (sessionIdRegex.test(body)) {
-        body = body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
-    } else {
-        body += `- Session Id: ${id}\n`;
-    }
-    return body;
-}
-
-function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('- Duration: (.+?)?\n');
-    if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
-    } else {
-        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
-    }
-    return body;
-}
-
-
-function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
-    if (!!recordingLink && recordingLinkRegex.test(body)) {
-        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (recordingLink) {
-        body += `- Call recording link: ${recordingLink}\n`;
-    }
-    return body;
-}
-
-function upsertAiNote({ body, aiNote }) {
-    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
-    const clearedAiNote = aiNote.replace(/\n+$/, '');
-    if (aiNoteRegex.test(body)) {
-        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
-    } else {
-        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
-    }
-    return body;
-}
-
-function upsertTranscript({ body, transcript }) {
-    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
-    if (transcriptRegex.test(body)) {
-        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
-    } else {
-        body += `- Transcript:\n${transcript}\n--- END\n`;
-    }
-    return body;
 }
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
