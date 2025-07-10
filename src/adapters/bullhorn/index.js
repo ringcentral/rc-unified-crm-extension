@@ -671,6 +671,47 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
+async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
+    try {
+        const targetUserEmail = additionalSubmission.adminAssignedUserEmail;
+        const targetUserRcName = additionalSubmission.adminAssignedUserName;
+        let queryWhere = 'isDeleted=false';
+        if (targetUserEmail) {
+            queryWhere += ` AND email='${targetUserEmail}'`;
+        }
+        const searchParams = new URLSearchParams({
+            fields: 'id,firstName,lastName,email',
+            where: queryWhere
+        });
+        const userInfoResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            }
+        );
+        if (userInfoResponse?.data?.data?.length > 0) {
+            if (targetUserEmail) {
+                const targetUser = userInfoResponse.data.data.find(u => u.email === targetUserEmail);
+                if (targetUser) {
+                    return targetUser.id;
+                }
+            }
+            if (targetUserRcName) {
+                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
+                if (targetUser) {
+                    return targetUser.id;
+                }
+            }
+        }
+    }
+    catch (e) {
+        console.log('Error getting user data from phone number', e && e.response && e.response.status);
+    }
+    return null;
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
@@ -688,27 +729,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         }
 
-        if (!assigneeId) {
-            try {
-                const userInfoResponse = await axios.get(
-                    `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
-                    {
-                        headers: {
-                            BhRestToken: user.platformAdditionalInfo.bhRestToken
-                        }
-                    }
-                );
-                if (userInfoResponse?.data?.data?.length > 0) {
-                    const targetUserRcName = additionalSubmission.adminAssignedUserName;
-                    const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
-                    if (targetUser) {
-                        assigneeId = targetUser.id;
-                    }
-                }
-            }
-            catch (e) {
-                console.log('Error getting user data from phone number', e);
-            }
+        if (!assigneeId && (
+            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
+        )) {
+            assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
@@ -829,27 +853,12 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
     // case: reassign to user
     let assigneeId = null;
-    if (additionalSubmission?.isAssignedToUser) {
-        try {
-            const userInfoResponse = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                }
-            );
-            if (userInfoResponse?.data?.data?.length > 0) {
-                const targetUserRcName = additionalSubmission.adminAssignedUserName;
-                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
-                if (targetUser) {
-                    assigneeId = targetUser.id;
-                }
-            }
-        }
-        catch (e) {
-            console.log('Error getting user data from phone number', e);
-        }
+    if (
+        additionalSubmission?.isAssignedToUser && (
+            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
+        )
+    ) {
+        assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
