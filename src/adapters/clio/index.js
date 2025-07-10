@@ -1,7 +1,7 @@
 /* eslint-disable no-control-regex */
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('../../lib/util');
@@ -54,7 +54,15 @@ async function getUserInfo({ authHeader, hostname }) {
         const id = userInfoResponse.data.data.id.toString();
         const name = userInfoResponse.data.data.name;
         const timezoneName = userInfoResponse.data.data.time_zone;
-        const timezoneOffset = 0;
+        // Convert timezone name to offset in minutes (e.g., "America/New_York" -> -300 or -240 depending on DST)
+        let timezoneOffset = 0;
+        try {
+            if (timezoneName) {
+                timezoneOffset = moment.tz(timezoneName).utcOffset() / 60;
+            }
+        } catch (error) {
+            timezoneOffset = 0; // Default to UTC if conversion fails
+        }
         return {
             successful: true,
             platformUserInfo: {
