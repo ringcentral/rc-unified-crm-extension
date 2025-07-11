@@ -200,6 +200,9 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
+    if (user.userSettings?.redtailCustomTimezone?.value ?? true) {
+        composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callLog.startTime, user });
+    }
     const postBody = {
         subject,
         description: composedLogDetails,
@@ -265,6 +268,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let putBody = {};
     if (subject) {
         putBody.subject = subject;
+    }
+    if (user.userSettings?.redtailCustomTimezone?.value ?? true) {
+        composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: startTime, user });
     }
     putBody.description = composedLogDetails;
     putBody.start_date = moment(startTime).utc().toISOString();
@@ -454,6 +460,21 @@ async function updateCategoryToUserSetting({ user, authHeader }) {
     await user.update({
         userSettings: updatedSettings
     });
+}
+
+function overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime, user }) {
+    const timezoneOffset = user.userSettings.redtailCustomTimezone.value;
+    const adjustedTime = moment(startTime).utcOffset(Number(timezoneOffset));
+    const formattedTime = adjustedTime.format('YYYY-MM-DD hh:mm:ss A');
+    const dateTimeRegex = /<li><b>Date\/[Tt]ime<\/b>:\s*[^<]+<\/li>/i;
+    if (dateTimeRegex.test(composedLogDetails)) {
+        const replaceRegex = /(<li><b>Date\/[Tt]ime<\/b>:\s*)[^<]+(<\/li>)/i;
+        composedLogDetails = composedLogDetails.replace(
+            replaceRegex,
+            `$1${formattedTime}$2`
+        );
+    }
+    return composedLogDetails;
 }
 
 exports.getAuthType = getAuthType;
