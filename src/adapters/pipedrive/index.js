@@ -197,7 +197,7 @@ async function findContactWithName({ user, authHeader, name }) {
 
     const matchedContactInfo = [];
     for (const person of personInfo.data.data.items) {
-        console.log({ Item: person.item })
+        // console.log({ Item: person.item })
         const dealsResponse = await axios.get(
             `https://${user.hostname}/api/v2/deals?person_id=${person.item.id}&&status=open`,
             {
@@ -270,6 +270,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 }
 
 function secondsToHoursMinutesSecondsInPipedriveFormat(seconds) {
+    if (typeof seconds !== 'number') {
+        return '00:00';
+    }
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60) + 1;
 
@@ -372,6 +375,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
     if (subject) {
         patchBody.subject = subject;
+    }
+    if (duration) {
+        patchBody.duration = secondsToHoursMinutesSecondsInPipedriveFormat(duration);
     }
 
     const patchLogRes = await axios.patch(
