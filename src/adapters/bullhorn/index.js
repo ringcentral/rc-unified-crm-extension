@@ -922,7 +922,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    console.log({ m: "Bullhorn createCallLog composedLogDetails", composedLogDetails });
     const putBody = {
         comments: composedLogDetails,
         personReference: {
@@ -958,7 +957,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         extraDataTracking.ratelimitReset = addLogRes.headers['ratelimit-reset'];
     }
     catch (e) {
-        console.log({ m: "Bullhorn createCallLog error", e });
         if (isAuthError(e.response.status)) {
             user = await refreshSessionToken(user);
             addLogRes = await axios.put(
