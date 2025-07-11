@@ -657,8 +657,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             composedLogDetails = truncateAiTranscript({ composedLogDetails, transcript });
             isMessageBodyTooLong = true;
         }
-
-
+        if (user.userSettings?.addCallLogDateTime?.value ?? true) {
+            composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callStartTime });
+        }
         let extraDataTracking = {
             withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
             withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
@@ -877,6 +878,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         if (!!transcript && (composedLogDetails.length) > 3400) {
             composedLogDetails = truncateAiTranscript({ composedLogDetails, transcript });
             isMessageBodyTooLong = true;
+        }
+        if (user.userSettings?.addCallLogDateTime?.value ?? true) {
+            composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callStartTime });
         }
         patchBody.message = composedLogDetails;
         const patchLogRes = await axios.patch(
@@ -1528,6 +1532,18 @@ function truncateAiTranscript({ composedLogDetails, transcript }) {
     return composedLogDetails;
 }
 
+async function overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime }) {
+    try {
+        const formattedDateTime = moment(startTime).format('YYYY-MM-DD hh:mm:ss A');
+        const dateTimeRegex = /^- Date\/Time:.*$/m;
+        if (dateTimeRegex.test(composedLogDetails)) {
+            composedLogDetails = composedLogDetails.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
+        }
+    } catch (error) {
+        console.log({ message: "Error in overrideDateTimeInComposedLogDetails" });
+    }
+    return composedLogDetails;
+}
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
