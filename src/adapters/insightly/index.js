@@ -462,7 +462,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
-    console.log({ m: "Insightly createCallLog postBody", URL: user.platformAdditionalInfo.apiUrl, version: process.env.INSIGHTLY_API_VERSION });
     const addLogRes = await axios.post(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         postBody,
@@ -480,7 +479,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             {
                 headers: { 'Authorization': authHeader }
             });
-        console.log({ m: "Insightly createCallLog composedLogDetails", composedLogDetails });
         if (additionalSubmission != null) {
             // add org link
             if (additionalSubmission.organization != null) {
