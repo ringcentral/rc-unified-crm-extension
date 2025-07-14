@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.5.7:
+
+- New: Bullhorn admin users can submit API username and password to avoid Bullhorn session expired in server side logging
+- New: Bullhorn server side logging supports to assign call notes to bullhorn user by RingCentral users' email mapping
+- Better: Message logs within the CRM are now consistently displayed in chronological order
+- Better: Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers.
+- Fix: wrong alert message when user click enter button in contact searching page
+- Fix: PipeDrive server side auto logging has 2 minutes delay
+
 ## 1.5.6:
 
 - New: Users can now log messages in Google Sheets. A new sheet titled "Message Logs" will be created for that.
@@ -7,8 +16,6 @@
 - Better: Improve user settings presentation
 - Fix: Bullhorn retroactive call log mistakenly putting 'pending note...' in Note Action
 - Fix: AI notes are now attached when doing retroactive call logging
-- Better: Message logs within the CRM are now consistently displayed in chronological order
-- Better: Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers.
 
 ## 1.5.5:
 
