@@ -27,6 +27,10 @@ jest.spyOn(console, 'error').mockImplementation(() => {});
 // Reset mocks before each test
 beforeEach(() => {
     jest.clearAllMocks();
+    // Explicitly reset the Lock model mocks
+    Lock.get.mockReset();
+    Lock.create.mockReset();
+    Lock.delete.mockReset();
     nock.cleanAll();
     // Reset environment variable
     delete process.env.USE_TOKEN_REFRESH_LOCK;
