@@ -857,48 +857,7 @@ async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
     return null;
 }
 
-async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
-    try {
-        const targetUserEmail = additionalSubmission.adminAssignedUserEmail;
-        const targetUserRcName = additionalSubmission.adminAssignedUserName;
-        let queryWhere = 'isDeleted=false';
-        if (targetUserEmail) {
-            queryWhere += ` AND email='${targetUserEmail}'`;
-        }
-        const searchParams = new URLSearchParams({
-            fields: 'id,firstName,lastName,email',
-            where: queryWhere
-        });
-        const userInfoResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            }
-        );
-        if (userInfoResponse?.data?.data?.length > 0) {
-            if (targetUserEmail) {
-                const targetUser = userInfoResponse.data.data.find(u => u.email === targetUserEmail);
-                if (targetUser) {
-                    return targetUser.id;
-                }
-            }
-            if (targetUserRcName) {
-                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
-                if (targetUser) {
-                    return targetUser.id;
-                }
-            }
-        }
-    }
-    catch (e) {
-        console.log('Error getting user data from phone number', e && e.response && e.response.status);
-    }
-    return null;
-}
-
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
