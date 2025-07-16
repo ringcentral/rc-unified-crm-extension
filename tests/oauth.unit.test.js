@@ -2,6 +2,7 @@ const { checkAndRefreshAccessToken } = require('../src/lib/oauth');
 const { UserModel } = require('../src/models/userModel');
 const { Lock } = require('../src/models/dynamo/lockSchema');
 const nock = require('nock');
+const { encode } = require('../src/lib/encode');
 
 // Mock the Lock model
 jest.mock('../src/models/dynamo/lockSchema', () => ({
@@ -450,7 +451,9 @@ describe('oauth manage', () => {
                     restUrl: 'https://rest.bullhorn.com',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
-                    loginUrl: 'https://auth.bullhorn.com'
+                    loginUrl: 'https://auth.bullhorn.com',
+                    encodedApiPassword: encode('testpass'),
+                    encodedApiUsername: encode('testuser')
                 }
             });
 
@@ -464,14 +467,6 @@ describe('oauth manage', () => {
                 .post('/token')
                 .query(true)
                 .reply(400, 'Bad Request');
-
-            // Mock platform module for password auth
-            jest.doMock('../src/adapters/bullhorn', () => ({
-                getServerLoggingSettings: jest.fn().mockResolvedValue({
-                    apiUsername: 'testuser',
-                    apiPassword: 'testpass'
-                })
-            }));
 
             // Mock password authorization flow
             nock('https://auth.bullhorn.com')
@@ -526,7 +521,9 @@ describe('oauth manage', () => {
                     restUrl: 'https://rest.bullhorn.com',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
-                    loginUrl: 'https://auth.bullhorn.com'
+                    loginUrl: 'https://auth.bullhorn.com',
+                    encodedApiPassword: encode('testpass'),
+                    encodedApiUsername: encode('testuser')
                 }
             });
 
@@ -540,14 +537,6 @@ describe('oauth manage', () => {
                 .post('/token')
                 .query(true)
                 .reply(400, 'Bad Request');
-
-            // Mock platform module for password auth
-            jest.doMock('../src/adapters/bullhorn', () => ({
-                getServerLoggingSettings: jest.fn().mockResolvedValue({
-                    apiUsername: 'testuser',
-                    apiPassword: 'testpass'
-                })
-            }));
 
             // Mock password authorization failure - missing location header
             nock('https://auth.bullhorn.com')
@@ -587,7 +576,9 @@ describe('oauth manage', () => {
                     restUrl: 'https://rest.bullhorn.com',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
-                    loginUrl: 'https://auth.bullhorn.com'
+                    loginUrl: 'https://auth.bullhorn.com',
+                    encodedApiPassword: encode('testpass'),
+                    encodedApiUsername: encode('testuser')
                 }
             });
 
@@ -601,14 +592,6 @@ describe('oauth manage', () => {
                 .post('/token')
                 .query(true)
                 .reply(400, 'Bad Request');
-
-            // Mock platform module for password auth
-            jest.doMock('../src/adapters/bullhorn', () => ({
-                getServerLoggingSettings: jest.fn().mockResolvedValue({
-                    apiUsername: 'testuser',
-                    apiPassword: 'testpass'
-                })
-            }));
 
             // Mock password authorization failure - redirect without code parameter
             nock('https://auth.bullhorn.com')
@@ -660,13 +643,6 @@ describe('oauth manage', () => {
                 .post('/token')
                 .query(true)
                 .reply(400, 'Bad Request');
-
-            // Mock platform module with no credentials
-            jest.doMock('../src/adapters/bullhorn', () => ({
-                getServerLoggingSettings: jest.fn().mockResolvedValue({
-                    // No apiUsername or apiPassword
-                })
-            }));
 
             // Act
             const returnedUser = await checkAndRefreshAccessToken({}, user);
