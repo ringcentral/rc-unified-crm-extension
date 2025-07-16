@@ -14,6 +14,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "pipedrive.com",
             "name": "pipedrive",
+            "logFormat": "html",
             "embedUrls": [
                 "https://*.pipedrive.com/*"
             ],
@@ -250,6 +251,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "insightly.com",
             "name": "insightly",
+            "logFormat": "plainText",
             "embedUrls": [
                 "https://*.insightly.com/*"
             ],
@@ -534,6 +536,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.clio.com",
             "name": "clio",
+            "logFormat": "plainText",
             "embedUrls": [
                 "https://*.clio.com/*"
             ],
@@ -804,6 +807,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "redtailtechnology.com",
             "name": "redtail",
+            "logFormat": "html",
             "embedUrls": [
                 "https://*.redtailtechnology.com/*"
             ],
@@ -1248,6 +1252,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "app.bullhornstaffing.com",
             "name": "bullhorn",
+            "logFormat": "html",
             "embedUrls": [
                 "https://*.bullhornstaffing.com/*"
             ],
@@ -1581,6 +1586,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.app.netsuite.com/app*",
             "name": "netsuite",
+            "logFormat": "plainText",
             "embedUrls": [
                 "https://*.app.netsuite.com/*"
             ],
@@ -1902,6 +1908,7 @@
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "docs.google.com/spreadsheets",
             "name": "googleSheets",
+            "logFormat": "plainText",
             "embedUrls": [
                 "https://docs.google.com/*"
             ],

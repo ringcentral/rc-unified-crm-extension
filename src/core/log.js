@@ -4,6 +4,7 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
+const { composeCallLog, getLogFormatType, FORMAT_TYPES } = require('../lib/callLogComposer');
 
 async function createCallLog({ platform, userId, incomingData }) {
     try {
@@ -70,7 +71,39 @@ async function createCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript });
+
+        // Compose call log details centrally
+        const logFormat = getLogFormatType(platform);
+        let composedLogDetails = '';
+        if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML) {
+            composedLogDetails = await composeCallLog({
+                logFormat,
+                callLog,
+                contactInfo,
+                user,
+                note,
+                aiNote,
+                transcript,
+                recordingLink: callLog.recording?.link,
+                subject: callLog.customSubject,
+                startTime: callLog.startTime,
+                duration: callLog.duration,
+                result: callLog.result,
+                platform
+            });
+        }
+
+        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
+            user,
+            contactInfo,
+            authHeader,
+            callLog,
+            note,
+            additionalSubmission,
+            aiNote,
+            transcript,
+            composedLogDetails
+        });
         if (logId) {
             await CallLogModel.create({
                 id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
@@ -132,6 +165,12 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         let logs = [];
         let returnMessage = null;
         let extraDataTracking = {};;
+
+        // Handle undefined or null sessionIds
+        if (!sessionIds) {
+            return { successful: false, message: `No session IDs provided` };
+        }
+
         let sessionIdsArray = sessionIds.split(',');
         if (sessionIdsArray.length > 5) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
@@ -264,6 +303,49 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
+            // Compose updated call log details centrally
+            const logFormat = getLogFormatType(platform);
+            let composedLogDetails = '';
+            if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML) {
+                // Get existing log details first (for updates we need to compose on top of existing content)
+                let existingBody = '';
+                try {
+                    const getLogResult = await platformModule.getCallLog({
+                        user,
+                        callLogId: existingCallLog.thirdPartyLogId,
+                        authHeader
+                    });
+                    // Extract existing body from the platform-specific response
+                    if (getLogResult.callLogInfo?.fullBody) {
+                        existingBody = getLogResult.callLogInfo.fullBody;
+                    } else if (getLogResult.callLogInfo?.note) {
+                        existingBody = getLogResult.callLogInfo.note;
+                    }
+                } catch (error) {
+                    console.log('Error getting existing log details, proceeding with empty body', error);
+                }
+                composedLogDetails = await composeCallLog({
+                    logFormat,
+                    existingBody,
+                    callLog: {
+                        sessionId: existingCallLog.sessionId,
+                        startTime: incomingData.startTime,
+                        duration: incomingData.duration,
+                        result: incomingData.result
+                    },
+                    contactInfo: null, // Not needed for updates
+                    user,
+                    note: incomingData.note,
+                    aiNote: incomingData.aiNote,
+                    transcript: incomingData.transcript,
+                    recordingLink: incomingData.recordingLink,
+                    subject: incomingData.subject,
+                    startTime: incomingData.startTime,
+                    duration: incomingData.duration,
+                    result: incomingData.result,
+                });
+            }
+
             const { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
                 user,
                 existingCallLog,
@@ -277,7 +359,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 result: incomingData.result,
                 aiNote: incomingData.aiNote,
                 transcript: incomingData.transcript,
-                additionalSubmission: incomingData.additionalSubmission
+                additionalSubmission: incomingData.additionalSubmission,
+                composedLogDetails
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }

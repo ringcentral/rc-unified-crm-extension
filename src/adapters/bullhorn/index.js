@@ -857,7 +857,7 @@ async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
     return null;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -881,21 +881,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
-    let comments = '';;
-    if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
-    comments += '<b>Call details</b><ul>';
-    if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
-    if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
-    if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
-    if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
-    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink: callLog.recording.link }); }
-    comments += '</ul>';
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
     const putBody = {
-        comments,
+        comments: composedLogDetails,
         personReference: {
             id: contactInfo.id
         },
@@ -953,7 +940,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};;
@@ -984,17 +971,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
-    let comments = getLogRes.data.data.comments;
-
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
-    if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { comments = upsertCallResult({ body: comments, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { comments = upsertCallRecording({ body: comments, recordingLink }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
     // case: reassign to user
     let assigneeId = null;
@@ -1007,7 +983,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments,
+        comments: composedLogDetails,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
@@ -1351,6 +1327,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject,
             note,
+            fullBody: logBody,
             contactName: `${contact.firstName} ${contact.lastName}`,
             dispositions: {
                 noteActions: action
@@ -1375,134 +1352,6 @@ async function refreshSessionToken(user) {
 
 function isAuthError(statusCode) {
     return statusCode >= 400 && statusCode < 500;
-}
-
-function upsertCallAgentNote({ body, note }) {
-    if (!note) {
-        return body;
-    }
-    const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
-    if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
-    }
-    else {
-        body = `<b>Agent notes</b><br>${note}<br><br>` + body;
-    }
-    return body;
-}
-
-function upsertCallSessionId({ body, id }) {
-    const idRegex = RegExp('<li><b>Session Id</b>: (.+?)(?:<li>|</ul>)');
-    if (idRegex.test(body)) {
-        body = body.replace(idRegex, (match, p1) => `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>Session Id</b>: ${id}<li>`;
-    }
-    return body;
-}
-
-function upsertCallSubject({ body, subject }) {
-    const subjectRegex = RegExp('<li><b>Summary</b>: (.+?)(?:<li>|</ul>)');
-    if (subjectRegex.test(body)) {
-        body = body.replace(subjectRegex, (match, p1) => `<li><b>Summary</b>: ${subject}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>Summary</b>: ${subject}<li>`;
-    }
-    return body;
-}
-
-function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
-    const phoneNumberRegex = RegExp(`<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: (.+?)(?:<li>|</ul>)`);
-    if (phoneNumberRegex.test(body)) {
-        body = body.replace(phoneNumberRegex, (match, p1) => `<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${phoneNumber}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>${direction === 'Outbound' ? 'Recipient' : 'Caller'} phone number</b>: ${phoneNumber}<li>`;
-    }
-    return body;
-}
-
-function upsertCallDateTime({ body, startTime, timezoneOffset }) {
-    const dateTimeRegex = RegExp('<li><b>Date/time</b>: (.+?)(?:<li>|</ul>)');
-    if (dateTimeRegex.test(body)) {
-        const updatedDateTime = moment(startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A');
-        body = body.replace(dateTimeRegex, (match, p1) => `<li><b>Date/time</b>: ${updatedDateTime}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>Date/time</b>: ${moment(startTime).utcOffset(Number(timezoneOffset)).format('YYYY-MM-DD hh:mm:ss A')}<li>`;
-    }
-    return body;
-}
-
-function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('<li><b>Duration</b>: (.+?)(?:<li>|</ul>)');
-    if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, (match, p1) => `<li><b>Duration</b>: ${secondsToHoursMinutesSeconds(duration)}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>Duration</b>: ${secondsToHoursMinutesSeconds(duration)}<li>`;
-    }
-    return body;
-}
-
-function upsertCallResult({ body, result }) {
-    const resultRegex = RegExp('<li><b>Result</b>: (.+?)(?:<li>|</ul>)');
-    if (resultRegex.test(body)) {
-        body = body.replace(resultRegex, (match, p1) => `<li><b>Result</b>: ${result}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-    } else {
-        body += `<li><b>Result</b>: ${result}<li>`;
-    }
-    return body;
-}
-
-function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = RegExp('<li><b>Call recording link</b>: (.+?)(?:<li>|</ul>)');
-    if (recordingLink) {
-        if (recordingLinkRegex.test(body)) {
-            body = body.replace(recordingLinkRegex, (match, p1) => `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a>${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
-        }
-        else {
-            let text = '';
-            // a real link
-            if (recordingLink.startsWith('http')) {
-                text = `<li><b>Call recording link</b>: <a target="_blank" href=${recordingLink}>open</a><li>`;
-            } else {
-                // placeholder
-                text = '<li><b>Call recording link</b>: (pending...)<li>';
-            }
-            if (body.indexOf('</ul>') === -1) {
-                body += text;
-            } else {
-                body = body.replace('</ul>', `${text}</ul>`);
-            }
-        }
-    }
-    return body;
-}
-
-function upsertAiNote({ body, aiNote }) {
-    if (!aiNote) {
-        return body;
-    }
-    const formattedAiNote = aiNote.replace(/\n+$/, '').replace(/(?:\r\n|\r|\n)/g, '<br>');
-    const aiNoteRegex = RegExp('<div><b>AI Note</b><br>(.+?)</div>');
-    if (aiNoteRegex.test(body)) {
-        body = body.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}</div>`);
-    } else {
-        body += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
-    }
-    return body;
-}
-
-function upsertTranscript({ body, transcript }) {
-    if (!transcript) {
-        return body;
-    }
-    const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
-    const transcriptRegex = RegExp('<div><b>Transcript</b><br>(.+?)</div>');
-    if (transcriptRegex.test(body)) {
-        body = body.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
-    } else {
-        body += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
-    }
-    return body;
 }
 
 exports.getAuthType = getAuthType;
