@@ -21,7 +21,7 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const dynamoose = require('dynamoose');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
-const { truncate } = require('fs');
+
 let packageJson = null;
 try {
     packageJson = require('./package.json');
