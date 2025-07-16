@@ -399,10 +399,7 @@ function upsertTranscript({ body, transcript, logFormat }) {
 function getLogFormatType(platform) {
     const manifest = require('../adapters/manifest.json');
     const platformConfig = manifest.platforms?.[platform];
-    return platformConfig?.logFormat || FORMAT_TYPES.PLAIN_TEXT;
-
-    // const htmlPlatforms = ['pipedrive', 'bullhorn', 'redtail'];
-    // return htmlPlatforms.includes(platform) ? FORMAT_TYPES.HTML : FORMAT_TYPES.PLAIN_TEXT;
+    return platformConfig?.logFormat;
 }
 
 /**
