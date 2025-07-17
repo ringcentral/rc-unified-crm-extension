@@ -1,10 +1,11 @@
-const Op = require('sequelize').Op;
+// const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
-const { MessageLogModel } = require('../models/messageLogModel');
+// const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
-const userCore = require('../core/user');
+// const userCore = require('../handlers/user');
 const errorMessage = require('../lib/generalErrorMessage');
+const adapterRegistry = require('../adapter/registry');
 
 async function upsertCallDisposition({ platform, userId, sessionId, dispositions, additionalSubmission, userSettings }) {
     try {
@@ -34,7 +35,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
                 }
             }
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -125,7 +126,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
 //                 }
 //             }
 //         }
-//         const platformModule = require(`../adapters/${platform}`);
+//         const platformModule = adapterRegistry.getAdapter(platform);
 //         const authType = platformModule.getAuthType();
 //         let authHeader = '';
 //         switch (authType) {

@@ -5,6 +5,7 @@ const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog, getLogFormatType, FORMAT_TYPES } = require('../lib/callLogComposer');
+const adapterRegistry = require('../adapter/registry');
 
 async function createCallLog({ platform, userId, incomingData }) {
     try {
@@ -34,7 +35,7 @@ async function createCallLog({ platform, userId, incomingData }) {
                 }
             };
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         const note = incomingData.note;
@@ -176,7 +177,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
         }
         if (requireDetails) {
-            const platformModule = require(`../adapters/${platform}`);
+            const platformModule = adapterRegistry.getAdapter(platform);
             const authType = platformModule.getAuthType();
             let authHeader = '';
             switch (authType) {
@@ -285,7 +286,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             }
         });
         if (existingCallLog) {
-            const platformModule = require(`../adapters/${platform}`);
+            const platformModule = adapterRegistry.getAdapter(platform);
             let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
@@ -427,7 +428,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
             }
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
         let user = await UserModel.findByPk(userId);

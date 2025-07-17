@@ -4,15 +4,10 @@ const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { parse } = require('path');
-const { getTimeZone } = require('../../lib/util');
-const { get } = require('shortid/lib/alphabet');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'oauth';
 }
-
 
 async function getOauthInfo({ hostname }) {
     const tokenUrl = `https://${hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`;

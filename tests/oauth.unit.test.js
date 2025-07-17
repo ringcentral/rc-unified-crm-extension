@@ -1,11 +1,15 @@
-const { checkAndRefreshAccessToken } = require('../src/lib/oauth');
-const { UserModel } = require('../src/models/userModel');
-const { Lock } = require('../src/models/dynamo/lockSchema');
+const { checkAndRefreshAccessToken } = require('@app-connect/core/lib/oauth');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const { adapterRegistry } = require('@app-connect/core');
 const nock = require('nock');
-const { encode } = require('../src/lib/encode');
+const { encode } = require('@app-connect/core/lib/encode');
+
+adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
+adapterRegistry.registerAdapter('bullhorn', require('../src/adapters/bullhorn'));
 
 // Mock the Lock model
-jest.mock('../src/models/dynamo/lockSchema', () => ({
+jest.mock('@app-connect/core/models/dynamo/lockSchema', () => ({
     Lock: {
         get: jest.fn(),
         create: jest.fn(),

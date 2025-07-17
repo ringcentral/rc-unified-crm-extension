@@ -2,8 +2,6 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
-const { composeCallLog } = require('../../lib/callLogComposer');
 
 function getAuthType() {
     return 'apiKey';

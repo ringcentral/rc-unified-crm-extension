@@ -2,6 +2,7 @@
 const ClientOAuth2 = require('client-oauth2');
 const { Lock } = require('../models/dynamo/lockSchema');
 const { UserModel } = require('../models/userModel');
+const adapterRegistry = require('../adapter/registry');
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
@@ -23,7 +24,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
     const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     // Special case: Bullhorn
     if (user.platform) {
-        const platformModule = require(`../adapters/${user.platform}`);
+        const platformModule = adapterRegistry.getAdapter(user.platform);
         if (platformModule.checkAndRefreshAccessToken) {
             return platformModule.checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout);
         }

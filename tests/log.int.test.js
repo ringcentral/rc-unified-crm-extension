@@ -1,11 +1,11 @@
 const request = require('supertest');
 const nock = require('nock');
 const { getServer } = require('../src/index');
-const jwt = require('../src/lib/jwt');
+const jwt = require('@app-connect/core/lib/jwt');
 const platforms = require('./platformInfo.json');
-const { CallLogModel } = require('../src/models/callLogModel');
-const { MessageLogModel } = require('../src/models/messageLogModel');
-const { UserModel } = require('../src/models/userModel');
+const { CallLogModel } = require('@app-connect/core/models/callLogModel');
+const { MessageLogModel } = require('@app-connect/core/models/messageLogModel');
+const { UserModel } = require('@app-connect/core/models/userModel');
 
 // create test data
 const userId = 'userId';

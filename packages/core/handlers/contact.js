@@ -1,7 +1,7 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const errorMessage = require('../lib/generalErrorMessage');
-
+const adapterRegistry = require('../adapter/registry');
 async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension }) {
     try {
         let user = await UserModel.findOne({
@@ -20,7 +20,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 }
             };
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -127,7 +127,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
         if (!user || !user.accessToken) {
             return { successful: false, message: `Contact not found` };
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -207,7 +207,7 @@ async function findContactWithName({ platform, userId, name }) {
                 }
             };
         }
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {

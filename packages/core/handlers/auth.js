@@ -1,9 +1,10 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
+const adapterRegistry = require('../adapter/registry');
 const Op = require('sequelize').Op;
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
-    const platformModule = require(`../adapters/${platform}`);
+    const platformModule = adapterRegistry.getAdapter(platform);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
 
     if (oauthInfo.failMessage) {
@@ -51,7 +52,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 }
 
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
-    const platformModule = require(`../adapters/${platform}`);
+    const platformModule = adapterRegistry.getAdapter(platform);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo, apiKey });
     if (successful) {
@@ -130,7 +131,7 @@ async function authValidation({ platform, userId }) {
         }
     });
     if (existingUser) {
-        const platformModule = require(`../adapters/${platform}`);
+        const platformModule = adapterRegistry.getAdapter(platform);
         const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname })));
         existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);
         const { successful, returnMessage, status } = await platformModule.authValidation({ user: existingUser });
