@@ -1,6 +1,6 @@
 {
     "watch": [
-        "src"
+        "src","packages"
     ],
     "ext": "*",
     "ignore": [

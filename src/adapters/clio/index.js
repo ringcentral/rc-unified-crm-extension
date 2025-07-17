@@ -716,7 +716,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             headers: { 'Authorization': authHeader }
         });
     //const note = getLogRes.data.data.body.split('- Note: ')[1]?.split('\n')[0];
-    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n-|\n\n|$)/;
+    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
     const note = getLogRes.data.data.body.match(noteRegex)?.[1]?.trim();
     const contactId = getLogRes.data.data.senders[0].type == 'Person' ?
         getLogRes.data.data.senders[0].id :
