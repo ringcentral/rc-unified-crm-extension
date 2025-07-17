@@ -88,8 +88,18 @@ function createCoreRouter() {
             const platformName = req.query.platformName || 'default';
             const crmManifest = adapterRegistry.getManifest(platformName);
             if (crmManifest) {
+                // Override app server url for local development
                 if (process.env.OVERRIDE_APP_SERVER) {
                     crmManifest.serverUrl = process.env.OVERRIDE_APP_SERVER;
+                }
+                // Override server side logging server url for local development
+                if (process.env.OVERRIDE_SERVER_SIDE_LOGGING_SERVER && crmManifest.platforms) {
+                    Object.keys(crmManifest.platforms).forEach(platformName => {
+                        const platform = crmManifest.platforms[platformName];
+                        if (platform.serverSideLogging) {
+                            platform.serverSideLogging.url = process.env.OVERRIDE_SERVER_SIDE_LOGGING_SERVER;
+                        }
+                    });
                 }
                 if (!crmManifest.author?.name) {
                     throw 'author name is required';
@@ -101,6 +111,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
+            console.error(e);
             res.status(400).send('Platform not found');
         }
     });
