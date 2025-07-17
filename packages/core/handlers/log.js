@@ -304,11 +304,12 @@ async function updateCallLog({ platform, userId, incomingData }) {
                     authHeader = `Basic ${basicAuth}`;
                     break;
             }
-            // Compose updated call log details centrally
+
+            // Fetch existing call log details once to avoid duplicate API calls
+            let existingCallLogDetails = null;    // Compose updated call log details centrally
             const logFormat = getLogFormatType(platform);
             let composedLogDetails = '';
             if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML) {
-                // Get existing log details first (for updates we need to compose on top of existing content)
                 let existingBody = '';
                 try {
                     const getLogResult = await platformModule.getCallLog({
@@ -316,6 +317,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
                         callLogId: existingCallLog.thirdPartyLogId,
                         authHeader
                     });
+                    existingCallLogDetails = getLogResult?.callLogInfo?.fullLogResponse;
                     // Extract existing body from the platform-specific response
                     if (getLogResult.callLogInfo?.fullBody) {
                         existingBody = getLogResult.callLogInfo.fullBody;
@@ -361,7 +363,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 aiNote: incomingData.aiNote,
                 transcript: incomingData.transcript,
                 additionalSubmission: incomingData.additionalSubmission,
-                composedLogDetails
+                composedLogDetails,
+                existingCallLogDetails  // Pass the fetched details to avoid duplicate API calls
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }

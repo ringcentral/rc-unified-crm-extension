@@ -406,16 +406,23 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     let extraDataTracking = {};
-    const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body,id`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    let patchBody = {};
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    let getLogRes = null;
+    if (existingCallLogDetails) {
+        getLogRes = { data: { data: existingCallLogDetails } };
+    } else {
+        // Fallback to API call if details not provided
+        getLogRes = await axios.get(
+            `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body,id`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
 
+    let patchBody = {};
 
     patchBody = {
         data: {
@@ -426,8 +433,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
     if (duration) {
+        const logId = existingCallLogDetails?.id || getLogRes.data.data.id;
         const getTimerRes = await axios.get(
-            `https://${user.hostname}/api/v4/activities?communication_id=${getLogRes.data.data.id}&fields=quantity,id`,
+            `https://${user.hostname}/api/v4/activities?communication_id=${logId}&fields=quantity,id`,
             {
                 headers: { 'Authorization': authHeader }
             }
@@ -703,7 +711,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     let extraDataTracking = {};
     const formattedLogId = callLogId.split('.')[0];
     const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers`,
+        `https://${user.hostname}/api/v4/communications/${formattedLogId}.json?fields=subject,body,matter,senders,receivers,id`,
         {
             headers: { 'Authorization': authHeader }
         });
@@ -728,6 +736,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             subject: getLogRes.data.data.subject,
             note,
             fullBody: getLogRes?.data?.data?.body,
+            fullLogResponse: getLogRes.data.data,
             contactName: contactRes.data.data.name,
             dispositions: {
                 matters: getLogRes.data.data.matter?.id

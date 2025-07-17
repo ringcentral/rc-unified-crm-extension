@@ -2,10 +2,10 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const jwt = require('@app-connect/core/lib/jwt');
-const { encode, decoded } = require('@app-connect/core/lib/encode');
-const { UserModel } = require('@app-connect/core/models/userModel');
-const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const jwt = require('../../../packages/core/lib/jwt');
+const { encode, decoded } = require('../../../packages/core/lib/encode');
+const { UserModel } = require('../../../packages/core/models/userModel');
+const { Lock } = require('../../../packages/core/models/dynamo/lockSchema');
 
 function getAuthType() {
     return 'oauth';
@@ -939,27 +939,16 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
-    let extraDataTracking = {};;
-    try {
-        getLogRes = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            });
-        extraDataTracking = {
-            ratelimitRemaining: getLogRes.headers['ratelimit-remaining'],
-            ratelimitAmount: getLogRes.headers['ratelimit-limit'],
-            ratelimitReset: getLogRes.headers['ratelimit-reset']
-        }
-    }
-    catch (e) {
-        if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
+    let extraDataTracking = {};
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    if (existingCallLogDetails) {
+        getLogRes = { data: { data: existingCallLogDetails } };
+    } else {
+        // Fallback to API call if details not provided
+        try {
             getLogRes = await axios.get(
                 `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
                 {
@@ -967,8 +956,25 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+            extraDataTracking = {
+                ratelimitRemaining: getLogRes.headers['ratelimit-remaining'],
+                ratelimitAmount: getLogRes.headers['ratelimit-limit'],
+                ratelimitReset: getLogRes.headers['ratelimit-reset']
+            }
         }
-        extraDataTracking['statusCode'] = e.response.status;
+        catch (e) {
+            if (isAuthError(e.response.status)) {
+                user = await refreshSessionToken(user);
+                getLogRes = await axios.get(
+                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                    {
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
+                    });
+            }
+            extraDataTracking['statusCode'] = e.response.status;
+        }
     }
 
     // case: reassign to user
@@ -991,8 +997,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             id: assigneeId
         }
     }
+    let patchLogRes;
     try {
-        const postLogRes = await axios.post(
+        patchLogRes = await axios.post(
             `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
             postBody,
             {
@@ -1001,34 +1008,24 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 }
             });
         extraDataTracking = {
-            ratelimitRemaining: postLogRes.headers['ratelimit-remaining'],
-            ratelimitAmount: postLogRes.headers['ratelimit-limit'],
-            ratelimitReset: postLogRes.headers['ratelimit-reset']
+            ratelimitRemaining: patchLogRes.headers['ratelimit-remaining'],
+            ratelimitAmount: patchLogRes.headers['ratelimit-limit'],
+            ratelimitReset: patchLogRes.headers['ratelimit-reset']
         }
     }
     catch (e) {
-        if (e.response.status === 403) {
-            return {
-                extraDataTracking,
-                returnMessage: {
-                    messageType: 'warning',
-                    message: 'It seems like your Bullhorn account does not have permission to update Note. Refer to details for more information.',
-                    details: [
-                        {
-                            title: 'Details',
-                            items: [
-                                {
-                                    id: '1',
-                                    type: 'text',
-                                    text: `Please go to user settings -> Call and SMS logging and turn ON one-time call logging and try again.`
-                                }
-                            ]
-                        }
-                    ],
-                    ttl: 3000
-                }
-            }
+        if (isAuthError(e.response.status)) {
+            user = await refreshSessionToken(user);
+            patchLogRes = await axios.post(
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}`,
+                postBody,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
         }
+        extraDataTracking['statusCode'] = e.response.status;
     }
     return {
         updatedNote: postBody.comments,
@@ -1327,6 +1324,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             subject,
             note,
             fullBody: logBody,
+            fullLogResponse: getLogRes.data.data,
             contactName: `${contact.firstName} ${contact.lastName}`,
             dispositions: {
                 noteActions: action
