@@ -111,7 +111,6 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.error(e);
             res.status(400).send('Platform not found');
         }
     });
