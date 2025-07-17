@@ -39,27 +39,17 @@
   "author": "Da Kong",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.751.0",
     "awesome-phonenumber": "^5.6.0",
     "axios": "^1.1.2",
-    "body-parser": "^1.20.1",
-    "client-oauth2": "^4.3.3",
-    "cors": "^2.8.5",
-    "country-state-city": "^3.2.1",
     "dotenv": "^16.0.3",
-    "dynamoose": "^4.0.3",
     "express": "^4.18.2",
     "googleapis": "^148.0.0",
-    "jsonwebtoken": "^8.5.1",
-    "mixpanel": "^0.18.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
     "pg": "^8.8.0",
     "sequelize": "^6.25.0",
     "serverless-http": "^3.0.3",
-    "shortid": "^2.2.16",
-    "tz-lookup": "^6.1.25",
-    "ua-parser-js": "^1.0.38"
+    "shortid": "^2.2.16"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
