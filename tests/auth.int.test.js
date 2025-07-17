@@ -2,9 +2,9 @@ const request = require('supertest');
 const nock = require('nock');
 const platforms = require('./platformInfo.json');
 const { getServer } = require('../src/index');
-const jwt = require('../src/lib/jwt');
-const { UserModel } = require('../src/models/userModel');
-const oauth = require('../src/lib/oauth');
+const jwt = require('@app-connect/core/lib/jwt');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const oauth = require('@app-connect/core/lib/oauth');
 
 // create test data
 const userId = 'userId';

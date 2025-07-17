@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
+const adapterRegistry = require('../adapter/registry');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -35,7 +36,7 @@ async function getAdminSettings({ hashedRcAccountId }) {
 }
 
 async function getServerLoggingSettings({ user }) {
-    const platformModule = require(`../adapters/${user.platform}`);
+    const platformModule = adapterRegistry.getAdapter(user.platform);
     if (platformModule.getServerLoggingSettings) {
         const serverLoggingSettings = await platformModule.getServerLoggingSettings({ user });
         return serverLoggingSettings;
@@ -44,7 +45,7 @@ async function getServerLoggingSettings({ user }) {
 }
 
 async function updateServerLoggingSettings({ user, additionalFieldValues }) {
-    const platformModule = require(`../adapters/${user.platform}`);
+    const platformModule = adapterRegistry.getAdapter(user.platform);
     if (platformModule.updateServerLoggingSettings) {
         const serverLoggingSettings = await platformModule.updateServerLoggingSettings({ user, additionalFieldValues });
         return serverLoggingSettings;

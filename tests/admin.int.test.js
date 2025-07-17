@@ -1,11 +1,16 @@
 const axios = require('axios');
 const nock = require('nock');
-const { validateAdminRole, upsertAdminSettings, getAdminSettings, getServerLoggingSettings, updateServerLoggingSettings } = require('../src/core/admin');
-const { AdminConfigModel } = require('../src/models/adminConfigModel');
-const { encode } = require('../src/lib/encode');
+const { validateAdminRole, upsertAdminSettings, getAdminSettings, getServerLoggingSettings, updateServerLoggingSettings } = require('@app-connect/core/handlers/admin');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
+const { encode } = require('@app-connect/core/lib/encode');
+const { adapterRegistry } = require('@app-connect/core');
+
+adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
+adapterRegistry.registerAdapter('bullhorn', require('../src/adapters/bullhorn'));
+adapterRegistry.registerAdapter('pipedrive', require('../src/adapters/pipedrive'));
 
 jest.mock('axios');
-jest.mock('../src/models/adminConfigModel');
+jest.mock('@app-connect/core/models/adminConfigModel');
 
 describe('admin.js tests', () => {
     const originalSecretKey = process.env.APP_SERVER_SECRET_KEY;
@@ -171,7 +176,7 @@ describe('admin.js tests', () => {
 
         test('should return empty object when platform module does not have getServerLoggingSettings', async () => {
             const user = {
-                platform: 'mock', // mock adapter doesn't have getServerLoggingSettings
+                platform: 'pipedrive', // pipedrive adapter doesn't have getServerLoggingSettings
                 platformAdditionalInfo: {}
             };
 
@@ -272,7 +277,7 @@ describe('admin.js tests', () => {
 
         test('should return empty object when platform module does not have updateServerLoggingSettings', async () => {
             const mockUser = {
-                platform: 'mock', // mock adapter doesn't have updateServerLoggingSettings
+                platform: 'pipedrive', // mock adapter doesn't have updateServerLoggingSettings
                 platformAdditionalInfo: {},
                 save: jest.fn().mockResolvedValue(true)
             };

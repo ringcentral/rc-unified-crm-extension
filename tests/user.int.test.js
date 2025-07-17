@@ -1,11 +1,11 @@
 const axios = require('axios');
-const { AdminConfigModel } = require('../src/models/adminConfigModel');
-const { getHashValue } = require('../src/lib/util');
-const { getUserSettingsByAdmin, updateUserSettings } = require('../src/core/user');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
+const { getHashValue } = require('@app-connect/core/lib/util');
+const { getUserSettingsByAdmin, updateUserSettings } = require('@app-connect/core/handlers/user');
 
 jest.mock('axios');
-jest.mock('../src/models/adminConfigModel');
-jest.mock('../src/lib/util');
+jest.mock('@app-connect/core/models/adminConfigModel');
+jest.mock('@app-connect/core/lib/util');
 
 describe('user.js tests', () => {
     beforeEach(() => {

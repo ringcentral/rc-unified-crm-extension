@@ -1,10 +1,3 @@
-
-
-const axios = require('axios');
-const moment = require('moment');
-const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
-
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
 // -----------------------------------------------------------------------------------------------

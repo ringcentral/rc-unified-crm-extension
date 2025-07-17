@@ -3,7 +3,6 @@
 const axios = require('axios');
 const moment = require('moment-timezone');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'apiKey';

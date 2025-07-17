@@ -1,0 +1,578 @@
+{
+    "1.5.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- wrong alert message when user click enter button in contact searching page"
+            },
+            {
+                "type": "Better",
+                "description": "- Message logs within the CRM are now consistently displayed in chronological order"
+            }
+        ]
+    },
+    "1.5.6": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Ringtone can now be set up in Audio settings"
+            },
+            {
+                "type": "Better",
+                "description": "- Improve user settings presentation"
+            },
+            {
+                "type": "Fix",
+                "description": "- AI notes are now attached when doing retroactive call logging"
+            }
+        ]
+    },
+    "1.5.5": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Freskdesk and Gohighlevel are now supported"
+            },
+            {
+                "type": "New",
+                "description": "- Insightly has new setting in Insightly options to input custom phone field names"
+            },
+            {
+                "type": "Better",
+                "description": "- Click-to-dial enablement is now controled by user settings with 4 modes. (previous whitelist is deprecated)"
+            }
+        ]
+    },
+    "1.5.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Notification-level setting to control what types of notification would be shown"
+            },
+            {
+                "type": "Better",
+                "description": "- DisableRetroCallLogging in user setting is changed to EnableRetroCallLogging"
+            },
+            {
+                "type": "Better",
+                "description": "- Contacts are shown with source icon"
+            },
+            {
+                "type": "Fix",
+                "description": "- An issue when opening contact page"
+            },
+            {
+                "type": "Fix",
+                "description": "- An issue when getting user settings"
+            }
+        ]
+    },
+    "1.5.3": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Quick access button and click-to-dial can be configured to be shown on other pages rather than CRM page. Set it up in user settings -> general -> allowed pages"
+            }
+        ]
+    },
+    "1.5.2": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Contact search in call/message log page to add contact searched by name"
+            },
+            {
+                "type": "New",
+                "description": "- Include tab visibility control in Admin settings"
+            }
+        ]
+    },
+    "1.5.1": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Call session id can now be included in call log notes. This can be turned ON/OFF in user settings"
+            },
+            {
+                "type": "Fix",
+                "description": "- Developer mode can be turned ON before connecting to CRM"
+            },
+            {
+                "type": "Fix",
+                "description": "- User setting now shows correct connect status right after open"
+            },
+            {
+                "type": "Fix",
+                "description": "- Call queue calls cannot be logged in a few cases"
+            }
+        ]
+    },
+    "1.5.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Fax log support"
+            },
+            {
+                "type": "New",
+                "description": "- If user is admin, '(Admin)' will be shown after user name on user setting page"
+            }
+        ]
+    },
+    "1.4.2": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Show 'Cannot find call log' and 'Cannot find contact' even when contact is known"
+            },
+            {
+                "type": "Fix",
+                "description": "- Contact call-pop for known contact"
+            }
+        ]
+    },
+    "1.4.1": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Server-side call logging support using user credentials if possible"
+            },
+            {
+                "type": "New",
+                "description": "- Server-side call logging new selection for logging by Agent/User (if possible) OR Admin"
+            },
+            {
+                "type": "Change",
+                "description": "- 'Tabs' setting is renamed as 'Customize tabs' and is moved under 'General' setting"
+            },
+            {
+                "type": "Fix",
+                "description": "- Call queue not answered cannot be logged"
+            }
+        ]
+    },
+    "1.4.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Server side call logging for all platforms"
+            },
+            {
+                "type": "New",
+                "description": "- One-time log in user setting to reduce Rate Limit issue and make logging more stable"
+            },
+            {
+                "type": "New",
+                "description": "- Hide or show tabs in user settings"
+            },
+            {
+                "type": "New",
+                "description": "- Call queue presence setting"
+            },
+            {
+                "type": "New",
+                "description": "- Display voicemail transcript"
+            },
+            {
+                "type": "New",
+                "description": "- Google Sheets is now supported"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto-logging happens right after call is connected (unless one-time log is ON)"
+            },
+            {
+                "type": "Better",
+                "description": "- Multiple matched contact handling"
+            }
+        ]
+    },
+    "1.3.10": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- New users cannot save auto log setting"
+            },
+            {
+                "type": "Fix",
+                "description": "- Randomly dial previous number"
+            }
+        ]
+    },
+    "1.3.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- User settings for ai related features (applicable accounts only)"
+            },
+            {
+                "type": "Better",
+                "description": "- User settings are kept after logout and auto-loaded after re-connect"
+            },
+            {
+                "type": "Better",
+                "description": "- Token refresh lock to reduce issues of invalid authorization"
+            },
+            {
+                "type": "Better",
+                "description": "- Clearer sign on case where auto call log setting disabled by Server Side Call Logging"
+            },
+            {
+                "type": "Fix",
+                "description": "- Agent note title inserted in log description when there's no note"
+            },
+            {
+                "type": "Fix",
+                "description": "- Fix spamming of contact not found warning notification"
+            },
+            {
+                "type": "Fix",
+                "description": "- Fix contact match issue on multiple contact case"
+            }
+        ]
+    },
+    "1.3.8": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Contact match timeout issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Auto log in user setting isn't set unless reloaded"
+            }
+        ]
+    },
+    "1.3.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Timeout issue (mostly affecting call logging)"
+            },
+            {
+                "type": "Fix",
+                "description": "- Admin users now get admin setting right after login"
+            },
+            {
+                "type": "New",
+                "description": "- A new setting to turn ON/OFF retroactive call logging"
+            }
+        ]
+    },
+    "1.3.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Retro call logging now has recording link if applicable, instead of showing '(pending...)'"
+            },
+            {
+                "type": "Better",
+                "description": "- User settings are synced more frequently and stably"
+            },
+            {
+                "type": "Better",
+                "description": "- Some settings now have additional explanations of how it works"
+            },
+            {
+                "type": "Change",
+                "description": "- 'Call log details' setting is now under 'Call and SMS logging'"
+            }
+        ]
+    },
+    "1.3.5": {
+        "global": [
+            {
+                "type": "Upgrade",
+                "description": "Error messages are more accurate"
+            }
+        ]
+    },
+    "1.3.4": {
+        "global": [
+            {
+                "type": "Upgrade",
+                "description": "More accurate call info, including better tracking on call recording link save status"
+            },
+            {
+                "type": "New",
+                "description": "Call info details can be selectively logged based on new toggles in user settings"
+            },
+            {
+                "type": "New",
+                "description": "(RingCentral AI license only) Smart Notes to be enabled in user advanced settings"
+            },
+            {
+                "type": "Fix",
+                "description": "Admin users can see admin tab on first login now"
+            }
+        ]
+    },
+    "1.3.3": {
+        "global": [
+            {
+                "type": "Update",
+                "description": "- This extension's name is now changed to RingCentral App Connect"
+            },
+            {
+                "type": "Fix",
+                "description": "- (for Clio and Insightly user only) Overriding phone number format missing issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Auto pop up log page after call setting not working"
+            },
+            {
+                "type": "Fix",
+                "description": "- Inbound call contact pop not working"
+            },
+            {
+                "type": "Fix",
+                "description": "- Admin icon in dark theme"
+            }
+        ]
+    },
+    "1.3.2": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- User setting inside call pop to control behavior of multiple matched contacts (disabled, all open, prompt to select)"
+            },
+            {
+                "type": "Fix",
+                "description": "- SMS logging issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Auto open extension now only opens when main page is opened"
+            }
+        ]
+    },
+    "1.3.1": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- (Only for admin users) Admin tools. Admins have an extra tab in the extension to control end users' settings"
+            },
+            {
+                "type": "Fix",
+                "description": "- SMS logging date format"
+            }
+        ]
+    },
+    "1.2.0": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- SMS log issue"
+            },
+            {
+                "type": "Fix",
+                "description": "- Missing recording link when doing retroactive auto call logging"
+            }
+        ]
+    },
+    "1.1.4": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Auto log association"
+            },
+            {
+                "type": "New",
+                "description": "- User setting in advanced features to turn on 'Auto open extension' to open itself when opening a CRM page"
+            }
+        ]
+    },
+    "1.1.2": {
+        "global": [
+            {
+                "type": "Change",
+                "description": "- Auto pop up log page is not dependent on auto log setting anymore"
+            }
+        ]
+    },
+    "1.1.1": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Call/SMS logging issue"
+            }
+        ]
+    },
+    "1.1.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Show error page when CRM initialization fails"
+            },
+            {
+                "type": "Better",
+                "description": "- Use local cached contact info to avoid rate limit issue"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto call log now supports retrospectively logging up to 100 unlogged records upon extension open"
+            }
+        ]
+    },
+    "1.0.10": {
+        "global": [
+            {
+                "type": "Change",
+                "description": "- Unreolved tab is removed now. To check out unlogged calls, there's now a filter on call history page"
+            },
+            {
+                "type": "Change",
+                "description": "- Updated notification UI"
+            },
+            {
+                "type": "Fix",
+                "description": "- Numbers can now be copied from call page and call history page"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting phone numbers in input fields"
+            },
+            {
+                "type": "Fix",
+                "description": "- Click-to-dial now supports detecting extension numbers with format as eg. +13334445555#134"
+            }
+        ]
+    },
+    "1.0.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Call history page now has a search bar with filters"
+            },
+            {
+                "type": "New",
+                "description": "- Contact pop settings now support both inbound and outbound calls on different timings"
+            },
+            {
+                "type": "New",
+                "description": "- RingCentral team message is added as a new tab (might get delayed to show up)"
+            }
+        ]
+    },
+    "1.0.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- More historical call records can be viewed from call history page with 'Load more' button"
+            }
+        ]
+    },
+    "1.0.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Incoming call pop contact page fixed"
+            }
+        ]
+    },
+    "1.0.6": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "- User settings are organized in a better way"
+            },
+            {
+                "type": "New",
+                "description": "- Support page is added to user settings"
+            },
+            {
+                "type": "New",
+                "description": "- Community forum is created, can be accessed via support page -> 'Get support'"
+            }
+        ]
+    },
+    "1.0.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- SMS template remembers orders after close"
+            }
+        ]
+    },
+    "1.0.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- An About page in user settings to show info and helper links"
+            },
+            {
+                "type": "Better",
+                "description": "- Factor reset now also cleans up unresolved conflicts"
+            },
+            {
+                "type": "Better",
+                "description": "- SMS template supports drag and drop to arrange item orders"
+            }
+        ]
+    },
+    "1.0.3": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "- Use SMS template that syncs with RingCentral App's SMS template"
+            },
+            {
+                "type": "New",
+                "description": "- Show notification when a call recording link is uploaded"
+            }
+        ]
+    },
+    "1.0.2": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- SMS template cannot apply issue"
+            },
+            {
+                "type": "New",
+                "description": "- Factory Reset button in user settings"
+            }
+        ]
+    },
+    "1.0.1": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- RingCentral sign in issue where pop up sign in window is stuck at loading screen"
+            },
+            {
+                "type": "Better",
+                "description": "- Auto log conflict messages now contain more meaningful info"
+            }
+        ]
+    },
+    "1.0.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Auto log with conflict resolver"
+            },
+            {
+                "type": "New",
+                "description": "- Manual refersh contact info with button"
+            },
+            {
+                "type": "New",
+                "description": "- Audio volume controls"
+            },
+            {
+                "type": "Better",
+                "description": "- SMS messages are now logged as in conversations per day"
+            },
+            {
+                "type": "Better",
+                "description": "- New UIs"
+            },
+            {
+                "type": "Full list and video demo",
+                "description": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/"
+            }
+        ]
+    }
+}

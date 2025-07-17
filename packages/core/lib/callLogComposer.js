@@ -1,5 +1,6 @@
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
+const adapterRegistry = require('../adapter/registry');
 
 /**
  * Centralized call log composition module
@@ -397,7 +398,7 @@ function upsertTranscript({ body, transcript, logFormat }) {
  * @returns {string} Format type
  */
 function getLogFormatType(platform) {
-    const manifest = require('../adapters/manifest.json');
+    const manifest = adapterRegistry.getManifest(platform, true);
     const platformConfig = manifest.platforms?.[platform];
     return platformConfig?.logFormat;
 }

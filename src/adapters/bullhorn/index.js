@@ -2,11 +2,10 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
-const jwt = require('../../lib/jwt');
-const { encode, decoded } = require('../../lib/encode');
-const { UserModel } = require('../../models/userModel');
-const { Lock } = require('../../models/dynamo/lockSchema');
+const jwt = require('@app-connect/core/lib/jwt');
+const { encode, decoded } = require('@app-connect/core/lib/encode');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 
 function getAuthType() {
     return 'oauth';
