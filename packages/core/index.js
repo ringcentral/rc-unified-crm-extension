@@ -130,7 +130,12 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    res.status(400).send('Invalid JWT token');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 const { successful, returnMessage, failReason, status } = await authCore.authValidation({ platform, userId });
                 success = true;
