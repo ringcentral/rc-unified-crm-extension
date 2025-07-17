@@ -807,6 +807,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
                 subject: getLogRes.data.title,
                 note,
                 fullBody: getLogRes?.data?.message,
+                fullLogResponse: getLogRes.data,
                 additionalSubmission: {}
             },
             returnMessage: {
@@ -837,11 +838,19 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     try {
         const existingLogId = existingCallLog.thirdPartyLogId;
-        const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
-        let comments = callLogResponse.data.message;
+        // Use passed existingCallLogDetails to avoid duplicate API call
+        let comments = '';
+        if (existingCallLogDetails?.message) {
+            comments = existingCallLogDetails.message;
+        } else {
+            // Fallback to API call if details not provided
+            const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
+            comments = callLogResponse.data.message;
+        }
+
         let patchBody = { title: subject };
         let callStartTime = moment(moment(startTime).toISOString());
         let startTimeSLot = moment(startTime).format('HH:mm');
@@ -899,27 +908,16 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 ttl: 2000
             }
         };
-    } catch (error) {
-        const errorMessage = netSuiteErrorDetails(error, "Error updating activity");
+    } catch (e) {
+        console.log(e);
         return {
+            successful: false,
             returnMessage: {
-                messageType: 'danger',
-                message: errorMessage,
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `There was an error in updating the activity entry for this phone call in NetSuite. If issues persist, please contact your NetSuite administrator.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 60000
+                message: 'Error updating call log',
+                messageType: 'warning',
+                ttl: 3000
             }
-        }
+        };
     }
 }
 

@@ -539,17 +539,25 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
-    const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    let getLogRes = null;
+    if (existingCallLogDetails) {
+        getLogRes = { data: existingCallLogDetails };
+    } else {
+        // Fallback to API call if details not provided
+        getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
         DETAILS: composedLogDetails,
-        TITLE: subject ? subject : getLogRes.data.TITLE,
+        TITLE: subject ? subject : (existingCallLogDetails?.subject || getLogRes.data.TITLE),
         START_DATE_UTC: moment(startTime).utc(),
         END_DATE_UTC: moment(startTime).utc().add(duration, 'seconds')
     }
@@ -596,6 +604,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         callLogInfo: {
             subject: getLogRes.data.TITLE,
             fullBody: getLogRes?.data?.DETAILS,
+            fullLogResponse: getLogRes.data,
             note,
             contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`,
             dispositions

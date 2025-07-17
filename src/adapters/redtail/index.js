@@ -255,14 +255,23 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
-    const getLogRes = await axios.get(
-        `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
-        {
-            headers: { 'Authorization': overrideAuthHeader }
-        });
+
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    let getLogRes = null;
+    if (existingCallLogDetails) {
+        getLogRes = { data: existingCallLogDetails };
+    } else {
+        // Fallback to API call if details not provided
+        getLogRes = await axios.get(
+            `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
+            {
+                headers: { 'Authorization': overrideAuthHeader }
+            });
+    }
+
     let putBody = {};
     if (subject) {
         putBody.subject = subject;
@@ -410,6 +419,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     return {
         callLogInfo: {
             subject: getLogRes.data.activity.subject,
+            fullLogResponse: getLogRes.data,
             note,
             fullBody: logBody,
             contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,

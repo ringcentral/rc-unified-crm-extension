@@ -339,14 +339,23 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
-    const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
+
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    let getLogRes = null;
+    if (existingCallLogDetails) {
+        getLogRes = { data: { data: existingCallLogDetails } };
+    } else {
+        // Fallback to API call if details not provided
+        getLogRes = await axios.get(
+            `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
+
     let patchBody = {};
     patchBody.note = composedLogDetails;
 
@@ -586,6 +595,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
             note,
             contactName,
             fullBody: logBody,
+            fullLogResponse: getLogRes?.data?.data,
             dispositions: {
                 deals: getLogRes.data.data.deal_id,
                 leads: getLogRes.data.data.lead_id
