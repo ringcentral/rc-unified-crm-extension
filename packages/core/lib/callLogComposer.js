@@ -299,7 +299,7 @@ function upsertCallResult({ body, result, logFormat }) {
 }
 
 function upsertCallRecording({ body, recordingLink, logFormat }) {
-    console.log({ m: "upsertCallRecording", recordingLink, hasBody: !!body, logFormat, bodyLength: body?.length });
+    // console.log({ m: "upsertCallRecording", recordingLink, hasBody: !!body, logFormat, bodyLength: body?.length });
     if (!recordingLink) return body;
 
     let result = body;

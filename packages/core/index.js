@@ -654,7 +654,12 @@ app.get('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
             res.status(200).send({ successful, returnMessage, contact });
@@ -706,7 +711,12 @@ app.post('/contact', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, returnMessage, contact, extraDataTracking } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType, additionalSubmission: req.body.additionalSubmission });
             res.status(200).send({ successful, returnMessage, contact });
@@ -753,7 +763,12 @@ app.get('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, logs, returnMessage, extraDataTracking } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
             res.status(200).send({ successful, logs, returnMessage });
@@ -800,7 +815,12 @@ app.post('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
             if (extraDataTracking) {
@@ -847,7 +867,12 @@ app.patch('/callLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
             if (extraDataTracking) {
@@ -951,7 +976,12 @@ app.post('/messageLog', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
             platformName = platform;
             const { successful, returnMessage, logIds, extraDataTracking } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
             if (extraDataTracking) {
