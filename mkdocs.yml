@@ -144,6 +144,7 @@ nav:
       - 'findContact (by phone)': developers/interfaces/findContact.md
       - 'findContactWithName': developers/interfaces/findContactWithName.md
       - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
       - 'getUserInfo': developers/interfaces/getUserInfo.md
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
