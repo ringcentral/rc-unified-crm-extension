@@ -14,7 +14,28 @@ const {
     upsertCallRecording,
     upsertAiNote,
     upsertTranscript
-} = require('../src/lib/callLogComposer');
+} = require('../packages/core/lib/callLogComposer');
+
+// Register adapters for testing
+const { adapterRegistry } = require('@app-connect/core');
+const bullhorn = require('../src/adapters/bullhorn');
+const clio = require('../src/adapters/clio');
+const googleSheets = require('../src/adapters/googleSheets');
+const insightly = require('../src/adapters/insightly');
+const netsuite = require('../src/adapters/netsuite');
+const pipedrive = require('../src/adapters/pipedrive');
+const redtail = require('../src/adapters/redtail');
+const testCRM = require('../src/adapters/testCRM');
+
+adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
+adapterRegistry.registerAdapter('bullhorn', bullhorn);
+adapterRegistry.registerAdapter('clio', clio);
+adapterRegistry.registerAdapter('googleSheets', googleSheets);
+adapterRegistry.registerAdapter('insightly', insightly);
+adapterRegistry.registerAdapter('netsuite', netsuite);
+adapterRegistry.registerAdapter('pipedrive', pipedrive);
+adapterRegistry.registerAdapter('redtail', redtail);
+adapterRegistry.registerAdapter('testCRM', testCRM, require('../src/adapters/testCRM/manifest.json'));
 
 describe('callLogComposer', () => {
     describe('FORMAT_TYPES', () => {

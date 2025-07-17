@@ -2,10 +2,10 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const jwt = require('@app-connect/core/lib/jwt');
-const { encode, decoded } = require('@app-connect/core/lib/encode');
-const { UserModel } = require('@app-connect/core/models/userModel');
-const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const jwt = require('../../../packages/core/lib/jwt');
+const { encode, decoded } = require('../../../packages/core/lib/encode');
+const { UserModel } = require('../../../packages/core/models/userModel');
+const { Lock } = require('../../../packages/core/models/dynamo/lockSchema');
 
 function getAuthType() {
     return 'oauth';
@@ -945,9 +945,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let extraDataTracking = {};
     // Use passed existingCallLogDetails to avoid duplicate API call
     if (existingCallLogDetails) {
-        console.log({ m: "Bullhorn updateCallLog existingCallLogDetails", existingCallLogDetails });
         getLogRes = { data: { data: existingCallLogDetails } };
-        console.log({ m: "Bullhorn updateCallLog getLogRes", getLogRes });
     } else {
         // Fallback to API call if details not provided
         try {
