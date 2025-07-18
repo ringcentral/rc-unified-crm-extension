@@ -40,14 +40,15 @@ adapterRegistry.registerAdapter('testCRM', testCRM, require('../src/adapters/tes
 describe('callLogComposer', () => {
     describe('FORMAT_TYPES', () => {
         test('should export correct format types', () => {
-            expect(FORMAT_TYPES.PLAIN_TEXT).toBe('plainText');
-            expect(FORMAT_TYPES.HTML).toBe('html');
+            expect(FORMAT_TYPES.PLAIN_TEXT).toBe('text/plain');
+            expect(FORMAT_TYPES.HTML).toBe('text/html');
+            expect(FORMAT_TYPES.MARKDOWN).toBe('text/markdown');
         });
     });
 
     describe('getLogFormatType', () => {
         test('should return correct format for pipedrive', () => {
-            expect(getLogFormatType('pipedrive')).toBe('html');
+            expect(getLogFormatType('pipedrive')).toBe('text/html');
         });
 
         test('should return undefined for unknown platform', () => {

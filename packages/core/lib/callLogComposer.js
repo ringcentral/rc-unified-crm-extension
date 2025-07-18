@@ -9,8 +9,9 @@ const adapterRegistry = require('../adapter/registry');
 
 // Format types
 const FORMAT_TYPES = {
-    PLAIN_TEXT: 'plainText',
-    HTML: 'html'
+    PLAIN_TEXT: 'text/plain',
+    HTML: 'text/html',
+    MARKDOWN: 'text/markdown'
 };
 
 /**
@@ -117,23 +118,31 @@ async function composeCallLog(params) {
 
 function upsertCallAgentNote({ body, note, logFormat }) {
     if (!note) return body;
+
     if (logFormat === FORMAT_TYPES.HTML) {
         // HTML logFormat with proper Agent notes section handling
         const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
         if (noteRegex.test(body)) {
             return body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
         }
-        else {
-            return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
+        return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown logFormat with proper Agent notes section handling
+        const noteRegex = /## Agent notes\n([\s\S]*?)\n## Call details/;
+        if (noteRegex.test(body)) {
+            return body.replace(noteRegex, `## Agent notes\n${note}\n\n## Call details`);
         }
+        if (body.startsWith('## Call details')) {
+            return `## Agent notes\n${note}\n\n` + body;
+        }
+        return `## Agent notes\n${note}\n\n## Call details\n` + body;
     } else {
         // Plain text logFormat - FIXED REGEX for multi-line notes with blank lines
         const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
         if (noteRegex.test(body)) {
             return body.replace(noteRegex, `- Note: ${note}`);
-        } else {
-            return `- Note: ${note}\n` + body;
         }
+        return `- Note: ${note}\n` + body;
     }
 }
 
@@ -145,17 +154,22 @@ function upsertCallSessionId({ body, id, logFormat }) {
         const idRegex = /(?:<li>)?<b>Session Id<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (idRegex.test(body)) {
             return body.replace(idRegex, `<li><b>Session Id</b>: ${id}</li>`);
-        } else {
-            return body + `<li><b>Session Id</b>: ${id}</li>`;
         }
+        return body + `<li><b>Session Id</b>: ${id}</li>`;
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Session Id**: value
+        const sessionIdRegex = /\*\*Session Id\*\*: [^\n]*\n*/;
+        if (sessionIdRegex.test(body)) {
+            return body.replace(sessionIdRegex, `**Session Id**: ${id}\n`);
+        }
+        return body + `**Session Id**: ${id}\n`;
     } else {
         // Match Session Id field and any trailing newlines, replace with single newline
         const sessionIdRegex = /- Session Id: [^\n]*\n*/;
         if (sessionIdRegex.test(body)) {
             return body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
-        } else {
-            return body + `- Session Id: ${id}\n`;
         }
+        return body + `- Session Id: ${id}\n`;
     }
 }
 
@@ -167,17 +181,22 @@ function upsertCallSubject({ body, subject, logFormat }) {
         const subjectRegex = /(?:<li>)?<b>Summary<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (subjectRegex.test(body)) {
             return body.replace(subjectRegex, `<li><b>Summary</b>: ${subject}</li>`);
-        } else {
-            return body + `<li><b>Summary</b>: ${subject}</li>`;
         }
+        return body + `<li><b>Summary</b>: ${subject}</li>`;
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Summary**: value
+        const subjectRegex = /\*\*Summary\*\*: [^\n]*\n*/;
+        if (subjectRegex.test(body)) {
+            return body.replace(subjectRegex, `**Summary**: ${subject}\n`);
+        }
+        return body + `**Summary**: ${subject}\n`;
     } else {
         // Match Summary field and any trailing newlines, replace with single newline
         const subjectRegex = /- Summary: [^\n]*\n*/;
         if (subjectRegex.test(body)) {
             return body.replace(subjectRegex, `- Summary: ${subject}\n`);
-        } else {
-            return body + `- Summary: ${subject}\n`;
         }
+        return body + `- Summary: ${subject}\n`;
     }
 }
 
@@ -194,6 +213,14 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
             result = result.replace(phoneNumberRegex, `<li><b>${label} phone number</b>: ${phoneNumber}</li>`);
         } else {
             result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
+        }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Contact Number**: value
+        const phoneNumberRegex = /\*\*Contact Number\*\*: [^\n]*\n*/;
+        if (phoneNumberRegex.test(result)) {
+            result = result.replace(phoneNumberRegex, `**Contact Number**: ${phoneNumber}\n`);
+        } else {
+            result += `**Contact Number**: ${phoneNumber}\n`;
         }
     } else {
         // More flexible regex that handles both with and without newlines
@@ -233,6 +260,14 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
         } else {
             result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
         }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Date/Time**: value
+        const dateTimeRegex = /\*\*Date\/Time\*\*: [^\n]*\n*/;
+        if (dateTimeRegex.test(result)) {
+            result = result.replace(dateTimeRegex, `**Date/Time**: ${formattedDateTime}\n`);
+        } else {
+            result += `**Date/Time**: ${formattedDateTime}\n`;
+        }
     } else {
         // Handle duplicated Date/Time entries and match complete date/time values
         const dateTimeRegex = /(?:- Date\/Time: [^-]*(?:-[^-]*)*)+/;
@@ -259,6 +294,14 @@ function upsertCallDuration({ body, duration, logFormat }) {
         } else {
             result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
         }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Duration**: value
+        const durationRegex = /\*\*Duration\*\*: [^\n]*\n*/;
+        if (durationRegex.test(result)) {
+            result = result.replace(durationRegex, `**Duration**: ${formattedDuration}\n`);
+        } else {
+            result += `**Duration**: ${formattedDuration}\n`;
+        }
     } else {
         // More flexible regex that handles both with and without newlines
         const durationRegex = /- Duration: ([^\n-]+)(?=\n-|\n|$)/;
@@ -283,6 +326,14 @@ function upsertCallResult({ body, result, logFormat }) {
             bodyResult = bodyResult.replace(resultRegex, `<li><b>Result</b>: ${result}</li>`);
         } else {
             bodyResult += `<li><b>Result</b>: ${result}</li>`;
+        }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Result**: value
+        const resultRegex = /\*\*Result\*\*: [^\n]*\n*/;
+        if (resultRegex.test(bodyResult)) {
+            bodyResult = bodyResult.replace(resultRegex, `**Result**: ${result}\n`);
+        } else {
+            bodyResult += `**Result**: ${result}\n`;
         }
     } else {
         // More flexible regex that handles both with and without newlines
@@ -326,6 +377,14 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
                 }
             }
         }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: **Call recording link**: value
+        const recordingLinkRegex = /\*\*Call recording link\*\*: [^\n]*\n*/;
+        if (recordingLinkRegex.test(result)) {
+            result = result.replace(recordingLinkRegex, `**Call recording link**: ${recordingLink}\n`);
+        } else {
+            result += `**Call recording link**: ${recordingLink}\n`;
+        }
     } else {
         // Match recording link field and any trailing content, replace with single newline
         const recordingLinkRegex = /- Call recording link: [^\n]*\n*/;
@@ -355,6 +414,14 @@ function upsertAiNote({ body, aiNote, logFormat }) {
         } else {
             result += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
         }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: ### AI Note
+        const aiNoteRegex = /### AI Note\n([\s\S]*?)(?=\n### |\n$|$)/;
+        if (aiNoteRegex.test(result)) {
+            result = result.replace(aiNoteRegex, `### AI Note\n${clearedAiNote}\n`);
+        } else {
+            result += `### AI Note\n${clearedAiNote}\n`;
+        }
     } else {
         const aiNoteRegex = /- AI Note:([\s\S]*?)--- END/;
         if (aiNoteRegex.test(result)) {
@@ -378,6 +445,14 @@ function upsertTranscript({ body, transcript, logFormat }) {
             result = result.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
         } else {
             result += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
+        }
+    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+        // Markdown format: ### Transcript
+        const transcriptRegex = /### Transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
+        if (transcriptRegex.test(result)) {
+            result = result.replace(transcriptRegex, `### Transcript\n${transcript}\n`);
+        } else {
+            result += `### Transcript\n${transcript}\n`;
         }
     } else {
         const transcriptRegex = /- Transcript:([\s\S]*?)--- END/;

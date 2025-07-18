@@ -76,7 +76,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         // Compose call log details centrally
         const logFormat = getLogFormatType(platform);
         let composedLogDetails = '';
-        if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML) {
+        if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML || logFormat === FORMAT_TYPES.MARKDOWN) {
             composedLogDetails = await composeCallLog({
                 logFormat,
                 callLog,
@@ -309,7 +309,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             let existingCallLogDetails = null;    // Compose updated call log details centrally
             const logFormat = getLogFormatType(platform);
             let composedLogDetails = '';
-            if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML) {
+            if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML || logFormat === FORMAT_TYPES.MARKDOWN) {
                 let existingBody = '';
                 try {
                     const getLogResult = await platformModule.getCallLog({
