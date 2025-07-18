@@ -51,14 +51,12 @@ async function composeCallLog(params) {
 
     let body = existingBody;
     const userSettings = user.userSettings || {};
-
     // Determine timezone handling
     let resolvedStartTime = startTime || callLog?.startTime;
     let timezoneOffset = user.timezoneOffset;
     if (resolvedStartTime) {
         resolvedStartTime = moment(resolvedStartTime);
     }
-
     // Apply upsert functions based on user settings
     if (note && (userSettings?.addCallLogNote?.value ?? true)) {
         body = upsertCallAgentNote({ body, note, logFormat });
@@ -129,12 +127,12 @@ function upsertCallAgentNote({ body, note, logFormat }) {
             return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
         }
     } else {
-        // Plain text logFormat - FIXED REGEX for multi-line notes
-        const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- |$)/;
+        // Plain text logFormat - FIXED REGEX for multi-line notes with blank lines
+        const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
         if (noteRegex.test(body)) {
             return body.replace(noteRegex, `- Note: ${note}`);
         } else {
-            return body + `- Note: ${note}\n`;
+            return `- Note: ${note}\n` + body;
         }
     }
 }
