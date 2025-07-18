@@ -1,5 +1,5 @@
 const {
-    getApp,
+    createCoreApp,
     adapterRegistry
 } = require('@app-connect/core');
 const path = require('path');
@@ -16,6 +16,7 @@ const redtail = require('./adapters/redtail');
 const testCRM = require('./adapters/testCRM');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
 
+// Register adapters
 adapterRegistry.setDefaultManifest(require('./adapters/manifest.json'));
 adapterRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
@@ -28,9 +29,11 @@ adapterRegistry.registerAdapter('pipedrive', pipedrive);
 adapterRegistry.registerAdapter('redtail', redtail);
 adapterRegistry.registerAdapter('testCRM', testCRM, require('./adapters/testCRM/manifest.json'));
 
-const app = getApp();
+// Create Express app with core functionality
+const app = createCoreApp();
 
-// Unique: Google Sheets
+// Add custom routes for specific adapters
+// Google Sheets specific routes
 app.get('/googleSheets/filePicker', async function (req, res) {
     try {
         const jwtToken = req.query.token;
@@ -44,15 +47,13 @@ app.get('/googleSheets/filePicker', async function (req, res) {
             const fileContent = await googleSheetsExtra.renderPickerFile({ user });
             res.send(fileContent);
         }
-
-
     }
     catch (e) {
         console.log(`platform: googleSheets \n${e.stack}`);
         res.status(500).send(e);
     }
-})
-// Unique: Google Sheets
+});
+
 app.post('/googleSheets/sheet', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
@@ -87,7 +88,6 @@ app.post('/googleSheets/sheet', async function (req, res) {
     }
 });
 
-// Unique: Google Sheets
 app.delete('/googleSheets/sheet', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
@@ -110,7 +110,6 @@ app.delete('/googleSheets/sheet', async function (req, res) {
     }
 });
 
-// Unique: Google Sheets
 app.post('/googleSheets/selectedSheet', async function (req, res) {
     const authHeader = `Bearer ${req.body.accessToken}`;
     const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
@@ -128,7 +127,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
     res.status(200).send({ message: 'Sheet selected', Id: req.body.field });
 });
 
-// Unique: Pipedrive
+// Pipedrive specific routes
 app.get('/pipedrive-redirect', function (req, res) {
     try {
         res.sendFile(path.join(__dirname, 'adapters/pipedrive/redirect.html'));
@@ -137,8 +136,8 @@ app.get('/pipedrive-redirect', function (req, res) {
         console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
     }
-})
-// Unique: Pipedrive
+});
+
 app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
@@ -157,7 +156,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
     }
-})
+});
 
 exports.getServer = function getServer() {
     return app;
