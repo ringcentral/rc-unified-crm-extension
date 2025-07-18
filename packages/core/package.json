@@ -35,6 +35,12 @@
     "tz-lookup": "^6.1.25",
     "ua-parser-js": "^1.0.38"
   },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@octokit/rest": "^19.0.5",
