@@ -229,7 +229,8 @@ function createCoreRouter() {
                 platformName = unAuthData?.platform ?? 'Unknown';
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
-                    res.status(400).send();
+                    res.status(400).send('User not found');
+                    return;
                 }
                 const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
@@ -402,7 +403,8 @@ function createCoreRouter() {
                 platformName = unAuthData?.platform ?? 'Unknown';
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
-                    res.status(400).send();
+                    res.status(400).send('User not found');
+                    return;
                 }
                 else {
                     const rcAccessToken = req.query.rcAccessToken;
