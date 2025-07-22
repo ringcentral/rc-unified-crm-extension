@@ -1,7 +1,6 @@
 const moment = require('moment-timezone');
 const {
     composeCallLog,
-    createComposer,
     getLogFormatType,
     FORMAT_TYPES,
     upsertCallAgentNote,
@@ -769,67 +768,6 @@ describe('callLogComposer', () => {
 
             expect(result).toContain('- Note: New note');
             expect(result).toContain('- Duration: 1 minute, 30 seconds'); // Should be updated
-        });
-    });
-
-    describe('createComposer', () => {
-        test('should create composer for pipedrive with HTML format', async () => {
-            const composer = createComposer('pipedrive');
-            expect(typeof composer).toBe('function');
-
-            const result = await composer({
-                callLog: { duration: 30 },
-                user: { userSettings: {} },
-                note: 'Test note'
-            });
-
-            expect(result).toContain('<b>Call details</b>');
-            expect(result).toContain('<ul>');
-            expect(result).toContain('</ul>');
-        });
-
-        test('should create composer for bullhorn with HTML format', async () => {
-            const composer = createComposer('bullhorn');
-            expect(typeof composer).toBe('function');
-
-            const result = await composer({
-                callLog: { duration: 30 },
-                user: { userSettings: {} },
-                note: 'Test note'
-            });
-
-            expect(result).toContain('<b>Call details</b>');
-            expect(result).toContain('<ul>');
-            expect(result).toContain('</ul>');
-        });
-
-        test('should not wrap content in ul tags if already present', async () => {
-            const composer = createComposer('pipedrive');
-            const result = await composer({
-                callLog: { duration: 30 },
-                user: { userSettings: {} },
-                note: 'Test note',
-                existingBody: '<ul><li>Existing content</li></ul>'
-            });
-
-            // Should not double-wrap
-            expect(result).toContain('<ul>');
-            expect(result).toContain('</ul>');
-            expect(result).not.toContain('<ul><ul>');
-        });
-
-        test('should create composer for unknown platform', async () => {
-            const composer = createComposer('unknownPlatform');
-            expect(typeof composer).toBe('function');
-
-            const result = await composer({
-                callLog: { duration: 30 },
-                user: { userSettings: {} },
-                note: 'Test note'
-            });
-
-            // Should still work with default behavior
-            expect(typeof result).toBe('string');
         });
     });
 }); 

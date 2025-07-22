@@ -348,7 +348,6 @@ function upsertCallResult({ body, result, logFormat }) {
 }
 
 function upsertCallRecording({ body, recordingLink, logFormat }) {
-    // console.log({ m: "upsertCallRecording", recordingLink, hasBody: !!body, logFormat, bodyLength: body?.length });
     if (!recordingLink) return body;
 
     let result = body;
@@ -476,41 +475,8 @@ function getLogFormatType(platform) {
     return platformConfig?.logFormat;
 }
 
-/**
- * Create a specialized composition function for specific CRM requirements
- * @param {string} platform - CRM platform name
- * @returns {Function} Customized composition function
- */
-function createComposer(platform) {
-    const logFormat = getLogFormatType(platform);
-
-    return async function (params) {
-        // Add platform-specific formatting
-        if (logFormat === FORMAT_TYPES.HTML && platform === 'pipedrive') {
-            // Pipedrive wraps call details in <ul> tags
-            const composed = await composeCallLog({ ...params, logFormat });
-            if (composed && !composed.includes('<ul>')) {
-                return `<b>Call details</b><ul>${composed}</ul>`;
-            }
-            return composed;
-        }
-
-        if (logFormat === FORMAT_TYPES.HTML && platform === 'bullhorn') {
-            // Bullhorn also wraps call details in <ul> tags
-            const composed = await composeCallLog({ ...params, logFormat });
-            if (composed && !composed.includes('<ul>')) {
-                return `<b>Call details</b><ul>${composed}</ul>`;
-            }
-            return composed;
-        }
-
-        return composeCallLog({ ...params, logFormat });
-    };
-}
-
 module.exports = {
     composeCallLog,
-    createComposer,
     getLogFormatType,
     FORMAT_TYPES,
     // Export individual upsert functions for backward compatibility
