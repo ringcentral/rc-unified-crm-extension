@@ -26,9 +26,11 @@ npm install @app-connect/core
 const { createCoreApp, adapterRegistry } = require('@app-connect/core');
 const myCRMAdapter = require('./adapters/myCRM');
 const manifest = require('./adapters/manifest.json');
-// Set manifest
+// Set the default manifest for the adapter registry. This ensures that all adapters
+// have access to the necessary configuration and metadata before registration.
 adapterRegistry.setDefaultManifest(manifest);
-// Register your CRM adapters
+// Register your CRM adapters. The default manifest must be set before registration
+// to ensure proper initialization of the adapter with the required settings.
 adapterRegistry.registerAdapter('myCRM', myCRMAdapter, manifest);
 
 // Create Express app with all core functionality
