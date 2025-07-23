@@ -24,9 +24,12 @@ npm install @app-connect/core
 
 ```javascript
 const { createCoreApp, adapterRegistry } = require('@app-connect/core');
-
+const myCRMAdapter = require('./adapters/myCRM');
+const manifest = require('./adapters/manifest.json');
+// Set manifest
+adapterRegistry.setDefaultManifest(manifest);
 // Register your CRM adapters
-adapterRegistry.registerAdapter('myCRM', myCRMAdapter);
+adapterRegistry.registerAdapter('myCRM', myCRMAdapter, manifest);
 
 // Create Express app with all core functionality
 const app = createCoreApp();
@@ -113,8 +116,12 @@ const {
     adapterRegistry 
 } = require('@app-connect/core');
 
+const myCRMAdapter = require('./adapters/myCRM');
+const manifest = require('./adapters/manifest.json');
+// Set manifest
+adapterRegistry.setDefaultManifest(manifest);
 // Register adapters
-adapterRegistry.registerAdapter('myCRM', myCRMAdapter);
+adapterRegistry.registerAdapter('myCRM', myCRMAdapter, manifest);
 
 // Initialize core services
 initializeCore();
