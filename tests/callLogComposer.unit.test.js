@@ -2,7 +2,6 @@ const moment = require('moment-timezone');
 const {
     composeCallLog,
     getLogFormatType,
-    FORMAT_TYPES,
     upsertCallAgentNote,
     upsertCallSessionId,
     upsertCallSubject,
@@ -15,6 +14,7 @@ const {
     upsertTranscript
 } = require('../packages/core/lib/callLogComposer');
 
+const { LOG_DETAILS_FORMAT_TYPE } = require('../packages/core/lib/constants');
 // Register adapters for testing
 const { adapterRegistry } = require('@app-connect/core');
 const bullhorn = require('../src/adapters/bullhorn');
@@ -37,11 +37,11 @@ adapterRegistry.registerAdapter('redtail', redtail);
 adapterRegistry.registerAdapter('testCRM', testCRM, require('../src/adapters/testCRM/manifest.json'));
 
 describe('callLogComposer', () => {
-    describe('FORMAT_TYPES', () => {
+    describe('LOG_DETAILS_FORMAT_TYPE', () => {
         test('should export correct format types', () => {
-            expect(FORMAT_TYPES.PLAIN_TEXT).toBe('text/plain');
-            expect(FORMAT_TYPES.HTML).toBe('text/html');
-            expect(FORMAT_TYPES.MARKDOWN).toBe('text/markdown');
+            expect(LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT).toBe('text/plain');
+            expect(LOG_DETAILS_FORMAT_TYPE.HTML).toBe('text/html');
+            expect(LOG_DETAILS_FORMAT_TYPE.MARKDOWN).toBe('text/markdown');
         });
     });
 
@@ -61,7 +61,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body: '',
                     note: 'Test note',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<b>Agent notes</b><br>Test note<br><br><b>Call details</b><br>');
             });
@@ -71,7 +71,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body,
                     note: 'New note',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<b>Agent notes</b><br>New note<br><br><b>Call details</b><br>Some details');
             });
@@ -81,7 +81,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body,
                     note: '',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe(body);
             });
@@ -92,7 +92,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body: '',
                     note: 'Test note',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Note: Test note\n');
             });
@@ -102,7 +102,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body,
                     note: 'New note',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Note: New note\n- Duration: 30 seconds\n');
             });
@@ -112,7 +112,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallAgentNote({
                     body,
                     note: 'New note',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Note: New note\n- Duration: 30 seconds\n');
             });
@@ -125,7 +125,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSessionId({
                     body: '',
                     id: 'session123',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Session Id</b>: session123</li>');
             });
@@ -135,7 +135,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSessionId({
                     body,
                     id: 'new123',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Session Id</b>: new123</li>');
             });
@@ -145,7 +145,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSessionId({
                     body,
                     id: '',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe(body);
             });
@@ -156,7 +156,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSessionId({
                     body: '',
                     id: 'session123',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Session Id: session123\n');
             });
@@ -166,7 +166,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSessionId({
                     body,
                     id: 'new123',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Session Id: new123\n- Duration: 30 seconds\n');
             });
@@ -179,7 +179,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSubject({
                     body: '',
                     subject: 'Test subject',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Summary</b>: Test subject</li>');
             });
@@ -189,7 +189,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSubject({
                     body,
                     subject: 'New subject',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Summary</b>: New subject</li>');
             });
@@ -200,7 +200,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSubject({
                     body: '',
                     subject: 'Test subject',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Summary: Test subject\n');
             });
@@ -210,7 +210,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallSubject({
                     body,
                     subject: 'New subject',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Summary: New subject\n- Duration: 30 seconds\n');
             });
@@ -224,7 +224,7 @@ describe('callLogComposer', () => {
                     body: '',
                     phoneNumber: '+1234567890',
                     direction: 'Inbound',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Caller phone number</b>: +1234567890</li>');
             });
@@ -234,7 +234,7 @@ describe('callLogComposer', () => {
                     body: '',
                     phoneNumber: '+1234567890',
                     direction: 'Outbound',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Recipient phone number</b>: +1234567890</li>');
             });
@@ -245,7 +245,7 @@ describe('callLogComposer', () => {
                     body,
                     phoneNumber: '+1234567890',
                     direction: 'Inbound',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Caller phone number</b>: +1234567890</li>');
             });
@@ -257,7 +257,7 @@ describe('callLogComposer', () => {
                     body: '',
                     phoneNumber: '+1234567890',
                     direction: 'Inbound',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Contact Number: +1234567890\n');
             });
@@ -268,7 +268,7 @@ describe('callLogComposer', () => {
                     body,
                     phoneNumber: '+1234567890',
                     direction: 'Inbound',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Contact Number: +1234567890\n\n- Duration: 30 seconds\n');
             });
@@ -283,7 +283,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDateTime({
                     body: '',
                     startTime: testDate,
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toMatch(/<li><b>Date\/time<\/b>: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M<\/li>/);
             });
@@ -293,7 +293,7 @@ describe('callLogComposer', () => {
                     body: '',
                     startTime: testDate,
                     timezoneOffset: '+05:30',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toMatch(/<li><b>Date\/time<\/b>: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M<\/li>/);
             });
@@ -303,7 +303,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDateTime({
                     body,
                     startTime: testDate,
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toMatch(/<li><b>Date\/time<\/b>: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M<\/li>/);
             });
@@ -314,7 +314,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDateTime({
                     body: '',
                     startTime: testDate,
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toMatch(/- Date\/Time: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M\n/);
             });
@@ -324,7 +324,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDateTime({
                     body,
                     startTime: testDate,
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toMatch(/- Date\/Time: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M\n/);
             });
@@ -337,7 +337,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDuration({
                     body: '',
                     duration: 90,
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Duration</b>: 1 minute, 30 seconds</li>');
             });
@@ -347,7 +347,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDuration({
                     body,
                     duration: 90,
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Duration</b>: 1 minute, 30 seconds</li>');
             });
@@ -358,7 +358,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDuration({
                     body: '',
                     duration: 90,
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Duration: 1 minute, 30 seconds\n');
             });
@@ -368,7 +368,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallDuration({
                     body,
                     duration: 90,
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Duration: 1 minute, 30 seconds\n\n- Result: Answered\n');
             });
@@ -381,7 +381,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallResult({
                     body: '',
                     result: 'Answered',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Result</b>: Answered</li>');
             });
@@ -391,7 +391,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallResult({
                     body,
                     result: 'Answered',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Result</b>: Answered</li>');
             });
@@ -402,7 +402,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallResult({
                     body: '',
                     result: 'Answered',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Result: Answered\n');
             });
@@ -412,7 +412,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallResult({
                     body,
                     result: 'Answered',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Result: Answered\n\n- Duration: 30 seconds\n');
             });
@@ -425,7 +425,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body: '',
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Call recording link</b>: <a target="_blank" href="https://example.com/recording.mp3">open</a></li>');
             });
@@ -434,7 +434,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body: '',
                     recordingLink: 'pending-recording-id',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Call recording link</b>: (pending...)</li>');
             });
@@ -444,7 +444,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body,
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<li><b>Call recording link</b>: <a target="_blank" href="https://example.com/recording.mp3">open</a></li>');
             });
@@ -454,7 +454,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body,
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<ul><li><b>Duration</b>: 30 seconds</li><li><b>Call recording link</b>: <a target="_blank" href="https://example.com/recording.mp3">open</a></li></ul>');
             });
@@ -465,7 +465,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body: '',
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Call recording link: https://example.com/recording.mp3\n');
             });
@@ -475,7 +475,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body,
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Call recording link: https://example.com/recording.mp3\n- Duration: 30 seconds\n');
             });
@@ -485,7 +485,7 @@ describe('callLogComposer', () => {
                 const result = upsertCallRecording({
                     body,
                     recordingLink: 'https://example.com/recording.mp3',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('Some content\n- Call recording link: https://example.com/recording.mp3\n');
             });
@@ -498,7 +498,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body: '',
                     aiNote: 'AI generated note',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>AI Note</b><br>AI generated note</div><br>');
             });
@@ -508,7 +508,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body,
                     aiNote: 'New AI note',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>AI Note</b><br>New AI note</div><br>');
             });
@@ -517,7 +517,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body: '',
                     aiNote: 'AI note\nwith multiple\nlines',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>AI Note</b><br>AI note<br>with multiple<br>lines</div><br>');
             });
@@ -526,7 +526,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body: '',
                     aiNote: 'AI note\n\n\n',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>AI Note</b><br>AI note</div><br>');
             });
@@ -537,7 +537,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body: '',
                     aiNote: 'AI generated note',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- AI Note:\nAI generated note\n--- END\n');
             });
@@ -547,7 +547,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body,
                     aiNote: 'New AI note',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- AI Note:\nNew AI note\n--- END\n');
             });
@@ -556,7 +556,7 @@ describe('callLogComposer', () => {
                 const result = upsertAiNote({
                     body: '',
                     aiNote: 'AI note\n\n\n',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- AI Note:\nAI note\n--- END\n');
             });
@@ -569,7 +569,7 @@ describe('callLogComposer', () => {
                 const result = upsertTranscript({
                     body: '',
                     transcript: 'Call transcript',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>Transcript</b><br>Call transcript</div><br>');
             });
@@ -579,7 +579,7 @@ describe('callLogComposer', () => {
                 const result = upsertTranscript({
                     body,
                     transcript: 'New transcript',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>Transcript</b><br>New transcript</div><br>');
             });
@@ -588,7 +588,7 @@ describe('callLogComposer', () => {
                 const result = upsertTranscript({
                     body: '',
                     transcript: 'Line 1\nLine 2\nLine 3',
-                    logFormat: FORMAT_TYPES.HTML
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
                 expect(result).toBe('<div><b>Transcript</b><br>Line 1<br>Line 2<br>Line 3</div><br>');
             });
@@ -599,7 +599,7 @@ describe('callLogComposer', () => {
                 const result = upsertTranscript({
                     body: '',
                     transcript: 'Call transcript',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Transcript:\nCall transcript\n--- END\n');
             });
@@ -609,7 +609,7 @@ describe('callLogComposer', () => {
                 const result = upsertTranscript({
                     body,
                     transcript: 'New transcript',
-                    logFormat: FORMAT_TYPES.PLAIN_TEXT
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
                 expect(result).toBe('- Transcript:\nNew transcript\n--- END\n');
             });
@@ -648,7 +648,7 @@ describe('callLogComposer', () => {
 
         test('should compose complete call log with all fields in HTML format', async () => {
             const result = await composeCallLog({
-                logFormat: FORMAT_TYPES.HTML,
+                logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
                 user: mockUser,
@@ -676,7 +676,7 @@ describe('callLogComposer', () => {
 
         test('should compose complete call log with all fields in plain text format', async () => {
             const result = await composeCallLog({
-                logFormat: FORMAT_TYPES.PLAIN_TEXT,
+                logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
                 user: mockUser,
@@ -713,7 +713,7 @@ describe('callLogComposer', () => {
             };
 
             const result = await composeCallLog({
-                logFormat: FORMAT_TYPES.PLAIN_TEXT,
+                logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
                 user: userWithDisabledSettings,
@@ -736,7 +736,7 @@ describe('callLogComposer', () => {
             };
 
             const result = await composeCallLog({
-                logFormat: FORMAT_TYPES.PLAIN_TEXT,
+                logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
                 user: userWithoutSettings,
@@ -756,7 +756,7 @@ describe('callLogComposer', () => {
         test('should handle updating existing body', async () => {
             const existingBody = '- Note: Old note\n- Duration: 30 seconds\n';
             const result = await composeCallLog({
-                logFormat: FORMAT_TYPES.PLAIN_TEXT,
+                logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 existingBody,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,

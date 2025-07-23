@@ -4,8 +4,9 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
-const { composeCallLog, getLogFormatType, FORMAT_TYPES } = require('../lib/callLogComposer');
+const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
 const adapterRegistry = require('../adapter/registry');
+const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 
 async function createCallLog({ platform, userId, incomingData }) {
     try {
@@ -76,7 +77,7 @@ async function createCallLog({ platform, userId, incomingData }) {
         // Compose call log details centrally
         const logFormat = getLogFormatType(platform);
         let composedLogDetails = '';
-        if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML || logFormat === FORMAT_TYPES.MARKDOWN) {
+        if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
             composedLogDetails = await composeCallLog({
                 logFormat,
                 callLog,
@@ -309,7 +310,7 @@ async function updateCallLog({ platform, userId, incomingData }) {
             let existingCallLogDetails = null;    // Compose updated call log details centrally
             const logFormat = getLogFormatType(platform);
             let composedLogDetails = '';
-            if (logFormat === FORMAT_TYPES.PLAIN_TEXT || logFormat === FORMAT_TYPES.HTML || logFormat === FORMAT_TYPES.MARKDOWN) {
+            if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
                 let existingBody = '';
                 try {
                     const getLogResult = await platformModule.getCallLog({
