@@ -471,6 +471,9 @@ async function updateCategoryToUserSetting({ user, authHeader }) {
 }
 
 function overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime, user }) {
+    if (!user.userSettings?.redtailCustomTimezone?.value) {
+        return composedLogDetails;
+    }
     const timezoneOffset = user.userSettings.redtailCustomTimezone.value;
     const adjustedTime = moment(startTime).utcOffset(Number(timezoneOffset));
     const formattedTime = adjustedTime.format('YYYY-MM-DD hh:mm:ss A');

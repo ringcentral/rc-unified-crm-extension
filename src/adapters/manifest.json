@@ -1289,7 +1289,8 @@
                     "authUrl": "https://auth.bullhornstaffing.com/oauth/authorize",
                     "clientId": "5a1ff851-6b1c-454d-8501-826502e6fc76",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
-                }
+                },
+                "useTokenRefreshLock": true
             },
             "canOpenLogPage": false,
             "contactTypes": [

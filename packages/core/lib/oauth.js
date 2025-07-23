@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
 const ClientOAuth2 = require('client-oauth2');
-const { Lock } = require('../models/dynamo/lockSchema');
 const { UserModel } = require('../models/userModel');
 const adapterRegistry = require('../adapter/registry');
 
@@ -32,7 +31,8 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
     // Other CRMs
     if (user && user.accessToken && user.refreshToken && tokenExpiry.getTime() < (dateNow.getTime() + expiryBuffer)) {
         // case: use dynamoDB to manage token refresh lock
-        if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
+        if (user.platform?.useTokenRefreshLock) {
+            const { Lock } = require('../models/dynamo/lockSchema');
             let lock = await Lock.get({ userId: user.id });
             let newLock;
             if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
