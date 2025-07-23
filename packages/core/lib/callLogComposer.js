@@ -472,7 +472,6 @@ function getLogFormatType(platform) {
 module.exports = {
     composeCallLog,
     getLogFormatType,
-    LOG_DETAILS_FORMAT_TYPE,
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,
