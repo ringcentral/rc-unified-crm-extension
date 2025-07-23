@@ -1,18 +1,12 @@
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
 const adapterRegistry = require('../adapter/registry');
+const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
 /**
  * Centralized call log composition module
  * Supports both plain text and HTML formats used across different CRM adapters
  */
-
-// Format types
-const FORMAT_TYPES = {
-    PLAIN_TEXT: 'text/plain',
-    HTML: 'text/html',
-    MARKDOWN: 'text/markdown'
-};
 
 /**
  * Compose call log details based on user settings and format type
@@ -34,7 +28,7 @@ const FORMAT_TYPES = {
  */
 async function composeCallLog(params) {
     const {
-        logFormat = FORMAT_TYPES.PLAIN_TEXT,
+        logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         existingBody = '',
         callLog,
         contactInfo,
@@ -119,14 +113,14 @@ async function composeCallLog(params) {
 function upsertCallAgentNote({ body, note, logFormat }) {
     if (!note) return body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // HTML logFormat with proper Agent notes section handling
         const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
         if (noteRegex.test(body)) {
             return body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
         }
         return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown logFormat with proper Agent notes section handling
         const noteRegex = /## Agent notes\n([\s\S]*?)\n## Call details/;
         if (noteRegex.test(body)) {
@@ -149,14 +143,14 @@ function upsertCallAgentNote({ body, note, logFormat }) {
 function upsertCallSessionId({ body, id, logFormat }) {
     if (!id) return body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const idRegex = /(?:<li>)?<b>Session Id<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (idRegex.test(body)) {
             return body.replace(idRegex, `<li><b>Session Id</b>: ${id}</li>`);
         }
         return body + `<li><b>Session Id</b>: ${id}</li>`;
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Session Id**: value
         const sessionIdRegex = /\*\*Session Id\*\*: [^\n]*\n*/;
         if (sessionIdRegex.test(body)) {
@@ -176,14 +170,14 @@ function upsertCallSessionId({ body, id, logFormat }) {
 function upsertCallSubject({ body, subject, logFormat }) {
     if (!subject) return body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const subjectRegex = /(?:<li>)?<b>Summary<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (subjectRegex.test(body)) {
             return body.replace(subjectRegex, `<li><b>Summary</b>: ${subject}</li>`);
         }
         return body + `<li><b>Summary</b>: ${subject}</li>`;
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Summary**: value
         const subjectRegex = /\*\*Summary\*\*: [^\n]*\n*/;
         if (subjectRegex.test(body)) {
@@ -206,7 +200,7 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
     const label = direction === 'Outbound' ? 'Recipient' : 'Caller';
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const phoneNumberRegex = new RegExp(`(?:<li>)?<b>${label} phone number</b>:\\s*([^<\\n]+)(?:</li>|(?=<|$))`, 'i');
         if (phoneNumberRegex.test(result)) {
@@ -214,7 +208,7 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
         } else {
             result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Contact Number**: value
         const phoneNumberRegex = /\*\*Contact Number\*\*: [^\n]*\n*/;
         if (phoneNumberRegex.test(result)) {
@@ -252,7 +246,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
     const formattedDateTime = momentTime.format('YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const dateTimeRegex = /(?:<li>)?<b>Date\/time<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (dateTimeRegex.test(result)) {
@@ -260,7 +254,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
         } else {
             result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Date/Time**: value
         const dateTimeRegex = /\*\*Date\/Time\*\*: [^\n]*\n*/;
         if (dateTimeRegex.test(result)) {
@@ -286,7 +280,7 @@ function upsertCallDuration({ body, duration, logFormat }) {
     const formattedDuration = secondsToHoursMinutesSeconds(duration);
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const durationRegex = /(?:<li>)?<b>Duration<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (durationRegex.test(result)) {
@@ -294,7 +288,7 @@ function upsertCallDuration({ body, duration, logFormat }) {
         } else {
             result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Duration**: value
         const durationRegex = /\*\*Duration\*\*: [^\n]*\n*/;
         if (durationRegex.test(result)) {
@@ -319,7 +313,7 @@ function upsertCallResult({ body, result, logFormat }) {
 
     let bodyResult = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const resultRegex = /(?:<li>)?<b>Result<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (resultRegex.test(bodyResult)) {
@@ -327,7 +321,7 @@ function upsertCallResult({ body, result, logFormat }) {
         } else {
             bodyResult += `<li><b>Result</b>: ${result}</li>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Result**: value
         const resultRegex = /\*\*Result\*\*: [^\n]*\n*/;
         if (resultRegex.test(bodyResult)) {
@@ -352,7 +346,7 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
 
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         // More flexible regex that handles both <li> wrapped and unwrapped content
         const recordingLinkRegex = /(?:<li>)?<b>Call recording link<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (recordingLink) {
@@ -376,7 +370,7 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
                 }
             }
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: **Call recording link**: value
         const recordingLinkRegex = /\*\*Call recording link\*\*: [^\n]*\n*/;
         if (recordingLinkRegex.test(result)) {
@@ -405,7 +399,7 @@ function upsertAiNote({ body, aiNote, logFormat }) {
     const clearedAiNote = aiNote.replace(/\n+$/, '');
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         const formattedAiNote = clearedAiNote.replace(/(?:\r\n|\r|\n)/g, '<br>');
         const aiNoteRegex = /<div><b>AI Note<\/b><br>(.+?)<\/div>/;
         if (aiNoteRegex.test(result)) {
@@ -413,7 +407,7 @@ function upsertAiNote({ body, aiNote, logFormat }) {
         } else {
             result += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: ### AI Note
         const aiNoteRegex = /### AI Note\n([\s\S]*?)(?=\n### |\n$|$)/;
         if (aiNoteRegex.test(result)) {
@@ -437,7 +431,7 @@ function upsertTranscript({ body, transcript, logFormat }) {
 
     let result = body;
 
-    if (logFormat === FORMAT_TYPES.HTML) {
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
         const transcriptRegex = /<div><b>Transcript<\/b><br>(.+?)<\/div>/;
         if (transcriptRegex.test(result)) {
@@ -445,7 +439,7 @@ function upsertTranscript({ body, transcript, logFormat }) {
         } else {
             result += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
         }
-    } else if (logFormat === FORMAT_TYPES.MARKDOWN) {
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
         // Markdown format: ### Transcript
         const transcriptRegex = /### Transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
         if (transcriptRegex.test(result)) {
@@ -478,7 +472,7 @@ function getLogFormatType(platform) {
 module.exports = {
     composeCallLog,
     getLogFormatType,
-    FORMAT_TYPES,
+    LOG_DETAILS_FORMAT_TYPE,
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,
