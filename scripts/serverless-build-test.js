@@ -35,7 +35,8 @@ cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
-cp('-r', `${projectPath}/packages`, `${deployPath}/packages`);
+mkdir(`${deployPath}/packages`);
+cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
 
 const manifestPath = resolve(projectPath, 'serverless-deploy-test/adapters/manifest.json');
