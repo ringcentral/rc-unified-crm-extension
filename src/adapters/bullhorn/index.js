@@ -2,6 +2,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -127,28 +128,55 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     let newLock;
     try {
         if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
-            let lock = await Lock.get({ userId: user.id });
-            if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
-                await lock.delete();
-                lock = null;
-            }
-            if (lock) {
-                let processTime = 0;
-                while (!!lock && processTime < tokenLockTimeout) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
-                    processTime += 2;
-                    lock = await Lock.get({ userId: user.id });
+            // Try to atomically create lock only if it doesn't exist
+            try {
+                newLock = await Lock.create(
+                    { userId: user.id, ttl: dateNow.getTime() + 1000 * 30 },
+                    { 
+                        condition: new dynamoose.Condition().where('userId').not().exists()
+                    }
+                );
+            } catch (e) {
+                // If creation failed due to condition, a lock exists
+                if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                    let lock = await Lock.get({ userId: user.id });
+                    if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
+                        // Try to delete expired lock and create a new one atomically
+                        try {
+                            await lock.delete();
+                            newLock = await Lock.create(
+                                { userId: user.id, ttl: dateNow.getTime() + 1000 * 30 },
+                                { 
+                                    condition: new dynamoose.Condition().where('userId').not().exists()
+                                }
+                            );
+                        } catch (e2) {
+                            if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                                // Another process created a lock between our delete and create
+                                lock = await Lock.get({ userId: user.id });
+                            } else {
+                                throw e2;
+                            }
+                        }
+                    }
+                    
+                    if (lock && !newLock) {
+                        let processTime = 0;
+                        while (!!lock && processTime < tokenLockTimeout) {
+                            await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
+                            processTime += 2;
+                            lock = await Lock.get({ userId: user.id });
+                        }
+                        // Timeout -> let users try another time
+                        if (processTime >= tokenLockTimeout) {
+                            throw new Error('Token lock timeout');
+                        }
+                        user = await UserModel.findByPk(user.id);
+                        return user;
+                    }
+                } else {
+                    throw e;
                 }
-                // Timeout -> let users try another time
-                if (processTime >= tokenLockTimeout) {
-                    throw new Error('Token lock timeout');
-                }
-                user = await UserModel.findByPk(user.id);
-            }
-            else {
-                newLock = await Lock.create({
-                    userId: user.id
-                });
             }
         }
         console.log('Bullhorn token refreshing...')

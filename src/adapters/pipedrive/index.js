@@ -168,7 +168,13 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
         const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
-        matchedContactInfo.push(formatContact(person.item, relatedDeals, relatedLeads));
+        matchedContactInfo.push(formatContact(
+            {
+                person: person.item,
+                phoneNumber,
+                relatedDeals,
+                relatedLeads
+            }));
     }
     matchedContactInfo.push({
         id: 'createNewContact',
@@ -210,7 +216,28 @@ async function findContactWithName({ user, authHeader, name }) {
         const relatedDeals = dealsResponse.data.data ?
             dealsResponse.data.data.map(d => { return { const: d.id, title: d.title } })
             : null;
-        matchedContactInfo.push(formatContact(person.item, relatedDeals));
+        let leadsResponse = null;
+        try {
+            leadsResponse = await axios.get(
+                `https://${user.hostname}/v1/leads?person_id=${person.item.id}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            extraDataTracking = {
+                ratelimitRemaining: leadsResponse.headers['x-ratelimit-remaining'],
+                ratelimitAmount: leadsResponse.headers['x-ratelimit-limit'],
+                ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
+            };
+        }
+        catch (e) { leadsResponse = null; }
+        const relatedLeads = leadsResponse?.data?.data ?
+            leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
+            : null;
+        matchedContactInfo.push(formatContact({
+            person: person.item,
+            relatedDeals,
+            relatedLeads
+        }));
     }
     return {
         successful: true,
@@ -219,7 +246,7 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
-function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
+function formatContact({ person, phoneNumber, relatedDeals, relatedLeads }) {
     const additionalInfo = {};
     if (relatedDeals && relatedDeals.length > 0) {
         additionalInfo.deals = relatedDeals;
@@ -228,10 +255,10 @@ function formatContact(rawContactInfo, relatedDeals, relatedLeads) {
         additionalInfo.leads = relatedLeads;
     }
     return {
-        id: rawContactInfo.id,
-        name: rawContactInfo.name,
-        phone: rawContactInfo.phones[0],
-        organization: rawContactInfo.organization?.name ?? '',
+        id: person.id,
+        name: person.name,
+        phone: phoneNumber,
+        organization: person.organization?.name ?? '',
         additionalInfo: additionalInfo ?? null,
         type: 'contact'
     }
