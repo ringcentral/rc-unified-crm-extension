@@ -15,6 +15,10 @@
             "urlIdentifier": "*.labs.ringcentral.com/*",
             "name": "testCRM",
             "displayName": "Test CRM",
+            "logFormat": "text/plain",
+            "embedUrls": [
+                "https://*.ringcentral.com/*"
+            ],
             "enableExtensionNumberLoggingSetting": true,
             "requestConfig": {
                 "timeout": 30
