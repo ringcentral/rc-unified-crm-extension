@@ -1234,7 +1234,7 @@
                 "useContactSearch": true
             },
             "canOpenLogPage": true,
-            "disableDisposition": true,
+            "disableDisposition": false,
             "contactPageUrl": "https://{hostname}/contacts/{contactId}",
             "logPageUrl": "https://{hostname}/activities/{logId}",
             "embeddedOnCrmPage": {

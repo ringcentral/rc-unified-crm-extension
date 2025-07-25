@@ -236,7 +236,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     const completeLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}`,
         {
-            'completed': true
+            completed: true
         },
         {
             headers: { 'Authorization': overrideAuthHeader }
@@ -296,6 +296,23 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             messageType: 'success',
             ttl: 2000
         }
+    };
+}
+
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const existingRedtailLogId = existingCallLog.thirdPartyLogId;
+    const categoryId = dispositions.category;
+    const upsertDispositionRes = await axios.put(
+        `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
+        {
+            category_id: categoryId
+        },
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    return {
+        logId: existingRedtailLogId
     };
 }
 
@@ -423,6 +440,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
             note,
             fullBody: logBody,
             contactName: `${getLogRes.data.activity.linked_contacts[0].first_name} ${getLogRes.data.activity.linked_contacts[0].last_name}`,
+            dispositions: {
+                category: getLogRes.data.activity.category_id
+            }
         }
     }
 }
@@ -474,7 +494,7 @@ function overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime, u
     if (!user.userSettings?.redtailCustomTimezone?.value) {
         return composedLogDetails;
     }
-    const adjustedTime = moment(startTime).utcOffset(Number(timezoneOffset));
+    const adjustedTime = moment(startTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value));
     const formattedTime = adjustedTime.format('YYYY-MM-DD hh:mm:ss A');
     const dateTimeRegex = /<li><b>Date\/[Tt]ime<\/b>:\s*[^<]+<\/li>/i;
     if (dateTimeRegex.test(composedLogDetails)) {
@@ -492,6 +512,7 @@ exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
+exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.getCallLog = getCallLog;
