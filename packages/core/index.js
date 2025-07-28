@@ -67,7 +67,7 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
 // Create a router with all core routes
 function createCoreRouter() {
     const router = express.Router();
-    
+
     // Move all app.get, app.post, etc. to router.get, router.post, etc.
     router.get('/releaseNotes', async function (req, res) {
         const globalReleaseNotes = releaseNotes;
@@ -160,7 +160,7 @@ function createCoreRouter() {
             eventName: 'Auth validation',
             interfaceName: 'authValidation',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -206,7 +206,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Set admin settings',
             interfaceName: 'setAdminSettings',
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -265,7 +265,7 @@ function createCoreRouter() {
             eventName: 'Get admin settings',
             interfaceName: 'getAdminSettings',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -311,7 +311,7 @@ function createCoreRouter() {
             eventName: 'Get server logging settings',
             interfaceName: 'getServerLoggingSettings',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -362,7 +362,7 @@ function createCoreRouter() {
             eventName: 'Set server logging settings',
             interfaceName: 'setServerLoggingSettings',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -427,7 +427,7 @@ function createCoreRouter() {
             eventName: 'Get user settings',
             interfaceName: 'getUserSettings',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -472,7 +472,7 @@ function createCoreRouter() {
             eventName: 'Set user settings',
             interfaceName: 'setUserSettings',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -559,7 +559,7 @@ function createCoreRouter() {
             eventName: 'OAuth Callback',
             interfaceName: 'onOAuthCallback',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -610,7 +610,7 @@ function createCoreRouter() {
             eventName: 'API Key Login',
             interfaceName: 'onApiKeyLogin',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -655,7 +655,7 @@ function createCoreRouter() {
             eventName: 'Unauthorize',
             interfaceName: 'unAuthorize',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -720,7 +720,7 @@ function createCoreRouter() {
             eventName: 'Find contact',
             interfaceName: 'findContact',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -773,7 +773,7 @@ function createCoreRouter() {
             eventName: 'Create contact',
             interfaceName: 'createContact',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -825,7 +825,7 @@ function createCoreRouter() {
             eventName: 'Get call log',
             interfaceName: 'getCallLog',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -877,7 +877,7 @@ function createCoreRouter() {
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -929,7 +929,7 @@ function createCoreRouter() {
             eventName: 'Update call log',
             interfaceName: 'updateCallLog',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -985,7 +985,7 @@ function createCoreRouter() {
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -1038,7 +1038,7 @@ function createCoreRouter() {
             eventName: 'Create message log',
             interfaceName: 'createMessageLog',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -1086,7 +1086,7 @@ function createCoreRouter() {
             eventName: 'Contact Search by Name',
             interfaceName: 'contactSearchByName',
             adapterName: platformName,
-            rcAccountId: hashedAccountId,
+            accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
             requestDuration: (requestEndTime - requestStartTime) / 1000,
@@ -1167,8 +1167,8 @@ function createCoreMiddleware() {
 
 // Initialize core services
 async function initializeCore(options = {}) {
-    const { 
-        skipDatabaseInit = false, 
+    const {
+        skipDatabaseInit = false,
         skipAnalyticsInit = false,
     } = options;
 
@@ -1185,15 +1185,15 @@ async function initializeCore(options = {}) {
 function createCoreApp(options = {}) {
     initializeCore(options);
     const app = express();
-    
+
     // Apply core middleware
     const coreMiddleware = createCoreMiddleware();
     coreMiddleware.forEach(middleware => app.use(middleware));
-    
+
     // Apply core routes
     const coreRouter = createCoreRouter();
     app.use('/', coreRouter);
-    
+
     return app;
 }
 
