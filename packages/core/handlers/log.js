@@ -73,11 +73,18 @@ async function createCallLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-
         // Compose call log details centrally
         const logFormat = getLogFormatType(platform);
+
+        if (platform === 'clio') {
+            console.log('clio debug logFormat: ', logFormat)
+        }
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+
+            if (platform === 'clio') {
+                console.log('clio debug inside composer')
+            }
             composedLogDetails = await composeCallLog({
                 logFormat,
                 callLog,
@@ -93,6 +100,9 @@ async function createCallLog({ platform, userId, incomingData }) {
                 result: callLog.result,
                 platform
             });
+            if (platform === 'clio') {
+                console.log('clio debug composedLogDetails: ', composedLogDetails)
+            }
         }
 
         const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
