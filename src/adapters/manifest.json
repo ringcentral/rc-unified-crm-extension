@@ -98,7 +98,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
 }
       ],
       "page": {
@@ -1066,7 +1066,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
   }
       ],
       "page": {
@@ -1379,7 +1379,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
 }
       ],
       "page": {
@@ -1691,7 +1691,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
 }
 
       ],
@@ -2097,7 +2097,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
 }
       ],
       "page": {
@@ -2253,7 +2253,7 @@
             "requiredPermission": "aiNote"
         }
     ],
-    "defaultValue": ["addCallLogNote","addCallSessionId", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
+    "defaultValue": ["addCallLogNote","addCallSessionId","addCallLogSubject","addCallLogDateTime", "addCallLogContactNumber", "addCallLogDuration", "addCallLogResult", "addCallLogRecording","addCallLogAiNote","addCallLogTranscript"]
 }
       ],
       "page": {
