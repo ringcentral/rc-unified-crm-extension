@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.5.8:
+
+- Fix: Error on showing a window-size warning message
+- Fix: Disconnected users shown as connected
+- Fix: Redtail disposition issue
+- Better: Every 5min, retroatively check recording links at pending state and update them to call logs
+- Better: More stable user session
+- Better: User settings sync message suppressed
+- Better: Webpage embed (Click-to-dial and Quick-access-button) urls setting is renamed to 'Enabled domains' under General -> Appearance
+
 ## 1.5.7:
 
 - New: Bullhorn admin users can submit API username and password to avoid Bullhorn session expired in server side logging
