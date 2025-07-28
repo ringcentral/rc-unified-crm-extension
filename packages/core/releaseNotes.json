@@ -1,4 +1,32 @@
 {
+    "1.5.8": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Error on showing a window-size warning message"
+            },
+            {
+                "type": "Fix",
+                "description": "- Disconnected users shown as connected"
+            },
+            {
+                "type": "Better",
+                "description": "- Every 5min, retroatively check recording links at pending state and update them to existing call logs"
+            },
+            {
+                "type": "Better",
+                "description": "- More stable user session"
+            },
+            {
+                "type": "Better",
+                "description": "- User settings sync message suppressed"
+            },
+            {
+                "type": "Better",
+                "description": "- Webpage embed (Click-to-dial and Quick-access-button) urls setting is renamed to 'Enabled domains' under General -> Appearance"
+            }
+        ]
+    },
     "1.5.7": {
         "global": [
             {
