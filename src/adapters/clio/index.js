@@ -347,6 +347,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
+    if (composedLogDetails === '') {
+        composedLogDetails = 'No details available';
+    }
     const postBody = {
         data: {
             subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,
