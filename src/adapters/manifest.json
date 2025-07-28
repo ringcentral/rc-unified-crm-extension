@@ -51,6 +51,16 @@
             "description": "Log the notes manually entered by yourself"
         },
         {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
+        },
+        {
             "id": "addCallSessionId", 
             "name": "Call session id",
             "description": "Log RingCentral call session id"
@@ -1014,6 +1024,16 @@
             "description": "Log RingCentral call session id"
         },
         {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
+        },
+        {
             "id": "addCallLogContactNumber",
             "name": "Contact's phone number", 
             "description": "Log the contact information of the other participant"
@@ -1315,6 +1335,16 @@
             "id": "addCallSessionId", 
             "name": "Call session id",
             "description": "Log RingCentral call session id"
+        },
+        {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
         },
         {
             "id": "addCallLogContactNumber",
@@ -1619,6 +1649,16 @@
             "description": "Log RingCentral call session id"
         },
         {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
+        },
+        {
             "id": "addCallLogContactNumber",
             "name": "Contact's phone number", 
             "description": "Log the contact information of the other participant"
@@ -1839,6 +1879,16 @@
             "id": "addCallSessionId", 
             "name": "Call session id",
             "description": "Log RingCentral call session id"
+        },
+        {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
         },
         {
             "id": "addCallLogContactNumber",
@@ -2159,6 +2209,16 @@
             "id": "addCallSessionId", 
             "name": "Call session id",
             "description": "Log RingCentral call session id"
+        },
+        {
+              "id": "addCallLogSubject",
+              "name": "Call subject",
+              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'"
+        },
+        {
+              "id": "addCallLogDateTime",
+              "name": "Date and time",
+              "description": "Log the call's explicit start and end date/times"
         },
         {
             "id": "addCallLogContactNumber",
