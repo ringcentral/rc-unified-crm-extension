@@ -76,7 +76,7 @@ function createCoreRouter() {
         const versions = Object.keys(adapterReleaseNotes);
         for (const version of versions) {
             mergedReleaseNotes[version] = {
-                global: globalReleaseNotes[version].global,
+                global: globalReleaseNotes[version]?.global ?? {},
                 ...adapterReleaseNotes[version] ?? {}
             };
         }
