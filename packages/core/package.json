@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.751.0",
-    "body-parser": "^1.20.1",
+    "body-parser": "^1.20.3",
     "client-oauth2": "^4.3.3",
     "cors": "^2.8.5",
     "country-state-city": "^3.2.1",
