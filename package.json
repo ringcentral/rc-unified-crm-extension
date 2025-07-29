@@ -72,6 +72,9 @@
     "sqlite3": "^5.1.5",
     "supertest": "^6.3.1"
   },
+  "overrides": {
+    "js-object-utilities": "2.2.1"
+  },
   "bugs": {
     "url": "https://github.com/ringcentral/rc-unified-crm-extension/issues"
   },
