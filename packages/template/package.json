@@ -40,7 +40,7 @@
     "serverless-plugin-log-retention": "^2.0.0",
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
-    "sqlite3": "^5.1.2",
+    "sqlite3": "^5.1.5",
     "supertest": "^6.3.1"
   },
   "keywords": [
