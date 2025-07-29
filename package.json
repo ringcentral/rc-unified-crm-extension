@@ -50,7 +50,7 @@
     "pg": "^8.8.0",
     "sequelize": "^6.29.0",
     "serverless-http": "^3.0.3",
-    "shortid": "^2.2.16"
+    "shortid": "^2.2.17"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

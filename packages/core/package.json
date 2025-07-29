@@ -31,7 +31,7 @@
     "dynamoose": "^4.0.3",
     "jsonwebtoken": "^8.5.1",
     "mixpanel": "^0.18.0",
-    "shortid": "^2.2.16",
+    "shortid": "^2.2.17",
     "tz-lookup": "^6.1.25",
     "ua-parser-js": "^1.0.38"
   },
