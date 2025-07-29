@@ -99,6 +99,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             await user.save();
             if (newLock) {
                 await newLock.delete();
+                console.log('lock deleted')
             }
             console.log('token refreshing finished')
         }
