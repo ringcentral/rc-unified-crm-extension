@@ -22,7 +22,7 @@
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.0",
+    "sequelize": "^6.29.0",
     "serverless-http": "^3.0.3",
     "shortid": "^2.2.16"
   },

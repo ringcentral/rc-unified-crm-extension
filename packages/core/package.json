@@ -17,7 +17,7 @@
     "axios": "^1.1.2",
     "express": "^4.18.2",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.0",
+    "sequelize": "^6.29.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39"
   },
@@ -53,7 +53,7 @@
     "moment-timezone": "^0.5.39",
     "nock": "^13.2.9",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.0",
+    "sequelize": "^6.29.0",
     "sqlite3": "^5.1.2",
     "supertest": "^6.3.1"
   },
