@@ -208,6 +208,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
         console.log('Bullhorn token refreshing finished')
         if (newLock) {
             await newLock.delete();
+            console.log('Bullhorn lock deleted')
         }
     }
     catch (e) {
