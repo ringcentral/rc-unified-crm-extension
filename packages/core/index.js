@@ -115,8 +115,63 @@ function createCoreRouter() {
         }
     });
 
-    router.get('/is-alive', (req, res) => {
+    router.get('/isAlive', (req, res) => {
         res.send(`OK`);
+    });
+
+    router.get('/licenseStatus', async (req, res) => {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let extraData = {};
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try{
+            const jwtToken = req.query.jwtToken;
+            if(jwtToken){
+                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                platformName = platform;
+                if (!userId) {
+                    res.status(400).send();
+                    success = true;
+                }
+                const licenseStatus = await authCore.getLicenseStatus({ userId, platform });
+                res.status(200).send(licenseStatus);
+                success = true;
+            }
+            else{
+                res.status(200).send({
+                    isLicenseValid: false,
+                    licenseStatus: 'Invalid (Invalid user session)',
+                    licenseStatusDescription: ''
+                });
+                success = true;
+            }
+        }
+        catch(e){
+            res.status(200).send({
+                isLicenseValid: false,
+                licenseStatus: 'Invalid (Connect to get license status)',
+                licenseStatusDescription: ''
+            });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Check license status',
+            interfaceName: 'checkLicenseStatus',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                ...extraData
+            },
+            eventAddedVia
+        });
     });
 
     router.get('/authValidation', async (req, res) => {

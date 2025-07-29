@@ -155,7 +155,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     // ----------------------------------------
     // ---TODO.3: Implement contact matching---
     // ----------------------------------------
-
+    
     console.log(`phone number: ${phoneNumber}`)
     console.log(`is extesnion number? ${isExtension}`)
     const numberToQueryArray = [];
@@ -518,6 +518,13 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
+async function getLicenseStatus({ userId }) {
+    return {
+        isLicenseValid: true,
+        licenseStatus: 'Basic',
+        licenseStatusDescription: ''
+    }
+}
 
 exports.getAuthType = getAuthType;
 exports.getUserInfo = getUserInfo;
@@ -529,3 +536,4 @@ exports.updateMessageLog = updateMessageLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.getLicenseStatus = getLicenseStatus;

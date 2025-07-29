@@ -19,6 +19,7 @@
       "embedUrls": [
         "https://*.ringcentral.com/*"
       ],
+      "useLicense": true,
       "enableExtensionNumberLoggingSetting": true,
       "requestConfig": {
         "timeout": 30
