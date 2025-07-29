@@ -220,7 +220,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     return user;
 }
 
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10) {
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
     if (!user || !user.accessToken || !user.refreshToken) {
         return user;
     }
