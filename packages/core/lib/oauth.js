@@ -18,7 +18,7 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 }
 
 
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10) {
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
     const dateNow = new Date();
     const tokenExpiry = new Date(user.tokenExpiry);
     const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
