@@ -1,9 +1,8 @@
-/* eslint-disable no-control-regex */
+
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
 
 function getAuthType() {
     return 'apiKey';
@@ -25,8 +24,14 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         // We use UTC here for now
         const id = userInfoResponse.data.USER_ID.toString();
         const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-        const timezoneOffset = null;
+        let timezoneOffset = 0;
         const timezoneName = userInfoResponse.data.TIMEZONE_ID;
+        try {
+            const ianaTimeZone = getIanaTimeZone({ timeZone: timezoneName });
+            timezoneOffset = moment.tz(ianaTimeZone).utcOffset() / 60;
+        } catch (error) {
+            timezoneOffset = 0; // Default to UTC if conversion fails
+        }
         return {
             successful: true,
             platformUserInfo: {
@@ -445,24 +450,14 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    let body = '';
-    if (user.userSettings?.addCallLogNote?.value ?? true) { body = upsertCallAgentNote({ body, note }); }
-    if (user.userSettings?.addCallSessionId?.value ?? false) { body = upsertCallSessionId({ body, id: callLog.sessionId }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { body = upsertContactPhoneNumber({ body, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-    if (user.userSettings?.addCallLogResult?.value ?? true) { body = upsertCallResult({ body, result: callLog.result }); }
-    if (user.userSettings?.addCallLogDuration?.value ?? true) { body = upsertCallDuration({ body, duration: callLog.duration }); }
-    if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { body = upsertCallRecording({ body, recordingLink: callLog.recording.link }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { body = upsertAiNote({ body, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { body = upsertTranscript({ body, transcript }); }
-
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
     const postBody = {
         TITLE: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
-        DETAILS: body,
+        DETAILS: composedLogDetails,
         START_DATE_UTC: moment(callLog.startTime).utc(),
         END_DATE_UTC: moment(callLog.startTime).utc().add(callLog.duration, 'seconds')
     }
@@ -544,27 +539,25 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
-    const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    let logBody = getLogRes.data.DETAILS;
-
-    if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { logBody = upsertCallAgentNote({ body: logBody, note }); }
-    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { logBody = upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId }); }
-    if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
-    if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
-    if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink: decodeURIComponent(recordingLink) }); }
-    if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-    if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
+    // Use passed existingCallLogDetails to avoid duplicate API call
+    let getLogRes = null;
+    if (existingCallLogDetails) {
+        getLogRes = { data: existingCallLogDetails };
+    } else {
+        // Fallback to API call if details not provided
+        getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingInsightlyLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+    }
 
     const putBody = {
         EVENT_ID: existingInsightlyLogId,
-        DETAILS: logBody,
-        TITLE: subject ? subject : getLogRes.data.TITLE,
+        DETAILS: composedLogDetails,
+        TITLE: subject ? subject : (existingCallLogDetails?.subject || getLogRes.data.TITLE),
         START_DATE_UTC: moment(startTime).utc(),
         END_DATE_UTC: moment(startTime).utc().add(duration, 'seconds')
     }
@@ -591,7 +584,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
         {
             headers: { 'Authorization': authHeader }
         });
-    const note = getLogRes.data.DETAILS.split('- Agent note: ')[1]?.split('\n')[0];
+    //const note = getLogRes.data.DETAILS.split('- Note: ')[1]?.split('\n')[0];
+    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
+    const note = getLogRes.data.DETAILS.match(noteRegex)?.[1]?.trim();
     const contactRes = await axios.get(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/${getLogRes.data.LINKS[0].LINK_OBJECT_NAME}s/${getLogRes.data.LINKS[0].LINK_OBJECT_ID}`,
         {
@@ -608,6 +603,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
     return {
         callLogInfo: {
             subject: getLogRes.data.TITLE,
+            fullBody: getLogRes?.data?.DETAILS,
+            fullLogResponse: getLogRes.data,
             note,
             contactName: `${contactRes.data.FIRST_NAME} ${contactRes.data.LAST_NAME}`,
             dispositions
@@ -719,7 +716,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'BEGIN\n' +
                 '------------\n' +
                 `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n` +
+                `${message.subject}\n\n` +
                 '------------\n' +
                 'END\n\n' +
                 '--- Created via RingCentral App Connect';
@@ -795,10 +792,11 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     let logBody = getLogRes.data.DETAILS;
     let putBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
+    const endMarker = '------------\nEND';
     const newMessageLog =
         `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
         `${message.subject}\n`;
-    logBody = logBody.replace(originalNote, `${newMessageLog}\n${originalNote}`);
+    logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
     const regex = RegExp('Conversation.(.*) messages.');
     const matchResult = regex.exec(logBody);
@@ -817,96 +815,64 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         });
 }
 
-
-function upsertContactPhoneNumber({ body, phoneNumber, direction }) {
-    const phoneNumberRegex = RegExp('- Contact Number: (.+?)\n');
-    if (phoneNumberRegex.test(body)) {
-        body = body.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
-    } else {
-        body += `- Contact Number: ${phoneNumber}\n`;
-    }
-    return body;
-}
-function upsertCallResult({ body, result }) {
-    const resultRegex = RegExp('- Result: (.+?)\n');
-    if (resultRegex.test(body)) {
-        body = body.replace(resultRegex, `- Result: ${result}\n`);
-    } else {
-        body += `- Result: ${result}\n`;
-    }
-    return body;
-}
-
-function upsertCallAgentNote({ body, note }) {
-    if (!note) {
-        return body;
-    }
-    const noteRegex = RegExp('- Agent note: ([\\s\\S]+?)\n');
-    if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Agent note: ${note}\n`);
-    }
-    else {
-        body += `- Agent note: ${note}\n`;
-    }
-    return body;
-}
-
-function upsertCallDuration({ body, duration }) {
-    const durationRegex = RegExp('- Duration: (.+?)?\n');
-    if (durationRegex.test(body)) {
-        body = body.replace(durationRegex, `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`);
-    } else {
-        body += `- Duration: ${secondsToHoursMinutesSeconds(duration)}\n`;
-    }
-    return body;
-}
-
-function upsertCallSessionId({ body, id }) {
-    const sessionIdRegex = RegExp('- Session Id: (.+?)\n');
-    if (sessionIdRegex.test(body)) {
-        body = body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
-    } else {
-        body += `- Session Id: ${id}\n`;
-    }
-    return body;
-}
-
-function upsertCallRecording({ body, recordingLink }) {
-    const recordingLinkRegex = RegExp('- Call recording link: (.+?)\n');
-    if (!!recordingLink && recordingLinkRegex.test(body)) {
-        body = body.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-    } else if (recordingLink) {
-        body += `- Call recording link: ${recordingLink}\n`;
-    }
-    return body;
-}
-
-function upsertAiNote({ body, aiNote }) {
-    const aiNoteRegex = RegExp('- AI Note:([\\s\\S]*?)--- END');
-    const clearedAiNote = aiNote.replace(/\n+$/, '');
-    if (aiNoteRegex.test(body)) {
-        body = body.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
-    } else {
-        body += `- AI Note:\n${clearedAiNote}\n--- END\n`;
-    }
-    return body;
-}
-
-function upsertTranscript({ body, transcript }) {
-    const transcriptRegex = RegExp('- Transcript:([\\s\\S]*?)--- END');
-    if (transcriptRegex.test(body)) {
-        body = body.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
-    } else {
-        body += `- Transcript:\n${transcript}\n--- END\n`;
-    }
-    return body;
-}
 function splitName(fullName) {
     const parts = fullName.trim().split(/\s+/);
     const firstName = parts[0];
     const lastName = parts.length > 1 ? parts.slice(1).join(' ') : '';
     return { firstName, lastName };
 }
+
+function getIanaTimeZone({ timeZone }) {
+    // Map Windows timezone names to IANA timezone names
+    const windowsToIANA = {
+        'Dateline Standard Time': 'Etc/GMT+12',
+        'UTC-11': 'Etc/GMT+11',
+        'Hawaiian Standard Time': 'Pacific/Honolulu',
+        'Alaskan Standard Time': 'America/Anchorage',
+        'Pacific Standard Time': 'America/Los_Angeles',
+        'Pacific Daylight Time': 'America/Los_Angeles',
+        'Mountain Standard Time': 'America/Denver',
+        'Mountain Daylight Time': 'America/Denver',
+        'Central Standard Time': 'America/Chicago',
+        'Central Daylight Time': 'America/Chicago',
+        'Eastern Standard Time': 'America/New_York',
+        'Eastern Daylight Time': 'America/New_York',
+        'Atlantic Standard Time': 'America/Halifax',
+        'GMT Standard Time': 'Europe/London',
+        'Greenwich Standard Time': 'Atlantic/Reykjavik',
+        'Central Europe Standard Time': 'Europe/Berlin',
+        'Romance Standard Time': 'Europe/Paris',
+        'W. Europe Standard Time': 'Europe/Berlin',
+        'E. Europe Standard Time': 'Europe/Bucharest',
+        'Egypt Standard Time': 'Africa/Cairo',
+        'South Africa Standard Time': 'Africa/Johannesburg',
+        'FLE Standard Time': 'Europe/Kiev',
+        'Israel Standard Time': 'Asia/Jerusalem',
+        'Arabic Standard Time': 'Asia/Baghdad',
+        'Arab Standard Time': 'Asia/Riyadh',
+        'Russian Standard Time': 'Europe/Moscow',
+        'India Standard Time': 'Asia/Kolkata',
+        'Nepal Standard Time': 'Asia/Kathmandu',
+        'Bangladesh Standard Time': 'Asia/Dhaka',
+        'Myanmar Standard Time': 'Asia/Yangon',
+        'SE Asia Standard Time': 'Asia/Bangkok',
+        'China Standard Time': 'Asia/Shanghai',
+        'North Asia Standard Time': 'Asia/Krasnoyarsk',
+        'Tokyo Standard Time': 'Asia/Tokyo',
+        'Korea Standard Time': 'Asia/Seoul',
+        'AUS Eastern Standard Time': 'Australia/Sydney',
+        'E. Australia Standard Time': 'Australia/Brisbane',
+        'Tasmania Standard Time': 'Australia/Hobart',
+        'West Pacific Standard Time': 'Pacific/Port_Moresby',
+        'New Zealand Standard Time': 'Pacific/Auckland',
+        'UTC': 'Etc/UTC',
+        'GMT': 'Etc/UTC'
+    };
+    // Convert Windows timezone name to IANA if needed
+    const ianaTimeZone = windowsToIANA[timeZone] || timeZone;
+    return ianaTimeZone;
+}
+
 
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;

@@ -46,7 +46,41 @@ This interface returns a single object. That object describes the contacts that 
 
 !!! tip "isNewContact is only used as an extra option in contact list for users to be able to create new contacts"
 
-**Example**
+### Returning contact specific information
+
+In some circumstances when a call is being logged you need to collect contact or account specific information from the agent logging the call. Consider for a moment a use case you can see implemented in our Clio adapter in which you want to link or associate a phone call with a specific legal matter. You don't know the list of possible matters until you have successfully matched the phone call with a contact. Then you want to present the agent with a easy-to-use pull-down menu showing the list of matters associated with the contact. 
+
+To do this you need to do two things. First, in your manifest, you want to define the field you want to collect from the agent. On this field you will be sure to set `contactDependent` to `true`. 
+
+```js hl_lines="8"
+"page": {
+    "callLog": {
+        "additionalFields": [
+            {
+                "const": "matters",
+                "title": "Matter",
+                "type": "selection",
+                "contactDependent": true
+            }
+        ]
+    }
+}
+```
+
+Then in your adapter, when you return your list of contacts, for each contact you will return the `additionalInfo` property in which you provide the list of matters. 
+
+```js hl_lines="2"
+[{ 
+    "const": m.matter.id, 
+	"title": m.matter.display_number, 
+	"description": m.matter.description, 
+	"status": m.matter.status 
+}]
+```
+
+The values returns are bound to the field via correlating the two `const` values found in the additional field and the contact record. 
+
+### Example response
 
 ```js
 {

@@ -1,0 +1,10 @@
+{
+  "1.5.7": {
+    "myCRM": [
+      {
+        "type": "New",
+        "description": "- myCRM is now supported"
+      }
+    ]
+  }
+}

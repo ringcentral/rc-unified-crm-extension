@@ -1,8 +1,8 @@
 const request = require('supertest');
 const { getServer } = require('../src/index');
-const { UserModel } = require('../src/models/userModel');
+const { UserModel } = require('@app-connect/core/models/userModel');
 const platforms = require('../tests/platformInfo.json');
-const jwt = require('../src/lib/jwt');
+const jwt = require('@app-connect/core/lib/jwt');
 
 const extensionId = 'extensionId';
 const accountId = 'accountId';

@@ -1,11 +1,15 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.5.6",
+  "version": "1.5.8",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
     "rc-unified-crm-extension": "bin/index.js"
   },
+  "private": true,
+  "workspaces": [
+    "./packages/*"
+  ],
   "scripts": {
     "ngrok": "ngrok http 6066 ",
     "tunnel": "lite-http-tunnel start 6066 -p crm",
@@ -20,7 +24,8 @@
     "build-test": "node ./scripts/serverless-build-test",
     "deploy-test": "node ./scripts/serverless-deploy-test",
     "dynamo-local": "node ./scripts/dynamo-local.js",
-    "htt": "node ./tests/highTrafficTestRun.js"
+    "htt": "node ./tests/highTrafficTestRun.js",
+    "update-version": "node ./scripts/updateVersion.js"
   },
   "repository": {
     "type": "git",
@@ -35,27 +40,17 @@
   "author": "Da Kong",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.751.0",
     "awesome-phonenumber": "^5.6.0",
     "axios": "^1.1.2",
-    "body-parser": "^1.20.1",
-    "client-oauth2": "^4.3.3",
-    "cors": "^2.8.5",
-    "country-state-city": "^3.2.1",
     "dotenv": "^16.0.3",
-    "dynamoose": "^4.0.3",
-    "express": "^4.18.2",
+    "express": "^4.21.2",
     "googleapis": "^148.0.0",
-    "jsonwebtoken": "^8.5.1",
-    "mixpanel": "^0.18.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
     "pg": "^8.8.0",
-    "sequelize": "^6.25.0",
+    "sequelize": "^6.29.0",
     "serverless-http": "^3.0.3",
-    "shortid": "^2.2.16",
-    "tz-lookup": "^6.1.25",
-    "ua-parser-js": "^1.0.38"
+    "shortid": "^2.2.17"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
@@ -74,8 +69,11 @@
     "serverless-plugin-log-retention": "^2.0.0",
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
-    "sqlite3": "^5.1.2",
+    "sqlite3": "^5.1.5",
     "supertest": "^6.3.1"
+  },
+  "overrides": {
+    "js-object-utilities": "2.2.1"
   },
   "bugs": {
     "url": "https://github.com/ringcentral/rc-unified-crm-extension/issues"

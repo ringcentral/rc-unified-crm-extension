@@ -23,10 +23,8 @@ const execAsync = (cmd, options = {
 echo('clean path...');
 rm('-rf', `${deployPath}/*.js`);
 rm('-rf', `${deployPath}/*.json`);
-rm('-rf', `${deployPath}/models`);
+rm('-rf', `${deployPath}/packages`);
 rm('-rf', `${deployPath}/node_modules`);
-rm('-rf', `${deployPath}/lib`);
-rm('-rf', `${deployPath}/core`);
 rm('-rf', `${deployPath}/adapters`);
 echo('building...');
 mkdir(deployPath)
@@ -37,10 +35,9 @@ cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
-cp('-r', `${projectPath}/src/core`, `${deployPath}/core`);
-cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
+mkdir(`${deployPath}/packages`);
+cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
-cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 
 const manifestPath = resolve(projectPath, 'serverless-deploy-test/adapters/manifest.json');
 const manifest = require(manifestPath);

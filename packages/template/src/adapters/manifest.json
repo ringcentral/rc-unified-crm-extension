@@ -1,0 +1,160 @@
+{
+    "serverUrl": "https://xxxx.ngrok.app",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+    "author": {
+        "name": "Test Developer",
+        "websiteUrl": ""
+    },
+    "platforms": {
+        "myCRM": {
+            "logoUrl": "https://avatars.githubusercontent.com/u/6549285?s=200&v=4",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+            "urlIdentifier": "https://ringcentral.github.io/*",
+            "name": "myCRM",
+            "displayName": "My CRM",
+            "logFormat": "text/plain",
+            "embedUrls": [
+                "https://*.ringcentral.com/*"
+            ],
+            "enableExtensionNumberLoggingSetting": true,
+            "requestConfig": {
+                "timeout": 30
+            },
+            "auth": {
+                "type": "apiKey",
+                "apiKey": {
+                    "page": {
+                        "title": "My CRM",
+                        "content": [
+                            {
+                                "const": "apiKey",
+                                "title": "apiKey",
+                                "type": "string",
+                                "required": true
+                            }
+                        ]
+                    }
+                },
+                "oauth": {
+                    "authUrl": "",
+                    "clientId": "",
+                    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+                    "customState": "",
+                    "scope": ""
+                }
+            },
+            "canOpenLogPage": false,
+            "contactTypes": [
+                {
+                    "display": "MyContactType",
+                    "value": "myContact"
+                },
+                {
+                    "display": "Contact",
+                    "value": "cta"
+                }
+            ],
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "settings": [
+                {
+                    "id": "myCallLogDetails",
+                    "type": "section",
+                    "name": "Call log details",
+                    "items": [
+                        {
+                            "id": "addCallLogNote",
+                            "type": "boolean",
+                            "name": "Add note to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogSubject",
+                            "type": "boolean",
+                            "name": "Add subject to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogContactNumber",
+                            "type": "boolean",
+                            "name": "Add contact phone number to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDateTime",
+                            "type": "boolean",
+                            "name": "Add date and time to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDuration",
+                            "type": "boolean",
+                            "name": "Add duration to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogResult",
+                            "type": "boolean",
+                            "name": "Add call result to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogRecording",
+                            "type": "boolean",
+                            "name": "Add recording link to call log",
+                            "defaultValue": true
+                        }
+                    ]
+                }
+            ],
+            "page": {
+                "callLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "address",
+                            "title": "Address",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                },
+                "messageLog": {
+                    "additionalFields": [
+                        {
+                            "const": "associatedDeal",
+                            "title": "Deals",
+                            "type": "selection",
+                            "contactDependent": true
+                        },
+                        {
+                            "const": "address",
+                            "title": "Address",
+                            "type": "inputField",
+                            "contactDependent": false
+                        }
+                    ]
+                }
+            },
+            "rcAdditionalSubmission": [
+                {
+                    "id": "departmentName",
+                    "path": "cachedData.extensionInfo.contact.department"
+                }
+            ]
+        }
+    },
+    "version": "1.5.7"
+}

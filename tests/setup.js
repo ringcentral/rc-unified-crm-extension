@@ -1,7 +1,7 @@
-const { CallLogModel } = require('../src/models/callLogModel');
-const { MessageLogModel } = require('../src/models/messageLogModel');
-const { UserModel } = require('../src/models/userModel');
-const { CacheModel } = require('../src/models/cacheModel');
+const { CallLogModel } = require('@app-connect/core/models/callLogModel');
+const { MessageLogModel } = require('@app-connect/core/models/messageLogModel');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { CacheModel } = require('@app-connect/core/models/cacheModel');
 jest.setTimeout(30000);
 
 beforeAll(async () => {

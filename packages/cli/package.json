@@ -1,0 +1,23 @@
+{
+  "name": "@app-connect/cli",
+  "version": "0.0.1",
+  "description": "CLI for RingCentral App Connect",
+  "bin": {
+    "app-connect": "./bin/app-connect"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "tar": "^7.4.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "ringcentral",
+    "app-connect",
+    "cli",
+    "template"
+  ],
+  "author": "RingCentral",
+  "license": "MIT"
+}

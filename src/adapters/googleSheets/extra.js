@@ -1,7 +1,6 @@
-const { google } = require('googleapis');
 const axios = require('axios');
-const oauth = require('../../lib/oauth');
-const platformModule = require(`../googleSheets`);
+const oauth = require('@app-connect/core/lib/oauth');
+const platformModule = require('./index');
 const path = require('path');
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));

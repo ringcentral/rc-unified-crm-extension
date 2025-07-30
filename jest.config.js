@@ -11,4 +11,9 @@ module.exports = {
   reporters: ['default'],
   testEnvironment: 'node',
   coveragePathIgnorePatterns: ['/node_modules/'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/build/',
+    '<rootDir>/serverless-deploy/',
+    '<rootDir>/serverless-deploy-test/'
+  ],
 };
