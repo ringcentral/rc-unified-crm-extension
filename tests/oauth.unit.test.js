@@ -135,9 +135,7 @@ describe('oauth manage', () => {
             expect(returnedUser.refreshToken).toBe(newRefreshToken);
             expect(Lock.create).toHaveBeenCalledWith(
                 { userId: user.id, ttl: expect.any(Number) },
-                expect.objectContaining({
-                    condition: expect.any(Object)
-                })
+                { overwrite: false }
             );
             expect(Lock.get).not.toHaveBeenCalled(); // Should not be called in successful path
             expect(mockLock.delete).toHaveBeenCalled();
@@ -257,9 +255,7 @@ describe('oauth manage', () => {
             expect(returnedUser.refreshToken).toBe(newRefreshToken);
             expect(Lock.create).toHaveBeenCalledWith(
                 { userId: user.id, ttl: expect.any(Number) },
-                expect.objectContaining({
-                    condition: expect.any(Object)
-                })
+                { overwrite: false }
             );
             expect(Lock.get).not.toHaveBeenCalled(); // Lock.get shouldn't be called in successful path
             expect(mockLock.delete).toHaveBeenCalled();
