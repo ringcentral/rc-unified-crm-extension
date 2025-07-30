@@ -21,7 +21,7 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
     const dateNow = new Date();
     const tokenExpiry = new Date(user.tokenExpiry);
-    const expiryBuffer = 1000 * 60 * 60 - 1000 * 30; // 2 minutes => 120000ms
+    const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     // Special case: Bullhorn
     if (user.platform) {
         const platformModule = adapterRegistry.getAdapter(user.platform);
