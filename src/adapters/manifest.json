@@ -567,6 +567,14 @@
               "id": "clioDefaultNonBillableTick",
               "type": "boolean",
               "name": "Non-billable",
+              "description": "Tick this option to mark the call as non-billable by default",
+              "defaultValue": false
+            },
+            {
+              "id": "clioSeeClosedMatters",
+              "type": "boolean",
+              "name": "See closed matters",
+              "description": "Show closed matters in the matter selection dropdown",
               "defaultValue": false
             }
           ]

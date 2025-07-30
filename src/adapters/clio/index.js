@@ -167,7 +167,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat }) 
                         headers: { 'Authorization': authHeader }
                     });
                 let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
-                matters = matters?.filter(m => m.status !== 'Closed');
+                if (!user.userSettings?.clioSeeClosedMatters?.value) {
+                    matters = matters?.filter(m => m.status !== 'Closed');
+                }
                 let associatedMatterInfo = await axios.get(
                     `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
                     {
