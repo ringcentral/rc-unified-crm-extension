@@ -21,7 +21,7 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
     const dateNow = new Date();
     const tokenExpiry = new Date(user.tokenExpiry);
-    const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
+    const expiryBuffer = 1000 * 60 * 60 - 1000 * 30; // 2 minutes => 120000ms
     // Special case: Bullhorn
     if (user.platform) {
         const platformModule = adapterRegistry.getAdapter(user.platform);
@@ -38,12 +38,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             // Try to atomically create lock only if it doesn't exist
             try {
                 newLock = await Lock.create(
-                    { 
+                    {
                         userId: user.id,
                         ttl: dateNow.getTime() + 1000 * 30
-                     },
-                    { 
-                        condition: new dynamoose.Condition().where('userId').not().exists()
+                    },
+                    {
+                        overwrite: false
                     }
                 );
                 console.log('lock created')
@@ -54,11 +54,15 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                     if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
+                            console.log('lock expired.')
                             await lock.delete();
                             newLock = await Lock.create(
-                                { userId: user.id },
-                                { 
-                                    condition: new dynamoose.Condition().where('userId').not().exists()
+                                {
+                                    userId: user.id,
+                                    ttl: dateNow.getTime() + 1000 * 30
+                                },
+                                {
+                                    overwrite: false
                                 }
                             );
                         } catch (e2) {
@@ -70,12 +74,15 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                             }
                         }
                     }
-                    
+
                     if (lock && !newLock) {
                         let processTime = 0;
+                        let delay = 500; // Start with 500ms
+                        const maxDelay = 8000; // Cap at 8 seconds
                         while (!!lock && processTime < tokenLockTimeout) {
-                            await new Promise(resolve => setTimeout(resolve, 2000));    // wait for 2 seconds
-                            processTime += 2;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            processTime += delay / 1000; // Convert to seconds for comparison
+                            delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
                             lock = await Lock.get({ userId: user.id });
                         }
                         // Timeout -> let users try another time
