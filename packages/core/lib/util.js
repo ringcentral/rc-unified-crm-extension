@@ -22,6 +22,7 @@ function getHashValue(string, secretKey) {
 function secondsToHoursMinutesSeconds(seconds) {
     // If not a number, return the input directly
     if (isNaN(seconds)) {
+        console.log('seconds is not a number', seconds);
         return seconds;
     }
     const hours = Math.floor(seconds / 3600);
@@ -30,6 +31,9 @@ function secondsToHoursMinutesSeconds(seconds) {
     const minutesString = minutes > 0 ? `${minutes} ${minutes > 1 ? 'minutes' : 'minute'}` : '';
     const remainingSeconds = seconds % 60;
     const secondsString = remainingSeconds > 0 ? `${remainingSeconds} ${remainingSeconds > 1 ? 'seconds' : 'second'}` : '';
+    if (!hoursString && !minutesString && !secondsString) {
+        return '0 seconds';
+    }
     const resultString = [hoursString, minutesString, secondsString].filter(Boolean).join(', ');
     return resultString;
 }
