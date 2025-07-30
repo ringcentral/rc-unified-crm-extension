@@ -83,7 +83,7 @@ async function composeCallLog(params) {
         });
     }
 
-    if (duration && (userSettings?.addCallLogDuration?.value ?? true)) {
+    if (typeof duration !== 'undefined' && (userSettings?.addCallLogDuration?.value ?? true)) {
         body = upsertCallDuration({ body, duration, logFormat });
     }
 
@@ -275,7 +275,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
 }
 
 function upsertCallDuration({ body, duration, logFormat }) {
-    if (!duration) return body;
+    if (typeof duration === 'undefined') return body;
 
     const formattedDuration = secondsToHoursMinutesSeconds(duration);
     let result = body;

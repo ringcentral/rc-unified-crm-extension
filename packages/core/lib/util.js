@@ -30,6 +30,9 @@ function secondsToHoursMinutesSeconds(seconds) {
     const minutesString = minutes > 0 ? `${minutes} ${minutes > 1 ? 'minutes' : 'minute'}` : '';
     const remainingSeconds = seconds % 60;
     const secondsString = remainingSeconds > 0 ? `${remainingSeconds} ${remainingSeconds > 1 ? 'seconds' : 'second'}` : '';
+    if (!hoursString && !minutesString && !secondsString) {
+        return '0 seconds';
+    }
     const resultString = [hoursString, minutesString, secondsString].filter(Boolean).join(', ');
     return resultString;
 }
