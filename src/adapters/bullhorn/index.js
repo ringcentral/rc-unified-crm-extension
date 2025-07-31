@@ -190,6 +190,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
                 }
             }
         }
+        const startRefreshTime = new Date().getTime();
         console.log('Bullhorn token refreshing...')
         let authData;
         try {
@@ -218,9 +219,13 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
         user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
         console.log('Bullhorn token refreshing finished')
         if (newLock) {
+            const deletionStartTime = new Date().getTime();
             await newLock.delete();
-            console.log('Bullhorn lock deleted')
+            const deletionEndTime = new Date().getTime();
+            console.log(`Bullhorn lock deleted in ${deletionEndTime - deletionStartTime}ms`)
         }
+        const endRefreshTime = new Date().getTime();
+        console.log(`Bullhorn token refreshing finished in ${endRefreshTime - startRefreshTime}ms`)
     }
     catch (e) {
         if (newLock) {

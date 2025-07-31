@@ -97,6 +97,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                     throw e;
                 }
             }
+            const startRefreshTime = new Date().getTime();
             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
             console.log('token refreshing...')
             const { accessToken, refreshToken, expires } = await token.refresh();
@@ -105,10 +106,13 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             user.tokenExpiry = expires;
             await user.save();
             if (newLock) {
+                const deletionStartTime = new Date().getTime();
                 await newLock.delete();
-                console.log('lock deleted')
+                const deletionEndTime = new Date().getTime();
+                console.log(`lock deleted in ${deletionEndTime - deletionStartTime}ms`)
             }
-            console.log('token refreshing finished')
+            const endRefreshTime = new Date().getTime();
+            console.log(`token refreshing finished in ${endRefreshTime - startRefreshTime}ms`)
         }
         // case: run withou token refresh lock
         else {
