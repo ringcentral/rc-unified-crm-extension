@@ -98,7 +98,7 @@ describe('auth tests', () => {
                         
                         // Verify JWT token contains correct data
                         const decodedToken = jwt.decodeJwt(res.body.jwtToken);
-                        expect(decodedToken.id).toEqual(platformUserId);
+                        expect(decodedToken.id).toEqual(`${platformUserId}-${platform.name}`);
                         expect(decodedToken.platform).toEqual(platform.name);
 
                         // Clean up
