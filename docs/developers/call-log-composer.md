@@ -34,7 +34,7 @@ The main function that composes a complete call log based on user settings and p
 | `subject` | `string` | Call subject or summary line |
 | `startTime` | `Date` | Call start time |
 | `duration` | `number` | Call duration in seconds |
-| `result` | `string` | Call result (e.g., "Answered", "No Answer", "Busy") |
+| `result` | `string` | Call result (e.g., "Call connected", "Hang Up", "Missed") |
 | `platform` | `string` | CRM platform identifier |
 
 #### Return Value
