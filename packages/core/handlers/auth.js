@@ -118,6 +118,12 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     };
 }
 
+async function getLicenseStatus({ userId, platform }) {
+    const platformModule = adapterRegistry.getAdapter(platform);
+    const licenseStatus = await platformModule.getLicenseStatus({ userId });
+    return licenseStatus;
+}
+
 // Just for oauth ATM
 async function authValidation({ platform, userId }) {
     let existingUser = await UserModel.findOne({
@@ -154,3 +160,4 @@ async function authValidation({ platform, userId }) {
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
 exports.authValidation = authValidation;
+exports.getLicenseStatus = getLicenseStatus;
