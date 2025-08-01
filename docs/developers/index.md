@@ -43,6 +43,10 @@ In this guide, you will learn how to build, package and distribute an adapter fo
 
 [Get started using the framework](getting-started.md){ .md-button .md-button--primary }
 
+## Core Utilities
+
+* [CallLogComposer](call-log-composer.md) - Centralized call log formatting and composition utility for consistent CRM logging
+
 ## Advanced topics
 
 * [Custom Setting Fields](advanced/custom-setting-fields.md) - Learn how to add configurable settings specific to your CRM adapter
