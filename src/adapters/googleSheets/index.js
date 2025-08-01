@@ -29,7 +29,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
     return {
         successful: true,
         platformUserInfo: {
-            id: data.sub,
+            id: `${data.sub.toString()}-googleSheets`,
             name: data.name,
             email: data.email,
             platformAdditionalInfo: {

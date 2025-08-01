@@ -50,7 +50,7 @@ async function getUserInfo({ authHeader, hostname }) {
                 'Authorization': authHeader
             }
         });
-        const id = userInfoResponse.data.data.id.toString();
+        const id = `${userInfoResponse.data.data.id.toString()}-clio`;
         const name = userInfoResponse.data.data.name;
         const timezoneName = userInfoResponse.data.data.time_zone;
         // Convert timezone name to offset in minutes (e.g., "America/New_York" -> -300 or -240 depending on DST)
@@ -62,6 +62,7 @@ async function getUserInfo({ authHeader, hostname }) {
         } catch (error) {
             timezoneOffset = 0; // Default to UTC if conversion fails
         }
+
         return {
             successful: true,
             platformUserInfo: {

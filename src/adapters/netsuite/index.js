@@ -95,7 +95,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         return {
             successful: true,
             platformUserInfo: {
-                id: query.entity,
+                id: `${query.entity.toString()}-${query.company}-netsuite`,
                 name: getCurrentLoggedInUserResponse?.data?.name,
                 platformAdditionalInfo: {
                     email: getCurrentLoggedInUserResponse?.data?.email,

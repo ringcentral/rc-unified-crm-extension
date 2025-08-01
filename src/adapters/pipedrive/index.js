@@ -24,7 +24,7 @@ async function getUserInfo({ authHeader, hostname }) {
                 'Authorization': authHeader
             }
         });
-        const id = userInfoResponse.data.data.id.toString();
+        const id = `${userInfoResponse.data.data.id.toString()}-pipedrive`;
         const name = userInfoResponse.data.data.name;
         const timezoneName = userInfoResponse.data.data.timezone_name;
         const timezoneOffset = userInfoResponse.data.data.timezone_offset;

@@ -26,7 +26,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         });
         additionalInfo['userResponse'] = authResponse.data.authenticated_user;
         delete additionalInfo.password;
-        const id = additionalInfo.username;
+        const id = `${additionalInfo.username}-redtail`;
         const name = additionalInfo.username;
         const timezoneName = '';
         return {

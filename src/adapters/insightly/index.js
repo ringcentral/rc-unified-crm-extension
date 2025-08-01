@@ -22,7 +22,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         });;
         // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
         // We use UTC here for now
-        const id = userInfoResponse.data.USER_ID.toString();
+        const id = `${userInfoResponse.data.USER_ID.toString()}-insightly`;
         const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
         let timezoneOffset = 0;
         const timezoneName = userInfoResponse.data.TIMEZONE_ID;

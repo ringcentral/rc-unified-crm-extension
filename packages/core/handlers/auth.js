@@ -99,18 +99,40 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
         );
     }
     else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform,
-            accessToken,
-            refreshToken,
-            tokenExpiry,
-            platformAdditionalInfo,
-            userSettings: {}
-        });
+        // TEMP: replace user with old ID
+        if (id.endsWith(`-${platform}`)) {
+            const oldID = id.split(`-${platform}`);
+            const userWithOldID = await UserModel.findByPk(oldID[0]);
+            if (userWithOldID) {
+                await UserModel.create({
+                    id,
+                    hostname,
+                    timezoneName,
+                    timezoneOffset,
+                    platform,
+                    accessToken,
+                    refreshToken,
+                    tokenExpiry,
+                    platformAdditionalInfo,
+                    userSettings: userWithOldID.userSettings
+                });
+                await userWithOldID.destroy();
+            }
+        }
+        else {
+            await UserModel.create({
+                id,
+                hostname,
+                timezoneName,
+                timezoneOffset,
+                platform,
+                accessToken,
+                refreshToken,
+                tokenExpiry,
+                platformAdditionalInfo,
+                userSettings: {}
+            });
+        }
     }
     return {
         id,
