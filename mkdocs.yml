@@ -129,6 +129,7 @@ nav:
       - 'Contact matching': developers/contact-matching.md
       - 'Logging phone calls': developers/logging-calls.md
       - 'Logging SMS': developers/logging-sms.md
+      - 'CallLogComposer': developers/call-log-composer.md
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Welcome pages': developers/welcome-page.md
