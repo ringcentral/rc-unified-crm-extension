@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.6.0:
+
+- New: User report tab to see calls and SMS messages made within selected date range
+- New: Clio option to see CLOSED matters (enable in User settings -> Clio options)
+- Fix: Pipedrive & Netsuite user session issue
+
 ## 1.5.8:
 
 - Fix: Error on showing a window-size warning message

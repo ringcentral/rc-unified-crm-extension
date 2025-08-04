@@ -1,4 +1,16 @@
 {
+    "1.6.0": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- License status is shown in user settings"
+            },
+            {
+                "type": "New",
+                "description": "- User report tab to see calls and SMS messages made within selected date range"
+            }
+        ]
+    },
     "1.5.8": {
         "global": [
             {
