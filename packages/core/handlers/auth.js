@@ -118,6 +118,20 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                 });
                 await userWithOldID.destroy();
             }
+            else {
+                await UserModel.create({
+                    id,
+                    hostname,
+                    timezoneName,
+                    timezoneOffset,
+                    platform,
+                    accessToken,
+                    refreshToken,
+                    tokenExpiry,
+                    platformAdditionalInfo,
+                    userSettings: {}
+                });
+            }
         }
         else {
             await UserModel.create({
