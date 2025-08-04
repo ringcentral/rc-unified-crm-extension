@@ -323,7 +323,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
     const postBody = {
-        owner_id: Number(user.id),
+        owner_id: Number(user.id.split('-')[0]),
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         duration: secondsToHoursMinutesSecondsInPipedriveFormat(callLog.duration),    // secs
         deal_id: dealId,
@@ -501,7 +501,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             break;
     }
     const postBody = {
-        owner_id: Number(user.id),
+        owner_id: Number(user.id.split('-')[0]),
         subject,
         deal_id: dealId,
         note,

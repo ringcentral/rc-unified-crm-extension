@@ -328,7 +328,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     const sender = callLog.direction === 'Outbound' ?
         {
-            id: user.id,
+            id: user.id.split('-')[0],
             type: 'User'
         } :
         {
@@ -341,7 +341,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             type: 'Contact'
         } :
         {
-            id: user.id,
+            id: user.id.split('-')[0],
             type: 'User'
         }
 
@@ -363,7 +363,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             receivers: [receiver],
             notification_event_subscribers: [
                 {
-                    user_id: user.id
+                    user_id: user.id.split('-')[0]
                 }
             ]
         }
@@ -527,7 +527,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
     const receiver =
     {
-        id: user.id,
+        id: user.id.split('-')[0],
         type: 'User'
     }
     const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
@@ -634,7 +634,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             receivers: [receiver],
             notification_event_subscribers: [
                 {
-                    user_id: user.id
+                    user_id: user.id.split('-')[0]
                 }
             ]
         }
