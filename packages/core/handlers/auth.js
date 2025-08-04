@@ -101,7 +101,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     else {
         // TEMP: replace user with old ID
         if (id.endsWith(`-${platform}`)) {
-            const oldID = id.split(`-${platform}`);
+            const oldID = id.split('-');
             const userWithOldID = await UserModel.findByPk(oldID[0]);
             if (userWithOldID) {
                 await UserModel.create({
