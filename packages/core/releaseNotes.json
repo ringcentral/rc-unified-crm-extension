@@ -8,6 +8,10 @@
             {
                 "type": "New",
                 "description": "- User report tab to see calls and SMS messages made within selected date range"
+            },
+            {
+                "type": "Fix",
+                "description": "- Server side logging call duration stuck in 'pending' state"
             }
         ]
     },

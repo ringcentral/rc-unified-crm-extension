@@ -5,6 +5,7 @@
 - New: User report tab to see calls and SMS messages made within selected date range
 - New: Clio option to see CLOSED matters (enable in User settings -> Clio options)
 - Fix: Pipedrive & Netsuite user session issue
+- Fix: Server side logging call duration stuck in 'pending' state
 
 ## 1.5.8:
 
