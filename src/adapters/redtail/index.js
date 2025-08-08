@@ -83,7 +83,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, phoneNumber }) {
+async function findContact({ user, phoneNumber, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     const matchedContactInfo = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     phoneNumber = phoneNumber.replace(' ', '+')

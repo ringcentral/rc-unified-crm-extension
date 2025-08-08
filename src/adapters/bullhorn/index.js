@@ -382,7 +382,13 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     };
 }
 
-async function findContact({ user, phoneNumber }) {
+async function findContact({ user, phoneNumber, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
