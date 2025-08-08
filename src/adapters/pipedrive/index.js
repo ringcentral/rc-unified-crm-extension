@@ -107,7 +107,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     let extraDataTracking = {};
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that

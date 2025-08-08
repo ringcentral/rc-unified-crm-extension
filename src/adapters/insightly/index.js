@@ -86,7 +86,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     const numberToQueryArray = [];
     if (overridingFormat === '') {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
