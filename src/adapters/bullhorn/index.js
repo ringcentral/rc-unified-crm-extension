@@ -133,7 +133,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
                 newLock = await Lock.create(
                     {
                         userId: user.id,
-                        ttl: dateNow.getTime() + 1000 * 30
+                        ttl: dateNow.unix() + 30
                     },
                     {
                         overwrite: false
@@ -143,7 +143,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
                 // If creation failed due to condition, a lock exists
                 if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
                     let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
+                    if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
                             console.log('Bullhorn lock expired.')
@@ -151,7 +151,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
                             newLock = await Lock.create(
                                 {
                                     userId: user.id,
-                                    ttl: dateNow.getTime() + 1000 * 30
+                                    ttl: dateNow.unix() + 30
                                 },
                                 {
                                     overwrite: false
@@ -190,7 +190,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
                 }
             }
         }
-        const startRefreshTime = new Date().getTime();
+        const startRefreshTime = moment();
         console.log('Bullhorn token refreshing...')
         let authData;
         try {
@@ -219,13 +219,13 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
         user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
         console.log('Bullhorn token refreshing finished')
         if (newLock) {
-            const deletionStartTime = new Date().getTime();
+            const deletionStartTime = moment();
             await newLock.delete();
-            const deletionEndTime = new Date().getTime();
-            console.log(`Bullhorn lock deleted in ${deletionEndTime - deletionStartTime}ms`)
+            const deletionEndTime = moment();
+            console.log(`Bullhorn lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
         }
-        const endRefreshTime = new Date().getTime();
-        console.log(`Bullhorn token refreshing finished in ${endRefreshTime - startRefreshTime}ms`)
+        const endRefreshTime = moment();
+        console.log(`Bullhorn token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
     }
     catch (e) {
         if (newLock) {
@@ -241,7 +241,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
     if (!user || !user.accessToken || !user.refreshToken) {
         return user;
     }
-    const dateNow = new Date();
+    const dateNow = moment();
     const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     try {
         const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
@@ -250,7 +250,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             },
         });
         // Session expired
-        if (new Date(pingResponse.data.sessionExpires - expiryBuffer) < new Date()) {
+        if (moment(pingResponse.data.sessionExpires - expiryBuffer).isBefore(dateNow)) {
             user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
         }
         // Session not expired
