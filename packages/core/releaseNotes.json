@@ -12,6 +12,10 @@
             {
                 "type": "Fix",
                 "description": "- User setting shows '(admin)' for all users"
+            },
+            {
+                "type": "Fix",
+                "description": "- User session refresh issue"
             }
         ]
     },
