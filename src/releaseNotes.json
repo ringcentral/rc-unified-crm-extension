@@ -1,4 +1,20 @@
 {
+    "1.6.1": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Support to logging AI notes for no admin users in server side logging"
+            },
+            {
+                "type": "Fix",
+                "description": "- User report not showing number under dark theme"
+            },
+            {
+                "type": "Fix",
+                "description": "- User setting shows '(admin)' for all users"
+            }
+        ]
+    },
     "1.6.0": {
         "global": [
             {
