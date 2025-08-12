@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.6.1:
+
+- New: Support to logging AI notes for no admin users in server side logging
+- Fix: User report not showing number under dark theme
+- Fix: User setting shows '(admin)' for all users
+- Fix: User session refresh issue
+
 ## 1.6.0:
 
 - New: User report tab to see calls and SMS messages made within selected date range

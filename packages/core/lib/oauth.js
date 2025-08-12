@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
 const ClientOAuth2 = require('client-oauth2');
+const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const adapterRegistry = require('../adapter/registry');
 const dynamoose = require('dynamoose');
@@ -19,9 +20,9 @@ function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri,
 
 
 async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
-    const dateNow = new Date();
-    const tokenExpiry = new Date(user.tokenExpiry);
-    const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
+    const now = moment();
+    const tokenExpiry = moment(user.tokenExpiry);
+    const expiryBuffer = 2; // 2 minutes
     // Special case: Bullhorn
     if (user.platform) {
         const platformModule = adapterRegistry.getAdapter(user.platform);
@@ -29,8 +30,8 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             return platformModule.checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout);
         }
     }
-    // Other CRMs
-    if (user && user.accessToken && user.refreshToken && tokenExpiry.getTime() < (dateNow.getTime() + expiryBuffer)) {
+    // Other CRMs - check if token will expire within the buffer time
+    if (user && user.accessToken && user.refreshToken && tokenExpiry.isBefore(now.clone().add(expiryBuffer, 'minutes'))) {
         let newLock;
         // case: use dynamoDB to manage token refresh lock
         if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
@@ -40,7 +41,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 newLock = await Lock.create(
                     {
                         userId: user.id,
-                        ttl: dateNow.getTime() + 1000 * 30
+                        ttl: now.unix() + 30
                     },
                     {
                         overwrite: false
@@ -51,7 +52,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 // If creation failed due to condition, a lock exists
                 if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
                     let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
+                    if (!!lock?.ttl && moment(lock.ttl).unix() < now.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
                             console.log('lock expired.')
@@ -59,7 +60,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                             newLock = await Lock.create(
                                 {
                                     userId: user.id,
-                                    ttl: dateNow.getTime() + 1000 * 30
+                                    ttl: now.unix() + 30
                                 },
                                 {
                                     overwrite: false
@@ -97,7 +98,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                     throw e;
                 }
             }
-            const startRefreshTime = new Date().getTime();
+            const startRefreshTime = moment();
             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
             console.log('token refreshing...')
             const { accessToken, refreshToken, expires } = await token.refresh();
@@ -106,13 +107,13 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             user.tokenExpiry = expires;
             await user.save();
             if (newLock) {
-                const deletionStartTime = new Date().getTime();
+                const deletionStartTime = moment();
                 await newLock.delete();
-                const deletionEndTime = new Date().getTime();
-                console.log(`lock deleted in ${deletionEndTime - deletionStartTime}ms`)
+                const deletionEndTime = moment();
+                console.log(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
             }
-            const endRefreshTime = new Date().getTime();
-            console.log(`token refreshing finished in ${endRefreshTime - startRefreshTime}ms`)
+            const endRefreshTime = moment();
+            console.log(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
         }
         // case: run withou token refresh lock
         else {
