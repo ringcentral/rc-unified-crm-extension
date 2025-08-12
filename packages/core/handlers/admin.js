@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const adapterRegistry = require('../adapter/registry');
+const oauth = require('../lib/oauth');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -53,8 +54,41 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
+async function saveUserMappingOverride({ user, hashedRcAccountId, userMappingOverride }) {
+    const adminConfig = await getAdminSettings({ hashedRcAccountId });
+    await adminConfig.update({
+        userMappingOverride
+    });
+}
+
+async function getUserMapping({ user, hashedRcAccountId }) {
+    const adminConfig = await getAdminSettings({ hashedRcAccountId });
+    const platformModule = adapterRegistry.getAdapter(user.platform);
+    if (platformModule.getUserMapping) {
+        const authType = platformModule.getAuthType();
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                // eslint-disable-next-line no-param-reassign
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                authHeader = `Bearer ${user.accessToken}`;
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                break;
+        }
+        const rcUserMapping = await platformModule.getUserMapping({ user, authHeader, userMappingOverride: adminConfig?.userMappingOverride ?? [] });
+        return rcUserMapping;
+    }
+    return [];
+}
+
 exports.validateAdminRole = validateAdminRole;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
+exports.getUserMapping = getUserMapping;
+exports.saveUserMappingOverride = saveUserMappingOverride;

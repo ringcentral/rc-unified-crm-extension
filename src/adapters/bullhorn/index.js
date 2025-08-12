@@ -866,6 +866,40 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
+async function getUserMapping({ user, userMappingOverride }) {
+    const queryWhere = 'isDeleted=false';
+    const searchParams = new URLSearchParams({
+        fields: 'masterUserID,firstName,lastName,email',
+        where: queryWhere
+    });
+    const userInfoResponse = await axios.get(
+        `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    const userMapping = [...userMappingOverride];
+    if (userInfoResponse?.data?.data?.length > 0) {
+        for (const user of userInfoResponse.data.data) {
+            if (userMapping.find(u => u.crmUserId === user.masterUserID)) {
+                continue;
+            }
+            userMapping.push({
+                crmUserId: user.masterUserID,
+                rcExtensionId: null,
+                mappingParams: {
+                    crmUserEmail: user.email,
+                    crmUserFirstName: user.firstName,
+                    crmUserLastName: user.lastName
+                }
+            });
+        }
+    }
+    return userMapping;
+}
+
 async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
     try {
         const targetUserEmail = additionalSubmission.adminAssignedUserEmail;
@@ -874,6 +908,7 @@ async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
         if (targetUserEmail) {
             queryWhere += ` AND email='${targetUserEmail}'`;
         }
+        //TODO: change to masterUserId
         const searchParams = new URLSearchParams({
             fields: 'id,firstName,lastName,email',
             where: queryWhere
@@ -1418,5 +1453,6 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
+exports.getUserMapping = getUserMapping;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
