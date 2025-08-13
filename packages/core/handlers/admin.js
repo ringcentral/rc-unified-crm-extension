@@ -54,13 +54,6 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
-async function saveUserMappingOverride({ user, hashedRcAccountId, userMappingOverride }) {
-    const adminConfig = await getAdminSettings({ hashedRcAccountId });
-    await adminConfig.update({
-        userMappingOverride
-    });
-}
-
 async function getUserMapping({ user, hashedRcAccountId }) {
     const adminConfig = await getAdminSettings({ hashedRcAccountId });
     const platformModule = adapterRegistry.getAdapter(user.platform);
@@ -91,4 +84,3 @@ exports.getAdminSettings = getAdminSettings;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.getUserMapping = getUserMapping;
-exports.saveUserMappingOverride = saveUserMappingOverride;

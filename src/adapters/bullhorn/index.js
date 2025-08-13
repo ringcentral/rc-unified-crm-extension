@@ -880,20 +880,15 @@ async function getUserMapping({ user, userMappingOverride }) {
             }
         }
     );
-    const userMapping = [...userMappingOverride];
+    const userMapping = [];
     if (userInfoResponse?.data?.data?.length > 0) {
         for (const user of userInfoResponse.data.data) {
-            if (userMapping.find(u => u.crmUserId === user.masterUserID)) {
-                continue;
-            }
+            const existingMapping = userMappingOverride.find(u => u.crmUserId === user.masterUserID);
             userMapping.push({
                 crmUserId: user.masterUserID,
-                rcExtensionId: null,
-                mappingParams: {
-                    crmUserEmail: user.email,
-                    crmUserFirstName: user.firstName,
-                    crmUserLastName: user.lastName
-                }
+                crmUserName: `${user.firstName} ${user.lastName}`,
+                crmUserEmail: user.email,
+                rcExtensionId: existingMapping?.rcExtensionId ?? null
             });
         }
     }
