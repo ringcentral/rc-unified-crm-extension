@@ -67,13 +67,14 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
 }
 
 async function updateUserSettings({ user, userSettings, platformName }) {
-    const keys = Object.keys(userSettings || {});
-    let updatedSettings = {
-        ...(user.userSettings || {})
-    };
-    for (const k of keys) {
-        updatedSettings[k] = userSettings[k];
-    }
+    // const keys = Object.keys(userSettings || {});
+    // let updatedSettings = {
+    //     ...(user.userSettings || {})
+    // };
+    // for (const k of keys) {
+    //     updatedSettings[k] = userSettings[k];
+    // }
+    let updatedSettings = userSettings;
     const platformModule = adapterRegistry.getAdapter(platformName);
     if (platformModule.onUpdateUserSettings) {
         const { successful, returnMessage } = await platformModule.onUpdateUserSettings({ user, userSettings, updatedSettings });
