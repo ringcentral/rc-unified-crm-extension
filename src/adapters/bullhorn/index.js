@@ -866,7 +866,7 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
-async function getUserMapping({ user, userMappingOverride }) {
+async function getUserList({ user }) {
     const queryWhere = 'isDeleted=false';
     const searchParams = new URLSearchParams({
         fields: 'masterUserID,firstName,lastName,email',
@@ -880,19 +880,17 @@ async function getUserMapping({ user, userMappingOverride }) {
             }
         }
     );
-    const userMapping = [];
+    const userList = [];
     if (userInfoResponse?.data?.data?.length > 0) {
         for (const user of userInfoResponse.data.data) {
-            const existingMapping = userMappingOverride.find(u => u.crmUserId === user.masterUserID);
-            userMapping.push({
-                crmUserId: user.masterUserID,
-                crmUserName: `${user.firstName} ${user.lastName}`,
-                crmUserEmail: user.email,
-                rcExtensionId: existingMapping?.rcExtensionId ?? null
+            userList.push({
+                id: user.masterUserID,
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email
             });
         }
     }
-    return userMapping;
+    return userList;
 }
 
 async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
@@ -1448,6 +1446,6 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
-exports.getUserMapping = getUserMapping;
+exports.getUserList = getUserList;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;

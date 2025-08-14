@@ -331,7 +331,7 @@ function createCoreRouter() {
         });
     });
 
-    router.get('/admin/userMapping', async function (req, res) {
+    router.post('/admin/userMapping', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
@@ -349,7 +349,7 @@ function createCoreRouter() {
                 const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
-                    const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId });
+                    const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
                     res.status(200).send(userMapping);
                     success = true;
                 }

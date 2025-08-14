@@ -54,10 +54,10 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
-async function getUserMapping({ user, hashedRcAccountId }) {
+async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
     const adminConfig = await getAdminSettings({ hashedRcAccountId });
     const platformModule = adapterRegistry.getAdapter(user.platform);
-    if (platformModule.getUserMapping) {
+    if (platformModule.getUserList) {
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -72,8 +72,79 @@ async function getUserMapping({ user, hashedRcAccountId }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const rcUserMapping = await platformModule.getUserMapping({ user, authHeader, userMappingOverride: adminConfig?.userMappingOverride ?? [] });
-        return rcUserMapping;
+        const crmUserList = await platformModule.getUserList({ user, authHeader });
+        const userMappingResult = [];
+        for (const crmUser of crmUserList) {
+            const existingMapping = adminConfig?.userMappings?.find(u => u.crmUserId == crmUser.id);
+            const rcExtension = rcExtensionList.find(e => e.id === existingMapping?.rcExtensionId);
+            // Case: existing mapping
+            if (existingMapping) {
+                userMappingResult.push({
+                    crmUser: {
+                        id: crmUser.id,
+                        name: crmUser.name ?? '',
+                        email: crmUser.email ?? '',
+                    },
+                    rcUser: {
+                        extensionId: existingMapping.rcExtensionId,
+                        name: rcExtension ? (rcExtension?.name ?? '') : 'Cannot find RingCentral user',
+                        extensionNumber: rcExtension?.extensionNumber ?? '',
+                        email: rcExtension?.email ?? ''
+                    }
+                });
+            }
+            // Case: new mapping
+            else {
+                const newMapping = rcExtensionList.find(u =>
+                    u.email === crmUser.email ||
+                    u.name === crmUser.name ||
+                    (`${u.firstName} ${u.lastName}` === crmUser.name)
+                );
+                if (newMapping) {
+                    userMappingResult.push({
+                        crmUser: {
+                            id: crmUser.id,
+                            name: crmUser.name ?? '',
+                            email: crmUser.email ?? '',
+                        },
+                        rcUser: {
+                            extensionId: newMapping.id,
+                            name: newMapping.name ?? '',
+                            extensionNumber: rcExtension?.extensionNumber ?? '',
+                            email: rcExtension?.email ?? ''
+                        }
+                    });
+                }
+                else {
+                    userMappingResult.push({
+                        crmUser: {
+                            id: crmUser.id,
+                            name: crmUser.name ?? '',
+                            email: crmUser.email ?? '',
+                        }
+                    });
+                }
+            }
+        }
+        // One-time init
+        if (!adminConfig.userMappings) {
+            const initialUserMappings = [];
+            for (const userMapping of userMappingResult) {
+                if (userMapping.rcUser?.extensionId) {
+                    initialUserMappings.push({
+                        crmUserId: userMapping.crmUser.id.toString(),
+                        rcExtensionId: userMapping.rcUser.extensionId.toString()
+                    });
+                }
+            }
+            await upsertAdminSettings({
+                hashedRcAccountId,
+                adminSettings: {
+                    userMappings: initialUserMappings
+                }
+            });
+        }
+        return userMappingResult;
     }
     return [];
 }
