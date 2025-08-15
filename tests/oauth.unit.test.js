@@ -7,6 +7,7 @@ const { encode } = require('@app-connect/core/lib/encode');
 
 adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
 adapterRegistry.registerAdapter('bullhorn', require('../src/adapters/bullhorn'));
+adapterRegistry.registerAdapter('pipedrive', require('../src/adapters/pipedrive'));
 
 // Mock the Lock model
 jest.mock('@app-connect/core/models/dynamo/lockSchema', () => ({
@@ -36,8 +37,7 @@ beforeEach(() => {
     Lock.create.mockReset();
     Lock.delete.mockReset();
     nock.cleanAll();
-    // Reset environment variable
-    delete process.env.USE_TOKEN_REFRESH_LOCK;
+    adapterRegistry.getManifest('default').platforms.pipedrive.auth.useTokenRefreshLock = true;
 });
 
 // Clear test data in db
@@ -48,6 +48,7 @@ afterEach(async () => {
         }
     });
     nock.cleanAll();
+    delete adapterRegistry.getManifest('default').platforms.pipedrive.auth.useTokenRefreshLock;
 });
 
 describe('oauth manage', () => {
@@ -102,9 +103,9 @@ describe('oauth manage', () => {
 
         test('expired, with lock mechanism, no existing lock - refresh with lock', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
+                platform: 'pipedrive',
                 accessToken,
                 refreshToken,
                 tokenExpiry: '2025-01-01T00:00:00.000Z'
@@ -143,9 +144,9 @@ describe('oauth manage', () => {
 
         test('expired, with lock mechanism, existing valid lock - wait and timeout', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
+                platform: 'pipedrive',
                 accessToken,
                 refreshToken,
                 tokenExpiry: '2025-01-01T00:00:00.000Z'
@@ -170,9 +171,9 @@ describe('oauth manage', () => {
 
         test('expired, with lock mechanism, expired lock - refresh after removing expired lock', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
+                platform: 'pipedrive',
                 accessToken,
                 refreshToken,
                 tokenExpiry: '2025-01-01T00:00:00.000Z'
@@ -222,9 +223,9 @@ describe('oauth manage', () => {
 
         test('expired, with lock mechanism, no existing lock - create lock and refresh', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
+                platform: 'pipedrive',
                 accessToken,
                 refreshToken,
                 tokenExpiry: '2025-01-01T00:00:00.000Z'
@@ -263,9 +264,9 @@ describe('oauth manage', () => {
 
         test('expired, concurrent requests with locking - both get updated tokens', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
+                platform: 'pipedrive',
                 accessToken,
                 refreshToken,
                 tokenExpiry: '2025-01-01T00:00:00.000Z'
@@ -850,7 +851,6 @@ describe('oauth manage', () => {
 
         test('token refresh with locking enabled - succeeds', async () => {
             // Arrange
-            process.env.USE_TOKEN_REFRESH_LOCK = 'true';
             const user = await UserModel.create({
                 id: userId,
                 accessToken,

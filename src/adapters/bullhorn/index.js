@@ -127,67 +127,65 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
 async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     let newLock;
     try {
-        if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
-            // Try to atomically create lock only if it doesn't exist
-            try {
-                newLock = await Lock.create(
-                    {
-                        userId: user.id,
-                        ttl: dateNow.unix() + 30
-                    },
-                    {
-                        overwrite: false
-                    }
-                );
-            } catch (e) {
-                // If creation failed due to condition, a lock exists
-                if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                    let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
-                        // Try to delete expired lock and create a new one atomically
-                        try {
-                            console.log('Bullhorn lock expired.')
-                            await lock.delete();
-                            newLock = await Lock.create(
-                                {
-                                    userId: user.id,
-                                    ttl: dateNow.unix() + 30
-                                },
-                                {
-                                    overwrite: false
-                                }
-                            );
-                        } catch (e2) {
-                            if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                                // Another process created a lock between our delete and create
-                                lock = await Lock.get({ userId: user.id });
-                            } else {
-                                throw e2;
-                            }
-                        }
-                    }
-
-                    if (lock && !newLock) {
-                        let processTime = 0;
-                        let delay = 500; // Start with 500ms
-                        const maxDelay = 8000; // Cap at 8 seconds
-                        while (!!lock && processTime < tokenLockTimeout) {
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            processTime += delay / 1000; // Convert to seconds for comparison
-                            delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
-                            lock = await Lock.get({ userId: user.id });
-                        }
-                        // Timeout -> let users try another time
-                        if (processTime >= tokenLockTimeout) {
-                            throw new Error('Bullhorn Token lock timeout');
-                        }
-                        user = await UserModel.findByPk(user.id);
-                        console.log('Bullhron locked. bypass')
-                        return user;
-                    }
-                } else {
-                    throw e;
+        // Try to atomically create lock only if it doesn't exist
+        try {
+            newLock = await Lock.create(
+                {
+                    userId: user.id,
+                    ttl: dateNow.unix() + 30
+                },
+                {
+                    overwrite: false
                 }
+            );
+        } catch (e) {
+            // If creation failed due to condition, a lock exists
+            if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                let lock = await Lock.get({ userId: user.id });
+                if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
+                    // Try to delete expired lock and create a new one atomically
+                    try {
+                        console.log('Bullhorn lock expired.')
+                        await lock.delete();
+                        newLock = await Lock.create(
+                            {
+                                userId: user.id,
+                                ttl: dateNow.unix() + 30
+                            },
+                            {
+                                overwrite: false
+                            }
+                        );
+                    } catch (e2) {
+                        if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                            // Another process created a lock between our delete and create
+                            lock = await Lock.get({ userId: user.id });
+                        } else {
+                            throw e2;
+                        }
+                    }
+                }
+
+                if (lock && !newLock) {
+                    let processTime = 0;
+                    let delay = 500; // Start with 500ms
+                    const maxDelay = 8000; // Cap at 8 seconds
+                    while (!!lock && processTime < tokenLockTimeout) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        processTime += delay / 1000; // Convert to seconds for comparison
+                        delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
+                        lock = await Lock.get({ userId: user.id });
+                    }
+                    // Timeout -> let users try another time
+                    if (processTime >= tokenLockTimeout) {
+                        throw new Error('Bullhorn Token lock timeout');
+                    }
+                    user = await UserModel.findByPk(user.id);
+                    console.log('Bullhron locked. bypass')
+                    return user;
+                }
+            } else {
+                throw e;
             }
         }
         const startRefreshTime = moment();
@@ -565,6 +563,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 });
         }
+        else {
+            throw e;
+        }
         extraDataTracking['statusCode'] = e.response.status;
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
@@ -735,6 +736,9 @@ async function findContactWithName({ user, authHeader, name }) {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
@@ -1006,6 +1010,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             );
         }
+        else {
+            throw e;
+        }
     }
     return {
         logId: addLogRes.data.changedEntityId,
@@ -1051,6 +1058,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
                         }
                     });
+            }
+            else {
+                throw e;
             }
             extraDataTracking['statusCode'] = e.response.status;
         }
@@ -1103,6 +1113,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
@@ -1163,6 +1176,9 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
                 }
             }
         }
+        else {
+            throw e;
+        }
     }
     return {
         logId: existingBullhornLogId,
@@ -1191,6 +1207,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
     }
     const userData = userInfoResponse.data.data[0];
@@ -1283,6 +1302,9 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
     }
     const userData = userInfoResponse.data.data[0];
@@ -1383,7 +1405,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
-            extraDataTracking['statusCode'] = e.response.status;
+        }
+        else {
+            throw e;
         }
     }
     const logBody = getLogRes.data.data.comments;
