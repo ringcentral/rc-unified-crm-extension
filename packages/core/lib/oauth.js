@@ -32,9 +32,9 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
     }
     // Other CRMs - check if token will expire within the buffer time
     if (user && user.accessToken && user.refreshToken && tokenExpiry.isBefore(now.clone().add(expiryBuffer, 'minutes'))) {
-        let newLock;
         // case: use dynamoDB to manage token refresh lock
-        if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
+        if (adapterRegistry.getManifest('default')?.platforms?.[user.platform]?.auth?.useTokenRefreshLock) {
+            let newLock;
             const { Lock } = require('../models/dynamo/lockSchema');
             // Try to atomically create lock only if it doesn't exist
             try {
