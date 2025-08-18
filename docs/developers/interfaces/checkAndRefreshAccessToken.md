@@ -53,7 +53,6 @@ The returned user object should have updated:
 3. **Refresh logic**: Implement your CRM's specific token refresh mechanism
 4. **Error handling**: Handle authentication errors gracefully
 5. **User persistence**: Save the updated user object to the database
-6. **Lock management**: Use token refresh locks if `USE_TOKEN_REFRESH_LOCK` is enabled
 
 ## Default behavior
 
