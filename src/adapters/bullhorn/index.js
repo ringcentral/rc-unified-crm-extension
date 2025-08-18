@@ -6,6 +6,7 @@ const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 
 function getAuthType() {
@@ -897,48 +898,7 @@ async function getUserList({ user }) {
     return userList;
 }
 
-async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
-    try {
-        const targetUserEmail = additionalSubmission.adminAssignedUserEmail;
-        const targetUserRcName = additionalSubmission.adminAssignedUserName;
-        let queryWhere = 'isDeleted=false';
-        if (targetUserEmail) {
-            queryWhere += ` AND email='${targetUserEmail}'`;
-        }
-        const searchParams = new URLSearchParams({
-            fields: 'id,firstName,lastName,email',
-            where: queryWhere
-        });
-        const userInfoResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            }
-        );
-        if (userInfoResponse?.data?.data?.length > 0) {
-            if (targetUserEmail) {
-                const targetUser = userInfoResponse.data.data.find(u => u.email === targetUserEmail);
-                if (targetUser) {
-                    return targetUser.id;
-                }
-            }
-            if (targetUserRcName) {
-                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
-                if (targetUser) {
-                    return targetUser.id;
-                }
-            }
-        }
-    }
-    catch (e) {
-        console.log('Error getting user data from phone number', e && e.response && e.response.status);
-    }
-    return null;
-}
-
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -955,10 +915,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         }
 
-        if (!assigneeId && (
-            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
-        )) {
-            assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
+        if (!assigneeId) {
+            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.assignedToUserRcId)?.crmUserId;
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
@@ -1024,7 +983,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1067,12 +1026,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
     // case: reassign to user
     let assigneeId = null;
-    if (
-        additionalSubmission?.isAssignedToUser && (
-            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
-        )
-    ) {
-        assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
+    if (additionalSubmission?.isAssignedToUser) {
+        const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+        assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
     }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {

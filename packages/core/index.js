@@ -961,7 +961,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -1013,7 +1013,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY) });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
