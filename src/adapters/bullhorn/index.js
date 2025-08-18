@@ -873,7 +873,7 @@ async function findContactWithName({ user, authHeader, name }) {
 async function getUserList({ user }) {
     const queryWhere = 'isDeleted=false';
     const searchParams = new URLSearchParams({
-        fields: 'masterUserID,firstName,lastName,email',
+        fields: 'id,firstName,lastName,email',
         where: queryWhere
     });
     const userInfoResponse = await axios.get(
@@ -888,7 +888,7 @@ async function getUserList({ user }) {
     if (userInfoResponse?.data?.data?.length > 0) {
         for (const user of userInfoResponse.data.data) {
             userList.push({
-                id: user.masterUserID,
+                id: user.id,
                 name: `${user.firstName} ${user.lastName}`,
                 email: user.email
             });
@@ -905,7 +905,6 @@ async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
         if (targetUserEmail) {
             queryWhere += ` AND email='${targetUserEmail}'`;
         }
-        //TODO: change to masterUserId
         const searchParams = new URLSearchParams({
             fields: 'id,firstName,lastName,email',
             where: queryWhere

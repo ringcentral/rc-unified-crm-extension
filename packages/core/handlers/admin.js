@@ -109,9 +109,9 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                         },
                         rcUser: {
                             extensionId: newMapping.id,
-                            name: newMapping.name ?? '',
-                            extensionNumber: rcExtension?.extensionNumber ?? '',
-                            email: rcExtension?.email ?? ''
+                            name: newMapping.name || `${newMapping.firstName} ${newMapping.lastName}` || '',
+                            extensionNumber: newMapping?.extensionNumber ?? '',
+                            email: newMapping?.email ?? ''
                         }
                     });
                 }
