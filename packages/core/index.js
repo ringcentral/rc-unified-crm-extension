@@ -1293,6 +1293,10 @@ function createCoreApp(options = {}) {
     initializeCore(options);
     const app = express();
 
+    // Allow bigger POST body size
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
     // Apply core middleware
     const coreMiddleware = createCoreMiddleware();
     coreMiddleware.forEach(middleware => app.use(middleware));
