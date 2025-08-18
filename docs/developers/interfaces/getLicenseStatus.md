@@ -1,7 +1,4 @@
----
-title: "License Management"
----
-# License Management
+# getLicenseStatus
 
 The App Connect framework supports license validation for CRM adapters, allowing you to implement your own licensing service and control access to your adapter based on license status. This guide covers how to implement license management in your custom adapter.
 
