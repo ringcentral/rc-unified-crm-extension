@@ -17,3 +17,4 @@ Every App Connect adapter needs to implement each of the following interfaces.
 | [`unAuthorize`](unAuthorize.md)           | Logs a user out of the CRM, invalidates credentials, etc.                        |
 | [`updateCallLog`](updateCallLog.md)       | Updates an existing call log record in the CRM.                                  |
 | [`updateMessageLog`](updateMessageLog.md) | Updates an existing message log in the CRM.                                      |
+| [`getLicenseStatus`](getLicenseStatus.md) | Get license status for CRM user.
