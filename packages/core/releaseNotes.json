@@ -1,4 +1,20 @@
 {
+    "1.6.2": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- User session auth button now shows correct state"
+            },
+            {
+                "type": "Fix",
+                "description": "- Auto log is not disabled by admin-only server side logging anymore"
+            },
+            {
+                "type": "Fix",
+                "description": "- Playload too large issue"
+            }
+        ]
+    },
     "1.6.1": {
         "global": [
             {
