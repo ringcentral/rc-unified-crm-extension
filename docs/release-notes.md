@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.6.2:
+
+- Fix: User session auth button now shows correct state
+- Fix: Auto log is not disabled by admin-only server side logging anymore
+- Fix: Playload too large issue
+
 ## 1.6.1:
 
 - New: Support to logging AI notes for no admin users in server side logging

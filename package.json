@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -26,7 +26,7 @@
     "dynamo-local": "node ./scripts/dynamo-local.js",
     "dynamo-admin": "dynamodb-admin --port 8001",
     "htt": "node ./tests/highTrafficTestRun.js",
-    "update-version": "node ./scripts/updateVersion.js"
+    "update": "node ./scripts/updateVersion.js"
   },
   "repository": {
     "type": "git",
