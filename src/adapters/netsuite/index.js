@@ -283,6 +283,7 @@ async function handleDispositionNote({
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    const requestStartTime = new Date().getTime();
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -314,6 +315,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         const { enableSalesOrderLogging = false } = user.userSettings;
         const { enableOpportunityLogging = { value: false } } = user.userSettings;
         const dateBeforeThreeYear = getThreeYearsBeforeDate();
+        //const dateBeforeThreeYear = getThreeMonthsBeforeDate();
+        console.log({ dateBeforeThreeYear });
         const numberToQueryArray = [];
         if (overridingFormat !== '') {
             const formats = overridingFormat.split(',');
@@ -335,28 +338,101 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         for (var numberToQuery of numberToQueryArray) {
             const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,company FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
             const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
+
+            const parallelTasks = [];
+
             if (contactSearch.includes('contact')) {
-                const personInfo = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                    {
-                        q: contactQuery
-                    },
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                    });
-                if (personInfo.data.items.length > 0) {
-                    for (var result of personInfo.data.items) {
-                        let firstName = result.firstname ?? '';
-                        let middleName = result.middlename ?? '';
-                        let lastName = result.lastname ?? '';
-                        let salesOrders = [];
-                        let opportunities = [];
-                        const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                        if (result?.company) {
+                parallelTasks.push((async () => {
+                    const requestContactStartTime = new Date().getTime();
+                    const personInfo = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                        {
+                            q: contactQuery
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                        });
+                    const requestContactEndTime = new Date().getTime();
+                    console.log({ m: "Contact search Duration", Duration: (requestContactEndTime - requestContactStartTime) / 1000 });
+                    const requestContactPushStartTime = new Date().getTime();
+                    if (personInfo.data.items.length > 0) {
+                        for (var result of personInfo.data.items) {
+                            let firstName = result.firstname ?? '';
+                            let middleName = result.middlename ?? '';
+                            let lastName = result.lastname ?? '';
+                            let salesOrders = [];
+                            let opportunities = [];
+                            const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                            if (result?.company) {
+                                try {
+                                    if (enableSalesOrderLogging.value) {
+
+                                        const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
+                                        for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
+                                            salesOrders.push({
+                                                const: salesOrder?.id,
+                                                title: salesOrder?.trandisplayname
+                                            });
+                                        }
+                                    }
+                                    if (enableOpportunityLogging.value) {
+                                        const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
+                                        for (const opportunity of opportunityResponse?.data?.items ?? []) {
+                                            opportunities.push({
+                                                const: opportunity?.id,
+                                                title: opportunity?.trandisplayname
+                                            });
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                                }
+                            }
+                            matchedContactInfo.push({
+                                id: result.id,
+                                name: contactName,
+                                phone: result.phone ?? '',
+                                homephone: result.homephone ?? '',
+                                mobilephone: result.mobilephone ?? '',
+                                officephone: result.officephone ?? '',
+                                additionalInfo: {
+                                    ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                                    ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                                },
+                                type: 'contact'
+                            })
+                        }
+                    }
+                    const requestContactPushEndTime = new Date().getTime();
+                    console.log({ m: "Contact search Push Duration", Duration: (requestContactPushEndTime - requestContactPushStartTime) / 1000 });
+                    console.log({ m: "OverAll Contact search Duration", Duration: (requestContactPushEndTime - requestContactStartTime) / 1000 });
+                })().catch(e => {
+                    console.log({ message: 'Error in contact search', e });
+                }));
+            }
+
+            if (contactSearch.includes('customer')) {
+                parallelTasks.push((async () => {
+                    const requestCustomerStartTime = new Date().getTime();
+                    const customerInfo = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                        {
+                            q: customerQuery
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                        });
+                    const requestCustomerEndTime = new Date().getTime();
+                    console.log({ m: "Customer search Duration", Duration: (requestCustomerEndTime - requestCustomerStartTime) / 1000 });
+                    const requestCustomerPushStartTime = new Date().getTime();
+                    if (customerInfo.data.items.length > 0) {
+                        for (const result of customerInfo.data.items) {
+                            let salesOrders = [];
+                            let opportunities = [];
                             try {
                                 if (enableSalesOrderLogging.value) {
 
-                                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
+                                    const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                                     for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
                                         salesOrders.push({
                                             const: salesOrder?.id,
@@ -365,7 +441,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                     }
                                 }
                                 if (enableOpportunityLogging.value) {
-                                    const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
+                                    const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
                                     for (const opportunity of opportunityResponse?.data?.items ?? []) {
                                         opportunities.push({
                                             const: opportunity?.id,
@@ -374,80 +450,37 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                     }
                                 }
                             } catch (e) {
-                                console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                                console.log({ message: "Error in SalesOrder/Opportunity search", e });
                             }
+                            let firstName = result.firstname ?? '';
+                            let middleName = result.middlename ?? '';
+                            let lastName = result.lastname ?? '';
+                            const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
+                            matchedContactInfo.push({
+                                id: result.id,
+                                name: customerName,
+                                phone: result.phone ?? '',
+                                homephone: result.homephone ?? '',
+                                mobilephone: result.mobilephone ?? '',
+                                altphone: result.altphone ?? '',
+                                additionalInfo: {
+                                    ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                                    ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                                },
+                                type: 'custjob'
+                            })
                         }
-                        matchedContactInfo.push({
-                            id: result.id,
-                            name: contactName,
-                            phone: result.phone ?? '',
-                            homephone: result.homephone ?? '',
-                            mobilephone: result.mobilephone ?? '',
-                            officephone: result.officephone ?? '',
-                            additionalInfo: {
-                                ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
-                                ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
-                            },
-                            type: 'contact'
-                        })
                     }
-                }
+                    const requestCustomerPushEndTime = new Date().getTime();
+                    console.log({ m: "Customer search Push Duration", Duration: (requestCustomerPushEndTime - requestCustomerPushStartTime) / 1000 });
+                    console.log({ m: "OverAll Customer search Duration", Duration: (requestCustomerPushEndTime - requestCustomerStartTime) / 1000 });
+                })().catch(e => {
+                    console.log({ message: 'Error in customer search', e });
+                }));
             }
-            if (contactSearch.includes('customer')) {
-                const customerInfo = await axios.post(
-                    `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-                    {
-                        q: customerQuery
-                    },
-                    {
-                        headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-                    });
-                if (customerInfo.data.items.length > 0) {
-                    for (const result of customerInfo.data.items) {
-                        let salesOrders = [];
-                        let opportunities = [];
-                        try {
-                            if (enableSalesOrderLogging.value) {
 
-                                const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
-                                for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
-                                    salesOrders.push({
-                                        const: salesOrder?.id,
-                                        title: salesOrder?.trandisplayname
-                                    });
-                                }
-                            }
-                            if (enableOpportunityLogging.value) {
-                                const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
-                                for (const opportunity of opportunityResponse?.data?.items ?? []) {
-                                    opportunities.push({
-                                        const: opportunity?.id,
-                                        title: opportunity?.trandisplayname
-                                    });
-                                }
-                            }
-                        } catch (e) {
-                            console.log({ message: "Error in SalesOrder/Opportunity search", e });
-                        }
-                        let firstName = result.firstname ?? '';
-                        let middleName = result.middlename ?? '';
-                        let lastName = result.lastname ?? '';
-                        const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                        matchedContactInfo.push({
-                            id: result.id,
-                            name: customerName,
-                            phone: result.phone ?? '',
-                            homephone: result.homephone ?? '',
-                            mobilephone: result.mobilephone ?? '',
-                            altphone: result.altphone ?? '',
-                            additionalInfo: {
-                                ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
-                                ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
-                            },
-                            type: 'custjob'
-                        })
-                    }
-                }
+            if (parallelTasks.length > 0) {
+                await Promise.all(parallelTasks);
             }
         }
         matchedContactInfo.push({
@@ -456,6 +489,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             additionalInfo: null,
             isNewContact: true
         });
+        const requestEndTime = new Date().getTime();
+        console.log({ m: "Find contact Duration", Duration: (requestEndTime - requestStartTime) / 1000 });
         //Enable this after testing
         // matchedContactInfo.push({
         //     id: 'searchContact',
@@ -1385,6 +1420,13 @@ async function findOpportunitiesAgainstContact({ user, authHeader, contactId }) 
 function getThreeYearsBeforeDate() {
     const date = new Date();
     date.setFullYear(date.getFullYear() - 3);
+    date.setHours(0, 0, 0, 0);
+    return date.toISOString().slice(0, 10) + " 00:00:00"; //Date formate 2022-04-03 00:00:00
+};
+
+function getThreeMonthsBeforeDate() {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 30);
     date.setHours(0, 0, 0, 0);
     return date.toISOString().slice(0, 10) + " 00:00:00"; //Date formate 2022-04-03 00:00:00
 };
