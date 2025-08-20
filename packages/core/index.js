@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
+const { CallDownListModel } = require('./models/callDownListModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
@@ -44,6 +45,7 @@ async function initDB() {
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
+        await CallDownListModel.sync();
     }
 }
 
@@ -1194,6 +1196,70 @@ function createCoreRouter() {
             extras: {
                 statusCode,
                 ...extraData
+            },
+            eventAddedVia
+        });
+    });
+
+    router.post('/calldown/schedule', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Invalid JWT token');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
+            platformName = platform;
+            const user = await UserModel.findByPk(userId);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            const crypto = require('crypto');
+            const recordId = crypto.randomBytes(16).toString('hex');
+            const payload = {
+                id: recordId,
+                userId: userId,
+                contactId: req.body.contactId?.toString?.() ?? req.body.contactId,
+                contactName: req.body.contactName ?? '',
+                phoneNumber: req.body.phoneNumber ?? '',
+                status: 'scheduled',
+                scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
+                lastCallAt: null
+            };
+            await CallDownListModel.create(payload);
+            success = true;
+            res.status(200).send({ successful: true, id: recordId });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Schedule call down',
+            interfaceName: 'scheduleCallDown',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                statusCode
             },
             eventAddedVia
         });
