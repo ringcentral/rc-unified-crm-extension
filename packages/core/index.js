@@ -5,6 +5,7 @@ const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
 const { CallDownListModel } = require('./models/callDownListModel');
+const { Op } = require('sequelize');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
@@ -1265,6 +1266,127 @@ function createCoreRouter() {
         });
     });
 
+    router.get('/calldown/list', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Invalid JWT token');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
+            platformName = platform;
+            const user = await UserModel.findByPk(userId);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+
+            const statusParam = (req.query.status || 'All').toString().toLowerCase();
+            const whereClause = { userId };
+            if (statusParam === 'called') {
+                whereClause.status = 'called';
+            } else if (statusParam === 'not called' || statusParam === 'not_called' || statusParam === 'notcalled') {
+                whereClause.status = { [Op.ne]: 'called' };
+            }
+
+            const items = await CallDownListModel.findAll({
+                where: whereClause,
+                order: [["scheduledAt", "ASC"]]
+            });
+            success = true;
+            res.status(200).send({ successful: true, items });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get call down list',
+            interfaceName: 'getCallDownList',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
+            eventAddedVia
+        });
+    });
+
+    router.delete('/calldown/item', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            const id = req.query.id;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            if (!id) {
+                res.status(400).send('Missing id');
+                return;
+            }
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Invalid JWT token');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
+            platformName = platform;
+            const user = await UserModel.findByPk(userId);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            const deletedCount = await CallDownListModel.destroy({ where: { id, userId } });
+            if (deletedCount === 0) {
+                res.status(404).send('Not found');
+                return;
+            }
+            success = true;
+            res.status(200).send({ successful: true });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Delete call down item',
+            interfaceName: 'deleteCallDownItem',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
+            eventAddedVia
+        });
+    });
+
     router.get('/custom/contact/search', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
@@ -1372,7 +1494,7 @@ function createCoreMiddleware() {
     return [
         bodyParser.json(),
         cors({
-            methods: ['GET', 'POST', 'PATCH', 'PUT']
+            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
         })
     ];
 }
