@@ -12,6 +12,9 @@ exports.CallDownListModel = sequelize.define('callDownLists', {
     contactId: {
         type: Sequelize.STRING,
     },
+    contactType: {
+        type: Sequelize.STRING,
+    },
     contactName: {
         type: Sequelize.STRING,
     },

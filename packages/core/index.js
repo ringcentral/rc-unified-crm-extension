@@ -1232,6 +1232,7 @@ function createCoreRouter() {
                 id: recordId,
                 userId: userId,
                 contactId: req.body.contactId?.toString?.() ?? req.body.contactId,
+                contactType: req.body.contactType ?? 'contact',
                 contactName: req.body.contactName ?? '',
                 phoneNumber: req.body.phoneNumber ?? '',
                 status: 'scheduled',
@@ -1374,6 +1375,71 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Delete call down item',
             interfaceName: 'deleteCallDownItem',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
+            eventAddedVia
+        });
+    });
+
+    router.patch('/calldown/markCalled', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const decodedToken = jwt.decodeJwt(jwtToken);
+            if (!decodedToken) {
+                res.status(400).send('Invalid JWT token');
+                return;
+            }
+            const { id: userId, platform } = decodedToken;
+            platformName = platform;
+            const user = await UserModel.findByPk(userId);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+
+            const id = req.body?.id;
+            if (!id) {
+                res.status(400).send('Missing id');
+                return;
+            }
+            const lastCallAt = req.body?.lastCallAt ? new Date(req.body.lastCallAt) : new Date();
+
+            const [affected] = await CallDownListModel.update(
+                { status: 'called', lastCallAt },
+                { where: { id, userId } }
+            );
+            if (!affected) {
+                res.status(404).send('Not found');
+                return;
+            }
+            success = true;
+            res.status(200).send({ successful: true });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Mark call down called',
+            interfaceName: 'markCallDownCalled',
             adapterName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
