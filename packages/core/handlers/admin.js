@@ -74,6 +74,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
         }
         const crmUserList = await platformModule.getUserList({ user, authHeader });
         const userMappingResult = [];
+        const newUserMappings = [];
         for (const crmUser of crmUserList) {
             const existingMapping = adminConfig?.userMappings?.find(u => u.crmUserId == crmUser.id);
             const rcExtension = rcExtensionList.find(e => e.id === existingMapping?.rcExtensionId);
@@ -114,6 +115,10 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                             email: newMapping?.email ?? ''
                         }
                     });
+                    newUserMappings.push({
+                        crmUserId: crmUser.id.toString(),
+                        rcExtensionId: newMapping.id.toString()
+                    });
                 }
                 else {
                     userMappingResult.push({
@@ -141,6 +146,15 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                 hashedRcAccountId,
                 adminSettings: {
                     userMappings: initialUserMappings
+                }
+            });
+        }
+        // Incremental update
+        if (newUserMappings.length > 0) {
+            await upsertAdminSettings({
+                hashedRcAccountId,
+                adminSettings: {
+                    userMappings: [...(adminConfig.userMappings ?? []), ...newUserMappings]
                 }
             });
         }

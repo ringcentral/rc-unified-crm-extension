@@ -21,7 +21,7 @@
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Pipedrive",
       "auth": {
@@ -177,7 +177,7 @@
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Insightly",
       "auth": {
@@ -396,7 +396,7 @@
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Clio",
       "auth": {
@@ -609,7 +609,7 @@
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "auth": {
         "type": "apiKey",
