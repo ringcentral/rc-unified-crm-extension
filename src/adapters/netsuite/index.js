@@ -283,7 +283,6 @@ async function handleDispositionNote({
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
-    const requestStartTime = new Date().getTime();
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -315,8 +314,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         const { enableSalesOrderLogging = false } = user.userSettings;
         const { enableOpportunityLogging = { value: false } } = user.userSettings;
         const dateBeforeThreeYear = getThreeYearsBeforeDate();
-        //const dateBeforeThreeYear = getThreeMonthsBeforeDate();
-        console.log({ dateBeforeThreeYear });
         const numberToQueryArray = [];
         if (overridingFormat !== '') {
             const formats = overridingFormat.split(',');
@@ -352,9 +349,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         {
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                         });
-                    const requestContactEndTime = new Date().getTime();
-                    console.log({ m: "Contact search Duration", Duration: (requestContactEndTime - requestContactStartTime) / 1000 });
-                    const requestContactPushStartTime = new Date().getTime();
                     if (personInfo.data.items.length > 0) {
                         for (var result of personInfo.data.items) {
                             let firstName = result.firstname ?? '';
@@ -403,9 +397,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             })
                         }
                     }
-                    const requestContactPushEndTime = new Date().getTime();
-                    console.log({ m: "Contact search Push Duration", Duration: (requestContactPushEndTime - requestContactPushStartTime) / 1000 });
-                    console.log({ m: "OverAll Contact search Duration", Duration: (requestContactPushEndTime - requestContactStartTime) / 1000 });
                 })().catch(e => {
                     console.log({ message: 'Error in contact search', e });
                 }));
@@ -413,7 +404,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
             if (contactSearch.includes('customer')) {
                 parallelTasks.push((async () => {
-                    const requestCustomerStartTime = new Date().getTime();
                     const customerInfo = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                         {
@@ -422,9 +412,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         {
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                         });
-                    const requestCustomerEndTime = new Date().getTime();
-                    console.log({ m: "Customer search Duration", Duration: (requestCustomerEndTime - requestCustomerStartTime) / 1000 });
-                    const requestCustomerPushStartTime = new Date().getTime();
                     if (customerInfo.data.items.length > 0) {
                         for (const result of customerInfo.data.items) {
                             let salesOrders = [];
@@ -471,9 +458,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             })
                         }
                     }
-                    const requestCustomerPushEndTime = new Date().getTime();
-                    console.log({ m: "Customer search Push Duration", Duration: (requestCustomerPushEndTime - requestCustomerPushStartTime) / 1000 });
-                    console.log({ m: "OverAll Customer search Duration", Duration: (requestCustomerPushEndTime - requestCustomerStartTime) / 1000 });
                 })().catch(e => {
                     console.log({ message: 'Error in customer search', e });
                 }));
@@ -489,8 +473,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             additionalInfo: null,
             isNewContact: true
         });
-        const requestEndTime = new Date().getTime();
-        console.log({ m: "Find contact Duration", Duration: (requestEndTime - requestStartTime) / 1000 });
         //Enable this after testing
         // matchedContactInfo.push({
         //     id: 'searchContact',
