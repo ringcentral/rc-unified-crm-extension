@@ -909,7 +909,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -961,7 +961,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body, isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }

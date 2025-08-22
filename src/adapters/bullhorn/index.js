@@ -1047,7 +1047,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, isFromSSCL }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1111,7 +1111,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
     // If user has input agent notes, SSCL won't update it
     const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
-    if (ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
+    if (!isFromSSCL || ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
         postBody.comments = composedLogDetails;
     }
     let patchLogRes;
