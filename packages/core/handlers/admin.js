@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const adapterRegistry = require('../adapter/registry');
-const oauth = require('../oauth');
+const oauth = require('../lib/oauth');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
