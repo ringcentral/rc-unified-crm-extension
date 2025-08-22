@@ -1477,3 +1477,4 @@ exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
+exports.postSaveUserInfo = postSaveUserInfo;
