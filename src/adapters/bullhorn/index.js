@@ -362,6 +362,23 @@ async function getServerLoggingSettings({ user }) {
 }
 
 async function updateServerLoggingSettings({ user, additionalFieldValues, oauthApp }) {
+    if (!additionalFieldValues.apiUsername || !additionalFieldValues.apiPassword) {
+        await user.update({
+            platformAdditionalInfo: {
+                ...user.platformAdditionalInfo,
+                encodedApiUsername: '',
+                encodedApiPassword: ''
+            }
+        });
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Server logging settings cleared',
+                ttl: 5000
+            },
+        };
+    }
     const username = additionalFieldValues.apiUsername;
     const password = additionalFieldValues.apiPassword;
     user.platformAdditionalInfo = {
@@ -1080,9 +1097,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     ) {
         assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
     }
+
+
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments: composedLogDetails,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
@@ -1090,6 +1108,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.commentingPerson = {
             id: assigneeId
         }
+    }
+    // If user has input agent notes, SSCL won't update it
+    const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
+    if (ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
+        postBody.comments = composedLogDetails;
     }
     let patchLogRes;
     try {
