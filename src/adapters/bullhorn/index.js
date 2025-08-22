@@ -361,7 +361,7 @@ async function getServerLoggingSettings({ user }) {
     };
 }
 
-async function updateServerLoggingSettings({ user, additionalFieldValues }) {
+async function updateServerLoggingSettings({ user, additionalFieldValues, oauthApp }) {
     const username = additionalFieldValues.apiUsername;
     const password = additionalFieldValues.apiPassword;
     user.platformAdditionalInfo = {
@@ -369,7 +369,8 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
         encodedApiUsername: username ? encode(username) : '',
         encodedApiPassword: password ? encode(password) : ''
     }
-    await user.save();
+    const authData = await bullhornPasswordAuthorize(user, oauthApp, { apiUsername: username, apiPassword: password });
+    await overrideSessionWithAuthInfo({ user, authData });
     return {
         successful: true,
         returnMessage: {
@@ -378,6 +379,38 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
             ttl: 5000
         },
     };
+}
+
+async function postSaveUserInfo({ userInfo, oauthApp }) {
+    const user = await UserModel.findByPk(userInfo.id);
+    if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
+        const authData = await bullhornPasswordAuthorize(
+            user,
+            oauthApp,
+            { apiUsername: decoded(user.platformAdditionalInfo.encodedApiUsername), apiPassword: decoded(user.platformAdditionalInfo.encodedApiPassword) }
+        );
+        await overrideSessionWithAuthInfo({ user, authData });
+    }
+    return userInfo;
+}
+
+async function overrideSessionWithAuthInfo({ user, authData }) {
+    const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
+    const { BhRestToken, restUrl } = userLoginResponse.data;
+    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
+    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
+    updatedPlatformAdditionalInfo.restUrl = restUrl;
+    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
+    user.platformAdditionalInfo = {};
+    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
+    const date = new Date();
+    user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
+    console.log('Bullhorn session overridden with auth info')
+    await user.save();
+    return user;
 }
 
 async function findContact({ user, phoneNumber, isExtension }) {
