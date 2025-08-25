@@ -79,49 +79,55 @@ async function getOauthInfo({ tokenUrl }) {
 }
 
 async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
-    // use password to get code
-    console.log('authorize bullhorn by password')
-    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
-    const codeResponse = await axios.get(authUrl, {
-        params: {
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            username: serverLoggingSettings.apiUsername,
-            password: serverLoggingSettings.apiPassword,
-            response_type: 'code',
-            action: 'Login',
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
-        },
-        maxRedirects: 0,
-        validateStatus: status => status === 302,
-    });
-    const redirectLocation = codeResponse.headers['location'];
-    if (!redirectLocation) {
-        throw new Error('Authorize failure, missing location');
-    }
-    const codeUrl = new URL(redirectLocation);
-    const code = codeUrl.searchParams.get('code');
-    if (!code) {
-        throw new Error('Authorize failure, missing code');
-    }
-    const overridingOAuthOption = {
-        headers: {
-            Authorization: ''
-        },
-        query: {
-            grant_type: 'authorization_code',
-            code,
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            client_secret: process.env.BULLHORN_CLIENT_SECRET,
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+    try {
+        // use password to get code
+        console.log('authorize bullhorn by password')
+        const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
+        const codeResponse = await axios.get(authUrl, {
+            params: {
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                username: serverLoggingSettings.apiUsername,
+                password: serverLoggingSettings.apiPassword,
+                response_type: 'code',
+                action: 'Login',
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            },
+            maxRedirects: 0,
+            validateStatus: status => status === 302,
+        });
+        const redirectLocation = codeResponse.headers['location'];
+        if (!redirectLocation) {
+            throw new Error('Authorize failure, missing location');
         }
-    };
-    const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
-    console.log('authorize bullhorn user by password successfully.')
-    return {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: expires,
-    };
+        const codeUrl = new URL(redirectLocation);
+        const code = codeUrl.searchParams.get('code');
+        if (!code) {
+            throw new Error('Authorize failure, missing code');
+        }
+        const overridingOAuthOption = {
+            headers: {
+                Authorization: ''
+            },
+            query: {
+                grant_type: 'authorization_code',
+                code,
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                client_secret: process.env.BULLHORN_CLIENT_SECRET,
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            }
+        };
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
+        console.log('authorize bullhorn user by password successfully.')
+        return {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expires,
+        };
+    }
+    catch (e) {
+        console.error('Bullhorn password authorize failed');
+        return null;
+    }
 }
 
 async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
@@ -387,6 +393,16 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
         encodedApiPassword: password ? encode(password) : ''
     }
     const authData = await bullhornPasswordAuthorize(user, oauthApp, { apiUsername: username, apiPassword: password });
+    if (!authData) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Server logging settings update failed',
+                ttl: 5000
+            },
+        };
+    }
     await overrideSessionWithAuthInfo({ user, authData });
     return {
         successful: true,
@@ -401,12 +417,17 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
 async function postSaveUserInfo({ userInfo, oauthApp }) {
     const user = await UserModel.findByPk(userInfo.id);
     if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
-        const authData = await bullhornPasswordAuthorize(
-            user,
-            oauthApp,
-            { apiUsername: decoded(user.platformAdditionalInfo.encodedApiUsername), apiPassword: decoded(user.platformAdditionalInfo.encodedApiPassword) }
-        );
-        await overrideSessionWithAuthInfo({ user, authData });
+        try {
+            const authData = await bullhornPasswordAuthorize(
+                user,
+                oauthApp,
+                { apiUsername: decoded(user.platformAdditionalInfo.encodedApiUsername), apiPassword: decoded(user.platformAdditionalInfo.encodedApiPassword) }
+            );
+            await overrideSessionWithAuthInfo({ user, authData });
+        }
+        catch (e) {
+            console.error('Bullhorn password authorize failed');
+        }
     }
     return userInfo;
 }
@@ -423,8 +444,7 @@ async function overrideSessionWithAuthInfo({ user, authData }) {
     // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
     user.platformAdditionalInfo = {};
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
-    const date = new Date();
-    user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
+    user.tokenExpiry = expires;
     console.log('Bullhorn session overridden with auth info')
     await user.save();
     return user;
