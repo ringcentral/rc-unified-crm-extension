@@ -15,7 +15,7 @@ jest.mock('@app-connect/core/models/adminConfigModel');
 
 describe('admin.js tests', () => {
     const originalSecretKey = process.env.APP_SERVER_SECRET_KEY;
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
         // Set up environment variable for encryption
@@ -144,7 +144,7 @@ describe('admin.js tests', () => {
         test('should get server logging settings successfully with bullhorn adapter', async () => {
             const testUsername = 'test_username';
             const testPassword = 'test_password';
-            
+
             const user = {
                 platform: 'bullhorn',
                 platformAdditionalInfo: {
@@ -206,7 +206,7 @@ describe('admin.js tests', () => {
         test('should update server logging settings successfully with bullhorn adapter', async () => {
             const testUsername = 'new_username';
             const testPassword = 'new_password';
-            
+
             const mockUser = {
                 platform: 'bullhorn',
                 platformAdditionalInfo: {
@@ -270,7 +270,16 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                save: jest.fn().mockResolvedValue(true)
+                update: jest.fn().mockImplementation(function (updateData) {
+                    // Actually update the mockUser object
+                    if (updateData.platformAdditionalInfo) {
+                        this.platformAdditionalInfo = {
+                            ...this.platformAdditionalInfo,
+                            ...updateData.platformAdditionalInfo
+                        };
+                    }
+                    return Promise.resolve(true);
+                })
             };
 
             const additionalFieldValues = {
@@ -305,7 +314,7 @@ describe('admin.js tests', () => {
 
             const result = await updateServerLoggingSettings({ user: mockUser, additionalFieldValues });
 
-            expect(mockUser.save).toHaveBeenCalled();
+            expect(mockUser.update).toHaveBeenCalled();
             expect(mockUser.platformAdditionalInfo.encodedApiUsername).toBe('');
             expect(mockUser.platformAdditionalInfo.encodedApiPassword).toBe('');
             expect(result.successful).toBe(true);
@@ -318,7 +327,16 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                save: jest.fn().mockResolvedValue(true)
+                update: jest.fn().mockImplementation(function (updateData) {
+                    // Actually update the mockUser object
+                    if (updateData.platformAdditionalInfo) {
+                        this.platformAdditionalInfo = {
+                            ...this.platformAdditionalInfo,
+                            ...updateData.platformAdditionalInfo
+                        };
+                    }
+                    return Promise.resolve(true);
+                })
             };
 
             const additionalFieldValues = {
@@ -353,7 +371,7 @@ describe('admin.js tests', () => {
 
             const result = await updateServerLoggingSettings({ user: mockUser, additionalFieldValues });
 
-            expect(mockUser.save).toHaveBeenCalled();
+            expect(mockUser.update).toHaveBeenCalled();
             expect(mockUser.platformAdditionalInfo.encodedApiUsername).toBeDefined();
             expect(mockUser.platformAdditionalInfo.encodedApiPassword).toBe('');
             expect(result.successful).toBe(true);
