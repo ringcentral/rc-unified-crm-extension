@@ -81,3 +81,17 @@ From the "Server-side call logging" page, you can specify a list of phone number
 ### Use admin settings
 
 Server side logging uses some admin settings to automate the logging process. Settings are cached and refreshed once every hour. If you want to change setting values and have them reflected immediately in the logging process, please go to server side logging page and save it again so that it will be re-subscribed with new setting values.  
+
+### When client side extension is in-use
+
+With Server side logging turned ON, and meanwhile using client side extension could be a tricky case.
+
+#### Avoid double logging
+
+Server side logging has quick reactions, meaning it'd be the first to log a call if call events come to server side logging service and your Chrome extension at nearly the same time.
+
+To avoid double logging from server side logging and client side extension, the extension will check if call log already exists. If yes, it'll pop up log edit form instead.
+
+#### Agent notes
+
+Server side logging firstly creates call logs with a pending message. Then, further information e.g. call result, call recording, agent notes will be updated later. 
