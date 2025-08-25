@@ -1,0 +1,164 @@
+.float-left { float: left; }
+.float-right { float: right; }
+.md-typeset img.mw-100 { max-width: 100px; }
+.md-typeset img.mw-200 { max-width: 200px; }
+.md-typeset img.mw-250 { max-width: 250px; }
+.md-typeset img.mw-300 { max-width: 300px; }
+.md-typeset img.mw-400 { max-width: 400px; }
+.md-typeset img.mw-500 { max-width: 500px; }
+.md-typeset img.mw-600 { max-width: 600px; }
+
+.md-typeset .ml-10 { margin-left: 10px; }
+.md-typeset .ml-20 { margin-left: 20px; }
+.md-typeset .ml-30 { margin-left: 30px; }
+.md-typeset .mb-10 { margin-bottom: 10px; }
+.md-typeset .mb-20 { margin-bottom: 20px; }
+.md-typeset .mb-30 { margin-bottom: 30px; }
+
+.carousel .column {
+  float: left;
+  width: 50%;
+}
+.carousel .column:first-child + .column {
+    padding-left: 40px;
+}
+/* Clear floats after the columns */
+.carousel .row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+#supported-crms {
+    text-transform: uppercase;
+    font-size: 1rem;
+    text-align: center;
+}
+#supported-crms + ul {
+    text-align: justify;
+    //margin: 0 auto;
+    -ms-text-justify: distribute-all-lines;
+    text-justify: distribute-all-lines;
+    background-color: #EEE;
+}
+#supported-crms + ul li {
+    float: left;
+    list-style: none;
+    height: 80px;      /* equals max image height */
+    width: 180px;
+    vertical-align: top;
+    white-space: nowrap;
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+}
+#supported-crms + ul li:first-child {
+    margin-left: 0;
+}
+#supported-crms + ul li:last-child {
+    width: 100%;
+    display: inline-block;
+    font-size: 0;
+    line-height: 0;
+    height: 1px;
+    margin-right: 0;
+}
+#supported-crms + ul li img {
+    max-width: 180px;
+    vertical-align: middle;
+    max-height: 80px;
+}
+#supported-crms + ul li a img:last-child {
+  display: none;  
+}
+#supported-crms + ul li a:hover img:last-child {
+  display: inline-block;  
+}
+#supported-crms + ul li a:hover img:first-child {
+  display: none;  
+}
+
+
+.helper {
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+#connect-your-crm-with-ringcentral-using-app-connect {
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+.qs-hero {
+    padding: 1px 40px;
+    border-radius: 20px;
+    background-image: url(img/hero-bg-01.png);
+}
+.qs-hero h3:first-child {
+    margin-bottom: 0;
+}
+.qs-hero p:nth-of-type(1) {
+    font-size: 1rem;
+}
+.qs-hero h2 {
+    font-weight: 900;
+    font-size: 1.8rem;
+    margin-top: 1rem;
+}
+.qs-hero #developer-product-spotlight + h2 {
+    margin-top: 0.2rem;
+}
+.qs-hero h3 {
+    text-transform: uppercase;
+    font-size: .8rem;
+}
+.qs-hero .grid li {
+    background: white;
+    font-size: 0.9rem;
+}
+.qs-hero .grid li .twemoji {
+    font-size: 1rem;
+}
+
+#oauth-parameters + .md-typeset__scrollwrap table th:first-of-type,
+#platform-configuration + p + p + .md-typeset__scrollwrap table th:first-of-type,
+#getuserinfo + p + .md-typeset__scrollwrap table th:first-of-type,
+#return-values + .md-typeset__scrollwrap table th:first-of-type,
+#return-values + p + .md-typeset__scrollwrap table th:first-of-type,
+#request-parameters + .md-typeset__scrollwrap table th:first-of-type,
+#input-parameters + .md-typeset__scrollwrap table th:first-of-type {
+    width: 250px;
+}
+.crm-logo {
+    max-width: 200px;
+    max-height: 100px;
+    display: block;
+    margin-bottom: 15px;
+}
+.crm-list li .crm-logo,
+.crm-list li a {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    display: block;
+}
+
+.md-typeset a {
+    color: #066fac
+}
+.md-typeset a:hover {
+    color: #066fac;
+    text-decoration: underline;
+}
+.download-button {
+    color: #CCC !important;
+    border-radius: 10px !important;
+}
+.md-main {
+    padding-bottom: 50px
+}
+#powered-by-embeddable .admonition {
+    font-size: 0.8rem;
+}
+:root {
+    --md-primary-fg-color: #002755;
+}
