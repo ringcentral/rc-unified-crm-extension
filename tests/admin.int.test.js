@@ -270,7 +270,16 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                save: jest.fn().mockResolvedValue(true)
+                update: jest.fn().mockImplementation(function(updateData) {
+                    // Actually update the mockUser object
+                    if (updateData.platformAdditionalInfo) {
+                        this.platformAdditionalInfo = {
+                            ...this.platformAdditionalInfo,
+                            ...updateData.platformAdditionalInfo
+                        };
+                    }
+                    return Promise.resolve(true);
+                })
             };
 
             const additionalFieldValues = {
@@ -305,7 +314,7 @@ describe('admin.js tests', () => {
 
             const result = await updateServerLoggingSettings({ user: mockUser, additionalFieldValues });
 
-            expect(mockUser.save).toHaveBeenCalled();
+            expect(mockUser.update).toHaveBeenCalled();
             expect(mockUser.platformAdditionalInfo.encodedApiUsername).toBe('');
             expect(mockUser.platformAdditionalInfo.encodedApiPassword).toBe('');
             expect(result.successful).toBe(true);
@@ -318,7 +327,16 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                save: jest.fn().mockResolvedValue(true)
+                update: jest.fn().mockImplementation(function(updateData) {
+                    // Actually update the mockUser object
+                    if (updateData.platformAdditionalInfo) {
+                        this.platformAdditionalInfo = {
+                            ...this.platformAdditionalInfo,
+                            ...updateData.platformAdditionalInfo
+                        };
+                    }
+                    return Promise.resolve(true);
+                })
             };
 
             const additionalFieldValues = {
@@ -353,7 +371,7 @@ describe('admin.js tests', () => {
 
             const result = await updateServerLoggingSettings({ user: mockUser, additionalFieldValues });
 
-            expect(mockUser.save).toHaveBeenCalled();
+            expect(mockUser.update).toHaveBeenCalled();
             expect(mockUser.platformAdditionalInfo.encodedApiUsername).toBeDefined();
             expect(mockUser.platformAdditionalInfo.encodedApiPassword).toBe('');
             expect(result.successful).toBe(true);
