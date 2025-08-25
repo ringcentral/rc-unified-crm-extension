@@ -1,6 +1,9 @@
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+const oauth = require('@app-connect/core/lib/oauth');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
@@ -1521,3 +1524,62 @@ exports.findContactWithName = findContactWithName;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
+
+// ===================== Monthly CSV Report Helpers =====================
+async function fetchBullhornUserProfile({ user }) {
+    try {
+        const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+        let currentUser = user;
+        if (checkAndRefreshAccessToken) {
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser);
+        }
+        const masterUserId = currentUser.id.replace('-bullhorn', '');
+        const resp = await axios.get(
+            `${currentUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name,email&where=masterUserID=${masterUserId}`,
+            { headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken } }
+        );
+        const data = resp?.data?.data?.[0] ?? {};
+        console.log(`Fetched user profile for Bullhorn user ${currentUser.id}:`, data);
+        return { email: data.email || '', name: data.name || '' };
+    } catch (e) {
+        return { email: '', name: '' };
+    }
+}
+
+function toCsv(rows) {
+    const escape = (val) => {
+        const s = (val ?? '').toString();
+        if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    };
+    return rows.map(r => r.map(escape).join(',')).join('\n');
+}
+
+async function generateMonthlyCsvReport() {
+    const { UserModel } = require('@app-connect/core/models/userModel');
+    const users = await UserModel.findAll({ where: { platform: 'bullhorn' } });
+    const header = ['User id', 'Account id', 'User email', 'Bullhorn id', 'User name', 'Account name'];
+    const rows = [header];
+    for (const user of users) {
+        const profile = await fetchBullhornUserProfile({ user });
+        const userId = user.id || '';
+        const accountId = user.platformAdditionalInfo?.rcAccountId || '';
+        const userEmail = profile.email || '';
+        const bullhornId = user.platformAdditionalInfo?.id || '';
+        const userName = profile.name || '';
+        const accountName = user.platformAdditionalInfo?.rcAccountName || '';
+        rows.push([userId, accountId, userEmail, bullhornId, userName, accountName]);
+    }
+    const csv = toCsv(rows);
+    const outDir = path.join(process.cwd(), 'reports');
+    if (!fs.existsSync(outDir)) {
+        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { /* ignore */ }
+    }
+    const filePath = path.join(outDir, `bullhorn_report_${moment.utc().format('YYYY-MM-20')}.csv`);
+    fs.writeFileSync(filePath, csv, 'utf8');
+    return { csv, filePath };
+}
+
+exports.generateMonthlyCsvReport = generateMonthlyCsvReport;
