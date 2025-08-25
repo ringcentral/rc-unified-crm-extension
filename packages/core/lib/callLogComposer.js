@@ -244,7 +244,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDat
             momentTime = momentTime.utcOffset(Number(timezoneOffset));
         }
     }
-    const formattedDateTime = momentTime.format(logDateFormat);
+    const formattedDateTime = momentTime.format(logDateFormat || 'YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
