@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.6.3:
+- New: Date time format in call details settings
+- Better: When doing server-side call logging, agent notes input from Chrome extension won't be overwritten by system
+- Better: When doing server-side call logging, agent notes input from Chrome extension will be auto uploaded
+- Fix: User report tab can now be toggled ON/OFF
+- Fix: Time format now follows operating system setting 
+- Bullhorn: Server-side call logging will only use API user session if it's configured with username and password
+
 ## 1.6.2:
 
 - Fix: User session auth button now shows correct state

@@ -80,49 +80,55 @@ async function getOauthInfo({ tokenUrl }) {
 }
 
 async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
-    // use password to get code
-    console.log('authorize bullhorn by password')
-    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
-    const codeResponse = await axios.get(authUrl, {
-        params: {
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            username: serverLoggingSettings.apiUsername,
-            password: serverLoggingSettings.apiPassword,
-            response_type: 'code',
-            action: 'Login',
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
-        },
-        maxRedirects: 0,
-        validateStatus: status => status === 302,
-    });
-    const redirectLocation = codeResponse.headers['location'];
-    if (!redirectLocation) {
-        throw new Error('Authorize failure, missing location');
-    }
-    const codeUrl = new URL(redirectLocation);
-    const code = codeUrl.searchParams.get('code');
-    if (!code) {
-        throw new Error('Authorize failure, missing code');
-    }
-    const overridingOAuthOption = {
-        headers: {
-            Authorization: ''
-        },
-        query: {
-            grant_type: 'authorization_code',
-            code,
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            client_secret: process.env.BULLHORN_CLIENT_SECRET,
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+    try {
+        // use password to get code
+        console.log('authorize bullhorn by password')
+        const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
+        const codeResponse = await axios.get(authUrl, {
+            params: {
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                username: serverLoggingSettings.apiUsername,
+                password: serverLoggingSettings.apiPassword,
+                response_type: 'code',
+                action: 'Login',
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            },
+            maxRedirects: 0,
+            validateStatus: status => status === 302,
+        });
+        const redirectLocation = codeResponse.headers['location'];
+        if (!redirectLocation) {
+            throw new Error('Authorize failure, missing location');
         }
-    };
-    const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
-    console.log('authorize bullhorn user by password successfully.')
-    return {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: expires,
-    };
+        const codeUrl = new URL(redirectLocation);
+        const code = codeUrl.searchParams.get('code');
+        if (!code) {
+            throw new Error('Authorize failure, missing code');
+        }
+        const overridingOAuthOption = {
+            headers: {
+                Authorization: ''
+            },
+            query: {
+                grant_type: 'authorization_code',
+                code,
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                client_secret: process.env.BULLHORN_CLIENT_SECRET,
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            }
+        };
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
+        console.log('authorize bullhorn user by password successfully.')
+        return {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expires,
+        };
+    }
+    catch (e) {
+        console.error('Bullhorn password authorize failed');
+        return null;
+    }
 }
 
 async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
@@ -362,7 +368,24 @@ async function getServerLoggingSettings({ user }) {
     };
 }
 
-async function updateServerLoggingSettings({ user, additionalFieldValues }) {
+async function updateServerLoggingSettings({ user, additionalFieldValues, oauthApp }) {
+    if (!additionalFieldValues.apiUsername || !additionalFieldValues.apiPassword) {
+        await user.update({
+            platformAdditionalInfo: {
+                ...user.platformAdditionalInfo,
+                encodedApiUsername: '',
+                encodedApiPassword: ''
+            }
+        });
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Server logging settings cleared',
+                ttl: 5000
+            },
+        };
+    }
     const username = additionalFieldValues.apiUsername;
     const password = additionalFieldValues.apiPassword;
     user.platformAdditionalInfo = {
@@ -370,7 +393,18 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
         encodedApiUsername: username ? encode(username) : '',
         encodedApiPassword: password ? encode(password) : ''
     }
-    await user.save();
+    const authData = await bullhornPasswordAuthorize(user, oauthApp, { apiUsername: username, apiPassword: password });
+    if (!authData) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Server logging settings update failed',
+                ttl: 5000
+            },
+        };
+    }
+    await overrideSessionWithAuthInfo({ user, authData });
     return {
         successful: true,
         returnMessage: {
@@ -379,6 +413,42 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
             ttl: 5000
         },
     };
+}
+
+async function postSaveUserInfo({ userInfo, oauthApp }) {
+    const user = await UserModel.findByPk(userInfo.id);
+    if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
+        try {
+            const authData = await bullhornPasswordAuthorize(
+                user,
+                oauthApp,
+                { apiUsername: decoded(user.platformAdditionalInfo.encodedApiUsername), apiPassword: decoded(user.platformAdditionalInfo.encodedApiPassword) }
+            );
+            await overrideSessionWithAuthInfo({ user, authData });
+        }
+        catch (e) {
+            console.error('Bullhorn password authorize failed');
+        }
+    }
+    return userInfo;
+}
+
+async function overrideSessionWithAuthInfo({ user, authData }) {
+    const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
+    const { BhRestToken, restUrl } = userLoginResponse.data;
+    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
+    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
+    updatedPlatformAdditionalInfo.restUrl = restUrl;
+    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
+    user.platformAdditionalInfo = {};
+    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
+    user.tokenExpiry = expires;
+    console.log('Bullhorn session overridden with auth info')
+    await user.save();
+    return user;
 }
 
 async function findContact({ user, phoneNumber, isExtension }) {
@@ -983,7 +1053,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1030,9 +1100,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
         assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
     }
+
+
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments: composedLogDetails,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
@@ -1040,6 +1111,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.commentingPerson = {
             id: assigneeId
         }
+    }
+    // If user has input agent notes, SSCL won't update it
+    const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
+    if (!isFromSSCL || ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
+        postBody.comments = composedLogDetails;
     }
     let patchLogRes;
     try {
@@ -1428,3 +1504,4 @@ exports.findContactWithName = findContactWithName;
 exports.getUserList = getUserList;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
+exports.postSaveUserInfo = postSaveUserInfo;

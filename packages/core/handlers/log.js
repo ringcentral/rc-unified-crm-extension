@@ -8,7 +8,7 @@ const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
 const adapterRegistry = require('../adapter/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 
-async function createCallLog({ platform, userId, incomingData, hashedAccountId }) {
+async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -105,7 +105,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId }
             aiNote,
             transcript,
             composedLogDetails,
-            hashedAccountId
+            hashedAccountId,
+            isFromSSCL
         });
         if (logId) {
             await CallLogModel.create({
@@ -280,7 +281,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData, hashedAccountId }) {
+async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -367,7 +368,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId }
                 additionalSubmission: incomingData.additionalSubmission,
                 composedLogDetails,
                 existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls
-                hashedAccountId
+                hashedAccountId,
+                isFromSSCL
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }

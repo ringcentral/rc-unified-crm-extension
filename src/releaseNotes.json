@@ -1,4 +1,34 @@
 {
+    "1.6.3": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Date time format in call details settings"
+            },
+            {
+                "type": "Better",
+                "description": "- When doing server-side call logging, agent notes input from Chrome extension won't be overwritten by system"
+            },
+            {
+                "type": "Better",
+                "description": "- When doing server-side call logging, agent notes won't be overwritten by system"
+            },
+            {
+                "type": "Fix",
+                "description": "- User report tab can now be toggled ON/OFF"
+            },
+            {
+                "type": "Fix",
+                "description": "- Time format now follows operating system setting"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Server-side call logging will only use API user session if it's configured with username and password"
+            }
+        ]
+    },
     "1.6.2": {
         "global": [
             {

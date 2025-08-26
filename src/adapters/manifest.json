@@ -992,7 +992,7 @@
           {
             "const": "apiPasswordHelpText",
             "title": "Help",
-            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
+            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. Warning: API user will override current admin role in Bullhorn actions. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
             "type": "string",
             "uiSchema": {
               "ui:field": "admonition",
@@ -1740,5 +1740,5 @@
       ]
     }
   },
-  "version": "1.6.2"
+  "version": "1.6.3"
 }
