@@ -79,6 +79,7 @@ async function composeCallLog(params) {
             body,
             startTime: resolvedStartTime,
             timezoneOffset,
+            logDateFormat: userSettings?.logDateFormat?.value ?? 'YYYY-MM-DD hh:mm:ss A',
             logFormat
         });
     }
@@ -228,7 +229,7 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
     return result;
 }
 
-function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
+function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDateFormat }) {
     if (!startTime) return body;
 
     // Simple approach: convert to moment and apply timezone offset
@@ -243,7 +244,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
             momentTime = momentTime.utcOffset(Number(timezoneOffset));
         }
     }
-    const formattedDateTime = momentTime.format('YYYY-MM-DD hh:mm:ss A');
+    const formattedDateTime = momentTime.format(logDateFormat || 'YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {

@@ -270,7 +270,7 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                update: jest.fn().mockImplementation(function (updateData) {
+                update: jest.fn().mockImplementation(function(updateData) {
                     // Actually update the mockUser object
                     if (updateData.platformAdditionalInfo) {
                         this.platformAdditionalInfo = {
@@ -327,7 +327,7 @@ describe('admin.js tests', () => {
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://mock-api.bullhorn.com'
                 },
-                update: jest.fn().mockImplementation(function (updateData) {
+                update: jest.fn().mockImplementation(function(updateData) {
                     // Actually update the mockUser object
                     if (updateData.platformAdditionalInfo) {
                         this.platformAdditionalInfo = {
