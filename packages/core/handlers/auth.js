@@ -27,7 +27,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const authHeader = `Bearer ${accessToken}`;
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
     if (successful) {
-        const userInfo = await saveUserInfo({
+        let userInfo = await saveUserInfo({
             platformUserInfo,
             platform,
             tokenUrl,
@@ -38,6 +38,9 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             refreshToken,
             tokenExpiry: expires
         });
+        if (platformModule.postSaveUserInfo) {
+            userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
+        }
         return {
             userInfo,
             returnMessage
@@ -56,12 +59,15 @@ async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo, apiKey });
     if (successful) {
-        const userInfo = await saveUserInfo({
+        let userInfo = await saveUserInfo({
             platformUserInfo,
             platform,
             hostname,
             accessToken: platformUserInfo.overridingApiKey ?? apiKey
         });
+        if (platformModule.postSaveUserInfo) {
+            userInfo = await platformModule.postSaveUserInfo({ userInfo });
+        }
         return {
             userInfo,
             returnMessage

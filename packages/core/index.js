@@ -125,9 +125,9 @@ function createCoreRouter() {
         let success = false;
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        try{
+        try {
             const jwtToken = req.query.jwtToken;
-            if(jwtToken){
+            if (jwtToken) {
                 const { id: userId, platform } = jwt.decodeJwt(jwtToken);
                 platformName = platform;
                 if (!userId) {
@@ -138,7 +138,7 @@ function createCoreRouter() {
                 res.status(200).send(licenseStatus);
                 success = true;
             }
-            else{
+            else {
                 res.status(200).send({
                     isLicenseValid: false,
                     licenseStatus: 'Invalid (Invalid user session)',
@@ -147,7 +147,7 @@ function createCoreRouter() {
                 success = true;
             }
         }
-        catch(e){
+        catch (e) {
             res.status(200).send({
                 isLicenseValid: false,
                 licenseStatus: 'Invalid (Connect to get license status)',
@@ -403,13 +403,13 @@ function createCoreRouter() {
                 res.status(400).send('User not found');
                 return;
             }
-            const serverLoggingSettings = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
-            res.status(200).send(serverLoggingSettings);
+            const { successful, returnMessage } = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
+            res.status(200).send({ successful, returnMessage });
             success = true;
         }
         catch (e) {
             console.log(`${e.stack}`);
-            res.status(400).send(e);
+            res.status(400).send({ successful: false, returnMessage: { messageType: 'warning', message: 'Server logging settings update failed', ttl: 5000 } });
             success = false;
         }
         const requestEndTime = new Date().getTime();
@@ -909,7 +909,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -961,7 +961,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body, isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }

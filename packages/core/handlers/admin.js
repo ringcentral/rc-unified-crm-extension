@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const adapterRegistry = require('../adapter/registry');
+const oauth = require('../lib/oauth');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -46,9 +47,10 @@ async function getServerLoggingSettings({ user }) {
 
 async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     const platformModule = adapterRegistry.getAdapter(user.platform);
+    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     if (platformModule.updateServerLoggingSettings) {
-        const serverLoggingSettings = await platformModule.updateServerLoggingSettings({ user, additionalFieldValues });
-        return serverLoggingSettings;
+        const { successful, returnMessage } = await platformModule.updateServerLoggingSettings({ user, additionalFieldValues, oauthApp });
+        return { successful, returnMessage };
     }
     return {};
 }
