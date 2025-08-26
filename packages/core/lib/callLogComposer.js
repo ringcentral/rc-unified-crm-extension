@@ -61,6 +61,17 @@ async function composeCallLog(params) {
         body = upsertCallSessionId({ body, id: callLog.sessionId, logFormat });
     }
 
+    const ringcentralUsername = callLog.direction === 'Inbound' ? callLog?.to?.name : callLog?.from?.name;  
+    if (ringcentralUsername && (userSettings?.addRingCentralUserName?.value ?? false)) {
+        body = upsertRingCentralUserName({ body, userName: ringcentralUsername, logFormat });
+    }       
+
+    const ringcentralNumber = callLog.direction === 'Inbound' ? callLog?.to?.phoneNumber : callLog?.from?.phoneNumber;
+    if (ringcentralNumber && (userSettings?.addRingCentralNumber?.value ?? false)) {
+        const ringcentralExtensionNumber = callLog.direction === 'Inbound' ? callLog?.from?.extensionNumber : callLog?.to?.extensionNumber;
+        body = upsertRingCentralNumberAndExtension({ body, number: ringcentralNumber, extension: ringcentralExtensionNumber ?? '', logFormat });
+    }
+
     if (subject && (userSettings?.addCallLogSubject?.value ?? true)) {
         body = upsertCallSubject({ body, subject, logFormat });
     }
@@ -165,6 +176,57 @@ function upsertCallSessionId({ body, id, logFormat }) {
             return body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
         }
         return body + `- Session Id: ${id}\n`;
+    }
+}
+
+function upsertRingCentralUserName({ body, userName, logFormat }) {
+    if (!userName) return body;
+
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        const userNameRegex = /(?:<li>)?<b>RingCentral user name<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+        } else {
+            return body + `<li><b>RingCentral user name</b>: ${userName}</li>`;
+        }
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const userNameRegex = /\*\*RingCentral user name\*\*: [^\n]*\n*/i;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+        } else {
+            return body + `**RingCentral user name**: ${userName}\n`;
+        }
+    } else {
+        const userNameRegex = /- RingCentral user name: [^\n]*\n*/;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+        } else {
+            return body + `- RingCentral user name: ${userName}\n`;
+        }
+    }
+}
+
+function upsertRingCentralNumberAndExtension({ body, number, extension, logFormat }) {
+    if (!number && !extension) return body;
+
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        const numberAndExtensionRegex = /(?:<li>)?<b>RingCentral number and extension<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`);
+        }
+        return body + `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`;
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const numberAndExtensionRegex = /\*\*RingCentral number and extension\*\*: [^\n]*\n*/i;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `**RingCentral number and extension**: ${number} ${extension}\n`);
+        }
+        return body + `**RingCentral number and extension**: ${number} ${extension}\n`;
+    } else {
+        const numberAndExtensionRegex = /- RingCentral number and extension: [^\n]*\n*/;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `- RingCentral number and extension: ${number} ${extension}\n`);
+        }
+        return body + `- RingCentral number and extension: ${number} ${extension}\n`;
     }
 }
 
@@ -476,6 +538,8 @@ module.exports = {
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,
+    upsertRingCentralUserName,
+    upsertRingCentralNumberAndExtension,
     upsertCallSubject,
     upsertContactPhoneNumber,
     upsertCallDateTime,

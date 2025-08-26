@@ -336,7 +336,10 @@ async function updateCallLog({ platform, userId, incomingData, isFromSSCL }) {
                         sessionId: existingCallLog.sessionId,
                         startTime: incomingData.startTime,
                         duration: incomingData.duration,
-                        result: incomingData.result
+                        result: incomingData.result,
+                        direction: incomingData.direction,
+                        from: incomingData.from,
+                        to: incomingData.to
                     },
                     contactInfo: null, // Not needed for updates
                     user,
