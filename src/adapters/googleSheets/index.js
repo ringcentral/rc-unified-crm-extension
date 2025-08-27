@@ -29,7 +29,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
     return {
         successful: true,
         platformUserInfo: {
-            id: data.sub,
+            id: `${data.sub.toString()}-googleSheets`,
             name: data.name,
             email: data.email,
             platformAdditionalInfo: {
@@ -70,7 +70,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     try {
         const contactSheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";

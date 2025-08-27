@@ -26,7 +26,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         });
         additionalInfo['userResponse'] = authResponse.data.authenticated_user;
         delete additionalInfo.password;
-        const id = additionalInfo.username;
+        const id = `${additionalInfo.username}-redtail`;
         const name = additionalInfo.username;
         const timezoneName = '';
         return {
@@ -83,7 +83,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, phoneNumber }) {
+async function findContact({ user, phoneNumber, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     const matchedContactInfo = [];
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     phoneNumber = phoneNumber.replace(' ', '+')
@@ -318,7 +324,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const userName = user.id;
+    const userName = user.id.split('-')[0];
     const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
     let subject = '';
     let description = '';
@@ -393,7 +399,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingLogId = existingMessageLog.thirdPartyLogId;
-    const userName = user.id;
+    const userName = user.id.split('-')[0];
     const getLogRes = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
         {

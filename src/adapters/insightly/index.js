@@ -22,7 +22,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         });;
         // Insightly timezone = server location + non-standard tz area id (eg.'Central Standard Time')
         // We use UTC here for now
-        const id = userInfoResponse.data.USER_ID.toString();
+        const id = `${userInfoResponse.data.USER_ID.toString()}-insightly`;
         const name = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
         let timezoneOffset = 0;
         const timezoneName = userInfoResponse.data.TIMEZONE_ID;
@@ -86,7 +86,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     const numberToQueryArray = [];
     if (overridingFormat === '') {
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));

@@ -61,6 +61,17 @@ async function composeCallLog(params) {
         body = upsertCallSessionId({ body, id: callLog.sessionId, logFormat });
     }
 
+    const ringcentralUsername = callLog.direction === 'Inbound' ? callLog?.to?.name : callLog?.from?.name;  
+    if (ringcentralUsername && (userSettings?.addRingCentralUserName?.value ?? false)) {
+        body = upsertRingCentralUserName({ body, userName: ringcentralUsername, logFormat });
+    }       
+
+    const ringcentralNumber = callLog.direction === 'Inbound' ? callLog?.to?.phoneNumber : callLog?.from?.phoneNumber;
+    if (ringcentralNumber && (userSettings?.addRingCentralNumber?.value ?? false)) {
+        const ringcentralExtensionNumber = callLog.direction === 'Inbound' ? callLog?.from?.extensionNumber : callLog?.to?.extensionNumber;
+        body = upsertRingCentralNumberAndExtension({ body, number: ringcentralNumber, extension: ringcentralExtensionNumber ?? '', logFormat });
+    }
+
     if (subject && (userSettings?.addCallLogSubject?.value ?? true)) {
         body = upsertCallSubject({ body, subject, logFormat });
     }
@@ -79,6 +90,7 @@ async function composeCallLog(params) {
             body,
             startTime: resolvedStartTime,
             timezoneOffset,
+            logDateFormat: userSettings?.logDateFormat?.value ?? 'YYYY-MM-DD hh:mm:ss A',
             logFormat
         });
     }
@@ -167,6 +179,57 @@ function upsertCallSessionId({ body, id, logFormat }) {
     }
 }
 
+function upsertRingCentralUserName({ body, userName, logFormat }) {
+    if (!userName) return body;
+
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        const userNameRegex = /(?:<li>)?<b>RingCentral user name<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+        } else {
+            return body + `<li><b>RingCentral user name</b>: ${userName}</li>`;
+        }
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const userNameRegex = /\*\*RingCentral user name\*\*: [^\n]*\n*/i;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+        } else {
+            return body + `**RingCentral user name**: ${userName}\n`;
+        }
+    } else {
+        const userNameRegex = /- RingCentral user name: [^\n]*\n*/;
+        if (userNameRegex.test(body)) {
+            return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+        } else {
+            return body + `- RingCentral user name: ${userName}\n`;
+        }
+    }
+}
+
+function upsertRingCentralNumberAndExtension({ body, number, extension, logFormat }) {
+    if (!number && !extension) return body;
+
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        const numberAndExtensionRegex = /(?:<li>)?<b>RingCentral number and extension<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`);
+        }
+        return body + `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`;
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const numberAndExtensionRegex = /\*\*RingCentral number and extension\*\*: [^\n]*\n*/i;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `**RingCentral number and extension**: ${number} ${extension}\n`);
+        }
+        return body + `**RingCentral number and extension**: ${number} ${extension}\n`;
+    } else {
+        const numberAndExtensionRegex = /- RingCentral number and extension: [^\n]*\n*/;
+        if (numberAndExtensionRegex.test(body)) {
+            return body.replace(numberAndExtensionRegex, `- RingCentral number and extension: ${number} ${extension}\n`);
+        }
+        return body + `- RingCentral number and extension: ${number} ${extension}\n`;
+    }
+}
+
 function upsertCallSubject({ body, subject, logFormat }) {
     if (!subject) return body;
 
@@ -228,7 +291,7 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
     return result;
 }
 
-function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
+function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDateFormat }) {
     if (!startTime) return body;
 
     // Simple approach: convert to moment and apply timezone offset
@@ -243,7 +306,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat }) {
             momentTime = momentTime.utcOffset(Number(timezoneOffset));
         }
     }
-    const formattedDateTime = momentTime.format('YYYY-MM-DD hh:mm:ss A');
+    const formattedDateTime = momentTime.format(logDateFormat || 'YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
@@ -475,6 +538,8 @@ module.exports = {
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,
+    upsertRingCentralUserName,
+    upsertRingCentralNumberAndExtension,
     upsertCallSubject,
     upsertContactPhoneNumber,
     upsertCallDateTime,

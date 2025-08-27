@@ -24,7 +24,7 @@ async function getUserInfo({ authHeader, hostname }) {
                 'Authorization': authHeader
             }
         });
-        const id = userInfoResponse.data.data.id.toString();
+        const id = `${userInfoResponse.data.data.id.toString()}-pipedrive`;
         const name = userInfoResponse.data.data.name;
         const timezoneName = userInfoResponse.data.data.timezone_name;
         const timezoneOffset = userInfoResponse.data.data.timezone_offset;
@@ -107,7 +107,13 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     let extraDataTracking = {};
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
@@ -323,7 +329,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
     };
     const postBody = {
-        owner_id: Number(user.id),
+        owner_id: Number(user.id.split('-')[0]),
         subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
         duration: secondsToHoursMinutesSecondsInPipedriveFormat(callLog.duration),    // secs
         deal_id: dealId,
@@ -501,7 +507,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             break;
     }
     const postBody = {
-        owner_id: Number(user.id),
+        owner_id: Number(user.id.split('-')[0]),
         subject,
         deal_id: dealId,
         note,

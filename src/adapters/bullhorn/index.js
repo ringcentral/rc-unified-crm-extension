@@ -79,117 +79,122 @@ async function getOauthInfo({ tokenUrl }) {
 }
 
 async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
-    // use password to get code
-    console.log('authorize bullhorn by password')
-    const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
-    const codeResponse = await axios.get(authUrl, {
-        params: {
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            username: serverLoggingSettings.apiUsername,
-            password: serverLoggingSettings.apiPassword,
-            response_type: 'code',
-            action: 'Login',
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
-        },
-        maxRedirects: 0,
-        validateStatus: status => status === 302,
-    });
-    const redirectLocation = codeResponse.headers['location'];
-    if (!redirectLocation) {
-        throw new Error('Authorize failure, missing location');
-    }
-    const codeUrl = new URL(redirectLocation);
-    const code = codeUrl.searchParams.get('code');
-    if (!code) {
-        throw new Error('Authorize failure, missing code');
-    }
-    const overridingOAuthOption = {
-        headers: {
-            Authorization: ''
-        },
-        query: {
-            grant_type: 'authorization_code',
-            code,
-            client_id: process.env.BULLHORN_CLIENT_ID,
-            client_secret: process.env.BULLHORN_CLIENT_SECRET,
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+    try {
+        // use password to get code
+        console.log('authorize bullhorn by password')
+        const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
+        const codeResponse = await axios.get(authUrl, {
+            params: {
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                username: serverLoggingSettings.apiUsername,
+                password: serverLoggingSettings.apiPassword,
+                response_type: 'code',
+                action: 'Login',
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            },
+            maxRedirects: 0,
+            validateStatus: status => status === 302,
+        });
+        const redirectLocation = codeResponse.headers['location'];
+        if (!redirectLocation) {
+            throw new Error('Authorize failure, missing location');
         }
-    };
-    const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
-    console.log('authorize bullhorn user by password successfully.')
-    return {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: expires,
-    };
+        const codeUrl = new URL(redirectLocation);
+        const code = codeUrl.searchParams.get('code');
+        if (!code) {
+            throw new Error('Authorize failure, missing code');
+        }
+        const overridingOAuthOption = {
+            headers: {
+                Authorization: ''
+            },
+            query: {
+                grant_type: 'authorization_code',
+                code,
+                client_id: process.env.BULLHORN_CLIENT_ID,
+                client_secret: process.env.BULLHORN_CLIENT_SECRET,
+                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            }
+        };
+        const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
+        console.log('authorize bullhorn user by password successfully.')
+        return {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_in: expires,
+        };
+    }
+    catch (e) {
+        console.error('Bullhorn password authorize failed');
+        return null;
+    }
 }
 
 async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     let newLock;
     try {
-        if (process.env.USE_TOKEN_REFRESH_LOCK === 'true') {
-            // Try to atomically create lock only if it doesn't exist
-            try {
-                newLock = await Lock.create(
-                    {
-                        userId: user.id,
-                        ttl: dateNow.getTime() + 1000 * 30
-                    },
-                    {
-                        overwrite: false
-                    }
-                );
-            } catch (e) {
-                // If creation failed due to condition, a lock exists
-                if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                    let lock = await Lock.get({ userId: user.id });
-                    if (!!lock?.ttl && lock.ttl < dateNow.getTime()) {
-                        // Try to delete expired lock and create a new one atomically
-                        try {
-                            console.log('Bullhorn lock expired.')
-                            await lock.delete();
-                            newLock = await Lock.create(
-                                {
-                                    userId: user.id,
-                                    ttl: dateNow.getTime() + 1000 * 30
-                                },
-                                {
-                                    overwrite: false
-                                }
-                            );
-                        } catch (e2) {
-                            if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                                // Another process created a lock between our delete and create
-                                lock = await Lock.get({ userId: user.id });
-                            } else {
-                                throw e2;
-                            }
-                        }
-                    }
-
-                    if (lock && !newLock) {
-                        let processTime = 0;
-                        let delay = 500; // Start with 500ms
-                        const maxDelay = 8000; // Cap at 8 seconds
-                        while (!!lock && processTime < tokenLockTimeout) {
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                            processTime += delay / 1000; // Convert to seconds for comparison
-                            delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
-                            lock = await Lock.get({ userId: user.id });
-                        }
-                        // Timeout -> let users try another time
-                        if (processTime >= tokenLockTimeout) {
-                            throw new Error('Bullhorn Token lock timeout');
-                        }
-                        user = await UserModel.findByPk(user.id);
-                        console.log('Bullhron locked. bypass')
-                        return user;
-                    }
-                } else {
-                    throw e;
+        // Try to atomically create lock only if it doesn't exist
+        try {
+            newLock = await Lock.create(
+                {
+                    userId: user.id,
+                    ttl: dateNow.unix() + 30
+                },
+                {
+                    overwrite: false
                 }
+            );
+        } catch (e) {
+            // If creation failed due to condition, a lock exists
+            if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                let lock = await Lock.get({ userId: user.id });
+                if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
+                    // Try to delete expired lock and create a new one atomically
+                    try {
+                        console.log('Bullhorn lock expired.')
+                        await lock.delete();
+                        newLock = await Lock.create(
+                            {
+                                userId: user.id,
+                                ttl: dateNow.unix() + 30
+                            },
+                            {
+                                overwrite: false
+                            }
+                        );
+                    } catch (e2) {
+                        if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                            // Another process created a lock between our delete and create
+                            lock = await Lock.get({ userId: user.id });
+                        } else {
+                            throw e2;
+                        }
+                    }
+                }
+
+                if (lock && !newLock) {
+                    let processTime = 0;
+                    let delay = 500; // Start with 500ms
+                    const maxDelay = 8000; // Cap at 8 seconds
+                    while (!!lock && processTime < tokenLockTimeout) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        processTime += delay / 1000; // Convert to seconds for comparison
+                        delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
+                        lock = await Lock.get({ userId: user.id });
+                    }
+                    // Timeout -> let users try another time
+                    if (processTime >= tokenLockTimeout) {
+                        throw new Error('Bullhorn Token lock timeout');
+                    }
+                    user = await UserModel.findByPk(user.id);
+                    console.log('Bullhron locked. bypass')
+                    return user;
+                }
+            } else {
+                throw e;
             }
         }
+        const startRefreshTime = moment();
         console.log('Bullhorn token refreshing...')
         let authData;
         try {
@@ -218,9 +223,13 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
         user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
         console.log('Bullhorn token refreshing finished')
         if (newLock) {
+            const deletionStartTime = moment();
             await newLock.delete();
-            console.log('Bullhorn lock deleted')
+            const deletionEndTime = moment();
+            console.log(`Bullhorn lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
         }
+        const endRefreshTime = moment();
+        console.log(`Bullhorn token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
     }
     catch (e) {
         if (newLock) {
@@ -236,7 +245,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
     if (!user || !user.accessToken || !user.refreshToken) {
         return user;
     }
-    const dateNow = new Date();
+    const dateNow = moment();
     const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     try {
         const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
@@ -245,7 +254,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             },
         });
         // Session expired
-        if (new Date(pingResponse.data.sessionExpires - expiryBuffer) < new Date()) {
+        if (moment(pingResponse.data.sessionExpires - expiryBuffer).isBefore(dateNow)) {
             user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
         }
         // Session not expired
@@ -358,7 +367,24 @@ async function getServerLoggingSettings({ user }) {
     };
 }
 
-async function updateServerLoggingSettings({ user, additionalFieldValues }) {
+async function updateServerLoggingSettings({ user, additionalFieldValues, oauthApp }) {
+    if (!additionalFieldValues.apiUsername || !additionalFieldValues.apiPassword) {
+        await user.update({
+            platformAdditionalInfo: {
+                ...user.platformAdditionalInfo,
+                encodedApiUsername: '',
+                encodedApiPassword: ''
+            }
+        });
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Server logging settings cleared',
+                ttl: 5000
+            },
+        };
+    }
     const username = additionalFieldValues.apiUsername;
     const password = additionalFieldValues.apiPassword;
     user.platformAdditionalInfo = {
@@ -366,7 +392,18 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
         encodedApiUsername: username ? encode(username) : '',
         encodedApiPassword: password ? encode(password) : ''
     }
-    await user.save();
+    const authData = await bullhornPasswordAuthorize(user, oauthApp, { apiUsername: username, apiPassword: password });
+    if (!authData) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Server logging settings update failed',
+                ttl: 5000
+            },
+        };
+    }
+    await overrideSessionWithAuthInfo({ user, authData });
     return {
         successful: true,
         returnMessage: {
@@ -377,7 +414,49 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     };
 }
 
-async function findContact({ user, phoneNumber }) {
+async function postSaveUserInfo({ userInfo, oauthApp }) {
+    const user = await UserModel.findByPk(userInfo.id);
+    if (user.platformAdditionalInfo?.encodedApiUsername && user.platformAdditionalInfo?.encodedApiPassword) {
+        try {
+            const authData = await bullhornPasswordAuthorize(
+                user,
+                oauthApp,
+                { apiUsername: decoded(user.platformAdditionalInfo.encodedApiUsername), apiPassword: decoded(user.platformAdditionalInfo.encodedApiPassword) }
+            );
+            await overrideSessionWithAuthInfo({ user, authData });
+        }
+        catch (e) {
+            console.error('Bullhorn password authorize failed');
+        }
+    }
+    return userInfo;
+}
+
+async function overrideSessionWithAuthInfo({ user, authData }) {
+    const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = authData;
+    user.accessToken = accessToken;
+    user.refreshToken = refreshToken;
+    const userLoginResponse = await axios.post(`${user.platformAdditionalInfo.loginUrl}/login?version=2.0&access_token=${user.accessToken}`);
+    const { BhRestToken, restUrl } = userLoginResponse.data;
+    let updatedPlatformAdditionalInfo = user.platformAdditionalInfo;
+    updatedPlatformAdditionalInfo.bhRestToken = BhRestToken;
+    updatedPlatformAdditionalInfo.restUrl = restUrl;
+    // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
+    user.platformAdditionalInfo = {};
+    user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
+    user.tokenExpiry = expires;
+    console.log('Bullhorn session overridden with auth info')
+    await user.save();
+    return user;
+}
+
+async function findContact({ user, phoneNumber, isExtension }) {
+    if (isExtension === 'true') {
+        return {
+            successful: false,
+            matchedContactInfo: []
+        }
+    }
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
@@ -554,6 +633,9 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                     }
                 });
         }
+        else {
+            throw e;
+        }
         extraDataTracking['statusCode'] = e.response.status;
     }
     const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
@@ -724,6 +806,9 @@ async function findContactWithName({ user, authHeader, name }) {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
@@ -967,6 +1052,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             );
         }
+        else {
+            throw e;
+        }
     }
     return {
         logId: addLogRes.data.changedEntityId,
@@ -979,7 +1067,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, isFromSSCL }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1013,6 +1101,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                         }
                     });
             }
+            else {
+                throw e;
+            }
             extraDataTracking['statusCode'] = e.response.status;
         }
     }
@@ -1026,9 +1117,10 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     ) {
         assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
     }
+
+
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
-        comments: composedLogDetails,
         dateAdded: startTime,
         minutesSpent: duration / 60
     }
@@ -1036,6 +1128,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.commentingPerson = {
             id: assigneeId
         }
+    }
+    // If user has input agent notes, SSCL won't update it
+    const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
+    if (!isFromSSCL || ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
+        postBody.comments = composedLogDetails;
     }
     let patchLogRes;
     try {
@@ -1064,6 +1161,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
         extraDataTracking['statusCode'] = e.response.status;
     }
@@ -1124,6 +1224,9 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
                 }
             }
         }
+        else {
+            throw e;
+        }
     }
     return {
         logId: existingBullhornLogId,
@@ -1152,6 +1255,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
     }
     const userData = userInfoResponse.data.data[0];
@@ -1244,6 +1350,9 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
+        }
+        else {
+            throw e;
         }
     }
     const userData = userInfoResponse.data.data[0];
@@ -1344,7 +1453,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
                     }
                 });
-            extraDataTracking['statusCode'] = e.response.status;
+        }
+        else {
+            throw e;
         }
     }
     const logBody = getLogRes.data.data.comments;
@@ -1409,3 +1520,4 @@ exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
+exports.postSaveUserInfo = postSaveUserInfo;

@@ -7,8 +7,10 @@ const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
 const adapterRegistry = require('../adapter/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
+const { NoteCache } = require('../models/dynamo/noteCacheSchema');
+const moment = require('moment');
 
-async function createCallLog({ platform, userId, incomingData }) {
+async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -39,7 +41,13 @@ async function createCallLog({ platform, userId, incomingData }) {
         const platformModule = adapterRegistry.getAdapter(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
-        const note = incomingData.note;
+        let note = incomingData.note;
+        if (isFromSSCL) {
+            const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
+            if (noteCache) {
+                note = noteCache.note;
+            }
+        }
         const aiNote = incomingData.aiNote;
         const transcript = incomingData.transcript;
         const authType = platformModule.getAuthType();
@@ -104,7 +112,8 @@ async function createCallLog({ platform, userId, incomingData }) {
             additionalSubmission,
             aiNote,
             transcript,
-            composedLogDetails
+            composedLogDetails,
+            isFromSSCL
         });
         if (logId) {
             await CallLogModel.create({
@@ -279,7 +288,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData }) {
+async function updateCallLog({ platform, userId, incomingData, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -335,7 +344,10 @@ async function updateCallLog({ platform, userId, incomingData }) {
                         sessionId: existingCallLog.sessionId,
                         startTime: incomingData.startTime,
                         duration: incomingData.duration,
-                        result: incomingData.result
+                        result: incomingData.result,
+                        direction: incomingData.direction,
+                        from: incomingData.from,
+                        to: incomingData.to
                     },
                     contactInfo: null, // Not needed for updates
                     user,
@@ -365,7 +377,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 transcript: incomingData.transcript,
                 additionalSubmission: incomingData.additionalSubmission,
                 composedLogDetails,
-                existingCallLogDetails  // Pass the fetched details to avoid duplicate API calls
+                existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls
+                isFromSSCL
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
@@ -581,7 +594,19 @@ async function createMessageLog({ platform, userId, incomingData }) {
     }
 }
 
+async function saveNoteCache({ sessionId, note }) {
+    try {
+        const now = moment();
+        const noteCache = await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
+        return { successful: true, returnMessage: 'Note cache saved' };
+    } catch (e) {
+        console.error(`Error saving note cache: ${e.stack}`);
+        return { successful: false, returnMessage: 'Error saving note cache' };
+    }
+}
+
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
 exports.getCallLog = getCallLog;
+exports.saveNoteCache = saveNoteCache;

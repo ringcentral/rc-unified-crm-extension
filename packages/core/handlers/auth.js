@@ -29,7 +29,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const authHeader = `Bearer ${accessToken}`;
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
     if (successful) {
-        const userInfo = await saveUserInfo({
+        let userInfo = await saveUserInfo({
             platformUserInfo,
             platform,
             tokenUrl,
@@ -40,6 +40,9 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             refreshToken,
             tokenExpiry: expires
         });
+        if (platformModule.postSaveUserInfo) {
+            userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
+        }
         return {
             userInfo,
             returnMessage
@@ -58,12 +61,15 @@ async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo, apiKey });
     if (successful) {
-        const userInfo = await saveUserInfo({
+        let userInfo = await saveUserInfo({
             platformUserInfo,
             platform,
             hostname,
             accessToken: platformUserInfo.overridingApiKey ?? apiKey
         });
+        if (platformModule.postSaveUserInfo) {
+            userInfo = await platformModule.postSaveUserInfo({ userInfo });
+        }
         return {
             userInfo,
             returnMessage
@@ -101,23 +107,65 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
         );
     }
     else {
-        await UserModel.create({
-            id,
-            hostname,
-            timezoneName,
-            timezoneOffset,
-            platform,
-            accessToken,
-            refreshToken,
-            tokenExpiry,
-            platformAdditionalInfo,
-            userSettings: {}
-        });
+        // TEMP: replace user with old ID
+        if (id.endsWith(`-${platform}`)) {
+            const oldID = id.split('-');
+            const userWithOldID = await UserModel.findByPk(oldID[0]);
+            if (userWithOldID) {
+                await UserModel.create({
+                    id,
+                    hostname,
+                    timezoneName,
+                    timezoneOffset,
+                    platform,
+                    accessToken,
+                    refreshToken,
+                    tokenExpiry,
+                    platformAdditionalInfo,
+                    userSettings: userWithOldID.userSettings
+                });
+                await userWithOldID.destroy();
+            }
+            else {
+                await UserModel.create({
+                    id,
+                    hostname,
+                    timezoneName,
+                    timezoneOffset,
+                    platform,
+                    accessToken,
+                    refreshToken,
+                    tokenExpiry,
+                    platformAdditionalInfo,
+                    userSettings: {}
+                });
+            }
+        }
+        else {
+            await UserModel.create({
+                id,
+                hostname,
+                timezoneName,
+                timezoneOffset,
+                platform,
+                accessToken,
+                refreshToken,
+                tokenExpiry,
+                platformAdditionalInfo,
+                userSettings: {}
+            });
+        }
     }
     return {
         id,
         name
     };
+}
+
+async function getLicenseStatus({ userId, platform }) {
+    const platformModule = adapterRegistry.getAdapter(platform);
+    const licenseStatus = await platformModule.getLicenseStatus({ userId });
+    return licenseStatus;
 }
 
 // Just for oauth ATM
@@ -173,4 +221,5 @@ async function onRingcentralOAuthCallback({ code, rcAccountId }) {
 exports.onOAuthCallback = onOAuthCallback;
 exports.onApiKeyLogin = onApiKeyLogin;
 exports.authValidation = authValidation;
+exports.getLicenseStatus = getLicenseStatus;
 exports.onRingcentralOAuthCallback = onRingcentralOAuthCallback;
