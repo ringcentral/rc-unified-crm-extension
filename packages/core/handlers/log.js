@@ -8,6 +8,7 @@ const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
 const adapterRegistry = require('../adapter/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
+const moment = require('moment');
 
 async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
     try {
@@ -592,7 +593,8 @@ async function createMessageLog({ platform, userId, incomingData }) {
 
 async function saveNoteCache({ sessionId, note }) {
     try {
-        const noteCache = await NoteCache.create({ sessionId, note, ttl: 60 });
+        const now = moment();
+        const noteCache = await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
         return { successful: true, returnMessage: 'Note cache saved' };
     } catch (e) {
         console.error(`Error saving note cache: ${e.stack}`);
