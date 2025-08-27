@@ -893,6 +893,45 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.post('/callLog/cacheNote', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let extraData = {};
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    res.status(400).send('Please go to Settings and authorize CRM platform');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ sessionId: req.body.sessionId, note: req.body.note });
+                res.status(200).send({ successful, returnMessage });
+                success = true;
+                if (extraDataTracking) {
+                    extraData = extraDataTracking;
+                }
+            }
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            extraData.statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Save note cache',
+            interfaceName: 'saveNoteCache',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+        });
+    })
     router.get('/callLog', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;

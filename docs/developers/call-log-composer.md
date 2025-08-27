@@ -143,6 +143,8 @@ The CallLogComposer also exports individual upsert functions for granular contro
 
 - `upsertCallAgentNote({ body, note, logFormat })`
 - `upsertCallSessionId({ body, id, logFormat })`
+- `upsertRingCentralUserName({ body, userName, logFormat })`
+- `upsertRingCentralNumber({ body, number, extension, logFormat })`
 - `upsertCallSubject({ body, subject, logFormat })`
 - `upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat })`
 - `upsertCallDateTime({ body, startTime, timezoneOffset, logFormat })`
