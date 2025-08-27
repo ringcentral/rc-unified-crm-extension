@@ -20,7 +20,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Pipedrive",
@@ -176,7 +175,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Insightly",
@@ -395,7 +393,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Clio",
@@ -608,7 +605,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "auth": {
@@ -973,7 +969,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": true,
         "additionalFields": [
           {
@@ -1231,7 +1226,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "NetSuite",
@@ -1471,7 +1465,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Google Sheets (Beta)",
