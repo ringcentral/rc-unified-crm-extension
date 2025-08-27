@@ -7,6 +7,7 @@ const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
 const adapterRegistry = require('../adapter/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
+const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 
 async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
     try {
@@ -39,7 +40,13 @@ async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
         const platformModule = adapterRegistry.getAdapter(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
-        const note = incomingData.note;
+        let note = incomingData.note;
+        if (isFromSSCL) {
+            const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
+            if (noteCache) {
+                note = noteCache.note;
+            }
+        }
         const aiNote = incomingData.aiNote;
         const transcript = incomingData.transcript;
         const authType = platformModule.getAuthType();
@@ -583,7 +590,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
     }
 }
 
+async function saveNoteCache({ sessionId, note }) {
+    try {
+        const noteCache = await NoteCache.create({ sessionId, note, ttl: 60 });
+        return { successful: true, returnMessage: 'Note cache saved' };
+    } catch (e) {
+        console.error(`Error saving note cache: ${e.stack}`);
+        return { successful: false, returnMessage: 'Error saving note cache' };
+    }
+}
+
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
 exports.getCallLog = getCallLog;
+exports.saveNoteCache = saveNoteCache;
