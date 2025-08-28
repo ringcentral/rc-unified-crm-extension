@@ -132,7 +132,7 @@ nav:
       - 'CallLogComposer': developers/call-log-composer.md
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
-      - 'Welcome pages': developers/welcome-page.md
+#      - 'Welcome pages': developers/welcome-page.md
       - 'Returning errors': developers/errors.md
 #      - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
@@ -142,6 +142,7 @@ nav:
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
       - 'getCallLog': developers/interfaces/getCallLog.md
+      - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
       - 'findContact (by phone)': developers/interfaces/findContact.md
       - 'findContactWithName': developers/interfaces/findContactWithName.md
       - 'getOauthInfo': developers/interfaces/getOauthInfo.md
@@ -150,8 +151,7 @@ nav:
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
-      - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
-
+ 
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Build a CRM adapter': build.md
