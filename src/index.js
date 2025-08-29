@@ -159,19 +159,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 });
 
-// ========== Monthly Bullhorn CSV Report (runs on the 20th of each month) ==========
-
-async function scheduleBullhornMonthlyReport() {
-    if (process.env.ENABLE_BULLHORN_REPORT !== 'true') {
-        return;
-    }
-
-    await bullhorn.sendMonthlyCsvReportByEmail();
-
-}
-
-// Kick off scheduler
-scheduleBullhornMonthlyReport();
 
 exports.getServer = function getServer() {
     return app;

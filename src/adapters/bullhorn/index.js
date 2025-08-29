@@ -1605,6 +1605,7 @@ async function sendMonthlyCsvReportByEmail() {
     const requestBody = {
         to: process.env.BULLHORN_REPORT_MAIL_TO,
         from: process.env.BULLHORN_REPORT_MAIL_FROM,
+        bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
         subject: `Bullhorn Monthly Report ${dateString}`,
         body: "Please find the attached Bullhorn monthly report.",
         identifiers: {
