@@ -161,40 +161,13 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 
 // ========== Monthly Bullhorn CSV Report (runs on the 20th of each month) ==========
 
-function scheduleBullhornMonthlyReport() {
+async function scheduleBullhornMonthlyReport() {
     if (process.env.ENABLE_BULLHORN_REPORT !== 'true') {
         return;
     }
-    const MAX_TIMEOUT = 2147483647; // ~24.8 days
-    const scheduleAt = (nextRunMoment) => {
-        const now = moment.utc();
-        let delayMs = nextRunMoment.diff(now);
-        if (delayMs <= 0) {
-            delayMs = 1000;
-        }
-        if (delayMs > MAX_TIMEOUT) {
-            setTimeout(() => scheduleAt(nextRunMoment), MAX_TIMEOUT);
-            return;
-        }
-        setTimeout(async () => {
-            try {
-                await bullhorn.generateMonthlyCsvReport();
-            } catch (e) {
-                console.log('Bullhorn monthly report error', e?.message);
-            } finally {
-                scheduleNext();
-            }
-        }, delayMs);
-    };
-    const scheduleNext = () => {
-        const now = moment.utc();
-        let next = now.clone().date(20).hour(2).minute(0).second(0).millisecond(0);
-        if (now.isAfter(next)) {
-            next = next.add(1, 'month');
-        }
-        scheduleAt(next);
-    };
-    scheduleNext();
+
+    await bullhorn.sendMonthlyCsvReportByEmail();
+
 }
 
 // Kick off scheduler
