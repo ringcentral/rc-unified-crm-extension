@@ -15,7 +15,6 @@ const pipedrive = require('./adapters/pipedrive');
 const redtail = require('./adapters/redtail');
 const testCRM = require('./adapters/testCRM');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
-const moment = require('moment');
 
 // Register adapters
 adapterRegistry.setDefaultManifest(require('./adapters/manifest.json'));
@@ -158,7 +157,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         res.status(500).send(e);
     }
 });
-
 
 exports.getServer = function getServer() {
     return app;
