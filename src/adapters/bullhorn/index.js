@@ -1661,6 +1661,12 @@ async function sendMonthlyCsvReportByEmail() {
     } catch (error) {
         console.error('Failed to send email:', error.response ? error.response.data : error.message);
     }
+    try {
+        fs.unlinkSync(filePath);
+        console.log(`File ${filePath} deleted successfully after sending email.`);
+    } catch (err) {
+        console.error(`Failed to delete file ${filePath}:`);
+    }
 }
 
 
