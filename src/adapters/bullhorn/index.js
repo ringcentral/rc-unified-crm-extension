@@ -1519,7 +1519,6 @@ async function fetchBullhornUserProfile({ user }) {
             { headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken } }
         );
         const data = resp?.data?.data?.[0] ?? {};
-        console.log(`Fetched user profile for Bullhorn user ${currentUser.id}:`, data);
         return { email: data.email || '', name: data.name || '' };
     } catch (e) {
         console.log({ message: 'Error fetching Bullhorn user profile:' });
