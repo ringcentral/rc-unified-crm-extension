@@ -8,14 +8,17 @@
   "platforms": {
     "pipedrive": {
       "environment": {
-        "type": "custom",
+        "type": "dynamic",
         "urlIdentifier": "*.pipedrive.com",
-        "instructions":[
+        "instructions": [
           "Login to your Pipedrive account",
           "Copy the whole url and paste it here"
         ]
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/pipedrive/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -165,14 +168,17 @@
     },
     "insightly": {
       "environment": {
-        "type": "custom",
+        "type": "dynamic",
         "urlIdentifier": "*.insightly.com",
         "instructions": [
           "Login to your Insightly account",
           "Copy the whole url and paste it here"
         ]
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Insightly_logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/insightly/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -386,7 +392,7 @@
     "clio": {
       "environment": {
         "type": "regional",
-        "regionOptions": [
+        "regions": [
           {
             "const": "https://app.clio.com",
             "name": "US"
@@ -405,7 +411,10 @@
           }
         ]
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Clio_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/clio/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -615,7 +624,10 @@
         "type": "fixed",
         "url": "https://crm.redtailtechnology.com/"
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/redtail/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -978,7 +990,10 @@
         "type": "fixed",
         "url": "https://app.bullhornstaffing.com"
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1231,14 +1246,17 @@
     },
     "netsuite": {
       "environment": {
-        "type": "custom",
+        "type": "dynamic",
         "urlIdentifier": "*.app.netsuite.com/app*",
         "instructions": [
           "Login to your NetSuite account",
           "Copy the whole url and paste it here"
         ]
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Netsuite_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/netsuite/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1475,7 +1493,10 @@
         "type": "fixed",
         "url": "https://docs.google.com/spreadsheets"
       },
-      "developer": "RingCentral Labs",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Google_Sheets_Logo_256px.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1591,7 +1612,10 @@
         "type": "fixed",
         "url": "https://app.gohighlevel.com"
       },
-      "developer": "Loyally",
+      "developer": {
+        "name": "Loyally",
+        "url": "https://loyally.eu"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/GoHighLevel_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1658,14 +1682,17 @@
     },
     "freshdesk": {
       "environment": {
-        "type": "custom",
+        "type": "dynamic",
         "urlIdentifier": "*.freshdesk.com",
         "instructions": [
           "Login to your Freshdesk account",
           "Copy the whole url and paste it here"
         ]
       },
-      "developer": "Loyally",
+      "developer": {
+        "name": "Loyally",
+        "url": "https://loyally.eu"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Freshdesk_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
