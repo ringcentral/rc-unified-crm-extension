@@ -94,6 +94,7 @@ nav:
     - 'AI Assistant': users/ai.md
     - 'Sending SMS': users/sms.md
     - 'Presence and status': users/presence.md
+    - 'User Report': users/user-report.md
   - 'Administration':
     - 'Becoming an admin': users/admin.md
     - 'Managed settings': users/managed-settings.md
@@ -111,6 +112,7 @@ nav:
     - 'Phone number formats': users/phone-number-formats.md
     - 'Preferred device': users/preferred-device.md
     - 'Region': users/region.md
+    - 'Appearance setting': users/appearance-setting.md
     - Advanced options:
       - 'Developer options': users/developer-options.md
       - 'Browser options': users/extension-options.md
