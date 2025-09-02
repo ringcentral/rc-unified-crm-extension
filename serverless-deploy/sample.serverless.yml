@@ -41,12 +41,6 @@ functions:
           cors: false
   dbAccessor:
     handler: dbAccessor.app
-  bullhornMonthlyReport:
-    handler: lambda.bullhornMonthlyReport
-    events:
-      - schedule:
-          rate: cron(0 1 20 * ? *)
-          enabled: true
 
 resources:
   Resources:
