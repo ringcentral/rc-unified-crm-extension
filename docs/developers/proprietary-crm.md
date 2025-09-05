@@ -1,12 +1,12 @@
-# Integrating with a proprietary CRM
+# Is your CRM App Connect-ready? 
 
-The App Connect framework from RingCentral can be used to build an integration with any CRM, even a home-grown or proprietary one. If you are seeking to build an adapter for a home-grown CRM, here is a check list to see if what you have built is compatible with this framework. 
+The App Connect framework from RingCentral can be used to build an integration with any CRM, even a home-grown or proprietary one. If you are seeking to build an adapter for a commercial or home-grown CRM, here is a check list to see if the system you are integrating with is compatible with this framework. 
 
-## Compatibility checklist for proprietary CRMs
+## Compatibility checklist for CRMs
 
 **:fontawesome-solid-clipboard-check: OAuth 2.0 support**
 
-Ideally, your proprietary CRM supports the [OAuth 2.0 authorization protocol](https://oauth.net/2/). From the perspective of building the adapter, this will by far be the easiest most turn-key way to connect the App Connect client application to your CRM. 
+Ideally, your CRM supports the [OAuth 2.0 authorization protocol](https://oauth.net/2/). From the perspective of building the adapter, this will by far be the easiest most turn-key way to connect the App Connect client application to your CRM. 
 
 Technically, the framework can be made to work with alternative authentication mechanisms, like API keys and other tokenized methods. However, there is no guarantee such mechanisms will work out of the box. 
 
