@@ -1,6 +1,9 @@
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
+const fs = require('fs');
+const path = require('path');
+const oauth = require('@app-connect/core/lib/oauth');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
@@ -1485,6 +1488,204 @@ function isAuthError(statusCode) {
     return statusCode >= 400 && statusCode < 500;
 }
 
+// ===================== Monthly CSV Report Helpers =====================
+async function fetchBullhornUserProfile({ user }) {
+    try {
+        const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+        let currentUser = user;
+        if (checkAndRefreshAccessToken) {
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser);
+        }
+        const masterUserId = currentUser.id.replace('-bullhorn', '');
+        const resp = await axios.get(
+            `${currentUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name,email&where=masterUserID=${masterUserId}`,
+            { headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken } }
+        );
+        const data = resp?.data?.data?.[0] ?? {};
+        return { email: data.email || '', name: data.name || '' };
+    } catch (e) {
+        console.log({ message: 'Error fetching Bullhorn user profile:' });
+        return { email: '', name: '' };
+    }
+}
+
+function toCsv(rows) {
+    const escape = (val) => {
+        const s = (val ?? '').toString();
+        if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    };
+    return rows.map(r => r.map(escape).join(',')).join('\n');
+}
+
+async function generateMonthlyCsvReport() {
+    const { UserModel } = require('@app-connect/core/models/userModel');
+    const { Op } = require('sequelize');
+    const users = await UserModel.findAll({
+        where: {
+            platform: 'bullhorn',
+            accessToken: {
+                [Op.and]: [
+                    { [Op.not]: null },
+                    { [Op.ne]: '' }
+                ]
+            }
+        }
+    });
+    // Only include users who have connected (i.e., have been updated) in the last month, up to the 20th of the current month.
+    // This ensures we only report active/connected customers.
+    const moment = require('moment');
+    const path = require('path');
+    const fs = require('fs');
+
+    // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
+    const now = moment.utc();
+    const startOfPeriod = moment.utc(now).date(21).subtract(1, 'months').startOf('day');
+    const endOfPeriod = moment.utc(now).date(20).endOf('day');
+
+    // Filter users by updatedAt in the period, but do not modify the users variable itself
+    const filteredUsers = users.filter(user => {
+        if (!user.updatedAt) return false;
+        const updatedAt = moment.utc(user.updatedAt);
+        return updatedAt.isSameOrAfter(startOfPeriod) && updatedAt.isSameOrBefore(endOfPeriod);
+    });
+
+    // Use filteredUsers for the report instead of all users
+    const header = ['User id', 'User email', 'Bullhorn id', 'User name'];
+    const rows = [header];
+    for (const user of filteredUsers) {
+        try {
+
+            const profile = await fetchBullhornUserProfile({ user });
+            const userId = user.id || '';
+            const userEmail = profile.email || '';
+            const bullhornId = user.platformAdditionalInfo?.id || '';
+            const userName = profile.name || '';
+            rows.push([userId, userEmail, bullhornId, userName]);
+        } catch (e) {
+            console.error('Error fetching Bullhorn user profile:');
+        }
+    }
+    const csv = toCsv(rows);
+    const os = require('os');
+    const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+    const baseDir = isLambda ? os.tmpdir() : process.cwd();
+    const outDir = path.join(baseDir, 'reports');
+    if (!fs.existsSync(outDir)) {
+        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { /* ignore */ }
+    }
+    const filePath = path.join(outDir, `bullhorn_report_${moment.utc().format('YYYY-MM-20')}.csv`);
+    fs.writeFileSync(filePath, csv, 'utf8');
+    return { csv, filePath };
+}
+async function sendMonthlyCsvReportByEmail() {
+    try {
+        const report = await generateMonthlyCsvReport();
+        if (!report) {
+            console.error('Report generation failed. Skipping email.');
+            return;
+        }
+        const { csv, filePath } = report;
+        const axios = require('axios');
+        const fs = require('fs');
+        // Read the CSV file and encode it as base64
+        const bullhornReport = fs.readFileSync(filePath, { encoding: 'base64' });
+
+        // Concatenate current date in ddmmyyyy format to the file name
+        const currentDate = new Date();
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const year = String(currentDate.getFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const attachmentFileName = `BullhornReport_${dateString}.csv`;
+        // Prepare the request body
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_TO,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
+            subject: `Bullhorn Monthly Report ${dateString}`,
+            // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
+            body: (() => {
+                const now = new Date();
+                // Start at 21st of previous month
+                const startOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 21));
+                // End at 20th of current month
+                const endOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 20));
+                const formatDate = d => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
+                return `Please find the attachment for Connected Bullhorn users between ${formatDate(startOfPeriod)} and ${formatDate(endOfPeriod)}.`;
+            })(),
+            identifiers: {
+                id: process.env.BULLHORN_REPORT_MAIL_FROM
+            },
+            attachments: {
+                [attachmentFileName]: bullhornReport
+            }
+        };
+
+        // Send the email via Customer.io API
+        try {
+            const response = await axios.post(
+                'https://api.customer.io/v1/send/email',
+                requestBody,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                    }
+                }
+            );
+        } catch (error) {
+            console.error('Failed to send email:', error.response ? error.response.data : error.message);
+            await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
+        }
+        try {
+            fs.unlinkSync(filePath);
+            console.log(`File ${filePath} deleted successfully after sending email.`);
+        } catch (err) {
+            console.error(`Failed to delete file ${filePath}:`);
+        }
+    } catch (error) {
+        console.error('Failed to Generate Report and send email:');
+        await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
+    }
+}
+
+// Add fallback logic to send an error report email if sending the main report fails
+async function sendErrorReportEmail(error, contextInfo = '') {
+    try {
+        const now = new Date();
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const year = String(now.getUTCFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const subject = `Bullhorn Monthly Report FAILED ${dateString}`;
+        const body = `Bullhorn monthly report failed to send.\n\nError: ${error && error.stack ? error.stack : error}\n\nContext: ${contextInfo}`;
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_ERROR_TO || process.env.BULLHORN_REPORT_MAIL_FROM,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            subject,
+            body,
+            identifiers: {
+                id: process.env.BULLHORN_REPORT_MAIL_FROM
+            }
+        };
+        await axios.post(
+            'https://api.customer.io/v1/send/email',
+            requestBody,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                }
+            }
+        );
+    } catch (err) {
+        console.error('Failed to send error report email:');
+    }
+}
+
 exports.getAuthType = getAuthType;
 exports.authValidation = authValidation;
 exports.getOauthInfo = getOauthInfo;
@@ -1505,3 +1706,5 @@ exports.getUserList = getUserList;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
+exports.sendMonthlyCsvReportByEmail = sendMonthlyCsvReportByEmail;
+exports.generateMonthlyCsvReport = generateMonthlyCsvReport;

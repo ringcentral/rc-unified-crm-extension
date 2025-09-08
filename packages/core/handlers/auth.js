@@ -36,7 +36,8 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
             accessToken,
             refreshToken,
-            tokenExpiry: expires
+            tokenExpiry: expires,
+            rcAccountId: query.rcAccountId
         });
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
@@ -81,7 +82,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     }
 }
 
-async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry }) {
+async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId }) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
     const existingUser = await UserModel.findByPk(id);
@@ -97,6 +98,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                 accessToken,
                 refreshToken,
                 tokenExpiry,
+                rcAccountId,
                 platformAdditionalInfo: {
                     ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
                     ...platformAdditionalInfo,
@@ -119,6 +121,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                     accessToken,
                     refreshToken,
                     tokenExpiry,
+                    rcAccountId,
                     platformAdditionalInfo,
                     userSettings: userWithOldID.userSettings
                 });
@@ -134,6 +137,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                     accessToken,
                     refreshToken,
                     tokenExpiry,
+                    rcAccountId,
                     platformAdditionalInfo,
                     userSettings: {}
                 });
@@ -149,6 +153,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                 accessToken,
                 refreshToken,
                 tokenExpiry,
+                rcAccountId,
                 platformAdditionalInfo,
                 userSettings: {}
             });

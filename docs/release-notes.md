@@ -1,6 +1,13 @@
 # Release notes
 
+## 1.6.4:
+- New Add RingCentral user name and phone number in call details settings
+- Better: Server-side call logging can now upload agent notes from the Chrome extension immediately after the call
+- Better: More intuitive date time user setting format
+- Fix: Return error message if server-side call logging is already created
+
 ## 1.6.3:
+
 - New: Date time format in call details settings
 - Better: When doing server-side call logging, agent notes input from Chrome extension won't be overwritten by system
 - Better: When doing server-side call logging, agent notes input from Chrome extension will be auto uploaded
