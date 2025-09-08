@@ -1557,22 +1557,10 @@ async function generateMonthlyCsvReport() {
     const path = require('path');
     const fs = require('fs');
 
-    // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
-    const now = moment.utc();
-    const startOfPeriod = moment.utc(now).date(21).subtract(1, 'months').startOf('day');
-    const endOfPeriod = moment.utc(now).date(20).endOf('day');
-
-    // Filter users by updatedAt in the period, but do not modify the users variable itself
-    const filteredUsers = users.filter(user => {
-        if (!user.updatedAt) return false;
-        const updatedAt = moment.utc(user.updatedAt);
-        return updatedAt.isSameOrAfter(startOfPeriod) && updatedAt.isSameOrBefore(endOfPeriod);
-    });
-
     // Use filteredUsers for the report instead of all users
     const header = ['User id', 'User email', 'Bullhorn id', 'User name'];
     const rows = [header];
-    for (const user of filteredUsers) {
+    for (const user of users) {
         try {
 
             const profile = await fetchBullhornUserProfile({ user });
@@ -1617,24 +1605,28 @@ async function sendMonthlyCsvReportByEmail() {
         const year = String(currentDate.getFullYear());
         const dateString = `${day}/${month}/${year}`;
         const attachmentFileName = `BullhornReport_${dateString}.csv`;
+        // Build pretty subject: "Bullhorn/RingCentral monthly user report (Mon D, YYYY)"
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+        ];
+        const d = new Date();
+        const monthName = months[d.getMonth()];
+        const dayNum = d.getDate();
+        const yearNum = d.getFullYear();
+        const prettySubject = `Bullhorn/RingCentral monthly user report (${monthName} ${dayNum}, ${yearNum})`;
         // Prepare the request body
         const requestBody = {
             to: process.env.BULLHORN_REPORT_MAIL_TO,
             from: process.env.BULLHORN_REPORT_MAIL_FROM,
             bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
-            subject: `Bullhorn Monthly Report ${dateString}`,
-            // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
-            body: (() => {
-                const now = new Date();
-                // Start at 21st of previous month
-                const startOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 21));
-                // End at 20th of current month
-                const endOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 20));
-                const formatDate = d => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
-                return `Please find the attachment for Connected Bullhorn users between ${formatDate(startOfPeriod)} and ${formatDate(endOfPeriod)}.`;
-            })(),
+            reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
+            subject: prettySubject,
+            body: `<p>Please find attached to this email a report containing a list of all active RingCentral customers using the Bullhorn integration powered by App Connect.</p>
+<p>If you have questions, or need assistance, please reply directly to this email.</p>
+<p>Sincerely,<br/>RingCentral Labs</p>`,
             identifiers: {
-                id: process.env.BULLHORN_REPORT_MAIL_FROM
+                email: process.env.BULLHORN_REPORT_MAIL_FROM
             },
             attachments: {
                 [attachmentFileName]: bullhornReport
