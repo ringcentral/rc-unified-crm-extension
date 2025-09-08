@@ -391,8 +391,8 @@
     },
     "clio": {
       "environment": {
-        "type": "regional",
-        "regions": [
+        "type": "selectable",
+        "selections": [
           {
             "const": "https://app.clio.com",
             "name": "US"
