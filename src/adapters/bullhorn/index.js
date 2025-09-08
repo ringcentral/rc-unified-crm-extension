@@ -1560,17 +1560,47 @@ async function generateMonthlyCsvReport() {
     // Use filteredUsers for the report instead of all users
     const header = ['User id', 'User email', 'Bullhorn id', 'User name'];
     const rows = [header];
-    for (const user of users) {
-        try {
-
-            const profile = await fetchBullhornUserProfile({ user });
-            const userId = user.id || '';
-            const userEmail = profile.email || '';
-            const bullhornId = user.platformAdditionalInfo?.id || '';
-            const userName = profile.name || '';
-            rows.push([userId, userEmail, bullhornId, userName]);
-        } catch (e) {
-            console.error('Error fetching Bullhorn user profile:');
+    // Bounded parallelism to avoid Lambda timeout and rate limits
+    const boundedUsers = users;
+    const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
+    const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    console.log({
+        message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
+    }
+    );
+    for (let startIndex = 0; startIndex < boundedUsers.length; startIndex += batchConcurrency) {
+        const currentBatch = boundedUsers.slice(startIndex, startIndex + batchConcurrency);
+        const batchResults = await Promise.allSettled(
+            currentBatch.map(async (currentUser) => {
+                try {
+                    const profile = await fetchBullhornUserProfile({ user: currentUser });
+                    if (!profile?.email && !profile?.name) {
+                        console.log({
+                            message: 'Skipping user because email and name are not found',
+                            userId: currentUser.id
+                        });
+                        return null;
+                    }
+                    const userId = currentUser.id || '';
+                    const userEmail = profile.email;
+                    const bullhornId = currentUser.platformAdditionalInfo?.id || '';
+                    const userName = profile.name;
+                    return [userId, userEmail, bullhornId, userName];
+                } catch (error) {
+                    console.error('Error fetching Bullhorn user profile:');
+                    return null;
+                }
+            })
+        );
+        for (const result of batchResults) {
+            if (result.status === 'fulfilled' && result.value) {
+                rows.push(result.value);
+            }
+        }
+        // small breathing room between batches
+        if (startIndex + batchConcurrency < boundedUsers.length && batchDelayMs > 0) {
+            await delay(batchDelayMs);
         }
     }
     const csv = toCsv(rows);
