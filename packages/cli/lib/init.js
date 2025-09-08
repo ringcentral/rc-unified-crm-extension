@@ -74,6 +74,14 @@ async function downloadTemplate(projectName, options) {
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
     
+    // Update template name with projectName in app.js when registering the connector
+    const appJsPath = path.join(fullPath, 'src', 'app.js');
+    if (fs.existsSync(appJsPath) && projectName) {
+      const appJs = fs.readFileSync(appJsPath, 'utf8');
+      const updatedAppJs = appJs.replace('\'myCRM\'', `'${projectName}'`);
+      fs.writeFileSync(appJsPath, updatedAppJs);
+    }
+
     console.log('\n✅ Project created successfully!');
     console.log('\nNext steps:');
     console.log(`  cd ${projectDir}`);

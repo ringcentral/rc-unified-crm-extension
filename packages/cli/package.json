@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CLI for RingCentral App Connect",
   "bin": {
     "app-connect": "./bin/app-connect"
