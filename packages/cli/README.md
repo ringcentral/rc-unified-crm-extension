@@ -23,7 +23,7 @@ npm install -g @app-connect/cli
 Then use it as:
 
 ```bash
-app-connect init [project-name]
+appconnect init [project-name]
 ```
 
 ## Usage
@@ -57,6 +57,25 @@ npx @app-connect/cli init my-crm-adapter
 # Force overwrite existing directory
 npx @app-connect/cli init my-crm-adapter --force
 ```
+
+### Upgrade @app-connect/core in an existing project
+
+Run inside your project directory:
+
+**With npx (recommended):**
+```bash
+npx @app-connect/cli upgrade
+```
+
+**With global installation:**
+```bash
+appconnect upgrade
+```
+
+**Options:**
+- `--dev, -D` - Install as a devDependency
+
+This will detect your package manager (npm, pnpm, yarn, bun) and upgrade `@app-connect/core` to the latest version.
 
 ### What the CLI Does
 
