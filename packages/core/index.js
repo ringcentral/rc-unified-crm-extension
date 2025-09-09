@@ -39,7 +39,7 @@ axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.ver
 async function initDB() {
     if (!process.env.DISABLE_SYNC_DB_TABLE) {
         console.log('creating db tables if not exist...');
-        await UserModel.sync({ alter: true });
+        await UserModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
