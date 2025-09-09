@@ -1,0 +1,61 @@
+#!/usr/bin/env node
+
+const { Command } = require('commander');
+const { init } = require('../lib/init');
+const { upgrade } = require('../lib/upgrade');
+const { start } = require('../lib/start');
+
+const program = new Command();
+
+program
+  .name('appconnect')
+  .description('CLI for RingCentral App Connect')
+  .version('0.1.0');
+
+program
+  .command('init')
+  .description('Initialize a new RingCentral App Connect project')
+  .argument('[project-name]', 'Name of the project directory')
+  .option('-t, --template <template>', 'Template to use (default: default)', 'default')
+  .option('-f, --force', 'Force overwrite if directory exists')
+  .option('--no-install', 'Skip installing dependencies')
+  .option('--no-env', 'Skip copying .env.test to .env')
+  .option('-s, --start', 'Automatically start the dev server after init')
+  .action(async (projectName, options) => {
+    try {
+      await init(projectName, options);
+    } catch (error) {
+      console.error('Error initializing project:', error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('upgrade')
+  .description('Upgrade @app-connect/core to latest in current project')
+  .option('-D, --dev', 'Install as devDependency')
+  .action(async (options) => {
+    try {
+      await upgrade(options);
+    } catch (error) {
+      console.error('Error upgrading @app-connect/core:', error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('start')
+  .description('Start dev server, optionally on a specific port')
+  .argument('[port]', 'Port number')
+  .action(async (port) => {
+    try {
+      await start(port);
+    } catch (error) {
+      console.error('Error starting dev server:', error.message);
+      process.exit(1);
+    }
+  });
+
+program.parse();
+
+
