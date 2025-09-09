@@ -1521,7 +1521,15 @@ async function fetchBullhornUserProfile({ user }) {
         const data = resp?.data?.data?.[0] ?? {};
         return { email: data.email || '', name: data.name || '' };
     } catch (e) {
-        console.log({ message: 'Error fetching Bullhorn user profile:' });
+        const safeLog = {
+            message: 'Error fetching Bullhorn user profile:',
+            code: (e && e.code) || undefined,
+            status: (e && e.response && e.response.status) || undefined,
+            statusText: (e && e.response && e.response.statusText) || undefined,
+            method: (e && e.config && e.config.method) || undefined,
+            url: (e && e.config && e.config.url && e.config.url.split('?')[0]) || undefined
+        };
+        console.log(safeLog);
         return { email: '', name: '' };
     }
 }
@@ -1588,7 +1596,13 @@ async function generateMonthlyCsvReport() {
                     const userName = profile.name;
                     return [userId, userEmail, bullhornId, userName];
                 } catch (error) {
-                    console.error('Error fetching Bullhorn user profile:');
+                    const safeLog = {
+                        message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
+                        code: (error && error.code) || undefined,
+                        status: (error && error.response && error.response.status) || undefined,
+                        statusText: (error && error.response && error.response.statusText) || undefined
+                    };
+                    console.error(safeLog);
                     return null;
                 }
             })
