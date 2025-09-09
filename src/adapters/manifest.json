@@ -19,6 +19,7 @@
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
       },
+      "urlIdentifier": "*.pipedrive.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/pipedrive/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -175,6 +176,7 @@
           "Copy the whole url and paste it here"
         ]
       },
+      "urlIdentifier": "*.insightly.com",
       "developer": {
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
@@ -390,6 +392,7 @@
       }
     },
     "clio": {
+      "migrationId": "clio-HmCUmXcO",
       "environment": {
         "type": "selectable",
         "selections": [
@@ -411,6 +414,7 @@
           }
         ]
       },
+      "urlIdentifier": "*.clio.com",
       "developer": {
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
@@ -628,6 +632,7 @@
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
       },
+      "urlIdentifier": "*.redtailtechnology.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/redtail/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1253,6 +1258,7 @@
           "Copy the whole url and paste it here"
         ]
       },
+      "urlIdentifier": "*.app.netsuite.com/app*",
       "developer": {
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
@@ -1497,6 +1503,7 @@
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
       },
+      "urlIdentifier": "*.docs.google.com/spreadsheets",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Google_Sheets_Logo_256px.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1616,6 +1623,7 @@
         "name": "Loyally",
         "url": "https://loyally.eu"
       },
+      "urlIdentifier": "app.gohighlevel.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/GoHighLevel_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1693,6 +1701,7 @@
         "name": "Loyally",
         "url": "https://loyally.eu"
       },
+      "urlIdentifier": "*.freshdesk.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Freshdesk_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
