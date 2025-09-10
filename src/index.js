@@ -6,6 +6,7 @@ const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const jwt = require('@app-connect/core/lib/jwt');
 const axios = require('axios');
+const authCore = require('@app-connect/core/handlers/auth');
 const bullhorn = require('./adapters/bullhorn');
 const clio = require('./adapters/clio');
 const googleSheets = require('./adapters/googleSheets');
