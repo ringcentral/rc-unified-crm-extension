@@ -23,7 +23,7 @@ npm install -g @app-connect/cli
 Then use it as:
 
 ```bash
-app-connect init [project-name]
+appconnect init [project-name]
 ```
 
 ## Usage
@@ -37,13 +37,16 @@ npx @app-connect/cli init [project-name]
 
 **With global installation:**
 ```bash
-app-connect init [project-name]
+appconnect init [project-name]
 ```
 
 **Options:**
 - `project-name` - Name of the project directory (optional, defaults to `my-app-connect-project`)
 - `--force, -f` - Force overwrite if directory exists
 - `--template, -t` - Template to use (currently only supports `default`)
+- `--no-install` - Skip installing dependencies (installs by default)
+- `--no-env` - Skip copying `.env.test` to `.env` (copies by default if present)
+- `--start, -s` - Automatically run the dev server after init
 
 **Examples:**
 
@@ -56,7 +59,48 @@ npx @app-connect/cli init my-crm-adapter
 
 # Force overwrite existing directory
 npx @app-connect/cli init my-crm-adapter --force
+
+# Auto-install deps and copy env (default behavior)
+npx @app-connect/cli init my-crm-adapter
+
+# Do everything and start the dev server
+npx @app-connect/cli init my-crm-adapter -s
 ```
+
+### Upgrade @app-connect/core in an existing project
+
+Run inside your project directory:
+
+**With npx (recommended):**
+```bash
+npx @app-connect/cli upgrade
+```
+
+**With global installation:**
+```bash
+appconnect upgrade
+```
+
+**Options:**
+- `--dev, -D` - Install as a devDependency
+
+This will detect your package manager (npm, pnpm, yarn, bun) and upgrade `@app-connect/core` to the latest version.
+
+### Start the development server
+
+Run inside your project directory:
+
+**With npx (recommended):**
+```bash
+npx @app-connect/cli start [port]
+```
+
+**With global installation:**
+```bash
+appconnect start [port]
+```
+
+`port` is optional. If provided, it sets the `PORT` env var before running the project's `dev` script.
 
 ### What the CLI Does
 

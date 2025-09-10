@@ -15,7 +15,7 @@
     "deploy": "node ./scripts/serverless-deploy"
   },
   "dependencies": {
-    "@app-connect/core": "^1.5.8",
+    "@app-connect/core": "^1.6.4",
     "axios": "^1.1.2",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",
@@ -37,7 +37,7 @@
     "nodemon": "^3.1.3",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",
-    "serverless-plugin-log-retention": "^2.0.0",
+    "serverless-plugin-log-retention": "^2.1.0",
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
     "sqlite3": "^5.1.5",
