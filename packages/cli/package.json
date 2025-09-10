@@ -1,9 +1,9 @@
 {
   "name": "@app-connect/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "CLI for RingCentral App Connect",
   "bin": {
-    "app-connect": "./bin/app-connect"
+    "appconnect": "./bin/appconnect"
   },
   "dependencies": {
     "commander": "^14.0.0",

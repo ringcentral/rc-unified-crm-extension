@@ -348,7 +348,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                         result: incomingData.result,
                         direction: incomingData.direction,
                         from: incomingData.from,
-                        to: incomingData.to
+                        to: incomingData.to,
+                        legs: incomingData.legs || [],
                     },
                     contactInfo: null, // Not needed for updates
                     user,
@@ -376,6 +377,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 result: incomingData.result,
                 aiNote: incomingData.aiNote,
                 transcript: incomingData.transcript,
+                legs: incomingData.legs || [],
                 additionalSubmission: incomingData.additionalSubmission,
                 composedLogDetails,
                 existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls

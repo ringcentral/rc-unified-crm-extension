@@ -1504,7 +1504,15 @@ async function fetchBullhornUserProfile({ user }) {
         const data = resp?.data?.data?.[0] ?? {};
         return { email: data.email || '', name: data.name || '' };
     } catch (e) {
-        console.log({ message: 'Error fetching Bullhorn user profile:' });
+        const safeLog = {
+            message: 'Error fetching Bullhorn user profile:',
+            code: (e && e.code) || undefined,
+            status: (e && e.response && e.response.status) || undefined,
+            statusText: (e && e.response && e.response.statusText) || undefined,
+            method: (e && e.config && e.config.method) || undefined,
+            url: (e && e.config && e.config.url && e.config.url.split('?')[0]) || undefined
+        };
+        console.log(safeLog);
         return { email: '', name: '' };
     }
 }
@@ -1540,32 +1548,56 @@ async function generateMonthlyCsvReport() {
     const path = require('path');
     const fs = require('fs');
 
-    // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
-    const now = moment.utc();
-    const startOfPeriod = moment.utc(now).date(21).subtract(1, 'months').startOf('day');
-    const endOfPeriod = moment.utc(now).date(20).endOf('day');
-
-    // Filter users by updatedAt in the period, but do not modify the users variable itself
-    const filteredUsers = users.filter(user => {
-        if (!user.updatedAt) return false;
-        const updatedAt = moment.utc(user.updatedAt);
-        return updatedAt.isSameOrAfter(startOfPeriod) && updatedAt.isSameOrBefore(endOfPeriod);
-    });
-
     // Use filteredUsers for the report instead of all users
     const header = ['User id', 'User email', 'Bullhorn id', 'User name'];
     const rows = [header];
-    for (const user of filteredUsers) {
-        try {
-
-            const profile = await fetchBullhornUserProfile({ user });
-            const userId = user.id || '';
-            const userEmail = profile.email || '';
-            const bullhornId = user.platformAdditionalInfo?.id || '';
-            const userName = profile.name || '';
-            rows.push([userId, userEmail, bullhornId, userName]);
-        } catch (e) {
-            console.error('Error fetching Bullhorn user profile:');
+    // Bounded parallelism to avoid Lambda timeout and rate limits
+    const boundedUsers = users;
+    const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
+    const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    console.log({
+        message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
+    }
+    );
+    for (let startIndex = 0; startIndex < boundedUsers.length; startIndex += batchConcurrency) {
+        const currentBatch = boundedUsers.slice(startIndex, startIndex + batchConcurrency);
+        const batchResults = await Promise.allSettled(
+            currentBatch.map(async (currentUser) => {
+                try {
+                    const profile = await fetchBullhornUserProfile({ user: currentUser });
+                    if (!profile?.email && !profile?.name) {
+                        console.log({
+                            message: 'Skipping user because email and name are not found',
+                            userId: currentUser.id
+                        });
+                        return null;
+                    }
+                    const userId = currentUser.id || '';
+                    const userEmail = profile.email;
+                    const bullhornId = currentUser.platformAdditionalInfo?.id || '';
+                    const userName = profile.name;
+                    return [userId, userEmail, bullhornId, userName];
+                } catch (error) {
+                    const safeLog = {
+                        message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
+                        code: (error && error.code) || undefined,
+                        status: (error && error.response && error.response.status) || undefined,
+                        statusText: (error && error.response && error.response.statusText) || undefined
+                    };
+                    console.error(safeLog);
+                    return null;
+                }
+            })
+        );
+        for (const result of batchResults) {
+            if (result.status === 'fulfilled' && result.value) {
+                rows.push(result.value);
+            }
+        }
+        // small breathing room between batches
+        if (startIndex + batchConcurrency < boundedUsers.length && batchDelayMs > 0) {
+            await delay(batchDelayMs);
         }
     }
     const csv = toCsv(rows);
@@ -1600,24 +1632,28 @@ async function sendMonthlyCsvReportByEmail() {
         const year = String(currentDate.getFullYear());
         const dateString = `${day}/${month}/${year}`;
         const attachmentFileName = `BullhornReport_${dateString}.csv`;
+        // Build pretty subject: "Bullhorn/RingCentral monthly user report (Mon D, YYYY)"
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+        ];
+        const d = new Date();
+        const monthName = months[d.getMonth()];
+        const dayNum = d.getDate();
+        const yearNum = d.getFullYear();
+        const prettySubject = `Bullhorn/RingCentral monthly user report (${monthName} ${dayNum}, ${yearNum})`;
         // Prepare the request body
         const requestBody = {
             to: process.env.BULLHORN_REPORT_MAIL_TO,
             from: process.env.BULLHORN_REPORT_MAIL_FROM,
             bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
-            subject: `Bullhorn Monthly Report ${dateString}`,
-            // Calculate the date range: from the 21st of the previous month to the 20th of the current month (inclusive)
-            body: (() => {
-                const now = new Date();
-                // Start at 21st of previous month
-                const startOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 21));
-                // End at 20th of current month
-                const endOfPeriod = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 20));
-                const formatDate = d => `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
-                return `Please find the attachment for Connected Bullhorn users between ${formatDate(startOfPeriod)} and ${formatDate(endOfPeriod)}.`;
-            })(),
+            reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
+            subject: prettySubject,
+            body: `<p>Please find attached to this email a report containing a list of all active RingCentral customers using the Bullhorn integration powered by App Connect.</p>
+<p>If you have questions, or need assistance, please reply directly to this email.</p>
+<p>Sincerely,<br/>RingCentral Labs</p>`,
             identifiers: {
-                id: process.env.BULLHORN_REPORT_MAIL_FROM
+                email: process.env.BULLHORN_REPORT_MAIL_FROM
             },
             attachments: {
                 [attachmentFileName]: bullhornReport
