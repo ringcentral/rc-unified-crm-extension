@@ -133,7 +133,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
             }
         }
         // One-time init
-        if (!adminConfig.userMappings) {
+        if (!adminConfig?.userMappings) {
             const initialUserMappings = [];
             for (const userMapping of userMappingResult) {
                 if (userMapping.rcUser?.extensionId) {
@@ -155,7 +155,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
             await upsertAdminSettings({
                 hashedRcAccountId,
                 adminSettings: {
-                    userMappings: [...(adminConfig.userMappings ?? []), ...newUserMappings]
+                    userMappings: [...(adminConfig?.userMappings ?? []), ...newUserMappings]
                 }
             });
         }
