@@ -134,68 +134,70 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
     }
 }
 
-async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
+async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock = false) {
     let newLock;
     try {
-        // Try to atomically create lock only if it doesn't exist
-        try {
-            newLock = await Lock.create(
-                {
-                    userId: user.id,
-                    ttl: dateNow.unix() + 30
-                },
-                {
-                    overwrite: false
-                }
-            );
-        } catch (e) {
-            // If creation failed due to condition, a lock exists
-            if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                let lock = await Lock.get({ userId: user.id });
-                if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
-                    // Try to delete expired lock and create a new one atomically
-                    try {
-                        console.log('Bullhorn lock expired.')
-                        await lock.delete();
-                        newLock = await Lock.create(
-                            {
-                                userId: user.id,
-                                ttl: dateNow.unix() + 30
-                            },
-                            {
-                                overwrite: false
+        if (!skipLock) {
+            // Try to atomically create lock only if it doesn't exist
+            try {
+                newLock = await Lock.create(
+                    {
+                        userId: user.id,
+                        ttl: dateNow.unix() + 30
+                    },
+                    {
+                        overwrite: false
+                    }
+                );
+            } catch (e) {
+                // If creation failed due to condition, a lock exists
+                if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                    let lock = await Lock.get({ userId: user.id });
+                    if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
+                        // Try to delete expired lock and create a new one atomically
+                        try {
+                            console.log('Bullhorn lock expired.')
+                            await lock.delete();
+                            newLock = await Lock.create(
+                                {
+                                    userId: user.id,
+                                    ttl: dateNow.unix() + 30
+                                },
+                                {
+                                    overwrite: false
+                                }
+                            );
+                        } catch (e2) {
+                            if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
+                                // Another process created a lock between our delete and create
+                                lock = await Lock.get({ userId: user.id });
+                            } else {
+                                throw e2;
                             }
-                        );
-                    } catch (e2) {
-                        if (e2.name === 'ConditionalCheckFailedException' || e2.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
-                            // Another process created a lock between our delete and create
-                            lock = await Lock.get({ userId: user.id });
-                        } else {
-                            throw e2;
                         }
                     }
-                }
 
-                if (lock && !newLock) {
-                    let processTime = 0;
-                    let delay = 500; // Start with 500ms
-                    const maxDelay = 8000; // Cap at 8 seconds
-                    while (!!lock && processTime < tokenLockTimeout) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                        processTime += delay / 1000; // Convert to seconds for comparison
-                        delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
-                        lock = await Lock.get({ userId: user.id });
+                    if (lock && !newLock) {
+                        let processTime = 0;
+                        let delay = 500; // Start with 500ms
+                        const maxDelay = 8000; // Cap at 8 seconds
+                        while (!!lock && processTime < tokenLockTimeout) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            processTime += delay / 1000; // Convert to seconds for comparison
+                            delay = Math.min(delay * 2, maxDelay); // Exponential backoff with cap
+                            lock = await Lock.get({ userId: user.id });
+                        }
+                        // Timeout -> let users try another time
+                        if (processTime >= tokenLockTimeout) {
+                            throw new Error('Bullhorn Token lock timeout');
+                        }
+                        user = await UserModel.findByPk(user.id);
+                        console.log('Bullhron locked. bypass')
+                        return user;
                     }
-                    // Timeout -> let users try another time
-                    if (processTime >= tokenLockTimeout) {
-                        throw new Error('Bullhorn Token lock timeout');
-                    }
-                    user = await UserModel.findByPk(user.id);
-                    console.log('Bullhron locked. bypass')
-                    return user;
+                } else {
+                    throw e;
                 }
-            } else {
-                throw e;
             }
         }
         const startRefreshTime = moment();
@@ -245,7 +247,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp) {
     return user;
 }
 
-async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20) {
+async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20, skipLock = false) {
     if (!user || !user.accessToken || !user.refreshToken) {
         return user;
     }
@@ -259,7 +261,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
         });
         // Session expired
         if (moment(pingResponse.data.sessionExpires - expiryBuffer).isBefore(dateNow)) {
-            user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
+            user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
         }
         // Session not expired
         else {
@@ -268,7 +270,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
     }
     catch (e) {
         // Session expired
-        user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp);
+        user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
     }
     await user.save();
     return user;
@@ -1494,7 +1496,7 @@ async function fetchBullhornUserProfile({ user }) {
         const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
         let currentUser = user;
         if (checkAndRefreshAccessToken) {
-            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser);
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser, 20, true);
         }
         const masterUserId = currentUser.id.replace('-bullhorn', '');
         const resp = await axios.get(
@@ -1503,14 +1505,18 @@ async function fetchBullhornUserProfile({ user }) {
         );
         const data = resp?.data?.data?.[0] ?? {};
         return { email: data.email || '', name: data.name || '' };
-    } catch (e) {
+    } catch (error) {
+        // const safeLog = {
+        //     message: 'Error fetching Bullhorn user profile:',
+        //     code: (e && e.code) || undefined,
+        //     status: (e && e.response && e.response.status) || undefined,
+        //     statusText: (e && e.response && e.response.statusText) || undefined,
+        //     method: (e && e.config && e.config.method) || undefined,
+        //     url: (e && e.config && e.config.url && e.config.url.split('?')[0]) || undefined
+        // };
         const safeLog = {
             message: 'Error fetching Bullhorn user profile:',
-            code: (e && e.code) || undefined,
-            status: (e && e.response && e.response.status) || undefined,
-            statusText: (e && e.response && e.response.statusText) || undefined,
-            method: (e && e.config && e.config.method) || undefined,
-            url: (e && e.config && e.config.url && e.config.url.split('?')[0]) || undefined
+            Error: error
         };
         console.log(safeLog);
         return { email: '', name: '' };
@@ -1579,11 +1585,15 @@ async function generateMonthlyCsvReport() {
                     const userName = profile.name;
                     return [userId, userEmail, bullhornId, userName];
                 } catch (error) {
+                    // const safeLog = {
+                    //     message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
+                    //     code: (error && error.code) || undefined,
+                    //     status: (error && error.response && error.response.status) || undefined,
+                    //     statusText: (error && error.response && error.response.statusText) || undefined
+                    // };
                     const safeLog = {
                         message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
-                        code: (error && error.code) || undefined,
-                        status: (error && error.response && error.response.status) || undefined,
-                        statusText: (error && error.response && error.response.statusText) || undefined
+                        Error: error
                     };
                     console.error(safeLog);
                     return null;
