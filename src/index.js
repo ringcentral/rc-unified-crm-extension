@@ -16,6 +16,7 @@ const pipedrive = require('./adapters/pipedrive');
 const redtail = require('./adapters/redtail');
 const testCRM = require('./adapters/testCRM');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
+const adminCore = require('@app-connect/core/handlers/admin');
 
 // Register adapters
 adapterRegistry.setDefaultManifest(require('./adapters/manifest.json'));
@@ -157,12 +158,18 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
     }
+});
+
 app.get('/ringcentral/oauth/callback', async function (req, res) {
     const { code, rcAccountId } = req.query;
     await authCore.onRingcentralOAuthCallback({ code, rcAccountId });
     res.status(200).send('OK');
 });
 
+app.get('/ringcentral/admin/report', async function (req, res) {
+    const { rcAccountId } = req.query;
+    const report = await adminCore.getAdminReport({ rcAccountId });
+    res.status(200).send(report);
 });
 
 exports.getServer = function getServer() {

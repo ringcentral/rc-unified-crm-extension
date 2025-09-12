@@ -2,6 +2,7 @@ const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const adapterRegistry = require('../adapter/registry');
 const oauth = require('../lib/oauth');
+const { RingCentral } = require('../lib/ringcentral');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -41,6 +42,14 @@ async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminR
     if (existingAdminConfig) {
         await existingAdminConfig.update({ adminAccessToken, adminRefreshToken, adminTokenExpiry });
     }
+    else {
+        await AdminConfigModel.create({
+            id: hashedRcAccountId,
+            adminAccessToken,
+            adminRefreshToken,
+            adminTokenExpiry
+        });
+    }
 }
 
 async function getServerLoggingSettings({ user }) {
@@ -62,9 +71,34 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
+async function getAdminReport({ rcAccountId }) {
+    const rcSDK = new RingCentral({
+        server: process.env.RINGCENTRAL_SERVER,
+        clientId: process.env.RINGCENTRAL_CLIENT_ID,
+        clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+        redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+    });
+    const adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+    const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
+    if (isTokenExpired) {
+        const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
+            refresh_token: adminConfig.adminRefreshToken,
+            expires_in: adminConfig.adminTokenExpiry,
+            refresh_token_expires_in: adminConfig.adminTokenExpiry
+        });
+        await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+    }
+    const callsAggregationData = await rcSDK.getCallsAggregationData({ 
+        access_token: adminConfig.adminAccessToken,
+        token_type: 'Bearer'
+    });
+    return callsAggregationData;
+}
+
 exports.validateAdminRole = validateAdminRole;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
 exports.updateAdminRcTokens = updateAdminRcTokens;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
+exports.getAdminReport = getAdminReport;

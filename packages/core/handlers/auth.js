@@ -214,12 +214,12 @@ async function onRingcentralOAuthCallback({ code, rcAccountId }) {
         clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
     });
-    const { accessToken, refreshToken, expires } = await rcSDK.generateToken({ code });
+    const { access_token, refresh_token, expire_time } = await rcSDK.generateToken({ code });
     await adminCore.updateAdminRcTokens({
         hashedRcAccountId: rcAccountId,
-        adminAccessToken: accessToken,
-        adminRefreshToken: refreshToken,
-        adminTokenExpiry: expires
+        adminAccessToken: access_token,
+        adminRefreshToken: refresh_token,
+        adminTokenExpiry: expire_time
     });
 }
 

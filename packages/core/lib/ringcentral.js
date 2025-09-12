@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+
 const fetch = require('node-fetch');
 
 const DEFAULT_RENEW_HANDICAP_MS = 60 * 1000; // 1 minute
@@ -104,14 +104,14 @@ class RingCentral {
     const authorization = `${this._options.clientId}:${this._options.clientSecret}`;
     const response = await fetch(
       `${this._options.server}${path}`, {
-        method: 'POST',
-        body: stringifyQuery(body),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(authorization).toString('base64')}`
-        },
-      }
+      method: 'POST',
+      body: stringifyQuery(body),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(authorization).toString('base64')}`
+      },
+    }
     );
     return response;
   }
@@ -130,7 +130,7 @@ class RingCentral {
     }
     const response = await fetch(uri, {
       method,
-      body: body ? JSON.stringify(body): body,
+      body: body ? JSON.stringify(body) : body,
       headers: {
         'Accept': accept,
         'Content-Type': 'application/json',
@@ -175,6 +175,36 @@ class RingCentral {
     const response = await this.request({
       method: 'GET',
       path: `/restapi/v1.0/account/~/extension/${extensionId}`,
+    }, token);
+    return response.json();
+  }
+
+  async getCallsAggregationData(token) {
+    const body = {
+      grouping: {
+          groupBy: "Company"
+      },
+      timeSettings: {
+          timeZone: "America/Los_Angeles",
+          timeRange: {
+              timeFrom: "2025-03-15T18:07:52.534Z",
+              timeTo: "2025-05-15T18:07:52.534Z"
+          }
+      },
+      responseOptions: {
+          counters: {
+              allCalls: {
+                  aggregationType: "Average",
+                  aggregationInterval: "Hour"
+              }
+          }
+      }
+  }
+    const response = await this.request({
+      method: 'POST',
+      path: `/analytics/calls/v1/accounts/~/aggregation/fetch`,
+      body,
+      accept: 'application/json'
     }, token);
     return response.json();
   }
