@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@app-connect/core": "^1.6.4",
-    "axios": "^1.1.2",
+    "axios": "^1.12.2",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",
     "moment": "^2.29.4",
