@@ -115,6 +115,10 @@ async function composeCallLog(params) {
         body = upsertTranscript({ body, transcript, logFormat });
     }
 
+    if (callLog?.legs && (userSettings?.addCallLogLegs?.value ?? true)) {
+        body = upsertLegs({ body, legs: callLog.legs, logFormat });
+    }
+
     return body;
 }
 
@@ -327,7 +331,7 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDat
         }
     } else {
         // Handle duplicated Date/Time entries and match complete date/time values
-        const dateTimeRegex = /(?:- Date\/Time: [^-]*(?:-[^-]*)*)+/;
+        const dateTimeRegex = /- Date\/Time:\s*[^\n]*\n*/;
         if (dateTimeRegex.test(result)) {
             result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}\n`);
         } else {
@@ -521,6 +525,81 @@ function upsertTranscript({ body, transcript, logFormat }) {
     return result;
 }
 
+function getLegPartyInfo(info) {
+    let phoneNumber = info.phoneNumber;
+    let extensionNumber = info.extensionNumber;
+    let numberInfo = phoneNumber;
+    if (!phoneNumber && !extensionNumber) {
+        return '';
+    }
+    if (extensionNumber && phoneNumber) {
+        numberInfo = `${phoneNumber}, ext ${extensionNumber}`;
+    }
+    if (phoneNumber && !extensionNumber) {
+        numberInfo = phoneNumber;
+    }
+    if (!phoneNumber && extensionNumber) {
+        numberInfo = `ext ${extensionNumber}`;
+    }
+    if (info.name) {
+        return `${info.name}, ${numberInfo}`;
+    }
+    return numberInfo;
+}
+
+function getLegsJourney(legs) {
+    return legs.map((leg, index) => {
+        if (index === 0) {
+            if (leg.direction === 'Outbound') {
+                return `Made call from ${getLegPartyInfo(leg.from)}`;
+            } else {
+                return `Received call at ${getLegPartyInfo(leg.to)}`;
+            }
+        }
+        if (leg.direction === 'Outbound') {
+            let party = leg.from;
+            if (leg.legType === 'PstnToSip') {
+                party = leg.to;
+            }
+            return `Transferred to ${getLegPartyInfo(party)}, duration: ${leg.duration} second${leg.duration > 1 ? 's' : ''}`;
+        } else {
+            return `Transferred to ${getLegPartyInfo(leg.to)}, duration: ${leg.duration} second${leg.duration > 1 ? 's' : ''}`;
+        }
+    }).join('\n');
+}
+
+function upsertLegs({ body, legs, logFormat }) {
+    if (!legs || legs.length === 0) return body;
+
+    let result = body;
+    let legsJourney = getLegsJourney(legs);
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        legsJourney = legsJourney.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        const legsRegex = /<div><b>Call journey<\/b><br>(.+?)<\/div>/;
+        if (legsRegex.test(result)) {
+            result = result.replace(legsRegex, `<div><b>Call journey</b><br>${legsJourney}</div>`);
+        } else {
+            result += `<div><b>Call journey</b><br>${legsJourney}</div>`;
+        }
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const legsRegex = /### Call journey\n([\s\S]*?)(?=\n### |\n$|$)/;
+        if (legsRegex.test(result)) {
+            result = result.replace(legsRegex, `### Call journey\n${legsJourney}\n`);
+        } else {
+            result += `### Call journey\n${legsJourney}\n`;
+        }
+    } else {
+        const legsRegex = /- Call journey:([\s\S]*?)--- JOURNEY END/;
+        if (legsRegex.test(result)) {
+            result = result.replace(legsRegex, `- Call journey:\n${legsJourney}\n--- JOURNEY END`);
+        } else {
+            result += `- Call journey:\n${legsJourney}\n--- JOURNEY END\n`;
+        }
+    }
+
+    return result;
+}
+
 /**
  * Helper function to determine format type for a CRM platform
  * @param {string} platform - CRM platform name
@@ -547,5 +626,6 @@ module.exports = {
     upsertCallResult,
     upsertCallRecording,
     upsertAiNote,
-    upsertTranscript
-}; 
+    upsertTranscript,
+    upsertLegs,
+};
