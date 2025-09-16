@@ -327,9 +327,9 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDat
         }
     } else {
         // Handle duplicated Date/Time entries and match complete date/time values
-        const dateTimeRegex = /(?:- Date\/Time: [^-]*(?:-[^-]*)*)+/;
+        const dateTimeRegex = /^(- Date\/Time:).*$/m;
         if (dateTimeRegex.test(result)) {
-            result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}\n`);
+            result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
         } else {
             result += `- Date/Time: ${formattedDateTime}\n`;
         }

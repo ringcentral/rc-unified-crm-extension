@@ -320,13 +320,14 @@ describe('callLogComposer', () => {
             });
 
             test('should replace existing datetime', () => {
-                const body = '- Date/Time: 2022-12-31 11:00:00 AM\n- Duration: 30 seconds\n';
+                const body = '- Date/Time: 2023-01-01 12:00:00 AM\n- Duration: 30 seconds\n';
                 const result = upsertCallDateTime({
                     body,
+                    timezoneOffset: '+08:00',
                     startTime: testDate,
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toMatch(/- Date\/Time: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M\n/);
+                expect(result).toBe('- Date/Time: 2023-01-01 08:00:00 PM\n- Duration: 30 seconds\n');
             });
         });
     });
