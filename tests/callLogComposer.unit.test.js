@@ -11,7 +11,8 @@ const {
     upsertCallResult,
     upsertCallRecording,
     upsertAiNote,
-    upsertTranscript
+    upsertTranscript,
+    upsertLegs
 } = require('../packages/core/lib/callLogComposer');
 
 const { LOG_DETAILS_FORMAT_TYPE } = require('../packages/core/lib/constants');
@@ -613,6 +614,105 @@ describe('callLogComposer', () => {
                 });
                 expect(result).toBe('- Transcript:\nNew transcript\n--- END\n');
             });
+        });
+    });
+
+    describe('upsertLegs', () => {
+        const sampleLegs = [
+            {
+                direction: 'Outbound',
+                from: { name: 'Agent', phoneNumber: '+100', extensionNumber: '101' },
+                to: { name: 'John', phoneNumber: '+200' },
+                duration: 30
+            },
+            {
+                direction: 'Outbound',
+                from: { name: 'Agent', phoneNumber: '+100', extensionNumber: '101' },
+                to: { name: 'Queue', extensionNumber: '500' },
+                legType: 'PstnToSip',
+                duration: 45
+            }
+        ];
+
+        const journeyText = 'Made call from Agent, +100, ext 101\nTransferred to Queue, ext 500, duration: 45 seconds';
+
+        describe('HTML format', () => {
+            test('should add legs section to empty body', () => {
+                const result = upsertLegs({
+                    body: '',
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                });
+                expect(result).toBe(`<div><b>Call journey</b><br>${journeyText.replace(/\n/g, '<br>')}</div>`);
+            });
+
+            test('should replace existing legs section', () => {
+                const body = '<div><b>Call journey</b><br>Made call from Agent, +000, ext 101<br>Transferred to Queue, ext 500, duration: 12 seconds</div>';
+                const result = upsertLegs({
+                    body,
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                });
+                expect(result).toBe(`<div><b>Call journey</b><br>${journeyText.replace(/\n/g, '<br>')}</div>`);
+            });
+        });
+
+        describe('Markdown format', () => {
+            test('should add legs section', () => {
+                const result = upsertLegs({
+                    body: '',
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+                });
+                expect(result).toBe(`### Call journey\n${journeyText}\n`);
+            });
+
+            test('should replace existing legs section', () => {
+                const body = '### Call journey\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n';
+                const result = upsertLegs({
+                    body,
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+                });
+                expect(result).toBe(`### Call journey\n${journeyText}\n\n`);
+            });
+        });
+
+        describe('Plain text format', () => {
+            test('should add legs block', () => {
+                const result = upsertLegs({
+                    body: '',
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                });
+                expect(result).toBe(`- Call journey:\n${journeyText}\n--- JOURNEY END\n`);
+            });
+
+            test('should replace existing legs block', () => {
+                const body = `- Note: From auto logging 123\- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
+                const result = upsertLegs({
+                    body,
+                    legs: sampleLegs,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                });
+                expect(result).toBe(`- Note: From auto logging 123\- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\n${journeyText}\n--- JOURNEY END\n`);
+            });
+
+            test('should keep journey when upserting Note', () => {
+                const body = `- Note: From auto logging 123\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
+                const result = upsertCallAgentNote({
+                    body,
+                    note: 'New note',
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                });
+                expect(result).toBe(`- Note: New note\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`);
+            });
+        });
+
+        test('should return body unchanged when legs are empty or missing', () => {
+            const body = 'Some existing body';
+            expect(upsertLegs({ body, legs: [], logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT })).toBe(body);
+            expect(upsertLegs({ body, legs: null, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML })).toBe(body);
         });
     });
 
