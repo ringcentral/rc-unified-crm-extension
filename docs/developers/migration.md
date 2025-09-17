@@ -8,15 +8,19 @@ This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new 
 2. Enter the basic information for your connector
 3. Create a new connector
 
-You can reuse your existing `manifest.json` file by copying the CRM object (shown below) and pasting it into the JSON editor.
+You can reuse your existing `manifest.json` file by following these steps:
+
+**Step 1: Switch to JSON Editor**
 
 ![click this button to switch to JSON editor](../img/developer-console-json-editor.png)
 
-*Click the "JSON" button in the developer console to switch to the JSON editor mode, which allows you to paste your existing manifest configuration directly.*
+Click the "JSON" button in the developer console to switch to the JSON editor mode.
+
+**Step 2: Copy Your Manifest**
 
 ![copy manifest JSON](../img/developer-console-manifest-json.png)
 
-*Copy the CRM object from your existing manifest.json file and paste it into the JSON editor. This will automatically populate most of the connector configuration fields.*
+Copy the CRM object from your existing `manifest.json` file and paste it into the JSON editor. This will automatically populate most of the connector configuration fields.
 
 4. Switch back to form view - most fields will be automatically populated
 5. Copy your server URL to the `Connector server URL` field
