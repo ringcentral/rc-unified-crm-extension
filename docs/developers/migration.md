@@ -4,7 +4,7 @@ This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new 
 
 ## Register Your Connector
 
-1. Navigate to https://appconnect.labs.ringcentral.com/console and log in with your RingCentral account
+1. Navigate to [Developer Console](https://appconnect.labs.ringcentral.com/console) and log in with your RingCentral account
 2. Enter the basic information for your connector
 3. Create a new connector
 
