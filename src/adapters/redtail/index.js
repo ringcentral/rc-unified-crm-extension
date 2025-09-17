@@ -512,6 +512,7 @@ function formatContact(rawContactInfo, categories) {
         phone: rawContactInfo.phoneNumber,
         title: rawContactInfo.job_title ?? "",
         type: 'contact',
+        mostRecentActivityDate: rawContactInfo.updated_at,
         additionalInfo: {
             category: categories.map(c => {
                 return {
