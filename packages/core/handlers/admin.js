@@ -71,7 +71,8 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
-async function getAdminReport({ rcAccountId }) {
+async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
+    try{
     const rcSDK = new RingCentral({
         server: process.env.RINGCENTRAL_SERVER,
         clientId: process.env.RINGCENTRAL_CLIENT_ID,
@@ -88,11 +89,40 @@ async function getAdminReport({ rcAccountId }) {
         });
         await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
     }
-    const callsAggregationData = await rcSDK.getCallsAggregationData({ 
-        access_token: adminConfig.adminAccessToken,
-        token_type: 'Bearer'
+    const callsAggregationData = await rcSDK.getCallsAggregationData({
+        token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
+        timezone,
+        timeFrom,
+        timeTo
     });
-    return callsAggregationData;
+    var dataCounter = callsAggregationData.data.records[0].counters;
+    var inboundCallCount = dataCounter.callsByDirection.values.inbound;
+    var outboundCallCount = dataCounter.callsByDirection.values.outbound;
+    var answeredCallCount = dataCounter.callsByResponse.values.answered;
+    // keep 2 decimal places
+    var answeredCallPercentage = `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
+
+    var dataTimer = callsAggregationData.data.records[0].timers;
+    // keep 2 decimal places
+    var totalTalkTime = (dataTimer.allCalls.values / 60).toFixed(2);
+    // keep 2 decimal places
+    var averageTalkTime = (totalTalkTime / (inboundCallCount + outboundCallCount)).toFixed(2);
+    return {
+        callLogStats: {
+            inboundCallCount,
+            outboundCallCount,
+            answeredCallCount,
+            answeredCallPercentage,
+            totalTalkTime,
+            averageTalkTime
+        }
+    };
+    } catch (error) {
+        console.error(error);
+        return {
+            callLogStats: {}
+        };
+    }
 }
 
 exports.validateAdminRole = validateAdminRole;

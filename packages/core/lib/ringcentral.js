@@ -139,6 +139,8 @@ class RingCentral {
     });
     if (Number.parseInt(response.status, 10) >= 400) {
       const error = new Error(`request data error ${response.status}`);
+      const errorText = await response.text();
+      error.message = errorText;
       error.response = response;
       throw error;
     }
@@ -179,27 +181,42 @@ class RingCentral {
     return response.json();
   }
 
-  async getCallsAggregationData(token) {
+  async getAccountInfo(token) {
+    const response = await this.request({
+      method: 'GET',
+      path: `/restapi/v1.0/account/~`,
+    }, token);
+    return response.json();
+  }
+
+  async getCallsAggregationData({ token, timezone, timeFrom, timeTo }) {
     const body = {
       grouping: {
-          groupBy: "Company"
+        groupBy: "Company"
       },
       timeSettings: {
-          timeZone: "America/Los_Angeles",
-          timeRange: {
-              timeFrom: "2025-03-15T18:07:52.534Z",
-              timeTo: "2025-05-15T18:07:52.534Z"
-          }
+        timeZone: timezone,
+        timeRange: {
+          timeFrom: timeFrom,
+          timeTo: timeTo
+        }
       },
       responseOptions: {
-          counters: {
-              allCalls: {
-                  aggregationType: "Average",
-                  aggregationInterval: "Hour"
-              }
+        counters: {
+          callsByDirection: {
+            aggregationType: "Sum"
+          },
+          callsByResponse: {
+            aggregationType: "Sum"
           }
+        },
+        timers: {
+          allCallsDuration: {
+            aggregationType: "Sum"
+          }
+        }
       }
-  }
+    }
     const response = await this.request({
       method: 'POST',
       path: `/analytics/calls/v1/accounts/~/aggregation/fetch`,

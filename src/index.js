@@ -161,15 +161,36 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 });
 
 app.get('/ringcentral/oauth/callback', async function (req, res) {
-    const { code, rcAccountId } = req.query;
-    await authCore.onRingcentralOAuthCallback({ code, rcAccountId });
-    res.status(200).send('OK');
+    const jwtToken = req.query.jwtToken;
+    if (jwtToken) {
+        const unAuthData = jwt.decodeJwt(jwtToken);
+        const { code } = req.query;
+        const user = await UserModel.findByPk(unAuthData?.id);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId });
+        res.status(200).send('OK');
+        return;
+    }
+    res.status(400).send('Invalid request');
 });
 
 app.get('/ringcentral/admin/report', async function (req, res) {
-    const { rcAccountId } = req.query;
-    const report = await adminCore.getAdminReport({ rcAccountId });
-    res.status(200).send(report);
+    const jwtToken = req.query.jwtToken;
+    if (jwtToken) {
+        const unAuthData = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(unAuthData?.id);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+        res.status(200).send(report);
+        return;
+    }
+    res.status(400).send('Invalid request');
 });
 
 exports.getServer = function getServer() {
