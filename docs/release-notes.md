@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.6.5:
+
+- New: Support call journey in call logging details with server side logging
+- Better: Tabs orders updated
+- Fix: Date/Time display issue
+
 ## 1.6.4:
 - New Add RingCentral user name and phone number in call details settings
 - Better: Server-side call logging can now upload agent notes from the Chrome extension immediately after the call

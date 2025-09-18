@@ -25,6 +25,7 @@
       "displayName": "Pipedrive",
       "auth": {
         "type": "oauth",
+        "useTokenRefreshLock": true,
         "oauth": {
           "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
           "clientId": "5d4736e322561f57",
@@ -1733,5 +1734,5 @@
       ]
     }
   },
-  "version": "1.6.4"
+  "version": "1.6.5"
 }

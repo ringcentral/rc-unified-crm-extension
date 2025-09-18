@@ -1,4 +1,20 @@
 {
+    "1.6.5": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Support call journey in call logging details with server side logging [Details](https://appconnect.labs.ringcentral.com/users/logging/#controlling-what-information-gets-logged)"
+            },
+            {
+                "type": "Better",
+                "description": "- Tabs orders updated"
+            },
+            {
+                "type": "Fix",
+                "description": "- Date/Time display issue"
+            }
+        ]
+    },
     "1.6.4": {
         "global": [
             {
