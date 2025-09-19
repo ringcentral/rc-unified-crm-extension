@@ -79,7 +79,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
         clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
     });
-    const adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+    let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
     const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
     if (isTokenExpired) {
         const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
@@ -87,7 +87,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
             expires_in: adminConfig.adminTokenExpiry,
             refresh_token_expires_in: adminConfig.adminTokenExpiry
         });
-        await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+        adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
     }
     const callsAggregationData = await rcSDK.getCallsAggregationData({
         token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
