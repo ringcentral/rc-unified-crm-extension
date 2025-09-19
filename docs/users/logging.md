@@ -67,6 +67,7 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Recording** - if there is a recording for the call, a link to the recording will be embedded 
 * **AI notes/summary** - AI-generated summary of the call (requires RingSense subscription)
 * **Transcript** - A transcript of the call (requires RingSense subscription)
+* **Call journey (Beta)** - Information about how call is routed in RingCentral phone system. Only available in admin settings. Only provided with server side logging enabled. When the value changed, admin needs to re-enable server-side logging again to make it use new setting.
 
 <figure markdown>
   ![Call log settings](../img/call-log-details.png){ .mw-400 }

@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/core",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "RingCentral App Connect Core",
   "main": "index.js",
   "repository": {
@@ -14,7 +14,7 @@
   "author": "RingCentral Labs",
   "license": "MIT",
   "peerDependencies": {
-    "axios": "^1.1.2",
+    "axios": "^1.12.2",
     "express": "^4.21.2",
     "pg": "^8.8.0",
     "sequelize": "^6.29.0",
@@ -44,7 +44,7 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@octokit/rest": "^19.0.5",
-    "axios": "^1.1.2",
+    "axios": "^1.12.2",
     "express": "^4.21.2",
     "eslint": "^9.22.0",
     "globals": "^16.0.0",
