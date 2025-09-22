@@ -98,6 +98,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     if (phoneNumberObj.valid) {
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
+
     const personInfo = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
         {
@@ -454,9 +455,15 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 function formatContact(rawContactInfo, categories) {
+    const first = (rawContactInfo.first_name || '').trim();
+    const middle = (rawContactInfo.middle_name || '').trim();
+    const last = (rawContactInfo.last_name || '').trim();
+    const parts = [first, middle, last].filter(Boolean);
+    const fullName = (parts.join(' ') || rawContactInfo.full_name || '').trim();
+
     return {
         id: rawContactInfo.id,
-        name: `${rawContactInfo.full_name}`,
+        name: fullName,
         phone: rawContactInfo.phoneNumber,
         title: rawContactInfo.job_title ?? "",
         type: 'contact',
