@@ -4,6 +4,9 @@ const axios = require('axios');
 const moment = require('moment-timezone');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const jwt = require('@app-connect/core/lib/jwt');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
 function getAuthType() {
     return 'oauth';
@@ -331,7 +334,25 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function getUserList({ user, authHeader }) {
+    const userListResponse = await axios.get(`https://${user.hostname}/api/v4/users.json?enabled=true&order=name(asc)&fields=id,name,email`, {
+        headers: { 'Authorization': authHeader }
+    });
+
+    const userList = [];
+    if (userListResponse?.data?.data?.length > 0) {
+        for (const user of userListResponse.data.data) {
+            userList.push({
+                id: user.id,
+                name: user.name ?? `${user.first_name} ${user.last_name}`,
+                email: user.email
+            });
+        }
+    }
+    return userList;
+}
+
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id.split('-')[0],
@@ -351,6 +372,37 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             type: 'User'
         }
 
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        if (additionalSubmission.adminAssignedUserToken) {
+            try {
+                const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+                const assigneeUser = await UserModel.findByPk(unAuthData.id);
+                if (assigneeUser) {
+                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                }
+            }
+            catch (e) {
+                console.log('Error decoding admin assigned user token', e);
+            }
+        }
+
+        if (!assigneeId) {
+            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+        }
+    }
+
+    if (assigneeId) {
+        switch (callLog.direction) {
+            case 'Outbound':
+                sender.id = assigneeId;
+                break;
+            case 'Inbound':
+                receiver.id = assigneeId;
+                break;
+        }
+    }
 
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
@@ -377,6 +429,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     if (additionalSubmission && additionalSubmission.matters) {
         postBody.data['matter'] = { id: additionalSubmission.matters };
     }
+
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v4/communications.json`,
         postBody,
@@ -418,7 +471,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     let extraDataTracking = {};
     // Use passed existingCallLogDetails to avoid duplicate API call
@@ -468,6 +521,27 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 {
                     headers: { 'Authorization': authHeader }
                 });
+        }
+    }
+
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+        assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+    }
+
+    if (assigneeId) {
+        if (getLogRes.data.data.senders[0].type === 'User') {
+            patchBody.data.senders = [{
+                id: assigneeId,
+                type: 'User'
+            }];
+        }
+        else if (getLogRes.data.data.receivers[0].type === 'User') {
+            patchBody.data.receivers = [{
+                id: assigneeId,
+                type: 'User'
+            }];
         }
     }
     const patchLogRes = await axios.patch(
@@ -760,6 +834,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 exports.getAuthType = getAuthType;
 exports.getOauthInfo = getOauthInfo;
 exports.getUserInfo = getUserInfo;
+exports.getUserList = getUserList;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.upsertCallDisposition = upsertCallDisposition;

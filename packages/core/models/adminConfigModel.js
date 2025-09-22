@@ -13,5 +13,13 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   },
   customAdapter: {
     type: Sequelize.JSON
+  },
+  // Array of:
+  // {
+  //   crmUserId: string,
+  //   rcExtensionId: string
+  // }
+  userMappings: {
+    type: Sequelize.JSON
   }
 });

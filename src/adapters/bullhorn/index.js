@@ -9,6 +9,7 @@ const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 
 function getAuthType() {
@@ -945,48 +946,34 @@ async function findContactWithName({ user, authHeader, name }) {
     };
 }
 
-async function getAssigneeIdFromUserInfo({ user, additionalSubmission }) {
-    try {
-        const targetUserEmail = additionalSubmission.adminAssignedUserEmail;
-        const targetUserRcName = additionalSubmission.adminAssignedUserName;
-        let queryWhere = 'isDeleted=false';
-        if (targetUserEmail) {
-            queryWhere += ` AND email='${targetUserEmail}'`;
-        }
-        const searchParams = new URLSearchParams({
-            fields: 'id,firstName,lastName,email',
-            where: queryWhere
-        });
-        const userInfoResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
-            }
-        );
-        if (userInfoResponse?.data?.data?.length > 0) {
-            if (targetUserEmail) {
-                const targetUser = userInfoResponse.data.data.find(u => u.email === targetUserEmail);
-                if (targetUser) {
-                    return targetUser.id;
-                }
-            }
-            if (targetUserRcName) {
-                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
-                if (targetUser) {
-                    return targetUser.id;
-                }
+async function getUserList({ user }) {
+    const queryWhere = 'isDeleted=false';
+    const searchParams = new URLSearchParams({
+        fields: 'id,firstName,lastName,email',
+        where: queryWhere
+    });
+    const userInfoResponse = await axios.get(
+        `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
             }
         }
+    );
+    const userList = [];
+    if (userInfoResponse?.data?.data?.length > 0) {
+        for (const user of userInfoResponse.data.data) {
+            userList.push({
+                id: user.id,
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email
+            });
+        }
     }
-    catch (e) {
-        console.log('Error getting user data from phone number', e && e.response && e.response.status);
-    }
-    return null;
+    return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -1003,10 +990,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         }
 
-        if (!assigneeId && (
-            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
-        )) {
-            assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
+        if (!assigneeId) {
+            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
@@ -1072,7 +1058,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, isFromSSCL }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1083,7 +1069,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // Fallback to API call if details not provided
         try {
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -1099,7 +1085,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (isAuthError(e.response.status)) {
                 user = await refreshSessionToken(user);
                 getLogRes = await axios.get(
-                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                     {
                         headers: {
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -1115,12 +1101,9 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
     // case: reassign to user
     let assigneeId = null;
-    if (
-        additionalSubmission?.isAssignedToUser && (
-            additionalSubmission.adminAssignedUserEmail || additionalSubmission.adminAssignedUserName
-        )
-    ) {
-        assigneeId = await getAssigneeIdFromUserInfo({ user, additionalSubmission });
+    if (additionalSubmission?.isAssignedToUser) {
+        const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+        assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
     }
 
 
@@ -1766,6 +1749,7 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
+exports.getUserList = getUserList;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
