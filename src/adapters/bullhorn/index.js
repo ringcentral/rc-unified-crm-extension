@@ -1069,7 +1069,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // Fallback to API call if details not provided
         try {
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -1085,7 +1085,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (isAuthError(e.response.status)) {
                 user = await refreshSessionToken(user);
                 getLogRes = await axios.get(
-                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                     {
                         headers: {
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
