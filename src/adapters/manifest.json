@@ -7,12 +7,24 @@
   },
   "platforms": {
     "pipedrive": {
+      "environment": {
+        "type": "dynamic",
+        "urlIdentifier": "*.pipedrive.com",
+        "instructions": [
+          "Login to your Pipedrive account",
+          "Copy the whole url and paste it here"
+        ]
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
+      "urlIdentifier": "*.pipedrive.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Pipedrive_logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/pipedrive/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "pipedrive.com",
       "name": "pipedrive",
       "logFormat": "text/html",
       "embedUrls": [
@@ -154,21 +166,27 @@
           ]
         },
         "useContactSearch": true
-      },
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/pipedrive/",
-          "videoLink": "https://youtu.be/Hu0qC13HDkQ"
-        }
       }
     },
     "insightly": {
+      "environment": {
+        "type": "dynamic",
+        "urlIdentifier": "*.insightly.com",
+        "instructions": [
+          "Login to your Insightly account",
+          "Copy the whole url and paste it here"
+        ]
+      },
+      "urlIdentifier": "*.insightly.com",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Insightly_logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/insightly/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "insightly.com",
       "name": "insightly",
       "logFormat": "text/plain",
       "embedUrls": [
@@ -372,21 +390,40 @@
           ]
         },
         "useContactSearch": true
-      },
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/insightly/",
-          "videoLink": "https://youtu.be/5hWvVI12UAc"
-        }
       }
     },
     "clio": {
+      "environment": {
+        "type": "selectable",
+        "selections": [
+          {
+            "const": "https://app.clio.com",
+            "name": "US"
+          },
+          {
+            "const": "https://eu.app.clio.com",
+            "name": "EU"
+          },
+          {
+            "const": "https://au.app.clio.com",
+            "name": "AU"
+          },
+          {
+            "const": "https://ca.app.clio.com",
+            "name": "CA"
+          }
+        ]
+      },
+      "urlIdentifier": "*.clio.com",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Clio_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/clio/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "*.app.clio.com",
       "name": "clio",
       "logFormat": "text/plain",
       "embedUrls": [
@@ -541,12 +578,6 @@
         },
         "useContactSearch": true
       },
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/clio/",
-          "videoLink": "https://youtu.be/pQgdsAR1UCI"
-        }
-      },
       "override": [
         {
           "triggerType": "hostname",
@@ -593,13 +624,22 @@
       ]
     },
     "redtail": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://crm.redtailtechnology.com/"
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
+      "urlIdentifier": "*.redtailtechnology.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Redtail_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/redtail/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "redtailtechnology.com",
       "name": "redtail",
+      "displayName": "Redtail",
       "logFormat": "text/html",
       "embedUrls": [
         "https://*.redtailtechnology.com/*"
@@ -948,15 +988,17 @@
       "canOpenLogPage": true,
       "disableDisposition": false,
       "contactPageUrl": "https://{hostname}/contacts/{contactId}",
-      "logPageUrl": "https://{hostname}/activities/{logId}",
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/redtail/",
-          "videoLink": "https://youtu.be/1pbpbEvp5uQ"
-        }
-      }
+      "logPageUrl": "https://{hostname}/activities/{logId}"
     },
     "bullhorn": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://app.bullhornstaffing.com"
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
@@ -1205,21 +1247,27 @@
           ]
         },
         "useContactSearch": true
-      },
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/bullhorn/",
-          "videoLink": "https://youtu.be/afbdQD0y4Yo"
-        }
       }
     },
     "netsuite": {
+      "environment": {
+        "type": "dynamic",
+        "urlIdentifier": "*.app.netsuite.com/app*",
+        "instructions": [
+          "Login to your NetSuite account",
+          "Copy the whole url and paste it here"
+        ]
+      },
+      "urlIdentifier": "*.app.netsuite.com/app*",
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Netsuite_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/netsuite/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "*.app.netsuite.com/app*",
       "name": "netsuite",
       "logFormat": "text/plain",
       "embedUrls": [
@@ -1338,12 +1386,6 @@
           "value": "contact"
         }
       ],
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
-          "videoLink": "https://youtu.be/pQgdsAR1UCI"
-        }
-      },
       "page": {
         "callLog": {
           "additionalFields": [
@@ -1453,12 +1495,20 @@
       }
     },
     "googleSheets": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://docs.google.com/spreadsheets"
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
+      "urlIdentifier": "*.docs.google.com/spreadsheets",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Google_Sheets_Logo_256px.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "docs.google.com/spreadsheets",
       "name": "googleSheets",
       "logFormat": "text/plain",
       "embedUrls": [
@@ -1482,12 +1532,6 @@
       "platform": "googleSheets",
       "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
       "canOpenLogPage": false,
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
-          "videoLink": "https://youtu.be/pQgdsAR1UCI"
-        }
-      },
       "settings": [],
       "page": {
         "callLog": {
@@ -1571,12 +1615,20 @@
       }
     },
     "gohighlevel": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://app.gohighlevel.com"
+      },
+      "developer": {
+        "name": "Loyally",
+        "url": "https://loyally.eu"
+      },
+      "urlIdentifier": "app.gohighlevel.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/GoHighLevel_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "app.gohighlevel.com",
       "name": "gohighlevel",
       "displayName": "GoHighLevel",
       "enableExtensionNumberLoggingSetting": true,
@@ -1601,12 +1653,6 @@
           "value": "contact"
         }
       ],
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
-          "videoLink": "https://youtu.be/pQgdsAR1UCI"
-        }
-      },
       "settings": [],
       "page": {
         "callLog": {
@@ -1643,12 +1689,24 @@
       ]
     },
     "freshdesk": {
+      "environment": {
+        "type": "dynamic",
+        "urlIdentifier": "*.freshdesk.com",
+        "instructions": [
+          "Login to your Freshdesk account",
+          "Copy the whole url and paste it here"
+        ]
+      },
+      "developer": {
+        "name": "Loyally",
+        "url": "https://loyally.eu"
+      },
+      "urlIdentifier": "*.freshdesk.com",
       "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Freshdesk_Logo.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "*.freshdesk.com",
       "name": "freshdesk",
       "displayName": "Freshdesk",
       "enableExtensionNumberLoggingSetting": true,
@@ -1692,12 +1750,6 @@
           "value": "contact"
         }
       ],
-      "embeddedOnCrmPage": {
-        "welcomePage": {
-          "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/freshdesk",
-          "videoLink": "https://youtu.be/pQgdsAR1UCI"
-        }
-      },
       "settings": [],
       "page": {
         "callLog": {
