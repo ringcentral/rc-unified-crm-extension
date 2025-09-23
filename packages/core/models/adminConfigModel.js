@@ -22,5 +22,13 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   },
   adminTokenExpiry: {
     type: Sequelize.DATE
+  },
+    // Array of:
+  // {
+  //   crmUserId: string,
+  //   rcExtensionId: string
+  // }
+  userMappings: {
+    type: Sequelize.JSON
   }
 });

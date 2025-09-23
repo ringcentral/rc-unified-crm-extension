@@ -61,10 +61,10 @@ async function composeCallLog(params) {
         body = upsertCallSessionId({ body, id: callLog.sessionId, logFormat });
     }
 
-    const ringcentralUsername = callLog.direction === 'Inbound' ? callLog?.to?.name : callLog?.from?.name;  
-    if (ringcentralUsername && (userSettings?.addRingCentralUserName?.value ?? false)) {
+    if (userSettings?.addRingCentralUserName?.value) {
+        const ringcentralUsername = (callLog.direction === 'Inbound' ? callLog?.to?.name : callLog?.from?.name) ?? '(pending...)';
         body = upsertRingCentralUserName({ body, userName: ringcentralUsername, logFormat });
-    }       
+    }
 
     const ringcentralNumber = callLog.direction === 'Inbound' ? callLog?.to?.phoneNumber : callLog?.from?.phoneNumber;
     if (ringcentralNumber && (userSettings?.addRingCentralNumber?.value ?? false)) {

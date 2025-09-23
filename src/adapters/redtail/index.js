@@ -2,6 +2,9 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const jwt = require('@app-connect/core/lib/jwt');
+const { UserModel } = require('@app-connect/core/models/userModel');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
 function getAuthType() {
     return 'apiKey';
@@ -98,6 +101,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     if (phoneNumberObj.valid) {
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
+
     const personInfo = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/contacts/search_basic?phone_number=${phoneNumberWithoutCountryCode}`,
         {
@@ -195,9 +199,22 @@ async function createContact({ user, phoneNumber, newContactName }) {
     }
 }
 
-async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function getUserList({ user, authHeader }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    const userListResp = await axios.get(
+        `${process.env.REDTAIL_API_SERVER}/lists/database_users`,
+        {
+            headers: { 'Authorization': overrideAuthHeader }
+        });
+    const userList = userListResp.data.database_users.map(user => ({
+        id: user.id,
+        name: `${user.first_name} ${user.last_name}`
+    }));
+    return userList;
+}
 
+async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
     let extraDataTracking = {
@@ -207,6 +224,33 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     if (user.userSettings?.redtailCustomTimezone?.value ?? false) {
         composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callLog.startTime, user });
     }
+
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        if (additionalSubmission.adminAssignedUserToken) {
+            try {
+                const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+                const assigneeUser = await UserModel.findByPk(unAuthData.id);
+                if (assigneeUser) {
+                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                }
+            }
+            catch (e) {
+                console.log('Error decoding admin assigned user token', e);
+            }
+
+            if (!assigneeId) {
+                const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+                assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+            }
+        }
+
+        if (!assigneeId) {
+            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+        }
+    }
+
     const postBody = {
         subject,
         description: composedLogDetails,
@@ -221,6 +265,16 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
             }
         ]
     }
+
+    if (assigneeId) {
+        postBody.attendees = [
+            {
+                type: "Crm::Activity::Attendee::User",
+                user_id: Number(assigneeId)
+            }
+        ];
+    }
+
     const addLogRes = await axios.post(
         `${process.env.REDTAIL_API_SERVER}/activities`,
         postBody,
@@ -261,7 +315,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
 
@@ -288,7 +342,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     putBody.description = composedLogDetails;
     putBody.start_date = moment(startTime).utc().toISOString();
     putBody.end_date = moment(startTime).utc().add(duration, 'seconds').toISOString();
-
     const putLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
         putBody,
@@ -454,9 +507,15 @@ async function getCallLog({ user, callLogId, authHeader }) {
 }
 
 function formatContact(rawContactInfo, categories) {
+    const first = (rawContactInfo.first_name || '').trim();
+    const middle = (rawContactInfo.middle_name || '').trim();
+    const last = (rawContactInfo.last_name || '').trim();
+    const parts = [first, middle, last].filter(Boolean);
+    const fullName = (parts.join(' ') || rawContactInfo.full_name || '').trim();
+
     return {
         id: rawContactInfo.id,
-        name: `${rawContactInfo.full_name}`,
+        name: fullName,
         phone: rawContactInfo.phoneNumber,
         title: rawContactInfo.job_title ?? "",
         type: 'contact',
@@ -516,6 +575,7 @@ function overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime, u
 exports.getAuthType = getAuthType;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
+exports.getUserList = getUserList;
 exports.createCallLog = createCallLog;
 exports.updateCallLog = updateCallLog;
 exports.upsertCallDisposition = upsertCallDisposition;

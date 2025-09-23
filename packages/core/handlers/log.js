@@ -10,7 +10,7 @@ const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const moment = require('moment');
 
-async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
+async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -113,6 +113,7 @@ async function createCallLog({ platform, userId, incomingData, isFromSSCL }) {
             aiNote,
             transcript,
             composedLogDetails,
+            hashedAccountId,
             isFromSSCL
         });
         if (logId) {
@@ -288,7 +289,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData, isFromSSCL }) {
+async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -380,6 +381,7 @@ async function updateCallLog({ platform, userId, incomingData, isFromSSCL }) {
                 additionalSubmission: incomingData.additionalSubmission,
                 composedLogDetails,
                 existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls
+                hashedAccountId,
                 isFromSSCL
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
