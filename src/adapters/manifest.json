@@ -194,7 +194,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Insightly",
       "auth": {
@@ -431,7 +431,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Clio",
       "auth": {
@@ -646,7 +646,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "auth": {
         "type": "apiKey",
@@ -1786,5 +1786,5 @@
       ]
     }
   },
-  "version": "1.6.5"
+  "version": "1.6.6"
 }
