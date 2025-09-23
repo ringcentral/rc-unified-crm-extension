@@ -6,6 +6,10 @@
                 "description": "- Server-side call logging now supports user mapping configuration in the admin tab, allowing admin users to log calls on behalf of other users."
             },
             {
+                "type": "New",
+                "description": "- Separate enable domains for click-to-dial and quick access button"
+            },
+            {
                 "type": "Fix",
                 "description": "- Server-side call logging now displays RingCentral user names in the correct order within log details."
             },
