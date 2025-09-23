@@ -267,6 +267,7 @@ function formatContact({ person, phoneNumber, relatedDeals, relatedLeads }) {
         id: person.id,
         name: person.name,
         phone: phoneNumber,
+        mostRecentActivityDate: person.update_time,
         organization: person.organization?.name ?? '',
         additionalInfo: additionalInfo ?? null,
         type: 'contact'

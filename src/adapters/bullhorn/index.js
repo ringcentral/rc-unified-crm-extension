@@ -7,6 +7,7 @@ const oauth = require('@app-connect/core/lib/oauth');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
+const { getMostRecentDate } = require('@app-connect/core/lib/util');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
@@ -483,7 +484,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     const matchedContactInfo = [];
     // check for Contact
     const contactPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone,dateAdded,dateLastModified,dateLastVisit`,
         {
             query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         },
@@ -493,17 +494,22 @@ async function findContact({ user, phoneNumber, isExtension }) {
             }
         });
     for (const result of contactPersonInfo.data.data) {
+        // compare dateAdded, dateLastModified, dateLastVisit
+        var mostRecentDateForContact = getMostRecentDate({ 
+            allDateValues: [result.dateAdded, result.dateLastModified, result.dateLastVisit]
+         });
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
             phone: result.phone,
             type: 'Contact',
+            mostRecentActivityDate: mostRecentDateForContact,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
     // check for Candidate
     const candidatePersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone,dateAdded,dateLastComment,dateLastModified`,
         {
             query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode} OR workPhone:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
         },
@@ -513,17 +519,21 @@ async function findContact({ user, phoneNumber, isExtension }) {
             }
         });
     for (const result of candidatePersonInfo.data.data) {
+        var mostRecentDateForCandidate = getMostRecentDate({
+            allDateValues: [result.dateAdded, result.dateLastComment, result.dateLastModified]
+        });
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
             phone: result.phone,
             type: 'Candidate',
+            mostRecentActivityDate: mostRecentDateForCandidate,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
     // check for Lead
     const leadPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status,dateAdded,dateLastComment,dateLastModified`,
         {
             query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Converted"`
         },
@@ -533,11 +543,15 @@ async function findContact({ user, phoneNumber, isExtension }) {
             }
         });
     for (const result of leadPersonInfo.data.data) {
+        var mostRecentDateForLead = getMostRecentDate({
+            allDateValues: [result.dateAdded, result.dateLastComment, result.dateLastModified]
+        });
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
             phone: result.phone,
             type: 'Lead',
+            mostRecentActivityDate: mostRecentDateForLead,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }

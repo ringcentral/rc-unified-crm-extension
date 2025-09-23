@@ -37,7 +37,22 @@ function secondsToHoursMinutesSeconds(seconds) {
     return resultString;
 }
 
+function getMostRecentDate({ allDateValues }) {
+    var result = 0;
+    for (const date of allDateValues) {
+        if(!date)
+        {
+            continue;
+        }
+        if (date > result) {
+            result = date;
+        }
+    }
+    return result;
+}
+
 exports.getTimeZone = getTimeZone;
 exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
+exports.getMostRecentDate = getMostRecentDate;
 

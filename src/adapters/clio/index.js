@@ -157,7 +157,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company`,
+            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company,updated_at`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -201,6 +201,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     title: result.title ?? "",
                     company: result.company?.name ?? "",
                     phone: numberFromRc,
+                    mostRecentActivityDate: result.updated_at,
                     additionalInfo: returnedMatters.length > 0 ?
                         {
                             matters: returnedMatters,
