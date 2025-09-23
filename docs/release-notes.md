@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.6.6:
+
+- New: Server-side call logging now supports user mapping configuration in the admin tab, allowing admin users to log calls on behalf of other users
+- Fix: Redtail now properly displays middle names
+- Fix: Server-side call logging now displays RingCentral user names in the correct order within log details
+- Fix: Server-side call logging now shows the correct RingCentral user name instead of displaying the Caller ID
+
+## 1.6.5:
+
+- New: Support call journey in call logging details with server side logging
+- Better: Tabs orders updated
+- Fix: Date/Time display issue
+
 ## 1.6.4:
 - New Add RingCentral user name and phone number in call details settings
 - Better: Server-side call logging can now upload agent notes from the Chrome extension immediately after the call

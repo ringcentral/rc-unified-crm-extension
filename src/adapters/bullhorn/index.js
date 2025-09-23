@@ -1083,7 +1083,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // Fallback to API call if details not provided
         try {
             getLogRes = await axios.get(
-                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                 {
                     headers: {
                         BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -1099,7 +1099,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (isAuthError(e.response.status)) {
                 user = await refreshSessionToken(user);
                 getLogRes = await axios.get(
-                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments`,
+                    `${user.platformAdditionalInfo.restUrl}entity/Note/${existingBullhornLogId}?fields=comments,commentingPerson`,
                     {
                         headers: {
                             BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -1569,7 +1569,7 @@ async function generateMonthlyCsvReport() {
     const fs = require('fs');
 
     // Use filteredUsers for the report instead of all users
-    const header = ['User id', 'User email', 'Bullhorn id', 'User name'];
+    const header = ['Bullhorn Master User ID', 'Email', 'Bullhorn ID', 'Name', 'Bullhorn Corp Token'];
     const rows = [header];
     // Bounded parallelism to avoid Lambda timeout and rate limits
     const boundedUsers = users;
@@ -1593,11 +1593,12 @@ async function generateMonthlyCsvReport() {
                         });
                         return null;
                     }
-                    const userId = currentUser.id || '';
+                    const masterId = (currentUser.id || '').replace(/-bullhorn$/, '');
                     const userEmail = profile.email;
                     const bullhornId = currentUser.platformAdditionalInfo?.id || '';
                     const userName = profile.name;
-                    return [userId, userEmail, bullhornId, userName];
+                    const corpToken = (currentUser.platformAdditionalInfo?.restUrl || '').match(/rest-services\/([^/]+)/)?.[1] || '';
+                    return [masterId, userEmail, bullhornId, userName, corpToken];
                 } catch (error) {
                     // const safeLog = {
                     //     message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
