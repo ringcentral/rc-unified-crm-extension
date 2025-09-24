@@ -225,6 +225,49 @@ class RingCentral {
     }, token);
     return response.json();
   }
+
+  async getCallLogData({ extensionId = '~', token, timezone, timeFrom, timeTo }) {
+    let pageStart = 1;
+    let isFinalPage = false;
+    let callLogResponse = null;
+    let result = { records: [] };
+    while (!isFinalPage) {
+      callLogResponse = await this.request({
+        method: 'GET',
+        path: `/restapi/v1.0/account/~/extension/${extensionId}/call-log?dateFrom=${timeFrom}&dateTo=${timeTo}&page=${pageStart}&view=Simple&perPage=1000`,
+      }, token);
+      const resultJson = await callLogResponse.json();
+      result.records.push(...resultJson.records);
+      if (resultJson.navigation?.nextPage) {
+        pageStart++;
+      }
+      else {
+        isFinalPage = true;
+      }
+    }
+    return result;
+  }
+  async getSMSData({ extensionId = '~', token, timezone, timeFrom, timeTo }) {
+    let pageStart = 1;
+    let isFinalPage = false;
+    let smsLogResponse = null;
+    let result = { records: [] };
+    while (!isFinalPage) {
+      smsLogResponse = await this.request({
+        method: 'GET',
+        path: `/restapi/v1.0/account/~/extension/${extensionId}/message-store?dateFrom=${timeFrom}&dateTo=${timeTo}&page=${pageStart}&perPage=100`,
+      }, token);
+      const resultJson = await smsLogResponse.json();
+      result.records.push(...resultJson.records);
+      if (resultJson.navigation?.nextPage) {
+        pageStart++;
+      }
+      else {
+        isFinalPage = true;
+      }
+    }
+    return result;
+  }
 }
 
 exports.RingCentral = RingCentral;

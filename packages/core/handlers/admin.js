@@ -72,56 +72,119 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
 }
 
 async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
-    try{
-    const rcSDK = new RingCentral({
-        server: process.env.RINGCENTRAL_SERVER,
-        clientId: process.env.RINGCENTRAL_CLIENT_ID,
-        clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
-        redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
-    });
-    let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
-    const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
-    if (isTokenExpired) {
-        const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
-            refresh_token: adminConfig.adminRefreshToken,
-            expires_in: adminConfig.adminTokenExpiry,
-            refresh_token_expires_in: adminConfig.adminTokenExpiry
+    try {
+        const rcSDK = new RingCentral({
+            server: process.env.RINGCENTRAL_SERVER,
+            clientId: process.env.RINGCENTRAL_CLIENT_ID,
+            clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+            redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
-        adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
-    }
-    const callsAggregationData = await rcSDK.getCallsAggregationData({
-        token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
-        timezone,
-        timeFrom,
-        timeTo
-    });
-    var dataCounter = callsAggregationData.data.records[0].counters;
-    var inboundCallCount = dataCounter.callsByDirection.values.inbound;
-    var outboundCallCount = dataCounter.callsByDirection.values.outbound;
-    var answeredCallCount = dataCounter.callsByResponse.values.answered;
-    // keep 2 decimal places
-    var answeredCallPercentage = `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
-
-    var dataTimer = callsAggregationData.data.records[0].timers;
-    // keep 2 decimal places
-    var totalTalkTime = (dataTimer.allCalls.values / 60).toFixed(2);
-    // keep 2 decimal places
-    var averageTalkTime = (totalTalkTime / (inboundCallCount + outboundCallCount)).toFixed(2);
-    return {
-        callLogStats: {
-            inboundCallCount,
-            outboundCallCount,
-            answeredCallCount,
-            answeredCallPercentage,
-            totalTalkTime,
-            averageTalkTime
+        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
+        if (isTokenExpired) {
+            const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
+                refresh_token: adminConfig.adminRefreshToken,
+                expires_in: adminConfig.adminTokenExpiry,
+                refresh_token_expires_in: adminConfig.adminTokenExpiry
+            });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
         }
-    };
+        const callsAggregationData = await rcSDK.getCallsAggregationData({
+            token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
+            timezone,
+            timeFrom,
+            timeTo
+        });
+        var dataCounter = callsAggregationData.data.records[0].counters;
+        var inboundCallCount = dataCounter.callsByDirection.values.inbound;
+        var outboundCallCount = dataCounter.callsByDirection.values.outbound;
+        var answeredCallCount = dataCounter.callsByResponse.values.answered;
+        // keep 2 decimal places
+        var answeredCallPercentage = `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
+
+        var dataTimer = callsAggregationData.data.records[0].timers;
+        // keep 2 decimal places
+        var totalTalkTime = (dataTimer.allCalls.values / 60).toFixed(2);
+        // keep 2 decimal places
+        var averageTalkTime = (totalTalkTime / (inboundCallCount + outboundCallCount)).toFixed(2);
+        return {
+            callLogStats: {
+                inboundCallCount,
+                outboundCallCount,
+                answeredCallCount,
+                answeredCallPercentage,
+                totalTalkTime,
+                averageTalkTime
+            }
+        };
     } catch (error) {
         console.error(error);
         return {
             callLogStats: {}
         };
+    }
+}
+
+async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, timeTo }) {
+    try {
+        const rcSDK = new RingCentral({
+            server: process.env.RINGCENTRAL_SERVER,
+            clientId: process.env.RINGCENTRAL_CLIENT_ID,
+            clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+            redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+        });
+        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
+        if (isTokenExpired) {
+            const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
+                refresh_token: adminConfig.adminRefreshToken,
+                expires_in: adminConfig.adminTokenExpiry,
+                refresh_token_expires_in: adminConfig.adminTokenExpiry
+            });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+        }
+        const callLogData = await rcSDK.getCallLogData({
+            extensionId: rcExtensionId,
+            token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
+            timezone,
+            timeFrom,
+            timeTo
+        });
+        // phone activity
+        const inboundCallCount = callLogData.records.filter(call => call.direction === 'Inbound').length;
+        const outboundCallCount = callLogData.records.filter(call => call.direction === 'Outbound').length;
+        const answeredCallCount = callLogData.records.filter(call => call.direction === 'Inbound' && (call.result === 'Call connected' || call.result === 'Accepted' || call.result === 'Answered Not Accepted')).length;
+        const answeredCallPercentage = answeredCallCount === 0 ? '0%' : `${((answeredCallCount / (inboundCallCount || 1)) * 100).toFixed(2)}%`;
+        // phone engagement
+        const totalTalkTime = Math.round(callLogData.records.reduce((acc, call) => acc + (call.duration || 0), 0) / 60) || 0;
+        const averageTalkTime = Math.round(totalTalkTime / (inboundCallCount + outboundCallCount)) || 0;
+        const smsLogData = await rcSDK.getSMSData({
+            extensionId: rcExtensionId,
+            token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
+            timezone,
+            timeFrom,
+            timeTo
+        });
+        const smsSentCount = smsLogData.records.filter(sms => sms.direction === 'Outbound').length;
+        const smsReceivedCount = smsLogData.records.filter(sms => sms.direction === 'Inbound').length;
+        const reportStats = {
+            callLogStats: {
+                inboundCallCount,
+                outboundCallCount,
+                answeredCallCount,
+                answeredCallPercentage,
+                totalTalkTime,
+                averageTalkTime
+            },
+            smsLogStats: {
+                smsSentCount,
+                smsReceivedCount
+            }
+        };
+        return reportStats;
+    } catch (error) {
+        console.error(error);
+        return null;
     }
 }
 
@@ -241,4 +304,5 @@ exports.updateAdminRcTokens = updateAdminRcTokens;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.getAdminReport = getAdminReport;
+exports.getUserReport = getUserReport;
 exports.getUserMapping = getUserMapping;

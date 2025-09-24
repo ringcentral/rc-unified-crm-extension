@@ -177,22 +177,6 @@ app.get('/ringcentral/oauth/callback', async function (req, res) {
     res.status(400).send('Invalid request');
 });
 
-app.get('/ringcentral/admin/report', async function (req, res) {
-    const jwtToken = req.query.jwtToken;
-    if (jwtToken) {
-        const unAuthData = jwt.decodeJwt(jwtToken);
-        const user = await UserModel.findByPk(unAuthData?.id);
-        if (!user) {
-            res.status(400).send('User not found');
-            return;
-        }
-        const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
-        res.status(200).send(report);
-        return;
-    }
-    res.status(400).send('Invalid request');
-});
-
 exports.getServer = function getServer() {
     return app;
 }

@@ -1000,7 +1000,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL'});
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -1243,8 +1243,91 @@ function createCoreRouter() {
                 statusCode
             }
         });
-
     });
+
+    router.get('/ringcentral/admin/report', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const jwtToken = req.query.jwtToken;
+        try {
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    res.status(400).send('User not found');
+                    return;
+                }
+                const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                res.status(200).send(report);
+                success = true;
+                return;
+            }
+            res.status(400).send('Invalid request');
+            success = false;
+        }
+        catch (e) {
+            console.log(`${e.stack}`);
+            res.status(400).send(e);
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get admin report',
+            interfaceName: 'getAdminReport',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
+    router.get('/ringcentral/admin/userReport', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const jwtToken = req.query.jwtToken;
+        try {
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    res.status(400).send('User not found');
+                    return;
+                }
+                const report = await adminCore.getUserReport({ rcAccountId: user.rcAccountId, rcExtensionId: req.query.rcExtensionId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                res.status(200).send(report);
+                return;
+            }
+            res.status(400).send('Invalid request');
+            success = false;
+        }
+        catch (e) {
+            console.log(`${e.stack}`);
+            res.status(400).send(e);
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get user report',
+            interfaceName: 'getUserReport',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
     if (process.env.IS_PROD === 'false') {
         router.post('/registerMockUser', async function (req, res) {
             const secretKey = req.query.secretKey;
