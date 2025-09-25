@@ -94,6 +94,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     if (existingUser) {
         await existingUser.update(
             {
+                platform,
                 hostname,
                 timezoneName,
                 timezoneOffset,
