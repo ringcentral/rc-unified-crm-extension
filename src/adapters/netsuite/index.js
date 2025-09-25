@@ -744,6 +744,13 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         } else if (contactInfo.type === 'custjob') {
             postBody.company = { id: contactInfo.id };
         }
+        if (additionalSubmission && (additionalSubmission.salesorder || additionalSubmission.opportunity)) {
+            if (additionalSubmission.salesorder) {
+                postBody.transaction = { id: Number(additionalSubmission.salesorder), type: 'salesorder' };
+            } else if (additionalSubmission.opportunity) {
+                postBody.transaction = { id: Number(additionalSubmission.opportunity), type: 'opportunity' };
+            }
+        }
         const addLogRes = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
             postBody,
