@@ -598,7 +598,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink }) {
     let extraDataTracking = {};
     const sender =
     {
@@ -616,11 +616,28 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+    let messageType = 'SMS';
+    let messageSubject = message.subject;
+    if (recordingLink) {
+        messageType = 'Voicemail';
+    }
+    else if (faxDocLink) {
+        messageType = 'Fax';
+    }
+    else if (imageLink) {
+        messageType = 'Image';
+        messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
+    }
+    else if (videoLink) {
+        messageType = 'Video';
+        messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
+    }
     let logBody = '';
     let logSubject = '';
     switch (messageType) {
         case 'SMS':
+        case 'Image':
+        case 'Video':
             logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
             logBody =
                 '\nConversation summary\n' +
@@ -632,7 +649,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'BEGIN\n' +
                 '------------\n' +
                 `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n` +
+                `${messageSubject}\n` +
                 '------------\n' +
                 'END\n\n' +
                 '--- Created via RingCentral App Connect';
@@ -744,7 +761,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, imageLink, videoLink }) {
     let extraDataTracking = {};
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
@@ -759,12 +776,19 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     });
     const userName = userInfoResponse.data.data.name;
     let logBody = getLogRes.data.data.body;
+    let messageSubject = message.subject;
+    if (imageLink) {
+        messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
+    }
+    else if (videoLink) {
+        messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
+    }
     let patchBody = {};
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const endMarker = '------------\nEND';
     const newMessageLog =
         `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n\n`;
+        `${messageSubject}\n\n`;
     logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
     const regex = RegExp('Conversation.(.*) messages.');

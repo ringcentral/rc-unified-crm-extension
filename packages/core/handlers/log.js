@@ -9,6 +9,7 @@ const adapterRegistry = require('../adapter/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const moment = require('moment');
+const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
@@ -519,6 +520,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
                 faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
             }
+            let imageLink = null;
+            let videoLink = null;
+            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
+                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                if (imageAttachment) {
+                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                }
+                const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
+                if (videoAttachment) {
+                    videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
+                }
+            }
             const existingSameDateMessageLog = await MessageLogModel.findOne({
                 where: {
                     conversationLogId: incomingData.logInfo.conversationLogId
@@ -526,12 +539,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission });
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
