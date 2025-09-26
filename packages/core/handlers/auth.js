@@ -27,7 +27,8 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, username, callbackUri, query });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query });
+    console.log('platformUserInfo', platformUserInfo);
     if (successful) {
         let userInfo = await saveUserInfo({
             platformUserInfo,
@@ -60,7 +61,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, additionalInfo, apiKey });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey });
     if (successful) {
         let userInfo = await saveUserInfo({
             platformUserInfo,

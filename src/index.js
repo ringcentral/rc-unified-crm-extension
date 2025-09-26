@@ -1,6 +1,7 @@
 const {
     createCoreApp,
     connectorRegistry
+    proxyAdapter
 } = require('@app-connect/core');
 const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -21,6 +22,7 @@ const adminCore = require('@app-connect/core/handlers/admin');
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
+<<<<<<< HEAD
 connectorRegistry.registerConnector('bullhorn', bullhorn);
 connectorRegistry.registerConnector('clio', clio);
 connectorRegistry.registerConnector('googleSheets', googleSheets);
@@ -28,6 +30,17 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
+=======
+adapterRegistry.registerAdapter('bullhorn', bullhorn);
+adapterRegistry.registerAdapter('clio', clio);
+adapterRegistry.registerAdapter('googleSheets', googleSheets);
+adapterRegistry.registerAdapter('insightly', insightly);
+adapterRegistry.registerAdapter('netsuite', netsuite);
+adapterRegistry.registerAdapter('pipedrive', pipedrive);
+adapterRegistry.registerAdapter('redtail', redtail);
+adapterRegistry.registerAdapter('proxy', proxyAdapter);
+adapterRegistry.registerAdapter('testCRM', testCRM, require('./adapters/testCRM/manifest.json'));
+>>>>>>> af0bc26 (feat: init proxy adapter)
 
 // Create Express app with core functionality
 const app = createCoreApp();
