@@ -2,10 +2,10 @@ name: Publish documentation
 on:
   push:
     branches:
-      - main
+      - stable
   pull_request:
     branches:
-      - main
+      - stable
       
 permissions:
   contents: write
