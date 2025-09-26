@@ -100,7 +100,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
         var outboundCallCount = dataCounter.callsByDirection.values.outbound;
         var answeredCallCount = dataCounter.callsByResponse.values.answered;
         // keep 2 decimal places
-        var answeredCallPercentage = `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
+        var answeredCallPercentage = inboundCallCount === 0 ? '0%' : `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
 
         var dataTimer = callsAggregationData.data.records[0].timers;
         // keep 2 decimal places
