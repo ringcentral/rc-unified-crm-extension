@@ -476,7 +476,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         {
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
                         });
-                    console.log({ vendorItemInfo: vendorInfo.data.items });
                     if (vendorInfo.data.items.length > 0) {
                         for (const result of vendorInfo.data.items) {
                             const first = (result.firstname || '').trim();
