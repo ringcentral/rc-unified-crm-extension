@@ -607,6 +607,10 @@ function upsertLegs({ body, legs, logFormat }) {
  */
 function getLogFormatType(platform) {
     const manifest = adapterRegistry.getManifest(platform, true);
+    if (!manifest) {
+        // For proxy adapter, there are no manifest, return null
+        return null;
+    }
     const platformConfig = manifest.platforms?.[platform];
     return platformConfig?.logFormat;
 }

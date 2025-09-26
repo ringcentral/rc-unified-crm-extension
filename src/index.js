@@ -1,6 +1,7 @@
 const {
     createCoreApp,
-    adapterRegistry
+    adapterRegistry,
+    proxyAdapter
 } = require('@app-connect/core');
 const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -29,6 +30,7 @@ adapterRegistry.registerAdapter('insightly', insightly);
 adapterRegistry.registerAdapter('netsuite', netsuite);
 adapterRegistry.registerAdapter('pipedrive', pipedrive);
 adapterRegistry.registerAdapter('redtail', redtail);
+adapterRegistry.registerAdapter('proxy', proxyAdapter);
 adapterRegistry.registerAdapter('testCRM', testCRM, require('./adapters/testCRM/manifest.json'));
 
 // Create Express app with core functionality

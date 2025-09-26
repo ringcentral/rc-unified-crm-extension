@@ -89,11 +89,15 @@ class AdapterRegistry {
    * @returns {Object} Composed adapter with interface functions
    */
   getAdapter(platform) {
-      const adapter = this.adapters.get(platform);
+      let adapter = this.adapters.get(platform);
       const platformInterfaceMap = this.platformInterfaces.get(platform);
       
-      // If no adapter and no interfaces, throw error
+      // If no adapter and no interfaces, try fallback to proxy adapter
       if (!adapter && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
+          const proxy = this.adapters.get('proxy');
+          if (proxy) {
+            return proxy;
+          }
           throw new Error(`Adapter not found for platform: ${platform}`);
       }
 

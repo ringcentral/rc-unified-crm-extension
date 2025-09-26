@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "id": "sample",
+    "displayName": "Sample Proxy CRM"
+  },
+  "auth": {
+    "type": "apiKey",
+    "scheme": "Basic",
+    "credentialTemplate": "{{apiKey}}",
+    "encode": "base64",
+    "headerName": "Authorization"
+  },
+  "requestDefaults": {
+    "baseUrl": "https://example/api",
+    "timeoutSeconds": 30,
+    "defaultHeaders": {
+      "Accept": "application/json"
+    }
+  },
+  "operations": {
+    "getUserInfo": {
+      "method": "GET",
+      "url": "/authentication",
+      "responseMapping": {
+        "type": "object",
+        "idPath": "response.user.username",
+        "namePath": "response.user.username",
+        "messagePath": "response.message"
+      }
+    },
+    "findContact": {
+      "method": "GET",
+      "url": "/contacts",
+      "query": {
+        "phone": "{{phoneNumber}}"
+      },
+      "responseMapping": {
+        "type": "list",
+        "listPath": "response.contacts",
+        "item": {
+          "idPath": "id",
+          "namePath": "name",
+          "typeValue": "Contact",
+          "phonePath": "phone"
+        }
+      }
+    },
+    "createCallLog": {
+      "method": "POST",
+      "url": "/activities",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "{{subject}}",
+        "description": "{{composedLogDetails}}",
+        "start_date": "{{startTime}}",
+        "end_date": "{{endTime}}",
+        "activity_code_id": 3,
+        "repeats": "never",
+        "linked_contacts": [
+          { "contact_id": "{{contactInfo.id}}" }
+        ]
+      },
+      "responseMapping": {
+        "type": "object",
+        "idPath": "response.activity.id"
+      }
+    },
+    "updateCallLog": {
+      "method": "PUT",
+      "url": "/activities/{{existingCallLog.thirdPartyLogId}}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "{{subject}}",
+        "description": "{{composedLogDetails}}",
+        "start_date": "{{startTime}}",
+        "end_date": "{{endTime}}"
+      }
+    },
+    "getCallLog": {
+      "method": "GET",
+      "url": "/activities/{{callLogId}}",
+      "headers": {
+        "include": "linked_contacts"
+      },
+      "responseMapping": {
+        "type": "object",
+        "subjectPath": "response.activity.subject",
+        "notePath": "response.activity.note",
+        "fullBodyPath": "response.activity.description",
+        "fullLogResponsePath": "response"
+      }
+    },
+    "upsertCallDisposition": {
+      "method": "PUT",
+      "url": "/activities/{{existingCallLog.thirdPartyLogId}}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "category_id": "{{dispositions.category}}"
+      }
+    }
+  }
+}
