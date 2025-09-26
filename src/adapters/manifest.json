@@ -1600,6 +1600,10 @@
                 {
                   "id": "customer",
                   "name": "Customers"
+                },
+                {
+                  "id": "vendor",
+                  "name": "Vendors"
                 }
               ],
               "multiple": true,
@@ -1607,7 +1611,8 @@
               "checkbox": true,
               "defaultValue": [
                 "contact",
-                "customer"
+                "customer",
+                "vendor"
               ],
               "description": "Select the entities to search for. The fewer searched, the more performant lookups will be"
             },
@@ -1640,6 +1645,10 @@
         {
           "display": "Contact",
           "value": "contact"
+        },
+        {
+          "display": "Vendor",
+          "value": "vendor"
         }
       ],
       "page": {

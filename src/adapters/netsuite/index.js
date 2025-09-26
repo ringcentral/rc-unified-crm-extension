@@ -300,13 +300,15 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             phoneFields.push('phone', 'homePhone', 'mobilePhone', 'officePhone', 'altPhone');
         }
         if (contactSearch.length === 0) {
-            contactSearch.push('contact', 'customer');
+            contactSearch.push('contact', 'customer', 'vendor');
         }
         const commonFields = phoneFields.filter(f => f !== 'altPhone' && f !== 'officePhone');
         const contactFields = [...commonFields];
         const customerFields = [...commonFields];
+        const vendorFields = [...commonFields];
         if (phoneFields.includes('altPhone')) {
             customerFields.push('altPhone');
+            vendorFields.push('altPhone');
         }
         if (phoneFields.includes('officePhone')) {
             contactFields.push('officePhone');
@@ -335,6 +337,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         for (var numberToQuery of numberToQueryArray) {
             const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,company FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
             const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
+            const vendorQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM vendor WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(vendorFields, numberToQuery, overridingFormat)})`;
 
             const parallelTasks = [];
 
@@ -463,6 +466,38 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 }));
             }
 
+            if (contactSearch.includes('vendor')) {
+                parallelTasks.push((async () => {
+                    const vendorInfo = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                        {
+                            q: vendorQuery
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                        });
+                    if (vendorInfo.data.items.length > 0) {
+                        for (const result of vendorInfo.data.items) {
+                            const first = (result.firstname || '').trim();
+                            const middle = (result.middlename || '').trim();
+                            const last = (result.lastname || '').trim();
+                            const nameFromParts = [first, middle, last].filter(Boolean).join(' ');
+                            const vendorName = nameFromParts || result.companyname || result.companyName || result.entitytitle || '';
+                            matchedContactInfo.push({
+                                id: result.id,
+                                name: vendorName,
+                                phone: result.phone ?? '',
+                                altphone: result.altphone ?? '',
+                                additionalInfo: {},
+                                type: 'vendor'
+                            })
+                        }
+                    }
+                })().catch(e => {
+                    console.log({ message: 'Error in vendor search', e });
+                }));
+            }
+
             if (parallelTasks.length > 0) {
                 await Promise.all(parallelTasks);
             }
@@ -516,13 +551,14 @@ async function findContactWithName({ user, authHeader, name }) {
     const matchedContactInfo = [];
     const contactSearch = user.userSettings?.contactsSearchId?.value ?? [];
     if (contactSearch.length === 0) {
-        contactSearch.push('contact', 'customer');
+        contactSearch.push('contact', 'customer', 'vendor');
     }
     const { enableSalesOrderLogging = false } = user.userSettings;
     const { enableOpportunityLogging = { value: false } } = user.userSettings;
     // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}' OR lastname ='${name}' OR (firstname || ' ' || lastname) ='${name}'`;
     const contactQuery = `SELECT * FROM contact WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
     const customerQuery = `SELECT * FROM customer WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
+    const vendorQuery = `SELECT * FROM vendor WHERE LOWER(companyname) =LOWER('${name}') OR LOWER(entityid) =LOWER('${name}')`;
     if (contactSearch.includes('contact')) {
         const personInfo = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
@@ -577,6 +613,33 @@ async function findContactWithName({ user, authHeader, name }) {
                         ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
                     },
                     type: 'contact'
+                })
+            }
+        }
+    }
+    if (contactSearch.includes('vendor')) {
+        const vendorInfo = await axios.post(
+            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+            {
+                q: vendorQuery
+            },
+            {
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+            });
+        if (vendorInfo.data.items.length > 0) {
+            for (const result of vendorInfo.data.items) {
+                const first = (result.firstname || '').trim();
+                const middle = (result.middlename || '').trim();
+                const last = (result.lastname || '').trim();
+                const nameFromParts = [first, middle, last].filter(Boolean).join(' ');
+                const vendorName = nameFromParts || result.companyname || result.entitytitle || result.entityid || '';
+                matchedContactInfo.push({
+                    id: result.id,
+                    name: vendorName,
+                    phone: result.phone ?? '',
+                    altphone: result.altphone ?? '',
+                    additionalInfo: {},
+                    type: 'vendor'
                 })
             }
         }
@@ -741,8 +804,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                     id: companyId
                 };
             }
-        } else if (contactInfo.type === 'custjob') {
+        } else if (contactInfo.type === 'custjob' || contactInfo.type === 'vendor') {
             postBody.company = { id: contactInfo.id };
+        }
+        if (additionalSubmission && (additionalSubmission.salesorder || additionalSubmission.opportunity)) {
+            if (additionalSubmission.salesorder) {
+                postBody.transaction = { id: Number(additionalSubmission.salesorder), type: 'salesorder' };
+            } else if (additionalSubmission.opportunity) {
+                postBody.transaction = { id: Number(additionalSubmission.opportunity), type: 'opportunity' };
+            }
         }
         const addLogRes = await axios.post(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall`,
@@ -1252,11 +1322,59 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         }
                     }
                 }
+            case 'vendor':
+                const vLastName = nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName;
+                const vendorPayload = {
+                    firstName: nameParts.firstName,
+                    middleName: nameParts.middleName,
+                    lastName: vLastName,
+                    entityId: nameParts.firstName + " " + vLastName,
+                    phone: phoneNumber || '',
+                    isPerson: true
+                };
+                if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                    vendorPayload.subsidiary = { id: subsidiaryId };
+                }
+                try {
+                    const createVendorRes = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/vendor`,
+                        vendorPayload,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        }
+                    );
+                    contactId = extractIdFromUrl(createVendorRes.headers.location);
+                    break;
+                } catch (error) {
+                    return {
+                        contactInfo: {
+                            id: contactId,
+                            name: newContactName
+                        },
+                        returnMessage: {
+                            message: netSuiteErrorDetails(error, "Error creating vendor"),
+                            messageType: 'danger',
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `NetSuite was unable to create an activity entry for the Vendor named ${newContactName}. If this issues persists, please contact your NetSuite administrator.`
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 3000
+                        }
+                    }
+                }
 
         }
         const displayMessage = newContactType === 'contact'
             ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
-            : 'Customer created';
+            : (newContactType === 'customer' ? 'Customer created' : 'Vendor created');
         return {
             contactInfo: {
                 id: contactId,
