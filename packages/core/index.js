@@ -22,6 +22,7 @@ const releaseNotes = require('./releaseNotes.json');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const adapterRegistry = require('./adapter/registry');
+const calldown = require('./handlers/calldown');
 
 let packageJson = null;
 try {
@@ -1003,7 +1004,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL'});
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -1202,7 +1203,7 @@ function createCoreRouter() {
         });
     });
 
-    router.post('/calldown/schedule', async function (req, res) {
+    router.post('/calldown', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
@@ -1214,34 +1215,9 @@ function createCoreRouter() {
                 res.status(400).send('Please go to Settings and authorize CRM platform');
                 return;
             }
-            const decodedToken = jwt.decodeJwt(jwtToken);
-            if (!decodedToken) {
-                res.status(400).send('Invalid JWT token');
-                return;
-            }
-            const { id: userId, platform } = decodedToken;
-            platformName = platform;
-            const user = await UserModel.findByPk(userId);
-            if (!user) {
-                res.status(400).send('User not found');
-                return;
-            }
-            const crypto = require('crypto');
-            const recordId = crypto.randomBytes(16).toString('hex');
-            const payload = {
-                id: recordId,
-                userId: userId,
-                contactId: req.body.contactId?.toString?.() ?? req.body.contactId,
-                contactType: req.body.contactType ?? 'contact',
-                contactName: req.body.contactName ?? '',
-                phoneNumber: req.body.phoneNumber ?? '',
-                status: 'scheduled',
-                scheduledAt: req.body.scheduledAt ? new Date(req.body.scheduledAt) : null,
-                lastCallAt: null
-            };
-            await CallDownListModel.create(payload);
+            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
             success = true;
-            res.status(200).send({ successful: true, id: recordId });
+            res.status(200).send({ successful: true, id });
         } catch (e) {
             console.log(`platform: ${platformName} \n${e.stack}`);
             statusCode = e.response?.status ?? 'unknown';
@@ -1267,7 +1243,8 @@ function createCoreRouter() {
         });
     });
 
-    router.get('/calldown/list', async function (req, res) {
+
+    router.get('/calldown', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
@@ -1279,31 +1256,7 @@ function createCoreRouter() {
                 res.status(400).send('Please go to Settings and authorize CRM platform');
                 return;
             }
-            const decodedToken = jwt.decodeJwt(jwtToken);
-            if (!decodedToken) {
-                res.status(400).send('Invalid JWT token');
-                return;
-            }
-            const { id: userId, platform } = decodedToken;
-            platformName = platform;
-            const user = await UserModel.findByPk(userId);
-            if (!user) {
-                res.status(400).send('User not found');
-                return;
-            }
-
-            const statusParam = (req.query.status || 'All').toString().toLowerCase();
-            const whereClause = { userId };
-            if (statusParam === 'called') {
-                whereClause.status = 'called';
-            } else if (statusParam === 'not called' || statusParam === 'not_called' || statusParam === 'notcalled') {
-                whereClause.status = { [Op.ne]: 'called' };
-            }
-
-            const items = await CallDownListModel.findAll({
-                where: whereClause,
-                order: [["scheduledAt", "ASC"]]
-            });
+            const { items } = await calldown.list({ jwtToken, status: req.query.status });
             success = true;
             res.status(200).send({ successful: true, items });
         } catch (e) {
@@ -1329,7 +1282,8 @@ function createCoreRouter() {
         });
     });
 
-    router.delete('/calldown/item', async function (req, res) {
+
+    router.delete('/calldown/:id', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
@@ -1342,27 +1296,12 @@ function createCoreRouter() {
                 res.status(400).send('Please go to Settings and authorize CRM platform');
                 return;
             }
-            if (!id) {
+            const rid = req.params.id || id;
+            if (!rid) {
                 res.status(400).send('Missing id');
                 return;
             }
-            const decodedToken = jwt.decodeJwt(jwtToken);
-            if (!decodedToken) {
-                res.status(400).send('Invalid JWT token');
-                return;
-            }
-            const { id: userId, platform } = decodedToken;
-            platformName = platform;
-            const user = await UserModel.findByPk(userId);
-            if (!user) {
-                res.status(400).send('User not found');
-                return;
-            }
-            const deletedCount = await CallDownListModel.destroy({ where: { id, userId } });
-            if (deletedCount === 0) {
-                res.status(404).send('Not found');
-                return;
-            }
+            await calldown.remove({ jwtToken, id: rid });
             success = true;
             res.status(200).send({ successful: true });
         } catch (e) {
@@ -1388,7 +1327,8 @@ function createCoreRouter() {
         });
     });
 
-    router.patch('/calldown/markCalled', async function (req, res) {
+
+    router.patch('/calldown/:id', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
@@ -1400,34 +1340,12 @@ function createCoreRouter() {
                 res.status(400).send('Please go to Settings and authorize CRM platform');
                 return;
             }
-            const decodedToken = jwt.decodeJwt(jwtToken);
-            if (!decodedToken) {
-                res.status(400).send('Invalid JWT token');
-                return;
-            }
-            const { id: userId, platform } = decodedToken;
-            platformName = platform;
-            const user = await UserModel.findByPk(userId);
-            if (!user) {
-                res.status(400).send('User not found');
-                return;
-            }
-
-            const id = req.body?.id;
+            const id = req.params.id || req.body?.id;
             if (!id) {
                 res.status(400).send('Missing id');
                 return;
             }
-            const lastCallAt = req.body?.lastCallAt ? new Date(req.body.lastCallAt) : new Date();
-
-            const [affected] = await CallDownListModel.update(
-                { status: 'called', lastCallAt },
-                { where: { id, userId } }
-            );
-            if (!affected) {
-                res.status(404).send('Not found');
-                return;
-            }
+            await calldown.markCalled({ jwtToken, id, lastCallAt: req.body?.lastCallAt });
             success = true;
             res.status(200).send({ successful: true });
         } catch (e) {
