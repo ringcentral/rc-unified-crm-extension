@@ -952,23 +952,36 @@ async function getUserList({ user }) {
         fields: 'id,firstName,lastName,email',
         where: queryWhere
     });
-    const userInfoResponse = await axios.get(
-        `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    let start = 0;
+    let userInfoResponse;
+    const userList = [];
+    // use max loop counter just in case while loop goes forever
+    const maxLoop = 500;
+    let loopCounter = 0;
+    do {
+        loopCounter++;
+        userInfoResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?start=${start}&${searchParams.toString()}`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            }
+        );
+        start = userInfoResponse?.data?.start + userInfoResponse?.data?.count;
+        if (userInfoResponse?.data?.data?.length > 0) {
+            for (const user of userInfoResponse.data.data) {
+                userList.push({
+                    id: user.id,
+                    name: `${user.firstName} ${user.lastName}`,
+                    email: user.email
+                });
             }
         }
-    );
-    const userList = [];
-    if (userInfoResponse?.data?.data?.length > 0) {
-        for (const user of userInfoResponse.data.data) {
-            userList.push({
-                id: user.id,
-                name: `${user.firstName} ${user.lastName}`,
-                email: user.email
-            });
-        }
+    }
+    while (userInfoResponse?.data?.data?.length > 0 && loopCounter < maxLoop);
+    if (loopCounter >= maxLoop) {
+        throw new Error('Bullhorn user list fetch over-limit');
     }
     return userList;
 }
