@@ -188,22 +188,37 @@ function upsertRingCentralUserName({ body, userName, logFormat }) {
 
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
         const userNameRegex = /(?:<li>)?<b>RingCentral user name<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (userNameRegex.test(body)) {
-            return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+        const match = body.match(userNameRegex);
+        if (match) {
+            // Only replace if existing value is (pending...)
+            if (match[1].trim() === '(pending...)') {
+                return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+            }
+            return body;
         } else {
             return body + `<li><b>RingCentral user name</b>: ${userName}</li>`;
         }
     } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const userNameRegex = /\*\*RingCentral user name\*\*: [^\n]*\n*/i;
-        if (userNameRegex.test(body)) {
-            return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+        const userNameRegex = /\*\*RingCentral user name\*\*: ([^\n]*)\n*/i;
+        const match = body.match(userNameRegex);
+        if (match) {
+            // Only replace if existing value is (pending...)
+            if (match[1].trim() === '(pending...)') {
+                return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+            }
+            return body;
         } else {
             return body + `**RingCentral user name**: ${userName}\n`;
         }
     } else {
-        const userNameRegex = /- RingCentral user name: [^\n]*\n*/;
-        if (userNameRegex.test(body)) {
-            return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+        const userNameRegex = /- RingCentral user name: ([^\n]*)\n*/;
+        const match = body.match(userNameRegex);
+        if (match) {
+            // Only replace if existing value is (pending...)
+            if (match[1].trim() === '(pending...)') {
+                return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+            }
+            return body;
         } else {
             return body + `- RingCentral user name: ${userName}\n`;
         }

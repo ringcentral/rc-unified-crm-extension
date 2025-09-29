@@ -67,7 +67,7 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Recording** - if there is a recording for the call, a link to the recording will be embedded 
 * **AI notes/summary** - AI-generated summary of the call (requires RingSense subscription)
 * **Transcript** - A transcript of the call (requires RingSense subscription)
-* **Call journey (Beta)** - Information about how call is routed in RingCentral phone system. Only available in admin settings. Only provided with server side logging enabled. When the value changed, admin needs to re-enable server-side logging again to make it use new setting.
+* **Call journey (Server-side logging only)** - Provides details on how calls are routed within the RingCentral phone system (e.g., IVR menus, call queue transfers). Manual call transfers performed by users are not included. This information is available only in Admin Settings and requires server-side logging to be enabled. If this setting is changed, the admin must re-enable server-side logging for the changes to take effect.
 
 <figure markdown>
   ![Call log settings](../img/call-log-details.png){ .mw-400 }
