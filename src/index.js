@@ -24,7 +24,6 @@ adapterRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
 adapterRegistry.registerAdapter('bullhorn', bullhorn);
 adapterRegistry.registerAdapter('clio', clio);
-adapterRegistry.registerAdapter('datestclio', clio);
 adapterRegistry.registerAdapter('googleSheets', googleSheets);
 adapterRegistry.registerAdapter('insightly', insightly);
 adapterRegistry.registerAdapter('netsuite', netsuite);
