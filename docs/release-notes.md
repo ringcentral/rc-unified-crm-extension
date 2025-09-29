@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.6.7:
+
+- New: Clio now supports image/video media link in message logs
+- New: NetSuite salesOrder/opportunity association with native transaction field in phone call
+- New: NetSuite now supports Vendor as new contact type
+- Fix: Wrong default microphone device in some cases
+- Fix: Bullhorn user mapping now gets the full user list
+
 ## 1.6.6:
 
 - New: Server-side call logging now supports user mapping configuration in the admin tab, allowing admin users to log calls on behalf of other users

@@ -1,4 +1,34 @@
 {
+    "1.6.7": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Wrong default microphone device in some cases"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "- NetSuite now supports Vendor as new contact type"
+            },
+            {
+                "type": "New",
+                "description": "- NetSuite now supports SalesOrder/Opportunity association with native transaction field in phone call"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Bullhorn user mapping now gets the full user list"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "- Clio now supports image/video media link in message logs"
+            }
+        ]
+    },
     "1.6.6": {
         "global": [
             {

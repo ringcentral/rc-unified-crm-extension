@@ -37,7 +37,17 @@ function secondsToHoursMinutesSeconds(seconds) {
     return resultString;
 }
 
+// media reader link: https://ringcentral.github.io/ringcentral-media-reader/?media=https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
+// platform media link: https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
+function getMediaReaderLinkByPlatformMediaLink(platformMediaLink){
+    if(!platformMediaLink){
+        return null;
+    }
+    const encodedPlatformMediaLink = encodeURIComponent(platformMediaLink);
+    return `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodedPlatformMediaLink}`;
+}
+
 exports.getTimeZone = getTimeZone;
 exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
-
+exports.getMediaReaderLinkByPlatformMediaLink = getMediaReaderLinkByPlatformMediaLink;
