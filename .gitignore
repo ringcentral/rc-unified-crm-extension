@@ -28,3 +28,6 @@ client/src/manifest.json
 .dynamodb/shared-local-instance.db
 
 local.session.sql
+/serverless-deploy-test-beta/.serverless/cloudformation-template-update-stack.json
+/serverless-deploy-test-beta/.serverless/rc-unified-crm-extension-test-beta.zip
+/serverless-deploy-test-beta/.serverless/serverless-state.json
