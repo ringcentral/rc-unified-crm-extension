@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Google Sheets Picker</title>
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body style="color: lightgrey;" onload="showPicker()">
+    <!-- <div class="container">
+        <h2 style="color: navy;">RingCentral App Connect</h2>
+        <button onclick="showPicker()">Select Google Sheet</button>
+        <div class="ringcentral-branding">
+            Powered by <a href="https://www.ringcentral.com/" target="_blank">RingCentral</a>
+        </div>
+    </div> -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script type="text/javascript">
+        // Replace with your actual API key and OAuth token
+        
+        const key = '{key}';
+        const ACCESS_TOKEN = '{accessToken}';
+        const project_id = '{projectId}';
+
+        let pickerApiLoaded = false;
+
+        // Load the Picker API
+        function loadPicker() {
+            gapi.load('picker', { 'callback': onPickerApiLoad });
+        }
+
+        function onPickerApiLoad() {
+            pickerApiLoaded = true;
+        }
+
+        function showPicker() {
+            if (pickerApiLoaded) {
+                const view = new google.picker.View(google.picker.ViewId.SPREADSHEETS);
+                // view.setMimeTypes('application/pdf,image/jpeg,image/png');
+                view.setMimeTypes('application/vnd.google-apps.spreadsheet');
+
+
+                const picker = new google.picker.PickerBuilder()
+                    .addView(view)
+                    .setOAuthToken(ACCESS_TOKEN)
+                    .setAppId(project_id)
+                    .setDeveloperKey(key)
+                    .setCallback(pickerCallback)
+                    .setTitle("Select a Google Sheet")
+                    .build();
+
+                picker.setVisible(true);
+            } else {
+                alert("Picker API not loaded yet. Please try again.");
+            }
+        }
+
+       async function pickerCallback(data) {    
+            if (data.action === google.picker.Action.PICKED) {
+                const field = data.docs[0].id;
+                await axios.post('{serverUrl}/googleSheets/selectedSheet', {
+                    accessToken: ACCESS_TOKEN,
+                    sheetData: data.docs[0]
+                });
+            }
+            alert('You have successfully attached a file with App Connect.\nFile Name: ' + data.docs[0].name + ' \nPlease go to App Connect Google Sheets Config.');
+            window.close();
+        }
+    </script>
+
+    <!-- Load the Google Picker API -->
+    <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=loadPicker"></script>
+    <script type="text/javascript" src="https://apis.google.com/js/client.js"></script>
+</body>
+
+</html>
