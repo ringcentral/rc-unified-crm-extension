@@ -141,17 +141,18 @@ nav:
 #      - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
+      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
       - 'createCallLog': developers/interfaces/createCallLog.md
       - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
       - 'getCallLog': developers/interfaces/getCallLog.md
       - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
+      - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+      - 'getUserInfo': developers/interfaces/getUserInfo.md
+      - 'getUserList': developers/interfaces/getUserList.md
       - 'findContact (by phone)': developers/interfaces/findContact.md
       - 'findContactWithName': developers/interfaces/findContactWithName.md
-      - 'getOauthInfo': developers/interfaces/getOauthInfo.md
-      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
-      - 'getUserInfo': developers/interfaces/getUserInfo.md
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
