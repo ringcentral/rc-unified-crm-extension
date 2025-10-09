@@ -2,10 +2,10 @@ name: CI Pipeline
 on:
   push:
     branches:
-      - main
+      - stable
   pull_request:
     branches:
-      - main
+      - stable
       
 jobs:
   server-test:
