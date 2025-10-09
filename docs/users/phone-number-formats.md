@@ -23,3 +23,9 @@ CRMs known to exhibit this problem are:
 * Insightly 
 * NetSuite
 
+## How it works
+
+The logic is simple.
+
+1. It gets all number digits without country code (e.g. if it's a US number +10123456789, then it'll get 0123456789 as +1 is the country code)
+2. Each of the digit will be inserted into the format one by one (e.g. `+1-###-###-####` -> `+1-012-345-6789`; `(###) ###-####` -> `(012) 345-6789`; `1##########` -> `10123456789`)

@@ -53,7 +53,7 @@ function run(){
 
     const clearLogAPI = async () => {
         try {
-            const response = await axios.delete(process.env.TSET_ENDPOINT_CLEAR_LOG);
+            const response = await axios.delete(process.env.TEST_ENDPOINT_CLEAR_LOG);
             console.log(response.data);
         }
         catch (error) {
