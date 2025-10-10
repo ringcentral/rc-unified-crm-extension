@@ -43,7 +43,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         let note = incomingData.note;
-        if (isFromSSCL) {
+        if (process.env.USE_CACHE && isFromSSCL) {
             const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
             if (noteCache) {
                 note = noteCache.note;
