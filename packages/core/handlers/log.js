@@ -211,6 +211,11 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 }
             });
             for (const sId of sessionIdsArray) {
+                if(sId == 0)
+                {
+                    logs.push({ sessionId: sId, matched: false });
+                    continue;
+                }
                 const callLog = callLogs.find(c => c.sessionId === sId);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });
