@@ -447,7 +447,7 @@
       "logPageUrl": "https://{hostname}/nc/#/contacts/{contactId}/communications",
       "settings": [
         {
-          "id": "clioDefaults",
+          "id": "clioOptions",
           "type": "section",
           "name": "Clio options",
           "items": [
@@ -1290,7 +1290,7 @@
       },
       "settings": [
         {
-          "id": "netSuiteDefaultOptions",
+          "id": "netsuiteOptions",
           "type": "section",
           "name": "NetSuite options",
           "items": [
