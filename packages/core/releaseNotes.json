@@ -1,4 +1,16 @@
 {
+    "1.6.8": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Server-side logging, if it's created by one admin, the other admin will be able to see its status"
+            },
+            {
+                "type": "Fix",
+                "description": "- Conference calls show wrong warning message"
+            }
+        ]
+    },
     "1.6.7": {
         "global": [
             {
