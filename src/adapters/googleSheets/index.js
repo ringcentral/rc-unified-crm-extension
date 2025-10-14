@@ -156,8 +156,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             matchedContactInfo.push({
                 id: row[idColumnIndex],
                 name: row[nameColumnIndex],
-                phoneNumber: row[phoneColumnIndex],
-                mostRecentActivityDate: row[idColumnIndex]
+                phoneNumber: row[phoneColumnIndex]
             });
 
         }
