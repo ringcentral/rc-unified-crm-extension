@@ -404,8 +404,8 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Server logging settings update failed',
-                ttl: 5000
+                message: 'Server logging settings update failed. Please check your username and password.',
+                ttl: 10000
             },
         };
     }

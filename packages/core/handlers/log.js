@@ -43,7 +43,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         let note = incomingData.note;
-        if (isFromSSCL) {
+        if (process.env.USE_CACHE && isFromSSCL) {
             const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
             if (noteCache) {
                 note = noteCache.note;
@@ -211,6 +211,11 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 }
             });
             for (const sId of sessionIdsArray) {
+                if(sId == 0)
+                {
+                    logs.push({ sessionId: sId, matched: false });
+                    continue;
+                }
                 const callLog = callLogs.find(c => c.sessionId === sId);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });

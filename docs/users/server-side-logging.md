@@ -29,7 +29,10 @@ Server-side call logging eliminates these challenges. Operating at the organizat
 
 Currently the server-side call logging feature is in beta, and can be enabled from the Admin settings screen as shown below. 
 
-![Server-side call logging setup](../img/sscl-setup.png)
+<figure markdown>
+  ![Server-side call logging setup](../img/sscl-setup.png){ .mw-400 }
+  <figcaption>App Connect's server-side call logging settings as seen by an admin. Your available settings depends upon the CRM you are connected to (Bullhorn shown above).</figcaption>
+</figure>
 
 Under **Enable server side logging**, select "Enable for account", and then save to enable this feature.
 
@@ -39,7 +42,10 @@ Under **Enable server side logging**, select "Enable for account", and then save
 
 If you are unsure of turning on server-side call logging across your entire account, the admin in your account can enable server-side call logging for their extension exclusively. It is the intent of this feature to allow admins to try the feature out for a period of time before enabling it for other users. 
 
-![Server-side call logging trial setup](../img/sscl-trial-mode.png)
+<figure markdown>
+  ![Server-side call logging trial setup](../img/sscl-trial-mode.png)
+  <figcaption>App Connect setup to enable server-side call logging in trial mode</figcaption>
+</figure>
 
 Under **Enable server side logging**, select "Enable for admin only (trial mode)", and save.
 
@@ -47,31 +53,36 @@ Under **Enable server side logging**, select "Enable for admin only (trial mode)
 
 From the Server side logging page, an admin can enable call logging for their entire organization. Once enabled, automatic logging from the client will be disabled across your entire organization. Users will still be able to log calls manually, or edit call log entries made by the server-side call logging service. 
 
-![Server-side call logging setup](../img/sscl-setup.png)
-
 ### Activity record owner
 
-When App Connect's server-side logging service is enabled, the service will use the RingCentral admin's credentials who initially enabled the feature to subscribe all new call events across the entire organization, as well as to save activity records in CRM. As a result, the owner of all activity records will be the admin. 
+When App Connect's server-side logging service is enabled, the service will use the RingCentral admin's credentials who initially enabled the feature to subscribe to all new call events across the entire organization, as well as to save activity records in the connected CRM. As a result, the default behavior will result in the admin being the owner of all activity records it creates.
 
-This is sometimes desirable, but other's may prefer for audit trail purposes to have the owner be the person who conducted the phone call, as that is deemed more accurate. 
+This is sometimes desirable, but other's may prefer for audit trail purposes to have the activity record's owner accurately reflect the person who conducted the phone call.
 
-To override this behavior, set **Activity record owner** to "Agent/user (if possible)," This will assign the record owner to the user when following conditions are true:
+To override this behavior, set **Activity record owner** to "Agent/user (if possible)." This will instruct App Connect to attempt to assign ownership of the activity record based on whether it can find a corresponding user in the CRM based on their respective email addresses in the two systems. Any user that cannot be mapped automatically, can be mapped manually by an admin using the "User mapping" setting.
 
-1. The user has previously connected to the CRM via App Connect. 
-2. The user has access permissions in the CRM that allow them to create activity records.
+<figure markdown>
+  ![Server-side call logging user mapping setting](../img/sscl-user-mapping.png){ .mw-500 }
+  <figcaption>App Connect's user mapping function used by admins to ensure activity records are attributed properly.</figcaption>
+</figure>
 
-!!! tip "Bullhorn note owner auto-assignment"
-    Bullhorn allows assigning notes to a user directly using admin credentials. Starting from v1.5.7, server-side call logging automatically maps RingCentral users to Bullhorn users based on their email addresses. If a user's RingCentral and Bullhorn accounts share the same email, they do not need to connect to the CRM via App Connect. Additionally, the Bullhorn user does not need permissions to create or edit notes.
-
-If none of those conditions are true, the activity record owner will default to the admin that setup server side logging.
+If attempts to determine the correct owner of the note fail, the activity record owner will default to the admin that setup server side logging.
 
 To always assign ownership of the activity record to the admin, set **Activity record owner** to `Admin`. 
 
-![Server-side call logging setup](../img/sscl-admin-owner.png)
+<figure markdown>
+  ![Server-side call logging setup](../img/sscl-admin-owner.png)
+  <figcaption>Server-side call logging setup to assign all activity records to the admin.</figcaption>
+</figure>
 
 ### Blocking some phones from being logged
 
 From the "Server-side call logging" page, you can specify a list of phone numbers and/or extensions for which you do not wish to log calls. Phone numbers must be represented usig the E.164 format, e.g. `+15105551234`. Multiple phone numbers and extension numbers can be specified provided they are separated by a `,` comma. 
+
+<figure markdown>
+  ![Server-side call logging - blocked numbers](../img/sscl-blocked.png)
+  <figcaption>Server-side call logging can be setup to NOT log calls made to some numbers.</figcaption>
+</figure>
 
 !!! info "Special considerations when using server-side call logging"
     * Calls to the main company number that are dropped before being redirected to an extension will not be logged.

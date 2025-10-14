@@ -17,6 +17,7 @@ serverless.yml
 /server/*
 serverless-deploy/*
 serverless-deploy-test/*
+serverless-deploy-test-beta/*
 client/dist.zip
 client/src/manifest.json
 /test.js

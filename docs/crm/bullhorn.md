@@ -80,3 +80,7 @@ The Bullhorn API user associated with these credentials must be granted specific
 Without these permissions, the server-side logging functionality may be incomplete or fail to capture critical event data. It is recommended to create a dedicated API user in Bullhorn with only the necessary permissions to adhere to the principle of least privilege.
 
 ![Enabling server-side call logging in Bullhorn](../img/bullhorn-sscl-creds.png){ .mw-300 }
+
+!!! warning "Important: Password Changes"
+    Note that Bullhorn may require users to update their passwords periodically for security purposes. If you change the password for your Bullhorn API user, you must also update the password in the App Connect extension settings.
+
