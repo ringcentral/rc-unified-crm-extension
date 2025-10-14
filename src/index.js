@@ -118,9 +118,10 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
         }
     });
     const data = response?.data;
-    const user = await UserModel.findByPk(data?.sub);
-    if (!user) {
-        res.status(400).send();
+    const user = await UserModel.findByPk(`${data?.sub}-googleSheets`);
+    if (!user) {    
+        res.status(400).send('User not found');
+        return;
     }
     const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
 
