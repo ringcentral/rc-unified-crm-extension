@@ -335,9 +335,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             numberToQueryArray.push(phoneNumberWithoutCountryCode);
         }
         for (var numberToQuery of numberToQueryArray) {
-            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,company FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
-            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
-            const vendorQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM vendor WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(vendorFields, numberToQuery, overridingFormat)})`;
+            const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,company,lastmodifieddate FROM contact WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(contactFields, numberToQuery, overridingFormat)})`;
+            const customerQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,lastmodifieddate FROM customer WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(customerFields, numberToQuery, overridingFormat)})`;
+            const vendorQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone,lastmodifieddate FROM vendor WHERE lastmodifieddate >= to_date('${dateBeforeThreeYear}', 'yyyy-mm-dd hh24:mi:ss') AND (${buildContactSearchCondition(vendorFields, numberToQuery, overridingFormat)})`;
 
             const parallelTasks = [];
 
@@ -392,6 +392,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                 homephone: result.homephone ?? '',
                                 mobilephone: result.mobilephone ?? '',
                                 officephone: result.officephone ?? '',
+                                mostRecentActivityDate: result.lastmodifieddate ?? '',
                                 additionalInfo: {
                                     ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
                                     ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
@@ -453,6 +454,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                 homephone: result.homephone ?? '',
                                 mobilephone: result.mobilephone ?? '',
                                 altphone: result.altphone ?? '',
+                                mostRecentActivityDate: result.lastmodifieddate ?? '',
                                 additionalInfo: {
                                     ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
                                     ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
@@ -488,6 +490,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                 name: vendorName,
                                 phone: result.phone ?? '',
                                 altphone: result.altphone ?? '',
+                                mostRecentActivityDate: result.lastmodifieddate ?? '',
                                 additionalInfo: {},
                                 type: 'vendor'
                             })
