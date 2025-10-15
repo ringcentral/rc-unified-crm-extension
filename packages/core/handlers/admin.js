@@ -78,7 +78,17 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
         const newUserMappings = [];
         for (const crmUser of crmUserList) {
             const existingMapping = adminConfig?.userMappings?.find(u => u.crmUserId == crmUser.id);
-            const rcExtension = rcExtensionList.find(e => e.id === existingMapping?.rcExtensionId);
+            let existingMappingRcExtensionIds = [];
+            // TEMP: backward compatibility for string value
+            if (existingMapping?.rcExtensionId) {
+                if (typeof (existingMapping.rcExtensionId) === 'string') {
+                    existingMappingRcExtensionIds = [existingMapping.rcExtensionId];
+                }
+                else {
+                    existingMappingRcExtensionIds = existingMapping.rcExtensionId;
+                }
+            }
+            const rcExtension = rcExtensionList.filter(e => existingMappingRcExtensionIds.includes(e.id));
             // Case: existing mapping
             if (existingMapping) {
                 userMappingResult.push({
@@ -87,38 +97,38 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                         name: crmUser.name ?? '',
                         email: crmUser.email ?? '',
                     },
-                    rcUser: {
-                        extensionId: existingMapping.rcExtensionId,
-                        name: rcExtension ? (rcExtension?.name ?? '') : 'Cannot find RingCentral user',
-                        extensionNumber: rcExtension?.extensionNumber ?? '',
-                        email: rcExtension?.email ?? ''
-                    }
+                    rcUser: rcExtension.map(e => ({
+                        extensionId: e.id,
+                        name: e?.name || `${e.firstName} ${e.lastName}`,
+                        extensionNumber: e?.extensionNumber ?? '',
+                        email: e?.email ?? ''
+                    }))
                 });
             }
             // Case: new mapping
             else {
-                const newMapping = rcExtensionList.find(u =>
+                const rcExtensionForNewMapping = rcExtensionList.find(u =>
                     u.email === crmUser.email ||
                     u.name === crmUser.name ||
                     (`${u.firstName} ${u.lastName}` === crmUser.name)
                 );
-                if (newMapping) {
+                if (rcExtensionForNewMapping) {
                     userMappingResult.push({
                         crmUser: {
                             id: crmUser.id,
                             name: crmUser.name ?? '',
                             email: crmUser.email ?? '',
                         },
-                        rcUser: {
-                            extensionId: newMapping.id,
-                            name: newMapping.name || `${newMapping.firstName} ${newMapping.lastName}` || '',
-                            extensionNumber: newMapping?.extensionNumber ?? '',
-                            email: newMapping?.email ?? ''
-                        }
+                        rcUser: [{
+                            extensionId: rcExtensionForNewMapping.id,
+                            name: rcExtensionForNewMapping.name || `${rcExtensionForNewMapping.firstName} ${rcExtensionForNewMapping.lastName}`,
+                            extensionNumber: rcExtensionForNewMapping?.extensionNumber ?? '',
+                            email: rcExtensionForNewMapping?.email ?? ''
+                        }]
                     });
                     newUserMappings.push({
                         crmUserId: crmUser.id.toString(),
-                        rcExtensionId: newMapping.id.toString()
+                        rcExtensionId: [rcExtensionForNewMapping.id.toString()]
                     });
                 }
                 else {
@@ -127,7 +137,8 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                             id: crmUser.id,
                             name: crmUser.name ?? '',
                             email: crmUser.email ?? '',
-                        }
+                        },
+                        rcUser: []
                     });
                 }
             }
@@ -139,7 +150,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                 if (userMapping.rcUser?.extensionId) {
                     initialUserMappings.push({
                         crmUserId: userMapping.crmUser.id.toString(),
-                        rcExtensionId: userMapping.rcUser.extensionId.toString()
+                        rcExtensionId: [userMapping.rcUser.extensionId.toString()]
                     });
                 }
             }
@@ -152,10 +163,20 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
         }
         // Incremental update
         if (newUserMappings.length > 0) {
+            // TEMP: convert string to array
+            if (adminConfig?.userMappings) {
+                adminConfig.userMappings = adminConfig.userMappings.map(u => ({
+                    ...u,
+                    rcExtensionId: [u.rcExtensionId]
+                }));
+            }
+            else {
+                adminConfig.userMappings = [];
+            }
             await upsertAdminSettings({
                 hashedRcAccountId,
                 adminSettings: {
-                    userMappings: [...(adminConfig?.userMappings ?? []), ...newUserMappings]
+                    userMappings: [...adminConfig.userMappings, ...newUserMappings]
                 }
             });
         }

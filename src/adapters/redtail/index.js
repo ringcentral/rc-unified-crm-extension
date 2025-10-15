@@ -241,13 +241,8 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
 
             if (!assigneeId) {
                 const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-                assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+                assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
             }
-        }
-
-        if (!assigneeId) {
-            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
         }
     }
 
@@ -319,6 +314,27 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
 
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        if (additionalSubmission.adminAssignedUserToken) {
+            try {
+                const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+                const assigneeUser = await UserModel.findByPk(unAuthData.id);
+                if (assigneeUser) {
+                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                }
+            }
+            catch (e) {
+                console.log('Error decoding admin assigned user token', e);
+            }
+
+            if (!assigneeId) {
+                const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+                assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+            }
+        }
+    }
+
     // Use passed existingCallLogDetails to avoid duplicate API call
     let getLogRes = null;
     if (existingCallLogDetails) {
@@ -342,6 +358,15 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     putBody.description = composedLogDetails;
     putBody.start_date = moment(startTime).utc().toISOString();
     putBody.end_date = moment(startTime).utc().add(duration, 'seconds').toISOString();
+
+    if (assigneeId) {
+        putBody.attendees = [
+            {
+                type: "Crm::Activity::Attendee::User",
+                user_id: Number(assigneeId)
+            }
+        ];
+    }
     const putLogRes = await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
         putBody,
