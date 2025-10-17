@@ -5,7 +5,7 @@ This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new 
 ## Register Your Connector
 
 1. Navigate to [Developer Console](https://appconnect.labs.ringcentral.com/console) and log in with your RingCentral account
-2. Enter the basic information for your connector
+2. Enter the basic information for your developer profile
 3. Create a new connector
 
 You can reuse your existing `manifest.json` file by following these steps:
@@ -22,7 +22,7 @@ Click the "JSON" button in the developer console to switch to the JSON editor mo
 
 Copy the CRM object from your existing `manifest.json` file and paste it into the JSON editor. This will automatically populate most of the connector configuration fields.
 
-4. Switch back to form view - most fields will be automatically populated
+4. Switch back to form view - most fields will be automatically populated and let's resolve the remaining ones
 5. Copy your server URL to the `Connector server URL` field
 6. Scroll down and click `Create`
 
@@ -30,13 +30,14 @@ You now have a private connector that is only visible within your organization.
 
 ## Connect with the New Client
 
-Download the beta client build from [here](https://rc-unified-crm-extension-serverlessdeploymentbuck-kvb7fti23x1f.s3.us-east-1.amazonaws.com/dist.zip). This beta client requires manual installation from your local machine.
+Install the extension from [Chrome Web Store](https://chromewebstore.google.com/detail/ringcentral-app-connect/bgpkbcidaabaeioilooghlffdcmlimgk). This will be used as a completely different extension from your existing old one. But they share the same database. Therefore user settings is reserved.
 
 > **Note:** The Chrome Web Store version allows users to register CRM platforms by opening the extension from the CRM page. In this beta version, users select a CRM from a pre-configured list in the developer console.
 
 To connect with the new client:
 
-1. Open the extension from anywhere
+1. Logout from the old extension and disable it in chrome://extensions/
+1. Open the new extension
 2. Log in with your RingCentral account
 3. You'll see a list of available connectors, including both public connectors and the private one you just created
 
