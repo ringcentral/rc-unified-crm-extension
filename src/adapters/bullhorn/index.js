@@ -11,6 +11,8 @@ const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const { upsertCallDuration, upsertCallResult, upsertCallRecording, upsertAiNote, upsertTranscript } = require('@app-connect/core/lib/callLogComposer');
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 
 function getAuthType() {
     return 'oauth';
@@ -1134,6 +1136,15 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
     if (!isFromSSCL || ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
         postBody.comments = composedLogDetails;
+    }
+    // Case: update log should be able to update fields other than agent notes
+    else{
+        postBody.comments = getLogRes.data.data.comments;
+        postBody.comments = upsertCallDuration({ body: postBody.comments, duration: duration, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertCallResult({ body: postBody.comments, result: result, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertCallRecording({ body: postBody.comments, recordingLink: recordingLink, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertAiNote({ body: postBody.comments, aiNote: aiNote, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertTranscript({ body: postBody.comments, transcript: transcript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
     }
     let patchLogRes;
     try {
