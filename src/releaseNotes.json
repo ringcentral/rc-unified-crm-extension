@@ -1,4 +1,22 @@
 {
+    "1.6.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Server-side logging now supports multiple RingCentral users to be mapped under one CRM user"
+            },
+            {
+                "type": "Fix",
+                "description": "- Server-side logging user mapping not working properly when running under multi-site scenarios"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "- Cannot select existing sheet"
+            }
+        ]
+    },
     "1.6.8": {
         "global": [
             {

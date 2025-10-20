@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.6.9
+
+- New: Server-side logging now supports multiple RingCentral users to be mapped under one CRM user
+- Fix: Google Sheets cannot select existing sheet
+- Fix: Server-side logging user mapping not working properly when running under multi-site scenarios
+
 ## 1.6.8:
 
 - New: For Clio, Insightly and NetSuite, a new link on number formatter setting page to its working logic explanation in user guide  
