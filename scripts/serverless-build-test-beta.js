@@ -44,7 +44,7 @@ const manifest = require(manifestPath);
 manifest.serverUrl = 'https://unified-crm-extension-test-beta.labs.ringcentral.com';
 for (var k of Object.keys(manifest.platforms)) {
     if (manifest.platforms[k].serverSideLogging) {
-        manifest.platforms[k].serverSideLogging.url = "https://crm-logging-test-beta.labs.ringcentral.com";
+        manifest.platforms[k].serverSideLogging.url = "https://crm-logging-test.labs.ringcentral.com";
     }
 }
 const fs = require('fs');
