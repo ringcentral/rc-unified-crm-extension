@@ -161,23 +161,6 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 });
 
-app.get('/ringcentral/oauth/callback', async function (req, res) {
-    const jwtToken = req.query.jwtToken;
-    if (jwtToken) {
-        const unAuthData = jwt.decodeJwt(jwtToken);
-        const { code } = req.query;
-        const user = await UserModel.findByPk(unAuthData?.id);
-        if (!user) {
-            res.status(400).send('User not found');
-            return;
-        }
-        await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId });
-        res.status(200).send('OK');
-        return;
-    }
-    res.status(400).send('Invalid request');
-});
-
 exports.getServer = function getServer() {
     return app;
 }

@@ -482,7 +482,7 @@
               "title": "Non-billable",
               "type": "checkbox",
               "contactDependent": false,
-              "defaultSettingId": "clioDefaults",
+              "defaultSettingId": "clioOptions",
               "defaultSettingValues": {
                 "inboundCall": {
                   "settingId": "clioDefaultNonBillableTick"
