@@ -7,7 +7,8 @@ const { extract } = require('tar');
 const { spawn } = require('child_process');
 
 const TEMPLATE_REPO = 'https://github.com/ringcentral/rc-unified-crm-extension';
-const TEMPLATE_BRANCH = 'main';
+const TEMPLATE_BRANCH = 'stable';
+const TEMPLATE_BETA_BRANCH = 'beta';
 const TEMPLATE_PATH = 'packages/template';
 
 function detectPackageManager(cwd) {
@@ -75,9 +76,11 @@ async function downloadTemplate(projectName, options) {
   
   // Create project directory
   fs.mkdirSync(fullPath, { recursive: true });
+
+  const templateBranch = options.beta ? TEMPLATE_BETA_BRANCH : TEMPLATE_BRANCH;
   
   // Download template from GitHub
-  const archiveUrl = `${TEMPLATE_REPO}/archive/refs/heads/${TEMPLATE_BRANCH}.tar.gz`;
+  const archiveUrl = `${TEMPLATE_REPO}/archive/refs/heads/${templateBranch}.tar.gz`;
   const tempArchivePath = path.join(fullPath, 'template.tar.gz');
   
   console.log('Downloading template from GitHub...');
@@ -94,7 +97,7 @@ async function downloadTemplate(projectName, options) {
     });
     
     // Move template files to project root
-    const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`, TEMPLATE_PATH);
+    const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${templateBranch}`, TEMPLATE_PATH);
     const files = fs.readdirSync(extractedDir);
     
     for (const file of files) {
@@ -109,7 +112,7 @@ async function downloadTemplate(projectName, options) {
     }
     
     // Clean up
-    fs.rmSync(path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`), { recursive: true, force: true });
+    fs.rmSync(path.join(fullPath, `rc-unified-crm-extension-${templateBranch}`), { recursive: true, force: true });
     fs.unlinkSync(tempArchivePath);
     
     // Update package.json with project name

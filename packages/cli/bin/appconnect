@@ -21,6 +21,7 @@ program
   .option('--no-install', 'Skip installing dependencies')
   .option('--no-env', 'Skip copying .env.test to .env')
   .option('-s, --start', 'Automatically start the dev server after init')
+  .option('-b, --beta', 'Init with beta template')
   .action(async (projectName, options) => {
     try {
       await init(projectName, options);
