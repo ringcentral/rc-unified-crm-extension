@@ -14,12 +14,10 @@ const insightly = require('./adapters/insightly');
 const netsuite = require('./adapters/netsuite');
 const pipedrive = require('./adapters/pipedrive');
 const redtail = require('./adapters/redtail');
-const testCRM = require('./adapters/testCRM');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 
 // Register adapters
-adapterRegistry.setDefaultManifest(require('./adapters/manifest.json'));
 adapterRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
 adapterRegistry.registerAdapter('bullhorn', bullhorn);
@@ -29,7 +27,6 @@ adapterRegistry.registerAdapter('insightly', insightly);
 adapterRegistry.registerAdapter('netsuite', netsuite);
 adapterRegistry.registerAdapter('pipedrive', pipedrive);
 adapterRegistry.registerAdapter('redtail', redtail);
-adapterRegistry.registerAdapter('testCRM', testCRM, require('./adapters/testCRM/manifest.json'));
 
 // Create Express app with core functionality
 const app = createCoreApp();

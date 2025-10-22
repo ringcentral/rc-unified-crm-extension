@@ -26,7 +26,6 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "pipedrive",
-      "logFormat": "text/html",
       "embedUrls": [
         "https://*.pipedrive.com/*"
       ],
@@ -37,7 +36,6 @@
       "displayName": "Pipedrive",
       "auth": {
         "type": "oauth",
-        "useTokenRefreshLock": true,
         "oauth": {
           "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
           "clientId": "5d4736e322561f57",
@@ -188,7 +186,6 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "insightly",
-      "logFormat": "text/plain",
       "embedUrls": [
         "https://*.insightly.com/*"
       ],
@@ -425,7 +422,6 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "clio",
-      "logFormat": "text/plain",
       "embedUrls": [
         "https://*.clio.com/*"
       ],
@@ -640,7 +636,6 @@
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "redtail",
       "displayName": "Redtail",
-      "logFormat": "text/html",
       "embedUrls": [
         "https://*.redtailtechnology.com/*"
       ],
@@ -1006,7 +1001,6 @@
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "urlIdentifier": "app.bullhornstaffing.com",
       "name": "bullhorn",
-      "logFormat": "text/html",
       "embedUrls": [
         "https://*.bullhornstaffing.com/*"
       ],
@@ -1269,7 +1263,6 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "netsuite",
-      "logFormat": "text/plain",
       "embedUrls": [
         "https://*.app.netsuite.com/*"
       ],
@@ -1519,7 +1512,6 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "googleSheets",
-      "logFormat": "text/plain",
       "embedUrls": [
         "https://docs.google.com/*"
       ],

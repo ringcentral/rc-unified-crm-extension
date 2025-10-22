@@ -87,6 +87,7 @@ function createCoreRouter() {
         res.json(mergedReleaseNotes);
     });
 
+    // Obsolete
     router.get('/crmManifest', (req, res) => {
         try {
             const platformName = req.query.platformName || 'default';
@@ -235,6 +236,7 @@ function createCoreRouter() {
         });
     });
 
+    // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
         const defaultCrmManifest = adapterRegistry.getManifest('default');
         res.send({ version: defaultCrmManifest?.version ?? 'unknown' });

@@ -9,19 +9,11 @@ const path = require('path');
 const FILES_TO_UPDATE = [
   {
     path: 'package.json',
-    description: 'Package manifest'
+    description: 'Package'
   },
   {
     path: 'packages/core/package.json',
     description: 'Core package'
-  },
-  {
-    path: 'src/adapters/manifest.json',
-    description: 'Adapter manifest'
-  },
-  {
-    path: 'src/adapters/testCRM/manifest.json',
-    description: 'Test adapter manifest'
   }
 ];
 

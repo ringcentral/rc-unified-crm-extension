@@ -20,7 +20,6 @@ async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     }
     const adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     return {
-        customManifestUrl: adminConfig?.customAdapter,
         userSettings: adminConfig?.userSettings
     };
 }

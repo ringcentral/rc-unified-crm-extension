@@ -621,9 +621,16 @@ function upsertLegs({ body, legs, logFormat }) {
  * @returns {string} Format type
  */
 function getLogFormatType(platform) {
-    const manifest = adapterRegistry.getManifest(platform, true);
-    const platformConfig = manifest.platforms?.[platform];
-    return platformConfig?.logFormat;
+    if(process.env.LOG_FORMAT_PLAIN_TEXT_PLATFORMS.split(',').includes(platform)){
+        return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+    }
+    if(process.env.LOG_FORMAT_HTML_PLATFORMS.split(',').includes(platform)){
+        return LOG_DETAILS_FORMAT_TYPE.HTML;
+    }
+    if(process.env.LOG_FORMAT_MARKDOWN_PLATFORMS.split(',').includes(platform)){
+        return LOG_DETAILS_FORMAT_TYPE.MARKDOWN;
+    }
+    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
 module.exports = {
