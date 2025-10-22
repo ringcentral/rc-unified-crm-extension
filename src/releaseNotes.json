@@ -1,4 +1,58 @@
 {
+    "1.6.9": {
+        "global": [
+            {
+                "type": "New",
+                "description": "- Server-side logging now supports multiple RingCentral users to be mapped under one CRM user"
+            },
+            {
+                "type": "Fix",
+                "description": "- Server-side logging user mapping not working properly when running under multi-site scenarios"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "- Cannot select existing sheet"
+            }
+        ]
+    },
+    "1.6.8": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "- Server-side logging, if it's created by one admin, the other admin will be able to see its status"
+            },
+            {
+                "type": "Fix",
+                "description": "- Conference calls show wrong warning message"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "- Bullhorn server-side logging now returns warning message if api user password is wrong"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "- A new link on number formatter setting page to its working logic explanation in user guide"
+            }
+        ],
+        "insightly": [
+            {
+                "type": "New",
+                "description": "- A new link on number formatter setting page to its working logic explanation in user guide"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "- A new link on number formatter setting page to its working logic explanation in user guide"
+            }
+        ]
+    },
     "1.6.7": {
         "global": [
             {

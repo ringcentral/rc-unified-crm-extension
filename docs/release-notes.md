@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.6.9
+
+- New: Server-side logging now supports multiple RingCentral users to be mapped under one CRM user
+- Fix: Google Sheets cannot select existing sheet
+- Fix: Server-side logging user mapping not working properly when running under multi-site scenarios
+
+## 1.6.8:
+
+- New: For Clio, Insightly and NetSuite, a new link on number formatter setting page to its working logic explanation in user guide  
+- Fix: Bullhorn server-side logging now returns warning message if api user password is wrong
+- Fix: Server-side logging, if it's created by one admin, the other admin will be able to see its status
+- Fix: Conference calls show wrong warning message
+
 ## 1.6.7:
 
 - New: Clio now supports image/video media link in message logs
