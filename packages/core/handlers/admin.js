@@ -73,6 +73,11 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
 
 async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
     try {
+        if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+            return {
+                callLogStats: {}
+            };
+        }
         const rcSDK = new RingCentral({
             server: process.env.RINGCENTRAL_SERVER,
             clientId: process.env.RINGCENTRAL_CLIENT_ID,
@@ -127,6 +132,11 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
 
 async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, timeTo }) {
     try {
+        if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+            return {
+                callLogStats: {}
+            };
+        }
         const rcSDK = new RingCentral({
             server: process.env.RINGCENTRAL_SERVER,
             clientId: process.env.RINGCENTRAL_CLIENT_ID,

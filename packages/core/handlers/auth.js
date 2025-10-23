@@ -209,6 +209,9 @@ async function authValidation({ platform, userId }) {
 
 // Ringcentral
 async function onRingcentralOAuthCallback({ code, rcAccountId }) {
+    if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        return;
+    }
     const rcSDK = new RingCentral({
         server: process.env.RINGCENTRAL_SERVER,
         clientId: process.env.RINGCENTRAL_CLIENT_ID,
