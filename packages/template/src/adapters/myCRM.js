@@ -297,7 +297,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note: mockCallLog.note
     }
     const subject = getLogRes.subject;
-    const note = getLogRes.note.split('- Agent note: ')[1].split('\n')[0];
+    const note = getLogRes.note.split('- Note: ')[1].split('\n')[0];
 
     //-------------------------------------------------------------------------------------
     //---CHECK.5: In extension, for a logged call, click edit to see if info is fetched ---
@@ -507,8 +507,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     //--------------------------------------------------------------------------------
     return {
         contactInfo: {
-            id: contactInfoRes.id,
-            name: contactInfoRes.name
+            id: contactInfoRes.data.id,
+            name: contactInfoRes.data.name
         },
         returnMessage: {
             message: `Contact created.`,
@@ -529,3 +529,4 @@ exports.updateMessageLog = updateMessageLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.upsertCallDisposition = upsertCallDisposition;
