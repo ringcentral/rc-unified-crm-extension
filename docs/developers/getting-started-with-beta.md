@@ -4,7 +4,7 @@
 
 ## Step.1 Register on Developer Portal
 
-Go to https://appconnect.labs.ringcentral.com/console and login with your RingCentral account and fill in your developer profile.
+Go to [Developer Portal](https://appconnect.labs.ringcentral.com/console) and login with your RingCentral account and fill in your developer profile.
 
 ## Step.2 Create a new app profile
 
