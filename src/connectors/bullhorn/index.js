@@ -488,7 +488,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     const contactPersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone,dateAdded,dateLastModified,dateLastVisit`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Archive"`
         },
         {
             headers: {
@@ -513,7 +513,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone,dateAdded,dateLastComment,dateLastModified`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode} OR workPhone:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode} OR workPhone:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Archived"`
         },
         {
             headers: {
@@ -860,8 +860,8 @@ async function findContactWithName({ user, authHeader, name }) {
     const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
     // Make single API call with combined query
     const contactSearchResponse = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
-        { query: combinedQuery },
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone,status'`,
+        { query: `(${combinedQuery}) NOT status:"Archive"` },
         {
             headers: {
                 BhRestToken: user.platformAdditionalInfo.bhRestToken
@@ -891,7 +891,7 @@ async function findContactWithName({ user, authHeader, name }) {
     const candidatePersonInfo = await axios.post(
         `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
         {
-            query: combinedQuery
+            query: `(${combinedQuery}) NOT status:"Archived"`
         },
         {
             headers: {
