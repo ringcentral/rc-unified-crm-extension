@@ -53,13 +53,13 @@ This interface returns a single object. That object describes the contacts that 
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:161-231] !}
+    {!> src/connectors/testCRM/index.js [ln:161-231] !}
 	```
 -->
 
 === "Clio"
 
 	```js
-    {!> src/adapters/clio/index.js [ln:211-275] !}
+    {!> src/connectors/clio/index.js [ln:211-275] !}
 	```
 

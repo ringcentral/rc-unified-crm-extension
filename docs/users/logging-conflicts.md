@@ -31,7 +31,7 @@ We realize that you may want to enter in a lot more information about a contact.
 
 ### Search for a contact
 
-Most App Connect adapters support the ability to search for a contact when one is not able to be found via a phone number. If you adapter supports this capability, you will see a "Search for contact" option in the contact pull-down menu. 
+Most App Connect connectors support the ability to search for a contact when one is not able to be found via a phone number. If you connector supports this capability, you will see a "Search for contact" option in the contact pull-down menu. 
 
 <figure markdown>
   ![Search contacts in a CRM](../img/search-contacts.png)

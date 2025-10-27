@@ -1,6 +1,6 @@
 # checkAndRefreshAccessToken
 
-For CRMs that don't follow standard OAuth 2.0 or API key authentication patterns, developers need to provide this method in their adapter to check and refresh tokens. This interface is particularly useful for CRMs like Bullhorn that have custom authentication flows or session management requirements.
+For CRMs that don't follow standard OAuth 2.0 or API key authentication patterns, developers need to provide this method in their connector to check and refresh tokens. This interface is particularly useful for CRMs like Bullhorn that have custom authentication flows or session management requirements.
 
 ## When to implement
 
@@ -68,7 +68,7 @@ If this interface is not implemented, the system will use the default OAuth 2.0 
 === "Bullhorn"
 
 	```js
-    {!> src/adapters/bullhorn/index.js [ln:195-222] !}
+    {!> src/connectors/bullhorn/index.js [ln:195-222] !}
 	```
 
 === "Default OAuth Implementation"

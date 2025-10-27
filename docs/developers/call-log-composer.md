@@ -1,6 +1,6 @@
 # CallLogComposer
 
-The CallLogComposer is a centralized utility module that provides consistent call log formatting and composition across all CRM adapters. It supports multiple output formats (plain text, HTML, and Markdown) and handles intelligent updating of existing log entries.
+The CallLogComposer is a centralized utility module that provides consistent call log formatting and composition across all CRM connectors. It supports multiple output formats (plain text, HTML, and Markdown) and handles intelligent updating of existing log entries.
 
 ## Overview
 
@@ -194,7 +194,7 @@ The CallLogComposer handles timezone conversion automatically:
 
 ## Best Practices
 
-### For Adapter Developers
+### For Connector Developers
 
 1. **Use the main function**: Always prefer `composeCallLog()` over individual upsert functions for complete logs
 2. **Respect user settings**: Pass the complete user object to ensure settings are honored
@@ -261,5 +261,5 @@ The CallLogComposer relies on:
 
 - `moment-timezone`: For date/time formatting and timezone conversion
 - `@ringcentral/integration-core/lib/util`: For duration formatting utilities
-- `@ringcentral/integration-core/adapter/registry`: For platform manifest access
+- `@ringcentral/integration-core/connector/registry`: For platform manifest access
 - `@ringcentral/integration-core/lib/constants`: For format type constants

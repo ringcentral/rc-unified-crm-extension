@@ -43,25 +43,25 @@ In this example:
 2. When a trigger condition is met, the app locates the specified path in the manifest configuration
 3. It then replaces the default value with the region-specific value defined in the override
 
-This approach allows for seamless switching between regional deployments without requiring separate adapters or complex conditional logic in your code.
+This approach allows for seamless switching between regional deployments without requiring separate connectors or complex conditional logic in your code.
 
 ## Available Trigger Types
 
 Currently, the only supported trigger type is `hostname`. If you need additional trigger types to better support your regional implementation, please create a GitHub issue requesting the specific trigger you require.
 
-## Implementing Regional Services in Your Adapter
+## Implementing Regional Services in Your Connector
 
-When implementing support for regional services in your adapter:
+When implementing support for regional services in your connector:
 
 1. **Store Regional Information**: Keep the regional API server URL in the user model in your database to maintain consistent connections with the correct region.
 
-2. **Authentication Handling**: Use environment variables and auth-related methods in your adapter to determine which server configuration to use.
+2. **Authentication Handling**: Use environment variables and auth-related methods in your connector to determine which server configuration to use.
 
 3. **API Endpoint Selection**: When making API calls, be mindful to use the correct regional server URLs if those are different.
 
 ## Best Practices
 
-1. **Comprehensive Testing**: Test your adapter against all supported regional deployments to ensure consistent behavior.
+1. **Comprehensive Testing**: Test your connector against all supported regional deployments to ensure consistent behavior.
 
 2. **Clear Documentation**: Document which regions are supported and any region-specific behavior or limitations.
 

@@ -39,16 +39,16 @@ The template follows a modular structure:
 - **`src/app.js`**: Main application setup with core functionality and custom routes
 - **`src/server.js`**: Server entry point for local development
 - **`src/lambda.js`**: Lambda function entry point for serverless deployment
-- **`src/adapters/`**: CRM adapter implementations and manifests
+- **`src/connectors/`**: CRM connector implementations and manifests
 - **`scripts/`**: Utility scripts for setup and deployment
 - **`test/`**: Test files organized by component
 
 ## Development
 
-### Adapter development
+### Connector development
 
-1. Create a new adapter file in the `src/adapters/` directory, or update `src/adapter/myCRM` directly. Implement the required [interface methods](https://ringcentral.github.io/rc-unified-crm-extension/developers/interfaces/)
-2. Edit `manifest.json` file in `src/adapter/manifest.json`. Change `serverUrl` to `http://localhost:6066` for local development. Full manifest docs [here](https://ringcentral.github.io/rc-unified-crm-extension/developers/manifest/).
+1. Create a new connector file in the `src/connectors/` directory, or update `src/connector/myCRM` directly. Implement the required [interface methods](https://ringcentral.github.io/rc-unified-crm-extension/developers/interfaces/)
+2. Edit `manifest.json` file in `src/connector/manifest.json`. Change `serverUrl` to `http://localhost:6066` for local development. Full manifest docs [here](https://ringcentral.github.io/rc-unified-crm-extension/developers/manifest/).
 
 ### Adding Custom Endpoints
 

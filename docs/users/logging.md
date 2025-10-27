@@ -100,7 +100,7 @@ If a call is recorded, a link to the call's recording is included in the content
     Please be aware that it takes time for RingCentral server to process and upload your recordings, therefore recording links won't be generated immediately after calls. The delay could be seconds to minutes dpending on duration of the call and RingCentral server's current capacity.  
 
 !!! warning "App Connect does not archive the recording file"
-    By default, App Connect will only generate a link to the call recording stored in RingCentral. Unless call archiving is explicitly supported by the CRM's adapter, you may need to explore alternative solutions for reliable off-site storage of call recording files. 
+    By default, App Connect will only generate a link to the call recording stored in RingCentral. Unless call archiving is explicitly supported by the CRM's connector, you may need to explore alternative solutions for reliable off-site storage of call recording files. 
 
 !!! warning "Call logs are kept for a maximum of 90 days within RingCentral"
     Please be aware that RingCentral does not retain data indefinitely. Call recordings for example are purged after 90 days. If you wish to retain those files longer, most users subscribe to a third-party service to archive call media. When call recordings are removed from RingCentral, the links in your CRM may expire. 

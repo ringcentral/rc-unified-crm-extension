@@ -1,8 +1,8 @@
-# App Connect adapter interfaces
+# App Connect connector interfaces
 
-Each adapter exposes an API that the App Connect server connects and exchanges data with. Each endpoint or interface of this API corresponds to a function supported by App Connect, and is responsible for fulfilling that function within the context of the CRM being connected to. 
+Each connector exposes an API that the App Connect server connects and exchanges data with. Each endpoint or interface of this API corresponds to a function supported by App Connect, and is responsible for fulfilling that function within the context of the CRM being connected to. 
 
-Every App Connect adapter needs to implement each of the following interfaces.
+Every App Connect connector needs to implement each of the following interfaces.
 
 | Interface                                 | Description                                                                      |
 |-------------------------------------------|----------------------------------------------------------------------------------|

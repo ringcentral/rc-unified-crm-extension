@@ -36,6 +36,6 @@ This interface returns an array of users in the connected CRM or application. Ea
 === "Bullhorn"
 
 	```js
-    {!> src/adapters/bullhorn/index.js [ln:949-974] !}
+    {!> src/connectors/bullhorn/index.js [ln:949-974] !}
 	```
 

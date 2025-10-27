@@ -25,7 +25,7 @@ rm('-rf', `${deployPath}/*.js`);
 rm('-rf', `${deployPath}/*.json`);
 rm('-rf', `${deployPath}/packages`);
 rm('-rf', `${deployPath}/node_modules`);
-rm('-rf', `${deployPath}/adapters`);
+rm('-rf', `${deployPath}/connectors`);
 echo('building...');
 mkdir(deployPath)
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
@@ -37,7 +37,7 @@ cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 mkdir(`${deployPath}/packages`);
 cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
-cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
+cp('-r', `${projectPath}/src/connectors`, `${deployPath}/connectors`);
 
 async function run() {
     const installCmd = 'npm i --production';

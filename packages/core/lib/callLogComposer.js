@@ -1,11 +1,11 @@
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
 /**
  * Centralized call log composition module
- * Supports both plain text and HTML formats used across different CRM adapters
+ * Supports both plain text and HTML formats used across different CRM connectors
  */
 
 /**

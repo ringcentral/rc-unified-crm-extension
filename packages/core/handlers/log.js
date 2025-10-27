@@ -5,7 +5,7 @@ const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog, getLogFormatType } = require('../lib/callLogComposer');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const moment = require('moment');
@@ -39,7 +39,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             };
         }
-        const platformModule = adapterRegistry.getAdapter(platform);
+        const platformModule = connectorRegistry.getConnector(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         let note = incomingData.note;
@@ -189,7 +189,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
         }
         if (requireDetails) {
-            const platformModule = adapterRegistry.getAdapter(platform);
+            const platformModule = connectorRegistry.getConnector(platform);
             const authType = platformModule.getAuthType();
             let authHeader = '';
             switch (authType) {
@@ -303,7 +303,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             }
         });
         if (existingCallLog) {
-            const platformModule = adapterRegistry.getAdapter(platform);
+            const platformModule = connectorRegistry.getConnector(platform);
             let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
@@ -455,7 +455,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
             }
         }
-        const platformModule = adapterRegistry.getAdapter(platform);
+        const platformModule = connectorRegistry.getConnector(platform);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
         let user = await UserModel.findByPk(userId);

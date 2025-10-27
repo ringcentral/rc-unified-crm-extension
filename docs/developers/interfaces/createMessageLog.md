@@ -1,6 +1,6 @@
 # createMessageLog
 
-This interface is responsible for creating a new messaging log record in the associated CRM. The message or messages must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. This interface is always invoked for a single SMS message.
+This interface is responsible for creating a new messaging log record in the associated CRM. The message or messages must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the connector. This interface is always invoked for a single SMS message.
 
 ### Creating daily digests of an SMS conversation
 
@@ -80,12 +80,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:469-508] !}
+    {!> src/connectors/testCRM/index.js [ln:469-508] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:433-526] !}
+    {!> src/connectors/pipedrive/index.js [ln:433-526] !}
 	```
 

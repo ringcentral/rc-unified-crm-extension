@@ -106,17 +106,17 @@ global.testUtils = {
     ...overrides
   }),
 
-  // Helper to reset adapter registry
-  resetAdapterRegistry: () => {
-    const adapterRegistry = require('../adapter/registry');
-    adapterRegistry.adapters.clear();
-    adapterRegistry.manifests.clear();
-    adapterRegistry.platformInterfaces.clear();
-    adapterRegistry.releaseNotes = {};
+  // Helper to reset connector registry
+  resetConnectorRegistry: () => {
+    const connectorRegistry = require('../connector/registry');
+    connectorRegistry.connectors.clear();
+    connectorRegistry.manifests.clear();
+    connectorRegistry.platformInterfaces.clear();
+    connectorRegistry.releaseNotes = {};
   },
 
-  // Helper to create mock adapter
-  createMockAdapter: (overrides = {}) => ({
+  // Helper to create mock connector
+  createMockConnector: (overrides = {}) => ({
     getAuthType: jest.fn().mockReturnValue('apiKey'),
     getUserInfo: jest.fn().mockResolvedValue({
       successful: true,

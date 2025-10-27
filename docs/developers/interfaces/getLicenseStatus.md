@@ -1,18 +1,18 @@
 # getLicenseStatus
 
-The App Connect framework supports license validation for CRM adapters, allowing you to implement your own licensing service and control access to your adapter based on license status. This guide covers how to implement license management in your custom adapter.
+The App Connect framework supports license validation for CRM connectors, allowing you to implement your own licensing service and control access to your connector based on license status. This guide covers how to implement license management in your custom connector.
 
 ## Implementing your own license service and enabling license in manifest
 
-To enable license checking for your adapter, you need to:
+To enable license checking for your connector, you need to:
 
 1. Implement your own license validation service
 2. Enable license status feature in manifest
-3. Implement get license status interface in adapter 
+3. Implement get license status interface in connector 
 
 ### 1. Implement license validation service
 
-It should be implemented in your own system which exposes public APIs for your adapter to consume.
+It should be implemented in your own system which exposes public APIs for your connector to consume.
 
 In below cases, the APIs will be called:
 
@@ -21,7 +21,7 @@ In below cases, the APIs will be called:
 
 ### 2. Enable license in manifest
 
-First, enable license checking by setting the `useLicense` property to `true` in your adapter's manifest file:
+First, enable license checking by setting the `useLicense` property to `true` in your connector's manifest file:
 
 **manifest.json**
 
@@ -38,9 +38,9 @@ First, enable license checking by setting the `useLicense` property to `true` in
 }
 ```
 
-### 3. Implementing license interface in your adapter
+### 3. Implementing license interface in your connector
 
-Your adapter must implement the `getLicenseStatus` interface to enable license checking. This function should validate the user's license status and return a standardized response.
+Your connector must implement the `getLicenseStatus` interface to enable license checking. This function should validate the user's license status and return a standardized response.
 
 #### Function signature
 
@@ -71,7 +71,7 @@ When license checking is enabled, the App Connect extension will display the lic
 
 ## Returning license-related messages in API responses
 
-When license validation fails, your adapter should return appropriate error messages to inform users about license issues. The App Connect framework provides a standardized way to return error messages that will be displayed to users.
+When license validation fails, your connector should return appropriate error messages to inform users about license issues. The App Connect framework provides a standardized way to return error messages that will be displayed to users.
 
 ### Check license before API operations
 

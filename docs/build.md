@@ -4,7 +4,7 @@ App Connect is not only a product used by RingCentral customers to connect our c
 
 If your CRM is not supported by App Connect, you have three general options.
 
-## Build an App Connect adapter yourself
+## Build an App Connect connector yourself
 
 App Connect is an open source framework that you are welcome to use to build support for your CRM of choice on your own. Our [developer documentation](developers/index.md) will help you get started. 
 
@@ -21,7 +21,7 @@ App Connect is an open source framework that you are welcome to use to build sup
 
 ## Work with a trusted third-party vendor
 
-The following vendors not only operate their own App Connect adapters, but they also welcome customers to talk to them about building adapters for CRMs not yet supported by App Connect. 
+The following vendors not only operate their own App Connect connectors, but they also welcome customers to talk to them about building connectors for CRMs not yet supported by App Connect. 
 
 ### Gate6
 
@@ -29,9 +29,9 @@ The following vendors not only operate their own App Connect adapters, but they 
 
 Gate6 specializes in connecting your business applications, platforms, and data sources into cohesive Enterprise Solutions. Their dedicated System Integration Services team ensures seamless integration across infrastructure, technology architecture, applications, and data. With a focus on preserving legacy investments while embracing future innovations, they deliver end-to-end solutions tailored to your needs.
 
-#### Adapters
+#### Connectors
 
-Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
+Gate6 offers an connector for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
 
 <div class="grid cards" markdown>
 
@@ -49,9 +49,9 @@ Gate6 offers an adapter for ServiceNow, developed in partnership with RingCentra
 
 Loyally's mission "is to support customer service worldwide by giving them the right data at the right time. The help desk employee can help any customer quickly and easily because all systems and data are linked. We combine the strengths of the customer service systems by presenting customer information with one click in one screen. Easy, time-saving and cost-effective." &mdash; Jan Smulders, CEO
 
-Loyally supports a number of CRMs through App Connect. All adapters come with a free 30-day trial, and cost $12/user/month after.
+Loyally supports a number of CRMs through App Connect. All connectors come with a free 30-day trial, and cost $12/user/month after.
 
-#### Adapters
+#### Connectors
 
 <div class="grid cards" markdown>
 

@@ -1,7 +1,7 @@
-// core/src/adapter/registry.js
-class AdapterRegistry {
+// core/src/connector/registry.js
+class ConnectorRegistry {
   constructor() {
-      this.adapters = new Map();
+      this.connectors = new Map();
       this.manifests = new Map();
       this.releaseNotes = {};
       this.platformInterfaces = new Map(); // Store interface functions per platform
@@ -17,7 +17,7 @@ class AdapterRegistry {
    * @param {string} interfaceName - Interface function name (e.g., 'createCallLog', 'findContact')
    * @param {Function} interfaceFunction - The interface function to register
    */
-  registerAdapterInterface(platformName, interfaceName, interfaceFunction) {
+  registerConnectorInterface(platformName, interfaceName, interfaceFunction) {
     if (typeof interfaceFunction !== 'function') {
       throw new Error(`Interface function must be a function, got: ${typeof interfaceFunction}`);
     }
@@ -57,7 +57,7 @@ class AdapterRegistry {
    * @param {string} platformName - Platform identifier
    * @param {string} interfaceName - Interface function name
    */
-  unregisterAdapterInterface(platformName, interfaceName) {
+  unregisterConnectorInterface(platformName, interfaceName) {
     const platformInterfaceMap = this.platformInterfaces.get(platformName);
     if (platformInterfaceMap && platformInterfaceMap.has(interfaceName)) {
       platformInterfaceMap.delete(interfaceName);
@@ -66,80 +66,80 @@ class AdapterRegistry {
   }
 
   /**
-   * Register an adapter with the core system
+   * Register an connector with the core system
    * @param {string} platform - Platform identifier (e.g., 'pipedrive', 'salesforce')
-   * @param {Object} adapter - Adapter implementation
-   * @param {Object} manifest - Adapter manifest configuration
+   * @param {Object} connector - Connector implementation
+   * @param {Object} manifest - Connector manifest configuration
    */
-  registerAdapter(platform, adapter, manifest = null) {
-      // Validate adapter interface
-      this.validateAdapterInterface(platform, adapter);
+  registerConnector(platform, connector, manifest = null) {
+      // Validate connector interface
+      this.validateConnectorInterface(platform, connector);
       
-      this.adapters.set(platform, adapter);
+      this.connectors.set(platform, connector);
       if (manifest) {
         this.manifests.set(platform, manifest);
       }
       
-      console.log(`Registered adapter: ${platform}`);
+      console.log(`Registered connector: ${platform}`);
   }
 
   /**
-   * Get adapter by platform name with composed interfaces
+   * Get connector by platform name with composed interfaces
    * @param {string} platform - Platform identifier
-   * @returns {Object} Composed adapter with interface functions
+   * @returns {Object} Composed connector with interface functions
    */
-  getAdapter(platform) {
-      const adapter = this.adapters.get(platform);
+  getConnector(platform) {
+      const connector = this.connectors.get(platform);
       const platformInterfaceMap = this.platformInterfaces.get(platform);
       
-      // If no adapter and no interfaces, throw error
-      if (!adapter && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
-          throw new Error(`Adapter not found for platform: ${platform}`);
+      // If no connector and no interfaces, throw error
+      if (!connector && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
+          throw new Error(`Connector not found for platform: ${platform}`);
       }
 
-      // If no adapter but interfaces exist, create a composed object with just interfaces
-      if (!adapter && platformInterfaceMap && platformInterfaceMap.size > 0) {
-          const composedAdapter = {};
+      // If no connector but interfaces exist, create a composed object with just interfaces
+      if (!connector && platformInterfaceMap && platformInterfaceMap.size > 0) {
+          const composedConnector = {};
           
-          // Add interface functions to the composed adapter
+          // Add interface functions to the composed connector
           for (const [interfaceName, interfaceFunction] of platformInterfaceMap) {
-              composedAdapter[interfaceName] = interfaceFunction;
+              composedConnector[interfaceName] = interfaceFunction;
           }
 
-          console.log(`Returning interface-only adapter for platform: ${platform}`);
-          return composedAdapter;
+          console.log(`Returning interface-only connector for platform: ${platform}`);
+          return composedConnector;
       }
 
-      // If adapter exists but no interfaces, return original adapter
-      if (adapter && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
-          return adapter;
+      // If connector exists but no interfaces, return original connector
+      if (connector && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
+          return connector;
       }
 
-      // If both adapter and interfaces exist, create a composed object
-      const composedAdapter = Object.create(adapter);
+      // If both connector and interfaces exist, create a composed object
+      const composedConnector = Object.create(connector);
       
-      // Add interface functions to the composed adapter
+      // Add interface functions to the composed connector
       for (const [interfaceName, interfaceFunction] of platformInterfaceMap) {
-        // Only add if the interface doesn't already exist in the adapter
-        if (!Object.prototype.hasOwnProperty.call(adapter, interfaceName)) {
-          composedAdapter[interfaceName] = interfaceFunction;
+        // Only add if the interface doesn't already exist in the connector
+        if (!Object.prototype.hasOwnProperty.call(connector, interfaceName)) {
+          composedConnector[interfaceName] = interfaceFunction;
         }
       }
 
-      return composedAdapter;
+      return composedConnector;
   }
 
   /**
-   * Get the original adapter without composed interfaces
+   * Get the original connector without composed interfaces
    * @param {string} platform - Platform identifier
-   * @returns {Object} Original adapter implementation
+   * @returns {Object} Original connector implementation
    */
-  getOriginalAdapter(platform) {
-    const adapter = this.adapters.get(platform);
-    if (!adapter) {
-      throw new Error(`Adapter not found for platform: ${platform}`);
+  getOriginalConnector(platform) {
+    const connector = this.connectors.get(platform);
+    if (!connector) {
+      throw new Error(`Connector not found for platform: ${platform}`);
     }
-    return adapter;
+    return connector;
   }
 
   /**
@@ -163,7 +163,7 @@ class AdapterRegistry {
    * @returns {Array<string>} Array of platform names
    */
   getRegisteredPlatforms() {
-      return Array.from(this.adapters.keys());
+      return Array.from(this.connectors.keys());
   }
 
   /**
@@ -172,35 +172,35 @@ class AdapterRegistry {
    * @returns {boolean} True if platform is registered
    */
   isRegistered(platform) {
-      return this.adapters.has(platform);
+      return this.connectors.has(platform);
   }
 
   /**
-   * Validate that adapter implements required interface
-   * @param {Object} adapter - Adapter to validate
+   * Validate that connector implements required interface
+   * @param {Object} connector - Connector to validate
    */
-  validateAdapterInterface(platform, adapter) {
+  validateConnectorInterface(platform, connector) {
       const requiredMethods = [
           'createCallLog',
           'updateCallLog',
       ];
 
       for (const method of requiredMethods) {
-          if (typeof adapter[method] !== 'function') {
-              throw new Error(`Adapter ${platform} missing required method: ${method}`);
+          if (typeof connector[method] !== 'function') {
+              throw new Error(`Connector ${platform} missing required method: ${method}`);
           }
       }
   }
 
   /**
-   * Unregister an adapter
+   * Unregister an connector
    * @param {string} platform - Platform identifier
    */
-  unregisterAdapter(platform) {
-      this.adapters.delete(platform);
+  unregisterConnector(platform) {
+      this.connectors.delete(platform);
       this.manifests.delete(platform);
       this.platformInterfaces.delete(platform);
-      console.log(`Unregistered adapter: ${platform}`);
+      console.log(`Unregistered connector: ${platform}`);
   }
 
   setReleaseNotes(releaseNotes) {
@@ -212,27 +212,27 @@ class AdapterRegistry {
   }
 
   /**
-   * Get adapter capabilities summary including composed interfaces
+   * Get connector capabilities summary including composed interfaces
    * @param {string} platform - Platform identifier
-   * @returns {Object} Adapter capabilities
+   * @returns {Object} Connector capabilities
    */
-  getAdapterCapabilities(platform) {
-    const originalAdapter = this.getOriginalAdapter(platform);
-    const composedAdapter = this.getAdapter(platform);
+  getConnectorCapabilities(platform) {
+    const originalConnector = this.getOriginalConnector(platform);
+    const composedConnector = this.getConnector(platform);
     const platformInterfaceMap = this.getPlatformInterfaces(platform);
     
     const capabilities = {
       platform,
-      originalMethods: Object.keys(originalAdapter),
-      composedMethods: Object.keys(composedAdapter),
+      originalMethods: Object.keys(originalConnector),
+      composedMethods: Object.keys(composedConnector),
       registeredInterfaces: Array.from(platformInterfaceMap.keys()),
       authType: null
     };
 
     // Get auth type if available
-    if (typeof originalAdapter.getAuthType === 'function') {
+    if (typeof originalConnector.getAuthType === 'function') {
       try {
-        capabilities.authType = originalAdapter.getAuthType();
+        capabilities.authType = originalConnector.getAuthType();
       } catch (error) {
         capabilities.authType = 'unknown';
       }
@@ -243,5 +243,5 @@ class AdapterRegistry {
 }
 
 // Export singleton instance
-const adapterRegistry = new AdapterRegistry();
-module.exports = adapterRegistry;
+const connectorRegistry = new ConnectorRegistry();
+module.exports = connectorRegistry;

@@ -2,7 +2,7 @@
 const ClientOAuth2 = require('client-oauth2');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 const dynamoose = require('dynamoose');
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
@@ -25,7 +25,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
     const expiryBuffer = 2; // 2 minutes
     // Special case: Bullhorn
     if (user.platform) {
-        const platformModule = adapterRegistry.getAdapter(user.platform);
+        const platformModule = connectorRegistry.getConnector(user.platform);
         if (platformModule.checkAndRefreshAccessToken) {
             return platformModule.checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout);
         }

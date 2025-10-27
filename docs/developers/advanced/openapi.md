@@ -1,6 +1,6 @@
-# Building a custom adapter server 
+# Building a custom connector server 
 
-This developer guide is optimized and intended for Javascript developers who are implementing new adapters using the server that comes bundled with the framework. Using this built in server can save developers a ton of time because it abstracts developers away from the underlying protocol used by the Chrome extension to talk to an adapter. 
+This developer guide is optimized and intended for Javascript developers who are implementing new connectors using the server that comes bundled with the framework. Using this built in server can save developers a ton of time because it abstracts developers away from the underlying protocol used by the Chrome extension to talk to an connector. 
 
 If you would like to build your own server framework, perhaps because you personally prefer a programming language other than Javascript, you are welcome to. To implement your own server, you will need to fully implement the OpenAPI specification below. 
 
@@ -34,10 +34,10 @@ The JWT token created by the framework uses the `APP_SERVER_SECRET_KEY` environm
     }
     ```
 
-## Adapter Server OpenAPI specification
+## Connector Server OpenAPI specification
 
-The OpenAPI specification below defines the interfaces that a developer must implement when creating an adapter for App Connect. Once implemented, your adapter's [manifest file](../manifest.md) will specify the `serverURL` for your adapter's server that has implemented the interfaces defined by the OpenAPI specification below. 
+The OpenAPI specification below defines the interfaces that a developer must implement when creating an connector for App Connect. Once implemented, your connector's [manifest file](../manifest.md) will specify the `serverURL` for your connector's server that has implemented the interfaces defined by the OpenAPI specification below. 
 
-As a user uses the Chrome extension, when a CRM-specific function is engaged, the Chrome extension will compose a request the corresponding adapter's endpoint implemented by that adapter's server. The server will perform the corresponding action in the associated CRM, and return results in a prescribed format so the Chrome extension can display the results of the user's action.
+As a user uses the Chrome extension, when a CRM-specific function is engaged, the Chrome extension will compose a request the corresponding connector's endpoint implemented by that connector's server. The server will perform the corresponding action in the associated CRM, and return results in a prescribed format so the Chrome extension can display the results of the user's action.
 
 [:fontawesome-solid-download: Download OpenAPI spec](../crm-server-openapi.json){ .md-button }

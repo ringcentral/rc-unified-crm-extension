@@ -1,14 +1,14 @@
 const authHandler = require('../../handlers/auth');
-const adapterRegistry = require('../../adapter/registry');
+const connectorRegistry = require('../../connector/registry');
 
-// Mock the adapter registry
-jest.mock('../../adapter/registry');
+// Mock the connector registry
+jest.mock('../../connector/registry');
 
 describe('Auth Handler', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    global.testUtils.resetAdapterRegistry();
+    global.testUtils.resetConnectorRegistry();
   });
 
   describe('onApiKeyLogin', () => {
@@ -30,12 +30,12 @@ describe('Auth Handler', () => {
         }
       };
 
-      const mockAdapter = global.testUtils.createMockAdapter({
+      const mockConnector = global.testUtils.createMockConnector({
         getBasicAuth: jest.fn().mockReturnValue('dGVzdC1hcGkta2V5Og=='),
         getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
       });
       
-      adapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       const requestData = {
         platform: 'testCRM',
@@ -52,8 +52,8 @@ describe('Auth Handler', () => {
       expect(result.userInfo.id).toBe('test-user-id');
       expect(result.userInfo.name).toBe('Test User');
       expect(result.returnMessage).toEqual(mockUserInfo.returnMessage);
-      expect(mockAdapter.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'test-api-key' });
-      expect(mockAdapter.getUserInfo).toHaveBeenCalledWith({
+      expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'test-api-key' });
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith({
         authHeader: 'Basic dGVzdC1hcGkta2V5Og==',
         hostname: 'test.example.com',
         additionalInfo: {},
@@ -73,12 +73,12 @@ describe('Auth Handler', () => {
         }
       };
 
-      const mockAdapter = global.testUtils.createMockAdapter({
+      const mockConnector = global.testUtils.createMockConnector({
         getBasicAuth: jest.fn().mockReturnValue('dGVzdC1hcGkta2V5Og=='),
         getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
       });
       
-      adapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       const requestData = {
         platform: 'testCRM',
@@ -95,10 +95,10 @@ describe('Auth Handler', () => {
       expect(result.returnMessage).toEqual(mockUserInfo.returnMessage);
     });
 
-    test('should throw error when adapter not found', async () => {
+    test('should throw error when connector not found', async () => {
       // Arrange
-      adapterRegistry.getAdapter.mockImplementation(() => {
-        throw new Error('Adapter not found for platform: testCRM');
+      connectorRegistry.getConnector.mockImplementation(() => {
+        throw new Error('Connector not found for platform: testCRM');
       });
 
       const requestData = {
@@ -110,7 +110,7 @@ describe('Auth Handler', () => {
 
       // Act & Assert
       await expect(authHandler.onApiKeyLogin(requestData))
-        .rejects.toThrow('Adapter not found for platform: testCRM');
+        .rejects.toThrow('Connector not found for platform: testCRM');
     });
   });
 
@@ -128,12 +128,12 @@ describe('Auth Handler', () => {
         status: 200
       };
 
-      const mockAdapter = global.testUtils.createMockAdapter({
+      const mockConnector = global.testUtils.createMockConnector({
         getOauthInfo: jest.fn().mockResolvedValue({}),
         authValidation: jest.fn().mockResolvedValue(mockValidationResponse)
       });
       
-      adapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       // Mock UserModel.findOne to return a user
       const { UserModel } = require('../../models/userModel');
@@ -156,13 +156,13 @@ describe('Auth Handler', () => {
         ...mockValidationResponse,
         failReason: ''
       });
-      expect(mockAdapter.authValidation).toHaveBeenCalledWith({ user: mockUser });
+      expect(mockConnector.authValidation).toHaveBeenCalledWith({ user: mockUser });
     });
 
     test('should handle user not found in database', async () => {
       // Arrange
-      const mockAdapter = global.testUtils.createMockAdapter();
-      adapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+      const mockConnector = global.testUtils.createMockConnector();
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       // Mock UserModel.findOne to return null (user not found)
       const { UserModel } = require('../../models/userModel');
@@ -197,12 +197,12 @@ describe('Auth Handler', () => {
         status: 401
       };
 
-      const mockAdapter = global.testUtils.createMockAdapter({
+      const mockConnector = global.testUtils.createMockConnector({
         getOauthInfo: jest.fn().mockResolvedValue({}),
         authValidation: jest.fn().mockResolvedValue(mockValidationResponse)
       });
       
-      adapterRegistry.getAdapter.mockReturnValue(mockAdapter);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       // Mock UserModel.findOne to return a user
       const { UserModel } = require('../../models/userModel');

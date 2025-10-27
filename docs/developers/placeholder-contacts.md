@@ -10,7 +10,7 @@ logging against an unknown contact = create a placeholder contact + logging agai
 
 ## Implement server endpoints
 
-Within your adapter's `index.js` file, implement the following methods.
+Within your connector's `index.js` file, implement the following methods.
 
 * [`createContact`](interfaces/createContact.md) 
 

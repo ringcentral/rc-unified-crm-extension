@@ -24,7 +24,7 @@ echo('clean path...');
 rm('-rf', `${deployPath}/*.js`);
 rm('-rf', `${deployPath}/*.json`);
 rm('-rf', `${deployPath}/node_modules`);
-rm('-rf', `${deployPath}/adapters`);
+rm('-rf', `${deployPath}/connectors`);
 echo('building...');
 mkdir(deployPath)
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);

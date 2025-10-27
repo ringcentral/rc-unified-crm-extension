@@ -3,12 +3,12 @@ const nock = require('nock');
 const { validateAdminRole, upsertAdminSettings, getAdminSettings, getServerLoggingSettings, updateServerLoggingSettings } = require('@app-connect/core/handlers/admin');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { encode } = require('@app-connect/core/lib/encode');
-const { adapterRegistry } = require('@app-connect/core');
+const { connectorRegistry } = require('@app-connect/core');
 const oauth = require('@app-connect/core/lib/oauth');
 
-adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
-adapterRegistry.registerAdapter('bullhorn', require('../src/adapters/bullhorn'));
-adapterRegistry.registerAdapter('pipedrive', require('../src/adapters/pipedrive'));
+connectorRegistry.setDefaultManifest(require('../src/connectors/manifest.json'));
+connectorRegistry.registerConnector('bullhorn', require('../src/connectors/bullhorn'));
+connectorRegistry.registerConnector('pipedrive', require('../src/connectors/pipedrive'));
 
 jest.mock('axios');
 jest.mock('@app-connect/core/models/adminConfigModel');
@@ -141,7 +141,7 @@ describe('admin.js tests', () => {
             jest.clearAllMocks();
         });
 
-        test('should get server logging settings successfully with bullhorn adapter', async () => {
+        test('should get server logging settings successfully with bullhorn connector', async () => {
             const testUsername = 'test_username';
             const testPassword = 'test_password';
 
@@ -161,7 +161,7 @@ describe('admin.js tests', () => {
             });
         });
 
-        test('should handle missing encoded credentials in bullhorn adapter', async () => {
+        test('should handle missing encoded credentials in bullhorn connector', async () => {
             const user = {
                 platform: 'bullhorn',
                 platformAdditionalInfo: {}
@@ -177,7 +177,7 @@ describe('admin.js tests', () => {
 
         test('should return empty object when platform module does not have getServerLoggingSettings', async () => {
             const user = {
-                platform: 'pipedrive', // pipedrive adapter doesn't have getServerLoggingSettings
+                platform: 'pipedrive', // pipedrive connector doesn't have getServerLoggingSettings
                 platformAdditionalInfo: {}
             };
 
@@ -203,7 +203,7 @@ describe('admin.js tests', () => {
             jest.clearAllMocks();
         });
 
-        test('should update server logging settings successfully with bullhorn adapter', async () => {
+        test('should update server logging settings successfully with bullhorn connector', async () => {
             const testUsername = 'new_username';
             const testPassword = 'new_password';
 
@@ -263,7 +263,7 @@ describe('admin.js tests', () => {
             });
         });
 
-        test('should handle empty credentials in bullhorn adapter', async () => {
+        test('should handle empty credentials in bullhorn connector', async () => {
             const mockUser = {
                 platform: 'bullhorn',
                 platformAdditionalInfo: {
@@ -320,7 +320,7 @@ describe('admin.js tests', () => {
             expect(result.successful).toBe(true);
         });
 
-        test('should handle partial credentials in bullhorn adapter', async () => {
+        test('should handle partial credentials in bullhorn connector', async () => {
             const mockUser = {
                 platform: 'bullhorn',
                 platformAdditionalInfo: {
@@ -379,7 +379,7 @@ describe('admin.js tests', () => {
 
         test('should return empty object when platform module does not have updateServerLoggingSettings', async () => {
             const mockUser = {
-                platform: 'pipedrive', // mock adapter doesn't have updateServerLoggingSettings
+                platform: 'pipedrive', // mock connector doesn't have updateServerLoggingSettings
                 platformAdditionalInfo: {},
                 save: jest.fn().mockResolvedValue(true)
             };

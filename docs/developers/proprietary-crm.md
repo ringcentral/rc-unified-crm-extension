@@ -1,12 +1,12 @@
 # Is your CRM App Connect-ready? 
 
-The App Connect framework from RingCentral can be used to build an integration with any CRM, even a home-grown or proprietary one. If you are seeking to build an adapter for a commercial or home-grown CRM, here is a check list to see if the system you are integrating with is compatible with this framework. 
+The App Connect framework from RingCentral can be used to build an integration with any CRM, even a home-grown or proprietary one. If you are seeking to build an connector for a commercial or home-grown CRM, here is a check list to see if the system you are integrating with is compatible with this framework. 
 
 ## Compatibility checklist for CRMs
 
 **:fontawesome-solid-clipboard-check: OAuth 2.0 support**
 
-Ideally, your CRM supports the [OAuth 2.0 authorization protocol](https://oauth.net/2/). From the perspective of building the adapter, this will by far be the easiest most turn-key way to connect the App Connect client application to your CRM. 
+Ideally, your CRM supports the [OAuth 2.0 authorization protocol](https://oauth.net/2/). From the perspective of building the connector, this will by far be the easiest most turn-key way to connect the App Connect client application to your CRM. 
 
 Technically, the framework can be made to work with alternative authentication mechanisms, like API keys and other tokenized methods. However, there is no guarantee such mechanisms will work out of the box. 
 
@@ -14,7 +14,7 @@ A similar API is needed to log a user out. This API would effectively invalidate
 
 **:fontawesome-solid-clipboard-check: API to create a call log, note or activity record**
 
-Every CRM has its own unique vernacular, but at the end of the day the core function of an adapter is to facilitate the process of recording communications in the CRM in question. To do that, the CRM needs an API that allows the adapter to store in the CRM's database a record of a phone call or SMS message.
+Every CRM has its own unique vernacular, but at the end of the day the core function of an connector is to facilitate the process of recording communications in the CRM in question. To do that, the CRM needs an API that allows the connector to store in the CRM's database a record of a phone call or SMS message.
 
 A similar API will be needed for fetching, and editing/updating call logs as well. 
 
@@ -34,4 +34,4 @@ Finally, in order to show users that they have connected to the CRM successfully
 
 ## Server recommendations
 
-Technically, an adapter's server could be implemented in any language. However, the fastest and easiest way to implement an adapter's server is using our pre-made Javascript [adapter server framework](https://github.com/ringcentral/rc-unified-crm-extension).
+Technically, an connector's server could be implemented in any language. However, the fastest and easiest way to implement an connector's server is using our pre-made Javascript [connector server framework](https://github.com/ringcentral/rc-unified-crm-extension).

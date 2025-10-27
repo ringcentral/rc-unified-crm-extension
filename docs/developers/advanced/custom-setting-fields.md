@@ -1,6 +1,6 @@
 # Custom Setting Fields
 
-Custom fields allow developers to add configurable settings specific to their CRM adapter. These settings are grouped under one or more sections in the App Connect extension user settings page.
+Custom fields allow developers to add configurable settings specific to their CRM connector. These settings are grouped under one or more sections in the App Connect extension user settings page.
 
 > **Note:** Custom settings defined in the manifest will automatically appear in the admin settings page, allowing administrators to control these values across the entire organization.
 
@@ -92,7 +92,7 @@ The framework supports several types of custom fields:
 
 ## Accessing Custom Settings
 
-To access custom settings in your adapter implementation, you can find them under `user.userSettings.{customSettingId}`.
+To access custom settings in your connector implementation, you can find them under `user.userSettings.{customSettingId}`.
 
 ## Example - manifest
 
@@ -134,9 +134,9 @@ Here's a complete example of a custom fields configuration:
 
 This configuration creates a section called "Insightly options" with a warning message and two input fields for configuring extra phone field name for contact matching cases.
 
-## Example - adapter
+## Example - connector
 
-In Insightly adapter, the code goes like this:
+In Insightly connector, the code goes like this:
 
 ```javascript
 

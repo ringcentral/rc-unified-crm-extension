@@ -17,11 +17,11 @@ const authCore = require('./handlers/auth');
 const adminCore = require('./handlers/admin');
 const userCore = require('./handlers/user');
 const dispositionCore = require('./handlers/disposition');
-const mock = require('./adapter/mock');
+const mock = require('./connector/mock');
 const releaseNotes = require('./releaseNotes.json');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
-const adapterRegistry = require('./adapter/registry');
+const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
 
 let packageJson = null;
@@ -75,13 +75,13 @@ function createCoreRouter() {
     // Move all app.get, app.post, etc. to router.get, router.post, etc.
     router.get('/releaseNotes', async function (req, res) {
         const globalReleaseNotes = releaseNotes;
-        const adapterReleaseNotes = adapterRegistry.getReleaseNotes();
+        const connectorReleaseNotes = connectorRegistry.getReleaseNotes();
         const mergedReleaseNotes = {};
-        const versions = Object.keys(adapterReleaseNotes);
+        const versions = Object.keys(connectorReleaseNotes);
         for (const version of versions) {
             mergedReleaseNotes[version] = {
                 global: globalReleaseNotes[version]?.global ?? {},
-                ...adapterReleaseNotes[version] ?? {}
+                ...connectorReleaseNotes[version] ?? {}
             };
         }
         res.json(mergedReleaseNotes);
@@ -91,7 +91,7 @@ function createCoreRouter() {
     router.get('/crmManifest', (req, res) => {
         try {
             const platformName = req.query.platformName || 'default';
-            const crmManifest = adapterRegistry.getManifest(platformName);
+            const crmManifest = connectorRegistry.getManifest(platformName);
             if (crmManifest) {
                 // Override app server url for local development
                 if (process.env.OVERRIDE_APP_SERVER) {
@@ -164,7 +164,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Check license status',
             interfaceName: 'checkLicenseStatus',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -219,7 +219,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Auth validation',
             interfaceName: 'authValidation',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -238,7 +238,7 @@ function createCoreRouter() {
 
     // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
-        const defaultCrmManifest = adapterRegistry.getManifest('default');
+        const defaultCrmManifest = connectorRegistry.getManifest('default');
         res.send({ version: defaultCrmManifest?.version ?? 'unknown' });
     });
 
@@ -302,7 +302,7 @@ function createCoreRouter() {
                     }
                     else {
                         res.status(200).send({
-                            customAdapter: null,
+                            customConnector: null,
                             userSettings: {}
                         });
                     }
@@ -325,7 +325,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get admin settings',
             interfaceName: 'getAdminSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -377,7 +377,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get user mapping',
             interfaceName: 'getUserMapping',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -423,7 +423,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get server logging settings',
             interfaceName: 'getServerLoggingSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -474,7 +474,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Set server logging settings',
             interfaceName: 'setServerLoggingSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -539,7 +539,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get user settings',
             interfaceName: 'getUserSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -584,7 +584,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Set user settings',
             interfaceName: 'setUserSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -671,7 +671,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'OAuth Callback',
             interfaceName: 'onOAuthCallback',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -722,7 +722,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'API Key Login',
             interfaceName: 'onApiKeyLogin',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -748,7 +748,7 @@ function createCoreRouter() {
                     res.status(400).send();
                     return;
                 }
-                const platformModule = adapterRegistry.getAdapter(unAuthData?.platform ?? 'Unknown');
+                const platformModule = connectorRegistry.getConnector(unAuthData?.platform ?? 'Unknown');
                 const { returnMessage } = await platformModule.unAuthorize({ user: userToLogout });
                 res.status(200).send({ returnMessage });
                 success = true;
@@ -767,7 +767,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Unauthorize',
             interfaceName: 'unAuthorize',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -832,7 +832,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Find contact',
             interfaceName: 'findContact',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -885,7 +885,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create contact',
             interfaceName: 'createContact',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -932,7 +932,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Save note cache',
             interfaceName: 'saveNoteCache',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -976,7 +976,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get call log',
             interfaceName: 'getCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1028,7 +1028,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1080,7 +1080,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Update call log',
             interfaceName: 'updateCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1136,7 +1136,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1189,7 +1189,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create message log',
             interfaceName: 'createMessageLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1230,7 +1230,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Schedule call down',
             interfaceName: 'scheduleCallDown',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1271,7 +1271,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get call down list',
             interfaceName: 'getCallDownList',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1316,7 +1316,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Delete call down item',
             interfaceName: 'deleteCallDownItem',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1360,7 +1360,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Mark call down called',
             interfaceName: 'markCallDownCalled',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1405,7 +1405,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Contact Search by Name',
             interfaceName: 'contactSearchByName',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1449,7 +1449,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get admin report',
             interfaceName: 'getAdminReport',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1490,7 +1490,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get user report',
             interfaceName: 'getUserReport',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1625,4 +1625,4 @@ exports.createCoreRouter = createCoreRouter;
 exports.createCoreMiddleware = createCoreMiddleware;
 exports.createCoreApp = createCoreApp;
 exports.initializeCore = initializeCore;
-exports.adapterRegistry = adapterRegistry;
+exports.connectorRegistry = connectorRegistry;

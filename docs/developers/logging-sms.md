@@ -14,7 +14,7 @@ Therefore, the first message during the day will be logged using `createMessageL
 
 ## Implement server endpoints
 
-Within your adapter's `index.js` file, implement the following methods.
+Within your connector's `index.js` file, implement the following methods.
 
 * [`createMessageLog`](interfaces/createMessageLog.md) 
 * [`updateMessageLog`](interfaces/updateMessageLog.md)

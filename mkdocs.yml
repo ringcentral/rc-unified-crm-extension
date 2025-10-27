@@ -119,10 +119,10 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
-  - 'Technical overview': developers/adapter.md
+  - 'Technical overview': developers/connector.md
   - 'Build and deployment': developers/deploy.md
   - 'Integration checklist': developers/proprietary-crm.md
-  - 'Adapter': 
+  - 'Connector': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
       - 'Manifest properties': developers/manifest.md
@@ -158,5 +158,5 @@ nav:
  
 - 'Support':
   - 'Troubleshooting': support.md
-  - 'Build a CRM adapter': build.md
+  - 'Build a CRM connector': build.md
   - 'Release notes': release-notes.md

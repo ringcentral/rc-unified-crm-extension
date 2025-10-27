@@ -1,8 +1,8 @@
-# Configuring your adapter's manifest
+# Configuring your connector's manifest
 
 {! docs/developers/beta_notice.inc !}
 
-An adapter's manifest file helps a developer to instruct the framework on how to interface with your adapter. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
+An connector's manifest file helps a developer to instruct the framework on how to interface with your connector. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
 
 Below you will find an explanation of the many properties found within a manifest file. 
 
@@ -21,14 +21,14 @@ These basic properties
 
 | Name          | Type   | Description                                                                                                           |
 |---------------|--------|-----------------------------------------------------------------------------------------------------------------------|
-| `author`      | string | The author of the adapter. This is displayed to end users within the Chrome extension.                                |
+| `author`      | string | The author of the connector. This is displayed to end users within the Chrome extension.                                |
 | `platforms`   | ARRAY of object | An array of [platforms](#platform-configuration) being integrated with. Each element of this array defines a different CRM. |
-| `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your adapter. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-adapter.myserver.com` |
-| `version`     | string | The version of your adapter. This is displayed to end users within the Chrome extension. |
+| `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your connector. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-connector.myserver.com` |
+| `version`     | string | The version of your connector. This is displayed to end users within the Chrome extension. |
 
 ### Platform configuration
 
-Each manifest file contains an array of `platform` objects. This is helpful for developers who manage multiple CRM adapters from the same server. 
+Each manifest file contains an array of `platform` objects. This is helpful for developers who manage multiple CRM connectors from the same server. 
 
 The platforms property is an associative array. Each key should be a unique identifier for the crm. The value of each element is an object with the following properties. 
 
@@ -78,18 +78,18 @@ There are a number of pages within the App Connect client application that often
 
 ### apiKey auth page
 
-=== "Sample adapter"
+=== "Sample connector"
 
     ```js
-    {!> src/adapters/testCRM/manifest.json [ln:22-36] !}
+    {!> src/connectors/testCRM/manifest.json [ln:22-36] !}
     ```
 
     ![Auth page](../img/test-auth-page.png)
 
-=== "Insightly adapter"
+=== "Insightly connector"
 
     ```js
-    {!> src/adapters/manifest.json [ln:262-294] !}
+    {!> src/connectors/manifest.json [ln:262-294] !}
     ```
 
     ![Auth page](../img/insightly-auth-page.png)
@@ -121,7 +121,7 @@ Set up associated deals as dropdown options:
 And then setup "Address" as free input field.
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:113-129] !}
+{! src/connectors/testCRM/manifest.json [ln:113-129] !}
 ```
 
 #### Custom SMS log fields
@@ -129,7 +129,7 @@ And then setup "Address" as free input field.
 Set up associated deals the same as call log
 
 ```js
-{! src/adapters/testCRM/manifest.json [ln:130-145] !}
+{! src/connectors/testCRM/manifest.json [ln:130-145] !}
 ```
 
 ## Customizing the welcome message

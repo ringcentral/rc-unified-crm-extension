@@ -1,6 +1,6 @@
 # getUserInfo
 
-This method results in the adapter calling the CRM to retrieve key information about the currently logged in user. This method should return an associative array containing the following keys and values.
+This method results in the connector calling the CRM to retrieve key information about the currently logged in user. This method should return an associative array containing the following keys and values.
 
 | Key                      | Value                                                                                                       |
 |--------------------------|-------------------------------------------------------------------------------------------------------------|
@@ -22,11 +22,11 @@ This method results in the adapter calling the CRM to retrieve key information a
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:63-128] !}
+    {!> src/connectors/testCRM/index.js [ln:63-128] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:21-75] !}
+    {!> src/connectors/pipedrive/index.js [ln:21-75] !}
 	```

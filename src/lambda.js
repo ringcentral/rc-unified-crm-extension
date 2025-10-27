@@ -12,7 +12,7 @@ exports.app = httpHandler;
 
 // Dedicated scheduled handler
 exports.bullhornScheduledReport = async () => {
-    const bullhorn = require('./adapters/bullhorn');
+    const bullhorn = require('./connectors/bullhorn');
     if (process.env.ENABLE_BULLHORN_REPORT === 'true') {
         console.log('Start Sending Bullhorn report');
         await bullhorn.sendMonthlyCsvReportByEmail();

@@ -1,6 +1,6 @@
 # Migration Guide
 
-This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new way to manage manifests. The primary changes are on the manifest management side - there is NO change required for server adapter (connector). 
+This guide covers migrating from version 1.6.x to 1.7.x, which introduces a new way to manage manifests. The primary changes are on the manifest management side - there is NO change required for server connector (connector). 
 
 New features can be found in [this post](https://community.ringcentral.com/app-connect-22/announcing-the-major-evolution-of-app-connect-11306).
 
@@ -72,7 +72,7 @@ Please run following command to add new columns in your database tables:
 - Follow instructions to create a new project
 - Find the latest beta version here: https://www.npmjs.com/package/@app-connect/core?activeTab=versions
 - Run `npm i @app-connect/core@1.7.0-beta.2` (if there's newer one, use it instead)
-- Copy your adapter code over to the new project. Install necessary npm packages that are used in your adapter
+- Copy your connector code over to the new project. Install necessary npm packages that are used in your connector
 - Spin up your server (make sure Developer Portal connector profile server url is the same as your server's)
 
 ## Step.6 Install the beta extension

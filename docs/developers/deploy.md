@@ -1,11 +1,11 @@
-# Build and deploy a CRM adapter
+# Build and deploy a CRM connector
 
-Once you have developed your adapter for a CRM, it is time to try it out. To do that, you will need to deploy your adapter's server to a publicly accessible server
+Once you have developed your connector for a CRM, it is time to try it out. To do that, you will need to deploy your connector's server to a publicly accessible server
 
 
 ## Deploying server to AWS
 
-Technically your adapter's server could be deployed anywhere. You could host it yourself, or deploy it to a third-party like Heroku or AWS. To assist developers, we have provided a [serverless config file](https://www.serverless.com/) for AWS deployment under the `serverless-deploy`. 
+Technically your connector's server could be deployed anywhere. You could host it yourself, or deploy it to a third-party like Heroku or AWS. To assist developers, we have provided a [serverless config file](https://www.serverless.com/) for AWS deployment under the `serverless-deploy`. 
 
 1. Customize your environment
     

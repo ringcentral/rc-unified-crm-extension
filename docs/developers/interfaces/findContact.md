@@ -31,7 +31,7 @@ This interface is called in the following circumstances:
 | `overridingFormat` | (Optional) If defined by the user under advanced settings, this will contain alternative formats the user may wish to use when searching for the `phoneNumber` |
 
 !!! warning "Alternative formats"
-    Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/phone-number-formats.md) which they often use when entering phone numbers into the CRM. It is the intention that each adapter when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
+    Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/phone-number-formats.md) which they often use when entering phone numbers into the CRM. It is the intention that each connector when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
 	
 	*Remember: only a single call the* `getContact` *interface will be made. The developer is responsible for searching for each alternative format.*
 
@@ -48,7 +48,7 @@ This interface returns a single object. That object describes the contacts that 
 
 ### Returning contact specific information
 
-In some circumstances when a call is being logged you need to collect contact or account specific information from the agent logging the call. Consider for a moment a use case you can see implemented in our Clio adapter in which you want to link or associate a phone call with a specific legal matter. You don't know the list of possible matters until you have successfully matched the phone call with a contact. Then you want to present the agent with a easy-to-use pull-down menu showing the list of matters associated with the contact. 
+In some circumstances when a call is being logged you need to collect contact or account specific information from the agent logging the call. Consider for a moment a use case you can see implemented in our Clio connector in which you want to link or associate a phone call with a specific legal matter. You don't know the list of possible matters until you have successfully matched the phone call with a contact. Then you want to present the agent with a easy-to-use pull-down menu showing the list of matters associated with the contact. 
 
 To do this you need to do two things. First, in your manifest, you want to define the field you want to collect from the agent. On this field you will be sure to set `contactDependent` to `true`. 
 
@@ -67,7 +67,7 @@ To do this you need to do two things. First, in your manifest, you want to defin
 }
 ```
 
-Then in your adapter, when you return your list of contacts, for each contact you will return the `additionalInfo` property in which you provide the list of matters. 
+Then in your connector, when you return your list of contacts, for each contact you will return the `additionalInfo` property in which you provide the list of matters. 
 
 ```js hl_lines="2"
 [{ 
@@ -111,12 +111,12 @@ The values returns are bound to the field via correlating the two `const` values
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:161-231] !}
+    {!> src/connectors/testCRM/index.js [ln:161-231] !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:111-184] !}
+    {!> src/connectors/pipedrive/index.js [ln:111-184] !}
 	```
 

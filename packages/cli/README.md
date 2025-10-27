@@ -55,16 +55,16 @@ appconnect init [project-name]
 npx @app-connect/cli init
 
 # Create a new project with custom name
-npx @app-connect/cli init my-crm-adapter
+npx @app-connect/cli init my-crm-connector
 
 # Force overwrite existing directory
-npx @app-connect/cli init my-crm-adapter --force
+npx @app-connect/cli init my-crm-connector --force
 
 # Auto-install deps and copy env (default behavior)
-npx @app-connect/cli init my-crm-adapter
+npx @app-connect/cli init my-crm-connector
 
 # Do everything and start the dev server
-npx @app-connect/cli init my-crm-adapter -s
+npx @app-connect/cli init my-crm-connector -s
 ```
 
 ### Upgrade @app-connect/core in an existing project

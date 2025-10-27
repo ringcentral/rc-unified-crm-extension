@@ -5,7 +5,7 @@ const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 // const userCore = require('../handlers/user');
 const errorMessage = require('../lib/generalErrorMessage');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 
 async function upsertCallDisposition({ platform, userId, sessionId, dispositions, additionalSubmission, userSettings }) {
     try {
@@ -35,7 +35,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
                 }
             }
         }
-        const platformModule = adapterRegistry.getAdapter(platform);
+        const platformModule = connectorRegistry.getConnector(platform);
         const authType = platformModule.getAuthType();
         let authHeader = '';
         switch (authType) {
@@ -126,7 +126,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
 //                 }
 //             }
 //         }
-//         const platformModule = adapterRegistry.getAdapter(platform);
+//         const platformModule = connectorRegistry.getConnector(platform);
 //         const authType = platformModule.getAuthType();
 //         let authHeader = '';
 //         switch (authType) {

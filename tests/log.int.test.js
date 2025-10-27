@@ -1,4 +1,6 @@
 const request = require('supertest');
+const dotenv = require('dotenv');
+dotenv.config();
 const nock = require('nock');
 const { getServer } = require('../src/index');
 const jwt = require('@app-connect/core/lib/jwt');

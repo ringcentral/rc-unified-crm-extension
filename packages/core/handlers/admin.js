@@ -1,6 +1,6 @@
 const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 const oauth = require('../lib/oauth');
 const { RingCentral } = require('../lib/ringcentral');
 
@@ -53,7 +53,7 @@ async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminR
 }
 
 async function getServerLoggingSettings({ user }) {
-    const platformModule = adapterRegistry.getAdapter(user.platform);
+    const platformModule = connectorRegistry.getConnector(user.platform);
     if (platformModule.getServerLoggingSettings) {
         const serverLoggingSettings = await platformModule.getServerLoggingSettings({ user });
         return serverLoggingSettings;
@@ -62,7 +62,7 @@ async function getServerLoggingSettings({ user }) {
 }
 
 async function updateServerLoggingSettings({ user, additionalFieldValues }) {
-    const platformModule = adapterRegistry.getAdapter(user.platform);
+    const platformModule = connectorRegistry.getConnector(user.platform);
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     if (platformModule.updateServerLoggingSettings) {
         const { successful, returnMessage } = await platformModule.updateServerLoggingSettings({ user, additionalFieldValues, oauthApp });
@@ -200,7 +200,7 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
 
 async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
     const adminConfig = await getAdminSettings({ hashedRcAccountId });
-    const platformModule = adapterRegistry.getAdapter(user.platform);
+    const platformModule = connectorRegistry.getConnector(user.platform);
     if (platformModule.getUserList) {
         const authType = platformModule.getAuthType();
         let authHeader = '';

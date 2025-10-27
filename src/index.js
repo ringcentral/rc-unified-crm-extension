@@ -1,37 +1,37 @@
 const {
     createCoreApp,
-    adapterRegistry
+    connectorRegistry
 } = require('@app-connect/core');
 const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const jwt = require('@app-connect/core/lib/jwt');
 const axios = require('axios');
 const authCore = require('@app-connect/core/handlers/auth');
-const bullhorn = require('./adapters/bullhorn');
-const clio = require('./adapters/clio');
-const googleSheets = require('./adapters/googleSheets');
-const insightly = require('./adapters/insightly');
-const netsuite = require('./adapters/netsuite');
-const pipedrive = require('./adapters/pipedrive');
-const redtail = require('./adapters/redtail');
-const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
+const bullhorn = require('./connectors/bullhorn');
+const clio = require('./connectors/clio');
+const googleSheets = require('./connectors/googleSheets');
+const insightly = require('./connectors/insightly');
+const netsuite = require('./connectors/netsuite');
+const pipedrive = require('./connectors/pipedrive');
+const redtail = require('./connectors/redtail');
+const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 
-// Register adapters
-adapterRegistry.setReleaseNotes(require('./releaseNotes.json'));
+// Register connectors
+connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
-adapterRegistry.registerAdapter('bullhorn', bullhorn);
-adapterRegistry.registerAdapter('clio', clio);
-adapterRegistry.registerAdapter('googleSheets', googleSheets);
-adapterRegistry.registerAdapter('insightly', insightly);
-adapterRegistry.registerAdapter('netsuite', netsuite);
-adapterRegistry.registerAdapter('pipedrive', pipedrive);
-adapterRegistry.registerAdapter('redtail', redtail);
+connectorRegistry.registerConnector('bullhorn', bullhorn);
+connectorRegistry.registerConnector('clio', clio);
+connectorRegistry.registerConnector('googleSheets', googleSheets);
+connectorRegistry.registerConnector('insightly', insightly);
+connectorRegistry.registerConnector('netsuite', netsuite);
+connectorRegistry.registerConnector('pipedrive', pipedrive);
+connectorRegistry.registerConnector('redtail', redtail);
 
 // Create Express app with core functionality
 const app = createCoreApp();
 
-// Add custom routes for specific adapters
+// Add custom routes for specific connectors
 // Google Sheets specific routes
 app.get('/googleSheets/filePicker', async function (req, res) {
     try {
@@ -130,7 +130,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
 // Pipedrive specific routes
 app.get('/pipedrive-redirect', function (req, res) {
     try {
-        res.sendFile(path.join(__dirname, 'adapters/pipedrive/redirect.html'));
+        res.sendFile(path.join(__dirname, 'connectors/pipedrive/redirect.html'));
     }
     catch (e) {
         console.log(`platform: pipedrive \n${e.stack}`);
@@ -142,7 +142,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
         if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
-            const platformModule = require(`./adapters/pipedrive`);
+            const platformModule = require(`./connectors/pipedrive`);
             await platformModule.unAuthorize({ id: req.body.user_id });
             await UserModel.destroy({
                 where: {
