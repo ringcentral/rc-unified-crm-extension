@@ -92,13 +92,13 @@ class ConnectorRegistry {
       let connector = this.connectors.get(platform);
       const platformInterfaceMap = this.platformInterfaces.get(platform);
       
-      // If no adapter and no interfaces, try fallback to proxy adapter
+      // If no connector and no interfaces, try fallback to proxy connector
       if (!connector && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
-          const proxy = this.adapters.get('proxy');
+          const proxy = this.connectors.get('proxy');
           if (proxy) {
             return proxy;
           }
-          throw new Error(`Adapter not found for platform: ${platform}`);
+          throw new Error(`Connector not found for platform: ${platform}`);
       }
 
       // If no connector but interfaces exist, create a composed object with just interfaces
