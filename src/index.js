@@ -18,6 +18,7 @@ const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 
 // Register connectors
+connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
 connectorRegistry.registerConnector('bullhorn', bullhorn);
