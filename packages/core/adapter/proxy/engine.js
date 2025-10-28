@@ -76,7 +76,11 @@ function buildHeaders({ config, operation, authHeader, context }) {
 async function performRequest({ config, opName, inputs, user, authHeader }) {
   const op = config.operations?.[opName];
   if (!op) return null;
-  const context = Object.assign({}, inputs, { user, authHeader });
+  const context = Object.assign({}, inputs, {
+    user: user || {},
+    authHeader,
+    apiKey: user?.accessToken,
+  });
   const url = joinUrl(config.requestDefaults?.baseUrl, renderTemplateString(op.url, context));
   const method = (op.method || 'GET').toUpperCase();
   const headers = buildHeaders({ config, operation: op, authHeader, context });

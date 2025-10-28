@@ -152,10 +152,10 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
   });
   const map = cfg.operations.createContact.responseMapping || {};
   const responseCtx = { response: response.data };
-  const contactInfo = map.contactInfo ? {
-    id: getByPath(responseCtx, map.contactInfo.idPath || 'response.id'),
-    name: getByPath(responseCtx, map.contactInfo.namePath || 'response.name'),
-    type: map.contactInfo.typeValue || 'Contact',
+  const contactInfo = map.idPath ? {
+    id: getByPath(responseCtx, map.idPath || 'response.id'),
+    name: getByPath(responseCtx, map.namePath || 'response.name'),
+    type: getByPath(responseCtx, map.typePath || 'response.type') || 'Contact',
   } : null;
   return { contactInfo, returnMessage: { message: 'Contact created', messageType: 'success', ttl: 2000 } };
 }
@@ -278,12 +278,22 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
   return { returnMessage: { message: 'Message log updated', messageType: 'success', ttl: 3000 } };
 }
 
-async function getLicenseStatus({ userId }) {
-  return {
-    isLicenseValid: true,
-    licenseStatus: 'Basic',
-    licenseStatusDescription: ''
-  };
+async function getLicenseStatus({ userId, platform }) {
+  const cfg = await loadPlatformConfig(platform);
+  if (!cfg.operations?.getLicenseStatus) {
+    return { isLicenseValid: true, licenseStatus: 'Basic', licenseStatusDescription: '' };
+  }
+  const response = await performRequest({
+    config: cfg,
+    opName: 'getLicenseStatus',
+    inputs: { userId, platform },
+  });
+  const map = cfg.operations.getLicenseStatus.responseMapping || {};
+  const responseCtx = { response: response.data };
+  const isLicenseValid = getByPath(responseCtx, map.isLicenseValidPath || 'response.isLicenseValid');
+  const licenseStatus = getByPath(responseCtx, map.licenseStatusPath || 'response.licenseStatus');
+  const licenseStatusDescription = getByPath(responseCtx, map.licenseStatusDescriptionPath || 'response.licenseStatusDescription');
+  return { isLicenseValid, licenseStatus, licenseStatusDescription };
 }
 
 exports.getAuthType = getAuthType;
