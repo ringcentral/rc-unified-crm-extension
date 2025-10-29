@@ -11,7 +11,8 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   userSettings: {
     type: Sequelize.JSON
   },
-  customConnector: {
+  // Obsolete
+  customAdapter: {
     type: Sequelize.JSON
   },
   adminAccessToken: {
