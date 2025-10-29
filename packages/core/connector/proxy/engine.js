@@ -41,6 +41,7 @@ function renderDeep(input, context) {
 function joinUrl(baseUrl, path) {
   if (!baseUrl) return path;
   if (!path) return baseUrl;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
   return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
 }
 
@@ -54,6 +55,8 @@ function getAuthHeaderFromAuthConfig({ auth, context, authHeader }) {
     authHeaders[headerName] = auth.scheme ? `${auth.scheme} ${token}` : token;
   } else if (authHeader) {
     authHeaders[headerName] = authHeader;
+  } else if (auth && auth.type === 'oauth' && context.user) {
+    authHeaders[headerName] = `${auth.scheme || 'Bearer'} ${context.user.accessToken}`;
   }
   return authHeaders;
 }
@@ -101,9 +104,9 @@ function mapFindContactResponse({ config, response }) {
     return {
       id: getByPath(it, itemMap.idPath || 'id'),
       name: getByPath(it, itemMap.namePath || 'name') || '',
-      type: itemMap.typeValue || 'Contact',
+      type: getByPath(it, itemMap.typePath || 'type') || 'Contact',
       phone: getByPath(it, itemMap.phonePath || 'phone') || undefined,
-      additionalInfo: null
+      additionalInfo: getByPath(it, itemMap.additionalInfoPath || 'additionalInfo') || null
     };
   });
 }

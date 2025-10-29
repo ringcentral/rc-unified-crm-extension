@@ -1,11 +1,17 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+/* eslint-disable no-param-reassign */
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const moment = require('moment');
-const { performRequest, mapFindContactResponse, mapCreateCallLogResponse, mapGetCallLogResponse, getByPath, renderTemplateString } = require('./engine');
+const {
+  performRequest,
+  mapFindContactResponse,
+  mapCreateCallLogResponse,
+  mapGetCallLogResponse,
+  getByPath,
+} = require('./engine');
+const { Connector } = require('../../models/dynamo/connectorSchema');
 
 function getAuthType() {
+  // TODO: implement oauth auth type
   return 'apiKey';
 }
 
@@ -13,95 +19,95 @@ function getBasicAuth({ apiKey }) {
   return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function loadPlatformConfig(platform) {
-  const dir = process.env.PROXY_CONFIG_DIR;
-  const baseUrl = process.env.PROXY_CONFIG_URL;
-  let cfg = null;
-  if (dir) {
-    try {
-      const filePath = path.join(dir, `${platform}.json`);
-      if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, 'utf8');
-        cfg = JSON.parse(content);
-      }
-    } catch (e) {
-      // ignore and fallthrough to URL
-    }
+async function loadPlatformConfig(proxyId) {
+  if (!proxyId) {
+    return null;
   }
-  if (!cfg && baseUrl) {
-    const url = `${baseUrl.replace(/\/$/, '')}/${encodeURIComponent(platform)}.json`;
-    const res = await axios.get(url);
-    cfg = res.data;
+  try {
+    const proxyConfig = await Connector.getProxyConfig(proxyId);
+    return proxyConfig;
+  } catch (error) {
+    console.error('Error getting proxy config: ', proxyId);
+    return null;
   }
-  if (!cfg || !cfg.auth || cfg.auth.type !== 'apiKey') {
-    throw new Error(`proxy adapter requires apiKey auth config for platform ${platform}`);
-  }
-  return cfg;
 }
 
-async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey }) {
-  const cfg = await loadPlatformConfig(platform);
-  if (cfg.operations?.getUserInfo) {
-    const response = await performRequest({
-      config: cfg,
-      opName: 'getUserInfo',
-      inputs: {
-        additionalInfo,
-        apiKey,
-        hostname,
-      },
-      user: {},
-      authHeader
-    });
-    const map = cfg.operations.getUserInfo.responseMapping || {};
-    const responseCtx = {
-      response: response.data,
-      additionalInfo,
-      apiKey,
-      hostname,
-      platform,
-    };
-    const rawUserId = map.idPath ? getByPath(responseCtx, map.idPath) : undefined;
-    const id = `${rawUserId}-${platform}`;
-    const name = map.namePath ? getByPath(responseCtx, map.namePath) : rawUserId;
-    const timezoneName = map.timezoneNamePath ? getByPath(responseCtx, map.timezoneNamePath) : undefined;
-    const overridingApiKey = map.overridingApiKeyPath ? getByPath(responseCtx, map.overridingApiKeyPath) : undefined;
-    // platformAdditionalInfo mapping and cleanup
-    const platformAdditionalInfo = Object.assign({}, additionalInfo || {});
-    if (platformAdditionalInfo.password) delete platformAdditionalInfo.password;
-    if (map.platformAdditionalInfoPaths && typeof map.platformAdditionalInfoPaths === 'object') {
-      for (const [key, expr] of Object.entries(map.platformAdditionalInfoPaths)) {
-        platformAdditionalInfo[key] = getByPath(responseCtx, expr);
-      }
-    }
-    const message = map.messagePath ? (getByPath(responseCtx, map.messagePath) || `Connected to ${cfg.metadata?.displayName}.`) : `Connected to ${cfg.metadata?.displayName}.`;
+async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey, proxyId }) {
+  const cfg = await loadPlatformConfig(proxyId);
+  if (!cfg || !cfg.operations?.getUserInfo) {
+    // Fallback if no getUserInfo operation defined
     return {
-      successful: true,
-      platformUserInfo: Object.assign(
-        { id, name },
-        timezoneName ? { timezoneName } : {},
-        overridingApiKey ? { overridingApiKey } : {},
-        Object.keys(platformAdditionalInfo).length ? { platformAdditionalInfo } : {}
-      ),
+      successful: false,
       returnMessage: {
-        messageType: 'success',
-        message,
+        messageType: 'warning',
+        message: `Could not load user information. The platform does not support getUserInfo operation.`,
         ttl: 1000
       }
     };
   }
-  // Fallback if no getUserInfo operation defined
+  const response = await performRequest({
+    config: cfg,
+    opName: 'getUserInfo',
+    inputs: {
+      additionalInfo,
+      apiKey,
+      hostname,
+      platform,
+    },
+    user: {},
+    authHeader
+  });
+  const map = cfg.operations.getUserInfo.responseMapping || {};
+  const responseCtx = {
+    response: response.data,
+    additionalInfo,
+    apiKey,
+    hostname,
+    platform,
+  };
+  const rawUserId = map.idPath ? getByPath(responseCtx, map.idPath) : undefined;
+  const id = `${rawUserId}-${platform}`;
+  const name = map.namePath ? getByPath(responseCtx, map.namePath) : rawUserId;
+  const timezoneName = map.timezoneNamePath ? getByPath(responseCtx, map.timezoneNamePath) : undefined;
+  const overridingApiKey = map.overridingApiKeyPath ? getByPath(responseCtx, map.overridingApiKeyPath) : undefined;
+  // platformAdditionalInfo mapping and cleanup
+  const platformAdditionalInfo = Object.assign({}, additionalInfo || {});
+  if (platformAdditionalInfo.password) delete platformAdditionalInfo.password;
+  if (map.platformAdditionalInfoPaths && typeof map.platformAdditionalInfoPaths === 'object') {
+    for (const [key, expr] of Object.entries(map.platformAdditionalInfoPaths)) {
+      platformAdditionalInfo[key] = getByPath(responseCtx, expr);
+    }
+  }
+  const message = map.messagePath ? (getByPath(responseCtx, map.messagePath) || `Connected to ${platform}.`) : `Connected to ${platform}.`;
   return {
-    successful: false,
+    successful: true,
+    platformUserInfo: Object.assign(
+      { id, name },
+      timezoneName ? { timezoneName } : {},
+      overridingApiKey ? { overridingApiKey } : {},
+      Object.keys(platformAdditionalInfo).length ? { platformAdditionalInfo } : {}
+    ),
     returnMessage: {
-      messageType: 'warning',
-      message: `Could not load user information. The platform does not support getUserInfo operation.`,
+      messageType: 'success',
+      message,
       ttl: 1000
     }
   };
 }
 
 async function unAuthorize({ user }) {
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+  if (cfg?.operations?.unAuthorize) {
+    await performRequest({
+      config: cfg,
+      opName: 'unAuthorize',
+      inputs: { user },
+      user,
+    });
+  }
+  user.accessToken = '';
+  user.refreshToken = '';
+  await user.save();
   return {
     successful: true,
     returnMessage: {
@@ -113,7 +119,7 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.findContact) {
     return { successful: true, matchedContactInfo: [] };
   }
@@ -139,7 +145,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.createContact) {
     return { contactInfo: null, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -161,7 +167,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   // TODO: generate composedLogDetails
   const composedLogDetails = '';
   const response = await performRequest({
@@ -196,14 +202,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 async function getCallLog({ user, callLogId, contactId, authHeader }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.getCallLog) {
     return { callLogInfo: null, returnMessage: null };
   }
   const response = await performRequest({
     config: cfg,
     opName: 'getCallLog',
-    inputs: { callLogId, contactId },
+    inputs: { thirdPartyLogId: callLogId, contactId },
     user,
     authHeader
   });
@@ -212,7 +218,7 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
 }
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, recordingDownloadLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   await performRequest({
     config: cfg,
     opName: 'updateCallLog',
@@ -231,7 +237,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 }
 
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.upsertCallDisposition) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -246,7 +252,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.createMessageLog) {
     return { logId: undefined, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -264,7 +270,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission }) {
-  const cfg = await loadPlatformConfig(user?.platform);
+  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.updateMessageLog) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -278,8 +284,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
   return { returnMessage: { message: 'Message log updated', messageType: 'success', ttl: 3000 } };
 }
 
-async function getLicenseStatus({ userId, platform }) {
-  const cfg = await loadPlatformConfig(platform);
+async function getLicenseStatus({ userId, proxyId, platform }) {
+  const cfg = await loadPlatformConfig(proxyId);
   if (!cfg.operations?.getLicenseStatus) {
     return { isLicenseValid: true, licenseStatus: 'Basic', licenseStatusDescription: '' };
   }

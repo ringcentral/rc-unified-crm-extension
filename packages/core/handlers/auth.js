@@ -5,7 +5,7 @@ const Op = require('sequelize').Op;
 const { RingCentral } = require('../lib/ringcentral');
 const adminCore = require('./admin');
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query, proxyId }) {
     const platformModule = connectorRegistry.getConnector(platform);
     const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
 
@@ -27,8 +27,8 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query });
-    console.log('platformUserInfo', platformUserInfo);
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId });
+
     if (successful) {
         let userInfo = await saveUserInfo({
             platformUserInfo,
@@ -40,7 +40,8 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             accessToken,
             refreshToken,
             tokenExpiry: expires,
-            rcAccountId: query.rcAccountId
+            rcAccountId: query.rcAccountId,
+            proxyId
         });
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
@@ -58,15 +59,16 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     }
 }
 
-async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
+async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey, proxyId });
     if (successful) {
         let userInfo = await saveUserInfo({
             platformUserInfo,
             platform,
             hostname,
+            proxyId,
             accessToken: platformUserInfo.overridingApiKey ?? apiKey
         });
         if (platformModule.postSaveUserInfo) {
@@ -85,13 +87,16 @@ async function onApiKeyLogin({ platform, hostname, apiKey, additionalInfo }) {
     }
 }
 
-async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId }) {
+async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, proxyId }) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
     const existingUser = await UserModel.findByPk(id);
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
-    const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo;
+    const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
+    if (proxyId) {
+        platformAdditionalInfo.proxyId = proxyId;
+    }
     if (existingUser) {
         await existingUser.update(
             {
@@ -169,9 +174,9 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     };
 }
 
-async function getLicenseStatus({ userId, platform }) {
+async function getLicenseStatus({ userId, platform, proxyId }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    const licenseStatus = await platformModule.getLicenseStatus({ userId });
+    const licenseStatus = await platformModule.getLicenseStatus({ userId, proxyId });
     return licenseStatus;
 }
 

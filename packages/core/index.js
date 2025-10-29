@@ -134,13 +134,13 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const { id: userId, platform, proxyId } = jwt.decodeJwt(jwtToken);
                 platformName = platform;
                 if (!userId) {
                     res.status(400).send();
                     success = true;
                 }
-                const licenseStatus = await authCore.getLicenseStatus({ userId, platform });
+                const licenseStatus = await authCore.getLicenseStatus({ userId, platform, proxyId });
                 res.status(200).send(licenseStatus);
                 success = true;
             }
@@ -648,12 +648,14 @@ function createCoreRouter() {
                 callbackUri: req.query.callbackUri,
                 apiUrl: req.query.apiUrl,
                 username: req.query.username,
-                query: req.query
+                query: req.query,
+                proxyId: req.query.proxyId
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
-                    platform: platformName
+                    platform: platformName,
+                    proxyId: req.query.proxyId
                 });
                 res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
                 success = true;
@@ -693,6 +695,7 @@ function createCoreRouter() {
             platformName = platform;
             const apiKey = req.body.apiKey;
             const hostname = req.body.hostname;
+            const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
             if (!platform) {
                 throw 'Missing platform name';
@@ -700,11 +703,12 @@ function createCoreRouter() {
             if (!apiKey) {
                 throw 'Missing api key';
             }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
-                    platform: platform
+                    platform: platform,
+                    proxyId: proxyId
                 });
                 res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
                 success = true;
