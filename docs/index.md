@@ -79,7 +79,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 
     When a call comes in, the caller's contact page opens automatically, giving you full context before answering.
 
-    [:octicons-arrow-right-24: Learn more](users/call-pop.md)
+    [:octicons-arrow-right-24: Learn more](users/screen-pop.md)
 
 -   :fontawesome-solid-comment-sms:{ .lg .middle } __Send/receive SMS__
 

@@ -22,7 +22,7 @@ We realize that you may want to enter in a lot more information about a contact.
 **Tips and best practices**
 
 * App Connect only prompts you for a name. You may want to edit the contact later to augment it with more information about the contact after the call is logged. 
-* There is a [call-pop setting](making-calls.md#call-pop) that controls whether App Connect will open a browser tab to the newly created contact to aid you in editing the contact after it is created. 
+* There is a [call-pop setting](screen-pop.md) that controls whether App Connect will open a browser tab to the newly created contact to aid you in editing the contact after it is created. 
 * Some CRMs require additional records, like a company, be created and associated with a contact. App Connect will often create placeholder objects that you can edit later.
 * If the contact exists in your CRM, but App Connect cannot find it, consider editing the contact and updating its phone number to use the E.164 format favored by RingCentral and App Connect. 
 

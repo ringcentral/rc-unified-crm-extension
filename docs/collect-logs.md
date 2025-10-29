@@ -1,10 +1,10 @@
-# Collecting Error Logs
+# Tips for submitting bug reports and requesting help from the App Connect team
 
 The most effective way for us to fix bugs is to reproduce them first. Error logs are essential for this process. If you're reading this page, thank you for helping us improve the application!
 
 To help us diagnose issues quickly, we need three types of information: console logs, network logs, and screen recordings.
 
-## 1. Console Logs
+## Console Logs
 
 Console logs contain detailed error messages and debugging information that help us identify the root cause of issues.
 
@@ -14,10 +14,9 @@ Console logs contain detailed error messages and debugging information that help
 2. Right-click on the App Connect extension and select "Inspect"
 3. Switch to the "Console" tab and copy **all** content
 
-!!! tip
-    Make sure to scroll up in the console to capture any earlier error messages that might be related to the issue. 
+!!! tip "Make sure to scroll up in the console to capture any earlier error messages that might be related to the issue."
 
-## 2. Network Logs
+## Network Logs
 
 Network logs show all HTTP requests and responses, helping us identify API-related issues or connectivity problems.
 
@@ -28,9 +27,9 @@ Network logs show all HTTP requests and responses, helping us identify API-relat
 3. Trigger the error while recording is active
 4. Save the network log as a HAR file
 
-![Save HAR File](../img/save-har-file.png)
+![Save HAR File](img/save-har-file.png)
 
-## 3. Screen Recordings
+## Screen Recordings
 
 Screen recordings provide visual context and show exactly what happens on your screen when the error occurs. This helps us understand the user experience and identify UI-related issues.
 
@@ -45,8 +44,7 @@ Screen recordings provide visual context and show exactly what happens on your s
 3. Include any error messages or unexpected behavior
 4. Keep the recording focused and concise (2-3 minutes is usually sufficient)
 
-!!! tip
-    If the issue is intermittent, try to record multiple attempts to show the inconsistent behavior.
+!!! tip "If the issue is intermittent, try to record multiple attempts to show the inconsistent behavior."
 
 ## Submitting Your Logs
 
