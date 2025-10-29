@@ -122,7 +122,7 @@ function mapGetCallLogResponse({ config, response }) {
   const subject = getByPath({ response: response.data }, map.subjectPath || 'subject');
   const note = getByPath({ response: response.data }, map.notePath || 'note');
   const fullBody = getByPath({ response: response.data }, map.fullBodyPath || 'note');
-  const fullLogResponse = getByPath({ response: response.data }, map.fullLogResponsePath || '$');
+  const fullLogResponse = response.data;
   return {
     callLogInfo: { subject, note, fullBody, fullLogResponse }
   };

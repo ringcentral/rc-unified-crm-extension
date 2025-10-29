@@ -166,10 +166,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
   return { contactInfo, returnMessage: { message: 'Contact created', messageType: 'success', ttl: 2000 } };
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
-  // TODO: generate composedLogDetails
-  const composedLogDetails = '';
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL, composedLogDetails, proxyConfig = null }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
+  if (!cfg || !cfg.operations?.createCallLog) {
+    return { logId: undefined, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
+  }
   const response = await performRequest({
     config: cfg,
     opName: 'createCallLog',
@@ -201,10 +202,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
   };
 }
 
-async function getCallLog({ user, callLogId, contactId, authHeader }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
-  if (!cfg.operations?.getCallLog) {
-    return { callLogInfo: null, returnMessage: null };
+async function getCallLog({ user, callLogId, contactId, authHeader, proxyConfig = null }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
+  if (!cfg || !cfg.operations?.getCallLog) {
+    return { callLogInfo: null, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
   const response = await performRequest({
     config: cfg,
@@ -217,12 +218,25 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
   return Object.assign(mapped, { returnMessage: { message: 'Call log fetched.', messageType: 'success', ttl: 3000 } });
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, recordingDownloadLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, recordingDownloadLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL, proxyConfig = null }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
+  if (!cfg || !cfg.operations?.updateCallLog) {
+    return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
+  }
   await performRequest({
     config: cfg,
     opName: 'updateCallLog',
-    inputs: { existingCallLog, recordingLink, recordingDownloadLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL },
+    inputs: {
+      existingCallLog,
+      recordingLink,
+      recordingDownloadLink,
+      subject,
+      note,
+      startTime: moment(startTime).utc().toISOString(),
+      endTime: moment(startTime).utc().add(duration, 'seconds').toISOString(),
+      duration,
+      result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL,
+    },
     user,
     authHeader
   });

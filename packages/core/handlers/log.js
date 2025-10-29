@@ -8,6 +8,7 @@ const { composeCallLog } = require('../lib/callLogComposer');
 const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
+const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 
@@ -82,9 +83,15 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-
+        let proxyConfig;
+        const proxyId = user.platformAdditionalInfo?.proxyId;
         // Compose call log details centrally
-        const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+        let logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+        logFormat = proxyId ? null : logFormat;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+            logFormat = proxyConfig?.meta?.logFormat;
+        }
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
             composedLogDetails = await composeCallLog({
@@ -100,7 +107,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 startTime: callLog.startTime,
                 duration: callLog.duration,
                 result: callLog.result,
-                platform
+                platform,
             });
         }
 
@@ -115,7 +122,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             transcript,
             composedLogDetails,
             hashedAccountId,
-            isFromSSCL
+            isFromSSCL,
+            proxyConfig,
         });
         if (logId) {
             await CallLogModel.create({
@@ -324,7 +332,14 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 
             // Fetch existing call log details once to avoid duplicate API calls
             let existingCallLogDetails = null;    // Compose updated call log details centrally
-            const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+            let logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+            const proxyId = user.platformAdditionalInfo?.proxyId;
+            let proxyConfig = null;
+            logFormat = proxyId ? null : logFormat;
+            if (proxyId) {
+                proxyConfig = await Connector.getProxyConfig(proxyId);
+                logFormat = proxyConfig?.meta?.logFormat;
+            }
             let composedLogDetails = '';
             if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
                 let existingBody = '';
@@ -332,7 +347,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const getLogResult = await platformModule.getCallLog({
                         user,
                         callLogId: existingCallLog.thirdPartyLogId,
-                        authHeader
+                        authHeader,
+                        proxyConfig,
                     });
                     existingCallLogDetails = getLogResult?.callLogInfo?.fullLogResponse;
                     // Extract existing body from the platform-specific response
@@ -388,7 +404,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 composedLogDetails,
                 existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls
                 hashedAccountId,
-                isFromSSCL
+                isFromSSCL,
+                proxyConfig,
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
