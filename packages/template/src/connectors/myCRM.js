@@ -525,6 +525,41 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
+// Used to get user list for server-side call logging user mapping
+async function getUserList({ user, authHeader }) {
+    // TODO: do API call to CRM platform to get user list
+    return [
+        {
+            id: 'testUserId',
+            name: 'Test User',
+            email: 'test@example.com'
+        },
+        {
+            id: 'testUserId2',
+            name: 'Test User 2',
+            email: 'test2@example.com'
+        },
+        {
+            id: 'testUserId3',
+            name: 'Test User 3',
+            email: 'test3@example.com'
+        }
+    ]
+}
+
+async function findContactWithName({ user, authHeader, name }) {
+    // TODO: do API call to CRM platform to find contact by name
+    return {
+        successful: true,
+        matchedContactInfo: [
+            {
+                id: 'testContactId',
+                name: 'Test Contact'
+            }
+        ]
+    }
+}
+
 
 exports.getAuthType = getAuthType;
 exports.getUserInfo = getUserInfo;
@@ -537,3 +572,4 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.upsertCallDisposition = upsertCallDisposition;
+exports.getUserList = getUserList;
