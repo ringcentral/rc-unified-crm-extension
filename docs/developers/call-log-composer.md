@@ -171,19 +171,6 @@ logBody = upsertCallAgentNote({
 // Result: "- Note: Customer requested follow-up call next week\n- Date/Time: 2024-01-15 05:30:00 AM\n- Duration: 00:02:00\n"
 ```
 
-## Helper Functions
-
-### `getLogFormatType(platform)`
-
-Determines the appropriate log format type for a specific CRM platform by reading its manifest configuration.
-
-```js
-const { getLogFormatType } = require('@ringcentral/integration-core/lib/callLogComposer');
-
-const format = getLogFormatType('pipedrive');
-// Returns: 'text/html' (based on platform manifest)
-```
-
 ## Timezone Handling
 
 The CallLogComposer handles timezone conversion automatically:
