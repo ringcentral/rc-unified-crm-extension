@@ -6,9 +6,14 @@ const { parsePhoneNumber } = require('awesome-phonenumber');
 const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 
 function getAuthType() {
     return 'oauth';
+}
+
+function getLogFormatType() {
+    return LOG_DETAILS_FORMAT_TYPE.HTML;
 }
 
 async function getOauthInfo() {
@@ -705,3 +710,4 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
+exports.getLogFormatType = getLogFormatType;

@@ -19,6 +19,10 @@ function getAuthType() {
     return 'oauth';
 }
 
+function getLogFormatType() {
+    return LOG_DETAILS_FORMAT_TYPE.HTML;
+}
+
 async function authValidation({ user }) {
     let pingResponse;
     try {
@@ -1793,3 +1797,4 @@ exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.sendMonthlyCsvReportByEmail = sendMonthlyCsvReportByEmail;
 exports.generateMonthlyCsvReport = generateMonthlyCsvReport;
+exports.getLogFormatType = getLogFormatType;

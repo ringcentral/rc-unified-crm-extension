@@ -4,9 +4,13 @@ const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 function getAuthType() {
     return 'oauth';
+}
+
+function getLogFormatType() {
+    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
 async function getOauthInfo({ hostname }) {
@@ -1701,3 +1705,4 @@ exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.findContactWithName = findContactWithName;
+exports.getLogFormatType = getLogFormatType;

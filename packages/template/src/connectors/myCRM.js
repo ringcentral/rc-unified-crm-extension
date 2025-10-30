@@ -1,6 +1,7 @@
 // -----------------------------------------------------------------------------------------------
 // ---TODO: Delete below mock entities and other relevant code, they are just for test purposes---
 // -----------------------------------------------------------------------------------------------
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 let mockContact = null;
 let mockCallLog = null;
 let mockMessageLog = null;
@@ -8,6 +9,12 @@ let mockMessageLog = null;
 function getAuthType() {
     return 'apiKey'; // Return either 'oauth' OR 'apiKey'
 }
+
+// CHOOSE: plaint text, html, markdown
+function getLogFormatType() {
+    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+}
+exports.getLogFormatType = getLogFormatType;
 
 // Choose 1 of the following 3 functions, delete the rest. getBasicAuth is enabled just for testing
 

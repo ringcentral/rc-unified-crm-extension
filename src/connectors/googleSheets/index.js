@@ -2,6 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 function getAuthType() {
     return 'oauth';
 }
@@ -16,6 +17,10 @@ async function getOauthInfo({ hostname }) {
         accessTokenUri: process.env.GOOGLESHEET_TOKEN_URI,
         redirectUri: process.env.GOOGLESHEET_REDIRECT_URI
     }
+}
+
+function getLogFormatType() {
+    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
 async function getUserInfo({ authHeader, additionalInfo, query }) {
@@ -1054,3 +1059,4 @@ exports.createContact = createContact;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
+exports.getLogFormatType = getLogFormatType;

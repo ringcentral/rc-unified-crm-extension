@@ -615,27 +615,8 @@ function upsertLegs({ body, legs, logFormat }) {
     return result;
 }
 
-/**
- * Helper function to determine format type for a CRM platform
- * @param {string} platform - CRM platform name
- * @returns {string} Format type
- */
-function getLogFormatType(platform) {
-    if(process.env.LOG_FORMAT_PLAIN_TEXT_PLATFORMS.split(',').includes(platform)){
-        return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
-    }
-    if(process.env.LOG_FORMAT_HTML_PLATFORMS.split(',').includes(platform)){
-        return LOG_DETAILS_FORMAT_TYPE.HTML;
-    }
-    if(process.env.LOG_FORMAT_MARKDOWN_PLATFORMS.split(',').includes(platform)){
-        return LOG_DETAILS_FORMAT_TYPE.MARKDOWN;
-    }
-    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
-}
-
 module.exports = {
     composeCallLog,
-    getLogFormatType,
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,
