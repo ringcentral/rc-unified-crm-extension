@@ -4,10 +4,15 @@ const connectorRegistry = require('../connector/registry');
 const Op = require('sequelize').Op;
 const { RingCentral } = require('../lib/ringcentral');
 const adminCore = require('./admin');
+const { Connector } = require('../models/dynamo/connectorSchema');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query, proxyId }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId });
+    let proxyConfig = null;
+    if (proxyId) {
+        proxyConfig = await Connector.getProxyConfig(proxyId);
+    }
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig });
 
     if (oauthInfo.failMessage) {
         return {
@@ -27,7 +32,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig });
 
     if (successful) {
         let userInfo = await saveUserInfo({
@@ -194,7 +199,8 @@ async function authValidation({ platform, userId }) {
     });
     if (existingUser) {
         const platformModule = connectorRegistry.getConnector(platform);
-        const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname })));
+        const proxyId = existingUser?.platformAdditionalInfo?.proxyId;
+        const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname, proxyId })));
         existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);
         const { successful, returnMessage, status } = await platformModule.authValidation({ user: existingUser });
         return {

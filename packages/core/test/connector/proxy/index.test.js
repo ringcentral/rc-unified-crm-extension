@@ -108,8 +108,8 @@ describe('proxy connector - more coverage', () => {
     Connector.getProxyConfig.mockReset();
   });
 
-  test('getAuthType returns apiKey', () => {
-    expect(proxy.getAuthType()).toBe('apiKey');
+  test('getAuthType returns apiKey', async () => {
+    expect(await proxy.getAuthType()).toBe('apiKey');
   });
 
   test('getBasicAuth encodes apiKey with colon', () => {

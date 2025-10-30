@@ -219,7 +219,7 @@ class ConnectorRegistry {
    * @param {string} platform - Platform identifier
    * @returns {Object} Connector capabilities
    */
-  getConnectorCapabilities(platform) {
+  async getConnectorCapabilities(platform) {
     const originalConnector = this.getOriginalConnector(platform);
     const composedConnector = this.getConnector(platform);
     const platformInterfaceMap = this.getPlatformInterfaces(platform);
@@ -235,7 +235,7 @@ class ConnectorRegistry {
     // Get auth type if available
     if (typeof originalConnector.getAuthType === 'function') {
       try {
-        capabilities.authType = originalConnector.getAuthType();
+        capabilities.authType = await originalConnector.getAuthType();
       } catch (error) {
         capabilities.authType = 'unknown';
       }

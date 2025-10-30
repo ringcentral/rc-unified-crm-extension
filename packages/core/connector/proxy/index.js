@@ -10,15 +10,6 @@ const {
 } = require('./engine');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 
-function getAuthType() {
-  // TODO: implement oauth auth type
-  return 'apiKey';
-}
-
-function getBasicAuth({ apiKey }) {
-  return Buffer.from(`${apiKey}:`).toString('base64');
-}
-
 async function loadPlatformConfig(proxyId) {
   if (!proxyId) {
     return null;
@@ -32,8 +23,33 @@ async function loadPlatformConfig(proxyId) {
   }
 }
 
-async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey, proxyId }) {
-  const cfg = await loadPlatformConfig(proxyId);
+async function getAuthType({ proxyId, proxyConfig } = {}) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
+  if (!cfg) {
+    return 'apiKey';
+  }
+  return cfg.auth.type || 'apiKey';
+}
+
+async function getOauthInfo({ proxyId, proxyConfig, tokenUrl, hostname } = {}) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
+  if (!cfg) {
+    return {};
+  }
+  return {
+    clientId: cfg.auth.clientId,
+    clientSecret: cfg.auth.clientSecret,
+    accessTokenUri: tokenUrl || cfg.auth.tokenUrl,
+    redirectUri: cfg.auth.redirectUri,
+  };
+}
+
+function getBasicAuth({ apiKey }) {
+  return Buffer.from(`${apiKey}:`).toString('base64');
+}
+
+async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey, proxyId, proxyConfig } = {}) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
   if (!cfg || !cfg.operations?.getUserInfo) {
     // Fallback if no getUserInfo operation defined
     return {
@@ -95,6 +111,28 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, platform, api
   };
 }
 
+async function getUserList({ user, authHeader, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
+  if (!cfg.operations?.getUserList) {
+    return [];
+  }
+  const response = await performRequest({
+    config: cfg,
+    opName: 'getUserList',
+    inputs: { user },
+    user,
+    authHeader
+  });
+  const map = cfg.operations.getUserList.responseMapping || {};
+  const responseCtx = { response: response.data };
+  const userList = map.listPath ? getByPath(responseCtx, map.listPath) : [];
+  return userList.map(item => ({
+    id: getByPath(item, map.idPath || 'id'),
+    name: getByPath(item, map.namePath || 'name'),
+    email: getByPath(item, map.emailPath || 'email'),
+  }));
+}
+
 async function unAuthorize({ user }) {
   const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (cfg?.operations?.unAuthorize) {
@@ -118,8 +156,8 @@ async function unAuthorize({ user }) {
   };
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg.operations?.findContact) {
     return { successful: true, matchedContactInfo: [] };
   }
@@ -144,8 +182,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
   };
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg.operations?.createContact) {
     return { contactInfo: null, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -164,6 +202,30 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     type: getByPath(responseCtx, map.typePath || 'response.type') || 'Contact',
   } : null;
   return { contactInfo, returnMessage: { message: 'Contact created', messageType: 'success', ttl: 2000 } };
+}
+
+async function findContactWithName({ user, authHeader, name, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
+  if (!cfg.operations?.findContactWithName) {
+    return { successful: true, matchedContactInfo: [] };
+  }
+  const response = await performRequest({
+    config: cfg,
+    opName: 'findContactWithName',
+    inputs: { name },
+    user,
+    authHeader
+  });
+  const matchedContactInfo = mapFindContactResponse({ config: cfg, response });
+  return {
+    successful: true,
+    matchedContactInfo,
+    returnMessage: {
+      messageType: 'success',
+      message: `Found ${matchedContactInfo.length} contacts`,
+      ttl: 3000
+    }
+  };
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL, composedLogDetails, proxyConfig = null }) {
@@ -251,8 +313,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
   };
 }
 
-async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg.operations?.upsertCallDisposition) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -266,8 +328,8 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
   return { logId: existingCallLog.thirdPartyLogId, returnMessage: { message: 'Disposition updated', messageType: 'success', ttl: 2000 } };
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg.operations?.createMessageLog) {
     return { logId: undefined, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -294,8 +356,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
   return { logId, returnMessage: { message: 'Message logged', messageType: 'success', ttl: 1000 } };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink }) {
-  const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg.operations?.updateMessageLog) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
   }
@@ -317,8 +379,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
   return { returnMessage: { message: 'Message log updated', messageType: 'success', ttl: 3000 } };
 }
 
-async function getLicenseStatus({ userId, proxyId, platform }) {
-  const cfg = await loadPlatformConfig(proxyId);
+async function getLicenseStatus({ userId, proxyId, platform, proxyConfig }) {
+  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
   if (!cfg.operations?.getLicenseStatus) {
     return { isLicenseValid: true, licenseStatus: 'Basic', licenseStatusDescription: '' };
   }
@@ -336,6 +398,7 @@ async function getLicenseStatus({ userId, proxyId, platform }) {
 }
 
 exports.getAuthType = getAuthType;
+exports.getOauthInfo = getOauthInfo;
 exports.getBasicAuth = getBasicAuth;
 exports.getUserInfo = getUserInfo;
 exports.createCallLog = createCallLog;
@@ -345,6 +408,8 @@ exports.createMessageLog = createMessageLog;
 exports.updateMessageLog = updateMessageLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
+exports.findContactWithName = findContactWithName;
 exports.unAuthorize = unAuthorize;
 exports.getLicenseStatus = getLicenseStatus;
 exports.upsertCallDisposition = upsertCallDisposition;
+exports.getUserList = getUserList;

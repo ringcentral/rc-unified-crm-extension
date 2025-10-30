@@ -3,6 +3,7 @@ const { AdminConfigModel } = require('../models/adminConfigModel');
 const connectorRegistry = require('../connector/registry');
 const oauth = require('../lib/oauth');
 const { RingCentral } = require('../lib/ringcentral');
+const { Connector } = require('../models/dynamo/connectorSchema');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -202,11 +203,19 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
     const adminConfig = await getAdminSettings({ hashedRcAccountId });
     const platformModule = connectorRegistry.getConnector(user.platform);
     if (platformModule.getUserList) {
-        const authType = platformModule.getAuthType();
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+            if (!proxyConfig?.operations?.getUserList) {
+                return [];
+            }
+        }
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 // eslint-disable-next-line no-param-reassign
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
@@ -216,7 +225,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const crmUserList = await platformModule.getUserList({ user, authHeader });
+        const crmUserList = await platformModule.getUserList({ user, authHeader, proxyConfig });
         const userMappingResult = [];
         const newUserMappings = [];
         for (const crmUser of crmUserList) {

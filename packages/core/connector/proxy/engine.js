@@ -104,8 +104,11 @@ function mapFindContactResponse({ config, response }) {
     return {
       id: getByPath(it, itemMap.idPath || 'id'),
       name: getByPath(it, itemMap.namePath || 'name') || '',
-      type: getByPath(it, itemMap.typePath || 'type') || 'Contact',
       phone: getByPath(it, itemMap.phonePath || 'phone') || undefined,
+      type: getByPath(it, itemMap.typePath || 'type') || 'Contact',
+      title: getByPath(it, itemMap.titlePath || 'title') || "",
+      company: getByPath(it, itemMap.companyPath || 'company') || "",
+      mostRecentActivityDate: getByPath(it, itemMap.mostRecentActivityDatePath || 'mostRecentActivityDate') || undefined,
       additionalInfo: getByPath(it, itemMap.additionalInfoPath || 'additionalInfo') || null
     };
   });
