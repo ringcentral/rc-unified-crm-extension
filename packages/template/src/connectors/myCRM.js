@@ -304,7 +304,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         note: mockCallLog.note
     }
     const subject = getLogRes.subject;
-    const note = getLogRes.note.split('- Note: ')[1].split('\n')[0];
+    const note = getLogRes.note ? getLogRes.note.split('- Note: ')[1].split('\n')[0] : '';
 
     //-------------------------------------------------------------------------------------
     //---CHECK.5: In extension, for a logged call, click edit to see if info is fetched ---
