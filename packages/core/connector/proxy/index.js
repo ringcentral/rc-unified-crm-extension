@@ -215,6 +215,7 @@ async function getCallLog({ user, callLogId, contactId, authHeader, proxyConfig 
     authHeader
   });
   const mapped = mapGetCallLogResponse({ config: cfg, response });
+  // TODO: if not note, but fullBodyPath is present, parse user note from fullBody
   return Object.assign(mapped, { returnMessage: { message: 'Call log fetched.', messageType: 'success', ttl: 3000 } });
 }
 
@@ -265,7 +266,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
   return { logId: existingCallLog.thirdPartyLogId, returnMessage: { message: 'Disposition updated', messageType: 'success', ttl: 2000 } };
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink }) {
   const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.createMessageLog) {
     return { logId: undefined, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
@@ -273,7 +274,17 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
   const response = await performRequest({
     config: cfg,
     opName: 'createMessageLog',
-    inputs: { contactInfo, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink },
+    inputs: {
+      contactInfo,
+      message,
+      additionalSubmission,
+      recordingLink,
+      faxDocLink,
+      faxDownloadLink,
+      imageLink,
+      videoLink,
+      creationTime: moment(message.creationTime).utc().toISOString(),
+    },
     user,
     authHeader
   });
@@ -283,7 +294,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
   return { logId, returnMessage: { message: 'Message logged', messageType: 'success', ttl: 1000 } };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink }) {
   const cfg = await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId);
   if (!cfg.operations?.updateMessageLog) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
@@ -291,7 +302,15 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
   await performRequest({
     config: cfg,
     opName: 'updateMessageLog',
-    inputs: { contactInfo, existingMessageLog, message, additionalSubmission },
+    inputs: {
+      contactInfo,
+      existingMessageLog,
+      message,
+      additionalSubmission,
+      imageLink,
+      videoLink,
+      creationTime: moment(message.creationTime).utc().toISOString(),
+    },
     user,
     authHeader
   });
