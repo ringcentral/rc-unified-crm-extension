@@ -31,7 +31,8 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": false,
+        "enableUserMapping": true
       },
       "displayName": "Pipedrive",
       "auth": {
@@ -191,7 +192,8 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": true
+        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true
       },
       "displayName": "Insightly",
       "auth": {
@@ -427,7 +429,8 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": true
+        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true
       },
       "displayName": "Clio",
       "auth": {
@@ -641,7 +644,8 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": true
+        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true
       },
       "auth": {
         "type": "apiKey",
@@ -1007,6 +1011,7 @@
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
         "useAdminAssignedUserToken": true,
+        "enableUserMapping": true,
         "additionalFields": [
           {
             "const": "apiUsername",
@@ -1268,7 +1273,8 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": false,
+        "enableUserMapping": true
       },
       "displayName": "NetSuite",
       "auth": {
