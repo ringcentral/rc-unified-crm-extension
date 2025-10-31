@@ -80,7 +80,19 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
   const op = config.operations?.[opName];
   if (!op) return null;
   const context = Object.assign({}, inputs, {
-    user: user || {},
+    user: user ? {
+      accessToken: user.accessToken,
+      id: user.id?.split('-')[0],
+      hostname: user.hostname,
+      timezoneName: user.timezoneName,
+      timezoneOffset: user.timezoneOffset,
+      platform: user.platform,
+      platformAdditionalInfo: user.platformAdditionalInfo,
+      refreshToken: user.refreshToken,
+      tokenExpiry: user.tokenExpiry,
+    } : {
+      accessToken: '',
+    },
     authHeader,
     apiKey: user?.accessToken,
   });
@@ -117,7 +129,9 @@ function mapFindContactResponse({ config, response }) {
 function mapCreateCallLogResponse({ config, response }) {
   const map = config.operations?.createCallLog?.responseMapping;
   if (!map) return { logId: undefined };
-  return { logId: getByPath({ response: response.data }, map.idPath || 'id') };
+  const logId = getByPath({ response: response.data }, map.idPath || 'id');
+
+  return { logId: logId ? String(logId) : undefined };
 }
 
 function mapGetCallLogResponse({ config, response }) {

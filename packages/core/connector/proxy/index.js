@@ -353,7 +353,10 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
   const map = cfg.operations.createMessageLog.responseMapping || {};
   const responseCtx = { response: response.data };
   const logId = getByPath(responseCtx, map.idPath || 'response.id');
-  return { logId, returnMessage: { message: 'Message logged', messageType: 'success', ttl: 1000 } };
+  return {
+    logId: logId ? String(logId) : undefined,
+    returnMessage: { message: 'Message logged', messageType: 'success', ttl: 1000 }
+  };
 }
 
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig }) {
