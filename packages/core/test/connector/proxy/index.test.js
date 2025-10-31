@@ -224,9 +224,9 @@ describe('proxy connector - more coverage', () => {
           method: 'GET',
           url: '/license/{{userId}}',
           responseMapping: {
-            isLicenseValidPath: 'response.valid',
-            licenseStatusPath: 'response.status',
-            licenseStatusDescriptionPath: 'response.desc'
+            isLicenseValidPath: 'body.valid',
+            licenseStatusPath: 'body.status',
+            licenseStatusDescriptionPath: 'body.desc'
           }
         }
       }

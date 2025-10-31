@@ -75,7 +75,7 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, platform, api
   });
   const map = cfg.operations.getUserInfo.responseMapping || {};
   const responseCtx = {
-    response: response.data,
+    body: response.data,
     additionalInfo,
     apiKey,
     hostname,
@@ -124,9 +124,9 @@ async function getUserList({ user, authHeader, proxyConfig }) {
     authHeader
   });
   const map = cfg.operations.getUserList.responseMapping || {};
-  const responseCtx = { response: response.data };
+  const responseCtx = { body: response.data };
   const userList = map.listPath ? getByPath(responseCtx, map.listPath) : [];
-  return userList.map(item => ({
+  return (userList || []).map(item => ({
     id: getByPath(item, map.idPath || 'id'),
     name: getByPath(item, map.namePath || 'name'),
     email: getByPath(item, map.emailPath || 'email'),
@@ -139,7 +139,7 @@ async function unAuthorize({ user }) {
     await performRequest({
       config: cfg,
       opName: 'unAuthorize',
-      inputs: { user },
+      inputs: {},
       user,
     });
   }
@@ -195,11 +195,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     authHeader
   });
   const map = cfg.operations.createContact.responseMapping || {};
-  const responseCtx = { response: response.data };
+  const responseCtx = { body: response.data };
   const contactInfo = map.idPath ? {
-    id: getByPath(responseCtx, map.idPath || 'response.id'),
-    name: getByPath(responseCtx, map.namePath || 'response.name'),
-    type: getByPath(responseCtx, map.typePath || 'response.type') || 'Contact',
+    id: getByPath(responseCtx, map.idPath || 'body.id'),
+    name: getByPath(responseCtx, map.namePath || 'body.name'),
+    type: getByPath(responseCtx, map.typePath || 'body.type') || 'Contact',
   } : null;
   return { contactInfo, returnMessage: { message: 'Contact created', messageType: 'success', ttl: 2000 } };
 }
@@ -277,7 +277,6 @@ async function getCallLog({ user, callLogId, contactId, authHeader, proxyConfig 
     authHeader
   });
   const mapped = mapGetCallLogResponse({ config: cfg, response });
-  // TODO: if not note, but fullBodyPath is present, parse user note from fullBody
   return Object.assign(mapped, { returnMessage: { message: 'Call log fetched.', messageType: 'success', ttl: 3000 } });
 }
 
@@ -351,8 +350,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     authHeader
   });
   const map = cfg.operations.createMessageLog.responseMapping || {};
-  const responseCtx = { response: response.data };
-  const logId = getByPath(responseCtx, map.idPath || 'response.id');
+  const responseCtx = { body: response.data };
+  const logId = getByPath(responseCtx, map.idPath || 'body.id');
   return {
     logId: logId ? String(logId) : undefined,
     returnMessage: { message: 'Message logged', messageType: 'success', ttl: 1000 }
@@ -393,10 +392,10 @@ async function getLicenseStatus({ userId, proxyId, platform, proxyConfig }) {
     inputs: { userId, platform },
   });
   const map = cfg.operations.getLicenseStatus.responseMapping || {};
-  const responseCtx = { response: response.data };
-  const isLicenseValid = getByPath(responseCtx, map.isLicenseValidPath || 'response.isLicenseValid');
-  const licenseStatus = getByPath(responseCtx, map.licenseStatusPath || 'response.licenseStatus');
-  const licenseStatusDescription = getByPath(responseCtx, map.licenseStatusDescriptionPath || 'response.licenseStatusDescription');
+  const responseCtx = { body: response.data };
+  const isLicenseValid = getByPath(responseCtx, map.isLicenseValidPath || 'body.isLicenseValid');
+  const licenseStatus = getByPath(responseCtx, map.licenseStatusPath || 'body.licenseStatus');
+  const licenseStatusDescription = getByPath(responseCtx, map.licenseStatusDescriptionPath || 'body.licenseStatusDescription');
   return { isLicenseValid, licenseStatus, licenseStatusDescription };
 }
 

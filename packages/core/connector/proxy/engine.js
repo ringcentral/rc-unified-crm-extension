@@ -110,7 +110,8 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
 function mapFindContactResponse({ config, response }) {
   const map = config.operations?.findContact?.responseMapping;
   if (!map) return [];
-  const list = getByPath({ response: response.data }, map.listPath || 'data') || [];
+  const __ctx = { body: response.data };
+  const list = getByPath(__ctx, map.listPath || 'body') || [];
   const itemMap = map.item || {};
   return list.map(it => {
     return {
@@ -129,16 +130,18 @@ function mapFindContactResponse({ config, response }) {
 function mapCreateCallLogResponse({ config, response }) {
   const map = config.operations?.createCallLog?.responseMapping;
   if (!map) return { logId: undefined };
-  const logId = getByPath({ response: response.data }, map.idPath || 'id');
+  const __ctx = { body: response.data };
+  const logId = getByPath(__ctx, map.idPath || 'body.id');
 
   return { logId: logId ? String(logId) : undefined };
 }
 
 function mapGetCallLogResponse({ config, response }) {
   const map = config.operations?.getCallLog?.responseMapping || {};
-  const subject = getByPath({ response: response.data }, map.subjectPath || 'subject');
-  const note = getByPath({ response: response.data }, map.notePath || 'note');
-  const fullBody = getByPath({ response: response.data }, map.fullBodyPath || 'note');
+  const __ctx = { body: response.data };
+  const subject = getByPath(__ctx, map.subjectPath || 'body.subject');
+  const note = getByPath(__ctx, map.notePath || 'body.note');
+  const fullBody = getByPath(__ctx, map.fullBodyPath || 'body.note');
   const fullLogResponse = response.data;
   return {
     callLogInfo: { subject, note, fullBody, fullLogResponse }

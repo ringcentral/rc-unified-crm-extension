@@ -24,11 +24,11 @@
       "url": "/authentication",
       "responseMapping": {
         "type": "object",
-        "idPath": "response.user.username",
-        "namePath": "response.user.username",
-        "messagePath": "response.message",
+        "idPath": "body.user.username",
+        "namePath": "body.user.username",
+        "messagePath": "body.message",
         "platformAdditionalInfoPaths": {
-          "userResponse": "response.user"
+          "userResponse": "body.user"
         }
       }
     },
@@ -40,7 +40,7 @@
       },
       "responseMapping": {
         "type": "list",
-        "listPath": "response.contacts",
+        "listPath": "body.contacts",
         "item": {
           "idPath": "id",
           "namePath": "name",
@@ -63,9 +63,9 @@
       },
       "responseMapping": {
         "type": "object",
-        "idPath": "response.id",
-        "namePath": "response.name",
-        "typePath": "response.type"
+        "idPath": "body.id",
+        "namePath": "body.name",
+        "typePath": "body.type"
       }
     },
     "createCallLog": {
@@ -87,7 +87,7 @@
       },
       "responseMapping": {
         "type": "object",
-        "idPath": "response.activity.id"
+        "idPath": "body.activity.id"
       }
     },
     "updateCallLog": {
@@ -111,9 +111,9 @@
       },
       "responseMapping": {
         "type": "object",
-        "subjectPath": "response.activity.subject",
-        "notePath": "response.activity.note",
-        "fullBodyPath": "response.activity.description"
+        "subjectPath": "body.activity.subject",
+        "notePath": "body.activity.note",
+        "fullBodyPath": "body.activity.description"
       }
     },
     "createMessageLog": {
@@ -135,7 +135,7 @@
       },
       "responseMapping": {
         "type": "object",
-        "idPath": "response.activity.id"
+        "idPath": "body.activity.id"
       }
     },
     "updateMessageLog": {
