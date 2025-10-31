@@ -33,7 +33,7 @@ exports.track = function track({ eventName, interfaceName, connectorName, accoun
     mixpanel.track(eventName, {
         distinct_id: extensionId,
         interfaceName,
-        connectorName,
+        adapterName: connectorName,
         rcAccountId: accountId,
         extensionId,
         success,

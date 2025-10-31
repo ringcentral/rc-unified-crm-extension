@@ -84,7 +84,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         };
 
         // Compose call log details centrally
-        const logFormat = platformModule.platformModule ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+        const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
             composedLogDetails = await composeCallLog({
@@ -324,7 +324,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 
             // Fetch existing call log details once to avoid duplicate API calls
             let existingCallLogDetails = null;    // Compose updated call log details centrally
-            const logFormat = platformModule.platformModule ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+            const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
             let composedLogDetails = '';
             if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
                 let existingBody = '';
