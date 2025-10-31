@@ -312,16 +312,21 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                     ...u,
                     rcExtensionId: [u.rcExtensionId]
                 }));
+                await upsertAdminSettings({
+                    hashedRcAccountId,
+                    adminSettings: {
+                        userMappings: [...adminConfig.userMappings, ...newUserMappings]
+                    }
+                });
             }
             else {
-                adminConfig.userMappings = [];
+                await upsertAdminSettings({
+                    hashedRcAccountId,
+                    adminSettings: {
+                        userMappings: [...newUserMappings]
+                    }
+                });
             }
-            await upsertAdminSettings({
-                hashedRcAccountId,
-                adminSettings: {
-                    userMappings: [...adminConfig.userMappings, ...newUserMappings]
-                }
-            });
         }
         return userMappingResult;
     }
