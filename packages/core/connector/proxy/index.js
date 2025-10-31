@@ -289,6 +289,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     config: cfg,
     opName: 'updateCallLog',
     inputs: {
+      thirdPartyLogId: existingCallLog?.thirdPartyLogId,
       existingCallLog,
       recordingLink,
       recordingDownloadLink,
@@ -320,7 +321,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
   await performRequest({
     config: cfg,
     opName: 'upsertCallDisposition',
-    inputs: { existingCallLog, dispositions },
+    inputs: { existingCallLog, dispositions, thirdPartyLogId: existingCallLog?.thirdPartyLogId },
     user,
     authHeader
   });
@@ -369,6 +370,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     inputs: {
       contactInfo,
       existingMessageLog,
+      thirdPartyLogId: existingMessageLog?.thirdPartyLogId,
       message,
       additionalSubmission,
       imageLink,

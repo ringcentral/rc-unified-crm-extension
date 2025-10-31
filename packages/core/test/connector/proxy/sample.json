@@ -92,7 +92,7 @@
     },
     "updateCallLog": {
       "method": "PUT",
-      "url": "/activities/{{existingCallLog.thirdPartyLogId}}",
+      "url": "/activities/{{thirdPartyLogId}}",
       "headers": {
         "Content-Type": "application/json"
       },
@@ -140,7 +140,7 @@
     },
     "updateMessageLog": {
       "method": "PUT",
-      "url": "/activities/{{existingMessageLog.thirdPartyLogId}}",
+      "url": "/activities/{{thirdPartyLogId}}",
       "headers": {
         "Content-Type": "application/json"
       },
