@@ -95,4 +95,17 @@ To connect with the new client:
 
 That's it! Congratulations on completing the migration. 
 
+!!! note "For backward compatibility, please make sure if anything is changed on your manifest, sync that change from online to local (OR local to online). Because online manifest is served for BETA (1.7.x) users while server local manifest file is served for non-BETA (1.6.x) users"
+
 Give your connector a try and feel free to contact da.kong@ringcentral.com if you encounter any issues.
+
+## Extra
+
+### Release note
+
+If you are using `releaseNotes.json` to deliver information to end users, please note that it's been taken care of. Here's how:
+
+1. Users with 1.6.x extension would only get release notes of 1.6.y (y > x).
+2. Users with 1.7.x extension would get the latest release notes, which would be 1.7.y (y > x)
+
+Therefore you'll be able to add releate notes separatedly.
