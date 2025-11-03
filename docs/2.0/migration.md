@@ -6,8 +6,6 @@ New features can be found in [this post](https://community.ringcentral.com/app-c
 
 !!! tip "It's recommended to use a local test instance to try the migration process before applying changes on your production environment."
 
-!!! tip "The beta extension is not available on Chrome Web Store yet. Please contact Da Kong (da.kong@ringcentral.com) for a beta build."
-
 ## 1. Migrate your connector manifest
 
 - Navigate to [Developer Console](https://appconnect.labs.ringcentral.com/console) and log in with your RingCentral account
