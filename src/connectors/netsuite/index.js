@@ -141,6 +141,34 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
     }
 }
 
+async function getUserList({ user, authHeader }) {
+    try{
+    const query = {
+        q: "SELECT id, firstname,middlename, lastname, email, giveaccess, isinactive FROM employee"
+      };
+
+    const userListResponse = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`, query, {
+        headers: { 'Authorization': authHeader,'Content-Type': 'application/json', 'Prefer': 'transient' }
+    });
+
+    const userList = [];
+    if (userListResponse?.data?.items?.length > 0) {
+        for (const user of userListResponse?.data?.items) {
+            if(user.email===undefined || user.email===null || user.email==='') continue;
+            userList.push({
+                id: user.id,
+                name: [user.firstname, user.middlename, user.lastname].filter(Boolean).join(' '),
+                email: user.email
+            });
+        }
+    }
+    return userList;
+} catch (error) {
+    console.log({message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list")});
+    return [];
+}
+}
+
 async function unAuthorize({ user }) {
     const revokeUrl = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/revoke`;
     const basicAuthHeader = Buffer.from(`${process.env.NETSUITE_CRM_CLIENT_ID}:${process.env.NETSUITE_CRM_CLIENT_SECRET}`).toString('base64');
@@ -1706,3 +1734,4 @@ exports.unAuthorize = unAuthorize;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
+exports.getUserList = getUserList;
