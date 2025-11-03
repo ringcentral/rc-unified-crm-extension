@@ -228,6 +228,10 @@ async function findContactWithName({ user, authHeader, name, proxyConfig }) {
   };
 }
 
+function getLogFormatType(platform, proxyConfig) {
+  return proxyConfig ? proxyConfig.meta?.logFormat : 'custom';
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL, composedLogDetails, proxyConfig = null }) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg || !cfg.operations?.createCallLog) {
@@ -417,3 +421,4 @@ exports.unAuthorize = unAuthorize;
 exports.getLicenseStatus = getLicenseStatus;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.getUserList = getUserList;
+exports.getLogFormatType = getLogFormatType;
