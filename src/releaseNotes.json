@@ -1,4 +1,40 @@
 {
+    "1.7.1": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Click-to-SMS now adds recipients so you can easily add multiple recipients"
+            },
+            {
+                "type": "New",
+                "description": "Auto log setting for voicemail"
+            }
+        ],
+        "bulhorn": [
+            {
+                "type": "Fix",
+                "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.10": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Click-to-SMS now adds recipients so you can easily add multiple recipients"
+            },
+            {
+                "type": "New",
+                "description": "Auto log setting for voicemail"
+            }
+        ],
+        "bulhorn": [
+            {
+                "type": "Fix",
+                "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
     "1.6.9": {
         "global": [
             {

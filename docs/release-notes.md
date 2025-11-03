@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.7.1
+
+- Better: Click-to-SMS now adds recipients so you can easily add multiple recipients
+- New: Auto log setting for voicemail
+- Fix: Remove open all matches in Call-pop since it's not natively supported by Bullhorn
+
+## 1.7.0
+
+Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.10
+
+- Better: Click-to-SMS now adds recipients so you can easily add multiple recipients
+- New: Auto log setting for voicemail
+- Fix: Remove open all matches in Call-pop since it's not natively supported by Bullhorn
+
 ## 1.6.9
 
 - New: Server-side logging now supports multiple RingCentral users to be mapped under one CRM user
