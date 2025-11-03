@@ -12,6 +12,10 @@ const FILES_TO_UPDATE = [
     description: 'Package'
   },
   {
+    path: 'packages/template/package.json',
+    description: 'Template package'
+  },
+  {
     path: 'packages/core/package.json',
     description: 'Core package'
   }
