@@ -4,6 +4,10 @@ This interface is responsible for creating a new call log record in the associat
 
 There is an underlying assumption of the framework that there is a one-to-one mapping between notes (or activities) and phone calls. Therefore, when logging a call in the target CRM only create a single log entry. 
 
+### Choosing what to log
+
+The `updateCallLog` and `createCallLog` interfaces both receive the constituent parts of a call to be logged as well as a fully composed call log entry. For consistency, we always recommend that developers log the `composedLogDetails`. However, there may be circumstances where access to the individual elements of a call are useful, or where a developer may wish to log something that deviates from the App Connect convention. We leave those decisions to the developer. 
+
 ## Input parameters
 
 | Parameter              | Description                                                                                              |
@@ -11,9 +15,12 @@ There is an underlying assumption of the framework that there is a one-to-one ma
 | `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
 | `contactInfo`          | An associative array describing the contact a call is associated with.                                   |
 | `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+| `composedLogDetails`   | A fully composed activity to log in the CRM. It is recommended developers simply log this string.        |
 | `callLog`              | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
 | `note`                 | The notes saved by the user during and/or after the call.                                                |
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
+| `aiNote`               | The AI-generated summary of the call. Transmitted only if Smart Notes has been enabled. |
+| `transcript`           | The AI-processed transcript of the call. Transmitted only if Smart Notes has been enabled. |
 | `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     | 
 
 ### Contact Info
@@ -53,7 +60,7 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:237-288] !}
+    {!> src/adapters/testCRM/index.js [ln:230-272] !}
 	```
 	
 === "Pipedrive"

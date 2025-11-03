@@ -29,6 +29,7 @@ This interface is called in the following circumstances:
 | `authHeader`       | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  |
 | `phoneNumber`      | The phone number to search for within the target CRM, provided in an E.164 format, e.g. +11231231234.    |
 | `overridingFormat` | (Optional) If defined by the user under advanced settings, this will contain alternative formats the user may wish to use when searching for the `phoneNumber` |
+| `isExtension`      | True if the contact is a RingCentral extension |
 
 !!! warning "Alternative formats"
     Some CRM's have very restrictive APIs with regards to searching for phone numbers, meaning they require an *exact match* in order to find a contact with that phone number. To work around this restriction, users are allowed to specify a [list of phone number formats](../../users/phone-number-formats.md) which they often use when entering phone numbers into the CRM. It is the intention that each adapter when provided a list of `overridingFormat` values to convert the E.164 phone number into each of the overriding formats, and to search for each one until a contact is found.
@@ -39,10 +40,10 @@ This interface is called in the following circumstances:
 
 This interface returns a single object. That object describes the contacts that were found. It has following properties:
 
-| Parameter | Description                                                                                                          |
-|-----------|----------------------------------------------------------------------------------------------------------------------|
-|`matchedContactInfo`| An array of objects containing `id`, `name` and optionally `additionalInfo` and `isNewContact`.|
-|`returnMessage`|`message`, `messageType` and `ttl`|
+| Parameter            | Description                                                                                     |
+|----------------------|-------------------------------------------------------------------------------------------------|
+| `matchedContactInfo` | An array of objects containing `id`, `name` and optionally `additionalInfo` and `isNewContact`. |
+| `returnMessage`      | `message`, `messageType` and `ttl`                                                              |
 
 !!! tip "isNewContact is only used as an extra option in contact list for users to be able to create new contacts"
 
