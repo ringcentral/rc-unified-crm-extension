@@ -3,14 +3,15 @@ site_name: App Connect for RingEX
 site_url: https://appconnect.labs.ringcentral.com
 
 # Repository
-repo_url: https://github.com/ringcentral/rc-unified-crm-extension
-repo_name: ringcentral/rc-unified-crm-extension
-edit_uri: tree/master/docs
+#repo_url: https://github.com/ringcentral/rc-unified-crm-extension
+#repo_name: ringcentral/rc-unified-crm-extension
+edit_uri: https://github.com/ringcentral/rc-unified-crm-extension/tree/master/docs
 docs_dir: docs
 
 theme:
   name: material
   logo: img/RingCentral_logo_color.png
+  custom_dir: overrides
   font:
     code: Roboto Mono
     text: Inter Tight
@@ -119,25 +120,24 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
-  - 'Technical overview': developers/connector.md
+  - 'Technical overview': developers/adapter.md
   - 'Build and deployment': developers/deploy.md
   - 'Integration checklist': developers/proprietary-crm.md
-  - 'Connector': 
+  - 'Adapter': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
       - 'Manifest properties': developers/manifest.md
       - 'Customizing pages': developers/manifest-pages.md
+      - 'Custom settings': developers/custom-settings.md
+      - 'Regional services': developers/regional-services.md
       - 'Sample manifest': developers/manifest-sample.md
     - 'Server': 
       - 'Contact matching': developers/contact-matching.md
       - 'Logging phone calls': developers/logging-calls.md
       - 'Logging SMS': developers/logging-sms.md
-      - 'CallLogComposer': developers/call-log-composer.md
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
-#      - 'Welcome pages': developers/welcome-page.md
       - 'Returning errors': developers/errors.md
-#      - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
       - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
@@ -155,8 +155,20 @@ nav:
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
- 
+
+- 'App Connect 2.0 Beta':
+  - "What's new": 2.0/index.md
+  - 'Download': 2.0/download.md
+  - 'New CRMs': 
+    - 'RecruiterPM': crm/recruiterpm.md
+    - 'Service Titan': crm/servicetitan.md
+    - 'Smokeball': crm/smokeball.md
+    - 'Zoho': crm/zoho.md
+  - 'Developers': 
+    - 'Connector migration guide': 2.0/migration.md
+
 - 'Support':
   - 'Troubleshooting': support.md
-  - 'Build a CRM connector': build.md
+  - 'Submitting bug reports': collect-logs.md
+  - 'Build a CRM adapter': build.md
   - 'Release notes': release-notes.md

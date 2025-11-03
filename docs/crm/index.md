@@ -14,11 +14,11 @@ RingCentral's App Connect for RingEX provides support for a number of different 
 -    [![Clio Logo](../img/crm-logo-clio.png){.crm-logo}](clio.md)
      [Clio](clio.md)
 -    [![Freshdesk Logo](../img/crm-logo-freshdesk.png){.crm-logo}](freshdesk.md)
-     [Freshdesk](freshdesk.md)
+     [Freshdesk by Loyally](freshdesk.md)
 -    [![Google Sheets Logo](../img/crm-logo-googlesheets.png){.crm-logo}](google-sheets.md)
      [Google Sheets](google-sheets.md)
 -    [![HighLevel Logo](../img/crm-logo-highlevel.png){.crm-logo}](gohighlevel.md)
-     [HighLevel](gohighlevel.md)
+     [HighLevel by Loyally](gohighlevel.md)
 -    [![Insightly Logo](../img/crm-logo-insightly.png){.crm-logo}](insightly.md)
      [Insightly](insightly.md)
 -    [![NetSuite Logo](../img/crm-logo-netsuite.png){.crm-logo}](netsuite.md)
@@ -28,7 +28,7 @@ RingCentral's App Connect for RingEX provides support for a number of different 
 -    [![Redtail Logo](../img/crm-logo-redtail.png){.crm-logo}](redtail.md)
      [Redtail CRM](redtail.md)
 -    [![ServiceNow Logo](../img/crm-logo-servicenow.png){.crm-logo}](servicenow.md)
-     [ServiceNow](servicenow.md)
+     [ServiceNow by Gate6](servicenow.md)
 
 </div>
 

@@ -2,7 +2,7 @@
 
 Custom fields allow developers to add configurable settings specific to their CRM connector. These settings are grouped under one or more sections in the App Connect extension user settings page.
 
-> **Note:** Custom settings defined in the manifest will automatically appear in the admin settings page, allowing administrators to control these values across the entire organization.
+!!! note "Custom settings defined in the manifest will automatically appear in the [managed settings area](../users/managed-settings.md), allowing administrators to control these values across the entire organization."
 
 ## Location
 

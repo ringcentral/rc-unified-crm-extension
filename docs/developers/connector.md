@@ -50,7 +50,6 @@ This guide will walk you through the process of creating an connector step-by-st
     * [Logging, updating and looking up call logs](logging-calls.md)
     * [Logging SMS messages](logging-sms.md)
     * [Creating placeholder contacts](placeholder-contacts.md)
-    * [Creating a custom welcome and getting started page](welcome-page.md)
     * [Opening contact and activity pages in the CRM](view-details.md)
 * [Deploy your server](deploy.md)
 * Configure the App Connect Chrome extension to load your custom connector
