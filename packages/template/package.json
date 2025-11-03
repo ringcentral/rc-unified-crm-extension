@@ -15,7 +15,7 @@
     "deploy": "node ./scripts/serverless-deploy"
   },
   "dependencies": {
-    "@app-connect/core": "^1.7.0-beta.4",
+    "@app-connect/core": "^1.7.1",
     "axios": "^1.12.2",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",
