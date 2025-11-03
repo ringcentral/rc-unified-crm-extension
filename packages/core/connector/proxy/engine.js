@@ -62,7 +62,7 @@ function getAuthHeaderFromAuthConfig({ auth, context, authHeader }) {
 }
 
 function buildHeaders({ config, operation, authHeader, context }) {
-  const headers = Object.assign({}, config.requestDefaults?.defaultHeaders || {});
+  const headers = renderDeep(Object.assign({}, config.requestDefaults?.defaultHeaders || {}), context);
   const renderedOpHeaders = renderDeep(operation?.headers || {}, context);
   for (const [k, v] of Object.entries(renderedOpHeaders)) headers[k] = v;
 
@@ -95,6 +95,7 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
     },
     authHeader,
     apiKey: user?.accessToken,
+    secretKey: config.secretKey,
   });
   const url = joinUrl(config.requestDefaults?.baseUrl, renderTemplateString(op.url, context));
   const method = (op.method || 'GET').toUpperCase();

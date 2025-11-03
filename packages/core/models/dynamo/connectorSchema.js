@@ -1,4 +1,5 @@
 const dynamoose = require('dynamoose');
+const crypto = require('crypto');
 
 const CONNECTOR_STATUS = {
   PRIVATE: 'private',
@@ -107,6 +108,26 @@ if (process.env.NODE_ENV === 'development') {
 
 const Connector = dynamoose.model('connectors', connectorSchema, tableOptions);
 
+function getDeveloperCipherKey() {
+  if (!process.env.DEVELOPER_APP_SERVER_SECRET_KEY) {
+    throw new Error('DEVELOPER_APP_SERVER_SECRET_KEY is not defined');
+  }
+  if (process.env.DEVELOPER_APP_SERVER_SECRET_KEY.length < 32) {
+    // pad secret key with spaces if it is less than 32 bytes
+    return process.env.DEVELOPER_APP_SERVER_SECRET_KEY.padEnd(32, ' ');
+  }
+  if (process.env.DEVELOPER_APP_SERVER_SECRET_KEY.length > 32) {
+    // truncate secret key if it is more than 32 bytes
+    return process.env.DEVELOPER_APP_SERVER_SECRET_KEY.slice(0, 32);
+  }
+  return process.env.DEVELOPER_APP_SERVER_SECRET_KEY;
+}
+
+function decode(encryptedData) {
+  const decipher = crypto.createDecipheriv('aes-256-cbc', getDeveloperCipherKey(), Buffer.alloc(16, 0));
+  return decipher.update(encryptedData, 'hex', 'utf8') + decipher.final('utf8');
+}
+
 // ADD static method to get connector by proxyId
 Connector.getProxyConfig = async (proxyId) => {
   const connectors = await Connector
@@ -115,7 +136,13 @@ Connector.getProxyConfig = async (proxyId) => {
     .using('proxyIdIndex')
     .exec();
   if (connectors.length > 0) {
-    return connectors[0].proxyConfig;
+    const proxyConfig = connectors[0].proxyConfig;
+    const encodedSecretKey = connectors[0].encodedSecretKey;
+    const secretKey = encodedSecretKey ? decode(encodedSecretKey) : null;
+    if (secretKey) {
+      proxyConfig.secretKey = secretKey;
+    }
+    return proxyConfig;
   }
   return null;
 };

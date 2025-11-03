@@ -15,7 +15,8 @@
     "baseUrl": "",
     "timeoutSeconds": 30,
     "defaultHeaders": {
-      "Accept": "application/json"
+      "Accept": "application/json",
+      "X-Secret-Key": "{{secretKey}}"
     }
   },
   "operations": {
