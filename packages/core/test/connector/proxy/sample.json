@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "name": "",
+    "displayName": "",
+    "logFormat": "text/plain"
+  },
+  "auth": {
+    "type": "apiKey",
+    "scheme": "Basic",
+    "credentialTemplate": "{{apiKey}}",
+    "encode": "base64",
+    "headerName": "Authorization"
+  },
+  "requestDefaults": {
+    "baseUrl": "",
+    "timeoutSeconds": 30,
+    "defaultHeaders": {
+      "Accept": "application/json",
+      "X-Secret-Key": "{{secretKey}}"
+    }
+  },
+  "operations": {
+    "getUserInfo": {
+      "method": "GET",
+      "url": "/authentication",
+      "responseMapping": {
+        "type": "object",
+        "idPath": "body.user.username",
+        "namePath": "body.user.username",
+        "messagePath": "body.message",
+        "platformAdditionalInfoPaths": {
+          "userResponse": "body.user"
+        }
+      }
+    },
+    "findContact": {
+      "method": "GET",
+      "url": "/contacts",
+      "query": {
+        "phone": "{{phoneNumber}}"
+      },
+      "responseMapping": {
+        "type": "list",
+        "listPath": "body.contacts",
+        "item": {
+          "idPath": "id",
+          "namePath": "name",
+          "typePath": "",
+          "phonePath": "",
+          "additionalInfoPath": ""
+        }
+      }
+    },
+    "createContact": {
+      "method": "POST",
+      "url": "/contacts",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "name": "{{newContactName}}",
+        "type": "{{newContactType}}",
+        "phone": "{{phoneNumber}}"
+      },
+      "responseMapping": {
+        "type": "object",
+        "idPath": "body.id",
+        "namePath": "body.name",
+        "typePath": "body.type"
+      }
+    },
+    "createCallLog": {
+      "method": "POST",
+      "url": "/activities",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "{{subject}}",
+        "description": "{{composedLogDetails}}",
+        "start_date": "{{startTime}}",
+        "end_date": "{{endTime}}",
+        "activity_code_id": 3,
+        "repeats": "never",
+        "linked_contacts": [
+          { "contact_id": "{{contactInfo.id}}" }
+        ]
+      },
+      "responseMapping": {
+        "type": "object",
+        "idPath": "body.activity.id"
+      }
+    },
+    "updateCallLog": {
+      "method": "PUT",
+      "url": "/activities/{{thirdPartyLogId}}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "{{subject}}",
+        "description": "{{composedLogDetails}}",
+        "start_date": "{{startTime}}",
+        "end_date": "{{endTime}}"
+      }
+    },
+    "getCallLog": {
+      "method": "GET",
+      "url": "/activities/{{thirdPartyLogId}}",
+      "headers": {
+        "include": "linked_contacts"
+      },
+      "responseMapping": {
+        "type": "object",
+        "subjectPath": "body.activity.subject",
+        "notePath": "body.activity.note",
+        "fullBodyPath": "body.activity.description"
+      }
+    },
+    "createMessageLog": {
+      "method": "POST",
+      "url": "/activities",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "Message with {{contactInfo.name}}",
+        "description": "Subject: {{message.subject}}\nDirection: {{message.direction}}\n phoneNumber: {{message.from.phoneNumber}}\nRecording link: {{recordingLink}}\n",
+        "start_date": "{{creationTime}}",
+        "end_date": "{{creationTime}}",
+        "activity_code_id": 3,
+        "repeats": "never",
+        "linked_contacts": [
+          { "contact_id": "{{contactInfo.id}}" }
+        ]
+      },
+      "responseMapping": {
+        "type": "object",
+        "idPath": "body.activity.id"
+      }
+    },
+    "updateMessageLog": {
+      "method": "PUT",
+      "url": "/activities/{{thirdPartyLogId}}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "subject": "Message with {{contactInfo.name}}",
+        "description": "Subject: {{message.subject}}\nDirection: {{message.direction}}\nRecording link: {{recordingLink}}\n",
+        "start_date": "{{creationTime}}",
+        "end_date": "{{creationTime}}",
+        "activity_code_id": 3,
+        "repeats": "never",
+        "linked_contacts": [
+          { "contact_id": "{{contactInfo.id}}" }
+        ]
+      }
+    }
+  }
+}

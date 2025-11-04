@@ -173,7 +173,7 @@ describe('ConnectorRegistry Interface Registration with Composition', () => {
     expect(connectorRegistry.hasPlatformInterface('testPlatform', 'testInterface')).toBe(false);
   });
 
-  test('should get connector capabilities correctly', () => {
+  test('should get connector capabilities correctly', async () => {
     const mockInterface = jest.fn();
     const mockConnector = {
       getAuthType: () => 'apiKey',
@@ -184,7 +184,7 @@ describe('ConnectorRegistry Interface Registration with Composition', () => {
     connectorRegistry.registerConnectorInterface('testPlatform', 'customMethod', mockInterface);
     connectorRegistry.registerConnector('testPlatform', mockConnector);
     
-    const capabilities = connectorRegistry.getConnectorCapabilities('testPlatform');
+    const capabilities = await connectorRegistry.getConnectorCapabilities('testPlatform');
     
     expect(capabilities.platform).toBe('testPlatform');
     expect(capabilities.originalMethods).toContain('getAuthType');
@@ -248,7 +248,7 @@ describe('ConnectorRegistry Interface Registration with Composition', () => {
     }).toThrow('Connector not found for platform: nonExistentPlatform');
   });
 
-  test('should handle mixed scenarios correctly', () => {
+  test('should handle mixed scenarios correctly', async () => {
     // Scenario 1: Only interfaces, no connector
     connectorRegistry.registerConnectorInterface('mixedPlatform', 'interfaceMethod', jest.fn());
     const interfaceOnly = connectorRegistry.getConnector('mixedPlatform');
@@ -266,6 +266,6 @@ describe('ConnectorRegistry Interface Registration with Composition', () => {
     const composedConnector = connectorRegistry.getConnector('mixedPlatform');
     expect(composedConnector.interfaceMethod).toBeDefined();
     expect(composedConnector.getAuthType).toBeDefined();
-    expect(composedConnector.getAuthType()).toBe('apiKey');
+    expect(await composedConnector.getAuthType()).toBe('apiKey');
   });
 }); 

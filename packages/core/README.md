@@ -274,7 +274,7 @@ Gets comprehensive information about an connector including its capabilities and
 **Parameters:**
 - `platformName` (String): Platform identifier
 
-**Returns:** Object with connector capabilities information
+**Returns:** Promise with Object with connector capabilities information
 
 ### Exported Components
 

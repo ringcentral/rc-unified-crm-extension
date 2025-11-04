@@ -1,6 +1,7 @@
 const {
     createCoreApp,
-    connectorRegistry
+    connectorRegistry,
+    proxyConnector
 } = require('@app-connect/core');
 const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -28,6 +29,7 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
+connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality
 const app = createCoreApp();

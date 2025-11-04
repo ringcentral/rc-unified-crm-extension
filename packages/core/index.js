@@ -18,6 +18,7 @@ const adminCore = require('./handlers/admin');
 const userCore = require('./handlers/user');
 const dispositionCore = require('./handlers/disposition');
 const mock = require('./connector/mock');
+const proxyConnector = require('./connector/proxy');
 const releaseNotes = require('./releaseNotes.json');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
@@ -647,7 +648,8 @@ function createCoreRouter() {
                 callbackUri: req.query.callbackUri,
                 apiUrl: req.query.apiUrl,
                 username: req.query.username,
-                query: req.query
+                query: req.query,
+                proxyId: req.query.proxyId
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
@@ -692,6 +694,7 @@ function createCoreRouter() {
             platformName = platform;
             const apiKey = req.body.apiKey;
             const hostname = req.body.hostname;
+            const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
             if (!platform) {
                 throw 'Missing platform name';
@@ -699,7 +702,7 @@ function createCoreRouter() {
             if (!apiKey) {
                 throw 'Missing api key';
             }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
@@ -1626,3 +1629,4 @@ exports.createCoreMiddleware = createCoreMiddleware;
 exports.createCoreApp = createCoreApp;
 exports.initializeCore = initializeCore;
 exports.connectorRegistry = connectorRegistry;
+exports.proxyConnector = proxyConnector;

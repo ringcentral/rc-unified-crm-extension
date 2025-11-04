@@ -2,6 +2,8 @@ const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
 const errorMessage = require('../lib/generalErrorMessage');
 const connectorRegistry = require('../connector/registry');
+const { Connector } = require('../models/dynamo/connectorSchema');
+
 async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension }) {
     try {
         let user = await UserModel.findOne({
@@ -20,12 +22,17 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 }
             };
         }
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
         const platformModule = connectorRegistry.getConnector(platform);
-        const authType = platformModule.getAuthType();
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
@@ -34,7 +41,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension });
+        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig });
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
             return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
@@ -127,12 +134,17 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
         if (!user || !user.accessToken) {
             return { successful: false, message: `Contact not found` };
         }
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
         const platformModule = connectorRegistry.getConnector(platform);
-        const authType = platformModule.getAuthType();
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
@@ -141,7 +153,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { contactInfo, returnMessage, extraDataTracking } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission });
+        const { contactInfo, returnMessage, extraDataTracking } = await platformModule.createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission, proxyConfig });
         if (contactInfo != null) {
             return { successful: true, returnMessage, contact: contactInfo, extraDataTracking };
         }
@@ -207,12 +219,17 @@ async function findContactWithName({ platform, userId, name }) {
                 }
             };
         }
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
         const platformModule = connectorRegistry.getConnector(platform);
-        const authType = platformModule.getAuthType();
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
@@ -221,7 +238,7 @@ async function findContactWithName({ platform, userId, name }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { successful, matchedContactInfo, returnMessage } = await platformModule.findContactWithName({ user, authHeader, name });
+        const { successful, matchedContactInfo, returnMessage } = await platformModule.findContactWithName({ user, authHeader, name, proxyConfig });
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
             return { successful, returnMessage, contact: matchedContactInfo };
         }

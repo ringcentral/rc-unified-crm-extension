@@ -8,6 +8,7 @@ const { composeCallLog } = require('../lib/callLogComposer');
 const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
+const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 
@@ -51,11 +52,16 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         }
         const aiNote = incomingData.aiNote;
         const transcript = incomingData.transcript;
-        const authType = platformModule.getAuthType();
+        let proxyConfig;
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
@@ -82,9 +88,9 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-
+        
         // Compose call log details centrally
-        const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+        const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
             composedLogDetails = await composeCallLog({
@@ -100,7 +106,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 startTime: callLog.startTime,
                 duration: callLog.duration,
                 result: callLog.result,
-                platform
+                platform,
             });
         }
 
@@ -115,7 +121,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             transcript,
             composedLogDetails,
             hashedAccountId,
-            isFromSSCL
+            isFromSSCL,
+            proxyConfig,
         });
         if (logId) {
             await CallLogModel.create({
@@ -189,12 +196,17 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
         }
         if (requireDetails) {
+            const proxyId = user.platformAdditionalInfo?.proxyId;
+            let proxyConfig = null;
+            if (proxyId) {
+                proxyConfig = await Connector.getProxyConfig(proxyId);
+            }
             const platformModule = connectorRegistry.getConnector(platform);
-            const authType = platformModule.getAuthType();
+            const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
             let authHeader = '';
             switch (authType) {
                 case 'oauth':
-                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
@@ -221,7 +233,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     logs.push({ sessionId: sId, matched: false });
                 }
                 else {
-                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, contactId: callLog.contactId, authHeader });
+                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, contactId: callLog.contactId, authHeader, proxyConfig });
                     returnMessage = getCallLogResult.returnMessage;
                     extraDataTracking = getCallLogResult.extraDataTracking;
                     logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
@@ -308,11 +320,16 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
-            const authType = platformModule.getAuthType();
+            const proxyId = user.platformAdditionalInfo?.proxyId;
+            let proxyConfig = null;
+            if (proxyId) {
+                proxyConfig = await Connector.getProxyConfig(proxyId);
+            }
+            const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
             let authHeader = '';
             switch (authType) {
                 case 'oauth':
-                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
@@ -324,7 +341,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 
             // Fetch existing call log details once to avoid duplicate API calls
             let existingCallLogDetails = null;    // Compose updated call log details centrally
-            const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+            const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
             let composedLogDetails = '';
             if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
                 let existingBody = '';
@@ -332,7 +349,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const getLogResult = await platformModule.getCallLog({
                         user,
                         callLogId: existingCallLog.thirdPartyLogId,
-                        authHeader
+                        authHeader,
+                        proxyConfig,
                     });
                     existingCallLogDetails = getLogResult?.callLogInfo?.fullLogResponse;
                     // Extract existing body from the platform-specific response
@@ -388,7 +406,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 composedLogDetails,
                 existingCallLogDetails,  // Pass the fetched details to avoid duplicate API calls
                 hashedAccountId,
-                isFromSSCL
+                isFromSSCL,
+                proxyConfig,
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
@@ -470,11 +489,16 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
             };
         }
-        const authType = platformModule.getAuthType();
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+        }
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         let authHeader = '';
         switch (authType) {
             case 'oauth':
-                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
@@ -544,12 +568,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink });
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink, proxyConfig });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;

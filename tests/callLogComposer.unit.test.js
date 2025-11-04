@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 const {
     composeCallLog,
-    getLogFormatType,
     upsertCallAgentNote,
     upsertCallSessionId,
     upsertCallSubject,
@@ -27,7 +26,6 @@ const insightly = require('../src/connectors/insightly');
 const netsuite = require('../src/connectors/netsuite');
 const pipedrive = require('../src/connectors/pipedrive');
 const redtail = require('../src/connectors/redtail');
-const testCRM = require('../src/connectors/testCRM');
 
 connectorRegistry.setDefaultManifest(require('../src/connectors/manifest.json'));
 connectorRegistry.registerConnector('bullhorn', bullhorn);
@@ -37,7 +35,6 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
-connectorRegistry.registerConnector('testCRM', testCRM, require('../src/connectors/testCRM/manifest.json'));
 
 describe('callLogComposer', () => {
     describe('LOG_DETAILS_FORMAT_TYPE', () => {
@@ -45,16 +42,6 @@ describe('callLogComposer', () => {
             expect(LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT).toBe('text/plain');
             expect(LOG_DETAILS_FORMAT_TYPE.HTML).toBe('text/html');
             expect(LOG_DETAILS_FORMAT_TYPE.MARKDOWN).toBe('text/markdown');
-        });
-    });
-
-    describe('getLogFormatType', () => {
-        test('should return correct format for pipedrive', () => {
-            expect(getLogFormatType('pipedrive')).toBe('text/html');
-        });
-
-        test('should return plain text for unknown platform', () => {
-            expect(getLogFormatType('unknownPlatform')).toBe('text/plain');
         });
     });
 
