@@ -57,7 +57,9 @@ describe('Auth Handler', () => {
         authHeader: 'Basic dGVzdC1hcGkta2V5Og==',
         hostname: 'test.example.com',
         additionalInfo: {},
-        apiKey: 'test-api-key'
+        apiKey: 'test-api-key',
+        platform: 'testCRM',
+        proxyId: undefined
       });
     });
 

@@ -89,18 +89,21 @@ class ConnectorRegistry {
    * @returns {Object} Composed connector with interface functions
    */
   getConnector(platform) {
-      const connector = this.connectors.get(platform);
+      let connector = this.connectors.get(platform);
       const platformInterfaceMap = this.platformInterfaces.get(platform);
-      
-      // If no connector and no interfaces, throw error
+
       if (!connector && (!platformInterfaceMap || platformInterfaceMap.size === 0)) {
-          throw new Error(`Connector not found for platform: ${platform}`);
+        connector = this.connectors.get('proxy');
+        if (connector) {
+          return connector;
+        }
+        throw new Error(`Connector not found for platform: ${platform}`);
       }
 
       // If no connector but interfaces exist, create a composed object with just interfaces
       if (!connector && platformInterfaceMap && platformInterfaceMap.size > 0) {
           const composedConnector = {};
-          
+
           // Add interface functions to the composed connector
           for (const [interfaceName, interfaceFunction] of platformInterfaceMap) {
               composedConnector[interfaceName] = interfaceFunction;
@@ -117,7 +120,7 @@ class ConnectorRegistry {
 
       // If both connector and interfaces exist, create a composed object
       const composedConnector = Object.create(connector);
-      
+
       // Add interface functions to the composed connector
       for (const [interfaceName, interfaceFunction] of platformInterfaceMap) {
         // Only add if the interface doesn't already exist in the connector
@@ -216,7 +219,7 @@ class ConnectorRegistry {
    * @param {string} platform - Platform identifier
    * @returns {Object} Connector capabilities
    */
-  getConnectorCapabilities(platform) {
+  async getConnectorCapabilities(platform) {
     const originalConnector = this.getOriginalConnector(platform);
     const composedConnector = this.getConnector(platform);
     const platformInterfaceMap = this.getPlatformInterfaces(platform);
@@ -232,7 +235,7 @@ class ConnectorRegistry {
     // Get auth type if available
     if (typeof originalConnector.getAuthType === 'function') {
       try {
-        capabilities.authType = originalConnector.getAuthType();
+        capabilities.authType = await originalConnector.getAuthType();
       } catch (error) {
         capabilities.authType = 'unknown';
       }
