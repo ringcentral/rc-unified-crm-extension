@@ -24,6 +24,10 @@ It is the developer's responsibility to update the call log record contents as t
 | `startTime`                 | Updated value of start date/time of this call. |
 | `duration`                 | Updated value of duration of this call.     |
 | `result`                 | Updated value of result of this call.     |
+| `aiNote`       |  AI summary of the phone call   | 
+| `transcript`       |  Transcript of the phone call   | 
+| `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
+| `existingCallLogDetails`       |  Formated log details that's stored in log entity  | 
 
 * Why need `startTime`, `duration` and `result`? Call info could be not as accurate right after the call. Our app uses call info from user local data until it's updated by RingCentral server. If users create call logs before RingCentral server updates the data, another API call will be triggered to call this `updateCallLog` function with true call data.
 
@@ -64,12 +68,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:412-463] !}
+    {!> packages/template/src/connectors/intefaces/updateCallLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:352-397] !}
+    {!> src/connectors/pipedrive/index.js [ln:423-480] !}
 	```
 

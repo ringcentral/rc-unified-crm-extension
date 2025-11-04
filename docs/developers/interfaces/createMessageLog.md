@@ -18,7 +18,7 @@ Therefore, this interface is only invoked when the daily digest is created. The 
 | `message`              | All the metadata associated with the message to be logged.  [SMS message schema](https://developers.ringcentral.com/api-reference/Message-Store/readMessage) is described in our API Reference. |
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
 | `recordingLink`        | If the call was a voicemail, then this field will contain a link to the voicemail.                       |
-| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     |
+| `faxDocLink`       | The link to download fax document     |
 
 ### message
 
@@ -80,12 +80,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:469-508] !}
+    {!> packages/template/src/connectors/intefaces/createMessageLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:433-526] !}
+    {!> src/connectors/pipedrive/index.js [ln:516-609] !}
 	```
 

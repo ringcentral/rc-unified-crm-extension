@@ -31,12 +31,12 @@ It is to remove user data from our database when user chooses to log out. Some C
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:130-157] !}
+    {!> packages/template/src/connectors/intefaces/unAuthorize.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:77-109] !}
+    {!> src/connectors/pipedrive/index.js [ln:84-116] !}
 	```
 

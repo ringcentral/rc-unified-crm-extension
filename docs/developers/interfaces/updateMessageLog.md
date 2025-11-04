@@ -2,25 +2,27 @@
 
 This function is to add following messages on the same day to the same contact. Use case is explained [here](./createMessageLog.md)
 
-#### Params
-`Input`:
-- `user`: user entity
-- `contactInfo`: has `id`, `phoneNumber`, `type`, `name`
-- `existingMessageLog`: existing message log entity
-- `authHeader`: auth header for CRM API call
-- `message`: message text
+## Input parameters
 
-#### Reference
+| Parameter          | Description                                                                                              |
+|--------------------|----------------------------------------------------------------------------------------------------------|
+| `user`             | An object describing the Chrome extension user associated with the action that triggered this interface. |
+| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+| `contactInfo`          | An associative array describing the contact a call is associated with.                                   |
+| `existingMessageLog`          | existing message log entity                                 |
+| `message`           | message text                | 
+
+## Reference
 
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:511-541] !}
+    {!> packages/template/src/connectors/intefaces/updateMessageLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:528-576] !}
+    {!> src/connectors/pipedrive/index.js [ln:611-660] !}
 	```
 

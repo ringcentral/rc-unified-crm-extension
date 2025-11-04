@@ -14,7 +14,9 @@ There is an underlying assumption of the framework that there is a one-to-one ma
 | `callLog`              | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
 | `note`                 | The notes saved by the user during and/or after the call.                                                |
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
-| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     | 
+| `aiNote`       |  AI summary of the phone call   | 
+| `transcript`       |  Transcript of the phone call   | 
+| `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
 
 ### Contact Info
 
@@ -53,13 +55,13 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:237-288] !}
+    {!> packages/template/src/connectors/intefaces/createCallLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:284-350] !}
+    {!> src/connectors/pipedrive/index.js [ln:342-421] !}
 	```
 
 ### Example Call Log Schema

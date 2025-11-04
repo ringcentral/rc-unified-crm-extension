@@ -140,7 +140,6 @@ nav:
       - 'Returning errors': developers/errors.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
-      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
       - 'createCallLog': developers/interfaces/createCallLog.md
       - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md

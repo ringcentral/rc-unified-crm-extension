@@ -50,6 +50,4 @@ Let's try and see it everything works:
 
 * **The default auth type is API key, which is effectively ignored.** Because this is just a mock server that doesn't actually connect to a CRM, you are free to use any arbitrary string as an API key. 
 
-* **Contacts are transient in mock server mode.** In this mock server, contact info only exists with current server run. If server is re-started, mock contact info will be lost.
-
 

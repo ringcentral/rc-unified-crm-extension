@@ -8,7 +8,10 @@ Any identity that is not successfully mapped using this method can be mapped man
 
 ## Request parameters
 
-None.
+| Key                      | Value                                                                                                       |
+|--------------------------|-------------------------------------------------------------------------------------------------------------|
+| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
+| `authHeader`                     | The HTTP Authorization header to be transmitted with the API request to the target CRM.   |
 
 ## Return value(s)
 
@@ -33,9 +36,15 @@ This interface returns an array of users in the connected CRM or application. Ea
 
 ## Reference
 
-=== "Bullhorn"
+=== "Example CRM"
+
+  ```js
+    {!> packages/template/src/connectors/intefaces/getUserList.js !}
+  ```
+
+=== "Pipedrive"
 
 	```js
-    {!> src/connectors/bullhorn/index.js [ln:949-974] !}
+    {!> src/connectors/bullhorn/index.js [ln:328-340] !}
 	```
 

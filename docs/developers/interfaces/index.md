@@ -12,9 +12,13 @@ Every App Connect connector needs to implement each of the following interfaces.
 | [`getAuthType`](getAuthType.md)           | Returns the auth type specific to this CRM.                                      |
 | [`getCallLog`](getCallLog.md)             | Loads the current state of the call log from the CRM in the event that the user may have edited the record directly. |
 | [`findContact`](findContact.md)           | Attempts to find and return one or more contacts associated with a phone number. |
+| [`findContactWithName`](findContactWithName.md)           | Attempts to find and return one or more contacts associated with name. |
 | [`findContactWithName`](findContactWithName.md) | Attempts to find and return one or more contacts associated with a name input by a user. |
 | [`getOauthInfo`](getOauthInfo.md)         | Returns key OAuth details to facilitate connect to a CRM.                        |
 | [`unAuthorize`](unAuthorize.md)           | Logs a user out of the CRM, invalidates credentials, etc.                        |
 | [`updateCallLog`](updateCallLog.md)       | Updates an existing call log record in the CRM.                                  |
 | [`updateMessageLog`](updateMessageLog.md) | Updates an existing message log in the CRM.                                      |
 | [`getLicenseStatus`](getLicenseStatus.md) | Get license status for CRM user.
+| [`getUserList`](getUserList.md) | Get user list for user mapping under Server-side logging service.
+| [`getLogFormatType`](getLogFormatType.md) | Get log format for call log details content generation.
+| [`upsertCallDisposition`](upsertCallDisposition.md) | Upsert call disposition.

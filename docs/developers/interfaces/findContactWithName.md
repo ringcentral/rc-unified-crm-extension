@@ -49,17 +49,17 @@ This interface returns a single object. That object describes the contacts that 
 
 ## Reference
 
-<!--
+
 === "Example CRM"
 
     ```js
-    {!> src/connectors/testCRM/index.js [ln:161-231] !}
+    {!> packages/template/src/connectors/intefaces/findContactWithName.js !}
 	```
--->
+
 
 === "Clio"
 
 	```js
-    {!> src/connectors/clio/index.js [ln:211-275] !}
+    {!> src/connectors/pipedrive/index.js [ln:204-261] !}
 	```
 
