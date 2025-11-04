@@ -80,7 +80,7 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/createMessageLog.js !}
+    {!> packages/template/src/connectors/interfaces/createMessageLog.js !}
 	```
 	
 === "Pipedrive"

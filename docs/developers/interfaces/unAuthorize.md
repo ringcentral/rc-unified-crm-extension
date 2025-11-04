@@ -31,7 +31,7 @@ It is to remove user data from our database when user chooses to log out. Some C
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/unAuthorize.js !}
+    {!> packages/template/src/connectors/interfaces/unAuthorize.js !}
 	```
 	
 === "Pipedrive"

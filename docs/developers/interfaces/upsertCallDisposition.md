@@ -25,7 +25,7 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/upsertCallDisposition.js !}
+    {!> packages/template/src/connectors/interfaces/upsertCallDisposition.js !}
 	```
 	
 === "Pipedrive"

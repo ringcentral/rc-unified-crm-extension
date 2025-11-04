@@ -9,7 +9,7 @@ This method results in the connector calling the CRM to retrieve key information
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/getUserInfo.js !}
+    {!> packages/template/src/connectors/interfaces/getUserInfo.js !}
 	```
 	
 === "Pipedrive"

@@ -15,7 +15,7 @@ This interface returns a single string, either `oauth` or `apiKey` to indicate w
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/getAuthType.js !}
+    {!> packages/template/src/connectors/interfaces/getAuthType.js !}
 	```
 	
 === "Pipedrive"

@@ -64,7 +64,7 @@ This interface returns a single object. That object describes the contact that w
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/createContact.js !}
+    {!> packages/template/src/connectors/interfaces/createContact.js !}
 	```
 	
 === "Pipedrive"

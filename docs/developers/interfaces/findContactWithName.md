@@ -53,7 +53,7 @@ This interface returns a single object. That object describes the contacts that 
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/intefaces/findContactWithName.js !}
+    {!> packages/template/src/connectors/interfaces/findContactWithName.js !}
 	```
 
 
