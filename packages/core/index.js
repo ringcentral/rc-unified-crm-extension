@@ -134,13 +134,13 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform, proxyId } = jwt.decodeJwt(jwtToken);
+                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
                 platformName = platform;
                 if (!userId) {
                     res.status(400).send();
                     success = true;
                 }
-                const licenseStatus = await authCore.getLicenseStatus({ userId, platform, proxyId });
+                const licenseStatus = await authCore.getLicenseStatus({ userId, platform });
                 res.status(200).send(licenseStatus);
                 success = true;
             }
@@ -654,8 +654,7 @@ function createCoreRouter() {
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
-                    platform: platformName,
-                    proxyId: req.query.proxyId
+                    platform: platformName
                 });
                 res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
                 success = true;
@@ -707,8 +706,7 @@ function createCoreRouter() {
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
-                    platform: platform,
-                    proxyId: proxyId
+                    platform: platform
                 });
                 res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
                 success = true;

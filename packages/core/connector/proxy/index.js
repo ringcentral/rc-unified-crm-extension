@@ -9,6 +9,7 @@ const {
   getByPath,
 } = require('./engine');
 const { Connector } = require('../../models/dynamo/connectorSchema');
+const { UserModel } = require('../../models/userModel');
 
 async function loadPlatformConfig(proxyId) {
   if (!proxyId) {
@@ -387,8 +388,13 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
   return { returnMessage: { message: 'Message log updated', messageType: 'success', ttl: 3000 } };
 }
 
-async function getLicenseStatus({ userId, proxyId, platform, proxyConfig }) {
-  const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
+async function getLicenseStatus({ userId, platform }) {
+  const user = await UserModel.findByPk(userId);
+  if (!user || !user.accessToken) {
+    return { isLicenseValid: false, licenseStatus: 'Invalid (User not found)', licenseStatusDescription: '' };
+  }
+  const proxyId = user.platformAdditionalInfo?.proxyId;
+  const cfg = await loadPlatformConfig(proxyId);
   if (!cfg.operations?.getLicenseStatus) {
     return { isLicenseValid: true, licenseStatus: 'Basic', licenseStatusDescription: '' };
   }

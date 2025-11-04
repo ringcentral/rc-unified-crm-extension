@@ -5,9 +5,13 @@ jest.mock('../../../models/dynamo/connectorSchema', () => ({
 jest.mock('awesome-phonenumber', () => ({
   parsePhoneNumber: jest.fn().mockReturnValue({})
 }));
+jest.mock('../../../models/userModel', () => ({
+  UserModel: { findByPk: jest.fn() }
+}));
 
 const axios = require('axios');
 const { Connector } = require('../../../models/dynamo/connectorSchema');
+const { UserModel } = require('../../../models/userModel');
 const proxy = require('../../../connector/proxy/index');
 const sampleConfig = require('./sample.json');
 
@@ -99,6 +103,11 @@ describe('proxy connector (high-level)', () => {
     expect(args.url).toMatch(/\/activities\/77$/);
     expect(args.data.subject).toBe('Subj');
     expect(args.data.end_date).toBeDefined();
+  });
+
+  test('getLogFormatType returns meta.logFormat or custom', () => {
+    expect(proxy.getLogFormatType('x', sampleConfig)).toBe('text/plain');
+    expect(proxy.getLogFormatType('x', null)).toBe('custom');
   });
 });
 
@@ -203,6 +212,8 @@ describe('proxy connector - more coverage', () => {
       videoLink: ''
     });
     expect(update.returnMessage.message).toMatch(/updated/i);
+    const args2 = axios.mock.calls[1][0];
+    expect(args2.url).toMatch(/\/activities\/M1$/);
   });
 
   test('upsertCallDisposition returns Not supported when op missing', async () => {
@@ -233,8 +244,9 @@ describe('proxy connector - more coverage', () => {
     };
     Connector.getProxyConfig.mockResolvedValue(licenseConfig);
     axios.mockResolvedValue({ data: { valid: true, status: 'Pro', desc: 'All good' } });
+    UserModel.findByPk.mockResolvedValue({ id: 'u1', accessToken: 't', platformAdditionalInfo: { proxyId: 'p1' } });
 
-    const s = await proxy.getLicenseStatus({ userId: 'u1', proxyId: 'p1', platform: 'x' });
+    const s = await proxy.getLicenseStatus({ userId: 'u1', platform: 'x' });
     expect(s.isLicenseValid).toBe(true);
     expect(s.licenseStatus).toBe('Pro');
     expect(s.licenseStatusDescription).toBe('All good');

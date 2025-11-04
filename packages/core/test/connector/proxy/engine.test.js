@@ -43,6 +43,7 @@ describe('proxy engine utilities', () => {
   test('performRequest composes url, headers, params, body and auth', async () => {
     axios.mockResolvedValue({ data: { ok: true } });
     const config = {
+      secretKey: 'shh-key',
       auth: {
         type: 'apiKey',
         scheme: 'Basic',
@@ -53,7 +54,7 @@ describe('proxy engine utilities', () => {
       requestDefaults: {
         baseUrl: 'https://api.example.com',
         timeoutSeconds: 10,
-        defaultHeaders: { Accept: 'application/json' }
+        defaultHeaders: { Accept: 'application/json', 'X-Secret-Key': '{{secretKey}}' }
       },
       operations: {
         createThing: {
@@ -83,6 +84,7 @@ describe('proxy engine utilities', () => {
     expect(args.timeout).toBe(10000);
     expect(args.headers.Accept).toBe('application/json');
     expect(args.headers['Content-Type']).toBe('application/json');
+    expect(args.headers['X-Secret-Key']).toBe('shh-key');
     // Basic base64('token-123')
     expect(args.headers.Authorization).toMatch(/^Basic /);
   });
