@@ -1,4 +1,6 @@
-# Agent-level call statistics and reports
+# Report
+
+## Agent-level call statistics and reports
 
 The User Report feature provides valuable insights into your calling and messaging activity, helping you track your communication patterns and productivity within App Connect.
 
@@ -17,3 +19,7 @@ The **Reports** tab currently provides **basic agent-level call statistics**, in
 
 !!! tip "Stay tuned for updates"
     As we continue to enhance the User Report feature with organization-level statistics, you'll gain even more powerful insights into your team's overall communication performance.
+
+## Account-level call statistics and reports
+
+<!-- md:version 1.7.0 -->
