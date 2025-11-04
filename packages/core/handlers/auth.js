@@ -99,9 +99,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     const timezoneName = platformUserInfo.timezoneName;
     const timezoneOffset = platformUserInfo.timezoneOffset;
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
-    if (proxyId) {
-        platformAdditionalInfo.proxyId = proxyId;
-    }
+    platformAdditionalInfo.proxyId = proxyId;
     if (existingUser) {
         await existingUser.update(
             {
@@ -181,7 +179,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
 
 async function getLicenseStatus({ userId, platform }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    const licenseStatus = await platformModule.getLicenseStatus({ userId });
+    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform });
     return licenseStatus;
 }
 

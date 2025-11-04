@@ -402,6 +402,7 @@ async function getLicenseStatus({ userId, platform }) {
     config: cfg,
     opName: 'getLicenseStatus',
     inputs: { userId, platform },
+    user,
   });
   const map = cfg.operations.getLicenseStatus.responseMapping || {};
   const responseCtx = { body: response.data };
