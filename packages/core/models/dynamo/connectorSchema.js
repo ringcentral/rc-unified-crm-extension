@@ -102,10 +102,6 @@ if (process.env.NODE_ENV === 'production') {
   tableOptions.waitForActive = false;
 }
 
-if (process.env.NODE_ENV === 'development') {
-  tableOptions.update = true;
-}
-
 const Connector = dynamoose.model('connectors', connectorSchema, tableOptions);
 
 function getDeveloperCipherKey() {

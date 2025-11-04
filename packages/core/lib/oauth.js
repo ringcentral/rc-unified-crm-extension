@@ -3,7 +3,6 @@ const ClientOAuth2 = require('client-oauth2');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const connectorRegistry = require('../connector/registry');
-const dynamoose = require('dynamoose');
 
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
