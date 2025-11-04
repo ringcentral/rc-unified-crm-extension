@@ -165,6 +165,7 @@ nav:
     - 'Zoho': crm/zoho.md
   - 'Developers': 
     - 'Connector migration guide': 2.0/migration.md
+    - 'Proxy connector (new)': developers/proxy-connector.md
 
 - 'Support':
   - 'Troubleshooting': support.md

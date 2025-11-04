@@ -48,11 +48,23 @@ Here are some of the features new to App Connect 2.0.
 
     Mask full customer phone numbers on your agents' displays to comply with strict internal privacy and security controls.
 
+</div>
+
+## New developer features
+
+<div class="grid cards" markdown>
+
 -   :material-console:{ .lg .middle } __New developer console__
 
     ---
 
     Use the intuitive new console for one-click deployment, personalized instructions, and simplified sharing of your custom connectors.
+	
+-   :octicons-server-16:{ .lg .middle } __Proxy connectors__
+
+    ---
+
+    Proxy connectors help connect App Connect directly to CRMs, without the need for a connector server, or to proprietary servers that may not be using Javascript.
 
 </div>
 
