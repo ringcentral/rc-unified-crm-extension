@@ -18,7 +18,10 @@ Therefore, this interface is only invoked when the daily digest is created. The 
 | `message`              | All the metadata associated with the message to be logged.  [SMS message schema](https://developers.ringcentral.com/api-reference/Message-Store/readMessage) is described in our API Reference. |
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
 | `recordingLink`        | If the call was a voicemail, then this field will contain a link to the voicemail.                       |
-| `faxDocLink`       | The link to download fax document     |
+| `faxDocLink`       | The link to view fax document     |
+| `faxDownloadLink`       | The link to download fax document file    |
+| `imageLink`       | The link to view image attachment    |
+| `videoLink`       | The link to view video attachment     |
 
 ### message
 
