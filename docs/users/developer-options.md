@@ -1,13 +1,5 @@
 # Developer options
 
-## Loading custom CRM connector
+## Clear platform info
 
-App Connect comes bundled with a number of CRM connectors that are ready-to-use. Developers and users alike can use advanced settings to load another third-party or alternative connector. 
-
-To load a custom connector, enter in the URL to the publicly accessible manifest.json file into the "Custom CRM manifest url" field. 
-
-<figure markdown>
-  ![Custom CRM connector](../img/custom-connector.png){ .mw-400 }
-  <figcaption>A setting used to load a custom CRM connector into the framework.</figcaption>
-</figure>
-
+It clears platform register information for your Chrome extension so that you won't need to completely remove the extension to switch to another platform.

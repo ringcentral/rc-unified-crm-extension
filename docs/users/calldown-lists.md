@@ -54,7 +54,7 @@ After completing a call, you can schedule a callback by selecting the option to 
 4. Choose when you want to call them
 
 <figure markdown>
-  ![User report](../imgcall-down-lists-log-form-call-history.png){ .mw-400 }
+  ![User report](../img/call-down-lists-log-form-call-history.png){ .mw-400 }
   <figcaption>Schedule on call history page</figcaption>
 </figure>
 

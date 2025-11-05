@@ -11,7 +11,6 @@ pymdown-extensions~=10.2
 mdx_include>=0.4.1
 mkdocs-exclude>=1.0.2
 mkdocs-badges
-mkdocs-with-pdf
 
 # Requirements for plugins
 babel~=2.10
