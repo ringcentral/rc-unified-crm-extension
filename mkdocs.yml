@@ -43,7 +43,7 @@ plugins:
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - badges
-  # - with-pdf  # Commented out for Windows compatibility (requires GTK+ libraries)
+  - with-pdf
   - exclude:
       regex:
         - '^\.#.*'
