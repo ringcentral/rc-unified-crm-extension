@@ -15,10 +15,10 @@ This interface retrieves a previously logged call log record in the target CRM. 
 
 This interface should return the associated call log record in a prescribed format. 
 
-| Parameter              | Description                                         |
-|------------------------|-----------------------------------------------------|
-| `callLogInfo`              | Contain `subject`, `note` and optionally `additionalSubmission` |
-| `returnMessage`|       `message`, `messageType` and `ttl`|
+| Parameter       | Description                                                     |
+|-----------------|-----------------------------------------------------------------|
+| `callLogInfo`   | Contain `subject`, `note` and optionally `additionalSubmission` |
+| `returnMessage` | `message`, `messageType` and `ttl`                              |
 
 **Example**
 
@@ -44,7 +44,7 @@ This interface should return the associated call log record in a prescribed form
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:369-404] !}
+    {!> src/adapters/testCRM/index.js [ln:284-320] !}
 	```
 	
 === "Pipedrive"

@@ -11,6 +11,10 @@ Events are triggers the moment a phone call is completed so that it can be logge
 
 It is the developer's responsibility to update the call log record contents as they see fit to make a call recording available. 
 
+### Choosing what to log
+
+The `updateCallLog` and `createCallLog` interfaces both receive the constituent parts of a call to be logged as well as a fully composed call log entry. For consistency, we always recommend that developers log the `composedLogDetails`. However, there may be circumstances where access to the individual elements of a call are useful, or where a developer may wish to log something that deviates from the App Connect convention. We leave those decisions to the developer. 
+
 ## Input parameters
 
 | Parameter              | Description                                                                                              |
@@ -18,12 +22,16 @@ It is the developer's responsibility to update the call log record contents as t
 | `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
 | `existingCallLog`      | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
 | `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
+| `composedLogDetails`   | A fully composed activity to log in the CRM. It is recommended developers simply log this string.        |
 | `recordingLink`        | If the call has a recording associated with it, then this field will contain a link to the voicemail.    |
 | `subject`              | The subject or summary of the call activity. The value may have been changes by the user.                |
 | `note`                 | The notes saved by the user. The value may change if the user has updated the notes they have taken.     |
-| `startTime`                 | Updated value of start date/time of this call. |
-| `duration`                 | Updated value of duration of this call.     |
-| `result`                 | Updated value of result of this call.     |
+| `startTime`            | Updated value of start date/time of this call. |
+| `duration`             | Updated value of duration of this call.     |
+| `result`               | Updated value of result of this call.     |
+| `aiNote`               | The AI-generated summary of the call. Transmitted only if Smart Notes has been enabled. |
+| `transcript`           | The AI-processed transcript of the call. Transmitted only if Smart Notes has been enabled. |
+| `additionalSubmission` | Additional information transmitted with the call, potentially containing user- or CRM-specific data.  |
 
 * Why need `startTime`, `duration` and `result`? Call info could be not as accurate right after the call. Our app uses call info from user local data until it's updated by RingCentral server. If users create call logs before RingCentral server updates the data, another API call will be triggered to call this `updateCallLog` function with true call data.
 
@@ -64,7 +72,7 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:412-463] !}
+    {!> src/adapters/testCRM/index.js [ln:328-371] !}
 	```
 	
 === "Pipedrive"
