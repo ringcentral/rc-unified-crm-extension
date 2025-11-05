@@ -78,14 +78,6 @@ There are a number of pages within the App Connect client application that often
 
 ### apiKey auth page
 
-=== "Sample connector"
-
-    ```js
-    {!> src/connectors/testCRM/manifest.json [ln:22-36] !}
-    ```
-
-    ![Auth page](../img/test-auth-page.png)
-
 === "Insightly connector"
 
     ```js
@@ -112,24 +104,18 @@ For each page, you will define an array of `additionalFields`. Each additional f
 
 #### Custom call log fields
 
-Set up associated deals as dropdown options:
-
-1. Christmas special A351
-2. Easter A22
-3. Anniversary C92
-
-And then setup "Address" as free input field.
+Here's an example from the Pipedrive connector showing how to add custom fields:
 
 ```js
-{! src/connectors/testCRM/manifest.json [ln:113-129] !}
+{! src/connectors/manifest.json [ln:52-71] !}
 ```
 
 #### Custom SMS log fields
 
-Set up associated deals the same as call log
+Here's an example from the Pipedrive connector showing how to add custom fields for message logging:
 
 ```js
-{! src/connectors/testCRM/manifest.json [ln:130-145] !}
+{! src/connectors/manifest.json [ln:74-93] !}
 ```
 
 ## Customizing the welcome message
