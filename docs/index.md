@@ -113,6 +113,12 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 
     [:octicons-arrow-right-24: Learn more](users/server-side-logging.md)
 
+    ---
+
+    Call-down lists are personal contact lists that streamline your outbound calling workflow.
+
+    [:octicons-arrow-right-24: Learn more](users/call-down-lists.md)
+
 </div>
 
 <!--

@@ -1,5 +1,7 @@
 # What's new in App Connect 2.0?
 
+<!-- md:version 1.7.0 -->
+
 App Connect 2.0 is a turning point for the product as not only does it make it easier for developers to connect RingCentral to more CRMs, it contains many new features that will bring greater value to App Connects thousands of users. 
 
 Here are some of the features new to App Connect 2.0. 

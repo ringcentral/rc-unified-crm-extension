@@ -1,5 +1,7 @@
 # App Connect Connector developer quick start 
 
+<!-- md:version 1.7.0 -->
+
 {! docs/developers/beta_notice.inc !}
 
 Welcome to the App Connect developer quick start guide! This quick start guide will walk you through the essential steps for getting your first integration up and running with **App Connect**. By the end of this guide, you will have accomplished two main goals:

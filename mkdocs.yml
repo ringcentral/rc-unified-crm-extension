@@ -39,6 +39,18 @@ theme:
     text: Roboto
     code: Roboto Mono
 
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - badges
+  # - with-pdf  # Commented out for Windows compatibility (requires GTK+ libraries)
+  - exclude:
+      regex:
+        - '^\.#.*'
+        - '.*\.\#.*$'
+hooks:
+  - scripts/mkdocs/hooks/shortcodes.py
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -97,6 +109,7 @@ nav:
     - 'Sending SMS': users/sms.md
     - 'Metrics and reports': users/user-report.md
     - 'Presence and status': users/presence.md
+    - 'Call-down lists': users/calldown-lists.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md
     - 'Resolving logging conflicts': users/logging-conflicts.md
