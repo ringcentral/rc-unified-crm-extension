@@ -1,5 +1,8 @@
 # upsertCallDisposition
 
+!!! info "Optional interface"
+    If this interface is implemented, **additional disposition** action will be triggered in **log editting** process.
+
 Some platforms may have the ability to associate the log activity to other entities, which is independent from the logging call action itself. We provide another interface for dispositioning the call.
 
 ## Input parameters

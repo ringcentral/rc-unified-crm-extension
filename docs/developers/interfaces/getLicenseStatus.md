@@ -1,5 +1,8 @@
 # getLicenseStatus
 
+!!! info "Optional interface"
+    If this interface is implemented, you can input logic to talk to your own license service and manage user licenses.
+
 The App Connect framework supports license validation for CRM connectors, allowing you to implement your own licensing service and control access to your connector based on license status. This guide covers how to implement license management in your custom connector.
 
 ## Implementing your own license service and enabling license in manifest
