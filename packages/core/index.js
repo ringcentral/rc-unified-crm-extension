@@ -125,6 +125,52 @@ function createCoreRouter() {
         res.send(`OK`);
     });
 
+    router.get('/implementedInterfaces', (req, res) => {
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (jwtToken) {
+                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                if (!userId) {
+                    res.status(400).send();
+                }
+                const platformModule = connectorRegistry.getConnector(platform);
+                const result = {};
+                const authType = platformModule.getAuthType();
+                result.getAuthType = !!platformModule.getAuthType;
+                switch(authType){
+                    case 'oauth':
+                        result.getOauthInfo = !!platformModule.getOauthInfo;
+                        break;
+                    case 'apiKey':
+                        result.getBasicAuth = !!platformModule.getBasicAuth;
+                        break;
+                }
+                result.getUserInfo = !!platformModule.getUserInfo;
+                result.createCallLog = !!platformModule.createCallLog;
+                result.updateCallLog = !!platformModule.updateCallLog;
+                result.getCallLog = !!platformModule.getCallLog;
+                result.createMessageLog = !!platformModule.createMessageLog;
+                result.updateMessageLog = !!platformModule.updateMessageLog;
+                result.createContact = !!platformModule.createContact;
+                result.findContact = !!platformModule.findContact;
+                result.unAuthorize = !!platformModule.unAuthorize;
+                result.upsertCallDisposition = !!platformModule.upsertCallDisposition;
+                result.findContactWithName = !!platformModule.findContactWithName;
+                result.getUserList = !!platformModule.getUserList;
+                result.getLicenseStatus = !!platformModule.getLicenseStatus;
+                result.getLogFormatType = !!platformModule.getLogFormatType;
+                res.status(200).send(result);
+            }
+            else {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+        }
+        catch (e) {
+            res.status(400).send(e);
+        }
+    });
+
     router.get('/licenseStatus', async (req, res) => {
         const requestStartTime = new Date().getTime();
         let platformName = null;
