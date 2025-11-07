@@ -1,35 +1,35 @@
 # App Connect Connector developer quick start 
 
-<!-- md:version 2.0 -->
+!!! tip "Make sure you are using App Connect 2.0"
+    The new App Connect developer experience requires App Connect 2.0 and is currently in beta. Before you proceed, be sure you have installed the correct version. 
+	
+	<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-450" src="../../img/chrome-web-store.png"></a>
 
-{! docs/developers/beta_notice.inc !}
+Through this quick start, you will gain a **stronger understanding of the App Connect system's architecture** by registering a manifest and deploying a connector that talks to a mock CRM. This hands-on experience will illustrate **what events (or callbacks)** your application will need to respond to via a set of [interfaces](interfaces/index.md) you will implement when you connect to an actual service in the future. Let's get started!
 
-Welcome to the App Connect developer quick start guide! This quick start guide will walk you through the essential steps for getting your first integration up and running with **App Connect**. By the end of this guide, you will have accomplished two main goals:
+### 1. Access the Developer Console
 
-* **Register a Connector:** You'll learn how to register a new connector within the **Developer Console**. This is the first step in defining how your external application will interact with the App Connect ecosystem.
+Go to the App Connect Developer Console and login with your RingCentral account and create your developer profile.
 
-* **Set up a Default Mock Server:** We'll deploy a simple mock server. While this server is intentionally basic—it will only **print to the console** the events it receives from App Connect—it serves a vital purpose.
+[Login to the Developer Console](https://appconnect.labs.ringcentral.com/console/){ .md-button .md-button--primary }
 
-## Building your first connector
-
-By using this mock server, you'll gain a **stronger understanding of the App Connect system's architecture** and the lifecycle of events. This hands-on experience will clearly illustrate **what events (or callbacks)** your application will need to implement when you move to connecting to a real service in the future. Let's get started!
-
-### 1. Register on Developer Portal
-
-Go to the [App Connect Developer Console](https://appconnect.labs.ringcentral.com/console) and login with your RingCentral account and fill in your developer profile.
-
-### 2. Create a new connector
+### 2. Register a new connector
 
 To create a connector, there are only a few mandatory fields you need to provide. In this quick start, our goal is to get you up and running as quickly as possible. You will be able to come back and edit your connector when you are ready to connect to a CRM. 
 
-- Click "Create new connector"
-- `Connector name`: Your connector name, normally it would be the name of the platform you want to connect to
-- `Connector server URL` and `CRM URL`: If you don't have an url, fill in a random test url. We'll come back and update it later
-- Scroll to the bottom and click `Create`
+Click "Create new connector."
+
+You will be presented with a rather hefty form, but you only need to provide values for the following fields:
+
+* **Connector name**. Your connector name, normally it would be the name of the platform you want to connect to
+* **Connector server URL**. Enter any URL here. We will come back and edit this in a subsequent step.
+* **CRM URL**. Enter any value for this required field. 
+
+That's it. All other fields are optional at this point. Scroll to the bottom and click "Create."
 
 ### 3. Setup your project
 
-Upon creating the app profile, setup instrutions will be displayed in the Developer Console. These instructions will guide you through the process of installing the necessary App Connect libraries, initializing your project, and stubbing out your server's interfaces using a basic template. Follow these instructions. 
+Upon creating the app profile, setup instrutions will be displayed in the Developer Console. These instructions will guide you through the process of installing the necessary App Connect libraries, initializing your project, and stubbing out your server's interfaces using a basic template. Follow these instructions.
 
 ### 4. Build!
 
@@ -48,8 +48,7 @@ Let's try and see it everything works:
 - After logging the call, next call from the same number will be recognized as the contact.
 - There are a lot more features. Please check out our user guide & developer guide to find out. Code implementation suggestions are commented inside template connector script as well.
 
-## Notes about the default mock server 
-
-* **The default auth type is API key, which is effectively ignored.** Because this is just a mock server that doesn't actually connect to a CRM, you are free to use any arbitrary string as an API key. 
+!!! note "Notes about the default mock server"
+    * **The default auth type is API key, which is effectively ignored.** Because this is just a mock server that doesn't actually connect to a CRM, you are free to use any arbitrary string as an API key. 
 
 

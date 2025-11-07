@@ -56,24 +56,12 @@ To auth a user via an API key, you need to present them with a form in which the
 
 ### Setup the auth page in the extension
 
-**Sample CRM connector**
-
-=== "manifest.json"
-
-    ```js 
-    {!> src/connectors/testCRM/manifest.json [ln:22-36] !}
-    ```
-
-=== "Rendered page"
-
-    ![Auth page](../img/test-auth-page.png){ .md-200 }
-
 **Insightly connector**
 
 === "manifest.json"
 
     ```js
-    {!> src/connectors/manifest.json [ln:262-294] !}
+    {!> src/connectors/manifest.json [ln:199-231] !}
     ```
 
 === "Rendered page"

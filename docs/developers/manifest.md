@@ -6,14 +6,17 @@ An connector's manifest file helps a developer to instruct the framework on how 
 
 Below you will find an explanation of the many properties found within a manifest file. 
 
-## Turn on developer mode
+## Editing your manifest file
 
-To use a custom manifest, we'll need to turn on developer mode and assign a custom manifest url to the extension. Here's how:
+The [App Connect Developer Console](https://appconnect.labs.ringcentral.com/console) provides a user interface for editing and managing your connector's manifest file. This is the recommended way to edit your manifest file as it will allow you to preview many of your changes in real time, and ensures the manifest created is valid. 
 
-1. Open DevTools
-2. In console, execute `window.postMessage({type: 'toggle-developer-mode', toggle: true})` and reload the extension
-3. In user settings, there's a section for `Developer settings`. Input your custom manifest url and save
-4. Reload the extension to make it work
+![Editing Bullhorn manifest](../../img/bullhorn-manifest-console.png)
+
+### Editing your manifest directly
+
+Some developers may prefer to edit and manage their manifest file directly by editing its source. You can do this on your local filesystem, or via the App Connect developer console. 
+
+![Editing manifest source](../../img/manifest-source-editor.png)
 
 ## Basic properties
 
@@ -68,161 +71,3 @@ The client-side authorization url that is opened by the extension will be: `{aut
 | `customState` | string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `scope`       | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
 
-## Customizing pages within the client application
-
-There are a number of pages within the App Connect client application that often need to be customized in some way for the corresponding CRM. Those pages are:
-
-* CRM authentication page (ONLY for `apiKey` auth)
-* Call logging form
-* Message logging form
-
-### apiKey auth page
-
-=== "Insightly connector"
-
-    ```js
-    {!> src/connectors/manifest.json [ln:262-294] !}
-    ```
-
-    ![Auth page](../img/insightly-auth-page.png)
-
-### Adding custom fields to logging forms
-
-CRMs almost always have a set of fields associated with logging an activity that are relatively unique. Consider for example Clio, a CRM used by legal professionals, in which users link calls to "matters" (e.g. a "legal matter"). Where CRMs like Insightly link calls to opportunities. To account for this, the framework makes it easy to add new custom form fields to two key forms users interact with frequently:
-
-* Call logging page
-* Create contact page
-
-For each page, you will define an array of `additionalFields`. Each additional field element consists of the properties below.
-
-| Name               | Type    | Description |
-|--------------------|---------|-------------|
-| `const`            | string  | A unique key identifying the field. |
-| `title`            | string  | The display name of the field. |
-| `type`             | string  | The data type associated with the field. |
-| `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static.  |
-
-#### Custom call log fields
-
-Here's an example from the Pipedrive connector showing how to add custom fields:
-
-```js
-{! src/connectors/manifest.json [ln:52-71] !}
-```
-
-#### Custom SMS log fields
-
-Here's an example from the Pipedrive connector showing how to add custom fields for message logging:
-
-```js
-{! src/connectors/manifest.json [ln:74-93] !}
-```
-
-## Customizing the welcome message
-
-When a user installs App Connect for the first time and accesses it from their CRM, a welcome page or splash screen appears to the user. This screen can be very effective in educating the end user about how to setup and connect to the associated CRM. 
-
-Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources under `embeddedOnCrmPage.welcomePage`:
-
-* `docLink`: A URL to read documentation
-* `videoLink`: A URL to watch a video
-
-## User settings for default log form values
-
-This topic is closely related to the use of [auto log](../users/automatic-logging.md). For manual log cases, using Bullhorn as example, users would need to manually select one of the `Note action` codes. In auto log scenarios, the extension would refuse to auto log because it misses selection for `Note action` code value. Now, default log form values would be able to help. It has 4 cases: `inbound call`, `outbound call`, `message` and `voicemail` where we can predefine default values.
-
-Here's the example from Bullhorn. In `settings`, we want to add a new custom setting, and on log page render, we want to link the default values from user settings.
-
-![Bullhorn default Note Action page](../img/bullhorn-default-note-action-page.png)
-
-```json
-{
-    "settings": 
-        [
-            {
-                "id": "bullhornDefaultNoteAction",
-                "type": "section",
-                "name": "Bullhorn options",
-                "items": [
-                    {
-                        "id": "noteActionMatchWarning",
-                        "name": "Info: note action matching warning",
-                        "type": "warning",
-                        "value": "Note action value match ignores cases and spaces"
-                    },
-                    {
-                        "id": "bullhornInboundCallNoteAction",
-                        "type": "inputField",
-                        "name": "Default action for inbound calls",
-                        "placeholder": "Enter action value"
-                    },
-                    {
-                        "id": "bullhornOutboundCallNoteAction",
-                        "type": "inputField",
-                        "name": "Default action for outbound calls",
-                        "placeholder": "Enter action value"
-                    },
-                    {
-                        "id": "bullhornMessageNoteAction",
-                        "type": "inputField",
-                        "name": "Default action for SMS",
-                        "placeholder": "Enter action value"
-                    },
-                    {
-                        "id": "bullhornVoicemailNoteAction",
-                        "type": "inputField",
-                        "name": "Default action for voicemails",
-                        "placeholder": "Enter action value"
-                    }
-                ]
-            }
-        ]
-}
-```
-
-Page fields need to be set to use default values mapped from user settings. 
-
-```json
-{
-    "page": {
-        "callLog": {
-            "additionalFields": [
-                {
-                    "const": "noteActions",
-                    "title": "Note action",
-                    "type": "selection",
-                    "contactDependent": false,
-                    "defaultSettingId": "bullhornDefaultNoteAction",
-                    "defaultSettingValues": {
-                        "inboundCall": {
-                            "settingId": "bullhornInboundCallNoteAction"
-                        },
-                        "outboundCall": {
-                            "settingId": "bullhornOutboundCallNoteAction"
-                        }
-                    }
-                }
-            ]
-        },
-        "messageLog": {
-            "additionalFields": [
-                {
-                    "const": "noteActions",
-                    "title": "Note action",
-                    "type": "selection",
-                    "contactDependent": false,
-                    "defaultSettingId": "bullhornDefaultNoteAction",
-                    "defaultSettingValues": {
-                        "message": {
-                            "settingId": "bullhornMessageNoteAction"
-                        },
-                        "voicemail": {
-                            "settingId": "bullhornVoicemailNoteAction"
-                        }
-                    }
-                }
-            ]
-        }
-    }
-}
-```

@@ -6,6 +6,7 @@ Smokeball is a cloud-based legal practice management software designed for small
 
 Ion8, a company specializing in legal industry integrations, built this integration to help streamline communications around legal matters and cases, making sure communications are properly stored, and analyzed so that firms can deliver a high-quality service. 
 
+<!--
 ## Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
@@ -13,3 +14,4 @@ If you have not already done so, begin by [installing App Connect](../getting-st
 ## Setup the extension
 
 TBD
+-->

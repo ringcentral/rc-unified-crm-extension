@@ -1,9 +1,5 @@
 # Regional Services
 
-This document describes how the App Connect framework supports CRMs with different regional deployments.
-
-## Overview
-
 Many CRM platforms maintain separate regional deployments to meet data residency requirements, reduce latency, or comply with local regulations. For example, some CRMs maintain separate US and EU servers, each with different URLs and potentially different authentication endpoints.
 
 The App Connect framework provides built-in support for regional services through a flexible configuration system.
