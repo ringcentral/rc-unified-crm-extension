@@ -23,6 +23,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
     //--------------------------------------
     //--- TODO: Add CRM API call here ------
+    //--- TODO: Delete above mock JSON -----
     //--------------------------------------
     // const postBody = {
     //     subject: callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`,

@@ -72,7 +72,7 @@ ALTER TABLE "adminConfigs"
 - Go to app profile in Developer Portal. Go to `Overview` tab, `Quick setup` section.
 - Follow instructions to create a new project
 - Find the latest beta version here: https://www.npmjs.com/package/@app-connect/core?activeTab=versions
-- Run `npm i @app-connect/core@1.7.0-beta.2` (if there's newer one, use it instead)
+- Run `npm i @app-connect/core`
 - Copy your adapter code over to the new project. Install necessary npm packages that are used in your adapter
 - Spin up your server (make sure Developer Portal connector profile server url is the same as your server's)
 

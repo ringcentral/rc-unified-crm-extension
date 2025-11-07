@@ -1,6 +1,6 @@
 # Call-down Lists
 
-<!-- md:version 1.7.0 -->
+<!-- md:version 2.0 -->
 
 Call-down lists help you manage and execute outbound calling campaigns efficiently. This feature provides a centralized place to organize your contacts, make sequential calls, and track your calling progress—all designed to help you meet your outbound call quotas.
 

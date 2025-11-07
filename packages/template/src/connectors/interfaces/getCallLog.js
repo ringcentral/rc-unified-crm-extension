@@ -11,6 +11,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
     //--------------------------------------
     //--- TODO: Add CRM API call here ------
+    //--- TODO: Delete above mock JSON -----
     //--------------------------------------
     // const getLogRes = await axios.get(
     //     `https://api.crm.com/activity/${callLogId}`,

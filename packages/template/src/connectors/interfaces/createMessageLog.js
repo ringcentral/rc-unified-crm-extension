@@ -19,6 +19,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 
     //--------------------------------------
     //--- TODO: Add CRM API call here ------
+    //--- TODO: Delete above mock JSON -----
     //--------------------------------------
     // const postBody = {
     //     data: {

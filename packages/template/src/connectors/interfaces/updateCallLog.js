@@ -19,6 +19,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     
     //--------------------------------------
     //--- TODO: Add CRM API call here ------
+    //--- TODO: Delete above mock JSON -----
     //--------------------------------------
     // const existingLogId = existingCallLog.thirdPartyLogId;
     // const getLogRes = await axios.get(

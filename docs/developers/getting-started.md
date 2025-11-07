@@ -1,6 +1,6 @@
 # App Connect Connector developer quick start 
 
-<!-- md:version 1.7.0 -->
+<!-- md:version 2.0 -->
 
 {! docs/developers/beta_notice.inc !}
 

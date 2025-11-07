@@ -19,7 +19,7 @@ The **Reports** tab currently provides **basic agent-level call statistics**, in
 
 ## Organization-level call statistics and reports
 
-<!-- md:version 1.7.0 -->
+<!-- md:version 2.0 -->
 
 !!! tip "Admin users only"
     Only RingCentral account admins can view organization-level reports.
