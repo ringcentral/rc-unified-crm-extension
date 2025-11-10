@@ -10,13 +10,13 @@ Below you will find an explanation of the many properties found within a manifes
 
 The [App Connect Developer Console](https://appconnect.labs.ringcentral.com/console) provides a user interface for editing and managing your connector's manifest file. This is the recommended way to edit your manifest file as it will allow you to preview many of your changes in real time, and ensures the manifest created is valid. 
 
-![Editing Bullhorn manifest](../../img/bullhorn-manifest-console.png)
+![Editing Bullhorn manifest](../img/bullhorn-manifest-console.png)
 
 ### Editing your manifest directly
 
 Some developers may prefer to edit and manage their manifest file directly by editing its source. You can do this on your local filesystem, or via the App Connect developer console. 
 
-![Editing manifest source](../../img/manifest-source-editor.png)
+![Editing manifest source](../img/manifest-source-editor.png)
 
 ## Basic properties
 
