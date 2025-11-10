@@ -1,6 +1,6 @@
 # Proxy mode (new)
 
-!!! warning "The mode is a work in progress and not yet available."
+<!-- md:version 2.0 -->
 
 App Connect offers two powerful modes for building connectors: **App Connect Framework Mode** and **Proxy Mode**. This guide details both approaches, with a deep dive into the configuration-based Proxy Mode, to help you select the best method for your project.
 
@@ -258,7 +258,7 @@ This section details the operations you can define.
 #### `getLicenseStatus` (Optional)
 
   * **Purpose:** Validates license availability/status for a user and platform.
-  * **Request Variables:** `userId`, `platform`.
+  * **Request Variables:** `user.id`, `platform`.
   * **Response Mapping (Object):**
       * `isLicenseValidPath` (Required)
       * `licenseStatusPath` (Required)
@@ -457,7 +457,7 @@ Here is an illustrative proxy configuration showing several operations.
       "url": "",
       "headers": { "Content-Type": "application/json" },
       "body": {
-        "user_id": "{{userId}}",
+        "user_id": "{{user.id}}",
         "platform": "{{platform}}"
       },
       "responseMapping": {
