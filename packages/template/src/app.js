@@ -11,4 +11,8 @@ connectorRegistry.setReleaseNotes(releaseNotes);
 // Create Express app with all core functionality
 const app = createCoreApp();
 
+app.get('/', (req, res) => {
+  res.send('App Connect Connector Server - OK');
+});
+
 exports.app = app;
