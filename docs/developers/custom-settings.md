@@ -1,4 +1,4 @@
-# Custom Setting Fields
+# Custom user preferences for your CRM
 
 Custom fields allow developers to add configurable settings specific to their CRM connector. These settings are grouped under one or more sections in the App Connect extension user settings page.
 

@@ -1,13 +1,4 @@
-## Customizing the welcome message
-
-When a user installs App Connect for the first time and accesses it from their CRM, a welcome page or splash screen appears to the user. This screen can be very effective in educating the end user about how to setup and connect to the associated CRM. 
-
-Currently welcome pages are relatively simple, providing developers with the ability to direct users to two key resources under `embeddedOnCrmPage.welcomePage`:
-
-* `docLink`: A URL to read documentation
-* `videoLink`: A URL to watch a video
-
-## Customizing pages within the client application
+# Customizing pages within the client application
 
 There are a number of pages within the App Connect client application that often need to be customized in some way for the corresponding CRM. Those pages are:
 
@@ -15,7 +6,21 @@ There are a number of pages within the App Connect client application that often
 * Call logging form
 * Message logging form
 
-### Adding custom fields to logging forms
+The App Connect manifest is how these pages are customized to suit the need of the CRM you are integrating with. 
+
+## Customizing apiKey auth page
+
+If the CRM being integrated with utilizes static auth credentials, the API Key auth method is how you will collect those credentials for the user. Every CRM is different of course, so you may need to add multiple fields to the API key setup page.
+
+=== "Insightly connector"
+
+    ```js
+    {!> src/connectors/manifest.json [ln:199-231] !}
+    ```
+
+    ![Auth page](../img/insightly-auth-page.png)
+
+## Adding custom fields to logging forms
 
 CRMs almost always have a set of fields associated with logging an activity that are relatively unique. Consider for example Clio, a CRM used by legal professionals, in which users link calls to "matters" (e.g. a "legal matter"). Where CRMs like Insightly link calls to opportunities. To account for this, the framework makes it easy to add new custom form fields to two key forms users interact with frequently:
 
@@ -31,23 +36,55 @@ For each page, you will define an array of `additionalFields`. Each additional f
 | `type`             | string  | The data type associated with the field.                                                                          |
 | `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static. |
 
-#### Custom call log fields
+### Custom call log fields
 
 In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
 
 ```js
-{! src/connectors/testCRM/manifest.json [ln:113-129] !}
+"page": {
+    "callLog": {
+      "additionalFields": [
+        {
+          "const": "associatedDeal",
+          "title": "Deals",
+          "type": "selection",
+          "contactDependent": true
+        },
+        {
+          "const": "address",
+          "title": "Address",
+          "type": "inputField",
+          "contactDependent": false
+        }
+      ]
+    }
+}
 ```
 
-#### Custom SMS log fields
+### Custom SMS log fields
 
 Setup the same fields as above, but associated with the SMS logging page.
 
 ```js
-{! src/connectors/testCRM/manifest.json [ln:130-145] !}
+"messageLog": {
+    "additionalFields": [
+        {
+            "const": "associatedDeal",
+            "title": "Deals",
+            "type": "selection",
+            "contactDependent": true
+        },
+        {
+            "const": "address",
+            "title": "Address",
+            "type": "inputField",
+            "contactDependent": false
+        }
+    ]
+}
 ```
 
-### Feedback page
+## Feedback page
 
 A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in App Connect for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
 
@@ -58,7 +95,7 @@ To use feedback page, please create `feedback` object under `page`. The `feedbac
 | `url`      | string  | A URL that the feedback form will post data to. Query parameters can be setup. Please refer to [below](#page-elements-and-query-parameters) |
 | `elements` | array   | Page and input elements that will comprise the feedback form. Please refer to [below](#page-elements-and-query-parameters)  |
 
-#### Page elements and query parameters
+### Page elements and query parameters
 
 Page elements are defined as similar to log page fields above:
 
@@ -72,7 +109,7 @@ Page elements are defined as similar to log page fields above:
 | `required`    | boolean | If true, the form cannot be submitted until a value has been entered. |
 | `placeholder` | string  | A placeholder value to be replaced by the user. Only applicable for `inputField`. |
 
-#### Submitting feedback forms
+### Submitting feedback forms
 
 When a user submits the feedback form, the feedback will be submitted to the designated `url`. The URL supports a number of tokens so that you can encode user submitted form data into the URL being posted to. These tokens are as follows:
 

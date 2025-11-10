@@ -132,19 +132,19 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
-  - 'Technical overview': developers/connector.md
-  - 'Call log composer': developers/call-log-composer.md
-  - 'Build and deployment': developers/deploy.md
-  - 'Integration checklist': developers/proprietary-crm.md
-  - 'Adapter': 
+  - 'Developer Console': https://appconnect.labs.ringcentral.com/console
+  - 'Is your CRM compatible?': developers/proprietary-crm.md
+#  - 'Call log composer': developers/call-log-composer.md
+  - 'Connector': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
       - 'Manifest properties': developers/manifest.md
       - 'Customizing pages': developers/manifest-pages.md
       - 'Custom settings': developers/custom-settings.md
       - 'Regional services': developers/regional-services.md
-      - 'Sample manifest': developers/manifest-sample.md
+      - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server': 
+      - 'Build and deployment': developers/deploy.md
       - 'Contact matching': developers/contact-matching.md
       - 'Logging phone calls': developers/logging-calls.md
       - 'Logging SMS': developers/logging-sms.md
@@ -185,5 +185,5 @@ nav:
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
-  - 'Build a CRM adapter': build.md
+  - 'Build a CRM connector': build.md
   - 'Release notes': release-notes.md

@@ -4,6 +4,7 @@
 
 Gate6's integration with Service Titan helps streamline communication-heavy workflows ubiquitous to the home service industry, and helps teams deliver a high-quality, high-touch user experience by tracking all communications with a client.
 
+<!--
 ## Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
@@ -11,3 +12,4 @@ If you have not already done so, begin by [installing App Connect](../getting-st
 ## Setup the extension
 
 TBD
+-->
