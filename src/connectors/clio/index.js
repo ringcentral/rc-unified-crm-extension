@@ -380,7 +380,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
-        if (additionalSubmission.adminAssignedUserToken) {
+        if (additionalSubmission?.adminAssignedUserToken) {
             try {
                 const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
                 const assigneeUser = await UserModel.findByPk(unAuthData.id);
@@ -451,7 +451,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             quantity: callLog.duration,
             date: moment(callLog.startTime).toISOString(),
             type: 'TimeEntry',
-            non_billable: additionalSubmission.nonBillable,
+            non_billable: additionalSubmission?.nonBillable ?? true,
             note: composedLogDetails
         }
     }

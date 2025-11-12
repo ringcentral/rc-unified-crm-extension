@@ -24,6 +24,7 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
+const mcpHandler = require('./mcp/mcpHandler');
 
 let packageJson = null;
 try {
@@ -137,7 +138,7 @@ function createCoreRouter() {
                 const result = {};
                 const authType = platformModule.getAuthType();
                 result.getAuthType = !!platformModule.getAuthType;
-                switch(authType){
+                switch (authType) {
                     case 'oauth':
                         result.getOauthInfo = !!platformModule.getOauthInfo;
                         break;
@@ -1666,6 +1667,23 @@ function createCoreApp(options = {}) {
     // Apply core routes
     const coreRouter = createCoreRouter();
     app.use('/', coreRouter);
+
+    // Handle OPTIONS for CORS preflight
+    app.options('/mcp', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.status(200).end();
+    });
+
+    // Dedicated endpoint for all MCP traffic
+    app.post('/mcp', async (req, res) => {
+        // Set CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        await mcpHandler.handleMcpRequest(req, res);
+    });
 
     return app;
 }
