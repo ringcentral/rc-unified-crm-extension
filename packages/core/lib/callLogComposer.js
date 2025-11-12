@@ -411,7 +411,7 @@ function upsertCallDuration({ body, duration, logFormat }) {
         // More flexible regex that handles both with and without newlines
         const durationRegex = /- Duration: ([^\n-]+)(?=\n-|\n|$)/;
         if (durationRegex.test(result)) {
-            result = result.replace(durationRegex, `- Duration: ${formattedDuration}\n`);
+            result = result.replace(durationRegex, `- Duration: ${formattedDuration}`);
         } else {
             result += `- Duration: ${formattedDuration}\n`;
         }
@@ -444,7 +444,7 @@ function upsertCallResult({ body, result, logFormat }) {
         // More flexible regex that handles both with and without newlines
         const resultRegex = /- Result: ([^\n-]+)(?=\n-|\n|$)/;
         if (resultRegex.test(bodyResult)) {
-            bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}\n`);
+            bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}`);
         } else {
             bodyResult += `- Result: ${result}\n`;
         }
@@ -695,11 +695,11 @@ function upsertRingSenseAIScore({ body, score, logFormat }) {
             result += `**RingSense AI Score**: ${score}\n`;
         }
     } else {
-        const scoreRegex = /- RingSense AI Score: [^\n]*\n*/;
+        const scoreRegex = /- RingSense AI Score:\s*([^<\n]+)(?=\n|$)/i;
         if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `- RingSense AI Score:${score}\n`);
+            result = result.replace(scoreRegex, `- RingSense AI Score: ${score}`);
         } else {
-            result += `- RingSense AI Score:${score}\n`;
+            result += `- RingSense AI Score: ${score}\n`;
         }
     }
     return result;
@@ -726,7 +726,7 @@ function upsertRingSenseBulletedSummary({ body, summary, logFormat }) {
             result += `### RingSense Bulleted Summary\n${summary}\n`;
         }
     } else {
-        const summaryRegex = /- RingSense Bulleted Summary:([\s\S]*?)--- END/;
+        const summaryRegex = /- RingSense Bulleted Summary:\s*([^<\n]+)(?=\n|$)/i;
         if (summaryRegex.test(result)) {
             result = result.replace(summaryRegex, `- RingSense Bulleted Summary:\n${summary}\n--- END`);
         } else {
