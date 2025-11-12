@@ -7,7 +7,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
-const logger = require('../../lib/logger');
+const logger = require('@app-connect/core/lib/logger');
 
 function getAuthType() {
     return 'apiKey';

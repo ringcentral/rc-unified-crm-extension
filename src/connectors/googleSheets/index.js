@@ -1,6 +1,6 @@
 const axios = require('axios');
 const moment = require('moment');
-const logger = require('../../lib/logger');
+const logger = require('@app-connect/core/lib/logger');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 function getAuthType() {
