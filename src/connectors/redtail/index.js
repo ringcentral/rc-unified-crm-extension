@@ -6,6 +6,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
 function getAuthType() {
     return 'apiKey';
 }
@@ -22,7 +23,7 @@ function getAuthHeader({ userKey }) {
     return Buffer.from(`${process.env.REDTAIL_API_KEY}:${userKey}`).toString('base64');
 }
 
-async function getUserInfo({ authHeader, additionalInfo }) {
+async function getUserInfo({ additionalInfo }) {
     try {
         const overrideAPIKey = `${process.env.REDTAIL_API_KEY}:${additionalInfo.username}:${additionalInfo.password}`;
         const overrideAuthHeader = `Basic ${getBasicAuth({ apiKey: overrideAPIKey })}`;
@@ -53,6 +54,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         }
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -153,7 +155,6 @@ async function findContactWithName({ user, name }) {
             headers: { 'Authorization': overrideAuthHeader }
         });
 
-    console.log({ COntacts: personInfo.data.contacts, Data: personInfo.data });
     const categoriesResp = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/lists/categories`,
         {
@@ -203,7 +204,7 @@ async function createContact({ user, phoneNumber, newContactName }) {
     }
 }
 
-async function getUserList({ user, authHeader }) {
+async function getUserList({ user }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const userListResp = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/lists/database_users`,
@@ -240,7 +241,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
 
             if (!assigneeId) {
@@ -281,7 +282,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
             headers: { 'Authorization': overrideAuthHeader }
         });
     if (note) {
-        const addNoteRes = await axios.post(
+        await axios.post(
             `${process.env.REDTAIL_API_SERVER}/activities/${addLogRes.data.activity.id}/notes`,
             {
                 category_id: additionalSubmission?.category ?? 2,
@@ -314,7 +315,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, subject, startTime, duration, additionalSubmission, composedLogDetails, hashedAccountId }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
 
@@ -329,7 +330,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
 
             if (!assigneeId) {
@@ -337,19 +338,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
             }
         }
-    }
-
-    // Use passed existingCallLogDetails to avoid duplicate API call
-    let getLogRes = null;
-    if (existingCallLogDetails) {
-        getLogRes = { data: existingCallLogDetails };
-    } else {
-        // Fallback to API call if details not provided
-        getLogRes = await axios.get(
-            `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
-            {
-                headers: { 'Authorization': overrideAuthHeader }
-            });
     }
 
     let putBody = {};
@@ -371,7 +359,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         ];
     }
-    const putLogRes = await axios.put(
+    await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
         putBody,
         {
@@ -387,11 +375,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
-async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingRedtailLogId = existingCallLog.thirdPartyLogId;
     const categoryId = dispositions.category;
-    const upsertDispositionRes = await axios.put(
+    await axios.put(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingRedtailLogId}`,
         {
             category_id: categoryId
@@ -404,7 +392,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     };
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, message, recordingLink, faxDocLink }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const userName = user.id.split('-')[0];
     const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
@@ -478,7 +466,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const existingLogId = existingMessageLog.thirdPartyLogId;
     const userName = user.id.split('-')[0];
@@ -503,7 +491,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         description: logBody,
         end_date: moment(message.creationTime).utc().toISOString()
     }
-    const putLogRes = await axios.patch(
+    await axios.patch(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
         putBody,
         {
@@ -511,7 +499,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         });
 }
 
-async function getCallLog({ user, callLogId, authHeader }) {
+async function getCallLog({ user, callLogId }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
     const getLogRes = await axios.get(
         `${process.env.REDTAIL_API_SERVER}/activities/${callLogId}`,

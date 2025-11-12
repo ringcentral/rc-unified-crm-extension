@@ -1,6 +1,6 @@
 const axios = require('axios');
 const moment = require('moment');
-const url = require('url');
+const logger = require('../../lib/logger');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 function getAuthType() {
@@ -10,7 +10,7 @@ const predefinedContactSheetName = "Contacts";
 const predefinedCallLogSheetName = "Call Logs";
 const predefinedMessageLogSheetName = "Message Logs";
 
-async function getOauthInfo({ hostname }) {
+async function getOauthInfo() {
     return {
         clientId: process.env.GOOGLESHEET_CLIENT_ID,
         clientSecret: process.env.GOOGLESHEET_CLIENT_SECRET,
@@ -23,8 +23,7 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
-async function getUserInfo({ authHeader, additionalInfo, query }) {
-    const { rcAccountId } = query;
+async function getUserInfo({ authHeader }) {
     const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
         headers: {
             Authorization: authHeader
@@ -47,7 +46,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
 
 async function unAuthorize({ user }) {
     try {
-        const response = await axios.post('https://oauth2.googleapis.com/revoke', `token=${user.accessToken}`,
+        await axios.post('https://oauth2.googleapis.com/revoke', `token=${user.accessToken}`,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -65,6 +64,7 @@ async function unAuthorize({ user }) {
             }
         }
     } catch (e) {
+        logger.error('Error logging out of GoogleSheet', { stack: e.stack });
         return {
             returnMessage: {
                 messageType: 'warning',
@@ -75,7 +75,7 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+async function findContact({ user, authHeader, phoneNumber, isExtension }) {
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -178,6 +178,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         };
     }
     catch (e) {
+        logger.error('Error finding contact', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -189,7 +190,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     }
 
 }
-async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName }) {
     const contactSheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
@@ -274,7 +275,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
             rowData[columnIndexes[key]] = value;
         }
     });
-    const response = await axios.post(url, { values: [rowData] }, { headers });
+    await axios.post(url, { values: [rowData] }, { headers });
     return {
         contactInfo: {
             id: contactId,
@@ -287,7 +288,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     }
 }
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
@@ -383,7 +384,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         });
 
-        const response = await axios.post(url, { values: [rowData] }, { headers });
+        await axios.post(url, { values: [rowData] }, { headers });
         // const logId = `${spreadsheetId}/edit?gid=${gid}`;
         return {
             logId: nextLogRow,
@@ -395,6 +396,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             }
         };
     } catch (error) {
+        logger.error('Error logging call', { stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -417,7 +419,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
 }
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, duration, result }) {
     const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     try {
@@ -540,7 +542,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                     values: [[recordingLink]]
                 });
             }
-            const response = await axios.post(
+            await axios.post(
                 `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
                 {
                     valueInputOption: "RAW",
@@ -564,6 +566,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             };
         }
     } catch (error) {
+        logger.error('Error updating call log', { stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -705,7 +708,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, recordingLink, faxDocLink }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
@@ -770,7 +773,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 });
                 sheetName = predefinedMessageLogSheetName;
             } catch (e) {
-                console.log({ message: "Error creating Message Log Sheet", e });
+                logger.error('Error creating Message Log Sheet', { stack: e.stack });
                 return {
                     successful: false,
                     returnMessage: {
@@ -842,7 +845,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         });
         const range = `${sheetName}!A1:append`;
         const createMessageUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
-        const response = await axios.post(createMessageUrl, { values: [rowData] }, {
+        await axios.post(createMessageUrl, { values: [rowData] }, {
             headers: { 'Authorization': authHeader }
         });
         return {
@@ -855,6 +858,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             }
         };
     } catch (error) {
+        logger.error('Error logging message', { stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -878,7 +882,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
@@ -970,8 +974,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'GoogleSheetCRM';
             const messageColumn = String.fromCharCode(65 + messageColumnIndex);
             let logBody = rows[rowIndex][messageColumnIndex];
-            let patchBody = {};
-            const originalNote = logBody.split('BEGIN\n------------\n')[1];
             const endMarker = '------------\nEND';
             const newMessageLog =
                 `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
@@ -988,7 +990,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
                     values: [[logBody]]
                 }
             ];
-            const response = await axios.post(
+            await axios.post(
                 `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
                 {
                     valueInputOption: "RAW",
@@ -1012,7 +1014,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
 
         }
     } catch (error) {
-        console.log({ message: "Error updating message log" });
+        logger.error('Error updating message log', { stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -1036,11 +1038,12 @@ async function getColumnIndexes(spreadsheetId, sheetName, authHeader) {
 
     const headers = res.data.values[0]; // First row is headers
     return headers.reduce((map, name, index) => {
+        // eslint-disable-next-line no-param-reassign
         map[name] = index; // Map column name to its index
         return map;
     }, {});
 }
-async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+async function upsertCallDisposition({ existingCallLog }) {
     const existingGoogleSheetLogId = existingCallLog.thirdPartyLogId;
     return {
         logId: existingGoogleSheetLogId

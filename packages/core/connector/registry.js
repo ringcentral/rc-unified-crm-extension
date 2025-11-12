@@ -1,4 +1,5 @@
 // core/src/connector/registry.js
+const logger = require('../lib/logger');
 class ConnectorRegistry {
   constructor() {
       this.connectors = new Map();
@@ -29,7 +30,7 @@ class ConnectorRegistry {
     const platformInterfaceMap = this.platformInterfaces.get(platformName);
     platformInterfaceMap.set(interfaceName, interfaceFunction);
 
-    console.log(`Registered interface function: ${platformName}.${interfaceName}`);
+    logger.info(`Registered interface function: ${platformName}.${interfaceName}`);
   }
 
   /**
@@ -61,7 +62,7 @@ class ConnectorRegistry {
     const platformInterfaceMap = this.platformInterfaces.get(platformName);
     if (platformInterfaceMap && platformInterfaceMap.has(interfaceName)) {
       platformInterfaceMap.delete(interfaceName);
-      console.log(`Unregistered interface function: ${platformName}.${interfaceName}`);
+      logger.info(`Unregistered interface function: ${platformName}.${interfaceName}`);
     }
   }
 
@@ -80,7 +81,7 @@ class ConnectorRegistry {
         this.manifests.set(platform, manifest);
       }
       
-      console.log(`Registered connector: ${platform}`);
+      logger.info(`Registered connector: ${platform}`);
   }
 
   /**
@@ -109,7 +110,7 @@ class ConnectorRegistry {
               composedConnector[interfaceName] = interfaceFunction;
           }
 
-          console.log(`Returning interface-only connector for platform: ${platform}`);
+          logger.info(`Returning interface-only connector for platform: ${platform}`);
           return composedConnector;
       }
 
@@ -203,14 +204,14 @@ class ConnectorRegistry {
       this.connectors.delete(platform);
       this.manifests.delete(platform);
       this.platformInterfaces.delete(platform);
-      console.log(`Unregistered connector: ${platform}`);
+      logger.info(`Unregistered connector: ${platform}`);
   }
 
   setReleaseNotes(releaseNotes) {
     this.releaseNotes = releaseNotes;
   }
 
-  getReleaseNotes(platform) {
+  getReleaseNotes() {
     return this.releaseNotes; 
   }
 
@@ -237,6 +238,7 @@ class ConnectorRegistry {
       try {
         capabilities.authType = await originalConnector.getAuthType();
       } catch (error) {
+        logger.error('Error getting auth type', { stack: error.stack });
         capabilities.authType = 'unknown';
       }
     }

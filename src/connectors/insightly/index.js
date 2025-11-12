@@ -7,6 +7,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('../../lib/logger');
 
 function getAuthType() {
     return 'apiKey';
@@ -39,6 +40,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             const ianaTimeZone = getIanaTimeZone({ timeZone: timezoneName });
             timezoneOffset = moment.tz(ianaTimeZone).utcOffset() / 60;
         } catch (error) {
+            logger.warn('Error getting IANA timezone', { stack: error.stack });
             timezoneOffset = 0; // Default to UTC if conversion fails
         }
         return {
@@ -58,6 +60,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
         };
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -162,7 +165,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 }
             }
             catch (e) {
-                console.log('Insightly extra phone field not found');
+                logger.error('Insightly extra phone field not found', { stack: e.stack });
             }
         }
         // try Lead by PHONE
@@ -202,7 +205,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 }
             }
             catch (e) {
-                console.log('Insightly extra phone field not found');
+                logger.error('Insightly extra phone field not found', { stack: e.stack });
             }
         }
     }
@@ -488,7 +491,7 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     let extraDataTracking = {
         withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
         withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
@@ -505,7 +508,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -602,7 +605,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, startTime, duration, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const existingInsightlyLogId = existingCallLog.thirdPartyLogId;
     // Use passed existingCallLogDetails to avoid duplicate API call
     let getLogRes = null;
@@ -633,7 +636,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (assigneeId) {
         putBody.OWNER_USER_ID = assigneeId;
     }
-    const putLogRes = await axios.put(
+    await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         putBody,
         {
@@ -765,7 +768,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, authHeader, message, recordingLink, faxDocLink }) {
     const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -863,7 +866,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
     let logBody = getLogRes.data.DETAILS;
     let putBody = {};
-    const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const endMarker = '------------\nEND';
     const newMessageLog =
         `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
@@ -879,7 +881,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         DETAILS: logBody,
         END_DATE_UTC: moment(message.creationTime).utc()
     }
-    const putLogRes = await axios.put(
+    await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
         putBody,
         {

@@ -7,6 +7,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
 
 function getAuthType() {
     return 'oauth';
@@ -58,6 +59,7 @@ async function getUserInfo({ authHeader, hostname }) {
         };
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -87,7 +89,7 @@ async function unAuthorize({ user }) {
     const refreshTokenParams = new url.URLSearchParams({
         token: user.refreshToken
     });
-    const refreshTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         refreshTokenParams,
         {
@@ -96,7 +98,7 @@ async function unAuthorize({ user }) {
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
-    const accessTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         accessTokenParams,
         {
@@ -115,7 +117,7 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+async function findContact({ user, authHeader, phoneNumber, isExtension }) {
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -178,7 +180,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
             };
         }
-        catch (e) { leadsResponse = null; }
+        catch (e) {
+            logger.error('Error getting leads', { stack: e.stack });
+            leadsResponse = null;
+        }
         const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
@@ -243,7 +248,10 @@ async function findContactWithName({ user, authHeader, name }) {
                 ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
             };
         }
-        catch (e) { leadsResponse = null; }
+        catch (e) {
+            logger.error('Error getting leads', { stack: e.stack });
+            leadsResponse = null;
+        }
         const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
@@ -339,7 +347,7 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const leadId = additionalSubmission ? additionalSubmission.leads : '';
     const personResponse = await axios.get(`https://${user.hostname}/api/v2/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
@@ -363,7 +371,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -420,22 +428,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, duration, additionalSubmission, composedLogDetails, hashedAccountId }) {
     let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
-
-    // Use passed existingCallLogDetails to avoid duplicate API call
-    let getLogRes = null;
-    if (existingCallLogDetails) {
-        getLogRes = { data: { data: existingCallLogDetails } };
-    } else {
-        // Fallback to API call if details not provided
-        getLogRes = await axios.get(
-            `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-    }
 
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {

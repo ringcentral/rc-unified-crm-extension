@@ -52,8 +52,6 @@ class RingCentral {
     const {
       expires_in,
       refresh_token_expires_in,
-      scope,
-      endpoint_id, // do no save this field into db to reduce db size
       ...token
     } = await response.json();
     return {
@@ -79,8 +77,6 @@ class RingCentral {
     const {
       expires_in,
       refresh_token_expires_in,
-      scope,
-      endpoint_id, // do no save this field into db to reduce db size
       ...newToken
     } = await response.json();
     return {
@@ -164,10 +160,6 @@ class RingCentral {
       },
     }, token);
     const {
-      uri,
-      creationTime,
-      deliveryMode,
-      status, // do no save those field into db to reduce db size
       ...subscription
     } = await response.json();
     return subscription;
@@ -226,7 +218,7 @@ class RingCentral {
     return response.json();
   }
 
-  async getCallLogData({ extensionId = '~', token, timezone, timeFrom, timeTo }) {
+  async getCallLogData({ extensionId = '~', token, timeFrom, timeTo }) {
     let pageStart = 1;
     let isFinalPage = false;
     let callLogResponse = null;
@@ -247,7 +239,7 @@ class RingCentral {
     }
     return result;
   }
-  async getSMSData({ extensionId = '~', token, timezone, timeFrom, timeTo }) {
+  async getSMSData({ extensionId = '~', token, timeFrom, timeTo }) {
     let pageStart = 1;
     let isFinalPage = false;
     let smsLogResponse = null;

@@ -1,10 +1,12 @@
 const Mixpanel = require('mixpanel');
 const parser = require('ua-parser-js');
+const logger = require('./logger');
 let packageJson = null;
 try {
     packageJson = require('../package.json');
 }
 catch (e) {
+    logger.warn('Error loading package.json', { stack: e.stack });
     packageJson = require('../../package.json');
 }
 const appName = 'App Connect';
@@ -49,5 +51,5 @@ exports.track = function track({ eventName, interfaceName, connectorName, accoun
         author,
         ...extras
     });
-    console.log(`Event: ${eventName}`);
+    logger.info(`Event: ${eventName}`);
 }

@@ -7,7 +7,6 @@ const path = require('path');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const jwt = require('@app-connect/core/lib/jwt');
 const axios = require('axios');
-const authCore = require('@app-connect/core/handlers/auth');
 const bullhorn = require('./connectors/bullhorn');
 const clio = require('./connectors/clio');
 const googleSheets = require('./connectors/googleSheets');
@@ -16,8 +15,7 @@ const netsuite = require('./connectors/netsuite');
 const pipedrive = require('./connectors/pipedrive');
 const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
-const adminCore = require('@app-connect/core/handlers/admin');
-
+const logger = require('@app-connect/core/lib/logger');
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
@@ -51,7 +49,7 @@ app.get('/googleSheets/filePicker', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets \n${e.stack}`);
+        logger.error('Error getting file picker', { stack: e.stack });
         res.status(500).send(e);
     }
 });
@@ -85,7 +83,7 @@ app.post('/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets \n${e.stack}`);
+        logger.error('Error creating new sheet', { stack: e.stack });
         res.status(500).send(e);
     }
 });
@@ -107,7 +105,7 @@ app.delete('/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets \n${e.stack}`);
+        logger.error('Error removing sheet', { stack: e.stack });
         res.status(500).send(e);
     }
 });
@@ -125,7 +123,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
         res.status(400).send('User not found');
         return;
     }
-    const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
+    await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
 
     res.status(200).send({ message: 'Sheet selected', Id: req.body.field });
 });
@@ -136,7 +134,7 @@ app.get('/pipedrive-redirect', function (req, res) {
         res.sendFile(path.join(__dirname, 'connectors/pipedrive/redirect.html'));
     }
     catch (e) {
-        console.log(`platform: pipedrive \n${e.stack}`);
+        logger.error('Error getting pipedrive redirect', { stack: e.stack });
         res.status(500).send(e);
     }
 });
@@ -156,7 +154,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: pipedrive \n${e.stack}`);
+        logger.error('Error removing pipedrive redirect', { stack: e.stack });
         res.status(500).send(e);
     }
 });

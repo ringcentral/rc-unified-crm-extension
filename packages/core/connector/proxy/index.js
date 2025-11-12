@@ -10,6 +10,7 @@ const {
 } = require('./engine');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { UserModel } = require('../../models/userModel');
+const logger = require('../../lib/logger');
 
 async function loadPlatformConfig(proxyId) {
   if (!proxyId) {
@@ -19,7 +20,7 @@ async function loadPlatformConfig(proxyId) {
     const proxyConfig = await Connector.getProxyConfig(proxyId);
     return proxyConfig;
   } catch (error) {
-    console.error('Error getting proxy config: ', proxyId);
+    logger.error('Error getting proxy config: ', { proxyId, stack: error.stack });
     return null;
   }
 }
@@ -32,7 +33,7 @@ async function getAuthType({ proxyId, proxyConfig } = {}) {
   return cfg.auth.type || 'apiKey';
 }
 
-async function getOauthInfo({ proxyId, proxyConfig, tokenUrl, hostname } = {}) {
+async function getOauthInfo({ proxyId, proxyConfig, tokenUrl } = {}) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
   if (!cfg) {
     return {};

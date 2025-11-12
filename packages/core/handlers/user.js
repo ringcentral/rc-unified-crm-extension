@@ -2,6 +2,7 @@ const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
 const { getHashValue } = require('../lib/util');
 const connectorRegistry = require('../connector/registry');
+const logger = require('../lib/logger');
 
 async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     let hashedRcAccountId = null;
@@ -31,6 +32,7 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
             userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
         }
         catch (e) {
+            logger.error('Error getting user settings by admin', { stack: e.stack });
             userSettingsByAdmin = [];
         }
     }

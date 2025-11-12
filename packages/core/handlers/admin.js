@@ -4,6 +4,7 @@ const connectorRegistry = require('../connector/registry');
 const oauth = require('../lib/oauth');
 const { RingCentral } = require('../lib/ringcentral');
 const { Connector } = require('../models/dynamo/connectorSchema');
+const logger = require('../lib/logger');
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
@@ -124,7 +125,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
             }
         };
     } catch (error) {
-        console.error(error);
+        logger.error('Error getting admin report', { error });
         return {
             callLogStats: {}
         };
@@ -194,7 +195,7 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
         };
         return reportStats;
     } catch (error) {
-        console.error(error);
+        logger.error('Error getting user report', { error });
         return null;
     }
 }

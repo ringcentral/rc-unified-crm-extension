@@ -3,7 +3,7 @@ const ClientOAuth2 = require('client-oauth2');
 const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const connectorRegistry = require('../connector/registry');
-
+const logger = require('./logger');
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
 function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri, redirectUri, scopes }) {
@@ -46,7 +46,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                         overwrite: false
                     }
                 );
-                console.log('lock created')
+                logger.info('lock created')
             } catch (e) {
                 // If creation failed due to condition, a lock exists
                 if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
@@ -54,7 +54,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                     if (!!lock?.ttl && moment(lock.ttl).unix() < now.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
-                            console.log('lock expired.')
+                            logger.info('lock expired.')
                             await lock.delete();
                             newLock = await Lock.create(
                                 {
@@ -90,7 +90,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                             throw new Error('Token lock timeout');
                         }
                         user = await UserModel.findByPk(user.id);
-                        console.log('locked. bypass')
+                        logger.info('locked. bypass')
                         return user;
                     }
                 } else {
@@ -99,7 +99,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             }
             const startRefreshTime = moment();
             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            console.log('token refreshing...')
+            logger.info('token refreshing...')
             const { accessToken, refreshToken, expires } = await token.refresh();
             user.accessToken = accessToken;
             user.refreshToken = refreshToken;
@@ -109,21 +109,21 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 const deletionStartTime = moment();
                 await newLock.delete();
                 const deletionEndTime = moment();
-                console.log(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
+                logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
             }
             const endRefreshTime = moment();
-            console.log(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
+            logger.info(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
         }
         // case: run withou token refresh lock
         else {
-            console.log('token refreshing...')
+            logger.info('token refreshing...')
             const token = oauthApp.createToken(user.accessToken, user.refreshToken);
             const { accessToken, refreshToken, expires } = await token.refresh();
             user.accessToken = accessToken;
             user.refreshToken = refreshToken;
             user.tokenExpiry = expires;
             await user.save();
-            console.log('token refreshing finished')
+            logger.info('token refreshing finished')
         }
 
     }

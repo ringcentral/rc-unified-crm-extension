@@ -1,14 +1,15 @@
 // require('dotenv').config();
 const { sequelize } = require('@app-connect/core/models/sequelize');
+const logger = require('@app-connect/core/lib/logger');
 
 async function executeQuery(input) {
     try {
-        console.log(input.dbQuery);
+        logger.info(input.dbQuery);
         const result = await sequelize.query(input.dbQuery);
-        console.log(JSON.stringify(result, null, 2));
+        logger.info(JSON.stringify(result, null, 2));
     }
     catch (e) {
-        console.error(e.message);
+        logger.error(e.message);
     }
 }
 

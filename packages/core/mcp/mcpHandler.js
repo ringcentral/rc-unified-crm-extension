@@ -6,11 +6,11 @@
  */
 
 const tools = require('./tools');
-
+const logger = require('../lib/logger');
 async function handleMcpRequest(req, res) {
     try {
-        const { jsonrpc, method, params, id } = req.body;
-        console.log('Received MCP request:', method);
+        const { method, params, id } = req.body;
+        logger.info('Received MCP request:', { method });
 
         let response;
         
@@ -95,7 +95,7 @@ async function handleMcpRequest(req, res) {
         
         res.status(200).json(response);
     } catch (error) {
-        console.error('Error handling MCP request:', error);
+        logger.error('Error handling MCP request:', { stack: error.stack });
         const errorResponse = {
             jsonrpc: '2.0',
             id: req.body?.id || null,

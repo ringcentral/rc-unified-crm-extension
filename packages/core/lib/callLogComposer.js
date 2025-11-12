@@ -1,6 +1,5 @@
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
-const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
 /**
@@ -40,8 +39,7 @@ async function composeCallLog(params) {
         subject,
         startTime,
         duration,
-        result,
-        platform
+        result
     } = params;
 
     let body = existingBody;

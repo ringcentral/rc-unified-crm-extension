@@ -3,7 +3,6 @@ const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
-const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog } = require('../lib/callLogComposer');
 const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
@@ -11,6 +10,8 @@ const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
+const logger = require('../lib/logger');
+const { handleApiError } = require('../lib/errorHandler');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
@@ -88,7 +89,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        
+
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
@@ -136,43 +137,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         }
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
     } catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform })
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error creating call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            }
-        };
+        return handleApiError(e, platform, 'createCallLog', { userId });
     }
 }
 
@@ -223,8 +188,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 }
             });
             for (const sId of sessionIdsArray) {
-                if(sId == 0)
-                {
+                if (sId == 0) {
                     logs.push({ sessionId: sId, matched: false });
                     continue;
                 }
@@ -261,49 +225,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         return { successful: true, logs, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error getting call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails });
     }
 }
 
@@ -360,7 +282,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                         existingBody = getLogResult.callLogInfo.note;
                     }
                 } catch (error) {
-                    console.log('Error getting existing log details, proceeding with empty body', error);
+                    logger.error('Error getting existing log details, proceeding with empty body', { stack: error.stack });
                 }
                 composedLogDetails = await composeCallLog({
                     logFormat,
@@ -413,49 +335,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
         }
         return { successful: false };
     } catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error updating call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if the log entity still exist on ${platform} and your account has permission to EDIT logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'updateCallLog', { userId });
     }
 }
 
@@ -594,60 +474,17 @@ async function createMessageLog({ platform, userId, incomingData }) {
         return { successful: true, logIds, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error creating message log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'createMessageLog', { userId });
     }
 }
 
-async function saveNoteCache({ sessionId, note }) {
+async function saveNoteCache({ platform, userId, sessionId, note }) {
     try {
         const now = moment();
-        const noteCache = await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
+        await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
         return { successful: true, returnMessage: 'Note cache saved' };
     } catch (e) {
-        console.error(`Error saving note cache: ${e.stack}`);
-        return { successful: false, returnMessage: 'Error saving note cache' };
+        return handleApiError(e, platform, 'saveNoteCache', { userId, sessionId, note });
     }
 }
 

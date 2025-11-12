@@ -1,11 +1,8 @@
 /* eslint-disable no-param-reassign */
 const axios = require('axios');
 const moment = require('moment');
-const fs = require('fs');
-const path = require('path');
 const oauth = require('@app-connect/core/lib/oauth');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
 const { getMostRecentDate } = require('@app-connect/core/lib/util');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
@@ -14,6 +11,7 @@ const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel'
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 const { upsertCallDuration, upsertCallResult, upsertCallRecording, upsertAiNote, upsertTranscript } = require('@app-connect/core/lib/callLogComposer');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
 
 function getAuthType() {
     return 'oauth';
@@ -92,7 +90,7 @@ async function getOauthInfo({ tokenUrl }) {
 async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) {
     try {
         // use password to get code
-        console.log('authorize bullhorn by password')
+        logger.info('authorize bullhorn by password')
         const authUrl = user.platformAdditionalInfo.tokenUrl.replace('/token', '/authorize');
         const codeResponse = await axios.get(authUrl, {
             params: {
@@ -128,7 +126,7 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
             }
         };
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
-        console.log('authorize bullhorn user by password successfully.')
+        logger.info('authorize bullhorn user by password successfully.')
         return {
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -136,7 +134,7 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
         };
     }
     catch (e) {
-        console.error('Bullhorn password authorize failed');
+        logger.error('Bullhorn password authorize failed', { stack: e.stack });
         return null;
     }
 }
@@ -163,7 +161,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
                     if (!!lock?.ttl && moment(lock.ttl).unix() < dateNow.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
-                            console.log('Bullhorn lock expired.')
+                            logger.info('Bullhorn lock expired.')
                             await lock.delete();
                             newLock = await Lock.create(
                                 {
@@ -199,7 +197,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
                             throw new Error('Bullhorn Token lock timeout');
                         }
                         user = await UserModel.findByPk(user.id);
-                        console.log('Bullhron locked. bypass')
+                        logger.info('Bullhron locked. bypass')
                         return user;
                     }
                 } else {
@@ -208,7 +206,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
             }
         }
         const startRefreshTime = moment();
-        console.log('Bullhorn token refreshing...')
+        logger.info('Bullhorn token refreshing...')
         let authData;
         try {
             const refreshTokenResponse = await axios.post(`${user.platformAdditionalInfo.tokenUrl}?grant_type=refresh_token&refresh_token=${user.refreshToken}&client_id=${process.env.BULLHORN_CLIENT_ID}&client_secret=${process.env.BULLHORN_CLIENT_SECRET}`);
@@ -234,22 +232,22 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
         user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
         const date = new Date();
         user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
-        console.log('Bullhorn token refreshing finished')
+        logger.info('Bullhorn token refreshing finished')
         if (newLock) {
             const deletionStartTime = moment();
             await newLock.delete();
             const deletionEndTime = moment();
-            console.log(`Bullhorn lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
+            logger.info(`Bullhorn lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
         }
         const endRefreshTime = moment();
-        console.log(`Bullhorn token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
+        logger.info(`Bullhorn token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
     }
     catch (e) {
         if (newLock) {
             await newLock.delete();
         }
         // do not log error message, it will expose password
-        console.error('Bullhorn token refreshing failed');
+        logger.error('Bullhorn token refreshing failed', { stack: e.stack });
     }
     return user;
 }
@@ -276,6 +274,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20,
         }
     }
     catch (e) {
+        logger.warn('Error checking and refreshing access token', { stack: e.stack });
         // Session expired
         user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
     }
@@ -319,6 +318,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
 
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -439,7 +439,7 @@ async function postSaveUserInfo({ userInfo, oauthApp }) {
             await overrideSessionWithAuthInfo({ user, authData });
         }
         catch (e) {
-            console.error('Bullhorn password authorize failed');
+            logger.error('Bullhorn password authorize failed', { stack: e.stack });
         }
     }
     return userInfo;
@@ -458,7 +458,7 @@ async function overrideSessionWithAuthInfo({ user, authData }) {
     user.platformAdditionalInfo = {};
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     user.tokenExpiry = expires;
-    console.log('Bullhorn session overridden with auth info')
+    logger.info('Bullhorn session overridden with auth info')
     await user.save();
     return user;
 }
@@ -637,7 +637,7 @@ async function findContact({ user, phoneNumber, isExtension }) {
     };
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
+async function createContact({ user, phoneNumber, newContactName, newContactType, additionalSubmission }) {
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
@@ -811,7 +811,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function findContactWithName({ user, authHeader, name }) {
+async function findContactWithName({ user, name }) {
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
@@ -1006,7 +1006,7 @@ async function getUserList({ user }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -1019,7 +1019,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -1028,7 +1028,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
         }
     }
-    const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     const putBody = {
         comments: composedLogDetails,
         personReference: {
@@ -1091,7 +1090,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ user, existingCallLog, recordingLink, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1208,7 +1207,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     };
 }
 
-async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     let extraDataTracking = {};
     const noteActions = (dispositions.noteActions ?? '') || 'pending note';
 
@@ -1264,7 +1263,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission?.noteActions ?? '';
     let userInfoResponse;
     let extraDataTracking = {};;
@@ -1359,7 +1358,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
     let extraDataTracking = {};;
@@ -1456,7 +1455,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     }
 }
 
-async function getCallLog({ user, callLogId, authHeader }) {
+async function getCallLog({ user, callLogId }) {
     let getLogRes;
     let extraDataTracking = {};;
     try {
@@ -1548,19 +1547,7 @@ async function fetchBullhornUserProfile({ user }) {
         const data = resp?.data?.data?.[0] ?? {};
         return { email: data.email || '', name: data.name || '' };
     } catch (error) {
-        // const safeLog = {
-        //     message: 'Error fetching Bullhorn user profile:',
-        //     code: (e && e.code) || undefined,
-        //     status: (e && e.response && e.response.status) || undefined,
-        //     statusText: (e && e.response && e.response.statusText) || undefined,
-        //     method: (e && e.config && e.config.method) || undefined,
-        //     url: (e && e.config && e.config.url && e.config.url.split('?')[0]) || undefined
-        // };
-        const safeLog = {
-            message: 'Error fetching Bullhorn user profile:',
-            Error: error
-        };
-        console.log(safeLog);
+        logger.error('Error fetching Bullhorn user profile', { stack: error.stack });
         return { email: '', name: '' };
     }
 }
@@ -1604,7 +1591,7 @@ async function generateMonthlyCsvReport() {
     const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
     const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    console.log({
+    logger.info({
         message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
     }
     );
@@ -1615,7 +1602,7 @@ async function generateMonthlyCsvReport() {
                 try {
                     const profile = await fetchBullhornUserProfile({ user: currentUser });
                     if (!profile?.email && !profile?.name) {
-                        console.log({
+                        logger.info({
                             message: 'Skipping user because email and name are not found',
                             userId: currentUser.id
                         });
@@ -1628,17 +1615,7 @@ async function generateMonthlyCsvReport() {
                     const corpToken = (currentUser.platformAdditionalInfo?.restUrl || '').match(/rest-services\/([^/]+)/)?.[1] || '';
                     return [masterId, userEmail, bullhornId, userName, corpToken];
                 } catch (error) {
-                    // const safeLog = {
-                    //     message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
-                    //     code: (error && error.code) || undefined,
-                    //     status: (error && error.response && error.response.status) || undefined,
-                    //     statusText: (error && error.response && error.response.statusText) || undefined
-                    // };
-                    const safeLog = {
-                        message: 'GenerateMonthlyCsvReport Error fetching Bullhorn user profile:',
-                        Error: error
-                    };
-                    console.error(safeLog);
+                    logger.error('Error fetching Bullhorn user profile', { stack: error.stack });
                     return null;
                 }
             })
@@ -1659,7 +1636,7 @@ async function generateMonthlyCsvReport() {
     const baseDir = isLambda ? os.tmpdir() : process.cwd();
     const outDir = path.join(baseDir, 'reports');
     if (!fs.existsSync(outDir)) {
-        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { /* ignore */ }
+        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { logger.error('Error creating report directory', { stack: e.stack }); }
     }
     const filePath = path.join(outDir, `bullhorn_report_${moment.utc().format('YYYY-MM-20')}.csv`);
     fs.writeFileSync(filePath, csv, 'utf8');
@@ -1669,10 +1646,10 @@ async function sendMonthlyCsvReportByEmail() {
     try {
         const report = await generateMonthlyCsvReport();
         if (!report) {
-            console.error('Report generation failed. Skipping email.');
+            logger.error('Report generation failed. Skipping email.');
             return;
         }
-        const { csv, filePath } = report;
+        const { filePath } = report;
         const axios = require('axios');
         const fs = require('fs');
         // Read the CSV file and encode it as base64
@@ -1715,7 +1692,7 @@ async function sendMonthlyCsvReportByEmail() {
 
         // Send the email via Customer.io API
         try {
-            const response = await axios.post(
+            await axios.post(
                 'https://api.customer.io/v1/send/email',
                 requestBody,
                 {
@@ -1726,17 +1703,17 @@ async function sendMonthlyCsvReportByEmail() {
                 }
             );
         } catch (error) {
-            console.error('Failed to send email:', error.response ? error.response.data : error.message);
+            logger.error('Failed to send email:', { stack: error.stack });
             await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
         }
         try {
             fs.unlinkSync(filePath);
-            console.log(`File ${filePath} deleted successfully after sending email.`);
+            logger.info(`File ${filePath} deleted successfully after sending email.`);
         } catch (err) {
-            console.error(`Failed to delete file ${filePath}:`);
+            logger.error(`Failed to delete file ${filePath}:`, { stack: err.stack });
         }
     } catch (error) {
-        console.error('Failed to Generate Report and send email:');
+        logger.error('Failed to Generate Report and send email:', { stack: error.stack });
         await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
     }
 }
@@ -1771,7 +1748,7 @@ async function sendErrorReportEmail(error, contextInfo = '') {
             }
         );
     } catch (err) {
-        console.error('Failed to send error report email:');
+        logger.error('Failed to send error report email:', { stack: err.stack });
     }
 }
 

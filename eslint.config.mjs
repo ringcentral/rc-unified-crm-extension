@@ -25,7 +25,7 @@ export default [
     },
     rules: {
       ...pluginJs.configs.recommended.rules,
-      'no-unused-vars': 'off',
+      'no-unused-vars': 'warn',
       'no-case-declarations': 'off',
       'no-param-reassign': ["error", { "props": true }]
     }

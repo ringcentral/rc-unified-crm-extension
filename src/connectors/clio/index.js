@@ -8,6 +8,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
 
 function getAuthType() {
     return 'oauth';
@@ -68,6 +69,7 @@ async function getUserInfo({ authHeader, hostname }) {
                 timezoneOffset = moment.tz(timezoneName).utcOffset() / 60;
             }
         } catch (error) {
+            logger.warn('Error getting user info', { stack: error.stack });
             timezoneOffset = 0; // Default to UTC if conversion fails
         }
 
@@ -88,6 +90,7 @@ async function getUserInfo({ authHeader, hostname }) {
         };
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -115,7 +118,7 @@ async function unAuthorize({ user }) {
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
-    const accessTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         accessTokenParams,
         {
@@ -358,7 +361,7 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id.split('-')[0],
@@ -389,7 +392,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -477,7 +480,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, startTime, duration, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     let extraDataTracking = {};
     // Use passed existingCallLogDetails to avoid duplicate API call
@@ -521,7 +524,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (startTime) {
                 patchTimerBody.data.date = moment(startTime).toISOString();
             }
-            const patchTimerRes = await axios.patch(
+            await axios.patch(
                 `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
                 patchTimerBody,
                 {
@@ -691,7 +694,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                     acc[header.name] = header.value;
                     return acc;
                 }, {});
-                const putDocumentResponse = await axios.put(
+                await axios.put(
                     putUrl,
                     mediaRes.data,
                     {
@@ -722,6 +725,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 }
             }
             catch (e) {
+                logger.error('Error uploading fax document', { stack: e.stack });
                 logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
             }
@@ -790,7 +794,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
     }
     let patchBody = {};
-    const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const endMarker = '------------\nEND';
     const newMessageLog =
         `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +

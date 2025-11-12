@@ -5,7 +5,6 @@ const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
 const { CallDownListModel } = require('./models/callDownListModel');
-const { Op } = require('sequelize');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
@@ -25,12 +24,14 @@ const util = require('./lib/util');
 const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
 const mcpHandler = require('./mcp/mcpHandler');
+const logger = require('./lib/logger');
 
 let packageJson = null;
 try {
     packageJson = require('./package.json');
 }
 catch (e) {
+    logger.error('Error loading package.json', { stack: e.stack });
     packageJson = require('../package.json');
 }
 
@@ -43,7 +44,7 @@ axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.ver
 
 async function initDB() {
     if (!process.env.DISABLE_SYNC_DB_TABLE) {
-        console.log('creating db tables if not exist...');
+        logger.info('creating db tables if not exist...');
         await UserModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
@@ -118,6 +119,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
+            logger.error('Error getting crm manifest', { stack: e.stack });
             res.status(400).send('Platform not found');
         }
     });
@@ -168,6 +170,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
+            logger.error('Error getting implemented interfaces', { stack: e.stack });
             res.status(400).send(e);
         }
     });
@@ -201,6 +204,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
+            logger.error('Error getting license status', { stack: e.stack });
             res.status(200).send({
                 isLicenseValid: false,
                 licenseStatus: 'Invalid (Connect to get license status)',
@@ -258,7 +262,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Auth validation failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -308,7 +312,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Set admin settings failed', { stack: e.stack });
             res.status(400).send(e);
         }
         const requestEndTime = new Date().getTime();
@@ -418,7 +422,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user mapping failed', { stack: e.stack });
             res.status(400).send(e);
         }
         const requestEndTime = new Date().getTime();
@@ -464,7 +468,7 @@ function createCoreRouter() {
             success = true;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get server logging settings failed', { stack: e.stack });
             res.status(400).send(e);
         }
         const requestEndTime = new Date().getTime();
@@ -514,7 +518,7 @@ function createCoreRouter() {
             success = true;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Set server logging settings failed', { stack: e.stack });
             res.status(400).send({ successful: false, returnMessage: { messageType: 'warning', message: 'Server logging settings update failed', ttl: 5000 } });
             success = false;
         }
@@ -547,7 +551,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user preload settings failed', { stack: e.stack });
             res.status(400).send(e);
         }
     }
@@ -581,7 +585,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get user settings failed', { platform: platformName, stack: e.stack });
         }
         const requestEndTime = new Date().getTime();
         analytics.track({
@@ -626,7 +630,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Set user settings failed', { platform: platformName, stack: e.stack });
         }
         const requestEndTime = new Date().getTime();
         analytics.track({
@@ -661,7 +665,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get hostname failed', { stack: e.stack });
             res.status(500).send(e);
         }
     })
@@ -712,7 +716,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });
             res.status(400).send(e);
             success = false;
         }
@@ -764,7 +768,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('API key login failed', { platform: platformName, stack: e.stack });
             res.status(400).send(e);
             success = false;
         }
@@ -809,7 +813,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Unauthorize failed', { platform: platformName, stack: e.stack });
             res.status(400).send(e);
             success = false;
         }
@@ -835,7 +839,7 @@ function createCoreRouter() {
             res.status(200).send({ extensionId, accountId });
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user info hash failed', { stack: e.stack });
             res.status(400).send(e);
         }
     })
@@ -873,7 +877,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Find contact failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -926,7 +930,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create contact failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -965,7 +969,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ sessionId: req.body.sessionId, note: req.body.note });
+                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ platform, userId, sessionId: req.body.sessionId, note: req.body.note });
                 res.status(200).send({ successful, returnMessage });
                 success = true;
                 if (extraDataTracking) {
@@ -973,7 +977,7 @@ function createCoreRouter() {
                 }
             }
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Save note cache failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -986,6 +990,14 @@ function createCoreRouter() {
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia,
+            extras: {
+                ...extraData
+            }
         });
     })
     router.get('/callLog', async function (req, res) {
@@ -1017,7 +1029,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1069,7 +1081,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1121,7 +1133,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Update call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1177,7 +1189,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Upsert call disposition failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1230,7 +1242,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create message log failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1271,7 +1283,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send({ successful: true, id });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Schedule call down failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1312,7 +1324,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send({ successful: true, items });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get call down list failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1357,7 +1369,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send({ successful: true });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Delete call down item failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1401,7 +1413,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send({ successful: true });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Mark call down called failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1427,7 +1439,6 @@ function createCoreRouter() {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
-        let resultCount = 0;
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
@@ -1446,7 +1457,7 @@ function createCoreRouter() {
 
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Contact search by name failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(e);
             success = false;
@@ -1492,7 +1503,7 @@ function createCoreRouter() {
             success = false;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get admin report failed', { stack: e.stack });
             res.status(400).send(e);
         }
         const requestEndTime = new Date().getTime();
@@ -1533,7 +1544,7 @@ function createCoreRouter() {
             success = false;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user report failed', { stack: e.stack });
             res.status(400).send(e);
         }
         const requestEndTime = new Date().getTime();
