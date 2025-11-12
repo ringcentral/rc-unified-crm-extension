@@ -22,9 +22,9 @@ const toolDefinition = {
                 type: 'object',
                 description: 'Message log data including messages array with conversation info',
                 properties: {
-                    logInfo: {
+                    conversation: {
                         type: 'object',
-                        description: 'Log info object',
+                        description: 'Log info object. Sometimes it is named logInfo',
                         properties: {
                             messages: {
                                 type: 'array',
@@ -38,7 +38,7 @@ const toolDefinition = {
                                             description: 'Message ID'
                                         },
                                         creationTime: {
-                                            type: 'string',
+                                            type: 'number',
                                             description: 'Message creation time'
                                         },
                                         subject: {
@@ -147,6 +147,10 @@ const toolDefinition = {
                                     }
                                 }
                             },
+                            conversationId:{
+                                type: 'string',
+                                description: 'Conversation ID'
+                            },
                             conversationLogId: {
                                 type: 'string',
                                 description: 'Conversation log ID, conversationId + date. The same conversation happen during the same day will have the same conversationLogId'
@@ -154,6 +158,18 @@ const toolDefinition = {
                             rcAccessToken: {
                                 type: 'string',
                                 description: 'RingCentral access token'
+                            },
+                            type: {
+                                type: 'string',
+                                description: 'Conversation type'
+                            },
+                            date: {
+                                type: 'string',
+                                description: 'Conversation date'
+                            },
+                            creationTime:{
+                                type: 'number',
+                                description: 'Conversation creation time'
                             }
                         },
                         required: ['messages', 'correspondents', 'conversationLogId']
@@ -181,7 +197,7 @@ const toolDefinition = {
                         }
                     }
                 },
-                required: ['logInfo', 'contactId', 'contactName']
+                required: ['conversation', 'contactId', 'contactName']
             }
         },
         required: ['jwtToken', 'incomingData']
@@ -205,6 +221,10 @@ async function execute(args) {
 
         if (!incomingData) {
             throw new Error('Incoming data must be provided');
+        }
+
+        if(incomingData.conversation && !incomingData.logInfo) {
+            incomingData.logInfo = incomingData.conversation;
         }
 
         // Decode JWT to get userId and platform
