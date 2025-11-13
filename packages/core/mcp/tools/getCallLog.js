@@ -10,13 +10,13 @@ const logCore = require('../../handlers/log');
 
 const toolDefinition = {
     name: 'getCallLog',
-    description: 'Get call logs from the CRM platform by session IDs. Returns log details if found.',
+    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Get call logs from the CRM platform by session IDs. Returns log details if found.',
     inputSchema: {
         type: 'object',
         properties: {
             jwtToken: {
                 type: 'string',
-                description: 'JWT token containing userId and platform information'
+                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
             },
             sessionIds: {
                 type: 'string',

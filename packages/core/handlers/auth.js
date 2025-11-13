@@ -12,8 +12,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     if (proxyId) {
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig });
-
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query?.rcAccountId, proxyId, proxyConfig });
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,
@@ -45,7 +44,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
             accessToken,
             refreshToken,
             tokenExpiry: expires,
-            rcAccountId: query.rcAccountId,
+            rcAccountId: query?.rcAccountId,
             proxyId
         });
         if (platformModule.postSaveUserInfo) {

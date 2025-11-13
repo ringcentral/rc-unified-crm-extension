@@ -4,8 +4,13 @@
  * This file exports all available MCP tools for the RC Unified CRM Extension.
  */
 
-const findContact = require('./findContact');
-const findContactWithName = require('./findContactWithName');
+// const auth = require('./auth');
+const getPublicConnectors = require('./getPublicConnectors');
+const setConnector = require('./setConnector');
+const doAuth = require('./doAuth');
+const logout = require('./logout');
+const findContact = require('./findContactByPhone');
+const findContactWithName = require('./findContactByName');
 const getCallLog = require('./getCallLog');
 const createCallLog = require('./createCallLog');
 const updateCallLog = require('./updateCallLog');
@@ -13,6 +18,10 @@ const createMessageLog = require('./createMessageLog');
 
 // Export all tools
 module.exports = {
+    getPublicConnectors,
+    setConnector,
+    doAuth,
+    logout,
     findContact,
     findContactWithName,
     getCallLog,
@@ -23,6 +32,10 @@ module.exports = {
 
 // Export tools as an array for easy iteration
 module.exports.tools = [
+    getPublicConnectors,
+    setConnector,
+    doAuth,
+    logout,
     findContact,
     findContactWithName,
     getCallLog,

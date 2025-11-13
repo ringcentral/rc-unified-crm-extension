@@ -11,13 +11,13 @@ const util = require('../../lib/util');
 
 const toolDefinition = {
     name: 'updateCallLog',
-    description: 'Update an existing call log in the CRM platform. Returns the updated log ID if successful.',
+    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Update an existing call log in the CRM platform. Returns the updated log ID if successful.',
     inputSchema: {
         type: 'object',
         properties: {
             jwtToken: {
                 type: 'string',
-                description: 'JWT token containing userId and platform information'
+                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
             },
             incomingData: {
                 type: 'object',

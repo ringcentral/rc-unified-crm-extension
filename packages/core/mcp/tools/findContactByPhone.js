@@ -10,14 +10,14 @@ const contactCore = require('../../handlers/contact');
  */
 
 const toolDefinition = {
-    name: 'findContact',
-    description: 'Search for a contact in the CRM platform by phone number. Returns contact details if found.',
+    name: 'findContactByPhone',
+    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Search for a contact in the CRM platform by phone number. Returns contact details if found.',
     inputSchema: {
         type: 'object',
         properties: {
             jwtToken: {
                 type: 'string',
-                description: 'JWT token containing userId and platform information'
+                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
             },
             phoneNumber: {
                 type: 'string',
@@ -37,7 +37,7 @@ const toolDefinition = {
 };
 
 /**
- * Execute the findContact tool
+ * Execute the findContactByPhone tool
  * @param {Object} args - The tool arguments
  * @param {string} args.jwtToken - JWT token with user and platform info
  * @param {string} [args.phoneNumber] - Phone number to search for
@@ -63,12 +63,12 @@ async function execute(args) {
             throw new Error(`Platform connector not found for: ${platform}`);
         }
 
-        // Check if findContact is implemented
+        // Check if findContactByPhone is implemented
         if (!platformModule.findContact) {
-            throw new Error(`findContact is not implemented for platform: ${platform}`);
+            throw new Error(`findContactByPhone is not implemented for platform: ${platform}`);
         }
 
-        // Call the findContact method
+        // Call the findContactByPhone method
         const { successful, returnMessage, contact } = await contactCore.findContact({ platform, userId, phoneNumber, overridingFormat: overridingFormat ?? '', isExtension: isExtension ?? false });
         if (successful) {
             return {

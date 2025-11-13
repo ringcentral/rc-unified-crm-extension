@@ -10,13 +10,13 @@ const logCore = require('../../handlers/log');
 
 const toolDefinition = {
     name: 'createMessageLog',
-    description: 'Create message logs in the CRM platform. Returns the created log IDs if successful.',
+    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Create message logs in the CRM platform. Returns the created log IDs if successful.',
     inputSchema: {
         type: 'object',
         properties: {
             jwtToken: {
                 type: 'string',
-                description: 'JWT token containing userId and platform information'
+                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
             },
             incomingData: {
                 type: 'object',

@@ -7,13 +7,17 @@
 
 const tools = require('./tools');
 const logger = require('../lib/logger');
+
+const JSON_RPC_INTERNAL_ERROR = -32603;
+const JSON_RPC_METHOD_NOT_FOUND = -32601;
+
 async function handleMcpRequest(req, res) {
     try {
         const { method, params, id } = req.body;
         logger.info('Received MCP request:', { method });
 
         let response;
-        
+
         switch (method) {
             case 'initialize':
                 response = {
@@ -22,7 +26,8 @@ async function handleMcpRequest(req, res) {
                     result: {
                         protocolVersion: '2024-11-05',
                         capabilities: {
-                            tools: {}
+                            tools: {},
+                            prompts: {}
                         },
                         serverInfo: {
                             name: 'rc-unified-crm-extension',
@@ -31,7 +36,6 @@ async function handleMcpRequest(req, res) {
                     }
                 };
                 break;
-                
             case 'tools/list':
                 response = {
                     jsonrpc: '2.0',
@@ -41,7 +45,6 @@ async function handleMcpRequest(req, res) {
                     }
                 };
                 break;
-                
             case 'tools/call':
                 const { name: toolName, arguments: args } = params;
                 try {
@@ -63,7 +66,7 @@ async function handleMcpRequest(req, res) {
                         jsonrpc: '2.0',
                         id,
                         error: {
-                            code: -32603,
+                            code: JSON_RPC_INTERNAL_ERROR,
                             message: `Tool execution failed: ${toolError.message}`,
                             data: {
                                 error: toolError.message,
@@ -73,7 +76,6 @@ async function handleMcpRequest(req, res) {
                     };
                 }
                 break;
-                
             case 'ping':
                 response = {
                     jsonrpc: '2.0',
@@ -81,18 +83,17 @@ async function handleMcpRequest(req, res) {
                     result: {}
                 };
                 break;
-                
             default:
                 response = {
                     jsonrpc: '2.0',
                     id,
                     error: {
-                        code: -32601,
+                        code: JSON_RPC_METHOD_NOT_FOUND,
                         message: `Method not found: ${method}`
                     }
                 };
         }
-        
+
         res.status(200).json(response);
     } catch (error) {
         logger.error('Error handling MCP request:', { stack: error.stack });
@@ -100,7 +101,7 @@ async function handleMcpRequest(req, res) {
             jsonrpc: '2.0',
             id: req.body?.id || null,
             error: {
-                code: -32603,
+                code: JSON_RPC_INTERNAL_ERROR,
                 message: 'Internal server error',
                 data: {
                     error: error.message,
