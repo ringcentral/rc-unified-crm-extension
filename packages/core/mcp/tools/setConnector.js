@@ -31,9 +31,11 @@ async function execute(args) {
     try {
         const { connectorDisplayName } = args;
         const { connectors: publicConnectorList } = await developerPortal.getPublicConnectorList();
-        const connector = publicConnectorList.find(c => c.displayName === connectorDisplayName);
+        const { privateConnectors } = await developerPortal.getPrivateConnectorList();
+        const connectorList = [...publicConnectorList, ...privateConnectors];
+        const connector = connectorList.find(c => c.displayName === connectorDisplayName);
         const connectorName = connector.name;
-        const connectorManifest = await developerPortal.getConnectorManifest({ connectorId: connector.id });
+        const connectorManifest = await developerPortal.getConnectorManifest({ connectorId: connector.id, isPrivate: connector.status === 'private' });
         if (!connectorManifest) {
             throw new Error(`Connector manifest not found: ${connectorDisplayName}`);
         }

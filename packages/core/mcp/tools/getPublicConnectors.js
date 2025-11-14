@@ -23,9 +23,14 @@ const toolDefinition = {
 async function execute() {
     try {
         const { connectors: publicConnectorList } = await developerPortal.getPublicConnectorList();
+        const connectorList = publicConnectorList;
+        if(process.env.RC_ACCOUNT_ID) {
+            const { privateConnectors } = await developerPortal.getPrivateConnectorList();
+            connectorList.push(...privateConnectors);
+        }
         return {
             success: true,
-            data: publicConnectorList.map(c => c.displayName)
+            data: connectorList.map(c => c.displayName)
         };
     }
     catch (error) {

@@ -28,17 +28,27 @@ const toolDefinition = {
                 type: 'string',
                 description: 'API key to authenticate to.'
             },
-            username: {
-                type: 'string',
-                description: 'Username to authenticate to.'
+            additionalInfo: {
+                type: 'object',
+                description: 'Additional information to authenticate to.',
+                properties: {
+                    username: {
+                        type: 'string',
+                        description: 'Username to authenticate to.'
+                    },
+                    password: {
+                        type: 'string',
+                        description: 'Password to authenticate to.'
+                    },
+                    apiUrl: {
+                        type: 'string',
+                        description: 'API URL to authenticate to.'
+                    }
+                }
             },
-            password: {
+            callbackUri: {
                 type: 'string',
-                description: 'Password to authenticate to.'
-            },
-            code: {
-                type: 'string',
-                description: 'Auth code to authenticate to.'
+                description: 'Callback URI to authenticate to.'
             }
         }
     }
@@ -51,19 +61,17 @@ const toolDefinition = {
  * @param {string} args.connectorName - Connector name from conversation or memory.
  * @param {string} args.hostname - Hostname to authenticate to.
  * @param {string} args.apiKey - API key to authenticate to.
- * @param {string} args.username - Username to authenticate to.
- * @param {string} args.password - Password to authenticate to.
- * @param {string} args.code - Auth code to authenticate to.
+ * @param {Object} args.additionalInfo - Additional information to authenticate to.
+ * @param {string} args.callbackUri - Callback URI to authenticate to.
  * @returns {Object} Result object with authentication information
  */
 async function execute(args) {
     try {
-        const { connectorManifest, connectorName, hostname, apiKey, username, password, code } = args;
+        const { connectorManifest, connectorName, hostname, apiKey, additionalInfo, callbackUri } = args;
         const platform = connectorManifest.platforms[connectorName];
         switch (platform.auth.type) {
             case 'apiKey':
-                const apiKeyInUse = apiKey ?? `${username}:${password}`;
-                const { userInfo } = await authCore.onApiKeyLogin({ platform, hostname, apiKey: apiKeyInUse });
+                const { userInfo } = await authCore.onApiKeyLogin({ platform: platform.name, hostname, apiKey, additionalInfo });
                 if (userInfo) {
                     const jwtToken = jwt.generateJwt({
                         id: userInfo.id.toString(),
@@ -85,8 +93,10 @@ async function execute(args) {
                     }
                 }
             case 'oauth':
-                if (code) {
-                    const { userInfo } = await authCore.onOAuthCallback({ platform: platform.name, hostname, callbackUri: `https://ringcentral.github.io/ringcentral-embeddable/redirect.html?code=${code}` });
+                if (callbackUri) {
+                    const query = Object.fromEntries(new URL(callbackUri).searchParams);
+                    query.hostname = hostname;
+                    const { userInfo } = await authCore.onOAuthCallback({ platform: platform.name, hostname, callbackUri, query });
                     if (userInfo) {
                         const jwtToken = jwt.generateJwt({
                             id: userInfo.id.toString(),
@@ -114,7 +124,7 @@ async function execute(args) {
                         success: true,
                         data: {
                             authUri,
-                            message: "IMPORTANT: Show this uri for user to click and do OAuth. Tell the user copy and paste the whole redirect page url so you can get auth code",
+                            message: "IMPORTANT: Show this uri rendered as a markdown link button for user to click and do OAuth. Tell the user copy and paste the whole redirect page url so you can get auth code",
                         }
                     }
                 }
@@ -130,10 +140,15 @@ async function execute(args) {
 }
 
 function composeAuthUri({ platform }) {
+    let customState = '';
+    if (platform.auth.oauth.customState) {
+        customState = platform.auth.oauth.customState;
+    }
     return `${platform.auth.oauth.authUrl}?` +
         `response_type=code` +
         `&client_id=${platform.auth.oauth.clientId}` +
         `${!!platform.auth.oauth.scope && platform.auth.oauth.scope != '' ? `&${platform.auth.oauth.scope}` : ''}` +
+        `&state=${customState === '' ? `platform=${platform.name}` : customState}` +
         `&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`;
 }
 

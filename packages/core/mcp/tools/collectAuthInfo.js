@@ -17,11 +17,11 @@ const toolDefinition = {
             },
             hostname: {
                 type: 'string',
-                description: 'For "dynamic" type environment. User is to login to CRM account then copy and paste the hostname over here. It should NOT include https:// or www.'
+                description: 'For "dynamic" type environment. User is to login to CRM account then copy and paste the hostname over here.'
             },
             selection: {
                 type: 'string',
-                description: 'For "selectable" type environment. User is to select one of the options from the selectable list'
+                description: 'For "selectable" type environment. User is to select a name (NOT value) of the options from the selectable list'
             },
             connectorName: {
                 type: 'string',
@@ -37,7 +37,7 @@ const toolDefinition = {
  * @param {Object} args - The tool arguments
  * @param {string} args.connectorManifest - Connector manifest from conversation or memory.
  * @param {string} args.hostname - For "dynamic" type environment. User is to login to CRM account then copy and paste the hostname over here.
- * @param {string} args.selection - For "selectable" type environment. User is to select one of the options from the selectable list
+ * @param {string} args.selection - For "selectable" type environment. User is to select a name (NOT value) of the options from the selectable list
  * @param {string} args.connectorName - Connector name from conversation or memory.
  * @returns {Object} Result object with hostname or selection
  */
@@ -59,7 +59,7 @@ async function execute(args) {
             data: {
                 hostname: url.hostname,
                 // Add explicit instruction
-                message: "IMPORTANT: Use hostname in the next few authentication steps. It should NOT include https:// or www.",
+                message: "IMPORTANT: Use hostname in the next few authentication steps.",
             }
         }
     }

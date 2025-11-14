@@ -7,6 +7,7 @@
 // const auth = require('./auth');
 const getPublicConnectors = require('./getPublicConnectors');
 const setConnector = require('./setConnector');
+const collectAuthInfo = require('./collectAuthInfo');
 const doAuth = require('./doAuth');
 const logout = require('./logout');
 const findContact = require('./findContactByPhone');
@@ -20,6 +21,7 @@ const createMessageLog = require('./createMessageLog');
 module.exports = {
     getPublicConnectors,
     setConnector,
+    collectAuthInfo,
     doAuth,
     logout,
     findContact,
@@ -34,6 +36,7 @@ module.exports = {
 module.exports.tools = [
     getPublicConnectors,
     setConnector,
+    collectAuthInfo,
     doAuth,
     logout,
     findContact,
