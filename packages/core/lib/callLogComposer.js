@@ -125,7 +125,7 @@ async function composeCallLog(params) {
     }
 
     if (ringSenseTranscript && (userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true)) {
-        body = upsertTranscript({ body, transcript: ringSenseTranscript, logFormat });
+        body = upsertRingSenseTranscript({ body, transcript: ringSenseTranscript, logFormat });
     }
 
     if (ringSenseSummary && (userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true)) {
@@ -644,6 +644,37 @@ function upsertLegs({ body, legs, logFormat }) {
     return result;
 }
 
+function upsertRingSenseTranscript({ body, transcript, logFormat }) {
+    if (!transcript) return body;
+
+    let result = body;
+    const clearedTranscript = transcript.replace(/\n+$/, '');
+    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
+        const formattedTranscript = clearedTranscript.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        const transcriptRegex = /<div><b>RingSense transcript<\/b><br>(.+?)<\/div>/;
+        if (transcriptRegex.test(result)) {
+            result = result.replace(transcriptRegex, `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`);
+        } else {
+            result += `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`;
+        }
+    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
+        const transcriptRegex = /### RingSense transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
+        if (transcriptRegex.test(result)) {
+            result = result.replace(transcriptRegex, `### RingSense transcript\n${clearedTranscript}\n`);
+        } else {
+            result += `### RingSense transcript\n${clearedTranscript}\n`;
+        }
+    } else {
+        const transcriptRegex = /- RingSense transcript:([\s\S]*?)--- END/;
+        if (transcriptRegex.test(result)) {
+            result = result.replace(transcriptRegex, `- RingSense transcript:\n${clearedTranscript}\n--- END`);
+        } else {
+            result += `- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
+        }
+    }
+    return result;
+}
+
 function upsertRingSenseSummary({ body, summary, logFormat }) {
     if (!summary) return body;
 
@@ -651,26 +682,26 @@ function upsertRingSenseSummary({ body, summary, logFormat }) {
     // remove new line in last line of summary
     const clearedSummary = summary.replace(/\n+$/, '');
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const summaryRegex = /<div><b>RingSense Summary<\/b><br>(.+?)<\/div>/;
+        const summaryRegex = /<div><b>RingSense summary<\/b><br>(.+?)<\/div>/;
         const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `<div><b>RingSense Summary</b><br>${formattedSummary}</div>`);
+            result = result.replace(summaryRegex, `<div><b>RingSense summary</b><br>${formattedSummary}</div>`);
         } else {
-            result += `<div><b>RingSense Summary</b><br>${formattedSummary}</div>`;
+            result += `<div><b>RingSense summary</b><br>${formattedSummary}</div>`;
         }
     } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const summaryRegex = /### RingSense Summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+        const summaryRegex = /### RingSense summary\n([\s\S]*?)(?=\n### |\n$|$)/;
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `### RingSense Summary\n${summary}\n`);
+            result = result.replace(summaryRegex, `### RingSense summary\n${summary}\n`);
         } else {
-            result += `### RingSense Summary\n${summary}\n`;
+            result += `### RingSense summary\n${summary}\n`;
         }
     } else {
-        const summaryRegex = /- RingSense Summary:([\s\S]*?)--- END/;
+        const summaryRegex = /- RingSense summary:([\s\S]*?)--- END/;
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `- RingSense Summary:\n${summary}\n--- END`);
+            result = result.replace(summaryRegex, `- RingSense summary:\n${summary}\n--- END`);
         } else {
-            result += `- RingSense Summary:\n${summary}\n--- END\n`;
+            result += `- RingSense summary:\n${summary}\n--- END\n`;
         }
     }
     return result;
@@ -681,25 +712,25 @@ function upsertRingSenseAIScore({ body, score, logFormat }) {
 
     let result = body;
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const scoreRegex = /(?:<li>)?<b>RingSense AI Score<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+        const scoreRegex = /(?:<li>)?<b>Call score<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
         if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `<li><b>RingSense AI Score</b>: ${score}</li>`);
+            result = result.replace(scoreRegex, `<li><b>Call score</b>: ${score}</li>`);
         } else {
-            result += `<li><b>RingSense AI Score</b>: ${score}</li>`;
+            result += `<li><b>Call score</b>: ${score}</li>`;
         }
     } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const scoreRegex = /\*\*RingSense AI Score\*\*: [^\n]*\n*/;
+        const scoreRegex = /\*\*Call score\*\*: [^\n]*\n*/;
         if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `**RingSense AI Score**: ${score}\n`);
+            result = result.replace(scoreRegex, `**Call score**: ${score}\n`);
         } else {
-            result += `**RingSense AI Score**: ${score}\n`;
+            result += `**Call score**: ${score}\n`;
         }
     } else {
-        const scoreRegex = /- RingSense AI Score:\s*([^<\n]+)(?=\n|$)/i;
+        const scoreRegex = /- Call score:\s*([^<\n]+)(?=\n|$)/i;
         if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `- RingSense AI Score: ${score}`);
+            result = result.replace(scoreRegex, `- Call score: ${score}`);
         } else {
-            result += `- RingSense AI Score: ${score}\n`;
+            result += `- Call score: ${score}\n`;
         }
     }
     return result;
@@ -711,26 +742,26 @@ function upsertRingSenseBulletedSummary({ body, summary, logFormat }) {
     let result = body;
     const clearedSummary = summary.replace(/\n+$/, '');
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const summaryRegex = /<div><b>RingSense Bulleted Summary<\/b><br>(.+?)<\/div>/;
+        const summaryRegex = /<div><b>RingSense bulleted summary<\/b><br>(.+?)<\/div>/;
         const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `<div><b>RingSense Bulleted Summary</b><br>${formattedSummary}</div>`);
+            result = result.replace(summaryRegex, `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`);
         } else {
-            result += `<div><b>RingSense Bulleted Summary</b><br>${formattedSummary}</div>`;
+            result += `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`;
         }
     } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const summaryRegex = /### RingSense Bulleted Summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+        const summaryRegex = /### RingSense bulleted summary\n([\s\S]*?)(?=\n### |\n$|$)/;
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `### RingSense Bulleted Summary\n${summary}\n`);
+            result = result.replace(summaryRegex, `### RingSense bulleted summary\n${summary}\n`);
         } else {
-            result += `### RingSense Bulleted Summary\n${summary}\n`;
+            result += `### RingSense bulleted summary\n${summary}\n`;
         }
     } else {
-        const summaryRegex = /- RingSense Bulleted Summary:\s*([^<\n]+)(?=\n|$)/i;
+        const summaryRegex = /- RingSense bulleted summary:\s*([^<\n]+)(?=\n|$)/i;
         if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `- RingSense Bulleted Summary:\n${summary}\n--- END`);
+            result = result.replace(summaryRegex, `- RingSense bulleted summary:\n${summary}\n--- END`);
         } else {
-            result += `- RingSense Bulleted Summary:\n${summary}\n--- END\n`;
+            result += `- RingSense bulleted summary:\n${summary}\n--- END\n`;
         }
     }
     return result;
@@ -741,25 +772,25 @@ function upsertRingSenseLink({ body, link, logFormat }) {
 
     let result = body;
     if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-		const linkRegex = /(?:<li>)?<b>RingSense Link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
+		const linkRegex = /(?:<li>)?<b>RingSense recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
         if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `<li><b>RingSense Link</b>: <a target="_blank" href="${link}">open</a></li>`);
+            result = result.replace(linkRegex, `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`);
         } else {
-            result += `<li><b>RingSense Link</b>: <a target="_blank" href="${link}">open</a></li>`;
+            result += `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`;
         }
     } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const linkRegex = /\*\*RingSense Link\*\*:\s*([^<\n]+)(?=\n|$)/i;
+        const linkRegex = /\*\*RingSense recording link\*\*:\s*([^<\n]+)(?=\n|$)/i;
         if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `**RingSense Link**: ${link}\n`);
+            result = result.replace(linkRegex, `**RingSense recording link**: ${link}\n`);
         } else {
-            result += `**RingSense Link**: ${link}\n`;
+            result += `**RingSense recording link**: ${link}\n`;
         }
     } else {
-        const linkRegex = /- RingSense Link:\s*([^<\n]+)(?=\n|$)/i;
+        const linkRegex = /- RingSense recording link:\s*([^<\n]+)(?=\n|$)/i;
         if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `- RingSense Link: ${link}\n`);
+            result = result.replace(linkRegex, `- RingSense recording link: ${link}`);
         } else {
-            result += `- RingSense Link: ${link}\n`;
+            result += `- RingSense recording link: ${link}\n`;
         }
     }
     return result;
@@ -781,6 +812,7 @@ module.exports = {
     upsertAiNote,
     upsertTranscript,
     upsertLegs,
+    upsertRingSenseTranscript,
     upsertRingSenseSummary,
     upsertRingSenseAIScore,
     upsertRingSenseBulletedSummary,
