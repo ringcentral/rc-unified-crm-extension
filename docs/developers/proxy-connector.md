@@ -199,6 +199,7 @@ This section details the operations you can define.
       * Core: `subject`, `startTime`, `endTime`, `note`, `contactInfo.id`, `contactInfo.name`
       * Call details: `callLog.direction`, `callLog.duration`, `callLog.to.phoneNumber`, `callLog.from.phoneNumber`, `callLog.result`, `callLog.sessionId`
       * AI: `aiNote`, `transcript`
+      * RingSense: `ringSenseTranscript`, `ringSenseSummary`, `ringSenseAIScore`, `ringSenseBulletedSummary`, `ringSenseLink`
       * Composition: `composedLogDetails` (when logFormat is not `custom`)
       * Misc: `additionalSubmission.*`, `isFromSSCL`, `user.id`
   * **Response Mapping (Object):** `idPath` (Path to the new activity's ID).
@@ -217,6 +218,7 @@ This section details the operations you can define.
       * Recording: `recordingLink`, `recordingDownloadLink`
       * Fields: `subject`, `note`, `startTime`, `duration`, `result`, `legs`
       * AI: `aiNote`, `transcript`
+      * RingSense: `ringSenseTranscript`, `ringSenseSummary`, `ringSenseAIScore`, `ringSenseBulletedSummary`, `ringSenseLink`
       * Composition: `composedLogDetails` (when logFormat is not `custom`), `existingCallLogDetails`
       * Misc: `additionalSubmission.*`, `isFromSSCL`
   * **Response Mapping:** No mapping is typically needed.

@@ -233,7 +233,25 @@ function getLogFormatType(platform, proxyConfig) {
   return proxyConfig ? proxyConfig.meta?.logFormat : 'custom';
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, hashedAccountId, isFromSSCL, composedLogDetails, proxyConfig = null }) {
+async function createCallLog({
+  user,
+  contactInfo,
+  authHeader,
+  callLog,
+  note,
+  additionalSubmission,
+  aiNote,
+  transcript,
+  ringSenseTranscript = '',
+  ringSenseSummary = '',
+  ringSenseAIScore = '',
+  ringSenseBulletedSummary = '',
+  ringSenseLink = '',
+  composedLogDetails,
+  hashedAccountId,
+  isFromSSCL,
+  proxyConfig = null,
+}) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg || !cfg.operations?.createCallLog) {
     return { logId: undefined, returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
@@ -253,7 +271,12 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
       isFromSSCL,
       subject: callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`,
       startTime: moment(callLog.startTime).utc().toISOString(),
-      endTime: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString()
+      endTime: moment(callLog.startTime).utc().add(callLog.duration, 'seconds').toISOString(),
+      ringSenseTranscript,
+      ringSenseSummary,
+      ringSenseAIScore,
+      ringSenseBulletedSummary,
+      ringSenseLink,
     },
     user,
     authHeader
@@ -285,7 +308,32 @@ async function getCallLog({ user, callLogId, contactId, authHeader, proxyConfig 
   return Object.assign(mapped, { returnMessage: { message: 'Call log fetched.', messageType: 'success', ttl: 3000 } });
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, recordingDownloadLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL, proxyConfig = null }) {
+async function updateCallLog({
+  user,
+  existingCallLog,
+  authHeader,
+  recordingLink,
+  recordingDownloadLink,
+  subject,
+  note,
+  startTime,
+  duration,
+  result,
+  aiNote,
+  transcript,
+  legs,
+  ringSenseTranscript = '',
+  ringSenseSummary = '',
+  ringSenseAIScore = '',
+  ringSenseBulletedSummary = '',
+  ringSenseLink = '',
+  additionalSubmission,
+  composedLogDetails,
+  existingCallLogDetails,
+  hashedAccountId,
+  isFromSSCL,
+  proxyConfig = null,
+}) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(user?.platformAdditionalInfo?.proxyId));
   if (!cfg || !cfg.operations?.updateCallLog) {
     return { returnMessage: { message: 'Not supported', messageType: 'warning', ttl: 2000 } };
@@ -303,7 +351,20 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
       startTime: moment(startTime).utc().toISOString(),
       endTime: moment(startTime).utc().add(duration, 'seconds').toISOString(),
       duration,
-      result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL,
+      result,
+      aiNote,
+      transcript,
+      legs,
+      additionalSubmission,
+      composedLogDetails,
+      existingCallLogDetails,
+      hashedAccountId,
+      isFromSSCL,
+      ringSenseTranscript,
+      ringSenseSummary,
+      ringSenseAIScore,
+      ringSenseBulletedSummary,
+      ringSenseLink,
     },
     user,
     authHeader
