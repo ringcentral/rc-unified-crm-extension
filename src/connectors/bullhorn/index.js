@@ -18,6 +18,7 @@ const {
     upsertCallRecording,
     upsertAiNote,
     upsertTranscript,
+    upsertRingSenseTranscript,
     upsertRingSenseSummary,
     upsertRingSenseAIScore,
     upsertRingSenseBulletedSummary,
@@ -1175,7 +1176,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.comments = upsertCallResult({ body: postBody.comments, result: result, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertCallRecording({ body: postBody.comments, recordingLink: recordingLink, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertAiNote({ body: postBody.comments, aiNote: aiNote, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
-        postBody.comments = upsertTranscript({ body: postBody.comments, transcript: ringSenseTranscript || transcript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertTranscript({ body: postBody.comments, transcript: transcript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseTranscript({ body: postBody.comments, transcript: ringSenseTranscript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertRingSenseSummary({ body: postBody.comments, summary: ringSenseSummary, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertRingSenseAIScore({ body: postBody.comments, score: ringSenseAIScore, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertRingSenseBulletedSummary({ body: postBody.comments, summary: ringSenseBulletedSummary, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
