@@ -13,7 +13,12 @@ const {
     upsertCallRecording,
     upsertAiNote,
     upsertTranscript,
-    upsertLegs
+    upsertLegs,
+    upsertRingSenseTranscript,
+    upsertRingSenseSummary,
+    upsertRingSenseAIScore,
+    upsertRingSenseBulletedSummary,
+    upsertRingSenseLink
 } = require('../packages/core/lib/callLogComposer');
 
 const { LOG_DETAILS_FORMAT_TYPE } = require('../packages/core/lib/constants');
@@ -42,6 +47,219 @@ describe('callLogComposer', () => {
             expect(LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT).toBe('text/plain');
             expect(LOG_DETAILS_FORMAT_TYPE.HTML).toBe('text/html');
             expect(LOG_DETAILS_FORMAT_TYPE.MARKDOWN).toBe('text/markdown');
+        });
+    });
+
+    describe('RingSense upserts', () => {
+        describe('upsertRingSenseTranscript', () => {
+            describe('HTML format', () => {
+                test('should add RingSense transcript', () => {
+                    const result = upsertRingSenseTranscript({
+                        body: '',
+                        transcript: 'RS transcript',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense transcript</b><br>RS transcript</div>');
+                });
+
+                test('should replace existing RingSense transcript', () => {
+                    const body = '<div><b>RingSense transcript</b><br>Old</div>';
+                    const result = upsertRingSenseTranscript({
+                        body,
+                        transcript: 'New',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense transcript</b><br>New</div>');
+                });
+            });
+
+            describe('Plain text format', () => {
+                test('should add RingSense transcript', () => {
+                    const result = upsertRingSenseTranscript({
+                        body: '',
+                        transcript: 'RS transcript',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense transcript:\nRS transcript\n--- END\n');
+                });
+
+                test('should replace existing RingSense transcript', () => {
+                    const body = '- RingSense transcript:\nOld transcript\n--- END\n';
+                    const result = upsertRingSenseTranscript({
+                        body,
+                        transcript: 'New transcript',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense transcript:\nNew transcript\n--- END\n');
+                });
+            });
+        });
+
+        describe('upsertRingSenseSummary', () => {
+            describe('HTML format', () => {
+                test('should add RingSense summary', () => {
+                    const result = upsertRingSenseSummary({
+                        body: '',
+                        summary: 'Summary line 1\nSummary line 2',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense summary</b><br>Summary line 1<br>Summary line 2</div>');
+                });
+
+                test('should replace existing RingSense summary', () => {
+                    const body = '<div><b>RingSense summary</b><br>Old</div>';
+                    const result = upsertRingSenseSummary({
+                        body,
+                        summary: 'New',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense summary</b><br>New</div>');
+                });
+            });
+
+            describe('Plain text format', () => {
+                test('should add RingSense summary', () => {
+                    const result = upsertRingSenseSummary({
+                        body: '',
+                        summary: 'Point A\nPoint B',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense summary:\nPoint A\nPoint B\n--- END\n');
+                });
+
+                test('should replace existing RingSense summary', () => {
+                    const body = '- RingSense summary:\nOld \nsum\n--- END\n';
+                    const result = upsertRingSenseSummary({
+                        body,
+                        summary: 'New sum',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense summary:\nNew sum\n--- END\n');
+                });
+            });
+        });
+
+        describe('upsertRingSenseAIScore', () => {
+            describe('HTML format', () => {
+                test('should add AI score', () => {
+                    const result = upsertRingSenseAIScore({
+                        body: '',
+                        score: '82',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<li><b>Call score</b>: 82</li>');
+                });
+
+                test('should replace existing AI score', () => {
+                    const body = '<li><b>Call score</b>: 60</li>';
+                    const result = upsertRingSenseAIScore({
+                        body,
+                        score: '90',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<li><b>Call score</b>: 90</li>');
+                });
+            });
+
+            describe('Plain text format', () => {
+                test('should add AI score', () => {
+                    const result = upsertRingSenseAIScore({
+                        body: '',
+                        score: '75',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- Call score: 75\n');
+                });
+
+                test('should replace existing AI score', () => {
+                    const body = '- Call score: 60\n- Result: Answered\n';
+                    const result = upsertRingSenseAIScore({
+                        body,
+                        score: '88',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- Call score: 88\n- Result: Answered\n');
+                });
+            });
+        });
+
+        describe('upsertRingSenseBulletedSummary', () => {
+            describe('HTML format', () => {
+                test('should add RingSense bulleted summary', () => {
+                    const result = upsertRingSenseBulletedSummary({
+                        body: '',
+                        summary: '- Point 1\n- Point 2',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense bulleted summary</b><br>- Point 1<br>- Point 2</div>');
+                });
+
+                test('should replace existing RingSense bulleted summary', () => {
+                    const body = '<div><b>RingSense bulleted summary</b><br>Old</div>';
+                    const result = upsertRingSenseBulletedSummary({
+                        body,
+                        summary: '- New',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<div><b>RingSense bulleted summary</b><br>- New</div>');
+                });
+            });
+
+            describe('Plain text format', () => {
+                test('should add RingSense bulleted summary', () => {
+                    const result = upsertRingSenseBulletedSummary({
+                        body: '',
+                        summary: '- A\n- B',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense bulleted summary:\n- A\n- B\n--- END\n');
+                });
+            });
+        });
+
+        describe('upsertRingSenseLink', () => {
+            describe('HTML format', () => {
+                test('should add RingSense recording link', () => {
+                    const result = upsertRingSenseLink({
+                        body: '',
+                        link: 'https://ringsense.example.com/rec/123',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<li><b>RingSense recording link</b>: <a target="_blank" href="https://ringsense.example.com/rec/123">open</a></li>');
+                });
+
+                test('should replace existing RingSense recording link', () => {
+                    const body = '<li><b>RingSense recording link</b>: <a target="_blank" href="https://old.link">open</a></li>';
+                    const result = upsertRingSenseLink({
+                        body,
+                        link: 'https://ringsense.example.com/new',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                    });
+                    expect(result).toBe('<li><b>RingSense recording link</b>: <a target="_blank" href="https://ringsense.example.com/new">open</a></li>');
+                });
+            });
+
+            describe('Plain text format', () => {
+                test('should add RingSense recording link', () => {
+                    const result = upsertRingSenseLink({
+                        body: '',
+                        link: 'https://ringsense.example.com/rec/456',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    expect(result).toBe('- RingSense recording link: https://ringsense.example.com/rec/456\n');
+                });
+
+                test('should replace existing RingSense recording link', () => {
+                    const body = '- RingSense recording link: https://old.link\n- Duration: 30 seconds\n';
+                    const result = upsertRingSenseLink({
+                        body,
+                        link: 'https://ringsense.example.com/new',
+                        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+                    });
+                    console.log(result);
+                    expect(result).toBe('- RingSense recording link: https://ringsense.example.com/new\n- Duration: 30 seconds\n');
+                });
+            });
         });
     });
 
@@ -361,7 +579,7 @@ describe('callLogComposer', () => {
                     duration: 90,
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe('- Duration: 1 minute, 30 seconds\n\n- Result: Answered\n');
+                expect(result).toBe('- Duration: 1 minute, 30 seconds\n- Result: Answered\n');
             });
         });
     });
@@ -405,7 +623,7 @@ describe('callLogComposer', () => {
                     result: 'Answered',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe('- Result: Answered\n\n- Duration: 30 seconds\n');
+                expect(result).toBe('- Result: Answered\n- Duration: 30 seconds\n');
             });
         });
     });
@@ -679,23 +897,23 @@ describe('callLogComposer', () => {
             });
 
             test('should replace existing legs block', () => {
-                const body = `- Note: From auto logging 123\- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
+                const body = `- Note: From auto logging 123\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
                 const result = upsertLegs({
                     body,
                     legs: sampleLegs,
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe(`- Note: From auto logging 123\- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\n${journeyText}\n--- JOURNEY END\n`);
+                expect(result).toBe(`- Note: From auto logging 123\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394- Call journey:\n${journeyText}\n--- JOURNEY END\n`);
             });
 
             test('should keep journey when upserting Note', () => {
-                const body = `- Note: From auto logging 123\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
+                const body = `- Note: From auto logging 123\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`;
                 const result = upsertCallAgentNote({
                     body,
                     note: 'New note',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe(`- Note: New note\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394\- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`);
+                expect(result).toBe(`- Note: New note\n- Summary: Inbound Call from Embbnux Rcorg\n- Contact Number: +16579991394- Call journey:\nMade call from Agent, +000, ext 101\nTransferred to Queue, ext 500, duration: 12 seconds\n--- JOURNEY END\n`);
             });
         });
 
@@ -858,6 +1076,60 @@ describe('callLogComposer', () => {
 
             expect(result).toContain('- Note: New note');
             expect(result).toContain('- Duration: 1 minute, 30 seconds'); // Should be updated
+        });
+
+        test('should include RingSense fields when provided in HTML format', async () => {
+            const result = await composeCallLog({
+                logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+                callLog: mockCallLog,
+                contactInfo: mockContactInfo,
+                user: mockUser,
+                ringSenseTranscript: 'RS transcript',
+                ringSenseSummary: 'RS summary',
+                ringSenseAIScore: '85',
+                ringSenseBulletedSummary: '- Item 1\n- Item 2',
+                ringSenseLink: 'https://ringsense.example.com/rec/789'
+            });
+
+            expect(result).toContain('<b>RingSense transcript</b>');
+            expect(result).toContain('RS transcript');
+            expect(result).toContain('<b>RingSense summary</b>');
+            expect(result).toContain('RS summary');
+            expect(result).toContain('<b>Call score</b>: 85');
+            expect(result).toContain('<b>RingSense bulleted summary</b>');
+            expect(result).toContain('<a target="_blank" href="https://ringsense.example.com/rec/789">open</a>');
+        });
+
+        test('should respect RingSense user settings and skip disabled RingSense fields', async () => {
+            const userWithDisabledRingSense = {
+                ...mockUser,
+                userSettings: {
+                    ...mockUser.userSettings,
+                    addCallLogRingSenseRecordingTranscript: { value: false },
+                    addCallLogRingSenseRecordingSummary: { value: false },
+                    addCallLogRingSenseRecordingAIScore: { value: false },
+                    addCallLogRingSenseRecordingBulletedSummary: { value: false },
+                    addCallLogRingSenseRecordingLink: { value: false }
+                }
+            };
+
+            const result = await composeCallLog({
+                logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+                callLog: mockCallLog,
+                contactInfo: mockContactInfo,
+                user: userWithDisabledRingSense,
+                ringSenseTranscript: 'RS transcript',
+                ringSenseSummary: 'RS summary',
+                ringSenseAIScore: '85',
+                ringSenseBulletedSummary: '- Item 1\n- Item 2',
+                ringSenseLink: 'https://ringsense.example.com/rec/789'
+            });
+
+            expect(result).not.toContain('- RingSense transcript:');
+            expect(result).not.toContain('- RingSense summary:');
+            expect(result).not.toContain('- Call score:');
+            expect(result).not.toContain('- RingSense bulleted summary:');
+            expect(result).not.toContain('- RingSense recording link:');
         });
     });
 }); 
