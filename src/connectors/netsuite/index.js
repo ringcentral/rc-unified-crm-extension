@@ -5,6 +5,7 @@ const moment = require('moment');
 const url = require('url');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
 function getAuthType() {
     return 'oauth';
 }
@@ -23,7 +24,7 @@ async function getOauthInfo({ hostname }) {
     }
 }
 
-async function getUserInfo({ authHeader, additionalInfo, query }) {
+async function getUserInfo({ authHeader, query }) {
     try {
         let getCurrentLoggedInUserResponse;
 
@@ -38,8 +39,8 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
                 headers: { 'Authorization': authHeader }
             });
             oneWorldEnabled = oneWorldLicenseResponse?.data?.oneWorldEnabled;
-        } catch (e) {
-            console.log({ message: "Error in getting OneWorldLicense" });
+        } catch (error) {
+            logger.error({ message: "Error in getting OneWorldLicense", stack: error.stack });
             const subsidiaryId = getCurrentLoggedInUserResponse?.data?.subsidiary;
             if (subsidiaryId !== undefined && subsidiaryId !== '') {
                 oneWorldEnabled = true;
@@ -94,7 +95,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
             }
 
         } catch (error) {
-            console.log({ message: "Error in getting permission set" });
+            logger.error({ message: "Error in getting permission set", stack: error.stack });
         }
         return {
             successful: true,
@@ -117,7 +118,7 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
         };
     } catch (error) {
         const errorDetails = netSuiteErrorDetails(error, "Could not load user information");
-        console.log({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, errorDetails, responseHeader: error?.response?.headers });
+        logger.error({ message: "Error in getting employee information", Path: error?.request?.path, Host: error?.request?.host, errorDetails, responseHeader: error?.response?.headers });
         return {
             successful: false,
             returnMessage: {
@@ -142,31 +143,31 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
 }
 
 async function getUserList({ user, authHeader }) {
-    try{
-    const query = {
-        q: "SELECT id, firstname,middlename, lastname, email, giveaccess, isinactive FROM employee"
-      };
+    try {
+        const query = {
+            q: "SELECT id, firstname,middlename, lastname, email, giveaccess, isinactive FROM employee"
+        };
 
-    const userListResponse = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`, query, {
-        headers: { 'Authorization': authHeader,'Content-Type': 'application/json', 'Prefer': 'transient' }
-    });
+        const userListResponse = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`, query, {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
 
-    const userList = [];
-    if (userListResponse?.data?.items?.length > 0) {
-        for (const user of userListResponse?.data?.items) {
-            if(user.email===undefined || user.email===null || user.email==='') continue;
-            userList.push({
-                id: user.id,
-                name: [user.firstname, user.middlename, user.lastname].filter(Boolean).join(' '),
-                email: user.email
-            });
+        const userList = [];
+        if (userListResponse?.data?.items?.length > 0) {
+            for (const user of userListResponse?.data?.items ?? []) {
+                if (user.email === undefined || user.email === null || user.email === '') continue;
+                userList.push({
+                    id: user.id,
+                    name: [user.firstname, user.middlename, user.lastname].filter(Boolean).join(' '),
+                    email: user.email
+                });
+            }
         }
+        return userList;
+    } catch (error) {
+        logger.error({ message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list") });
+        return [];
     }
-    return userList;
-} catch (error) {
-    console.log({message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list")});
-    return [];
-}
 }
 
 async function unAuthorize({ user }) {
@@ -175,7 +176,7 @@ async function unAuthorize({ user }) {
     const refreshTokenParams = new url.URLSearchParams({
         token: user.refreshToken
     });
-    const accessTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         refreshTokenParams,
         {
@@ -239,7 +240,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 
         return { logId: existingCallLogId };
     } catch (error) {
-        console.error('Error in upsertCallDisposition:', error);
+        logger.error({ message: "Error in upsertCallDisposition", stack: error.stack });
     }
 }
 
@@ -309,7 +310,7 @@ async function handleDispositionNote({
             return sanitizedNote;
         }
     } catch (error) {
-        console.error(`Error in logging calls against ${dispositionType}:`, error);
+        logger.error({ message: `Error in logging calls against ${dispositionType}`, stack: error.stack });
         throw error;
     }
 }
@@ -375,7 +376,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
             if (contactSearch.includes('contact')) {
                 parallelTasks.push((async () => {
-                    const requestContactStartTime = new Date().getTime();
                     const personInfo = await axios.post(
                         `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
                         {
@@ -413,8 +413,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                             });
                                         }
                                     }
-                                } catch (e) {
-                                    console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                                } catch (error) {
+                                    logger.error({ message: "Error in SalesOrder/Opportunity in contact", stack: error.stack });
                                 }
                             }
                             matchedContactInfo.push({
@@ -433,8 +433,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             })
                         }
                     }
-                })().catch(e => {
-                    console.log({ message: 'Error in contact search', e });
+                })().catch(error => {
+                    logger.error({ message: 'Error in contact search', stack: error.stack });
                 }));
             }
 
@@ -472,8 +472,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                                         });
                                     }
                                 }
-                            } catch (e) {
-                                console.log({ message: "Error in SalesOrder/Opportunity search", e });
+                            } catch (error) {
+                                logger.error({ message: "Error in SalesOrder/Opportunity search", stack: error.stack });
                             }
                             let firstName = result.firstname ?? '';
                             let middleName = result.middlename ?? '';
@@ -495,8 +495,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             })
                         }
                     }
-                })().catch(e => {
-                    console.log({ message: 'Error in customer search', e });
+                })().catch(error => {
+                    logger.error({ message: 'Error in customer search', stack: error.stack });
                 }));
             }
 
@@ -528,8 +528,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             })
                         }
                     }
-                })().catch(e => {
-                    console.log({ message: 'Error in vendor search', e });
+                })().catch(error => {
+                    logger.error({ message: 'Error in vendor search', stack: error.stack });
                 }));
             }
 
@@ -557,7 +557,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             matchedContactInfo,
         };
     } catch (error) {
-        console.log({ message: "Error in finding contact", error });
+        logger.error({ message: "Error in finding contact", stack: error.stack });
         let errorMessage = netSuiteErrorDetails(error, "Contact not found");
         errorMessage += ' OR Permission violation: You need the "Lists -> Contact -> FULL, Lists -> Customers -> FULL" permission to access this page.';
         return {
@@ -632,8 +632,8 @@ async function findContactWithName({ user, authHeader, name }) {
                                 });
                             }
                         }
-                    } catch (e) {
-                        console.log({ message: "Error in SalesOrder/Opportunity in contact" });
+                    } catch (error) {
+                        logger.error({ message: "Error in SalesOrder/Opportunity in contact", stack: error.stack });
                     }
                 }
                 matchedContactInfo.push({
@@ -712,8 +712,8 @@ async function findContactWithName({ user, authHeader, name }) {
                             });
                         }
                     }
-                } catch (e) {
-                    console.log({ message: "Error in SalesOrder/Opportunity search" });
+                } catch (error) {
+                    logger.error({ message: "Error in SalesOrder/Opportunity search", stack: error.stack });
                 }
                 let firstName = result.firstname ?? '';
                 let middleName = result.middlename ?? '';
@@ -741,7 +741,7 @@ async function findContactWithName({ user, authHeader, name }) {
     }
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails }) {
 
     try {
         const title = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
@@ -760,7 +760,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             startTimeSLot = callStartTime.format('HH:mm');
 
         } catch (error) {
-            console.log({ message: "Error in getting timezone" });
+            logger.error({ message: "Error in getting timezone", stack: error.stack });
         }
         const callEndTime = (callLog.duration === 'pending') ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
         let endTimeSlot = callEndTime.format('HH:mm');
@@ -860,7 +860,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             try {
                 await attachFileWithPhoneCall({ callLogId, transcript, authHeader, user, fileName: title });
             } catch (error) {
-                console.log({ message: "Error in attaching file with phone call" });
+                logger.error({ message: "Error in attaching file with phone call", stack: error.stack });
             }
         }
         return {
@@ -966,18 +966,9 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, note, startTime, duration, transcript, composedLogDetails }) {
     try {
         const existingLogId = existingCallLog.thirdPartyLogId;
-        // Use passed existingCallLogDetails to avoid duplicate API call
-        let comments = '';
-        if (existingCallLogDetails?.message) {
-            comments = existingCallLogDetails.message;
-        } else {
-            // Fallback to API call if details not provided
-            const callLogResponse = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`, { headers: { 'Authorization': authHeader } });
-            comments = callLogResponse.data.message;
-        }
 
         let patchBody = { title: subject };
         let callStartTime = moment(moment(startTime).toISOString());
@@ -993,7 +984,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 startTimeSLot = callStartTime.format('HH:mm');
 
             } catch (error) {
-                console.log({ message: "Error in getting timezone in updateCallLog" });
+                logger.error({ message: "Error in getting timezone in updateCallLog", stack: error.stack });
             }
             const callEndTime = moment(callStartTime).add(duration, 'seconds');
             let endTimeSlot = callEndTime.format('HH:mm');
@@ -1015,7 +1006,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callStartTime });
         }
         patchBody.message = composedLogDetails;
-        const patchLogRes = await axios.patch(
+        await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             patchBody,
             {
@@ -1025,7 +1016,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             try {
                 await attachFileWithPhoneCall({ callLogId: existingLogId, transcript, authHeader, user, fileName: subject });
             } catch (error) {
-                console.log({ message: "Error in attaching file with phone call", error });
+                logger.error({ message: "Error in attaching file with phone call", stack: error.stack });
             }
         }
         return {
@@ -1036,8 +1027,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 ttl: 2000
             }
         };
-    } catch (e) {
-        console.log(e);
+    } catch (error) {
+        logger.error({ message: "Error in updating call log", stack: error.stack });
         return {
             successful: false,
             returnMessage: {
@@ -1051,16 +1042,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     try {
-        const sender =
-        {
-            id: contactInfo?.id,
-            type: 'Contact'
-        }
-        const receiver =
-        {
-            id: user?.id,
-            type: 'User'
-        }
         const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
         const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
         let logBody = '';
@@ -1126,11 +1107,11 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                     noteTitle: title,
                     noteText: logBody
                 };
-                const createUserNotesResponse = await axios.post(createUserNotesUrl, postBody, {
+                await axios.post(createUserNotesUrl, postBody, {
                     headers: { 'Authorization': authHeader }
                 });
             } catch (error) {
-                console.log({ message: "Error in logging calls against salesOrder" });
+                logger.error({ message: "Error in logging calls against salesOrder", stack: error.stack });
             }
         }
         return {
@@ -1165,7 +1146,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     try {
         const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
         const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
@@ -1174,8 +1155,6 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             });
         const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
         let logBody = getLogRes.data.message;
-        let patchBody = {};
-        const originalNote = logBody.split('BEGIN\n------------\n')[1];
         const endMarker = '------------\nEND';
         const newMessageLog =
             `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
@@ -1185,7 +1164,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         const regex = RegExp('Conversation.(.*) messages.');
         const matchResult = regex.exec(logBody);
         logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-        const patchLogRes = await axios.patch(
+        await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             {
                 message: logBody
@@ -1454,18 +1433,6 @@ function splitName(fullName) {
     return { firstName, middleName, lastName };
 }
 
-function generateRandomString(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        counter += 1;
-    }
-    return result;
-}
-
 function extractIdFromUrl(url) {
     const segments = url.split('/').filter(segment => segment !== ''); // Remove empty segments
     return segments.length > 0 ? segments[segments.length - 1] : 0; // Extract the ID from the URL
@@ -1485,18 +1452,10 @@ function netSuiteErrorDetails(error, message) {
         }
         return concatenatedErrorDetails.length > 0 ? concatenatedErrorDetails : message;
     } catch (error) {
+        logger.error({ message: "Error in netSuiteErrorDetails", stack: error.stack });
         return message;
     }
 }
-
-function netSuiteRestLetError(error, message) {
-    const errorMessage = error?.response?.data?.split('\n')
-        .find(line => line.startsWith('error message:'))
-        ?.replace('error message: ', '')
-        .trim();
-    return errorMessage || message;
-}
-
 
 function upsertNetSuiteUserNoteUrl({ body, userNoteUrl, salesOrderId }) {
     const salesOrderText = "Sales Order Call Logs (Do Not Edit)";
@@ -1559,13 +1518,6 @@ function getThreeYearsBeforeDate() {
     return date.toISOString().slice(0, 10) + " 00:00:00"; //Date formate 2022-04-03 00:00:00
 };
 
-function getThreeMonthsBeforeDate() {
-    const date = new Date();
-    date.setMonth(date.getMonth() - 30);
-    date.setHours(0, 0, 0, 0);
-    return date.toISOString().slice(0, 10) + " 00:00:00"; //Date formate 2022-04-03 00:00:00
-};
-
 function extractNoteIdFromNote({ note, targetSalesOrderId }) {
     // Extract the userNoteUrl from the string
     try {
@@ -1583,7 +1535,8 @@ function extractNoteIdFromNote({ note, targetSalesOrderId }) {
             }
         }
         return undefined; // if not found
-    } catch (e) {
+    } catch (error) {
+        logger.error({ message: "Error in extractNoteIdFromNote", stack: error.stack });
         return undefined;
     }
 
@@ -1606,7 +1559,8 @@ function extractNoteIdFromOpportunityNote({ note, targetOpportunityId }) {
             }
         }
         return undefined; // if not found
-    } catch (e) {
+    } catch (error) {
+        logger.error({ message: "Error in extractNoteIdFromOpportunityNote", stack: error.stack });
         return undefined;
     }
 
@@ -1672,7 +1626,7 @@ async function attachFileWithPhoneCall({ callLogId, transcript, authHeader, user
                 headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
             }
         );
-        const attachFileRes = await axios.post(
+        await axios.post(
             `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_attachfilewithphonecalls&deploy=customdeploy_attachfilewithphonecalls`,
             {
                 phoneCallId: callLogId,
@@ -1703,7 +1657,7 @@ function truncateAiTranscript({ composedLogDetails, transcript }) {
         }
 
     } catch (error) {
-        console.log({ m: "Error in upsertTranscript" });
+        logger.error({ message: "Error in upsertTranscript", stack: error.stack });
     }
     return composedLogDetails;
 }
@@ -1716,7 +1670,7 @@ async function overrideDateTimeInComposedLogDetails({ composedLogDetails, startT
             composedLogDetails = composedLogDetails.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
         }
     } catch (error) {
-        console.log({ message: "Error in overrideDateTimeInComposedLogDetails" });
+        logger.error({ message: "Error in overrideDateTimeInComposedLogDetails", stack: error.stack });
     }
     return composedLogDetails;
 }
