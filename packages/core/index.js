@@ -1633,6 +1633,23 @@ function createCoreRouter() {
         });
     }
 
+    // Handle OPTIONS for CORS preflight
+    router.options('/mcp', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.status(200).end();
+    });
+
+    // Dedicated endpoint for all MCP traffic
+    router.post('/mcp', async (req, res) => {
+        // Set CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        await mcpHandler.handleMcpRequest(req, res);
+    });
+
     return router;
 }
 
@@ -1678,23 +1695,6 @@ function createCoreApp(options = {}) {
     // Apply core routes
     const coreRouter = createCoreRouter();
     app.use('/', coreRouter);
-
-    // Handle OPTIONS for CORS preflight
-    app.options('/mcp', (req, res) => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
-        res.status(200).end();
-    });
-
-    // Dedicated endpoint for all MCP traffic
-    app.post('/mcp', async (req, res) => {
-        // Set CORS headers
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Content-Type', 'application/json');
-
-        await mcpHandler.handleMcpRequest(req, res);
-    });
 
     return app;
 }
