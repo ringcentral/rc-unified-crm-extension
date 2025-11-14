@@ -1,0 +1,54 @@
+@startuml
+start
+
+:Call Initiated;
+if (Auto Log?) then (Yes)
+  :Call Connects (SSCL);
+  note right
+    [AUTO - CREATE log]
+    Data: a few fields
+  end note
+
+  :Call Ends (SSCL);
+  note right
+    [AUTO - UPDATE log]
+    Data: most fields except accurate duration, recording link etc.
+  end note
+
+  :Call Record Available in Call History;
+
+    if(Can go in parallel) then ( )
+        :User Can Perform Disposition;
+        note right
+          [MANUAL - UPSERT call disposition]
+          Data: agent notes, associations etc
+        end note
+    else ( )
+        :Call Data Fully Ready (SSCL);
+        note right
+          [AUTO - UPDATE log]
+          Data: accurate duration, recording link etc.
+        end note
+    endif
+
+
+else (No)
+  :Call Ends;
+  :Call Record Available in Call History;
+    if(Can go in parallel) then ( )
+        :User Can Perform Logging and Disposition;
+        note right
+          [MANUAL - UPSERT call logging and disposition]
+          Data: agent notes, associations etc
+        end note
+    else ( )
+        :Call Data Fully Ready;
+        note right
+          [AUTO - UPDATE log if exsist]
+          Data: accurate duration, recording link etc.
+        end note
+    endif
+endif
+
+stop
+@enduml
