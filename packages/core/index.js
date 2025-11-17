@@ -127,12 +127,8 @@ function createCoreRouter() {
 
     router.get('/implementedInterfaces', (req, res) => {
         try {
-            const jwtToken = req.query.jwtToken;
-            if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-                if (!userId) {
-                    res.status(400).send();
-                }
+            const platform = req.query.platform;
+            if (platform) {
                 const platformModule = connectorRegistry.getConnector(platform);
                 const result = {};
                 const authType = platformModule.getAuthType();
@@ -162,7 +158,7 @@ function createCoreRouter() {
                 res.status(200).send(result);
             }
             else {
-                res.status(400).send('Please go to Settings and authorize CRM platform');
+                res.status(400).send('Please provide platform.');
                 return;
             }
         }
