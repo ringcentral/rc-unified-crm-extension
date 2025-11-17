@@ -2,8 +2,9 @@ const { UserModel } = require('../models/userModel');
 const { CallDownListModel } = require('../models/callDownListModel');
 const { Op } = require('sequelize');
 const jwt = require('../lib/jwt');
+const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function schedule({ jwtToken, rcAccessToken, body }) {
+async function schedule({ jwtToken, body }) {
     const unAuthData = jwt.decodeJwt(jwtToken);
     if (!unAuthData?.id) throw new Error('Unauthorized');
     const user = await UserModel.findByPk(unAuthData.id);
@@ -48,9 +49,14 @@ async function markCalled({ jwtToken, id, lastCallAt }) {
     const unAuthData = jwt.decodeJwt(jwtToken);
     if (!unAuthData?.id) throw new Error('Unauthorized');
     const when = lastCallAt ? new Date(lastCallAt) : new Date();
-    const [affected] = await CallDownListModel.update({ status: 'called', lastCallAt: when }, { where: { id, userId: unAuthData.id } });
-    if (!affected) throw new Error('Not found');
-    return { successful: true };
+    try {
+        const [affected] = await CallDownListModel.update({ status: 'called', lastCallAt: when }, { where: { id, userId: unAuthData.id } });
+        if (!affected) throw new Error('Not found');
+        return { successful: true };
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error marking call as called', { id, userId: unAuthData.id });
+    }
 }
 
 exports.schedule = schedule;

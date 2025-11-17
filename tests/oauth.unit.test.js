@@ -910,8 +910,12 @@ describe('oauth manage', () => {
                 })
             };
 
+            const result = await checkAndRefreshAccessToken(oauthApp, user);
             // Act & Assert
-            await expect(checkAndRefreshAccessToken(oauthApp, user)).rejects.toThrow('Save failed');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.messageType).toBe('warning');
+            expect(result.returnMessage.message).toBe('Database operation failed');
+            expect(result.returnMessage.ttl).toBe(5000);
         });
     });
 

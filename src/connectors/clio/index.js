@@ -9,6 +9,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
 function getAuthType() {
     return 'oauth';
@@ -127,7 +128,12 @@ async function unAuthorize({ user }) {
     // remove user credentials
     user.accessToken = '';
     user.refreshToken = '';
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         returnMessage: {
             messageType: 'success',

@@ -25,6 +25,7 @@ const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
 const mcpHandler = require('./mcp/mcpHandler');
 const logger = require('./lib/logger');
+const { handleDatabaseError } = require('./lib/errorHandler');
 
 let packageJson = null;
 try {
@@ -1275,9 +1276,14 @@ function createCoreRouter() {
                 res.status(400).send('Please go to Settings and authorize CRM platform');
                 return;
             }
-            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
-            success = true;
-            res.status(200).send({ successful: true, id });
+            try {
+                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
+                success = true;
+                res.status(200).send({ successful: true, id });
+            }
+            catch (e) {
+                return handleDatabaseError(e, 'Error scheduling call down');
+            }
         } catch (e) {
             logger.error('Schedule call down failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';

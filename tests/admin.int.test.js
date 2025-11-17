@@ -452,7 +452,12 @@ describe('admin.js tests', () => {
                 }
             });
 
-            await expect(updateServerLoggingSettings({ user: mockUser, additionalFieldValues })).rejects.toThrow('Database save failed');
+            const result = await updateServerLoggingSettings({ user: mockUser, additionalFieldValues });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.messageType).toBe('warning');
+            expect(result.returnMessage.message).toBe('Server logging settings update failed. Please check your username and password.');
+            expect(result.returnMessage.ttl).toBe(10000);
         });
     });
 });

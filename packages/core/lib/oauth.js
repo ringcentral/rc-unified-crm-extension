@@ -4,6 +4,7 @@ const moment = require('moment');
 const { UserModel } = require('../models/userModel');
 const connectorRegistry = require('../connector/registry');
 const logger = require('./logger');
+const { handleDatabaseError } = require('./errorHandler');
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
 function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri, redirectUri, scopes }) {
@@ -104,7 +105,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             user.accessToken = accessToken;
             user.refreshToken = refreshToken;
             user.tokenExpiry = expires;
-            await user.save();
+            try {
+                await user.save();
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error saving user');
+            }
             if (newLock) {
                 const deletionStartTime = moment();
                 await newLock.delete();
@@ -122,7 +128,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             user.accessToken = accessToken;
             user.refreshToken = refreshToken;
             user.tokenExpiry = expires;
-            await user.save();
+            try {
+                await user.save();
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error saving user');
+            }
             logger.info('token refreshing finished')
         }
 

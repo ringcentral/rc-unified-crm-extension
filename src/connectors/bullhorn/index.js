@@ -12,6 +12,7 @@ const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 const { upsertCallDuration, upsertCallResult, upsertCallRecording, upsertAiNote, upsertTranscript } = require('@app-connect/core/lib/callLogComposer');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
 function getAuthType() {
     return 'oauth';
@@ -278,7 +279,13 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20,
         // Session expired
         user = await bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, skipLock);
     }
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        handleDatabaseError(error, 'Error saving user');
+        return null;
+    }
     return user;
 }
 
@@ -361,7 +368,12 @@ async function unAuthorize({ user }) {
     // remove user credentials
     user.accessToken = '';
     user.refreshToken = '';
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         returnMessage: {
             messageType: 'success',
@@ -382,13 +394,18 @@ async function getServerLoggingSettings({ user }) {
 
 async function updateServerLoggingSettings({ user, additionalFieldValues, oauthApp }) {
     if (!additionalFieldValues.apiUsername || !additionalFieldValues.apiPassword) {
-        await user.update({
-            platformAdditionalInfo: {
-                ...user.platformAdditionalInfo,
-                encodedApiUsername: '',
-                encodedApiPassword: ''
-            }
-        });
+        try {
+            await user.update({
+                platformAdditionalInfo: {
+                    ...user.platformAdditionalInfo,
+                    encodedApiUsername: '',
+                    encodedApiPassword: ''
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error updating server logging settings');
+        }
         return {
             successful: true,
             returnMessage: {
@@ -416,7 +433,17 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
             },
         };
     }
-    await overrideSessionWithAuthInfo({ user, authData });
+    const updatedUser = await overrideSessionWithAuthInfo({ user, authData });
+    if (!updatedUser) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Server logging settings update failed. Please check your username and password.',
+                ttl: 10000
+            },
+        };
+    }
     return {
         successful: true,
         returnMessage: {
@@ -459,7 +486,13 @@ async function overrideSessionWithAuthInfo({ user, authData }) {
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
     user.tokenExpiry = expires;
     logger.info('Bullhorn session overridden with auth info')
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        handleDatabaseError(error, 'Error saving user');
+        return null;
+    }
     return user;
 }
 
@@ -501,9 +534,9 @@ async function findContact({ user, phoneNumber, isExtension }) {
         });
     for (const result of contactPersonInfo.data.data) {
         // compare dateAdded, dateLastModified, dateLastVisit
-        var mostRecentDateForContact = getMostRecentDate({ 
+        var mostRecentDateForContact = getMostRecentDate({
             allDateValues: [result.dateAdded, result.dateLastModified, result.dateLastVisit]
-         });
+        });
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -1155,7 +1188,7 @@ async function updateCallLog({ user, existingCallLog, recordingLink, startTime, 
         postBody.comments = composedLogDetails;
     }
     // Case: update log should be able to update fields other than agent notes
-    else{
+    else {
         postBody.comments = getLogRes.data.data.comments;
         postBody.comments = upsertCallDuration({ body: postBody.comments, duration: duration, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertCallResult({ body: postBody.comments, result: result, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
@@ -1523,7 +1556,13 @@ async function refreshSessionToken(user) {
     // Not sure why, assigning platformAdditionalInfo first then give it another value so that it can be saved to db
     user.platformAdditionalInfo = {};
     user.platformAdditionalInfo = updatedPlatformAdditionalInfo;
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        handleDatabaseError(error, 'Error saving user');
+        return null;
+    }
     return user;
 }
 

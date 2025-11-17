@@ -11,6 +11,7 @@ const {
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { UserModel } = require('../../models/userModel');
 const logger = require('../../lib/logger');
+const { handleDatabaseError } = require('../../lib/errorHandler');
 
 async function loadPlatformConfig(proxyId) {
   if (!proxyId) {
@@ -147,7 +148,12 @@ async function unAuthorize({ user }) {
   }
   user.accessToken = '';
   user.refreshToken = '';
-  await user.save();
+  try {
+    await user.save();
+  }
+  catch (error) {
+    return handleDatabaseError(error, 'Error saving user');
+  }
   return {
     successful: true,
     returnMessage: {

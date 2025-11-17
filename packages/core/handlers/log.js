@@ -11,15 +11,21 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const logger = require('../lib/logger');
-const { handleApiError } = require('../lib/errorHandler');
+const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
-        const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId: incomingData.logInfo.sessionId
-            }
-        });
+        let existingCallLog = null;
+        try {
+            existingCallLog = await CallLogModel.findOne({
+                where: {
+                    sessionId: incomingData.logInfo.sessionId
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing call log');
+        }
         if (existingCallLog) {
             return {
                 successful: false,
@@ -30,7 +36,13 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             }
         }
-        let user = await UserModel.findByPk(userId);
+        let user = null;
+        try {
+            user = await UserModel.findByPk(userId);
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding user');
+        }
         if (!user || !user.accessToken) {
             return {
                 successful: false,
@@ -126,14 +138,19 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             proxyConfig,
         });
         if (logId) {
-            await CallLogModel.create({
-                id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
-                sessionId: incomingData.logInfo.sessionId,
-                platform,
-                thirdPartyLogId: logId,
-                userId,
-                contactId
-            });
+            try {
+                await CallLogModel.create({
+                    id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
+                    sessionId: incomingData.logInfo.sessionId,
+                    platform,
+                    thirdPartyLogId: logId,
+                    userId,
+                    contactId
+                });
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error creating call log');
+            }
         }
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
     } catch (e) {
@@ -231,11 +248,17 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
 
 async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
-        const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId: incomingData.sessionId
-            }
-        });
+        let existingCallLog = null;
+        try {
+            existingCallLog = await CallLogModel.findOne({
+                where: {
+                    sessionId: incomingData.sessionId
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing call log');
+        }
         if (existingCallLog) {
             const platformModule = connectorRegistry.getConnector(platform);
             let user = await UserModel.findByPk(userId);
@@ -357,7 +380,13 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const platformModule = connectorRegistry.getConnector(platform);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
-        let user = await UserModel.findByPk(userId);
+        let user = null;
+        try {
+            user = await UserModel.findByPk(userId);
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding user');
+        }
         if (!user || !user.accessToken) {
             return {
                 successful: false,
@@ -406,11 +435,17 @@ async function createMessageLog({ platform, userId, incomingData }) {
             name: incomingData.contactName ?? ""
         };
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
-        const existingMessages = await MessageLogModel.findAll({
-            where: {
-                [Op.or]: messageIds
-            }
-        });
+        let existingMessages = null;
+        try {
+            existingMessages = await MessageLogModel.findAll({
+                where: {
+                    [Op.or]: messageIds
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing messages');
+        }
         const existingIds = existingMessages.map(m => m.id);
         const logIds = [];
         // reverse the order of messages to log the oldest message first
@@ -459,16 +494,21 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 extraDataTracking = createMessageLogResult.extraDataTracking;
             }
             if (crmLogId) {
-                const createdMessageLog =
-                    await MessageLogModel.create({
-                        id: message.id.toString(),
-                        platform,
-                        conversationId: incomingData.logInfo.conversationId,
-                        thirdPartyLogId: crmLogId,
-                        userId,
-                        conversationLogId: incomingData.logInfo.conversationLogId
-                    });
-                logIds.push(createdMessageLog.id);
+                try {
+                    const createdMessageLog =
+                        await MessageLogModel.create({
+                            id: message.id.toString(),
+                            platform,
+                            conversationId: incomingData.logInfo.conversationId,
+                            thirdPartyLogId: crmLogId,
+                            userId,
+                            conversationLogId: incomingData.logInfo.conversationLogId
+                        });
+                    logIds.push(createdMessageLog.id);
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error creating message log');
+                }
             }
         }
         return { successful: true, logIds, returnMessage, extraDataTracking };

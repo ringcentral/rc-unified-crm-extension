@@ -3,6 +3,7 @@ const { AdminConfigModel } = require('../models/adminConfigModel');
 const { getHashValue } = require('../lib/util');
 const connectorRegistry = require('../connector/registry');
 const logger = require('../lib/logger');
+const { handleDatabaseError } = require('../lib/errorHandler');
 
 async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     let hashedRcAccountId = null;
@@ -79,9 +80,14 @@ async function updateUserSettings({ user, userSettings, platformName }) {
     if (platformModule.onUpdateUserSettings) {
         const { successful, returnMessage } = await platformModule.onUpdateUserSettings({ user, userSettings, updatedSettings });
         if (successful) {
-            await user.update({
-                userSettings: updatedSettings
-            });
+            try {
+                await user.update({
+                    userSettings: updatedSettings
+                });
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error updating user settings');
+            }
         }
         return {
             successful,
@@ -89,9 +95,14 @@ async function updateUserSettings({ user, userSettings, platformName }) {
         };
     }
     else {
-        await user.update({
-            userSettings: updatedSettings
-        });
+        try {
+            await user.update({
+                userSettings: updatedSettings
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error updating user settings');
+        }
     }
     return {
         userSettings: user.userSettings

@@ -2,6 +2,7 @@ const axios = require('axios');
 const oauth = require('@app-connect/core/lib/oauth');
 const platformModule = require('./index');
 const path = require('path');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
@@ -53,7 +54,12 @@ async function createNewSheet({ user, data }) {
     user.userSettings = {};
     // eslint-disable-next-line no-param-reassign
     user.userSettings = updatedUserSettings;
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         successful: true,
         sheetName,
@@ -146,7 +152,12 @@ async function updateSelectedSheet({ user, data }) {
     user.userSettings = {};
     // eslint-disable-next-line no-param-reassign
     user.userSettings = updatedUserSettings;
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         successful: true,
         sheetName: sheetData?.name,
