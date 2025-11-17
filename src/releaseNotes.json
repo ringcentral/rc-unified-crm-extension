@@ -1,4 +1,28 @@
 {
+    "1.7.3": {
+        "global": [
+            {
+                "type": "New",
+                "description": "RingSense data logging in server side logging"
+            },
+            {
+                "type": "New",
+                "description": "New phone setting item to group phone related settings"
+            },
+            {
+                "type": "Fix",
+                "description": "A small issue on contact search feature"
+            },
+            {
+                "type": "Fix",
+                "description": "A small issue on embedded URLs"
+            },
+            {
+                "type": "Fix",
+                "description": "Server-side logging logged calls cannot be edited for the first attempt"
+            }
+        ]
+    },
     "1.7.1": {
         "global": [
             {
@@ -14,6 +38,18 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.11":{
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A small issue on contact search feature"
+            },
+            {
+                "type": "Fix",
+                "description": "A small issue on embedded URLs"
             }
         ]
     },
