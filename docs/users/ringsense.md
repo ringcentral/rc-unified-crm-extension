@@ -1,7 +1,7 @@
 # RingSense Logging
 
 !!! warning "Work in Progress"
-    This feature is currently under development and not yet available in production.
+    The feature has been supported in 2.0 beta now. For 1.6.x version, the feature is currently under development and not yet available in production.
 
 For customers with a RingCentral RingSense license, App Connect supports to sync RingSense insights into supported CRM platforms.
 
@@ -55,6 +55,7 @@ When enabled, App Connect can sync the following RingSense fields:
 * **Processing Delay:**  
   RingSense insights are generated *after* the call ends and require processing time. A delay before data appears in your CRM is expected.
 
-* **CRM Compatibility:**  
-    !!! warning "Connector Support"
-        Not all CRM connectors currently support RingSense logging. Check with the maintainers of your CRM connector for compatibility and availability.
+* **CRM Compatibility:**
+
+!!! warning "Connector Support"
+    Not all CRM connectors currently support RingSense logging. Check with the maintainers of your CRM connector for compatibility and availability.
