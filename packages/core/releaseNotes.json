@@ -10,6 +10,10 @@
                 "description": "New phone setting item to group phone related settings"
             },
             {
+                "type": "Better",
+                "description": "HUD enabled by default"
+            },
+            {
                 "type": "Fix",
                 "description": "A small issue on contact search feature"
             },

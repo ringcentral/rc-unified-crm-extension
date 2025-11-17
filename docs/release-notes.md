@@ -4,6 +4,7 @@
 
 - New: RingSense data logging in server side logging
 - New: New phone setting item to group phone related settings
+- Better: HUD enabled by default
 - Fix: A small issue on contact search feature
 - Fix: A small issue on embedded URLs
 - Fix: Server-side logging logged calls cannot be edited for the first attempt
