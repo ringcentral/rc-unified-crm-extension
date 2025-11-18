@@ -4,6 +4,7 @@ const { Command } = require('commander');
 const { init } = require('../lib/init');
 const { upgrade } = require('../lib/upgrade');
 const { start } = require('../lib/start');
+const { env } = require('../lib/env');
 
 const program = new Command();
 
@@ -53,6 +54,18 @@ program
       await start(port);
     } catch (error) {
       console.error('Error starting dev server:', error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('env')
+  .description('Configure the environment variables')
+  .action(async () => {
+    try {
+      await env();
+    } catch (error) {
+      console.error('Error configuring CLI:', error.message);
       process.exit(1);
     }
   });
