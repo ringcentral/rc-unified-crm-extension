@@ -67,9 +67,11 @@ def _badge_for_version(text: str, page: Page, files: Files):
     # Return badge
     icon = "material-tag-outline"
     if spec == "2.0.0":
-      href = _resolve_path("2.x.md", page, files)
+      href = _resolve_path("2.0/index.md", page, files)
+    elif spec == "2.0":
+      href = _resolve_path("2.0/index.md", page, files)
     elif spec == "2.x":
-      href = _resolve_path("2.x.md", page, files)
+      href = _resolve_path("2.0/index.md", page, files)
     else:
       href = "https://github.com/ringcentral/rc-unified-crm-extension/releases"
     return _badge(

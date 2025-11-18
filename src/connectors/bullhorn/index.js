@@ -9,7 +9,18 @@ const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
-const { upsertCallDuration, upsertCallResult, upsertCallRecording, upsertAiNote, upsertTranscript } = require('@app-connect/core/lib/callLogComposer');
+const {
+    upsertCallDuration,
+    upsertCallResult,
+    upsertCallRecording,
+    upsertAiNote,
+    upsertTranscript,
+    upsertRingSenseTranscript,
+    upsertRingSenseSummary,
+    upsertRingSenseAIScore,
+    upsertRingSenseBulletedSummary,
+    upsertRingSenseLink
+} = require('@app-connect/core/lib/callLogComposer');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
 const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
@@ -1123,7 +1134,7 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
     };
 }
 
-async function updateCallLog({ user, existingCallLog, recordingLink, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL, ringSenseTranscript, ringSenseSummary, ringSenseAIScore, ringSenseBulletedSummary, ringSenseLink }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};
@@ -1173,9 +1184,12 @@ async function updateCallLog({ user, existingCallLog, recordingLink, startTime, 
 
 
     // I dunno, Bullhorn just uses POST as PATCH
-    const postBody = {
-        dateAdded: startTime,
-        minutesSpent: duration / 60
+    const postBody = {}
+    if (startTime) {
+        postBody.dateAdded = startTime;
+    }
+    if (duration) {
+        postBody.minutesSpent = duration / 60;
     }
     if (assigneeId) {
         postBody.commentingPerson = {
@@ -1195,6 +1209,11 @@ async function updateCallLog({ user, existingCallLog, recordingLink, startTime, 
         postBody.comments = upsertCallRecording({ body: postBody.comments, recordingLink: recordingLink, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertAiNote({ body: postBody.comments, aiNote: aiNote, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertTranscript({ body: postBody.comments, transcript: transcript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseTranscript({ body: postBody.comments, transcript: ringSenseTranscript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseSummary({ body: postBody.comments, summary: ringSenseSummary, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseAIScore({ body: postBody.comments, score: ringSenseAIScore, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseBulletedSummary({ body: postBody.comments, summary: ringSenseBulletedSummary, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertRingSenseLink({ body: postBody.comments, link: ringSenseLink, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
     }
     let patchLogRes;
     try {

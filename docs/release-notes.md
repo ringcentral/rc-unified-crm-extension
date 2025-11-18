@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.7.3
+
+- New: RingSense data logging in server side logging
+- New: New phone setting item to group phone related settings
+- Better: HUD enabled by default
+- Fix: A small issue on contact search feature
+- Fix: A small issue on embedded URLs
+- Fix: Server-side logging logged calls cannot be edited for the first attempt
+
 ## 1.7.1
 
 - Better: Click-to-SMS now adds recipients so you can easily add multiple recipients
@@ -9,6 +18,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.11
+
+- Fix: A small issue on contact search feature
+- Fix: A small issue on embedded URLs
 
 ## 1.6.10
 
