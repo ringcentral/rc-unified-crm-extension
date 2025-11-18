@@ -118,7 +118,7 @@ nav:
     - 'Becoming an admin': users/admin.md
     - 'Managed settings': users/managed-settings.md
     - 'Server-side call logging': users/server-side-logging.md
-    - 'RingSense logging': users/ringsense.md
+    - 'RingSense logging (new)': users/ringsense.md
   - 'User settings':
     - 'Overview': users/settings-sync.md
     - 'Audio input/output': users/audio.md
