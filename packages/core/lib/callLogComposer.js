@@ -40,13 +40,12 @@ async function composeCallLog(params) {
         subject,
         startTime,
         duration,
-        result
+        result,
         ringSenseTranscript,
         ringSenseSummary,
         ringSenseAIScore,
         ringSenseBulletedSummary,
-        ringSenseLink,
-        platform
+        ringSenseLink
     } = params;
 
     let body = existingBody;
