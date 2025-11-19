@@ -518,14 +518,24 @@ async function getCallLog({ user, callLogId, authHeader }) {
         console.log({message:'getLogResponse', Data: getLogResponse?.data?.data});
         if(getLogResponse?.data?.data?.length > 0) {
             const callLog = getLogResponse?.data?.data[0];
+            
+            // Extract the original note from customerComments (before the " | " separator)
+            const customerComments = callLog?.customerComments || '';
+            const originalNote = customerComments.split(' | ')[0] || '';
+            
+            // Extract subject from "- Summary: " line in customerComments
+            const summaryMatch = customerComments.match(/- Summary: (.*?)(?=\n|$)/);
+            const subject = summaryMatch ? summaryMatch[1].trim() : '';
+            
             return {
                 successful: true,
-                callLogInfo: callLog,
-                note: callLog?.customerComments,
-                fullBody: callLog?.customerComments,
-                fullLogResponse: getLogResponse?.data?.data[0],
-                contactName: `${callLog?.customer?.firstName} ${callLog?.customer?.lastName}`
-
+                callLogInfo: {
+                    subject: subject,
+                    note: originalNote,
+                    fullBody: customerComments,
+                    fullLogResponse: callLog,
+                    contactName: `${callLog?.customer?.firstName} ${callLog?.customer?.lastName}`.trim()
+                }
             };
         }
         else {
