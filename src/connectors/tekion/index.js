@@ -22,20 +22,20 @@ function getBasicAuth({ apiKey }) {
 }
 
 // Helper function to get access token
-async function getAccessToken({ appId, secretKey }) {
-    console.log({message:'getAccessToken', appId, secretKey});
+async function getAccessToken() {
     try {
         // Create form-encoded data as required by Tekion API
         const params = new URLSearchParams();
-        params.append('app_id', appId);
-        params.append('secret_key', secretKey);
+        params.append('app_id', process.env.TEKION_APP_ID);
+        params.append('secret_key', process.env.TEKION_SECRET_KEY);
 
-        const response = await axios.post(`${TEKION_API_BASE}/tokens`, params, {
+        const response = await axios.post(`https://api-sandbox.tekioncloud.com/openapi/public/tokens`, params, {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
         });
-        return response.data.access_token;
+        console.log({message:'accessToken response', AccessToken: response.data?.data?.access_token});
+        return response?.data?.data?.access_token;
     } catch (error) {
         console.error('Error getting Tekion access token:', error);
         throw error;
@@ -65,62 +65,70 @@ async function getUserInfo({ authHeader, additionalInfo }) {
 
     console.log({message:'getUserInfo', authHeader, additionalInfo});
     try {
-        const { appId, secretKey } = additionalInfo;
-        
-        if (!appId || !secretKey) {
-            throw new Error('App ID and Secret Key are required');
-        }
-
+        const { dealer_id, emailId } = additionalInfo;
         // Get access token
-        const accessToken = await getAccessToken({ appId, secretKey });
+        const accessToken = await getAccessToken();
+
+        console.log({message:'accessToken fetched successfully', accessToken});
         
         // Store access token for future use
         additionalInfo.accessToken = accessToken;
-        
-        // Try to get user info (adjust endpoint based on actual Tekion API)
-        const userInfoResponse = await makeAuthenticatedRequest({
-            method: 'GET',
-            url: `https://api-sandbox.tekioncloud.com/openapi/user/profile`,
-            appId,
-            accessToken
+
+        const userInfoResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v4.0.0/users?email=${emailId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': dealer_id,
+                'app_id': process.env.TEKION_APP_ID
+
+            }
         });
 
-        const userData = userInfoResponse.data;
-        const id = `${userData.id || 'user'}-tekion`;
-        const name = userData.name || userData.email || 'Tekion User';
-        const timezoneName = userData.timezone || 'UTC';
-        
-        let timezoneOffset = 0;
-        try {
-            if (timezoneName && timezoneName !== 'UTC') {
-                timezoneOffset = moment.tz(timezoneName).utcOffset() / 60;
-            }
-        } catch (error) {
-            timezoneOffset = 0; // Default to UTC if conversion fails
+        console.log({message:'userInfoResponse', Data: userInfoResponse?.data?.data});
+
+        if (userInfoResponse?.data?.data?.length > 0) {
+            const userData = userInfoResponse.data.data[0];
+            const id = `${userData.id}-tekion`;
+            const name = userData?.userNameDetails?.firstName + ' ' + userData?.userNameDetails?.lastName;
+            const timezoneName = null;
+            let timezoneOffset = null;
+            return {
+                successful: true,
+                platformUserInfo: {
+                    id,
+                    name,
+                    timezoneName,
+                    timezoneOffset,
+                    platformAdditionalInfo: {
+                        dealer_id: dealer_id,
+                        emailId: emailId
+                    }
+                },
+                returnMessage: {
+                    messageType: 'success',
+                    message: 'Connected to Tekion.',
+                    ttl: 1000
+                }
+            };
+        }
+        else {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Could not load user information. Please check your Dealer Id and Email Id.',
+                    ttl: 3000
+                }
+            };
         }
 
-        return {
-            successful: true,
-            platformUserInfo: {
-                id,
-                name,
-                timezoneName,
-                timezoneOffset,
-                platformAdditionalInfo: additionalInfo
-            },
-            returnMessage: {
-                messageType: 'success',
-                message: 'Connected to Tekion.',
-                ttl: 1000
-            }
-        };
+        
     } catch (e) {
         console.error('Tekion getUserInfo error:', e);
         return {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Could not load user information. Please check your App ID and Secret Key.',
+                message: 'Error while loading user information.',
                 details: [
                     {
                         title: 'Details',
@@ -128,7 +136,7 @@ async function getUserInfo({ authHeader, additionalInfo }) {
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `Tekion was unable to fetch information for the currently logged in user. Please check your App ID and Secret Key in your Tekion account settings.`
+                                text: `Error while loading user information.`
                             }
                         ]
                     }
@@ -158,81 +166,59 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
-    if (isExtension === 'true') {
+
+    
+    phoneNumber = phoneNumber.replace(' ', '+')
+    // without + is an extension, we don't want to search for that
+    if (!phoneNumber.includes('+')) {
         return {
-            successful: false,
-            matchedContactInfo: []
+            matchedContactInfo: null,
+            returnMessage: {
+                message: 'Logging against internal extension number is not supported.',
+                messageType: 'warning',
+                ttl: 3000
+            }
         };
     }
+    const phoneNumberObj = parsePhoneNumber(phoneNumber);
+    let phoneNumberWithoutCountryCode = phoneNumber;
+    if (phoneNumberObj.valid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    }
+
+    console.log({platformAdditionalInfo: user.platformAdditionalInfo});
 
     const matchedContactInfo = [];
     try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
+       const accessToken = await getAccessToken();
+       const appId=process.env.TEKION_APP_ID;
         
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
+       const customerSearchResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v4.0.0/customers?phone=${phoneNumberWithoutCountryCode}`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+            'app_id': appId
         }
+       });
+       console.log({message:'customerSearchResponse', Data: customerSearchResponse?.data?.data});
 
-        // Normalize phone number for search
-        const numbersToQuery = [];
-        const originalNumber = phoneNumber.replace(/\s/g, '');
-        numbersToQuery.push(originalNumber);
-
-        // Try to parse and format the number in different ways
-        try {
-            const parsedNumber = parsePhoneNumber(phoneNumber);
-            if (parsedNumber.valid) {
-                numbersToQuery.push(parsedNumber.number.e164);
-                numbersToQuery.push(parsedNumber.number.national);
-                numbersToQuery.push(parsedNumber.number.international);
-            }
-        } catch (e) {
-            // Continue with original number if parsing fails
-        }
-
-        // Add custom formats if provided
-        if (overridingFormat && overridingFormat !== '') {
-            const formats = overridingFormat.split(',');
-            numbersToQuery.push(...formats);
-        }
-
-        // Search for contacts using each number format
-        for (const numberToQuery of numbersToQuery) {
-            try {
-                const searchResponse = await makeAuthenticatedRequest({
-                    method: 'GET',
-                    url: `${TEKION_API_BASE}/customers/search?phone=${encodeURIComponent(numberToQuery)}`,
-                    appId,
-                    accessToken: user.platformAdditionalInfo.accessToken
+        if (customerSearchResponse?.data?.data?.length > 0) {
+            for (const customer of customerSearchResponse.data.data) {
+                let firstName=customer?.customerDetails?.name?.firstName;
+                let middleName=customer?.customerDetails?.name?.middleName;
+                let lastName=customer?.customerDetails?.name?.lastName;
+                
+                // Filter out null, undefined, and empty values
+                const nameParts = [firstName, middleName, lastName].filter(part => part && part.trim().length > 0);
+                const customerName = nameParts.length > 0 ? nameParts.join(' ') : "Test Customer";
+                console.log({message:'customerName', customerName});
+                matchedContactInfo.push({
+                    id: customer.id,
+                    name: customerName,
+                    additionalInfo: customer
                 });
-
-                if (searchResponse.data && searchResponse.data.length > 0) {
-                    for (const contact of searchResponse.data) {
-                        const existingContact = matchedContactInfo.find(c => c.id === contact.id);
-                        if (!existingContact) {
-                            matchedContactInfo.push({
-                                id: contact.id,
-                                name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.companyName || 'Unknown Contact',
-                                title: contact.title || '',
-                                phone: contact.phone || contact.mobilePhone || phoneNumber,
-                                type: contact.type || 'customer',
-                                additionalInfo: contact
-                            });
-                        }
-                    }
-                }
-            } catch (searchError) {
-                console.error(`Error searching with number ${numberToQuery}:`, searchError);
-                // Continue with next number format
             }
         }
-
         return {
             successful: true,
             matchedContactInfo
@@ -248,58 +234,144 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             },
             matchedContactInfo: []
         };
+    } finally {
+        matchedContactInfo.push({
+            id: 'createNewContact',
+            name: 'Create new contact...',
+            additionalInfo: null,
+            isNewContact: true
+        });
+        return {
+            successful: true,
+            matchedContactInfo
+        };
     }
+
+   
 }
 
-async function createContact({ user, authHeader, contactInfo }) {
+async function findContactWithName({ user, authHeader, name }) {
+    console.log({message:'findContactWithName', user, authHeader, name});
+    
+    const matchedContactInfo = [];
+    
     try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
-        
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
-        }
-
-        // Parse the contact name
-        const nameParts = (contactInfo.name || '').split(' ');
+        // Parse the name to extract firstName and lastName
+        const nameParts = name.trim().split(/\s+/).filter(part => part.length > 0);
         const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        // Prepare contact data for Tekion API
-        const newContactData = {
-            firstName: firstName,
-            lastName: lastName,
-            phone: contactInfo.phoneNumber,
-            email: contactInfo.email || '',
-            type: contactInfo.type || 'customer'
-        };
-
-        // Add any additional fields if provided
-        if (contactInfo.additionalInfo) {
-            Object.assign(newContactData, contactInfo.additionalInfo);
-        }
-
-        const createResponse = await makeAuthenticatedRequest({
-            method: 'POST',
-            url: `${TEKION_API_BASE}/customers`,
-            data: newContactData,
-            appId,
-            accessToken: user.platformAdditionalInfo.accessToken
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        
+        console.log({message:'parsed name parts', firstName, lastName});
+        
+        const accessToken = await getAccessToken();
+        const appId = process.env.TEKION_APP_ID;
+         
+        // Build query parameters
+        const queryParams = new URLSearchParams();
+        if (firstName) queryParams.append('firstName', firstName);
+        if (lastName) queryParams.append('lastName', lastName);
+        
+        const apiUrl = `https://api-sandbox.tekioncloud.com/openapi/v4.0.0/customers?${queryParams.toString()}`;
+        console.log({message:'API URL', apiUrl});
+        
+        const customerSearchResponse = await axios.get(apiUrl, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                'app_id': appId
+            }
         });
+        console.log({message:'customerSearchResponse', Data: customerSearchResponse?.data?.data});
 
-        const newContact = createResponse.data;
+        if (customerSearchResponse?.data?.data?.length > 0) {
+            for (const customer of customerSearchResponse.data.data) {
+                let firstName = customer?.customerDetails?.name?.firstName;
+                let middleName = customer?.customerDetails?.name?.middleName;
+                let lastName = customer?.customerDetails?.name?.lastName;
+                
+                // Filter out null, undefined, and empty values
+                const nameParts = [firstName, middleName, lastName].filter(part => part && part.trim().length > 0);
+                const customerName = nameParts.length > 0 ? nameParts.join(' ') : "Test Customer";
+                console.log({message:'customerName', customerName});
+                matchedContactInfo.push({
+                    id: customer.id,
+                    name: customerName,
+                    additionalInfo: customer,
+                    type: 'customer'
+                });
+            }
+        }
         
         return {
             successful: true,
-            createdContactInfo: {
-                id: newContact.id,
-                name: `${newContact.firstName || ''} ${newContact.lastName || ''}`.trim(),
-                type: newContact.type || 'customer'
+            matchedContactInfo
+        };
+    } catch (e) {
+        console.error('Tekion findContactWithName error:', e);
+        return {
+            successful: false,
+            matchedContactInfo: null,
+            error: e.message || 'Unknown error occurred'
+        };
+    }
+}
+
+async function createContact({ user, authHeader, contactInfo,phoneNumber, newContactName, newContactType}) {
+    try {
+       
+        console.log({message:'createContact', newContactName});
+
+        // Parse the contact name
+        const nameParts = (newContactName || '').split(' ').filter(part => part.trim().length > 0);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+        const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+
+        // Get access token and app ID
+        const accessToken = await getAccessToken();
+        const appId = process.env.TEKION_APP_ID;
+
+        console.log({firstName, middleName, lastName});
+
+        // Prepare contact data for Tekion API with the required structure
+        const newContactData = {
+            status: "ACTIVE",
+            customerDetails: {
+                customerType: "INDIVIDUAL",
+                name: {
+                    firstName: firstName,
+                    middleName: middleName,
+                    lastName: lastName
+                        
+                    }
+            }
+        };
+
+        console.log({message: 'Creating contact with data', newContactData});
+
+        // Make the API call to create contact
+        const createResponse = await axios.post(
+            'https://api-sandbox.tekioncloud.com/openapi/v4.0.0/customers',
+            newContactData,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                    'app_id': appId,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        const newContact = createResponse.data;
+        console.log({message: 'Contact created successfully', newContact});
+        
+        return {
+            successful: true,
+            contactInfo: {
+                id: newContact?.data?.id,
+                name: `${firstName} ${middleName} ${lastName}`.trim().replace(/\s+/g, ' '),
+                type: 'customer'
             },
             returnMessage: {
                 messageType: 'success',
@@ -308,7 +380,7 @@ async function createContact({ user, authHeader, contactInfo }) {
             }
         };
     } catch (e) {
-        console.error('Tekion createContact error:', e);
+        console.error({message:'Tekion createContact error:',ErrorDetails: e.response?.data?.errorDetails});
         return {
             successful: false,
             returnMessage: {
@@ -320,30 +392,60 @@ async function createContact({ user, authHeader, contactInfo }) {
     }
 }
 
-async function createCallLog({ user, contactInfo, callLog, authHeader, additionalSubmission, isNew }) {
-    try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
-        
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
-        }
+async function createCallLog({ user, contactInfo, callLog, authHeader, additionalSubmission, isNew, note, composedLogDetails }) {
 
+    try {
+        console.log({message:'createCallLog', note, composedLogDetails, callLogNote: callLog.note});
+
+        const accessToken = await getAccessToken();
+        const appId = process.env.TEKION_APP_ID;
+
+        // Schedule appointment for 2 hours from now to ensure slot availability
+        const futureAppointmentTime = Date.now() + (2 * 60 * 60 * 1000); // 2 hours from now
+        
+        // Combine all available notes/comments
+        const allComments = [
+            callLog.note,
+            note,
+            composedLogDetails
+        ].filter(comment => comment && comment.trim().length > 0).join(' | ');
+        
         // Prepare call log data for Tekion API
         const callLogData = {
-            contactId: contactInfo.id,
-            callType: callLog.direction === 'Inbound' ? 'inbound' : 'outbound',
-            phoneNumber: callLog.fromNumber || callLog.toNumber,
-            duration: callLog.duration || 0,
-            startTime: callLog.startTime,
-            notes: callLog.note || '',
-            recordingUrl: callLog.recordingUrl || '',
-            result: callLog.result || 'completed'
+            shopId: "accf06b4-0bb1-404e-9eec-4461c1ff7022",
+            transportationTypeId: "2c845b8d-a5cd-4fd1-8761-a5d302e79949",
+            serviceAdvisorId: "TEK00",
+            appointmentDateTime: 1783928982048, //TODO: Replace with futureAppointmentTime
+            customer: {
+                id: contactInfo.id,
+                customerType: "INDIVIDUAL",
+                firstName: contactInfo.firstName || "",
+                lastName: contactInfo.lastName || "",
+                companyName: "",
+                phones: [
+                    {
+                        phoneType: "HOME",
+                        number: callLog.fromNumber || callLog.toNumber || "",
+                        isPrimary: false
+                    }
+                ],
+                preferredContactType: "EMAIL",
+                email:user?.platformAdditionalInfo?.emailId || ""
+            },
+            vehicle: {
+                year: "2017",
+                make: "GMC",
+                model: "Serra 1500"
+            },
+            deliveryContactSameAsCustomer: false,
+            deliveryContact: {},
+            jobs: [],
+            notifyCustomer: false,
+            customerComments: allComments || "Appointment created from call log",
+            postTaxTotalAmount: {
+                amount: 1,
+                currency: "USD"
+            }
         };
 
         // Add any additional submission data
@@ -351,22 +453,22 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
             Object.assign(callLogData, additionalSubmission);
         }
 
-        const createResponse = await makeAuthenticatedRequest({
-            method: 'POST',
-            url: `${TEKION_API_BASE}/activities/calls`,
-            data: callLogData,
-            appId,
-            accessToken: user.platformAdditionalInfo.accessToken
+       const createResponse = await axios.post('https://api-sandbox.tekioncloud.com/openapi/v3.1.0/appointments', callLogData, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                'app_id': appId,
+                'Content-Type': 'application/json'
+            }
         });
 
         const createdLog = createResponse.data;
 
+        console.log({message:'createdLog', createdLog});
+
         return {
             successful: true,
-            createdLogInfo: {
-                id: createdLog.id,
-                thirdPartyLogId: createdLog.id
-            },
+            logId: createdLog?.data?.id || createdLog?.id,
             returnMessage: {
                 messageType: 'success',
                 message: `Call logged in Tekion.`,
@@ -374,7 +476,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
             }
         };
     } catch (e) {
-        console.error('Tekion createCallLog error:', e);
+        console.error({message:'Tekion createCallLog error:',ErrorDetails: e.response?.data?.message});
         return {
             successful: false,
             returnMessage: {
@@ -387,194 +489,68 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
 }
 
 async function updateCallLog({ user, existingLogId, contactInfo, callLog, authHeader, additionalSubmission }) {
-    try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
-        
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
-        }
-
-        // Prepare update data
-        const updateData = {
-            duration: callLog.duration || 0,
-            notes: callLog.note || '',
-            recordingUrl: callLog.recordingUrl || '',
-            result: callLog.result || 'completed'
-        };
-
-        // Add any additional submission data
-        if (additionalSubmission) {
-            Object.assign(updateData, additionalSubmission);
-        }
-
-        const updateResponse = await makeAuthenticatedRequest({
-            method: 'PUT',
-            url: `${TEKION_API_BASE}/activities/calls/${existingLogId}`,
-            data: updateData,
-            appId,
-            accessToken: user.platformAdditionalInfo.accessToken
-        });
-
-        return {
-            successful: true,
-            returnMessage: {
-                messageType: 'success',
-                message: `Call log updated in Tekion.`,
-                ttl: 3000
-            }
-        };
-    } catch (e) {
-        console.error('Tekion updateCallLog error:', e);
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'warning',
-                message: 'Failed to update call log in Tekion.',
-                ttl: 3000
-            }
-        };
-    }
+    
 }
 
 async function createMessageLog({ user, contactInfo, message, authHeader, additionalSubmission }) {
-    try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
-        
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
-        }
 
-        // Prepare message log data
-        const messageLogData = {
-            contactId: contactInfo.id,
-            messageType: message.type || 'sms',
-            phoneNumber: message.fromNumber || message.toNumber,
-            direction: message.direction,
-            content: message.subject || message.text || '',
-            timestamp: message.creationTime || new Date().toISOString()
-        };
-
-        // Add any additional submission data
-        if (additionalSubmission) {
-            Object.assign(messageLogData, additionalSubmission);
-        }
-
-        const createResponse = await makeAuthenticatedRequest({
-            method: 'POST',
-            url: `${TEKION_API_BASE}/activities/messages`,
-            data: messageLogData,
-            appId,
-            accessToken: user.platformAdditionalInfo.accessToken
-        });
-
-        const createdLog = createResponse.data;
-
-        return {
-            successful: true,
-            createdLogInfo: {
-                id: createdLog.id,
-                thirdPartyLogId: createdLog.id
-            },
-            returnMessage: {
-                messageType: 'success',
-                message: `Message logged in Tekion.`,
-                ttl: 3000
-            }
-        };
-    } catch (e) {
-        console.error('Tekion createMessageLog error:', e);
-        return {
-            successful: false,
-            returnMessage: {
-                messageType: 'warning',
-                message: 'Failed to create message log in Tekion.',
-                ttl: 3000
-            }
-        };
-    }
 }
 
 async function updateMessageLog({ user, existingLogId, contactInfo, message, authHeader, additionalSubmission }) {
+}
+
+async function getLicenseStatus({ user, authHeader }) {
+}
+
+async function getCallLog({ user, callLogId, authHeader }) {
     try {
-        const { appId, accessToken } = user.platformAdditionalInfo;
-        
-        if (!accessToken) {
-            // Try to get a new access token
-            const newAccessToken = await getAccessToken({ 
-                appId: user.platformAdditionalInfo.appId, 
-                secretKey: user.platformAdditionalInfo.secretKey 
-            });
-            user.platformAdditionalInfo.accessToken = newAccessToken;
-            await user.save();
-        }
+        const accessToken = await getAccessToken();
+        const appId = process.env.TEKION_APP_ID;
 
-        // Prepare update data
-        const updateData = {
-            content: message.subject || message.text || '',
-            timestamp: message.creationTime || new Date().toISOString()
-        };
-
-        // Add any additional submission data
-        if (additionalSubmission) {
-            Object.assign(updateData, additionalSubmission);
-        }
-
-        const updateResponse = await makeAuthenticatedRequest({
-            method: 'PUT',
-            url: `${TEKION_API_BASE}/activities/messages/${existingLogId}`,
-            data: updateData,
-            appId,
-            accessToken: user.platformAdditionalInfo.accessToken
-        });
-
-        return {
-            successful: true,
-            returnMessage: {
-                messageType: 'success',
-                message: `Message log updated in Tekion.`,
-                ttl: 3000
+        const getLogResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v3.1.0/appointments?id=${callLogId}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                'app_id': appId,
+                'Content-Type': 'application/json'
             }
-        };
+        });
+        console.log({message:'getLogResponse', Data: getLogResponse?.data?.data});
+        if(getLogResponse?.data?.data?.length > 0) {
+            const callLog = getLogResponse?.data?.data[0];
+            return {
+                successful: true,
+                callLogInfo: callLog,
+                note: callLog?.customerComments,
+                fullBody: callLog?.customerComments,
+                fullLogResponse: getLogResponse?.data?.data[0],
+                contactName: `${callLog?.customer?.firstName} ${callLog?.customer?.lastName}`
+
+            };
+        }
+        else {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Call log not found in Tekion.',
+                    ttl: 3000
+                }
+            };
+        }
+        
     } catch (e) {
-        console.error('Tekion updateMessageLog error:', e);
+        console.error({message:'Tekion getCallLog error:',ErrorDetails: e.response?.data?.message});
         return {
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Failed to update message log in Tekion.',
+                message: 'Failed to get call log in Tekion.',
                 ttl: 3000
             }
         };
     }
 }
-
-async function getLicenseStatus({ user, authHeader }) {
-    try {
-        // For now, assume license is valid if we can authenticate
-        return {
-            successful: true,
-            hasValidLicense: true
-        };
-    } catch (e) {
-        return {
-            successful: false,
-            hasValidLicense: false
-        };
-    }
-}
-
 module.exports = {
     getAuthType,
     getLogFormatType,
@@ -587,5 +563,7 @@ module.exports = {
     createMessageLog,
     updateMessageLog,
     getLicenseStatus,
-    getBasicAuth
+    getBasicAuth,
+    findContactWithName,
+    getCallLog
 };

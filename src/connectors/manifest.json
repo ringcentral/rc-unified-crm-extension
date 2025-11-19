@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+  "serverUrl": "https://installing-mats-button-oem.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1791,6 +1791,163 @@
           ]
         }
       ]
+    },
+    "tekion": {
+      "environment": {
+        "type": "dynamic",
+        "urlIdentifier": "*.tekioncloud.com",
+        "instructions": [
+          "Login to your Tekion account",
+          "Copy the whole url and paste it here"
+        ]
+      },
+      "developer": {
+        "name": "Sushil Mall",
+        "url": "https://github.com/sushilmall"
+      },
+      "urlIdentifier": "*.tekioncloud.com",
+      "logoUrl": "/Users/sushilmall/Downloads/TekionLogo.png",
+      "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/tekion/",
+      "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+      "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+      "name": "tekion",
+      "embedUrls": [
+        "https://*.tekioncloud.com/*"
+      ],
+      "serverSideLogging": {
+        "url": "https://crm-logging.labs.ringcentral.com",
+        "useAdminAssignedUserToken": false,
+        "enableUserMapping": true
+      },
+      "displayName": "Tekion",
+      "auth": {
+        "type": "apiKey",
+        "apiKey": {
+          "page": {
+            "title": "Tekion",
+            "warning": "Please enter your Tekion API credentials. You can find these in your Tekion account settings.",
+            "content": [
+              {
+                "const": "dealer_id",
+                "title": "Dealer ID",
+                "type": "string",
+                "required": true
+              },
+              {
+                "const": "emailId",
+                "title": "Email ID",
+                "type": "string",
+                "required": true
+              }
+            ]
+          }
+        }
+      },
+      "canOpenLogPage": false,
+      "contactPageUrl": "https://{hostname}/customer/{contactId}",
+      "contactTypes": [
+        {
+          "display": "Customer",
+          "value": "customer"
+        }
+      ],
+      "settings": [
+        {
+          "id": "tekionOptions",
+          "type": "section",
+          "name": "Tekion options",
+          "items": [
+            {
+              "id": "tekionPhoneFieldWarning",
+              "name": "Phone field search warning",
+              "type": "warning",
+              "value": "Note: Contact matching will search across multiple phone number fields"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "callLog": {
+          "additionalFields": []
+        },
+        "messageLog": {
+          "additionalFields": []
+        },
+        "feedback": {
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
+          "elements": [
+            {
+              "const": "pageDescription",
+              "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+              "type": "string",
+              "bold": false
+            },
+            {
+              "const": "scoreDescription",
+              "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+              "type": "string",
+              "bold": true
+            },
+            {
+              "const": "score",
+              "title": "Score from 1 to 10",
+              "type": "selection",
+              "selections": [
+                {
+                  "const": "1",
+                  "title": "1"
+                },
+                {
+                  "const": "2",
+                  "title": "2"
+                },
+                {
+                  "const": "3",
+                  "title": "3"
+                },
+                {
+                  "const": "4",
+                  "title": "4"
+                },
+                {
+                  "const": "5",
+                  "title": "5"
+                },
+                {
+                  "const": "6",
+                  "title": "6"
+                },
+                {
+                  "const": "7",
+                  "title": "7"
+                },
+                {
+                  "const": "8",
+                  "title": "8"
+                },
+                {
+                  "const": "9",
+                  "title": "9"
+                },
+                {
+                  "const": "10",
+                  "title": "10"
+                }
+              ],
+              "required": true
+            },
+            {
+              "const": "feedback",
+              "title": "Feedback",
+              "type": "inputField",
+              "placeholder": "Please share your feedback...",
+              "required": true
+            }
+          ]
+        },
+        "useContactSearch": true
+      }
     }
   },
   "version": "1.6.10"

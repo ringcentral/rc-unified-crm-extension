@@ -15,6 +15,7 @@ const insightly = require('./connectors/insightly');
 const netsuite = require('./connectors/netsuite');
 const pipedrive = require('./connectors/pipedrive');
 const redtail = require('./connectors/redtail');
+const tekion = require('./connectors/tekion');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 
@@ -29,6 +30,7 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
+connectorRegistry.registerConnector('tekion', tekion);
 connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality

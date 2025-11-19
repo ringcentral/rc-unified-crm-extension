@@ -65,6 +65,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
 }
 
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo }) {
+    console.log({message:'onApiKeyLogin', platform, hostname, apiKey, proxyId, additionalInfo});
     const platformModule = connectorRegistry.getConnector(platform);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey, proxyId });
