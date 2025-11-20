@@ -488,8 +488,107 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
     }
 }
 
-async function updateCallLog({ user, existingLogId, contactInfo, callLog, authHeader, additionalSubmission }) {
-    
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+
+    try {
+        const accessToken = await getAccessToken();
+        const appId = process.env.TEKION_APP_ID;
+
+        // Get the appointment ID from existingCallLog
+        const appointmentId = existingCallLog.thirdPartyLogId;
+        
+        // Use existing appointment data and only update customerComments
+        const existingAppointment = existingCallLogDetails || {};
+        
+        // Build updated customer comments with subject and note
+        let updatedComments = '';
+        
+        // Always use individual note and subject if provided, otherwise use composedLogDetails
+        if (note || subject) {
+            // Build formatted comments with updated note and subject
+            const commentParts = [];
+            if (note) commentParts.push(note);
+            if (subject) commentParts.push(`- Summary: ${subject}`);
+            
+            // Add other existing details if they exist in existing appointment
+            const existingComments = existingAppointment.customerComments || '';
+            const existingLines = existingComments.split('\n');
+            
+            // Preserve non-note, non-summary lines (like Contact Number, Date/Time, Duration, Result)
+            const preservedLines = existingLines.filter(line => 
+                !line.includes('- Note:') && 
+                !line.includes('- Summary:') &&
+                !line.includes(' | ') &&
+                line.trim().length > 0 &&
+                (line.includes('- Contact Number:') || 
+                 line.includes('- Date/Time:') || 
+                 line.includes('- Duration:') || 
+                 line.includes('- Result:'))
+            );
+            
+            let baseComment = commentParts.join(' | ');
+            if (preservedLines.length > 0) {
+                baseComment += '\n' + preservedLines.join('\n');
+            }
+            
+            updatedComments = baseComment;
+        } else if (composedLogDetails) {
+            updatedComments = composedLogDetails;
+        } else {
+            updatedComments = existingAppointment.customerComments || '';
+        }
+        
+        // Ensure required fields are present with defaults if missing
+        const updateCallLogBody = {
+            ...existingAppointment,  // Use all existing appointment data
+            id: appointmentId,       // Add/override the ID
+            customerComments: updatedComments,  // Update only the comments
+            // Ensure required fields are present
+            jobs: existingAppointment.jobs || [],
+            customer: {
+                ...existingAppointment.customer,
+                phones: existingAppointment.customer?.phones || [
+                    {
+                        phoneType: "HOME",
+                        number:  "",
+                        isPrimary: false
+                    }
+                ]
+            }
+        };
+
+        console.log({message: 'Updating appointment with data', updateCallLogBody});
+
+        const updateResponse = await axios.put(`https://api-sandbox.tekioncloud.com/openapi/v3.1.0/appointments`, updateCallLogBody, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                'app_id': appId,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log({message:'updateResponse', Data: updateResponse?.data?.data});
+        
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'Call log updated in Tekion.',
+                ttl: 3000
+            }
+        };
+    } catch (e) {
+        console.error({message:'Tekion updateCallLog error:',e, ErrorDetails: e.response?.data?.message});
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to update call log in Tekion.',
+                ttl: 3000
+            }
+        };
+    }
 }
 
 async function createMessageLog({ user, contactInfo, message, authHeader, additionalSubmission }) {
@@ -561,6 +660,12 @@ async function getCallLog({ user, callLogId, authHeader }) {
         };
     }
 }
+
+async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
+    return{
+        logId: existingCallLog.thirdPartyLogId
+    }
+}
 module.exports = {
     getAuthType,
     getLogFormatType,
@@ -575,5 +680,6 @@ module.exports = {
     getLicenseStatus,
     getBasicAuth,
     findContactWithName,
-    getCallLog
+    getCallLog,
+    upsertCallDisposition
 };
