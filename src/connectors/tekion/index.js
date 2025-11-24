@@ -412,25 +412,30 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
 
         console.log({firstName, middleName, lastName});
 
-        // Prepare contact data for Tekion API with the required structure
+        // Prepare contact data for Tekion API v3.1.0 structure
         const newContactData = {
+            customerType: "INDIVIDUAL",
+            firstName: firstName,
+            lastName: lastName,
+            middleName: middleName || "",
+            companyName:"", // Use middleName as company if provided
             status: "ACTIVE",
-            customerDetails: {
-                customerType: "INDIVIDUAL",
-                name: {
-                    firstName: firstName,
-                    middleName: middleName,
-                    lastName: lastName
-                        
-                    }
-            }
+            phones: [
+                {
+                    phoneType: "MOBILE",
+                    number: phoneNumber || "",
+                    isPrimary: true
+                }
+            ],
+            preferredContactType: "Call",
+            email: ""
         };
 
         console.log({message: 'Creating contact with data', newContactData});
 
-        // Make the API call to create contact
+        // Make the API call to create contact using v3.1.0 endpoint
         const createResponse = await axios.post(
-            'https://api-sandbox.tekioncloud.com/openapi/v4.0.0/customers',
+            'https://api-sandbox.tekioncloud.com/openapi/v3.1.0/customers',
             newContactData,
             {
                 headers: {
@@ -449,8 +454,9 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
             successful: true,
             contactInfo: {
                 id: newContact?.data?.id,
-                name: `${firstName} ${middleName} ${lastName}`.trim().replace(/\s+/g, ' '),
-                type: 'customer'
+                name: `${firstName} ${lastName}`.trim(),
+                type: 'customer',
+                phoneNumber: phoneNumber
             },
             returnMessage: {
                 messageType: 'success',
