@@ -1,9 +1,8 @@
 # RingSense Insights Logging
 
-!!! info "RingSense license required"
+<!-- md:version 1.6.12 -->
 
-!!! warning "RingSense support is a Work in Progress"
-    The feature is now available in the [2.0 beta](../2.0/index.md). RingSense support in 1.6.x is currently under development.
+!!! info "RingSense license required"
 
 !!! warning "Not all CRM yet support RingSense"
     Not all CRM connectors currently support RingSense logging. Check with the maintainers of your CRM connector for compatibility and availability.
@@ -35,11 +34,8 @@ Before enabling this feature, ensure the following requirements are met:
 2. Open the **Admin** panel.  
 3. Navigate to the call logging settings:  
    > **Route:** `Admin` → `Managed settings` → `Activity logging` → `Call log details`
-4. In **Call log details**, enable the **RingSense fields** you want to sync.
-5. Ensure [server-side logging](./server-side-logging.md) is enabled.
-   **Important:**
-   - If server-side logging was already enabled, you must click **Save** server-side logging button again to activate RingSense support.  
-   - Any time call log detail settings are updated, the admin must re-save the server-side logging settings to apply the changes.
+4. Ensure [server-side logging](./server-side-logging.md) is enabled.
+5. In **Call log details**, enable the **RingSense fields** you want to sync.
 
 ---
 
