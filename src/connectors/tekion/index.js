@@ -17,12 +17,14 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
+// Tekion uses apiKey authentication with custom token management
+
 function getBasicAuth({ apiKey }) {
     return Buffer.from(`${apiKey}`).toString('base64');
 }
 
-// Helper function to get access token
-async function getAccessToken() {
+// Helper function to get access token (for initial generation)
+async function generateAccessToken() {
     try {
         // Create form-encoded data as required by Tekion API
         const params = new URLSearchParams();
@@ -35,11 +37,86 @@ async function getAccessToken() {
             }
         });
         console.log({message:'accessToken response', AccessToken: response.data?.data?.access_token});
-        return response?.data?.data?.access_token;
+        return {
+            access_token: response.data?.data?.access_token,
+            expires_in: response.data?.data?.expires_in || 3600 // Default to 1 hour if not provided
+        };
     } catch (error) {
         console.error('Error getting Tekion access token:', error);
         throw error;
     }
+}
+
+// Custom token management for Tekion with apiKey authentication
+async function checkAndRefreshAccessToken(user, tokenLockTimeout = 20) {
+    const now = moment();
+    const tekionAccessToken = user.platformAdditionalInfo?.tekionAccessToken;
+    const tokenExpiry = user.platformAdditionalInfo?.tekionTokenExpiry ? moment(user.platformAdditionalInfo.tekionTokenExpiry) : null;
+    const expiryBuffer = 2; // 2 minutes
+
+    // Check if token will expire within the buffer time or doesn't exist
+
+    if (!tekionAccessToken || !tokenExpiry || tokenExpiry.isBefore(now.clone().add(expiryBuffer, 'minutes'))) {
+        console.log('Tekion token needs refresh or generation...');
+        
+        try {
+            const tokenResponse = await generateAccessToken();
+            
+            // Update user with new token in platformAdditionalInfo
+            user.platformAdditionalInfo = {
+                ...user.platformAdditionalInfo,
+                tekionAccessToken: tokenResponse.access_token,
+                tekionTokenExpiry: now.clone().add(tokenResponse.expires_in, 'seconds').toDate()
+            };
+            
+            await user.save();
+            console.log('Tekion token refreshed/generated successfully');
+        } catch (error) {
+            console.error('Error refreshing Tekion token:', error);
+            throw error;
+        }
+    }
+    
+    return user;
+}
+
+// Helper function to get current valid access token
+async function getCurrentAccessToken(user) {
+    const tekionAccessToken = user.platformAdditionalInfo?.tekionAccessToken;
+    const tokenExpiry = user.platformAdditionalInfo?.tekionTokenExpiry;
+    
+    console.log({message:'getCurrentAccessToken', user: user.id, tekionAccessToken, tokenExpiry});
+    
+    if (!tekionAccessToken) {
+        // Generate initial token
+        const tokenResponse = await generateAccessToken();
+        user.platformAdditionalInfo = {
+            ...user.platformAdditionalInfo,
+            tekionAccessToken: tokenResponse.access_token,
+            tekionTokenExpiry: moment().add(tokenResponse.expires_in, 'seconds').toDate()
+        };
+        await user.save();
+        return tokenResponse.access_token;
+    }
+    
+    // Check if token needs refresh
+    const now = moment();
+    const expiryMoment = moment(tokenExpiry);
+    const expiryBuffer = 2; // 2 minutes
+    
+    if (expiryMoment.isBefore(now.clone().add(expiryBuffer, 'minutes'))) {
+        // Token needs refresh
+        const tokenResponse = await generateAccessToken();
+        user.platformAdditionalInfo = {
+            ...user.platformAdditionalInfo,
+            tekionAccessToken: tokenResponse.access_token,
+            tekionTokenExpiry: now.clone().add(tokenResponse.expires_in, 'seconds').toDate()
+        };
+        await user.save();
+        return tokenResponse.access_token;
+    }
+    
+    return tekionAccessToken;
 }
 
 // Helper function to make authenticated API requests
@@ -62,24 +139,22 @@ async function makeAuthenticatedRequest({ method, url, data, appId, accessToken 
 }
 
 async function getUserInfo({ authHeader, additionalInfo }) {
-
     console.log({message:'getUserInfo', authHeader, additionalInfo});
     try {
         const { dealer_id, emailId } = additionalInfo;
-        // Get access token
-        const accessToken = await getAccessToken();
+        
+        // Generate initial access token
+        const tokenResponse = await generateAccessToken();
+        const accessToken = tokenResponse.access_token;
+        const expiresIn = tokenResponse.expires_in;
 
         console.log({message:'accessToken fetched successfully', accessToken});
-        
-        // Store access token for future use
-        additionalInfo.accessToken = accessToken;
 
         const userInfoResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v4.0.0/users?email=${emailId}`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'dealer_id': dealer_id,
                 'app_id': process.env.TEKION_APP_ID
-
             }
         });
 
@@ -91,6 +166,10 @@ async function getUserInfo({ authHeader, additionalInfo }) {
             const name = userData?.userNameDetails?.firstName + ' ' + userData?.userNameDetails?.lastName;
             const timezoneName = null;
             let timezoneOffset = null;
+            
+            // Calculate token expiry
+            const tokenExpiry = moment().add(expiresIn, 'seconds').toDate();
+            
             return {
                 successful: true,
                 platformUserInfo: {
@@ -100,7 +179,9 @@ async function getUserInfo({ authHeader, additionalInfo }) {
                     timezoneOffset,
                     platformAdditionalInfo: {
                         dealer_id: dealer_id,
-                        emailId: emailId
+                        emailId: emailId,
+                        tekionAccessToken: accessToken,
+                        tekionTokenExpiry: tokenExpiry
                     }
                 },
                 returnMessage: {
@@ -120,8 +201,6 @@ async function getUserInfo({ authHeader, additionalInfo }) {
                 }
             };
         }
-
-        
     } catch (e) {
         console.error('Tekion getUserInfo error:', e);
         return {
@@ -148,11 +227,13 @@ async function getUserInfo({ authHeader, additionalInfo }) {
 }
 
 async function unAuthorize({ user }) {
-    // Clear user credentials
-    user.accessToken = '';
-    user.refreshToken = '';
+    // Clear Tekion credentials from platformAdditionalInfo
     if (user.platformAdditionalInfo) {
-        user.platformAdditionalInfo.accessToken = '';
+        user.platformAdditionalInfo = {
+            ...user.platformAdditionalInfo,
+            tekionAccessToken: '',
+            tekionTokenExpiry: null
+        };
     }
     await user.save();
     
@@ -166,8 +247,6 @@ async function unAuthorize({ user }) {
 }
 
 async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
-
-    
     phoneNumber = phoneNumber.replace(' ', '+')
     // without + is an extension, we don't want to search for that
     if (!phoneNumber.includes('+')) {
@@ -190,8 +269,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
     const matchedContactInfo = [];
     try {
-       const accessToken = await getAccessToken();
-       const appId=process.env.TEKION_APP_ID;
+       // Use stored token with automatic refresh
+       const accessToken = await getCurrentAccessToken(user);
+       const appId = process.env.TEKION_APP_ID;
         
        const customerSearchResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v4.0.0/customers?phone=${phoneNumberWithoutCountryCode}`, {
         headers: {
@@ -224,7 +304,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             matchedContactInfo
         };
     } catch (e) {
-        console.error('Tekion findContact error:', e);
+        console.error({m:'Tekion findContact error:',e, ErrorDetails: e.response?.data?.errorDetails});
         return {
             successful: false,
             returnMessage: {
@@ -246,8 +326,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             matchedContactInfo
         };
     }
-
-   
 }
 
 async function findContactWithName({ user, authHeader, name }) {
@@ -263,7 +341,8 @@ async function findContactWithName({ user, authHeader, name }) {
         
         console.log({message:'parsed name parts', firstName, lastName});
         
-        const accessToken = await getAccessToken();
+        // Use stored token with automatic refresh
+        const accessToken = await getCurrentAccessToken(user);
         const appId = process.env.TEKION_APP_ID;
          
         // Build query parameters
@@ -327,8 +406,8 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
         const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
         const middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
 
-        // Get access token and app ID
-        const accessToken = await getAccessToken();
+        // Use stored token with automatic refresh
+        const accessToken = await getCurrentAccessToken(user);
         const appId = process.env.TEKION_APP_ID;
 
         console.log({firstName, middleName, lastName});
@@ -397,7 +476,8 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
     try {
         console.log({message:'createCallLog', note, composedLogDetails, callLogNote: callLog.note});
 
-        const accessToken = await getAccessToken();
+        // Use stored token with automatic refresh
+        const accessToken = await getCurrentAccessToken(user);
         const appId = process.env.TEKION_APP_ID;
 
         // Schedule appointment for 2 hours from now to ensure slot availability
@@ -491,7 +571,8 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
 
     try {
-        const accessToken = await getAccessToken();
+        // Use stored token with automatic refresh
+        const accessToken = await getCurrentAccessToken(user);
         const appId = process.env.TEKION_APP_ID;
 
         // Get the appointment ID from existingCallLog
@@ -603,7 +684,8 @@ async function getLicenseStatus({ user, authHeader }) {
 
 async function getCallLog({ user, callLogId, authHeader }) {
     try {
-        const accessToken = await getAccessToken();
+        // Use stored token with automatic refresh
+        const accessToken = await getCurrentAccessToken(user);
         const appId = process.env.TEKION_APP_ID;
 
         const getLogResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v3.1.0/appointments?id=${callLogId}`, {
@@ -681,5 +763,6 @@ module.exports = {
     getBasicAuth,
     findContactWithName,
     getCallLog,
-    upsertCallDisposition
+    upsertCallDisposition,
+    checkAndRefreshAccessToken
 };
