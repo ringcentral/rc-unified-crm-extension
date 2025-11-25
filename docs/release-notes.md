@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.7.4
+
+- New: Auto restart server-side logging when call log details setting changed
+- New: Support to change quick access button size
+- New: Support to open log form when during a call
+- Fix: An edge case of unwanted call log in call queue scenario
+
 ## 1.7.3
 
 - New: RingSense data logging in server side logging
@@ -18,6 +25,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.12
+
+- New: Support RingSense logging with server-side logging
+- Fix: An edge case of unwanted call log in call queue scenario
 
 ## 1.6.11
 
