@@ -1,4 +1,24 @@
 {
+    "1.7.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Auto restart server-side logging when call log details setting changed"
+            },
+            {
+                "type": "New",
+                "description": "Support to change quick access button size"
+            },
+            {
+                "type": "New",
+                "description": "Support to open log form when during a call"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
+            }
+        ]
+    },
     "1.7.3": {
         "global": [
             {
@@ -45,7 +65,19 @@
             }
         ]
     },
-    "1.6.11":{
+    "1.6.12": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Support RingSense logging with server-side logging"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
+            }
+        ]
+    },
+    "1.6.11": {
         "global": [
             {
                 "type": "Fix",

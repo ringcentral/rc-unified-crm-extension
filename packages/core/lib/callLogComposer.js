@@ -530,7 +530,7 @@ function upsertAiNote({ body, aiNote, logFormat }) {
         if (aiNoteRegex.test(result)) {
             result = result.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
         } else {
-            result += `- AI Note:\n${clearedAiNote}\n--- END\n`;
+            result += `\n- AI Note:\n${clearedAiNote}\n--- END\n`;
         }
     }
     return result;
@@ -562,7 +562,7 @@ function upsertTranscript({ body, transcript, logFormat }) {
         if (transcriptRegex.test(result)) {
             result = result.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
         } else {
-            result += `- Transcript:\n${transcript}\n--- END\n`;
+            result += `\n- Transcript:\n${transcript}\n--- END\n`;
         }
     }
     return result;
@@ -668,7 +668,7 @@ function upsertRingSenseTranscript({ body, transcript, logFormat }) {
         if (transcriptRegex.test(result)) {
             result = result.replace(transcriptRegex, `- RingSense transcript:\n${clearedTranscript}\n--- END`);
         } else {
-            result += `- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
+            result += `\n- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
         }
     }
     return result;
@@ -700,7 +700,7 @@ function upsertRingSenseSummary({ body, summary, logFormat }) {
         if (summaryRegex.test(result)) {
             result = result.replace(summaryRegex, `- RingSense summary:\n${summary}\n--- END`);
         } else {
-            result += `- RingSense summary:\n${summary}\n--- END\n`;
+            result += `\n- RingSense summary:\n${summary}\n--- END\n`;
         }
     }
     return result;
@@ -760,7 +760,7 @@ function upsertRingSenseBulletedSummary({ body, summary, logFormat }) {
         if (summaryRegex.test(result)) {
             result = result.replace(summaryRegex, `- RingSense bulleted summary:\n${summary}\n--- END`);
         } else {
-            result += `- RingSense bulleted summary:\n${summary}\n--- END\n`;
+            result += `\n- RingSense bulleted summary:\n${summary}\n--- END\n`;
         }
     }
     return result;
