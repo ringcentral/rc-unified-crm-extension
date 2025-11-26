@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://airline-constant-read-direct.trycloudflare.com",
+  "serverUrl": "https://tomatoes-tired-larger-guides.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1850,22 +1850,13 @@
         {
           "display": "Customer",
           "value": "customer"
+        },
+        {
+          "display": "Lead",
+          "value": "lead"
         }
       ],
       "settings": [
-        {
-          "id": "tekionOptions",
-          "type": "section",
-          "name": "Tekion options",
-          "items": [
-            {
-              "id": "tekionPhoneFieldWarning",
-              "name": "Phone field search warning",
-              "type": "warning",
-              "value": "Note: Contact matching will search across multiple phone number fields"
-            }
-          ]
-        }
       ],
       "page": {
         "callLog": {

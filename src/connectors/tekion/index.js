@@ -300,6 +300,30 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 });
             }
         }
+
+        const leadSearchResponse = await axios.get(`https://api-sandbox.tekioncloud.com/openapi/v3.1.0/crm-leads?phone=${phoneNumberWithoutCountryCode}`, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                'app_id': appId
+            }
+        });
+        console.log({message:'leadSearchResponse', Data: leadSearchResponse?.data?.data});
+
+        if (leadSearchResponse?.data?.data?.length > 0) {
+            for (const lead of leadSearchResponse.data.data) {
+                let firstName = lead?.customers?.length > 0 ? lead?.customers[0]?.firstName : "";
+                let middleName = lead?.customers?.length > 0 ? lead?.customers[0]?.middleName : "";
+                let lastName = lead?.customers?.length > 0 ? lead?.customers[0]?.lastName : "";
+                let leadName = [firstName, middleName, lastName].filter(part => part && part.trim().length > 0).join(' ');
+                matchedContactInfo.push({
+                    id: lead.id,
+                    name: leadName,
+                    additionalInfo: lead
+                });
+            }
+        }
+
         return {
             successful: true,
             matchedContactInfo
@@ -399,7 +423,7 @@ async function findContactWithName({ user, authHeader, name }) {
 async function createContact({ user, authHeader, contactInfo,phoneNumber, newContactName, newContactType}) {
     try {
        
-        console.log({message:'createContact', newContactName});
+        console.log({message:'createContact', newContactName, phoneNumber, newContactType});
 
         // Parse the contact name
         const nameParts = (newContactName || '').split(' ').filter(part => part.trim().length > 0);
@@ -412,6 +436,12 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
         const appId = process.env.TEKION_APP_ID;
 
         console.log({firstName, middleName, lastName});
+
+        const phoneNumberObj = parsePhoneNumber(phoneNumber);
+    let phoneNumberWithoutCountryCode = phoneNumber;
+    if (phoneNumberObj.valid) {
+        phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
+    }
 
         // Prepare contact data for Tekion API v3.1.0 structure
         const newContactData = {
@@ -432,12 +462,64 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
             email: ""
         };
 
-        console.log({message: 'Creating contact with data', newContactData});
+        if(newContactType === 'customer'){
+            const createResponse = await axios.post(
+                'https://api-sandbox.tekioncloud.com/openapi/v3.1.0/customers',
+                newContactData,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'dealer_id': user?.platformAdditionalInfo?.dealer_id,
+                        'app_id': appId,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+    
+            const newContact = createResponse.data;
+            
+            return {
+                successful: true,
+                contactInfo: {
+                    id: newContact?.id,
+                    name: `${firstName} ${lastName}`.trim(),
+                    type: 'customer',
+                    phoneNumber: phoneNumber
+                },
+                returnMessage: {
+                    messageType: 'success',
+                    message: `Contact created in Tekion.`,
+                    ttl: 3000
+                }
+            };
+        }
+        else if(newContactType === 'lead'){
+           const leadRequestBody = {
+            status: "ACTIVE",
+            department: "SALES",
+            source: {
+                sourceType: "INTERNET",
+                sourceName: "App Connect"
+            },
+            customers:[
+                {
+                    type:"BUYER",
+                    firstName:firstName,
+                    lastName:lastName,
+                    middleName:middleName,
+                    phones: [
+                        {
+                            type: "WORK",
+                            number: phoneNumberWithoutCountryCode
+                        }
+                    ]
+                }
+            ]
 
-        // Make the API call to create contact using v3.1.0 endpoint
-        const createResponse = await axios.post(
-            'https://api-sandbox.tekioncloud.com/openapi/v3.1.0/customers',
-            newContactData,
+           };
+           const leadResponse = await axios.post(
+            'https://api-sandbox.tekioncloud.com/openapi/v3.1.0/crm-leads',
+            leadRequestBody,
             {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -446,24 +528,34 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
                     'Content-Type': 'application/json'
                 }
             }
-        );
-
-        const newContact = createResponse.data;
-        
-        return {
+           );
+           const newLead = leadResponse.data;
+           console.log({message:'newLead', newLead, Id: newLead?.data?.id});
+           return {
             successful: true,
             contactInfo: {
-                id: newContact?.id,
+                id: newLead?.data?.id,
                 name: `${firstName} ${lastName}`.trim(),
-                type: 'customer',
+                type: 'lead',
                 phoneNumber: phoneNumber
             },
             returnMessage: {
                 messageType: 'success',
-                message: `Contact created in Tekion.`,
+                message: `Lead created in Tekion.`,
                 ttl: 3000
             }
-        };
+           };
+        }
+        else{
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Invalid contact type.',
+                    ttl: 3000
+                }
+            };
+        }
     } catch (e) {
         console.error({message:'Tekion createContact error:',ErrorDetails: e.response?.data?.errorDetails});
         return {
@@ -543,7 +635,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
             shopId: "accf06b4-0bb1-404e-9eec-4461c1ff7022",
             transportationTypeId: "2c845b8d-a5cd-4fd1-8761-a5d302e79949",
             serviceAdvisorId: "TEK00",
-            appointmentDateTime: 1783928982048, //TODO: Replace with futureAppointmentTime
+            appointmentDateTime: 1745928982040, //TODO: Replace with futureAppointmentTime
             customer: {
                 id: contactInfo.id,
                 customerType: "INDIVIDUAL",
