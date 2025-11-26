@@ -635,7 +635,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
             shopId: "accf06b4-0bb1-404e-9eec-4461c1ff7022",
             transportationTypeId: "2c845b8d-a5cd-4fd1-8761-a5d302e79949",
             serviceAdvisorId: "TEK00",
-            appointmentDateTime: 1745928982040, //TODO: Replace with futureAppointmentTime
+            appointmentDateTime: 1764155528, //TODO: Replace with futureAppointmentTime
             customer: {
                 id: contactInfo.id,
                 customerType: "INDIVIDUAL",
@@ -645,7 +645,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
                 phones: [
                     {
                         phoneType: "HOME",
-                        number: callLog.fromNumber || callLog.toNumber || "",
+                        number: contactInfo.phoneNumber || "",
                         isPrimary: false
                     }
                 ],
@@ -710,6 +710,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
 
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
 
+    console.log({message:'updateCallLog', existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId});
     try {
         // Use stored token with automatic refresh
         const accessToken = await getCurrentAccessToken(user);
@@ -840,13 +841,37 @@ async function getCallLog({ user, callLogId, authHeader }) {
         if(getLogResponse?.data?.data?.length > 0) {
             const callLog = getLogResponse?.data?.data[0];
             
-            // Extract the original note from customerComments (before the " | " separator)
             const customerComments = callLog?.customerComments || '';
-            const originalNote = customerComments.split(' | ')[0] || '';
+            let originalNote = '';
+            let subject = '';
             
-            // Extract subject from "- Summary: " line in customerComments
-            const summaryMatch = customerComments.match(/- Summary: (.*?)(?=\n|$)/);
-            const subject = summaryMatch ? summaryMatch[1].trim() : '';
+            // Check if customerComments has the " | " separator format
+            if (customerComments.includes(' | ')) {
+                // Extract the original note from customerComments (before the " | " separator)
+                originalNote = customerComments.split(' | ')[0] || '';
+                
+                // Extract subject from "- Summary: " line in customerComments
+                const summaryMatch = customerComments.match(/- Summary: (.*?)(?=\n|$)/);
+                subject = summaryMatch ? summaryMatch[1].trim() : '';
+            } else {
+                // Handle cases where customerComments contains formatted content without pipe separator
+                // Look for "- Note: " pattern to extract just the note content
+                const noteMatch = customerComments.match(/- Note: (.*?)(?=\n|$)/);
+                if (noteMatch) {
+                    originalNote = noteMatch[1].trim();
+                } else {
+                    // If no "- Note: " pattern, check if the first line before any "- " patterns is the note
+                    const lines = customerComments.split('\n');
+                    const firstLine = lines[0]?.trim();
+                    if (firstLine && !firstLine.startsWith('- ')) {
+                        originalNote = firstLine;
+                    }
+                }
+                
+                // Extract subject from "- Summary: " line in customerComments
+                const summaryMatch = customerComments.match(/- Summary: (.*?)(?=\n|$)/);
+                subject = summaryMatch ? summaryMatch[1].trim() : '';
+            }
             
             return {
                 successful: true,
