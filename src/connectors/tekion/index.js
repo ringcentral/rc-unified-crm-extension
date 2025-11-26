@@ -264,6 +264,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     if (phoneNumberObj.valid) {
         phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     }
+    
 
     console.log({platformAdditionalInfo: user.platformAdditionalInfo});
 
@@ -448,12 +449,11 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
         );
 
         const newContact = createResponse.data;
-        console.log({message: 'Contact created successfully', newContact});
         
         return {
             successful: true,
             contactInfo: {
-                id: newContact?.data?.id,
+                id: newContact?.id,
                 name: `${firstName} ${lastName}`.trim(),
                 type: 'customer',
                 phoneNumber: phoneNumber
@@ -477,10 +477,17 @@ async function createContact({ user, authHeader, contactInfo,phoneNumber, newCon
     }
 }
 
-async function createCallLog({ user, contactInfo, callLog, authHeader, additionalSubmission, isNew, note, composedLogDetails }) {
+async function createCallLog({ user, contactInfo, callLog, authHeader, additionalSubmission, isNew, note, composedLogDetails,aiNote,
+    transcript,
+    ringSenseTranscript,
+    ringSenseSummary,
+    ringSenseAIScore,
+    ringSenseBulletedSummary,
+    ringSenseLink,
+    hashedAccountId }) {
 
     try {
-        console.log({message:'createCallLog', note, composedLogDetails, callLogNote: callLog.note});
+        console.log({user, contactInfo, callLog, authHeader, additionalSubmission, isNew, note, composedLogDetails});
 
         // Use stored token with automatic refresh
         const accessToken = await getCurrentAccessToken(user);
@@ -490,12 +497,47 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
         const futureAppointmentTime = Date.now() + (2 * 60 * 60 * 1000); // 2 hours from now
         
         // Combine all available notes/comments
-        const allComments = [
-            callLog.note,
-            note,
-            composedLogDetails
-        ].filter(comment => comment && comment.trim().length > 0).join(' | ');
-        
+        // const allComments = [
+        //     callLog.note,
+        //     note,
+        //     composedLogDetails
+        // ].filter(comment => comment && comment.trim().length > 0).join(' | ');
+
+        // const customerPhoneDetails = extractPhoneDetails(contactInfo.phoneNumber);
+        // console.log({message: 'Extracted phone details', customerPhoneDetails, originalPhone: contactInfo.phoneNumber});
+
+        // const createCallLogData={
+        //     externalId:callLog?.sessionId,
+        //     direction:callLog?.direction,
+        //     department:"RETAIL", //Hardcoded for now
+        //     createdByUserId:user?.platformAdditionalInfo?.id, //TODO: need to check if customer id need to replace
+        //     createdBySource:"APP_CONNECT",
+        //     communicationDetail: {
+        //         callDetails: {
+        //             startTime: callLog.startTime,
+        //             endTime: callLog.endTime,
+        //             duration: callLog.duration,
+        //             status: callLog.result,
+        //             notes:  [
+        //                 note??"",
+        //             ]
+        //         },
+        //         customer: {
+        //             phone: {
+        //                 countryCode: customerPhoneDetails.countryCode,
+        //                 number: customerPhoneDetails.number
+        //             }
+        //         },
+        //         employee: {
+        //             id: user?.id,
+        //             phone:{
+        //                 countryCode: customerPhoneDetails.countryCode,
+        //                 number: customerPhoneDetails.number
+        //             }
+
+        //         }
+        //     }
+        // }
         // Prepare call log data for Tekion API
         const callLogData = {
             shopId: "accf06b4-0bb1-404e-9eec-4461c1ff7022",
@@ -527,7 +569,7 @@ async function createCallLog({ user, contactInfo, callLog, authHeader, additiona
             deliveryContact: {},
             jobs: [],
             notifyCustomer: false,
-            customerComments: allComments || "Appointment created from call log",
+            customerComments: composedLogDetails || "Appointment created from call log",
             postTaxTotalAmount: {
                 amount: 1,
                 currency: "USD"
@@ -754,6 +796,44 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         logId: existingCallLog.thirdPartyLogId
     }
 }
+
+// Extract phone number and country code
+const extractPhoneDetails = (phoneNumber) => {
+    if (!phoneNumber) return { countryCode: '+1', number: '' };
+    
+    try {
+        const phoneObj = parsePhoneNumber(phoneNumber);
+        if (phoneObj.valid) {
+            return {
+                countryCode: `+${phoneObj.countryCode}`,
+                number: phoneObj.number.significant
+            };
+        }
+    } catch (error) {
+        console.log('Error parsing phone number:', error);
+    }
+    
+    // Fallback: Manual parsing for common formats
+    if (phoneNumber.startsWith('+')) {
+        if (phoneNumber.startsWith('+1') && phoneNumber.length === 12) {
+            return {
+                countryCode: '+1',
+                number: phoneNumber.substring(2)
+            };
+        }
+        // Add more country code patterns as needed
+        return {
+            countryCode: '+1', // Default
+            number: phoneNumber.replace(/[^\d]/g, '')
+        };
+    }
+    
+    // No country code, assume US/Canada (+1)
+    return {
+        countryCode: '+1',
+        number: phoneNumber.replace(/[^\d]/g, '')
+    };
+};
 module.exports = {
     getAuthType,
     getLogFormatType,
