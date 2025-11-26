@@ -155,6 +155,7 @@ function createCoreRouter() {
                 result.getUserList = !!platformModule.getUserList;
                 result.getLicenseStatus = !!platformModule.getLicenseStatus;
                 result.getLogFormatType = !!platformModule.getLogFormatType;
+                result.cacheCallNote = !!process.env.USE_CACHE;
                 res.status(200).send(result);
             }
             else {
