@@ -359,6 +359,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const getLogResult = await platformModule.getCallLog({
                         user,
                         callLogId: existingCallLog.thirdPartyLogId,
+                        contactId: existingCallLog.contactId,
                         authHeader,
                         proxyConfig,
                     });
