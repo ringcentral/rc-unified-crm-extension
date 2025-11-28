@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+  "serverUrl": "https://contracts-part-collectors-cream.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1536,10 +1536,12 @@
           "customState": "platform=googleSheets"
         }
       },
+       "settings": [
+        
+      ],
       "platform": "googleSheets",
       "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
       "canOpenLogPage": false,
-      "settings": [],
       "page": {
         "callLog": {
           "additionalFields": []
