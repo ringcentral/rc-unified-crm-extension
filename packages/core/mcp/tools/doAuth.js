@@ -1,5 +1,7 @@
 const authCore = require('../../handlers/auth');
 const jwt = require('../../lib/jwt');
+const crypto = require('crypto');
+const { createAuthSession } = require('../../lib/authSession');
 /**
  * MCP Tool: Do Authentication
  * 
@@ -119,12 +121,22 @@ async function execute(args) {
                     }
                 }
                 else {
-                    const authUri = composeAuthUri({ platform });
+                    // Generate unique session ID
+                    const sessionId = crypto.randomUUID();
+                    
+                    // Store session
+                    await createAuthSession(sessionId, {
+                        platform: platform.name,
+                        hostname,
+                    });
+                    
+                    const authUri = composeAuthUri({ platform, sessionId, hostname });
                     return {
                         success: true,
                         data: {
                             authUri,
-                            message: "IMPORTANT: Show this uri rendered as a markdown link button for user to click and do OAuth. Tell the user copy and paste the whole redirect page url so you can get auth code",
+                            sessionId,
+                            message: "IMPORTANT: Show this uri as a clickable link for user to authorize. After user authorizes, use checkAuthStatus tool with this sessionId to get the jwtToken.",
                         }
                     }
                 }
@@ -139,17 +151,23 @@ async function execute(args) {
     }
 }
 
-function composeAuthUri({ platform }) {
+function composeAuthUri({ platform, sessionId, hostname }) {
     let customState = '';
     if (platform.auth.oauth.customState) {
         customState = platform.auth.oauth.customState;
     }
+    
+    // Include sessionId in state if provided
+    const stateParam = sessionId ? 
+        `sessionId=${sessionId}&platform=${platform.name}&hostname=${hostname}` : 
+        `platform=${platform.name}&hostname=${hostname}`;
+    
     return `${platform.auth.oauth.authUrl}?` +
         `response_type=code` +
         `&client_id=${platform.auth.oauth.clientId}` +
         `${!!platform.auth.oauth.scope && platform.auth.oauth.scope != '' ? `&${platform.auth.oauth.scope}` : ''}` +
-        `&state=${customState === '' ? `platform=${platform.name}` : customState}` +
-        `&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`;
+        `&state=${customState === '' ? encodeURIComponent(stateParam) : customState}` +
+        `&redirect_uri=${process.env.APP_SERVER}/oauth-callback`;
 }
 
 exports.definition = toolDefinition;

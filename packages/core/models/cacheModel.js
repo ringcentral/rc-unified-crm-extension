@@ -17,6 +17,9 @@ exports.CacheModel = sequelize.define('cache', {
     cacheKey: {
         type: Sequelize.STRING,
     },
+    data: {
+        type: Sequelize.JSON
+    },
     expiry: {
         type: Sequelize.DATE
     }

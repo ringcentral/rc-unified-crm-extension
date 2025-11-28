@@ -26,6 +26,7 @@ const calldown = require('./handlers/calldown');
 const mcpHandler = require('./mcp/mcpHandler');
 const logger = require('./lib/logger');
 const { handleDatabaseError } = require('./lib/errorHandler');
+const { updateAuthSession } = require('./lib/authSession');
 
 let packageJson = null;
 try {
@@ -672,15 +673,28 @@ function createCoreRouter() {
         const requestStartTime = new Date().getTime();
         let platformName = null;
         let success = false;
+        let sessionId = null;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
-                throw 'Missing callbackUri';
+                if (!req.query?.code) {
+                    throw 'Missing callbackUri';
+                }
+                else {
+                    // eslint-disable-next-line no-param-reassign
+                    req.query.callbackUri = `${process.env.APP_SERVER}/oauth-callback?code=${req.query.code}`;
+                }
             }
-            platformName = req.query.state ?
-                req.query.state.split('platform=')[1] :
-                decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
-            const hostname = req.query.hostname;
+            const stateParam = req.query.state ||
+                decodeURIComponent(req.originalUrl).split('state=')[1]?.split('&')[0];
+
+            // Extract sessionId if present
+            if (stateParam && stateParam.includes('sessionId=')) {
+                sessionId = stateParam.split('sessionId=')[1].split('&')[0];
+            }
+
+            platformName = stateParam?.split('platform=')[1].split('&')[0] || stateParam;
+            const hostname = req.query.hostname || stateParam?.split('hostname=')[1].split('&')[0];
             const tokenUrl = req.query.tokenUrl;
             if (!platformName) {
                 throw 'Missing platform name';
@@ -698,23 +712,56 @@ function createCoreRouter() {
                 apiUrl: req.query.apiUrl,
                 username: req.query.username,
                 query: req.query,
-                proxyId: req.query.proxyId
+                proxyId: req.query.proxyId,
+                isFromMCP: !!sessionId
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
                     platform: platformName
                 });
-                res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
-                success = true;
+
+                // Store in session if sessionId exists (MCP flow)
+                if (sessionId) {
+                    await updateAuthSession(sessionId, {
+                        status: 'completed',
+                        jwtToken,
+                        userInfo: {
+                            id: userInfo.id,
+                            name: userInfo.name
+                        }
+                    });
+                    res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
+                    success = true;
+                }
+                else{
+                    res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
+                    success = true;
+                }
+
             }
             else {
+                if (sessionId) {
+                    await updateAuthSession(sessionId, {
+                        status: 'failed',
+                        errorMessage: returnMessage?.message || 'Authentication failed'
+                    });
+                }
                 res.status(200).send({ returnMessage });
                 success = false;
             }
         }
         catch (e) {
             logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });
+
+            // Store failed status in session if sessionId exists
+            if (sessionId) {
+                await updateAuthSession(sessionId, {
+                    status: 'failed',
+                    errorMessage: e.message || e.toString()
+                });
+            }
+
             res.status(400).send(e);
             success = false;
         }

@@ -7,13 +7,13 @@ const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query, proxyId }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query, proxyId, isFromMCP = false }) {
     const platformModule = connectorRegistry.getConnector(platform);
     let proxyConfig = null;
     if (proxyId) {
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query?.rcAccountId, proxyId, proxyConfig });
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query?.rcAccountId, proxyId, proxyConfig, isFromMCP });
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,

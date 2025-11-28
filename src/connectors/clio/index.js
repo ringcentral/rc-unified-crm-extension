@@ -19,13 +19,13 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
-async function getOauthInfo({ hostname }) {
+async function getOauthInfo({ hostname, isFromMCP }) {
     if (hostname.startsWith('au.')) {
         return {
             clientId: process.env.CLIO_AU_CLIENT_ID,
             clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('eu.')) {
@@ -33,7 +33,7 @@ async function getOauthInfo({ hostname }) {
             clientId: process.env.CLIO_EU_CLIENT_ID,
             clientSecret: process.env.CLIO_EU_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_EU_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('ca.')) {
@@ -41,14 +41,14 @@ async function getOauthInfo({ hostname }) {
             clientId: process.env.CLIO_CA_CLIENT_ID,
             clientSecret: process.env.CLIO_CA_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_CA_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     } else {
         return {
             clientId: process.env.CLIO_CLIENT_ID,
             clientSecret: process.env.CLIO_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
 }
