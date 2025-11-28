@@ -132,6 +132,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
 
 // Google Sheets admin routes
 app.get('/admin/googleSheets/filePicker', async function (req, res) {
+    console.log({message: 'Admin filePicker called', rcAccessToken:req.query.rcAccessToken});
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -141,16 +142,8 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
-            if (isValidated) {
-                const fileContent = await googleSheetsExtra.renderAdminPickerFile({ 
-                    user, 
-                    rcAccessToken: req.query.rcAccessToken 
-                });
-                res.send(fileContent);
-            } else {
-                res.status(401).send('Admin validation failed');
-            }
+            const fileContent = await googleSheetsExtra.renderAdminPickerFile({ user,rcAccessToken:req.query.rcAccessToken });
+            res.send(fileContent);
         } else {
             res.status(400).send('Please authorize admin access');
         }
@@ -162,6 +155,7 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
 });
 
 app.post('/admin/googleSheets/sheet', async function (req, res) {
+    console.log({message: 'Admin sheet new called', rcAccessToken: req.query.rcAccessToken});
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -171,13 +165,13 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
-            if (isValidated) {
+             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+        if (isValidated) {
                 const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
                 if (successful) {
                     // Store admin configuration
                     await googleSheetsExtra.setAdminGoogleSheetsConfig({ 
-                        rcAccountId, 
+                        rcAccountId,
                         sheetName, 
                         sheetUrl,
                         customizable: req.body.customizable || false
@@ -192,8 +186,6 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
             } else {
                 res.status(401).send('Admin validation failed');
             }
-        } else {
-            res.status(400).send('Please authorize admin access');
         }
     }
     catch (e) {
@@ -216,14 +208,13 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
             res.status(400).send('User not found');
             return;
         }
-        
         const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
         if (isValidated) {
             const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
             if (successful) {
                 // Store admin configuration
-                await googleSheetsExtra.setAdminGoogleSheetsConfig({ 
-                    rcAccountId, 
+                await googleSheetsExtra.setAdminGoogleSheetsConfig({  
+                    rcAccountId,
                     sheetName, 
                     sheetUrl,
                     customizable: req.body.customizable || false
