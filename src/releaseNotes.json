@@ -1,4 +1,16 @@
 {
+    "1.7.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A not found issue for call note cache"
+            },
+            {
+                "type": "Better",
+                "description": "Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)"
+            }
+        ]
+    },
     "1.7.4": {
         "global": [
             {
@@ -62,6 +74,18 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.13":{
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A not found issue for call note cache"
+            },
+            {
+                "type": "Better",
+                "description": "Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)"
             }
         ]
     },
