@@ -1067,6 +1067,7 @@ function createCoreRouter() {
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
+                extraData.requireDetails = req.query.requireDetails === 'true';
             }
             else {
                 res.status(400).send('Please go to Settings and authorize CRM platform');

@@ -486,6 +486,16 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
             }
             let imageLink = null;
+            let imageDownloadLink = null;
+            let imageContentType = null;
+            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
+                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                if (imageAttachment) {
+                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                    imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+                    imageContentType = imageAttachment?.contentType;
+                }
+            }
             let videoLink = null;
             if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
                 const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
@@ -509,7 +519,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink, proxyConfig });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;

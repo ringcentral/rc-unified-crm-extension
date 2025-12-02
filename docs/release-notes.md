@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.5
+
+- Fix: A not found issue for call note cache
+- Better: Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)
+
 ## 1.7.4
 
 - New: Auto restart server-side logging when call log details setting changed
@@ -25,6 +30,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.13
+
+- Fix: A not found issue for call note cache
+- Better: Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)
 
 ## 1.6.12
 
