@@ -7,6 +7,9 @@
 	* Limited UI for determining which phone number(s) to block from logging
 	* May briefly result in double-logging when initially turned on
 	
+!!! warning "Call logging VS call dispositioning"
+    Server-side call logging only supports call logging NOT call dispositioning. Call logging is to sync call metadata onto target platform, whereas call dispositioning is to modify/attach information from user input (including associating call logs with other entities from the target platform).
+    
 !!! info "Server-side call logging may become a premium feature"
     The costs associated with operating a server-side call logging service may require us to charge for this feature in the future. 
 	
