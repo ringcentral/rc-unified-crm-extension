@@ -1,4 +1,16 @@
 {
+    "1.7.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Duplicated contact pop when complete warm transfer"
+            },
+            {
+                "type": "Fix",
+                "description": "Multi-region auth"
+            }
+        ]
+    },
     "1.7.5": {
         "global": [
             {

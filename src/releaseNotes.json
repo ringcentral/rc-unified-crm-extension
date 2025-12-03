@@ -1,4 +1,22 @@
 {
+    "1.7.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Duplicated contact pop when complete warm transfer"
+            },
+            {
+                "type": "Fix",
+                "description": "Multi-region auth"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Support to upload image in message as files in Clio"
+            }
+        ]
+    },
     "1.7.5": {
         "global": [
             {
@@ -77,7 +95,7 @@
             }
         ]
     },
-    "1.6.13":{
+    "1.6.13": {
         "global": [
             {
                 "type": "Fix",

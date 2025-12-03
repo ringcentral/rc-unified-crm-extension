@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.6
+
+- New: Support to upload image in message as files in Clio
+- Fix: Duplicated contact pop when complete warm transfer
+- Fix: Multi-region auth
+
 ## 1.7.5
 
 - Fix: A not found issue for call note cache
