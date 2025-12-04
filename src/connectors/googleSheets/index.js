@@ -287,8 +287,13 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     }
 }
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript,ringSenseTranscript,
+    ringSenseSummary,
+    ringSenseAIScore,
+    ringSenseBulletedSummary,
+    ringSenseLink }) {
     try {
+        console.log({message: 'createCallLog called', callLog, contactInfo});
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
         let sheetName = "";
@@ -360,8 +365,47 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         //         [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
         //     ],
         // };
-        const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        let columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        
+        // Check if required phone number columns exist, if not add them
+        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number"];
+        const missingColumns = requiredColumns.filter(col => !(col in columnIndexes));
+        console.log({message: 'missingColumns', missingColumns});
+        if (missingColumns.length > 0) {
+            try {
+                console.log({message: 'Adding missing columns', missingColumns});
+                // Get current headers to append new ones
+                const currentHeaders = Object.keys(columnIndexes);
+                const newHeaders = [...currentHeaders, ...missingColumns];
+                
+                // Update the header row with new columns
+                const headerRange = `${sheetName}!1:1`;
+                await axios.put(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${headerRange}?valueInputOption=RAW`,
+                    { values: [newHeaders] },
+                    { headers: { Authorization: authHeader, "Content-Type": "application/json" } }
+                );
+                
+                // Refresh column indexes to include new columns
+                columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+                console.log({message: 'Columns added successfully', newColumnIndexes: columnIndexes});
+            } catch (error) {
+                console.error('Error adding missing columns:', error);
+                // Continue with existing columns if adding fails
+            }
+        }
+        
         const rowData = new Array(Object.keys(columnIndexes).length).fill("");
+        // Determine incoming and outgoing phone numbers based on call direction
+        let incomingPhoneNumber='', outgoingPhoneNumber='';
+        if (callLog.direction === 'Outbound') {
+            outgoingPhoneNumber = callLog.from?.phoneNumber || '';
+            incomingPhoneNumber = callLog.to?.phoneNumber || contactInfo.phoneNumber;
+        } else { // Inbound
+            outgoingPhoneNumber = callLog.from?.phoneNumber || contactInfo.phoneNumber;
+            incomingPhoneNumber = callLog.to?.phoneNumber || '';
+        }
+
         const requestData = {
             "ID": nextLogRow,
             "Sheet Id": spreadsheetId,
@@ -369,6 +413,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             "Contact name": contactInfo.name,
             "Notes": note,
             "Phone": contactInfo.phoneNumber,
+            "Incoming Phone Number": incomingPhoneNumber,
+            "Outgoing Phone Number": outgoingPhoneNumber,
             "Start time": callStartTime,
             "End time": callEndTime,
             "Duration": callLog.duration,
