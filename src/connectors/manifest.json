@@ -413,7 +413,7 @@
           }
         ]
       },
-      "urlIdentifier": "*.clio.com",
+      "urlIdentifier": "*app.clio.com",
       "developer": {
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
