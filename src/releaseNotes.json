@@ -1,4 +1,16 @@
 {
+    "1.7.7": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Admin report company stats now support grouping"
+            },
+            {
+                "type": "New",
+                "description": "Users can open back the platform selection page from user setting page"
+            }
+        ]
+    },
     "1.7.6": {
         "global": [
             {
@@ -92,6 +104,24 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.14": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Warm transfer duplicated contact pop"
+            },
+            {
+                "type": "Beta",
+                "description": "A new BETA is available with cool features. No extra migration needed. [Details](https://appconnect.labs.ringcentral.com/2.0/) [Button]Install 2.0 Beta|https://chromewebstore.google.com/detail/ringcentral-app-connect-b/bgpkbcidaabaeioilooghlffdcmlimgk"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio authorization issue of mistaking Clio land page as user dashboard page"
             }
         ]
     },

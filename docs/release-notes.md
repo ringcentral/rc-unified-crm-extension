@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.7
+
+- New: Admin report company stats now support grouping
+- New: Users can open back the platform selection page from user setting page
+
 ## 1.7.6
 
 - New: Support to upload image in message as files in Clio
@@ -36,6 +41,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.14
+
+- Fix: Clio authorization issue of mistaking Clio land page as user dashboard page
+- Fix: Duplicated contact pop when complete warm transfer
 
 ## 1.6.13
 

@@ -1,4 +1,16 @@
 {
+    "1.7.7": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Admin report company stats now support grouping"
+            },
+            {
+                "type": "New",
+                "description": "Users can open back the platform selection page from user setting page"
+            }
+        ]
+    },
     "1.7.6": {
         "global": [
             {
