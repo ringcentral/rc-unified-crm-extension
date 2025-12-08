@@ -24,6 +24,7 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
+const { DebugTracer } = require('./lib/debugTracer');
 
 let packageJson = null;
 try {
@@ -837,6 +838,9 @@ function createCoreRouter() {
     })
     router.get('/contact', async function (req, res) {
         const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('findContact:start', { query: req.query });
+        
         let platformName = null;
         let success = false;
         let resultCount = 0;
@@ -846,14 +850,17 @@ function createCoreRouter() {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
+                tracer?.trace('findContact:jwtDecoded', { decodedToken });
                 if (!decodedToken) {
-                    res.status(400).send('Please go to Settings and authorize CRM platform');
+                    tracer?.trace('findContact:invalidToken', {});
+                    res.status(400).send(tracer?.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }));
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false });
-                res.status(200).send({ successful, returnMessage, contact });
+                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false, tracer });
+                tracer?.trace('findContact:result', { successful, returnMessage, contact });
+                res.status(200).send(tracer?.wrapResponse({ successful, returnMessage, contact }));
                 if (successful) {
                     const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
                     resultCount = nonNewContact.length;
@@ -864,14 +871,16 @@ function createCoreRouter() {
                 }
             }
             else {
-                res.status(400).send('Please go to Settings and authorize CRM platform');
+                tracer?.trace('findContact:noToken', {});
+                res.status(400).send(tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }));
                 success = false;
             }
         }
         catch (e) {
             console.log(`platform: ${platformName} \n${e.stack}`);
+            tracer?.traceError('findContact:error', e, { platform: platformName });
             extraData.statusCode = e.response?.status ?? 'unknown';
-            res.status(400).send(e);
+            res.status(400).send(tracer?.wrapResponse({ error: e.message || e }));
             success = false;
         }
         const requestEndTime = new Date().getTime();
@@ -1674,3 +1683,4 @@ exports.createCoreApp = createCoreApp;
 exports.initializeCore = initializeCore;
 exports.connectorRegistry = connectorRegistry;
 exports.proxyConnector = proxyConnector;
+exports.DebugTracer = DebugTracer;

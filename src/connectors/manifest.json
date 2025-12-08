@@ -413,6 +413,7 @@
           }
         ]
       },
+      "useLicense": true,
       "urlIdentifier": "*app.clio.com",
       "developer": {
         "name": "RingCentral Labs",
