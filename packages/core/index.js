@@ -25,6 +25,7 @@ const util = require('./lib/util');
 const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
 const { DebugTracer } = require('./lib/debugTracer');
+const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 
 let packageJson = null;
 try {
@@ -1573,6 +1574,38 @@ function createCoreRouter() {
             return;
         }
         res.status(400).send('Invalid request');
+    });
+
+    router.get('/debug/report/url', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const uploadUrl = await s3ErrorLogReport.getUploadUrl({ userId: unAuthData?.id, platform: unAuthData?.platform });
+            res.status(200).send({ presignedUrl: uploadUrl });
+            success = true;
+        }
+        else{
+            res.status(400).send('Invalid request');
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get error log report URL',
+            interfaceName: 'getErrorLogReportURL',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
     });
 
     if (process.env.IS_PROD === 'false') {

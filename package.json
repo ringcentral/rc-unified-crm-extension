@@ -28,7 +28,8 @@
     "dynamo-local": "node ./scripts/dynamo-local.js",
     "dynamo-admin": "dynamodb-admin --port 8001",
     "htt": "node ./tests/highTrafficTestRun.js",
-    "update": "node ./scripts/updateVersion.js"
+    "update": "node ./scripts/updateVersion.js",
+    "s3-local": "minio.exe server ./data --address \":9001\" --console-address \":9002\""
   },
   "repository": {
     "type": "git",
