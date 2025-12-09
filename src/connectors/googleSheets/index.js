@@ -293,7 +293,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     ringSenseBulletedSummary,
     ringSenseLink }) {
     try {
-        console.log({message: 'createCallLog called', callLog, contactInfo});
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
         let sheetName = "";
@@ -368,11 +367,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         let columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
         
         // Check if required phone number columns exist, if not add them
-        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number"];
+        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number","Transcript","Smart summary"];
         const missingColumns = requiredColumns.filter(col => !(col in columnIndexes));
         console.log({message: 'missingColumns', missingColumns});
         if (missingColumns.length > 0) {
-            try {
+            try {   
                 console.log({message: 'Adding missing columns', missingColumns});
                 // Get current headers to append new ones
                 const currentHeaders = Object.keys(columnIndexes);
@@ -409,20 +408,46 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         const requestData = {
             "ID": nextLogRow,
             "Sheet Id": spreadsheetId,
-            "Subject": title,
             "Contact name": contactInfo.name,
-            "Notes": note,
-            "Phone": contactInfo.phoneNumber,
             "Incoming Phone Number": incomingPhoneNumber,
             "Outgoing Phone Number": outgoingPhoneNumber,
             "Start time": callStartTime,
             "End time": callEndTime,
-            "Duration": callLog.duration,
-            "Session Id": callLog.sessionId,
             "Direction": callLog.direction,
-            "Call Result": callLog.result,
-            "Call Recording": callLog?.recording?.link !== undefined ? callLog.recording.link : "",
         };
+
+        if (transcript && (user?.userSettings?.addCallLogTranscript?.value ?? true)) {
+            requestData.Transcript = transcript;
+        }
+        if (aiNote && (user?.userSettings?.addCallLogAiNote?.value ?? true)) {
+            requestData["Smart summary"] = aiNote;
+        }
+        if ( user?.userSettings?.addCallLogNote?.value ?? true) {
+            requestData.Notes = note;
+        }
+        if (user?.userSettings?.addCallSessionId?.value ?? true) {
+            requestData["Session Id"] = callLog.sessionId;
+        }
+        if (user?.userSettings?.addCallLogSubject?.value ?? true) {
+            requestData.Subject = title;
+        }
+
+        if (user?.userSettings?.addCallLogContactNumber?.value ?? true) {
+            requestData.Phone = contactInfo.phoneNumber;
+        }
+
+        if (user?.userSettings?.addCallLogDuration?.value ?? true){
+            requestData.Duration = callLog.duration;
+        }
+    
+        if (user?.userSettings?.addCallLogResult?.value ?? true) {
+            requestData["Call Result"] = callLog.result;
+        }
+    
+        if (user?.userSettings?.addCallLogRecording?.value ?? true) {
+            requestData["Call Recording"] = callLog?.recording?.link !== undefined ? callLog.recording.link : "";
+        }
+
         Object.entries(requestData).forEach(([key, value]) => {
             if (columnIndexes[key] !== undefined) {
                 rowData[columnIndexes[key]] = value;
@@ -547,6 +572,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const columnDurationIndex = headers.indexOf("Duration");
             const columnResultIndex = headers.indexOf("Call Result");
             const columnRecordingIndex = headers.indexOf("Call Recording");
+            const columnTranscriptIndex = headers.indexOf("Transcript");
+            const columnAiNoteIndex = headers.indexOf("Smart summary");
 
             if (columnCIndex === -1 || columnDIndex === -1) {
                 return {
@@ -562,6 +589,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const durationColumn = String.fromCharCode(65 + columnDurationIndex);
             const resultColumn = String.fromCharCode(65 + columnResultIndex);
             const recordingColumn = String.fromCharCode(65 + columnRecordingIndex);
+            const transcriptColumn = String.fromCharCode(65 + columnTranscriptIndex);
+            const aiNoteColumn = String.fromCharCode(65 + columnAiNoteIndex);
             const updateRequestData = [
                 {
                     range: `${sheetName}!${subjectColumn}${rowIndex}`,
@@ -584,6 +613,18 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 updateRequestData.push({
                     range: `${sheetName}!${recordingColumn}${rowIndex}`,
                     values: [[recordingLink]]
+                });
+            }
+            if (transcript && (user?.userSettings?.addCallLogTranscript?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${transcriptColumn}${rowIndex}`,
+                    values: [[transcript]]
+                });
+            }
+            if (aiNote && (user?.userSettings?.addCallLogAiNote?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${aiNoteColumn}${rowIndex}`,
+                    values: [[aiNote]]
                 });
             }
             const response = await axios.post(
