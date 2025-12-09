@@ -27,9 +27,9 @@ Before you can use the Voicemail Drop feature in a call, you must upload and lab
 1. **During an Outbound Call:** The agent initiates an outbound call.
 2. **Detecting Voicemail:** When the agent recognizes they have reached the recipient's voicemail system (e.g., they hear the prompt or greeting), they do **not** hang up.
 3. **Initiate Drop:** The agent clicks the **"Drop Voicemail"** button within the App Connect interface.
-   ![Dropping a voicemail](../img/vm-drop-drop-voicemail.png)
+   ![Dropping a voicemail](../img/vm-drop-drop-message.png)
 4. **Select Message:** The agent selects the desired pre-uploaded voicemail message from the list.
-   ![Selecting a voicemail](../img/vm-drop-drop-select.png)
+   ![Selecting a voicemail](../img/vm-drop-select.png)
 5. **AI Transfer:** The active phone call is immediately **transferred to an AI agent**.
 6. **Smart Delivery:** The AI agent listens intelligently for the **voicemail beep**.
 7. **Message Dropped:** At the appointed time (after the beep), the selected voicemail message is **played and left** in the recipient's voicemail inbox.
