@@ -124,7 +124,7 @@ async function createSpreadsheetWithHeaders({ accessToken, newSheetName }) {
 
 
         let range = `Call Logs!A1:append`;
-        const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording","Incoming Phone Number","Outgoing Phone Number","Transcript","Smart summary"];
+        const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording","Incoming Phone Number","Outgoing Phone Number","Transcript","Smart summary","RingSense Summary","RingSense Transcript","RingSense AI Score","RingSense Bulleted Summary","RingSense Link"];
 
         const requestContactHeaderData = ["ID", "Sheet Id", "Contact name", "Phone"];
         const requestMessageHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Message", "Phone", "Message Type", "Message Time", "Direction"];
