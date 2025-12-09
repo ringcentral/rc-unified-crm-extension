@@ -109,6 +109,7 @@ nav:
     - 'Metrics and reports': users/user-report.md
     - 'Presence and status': users/presence.md
     - 'Call-down lists': users/calldown-lists.md
+    - 'Voicemail drop': users/voicemail-drop.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md
     - 'Resolving logging conflicts': users/logging-conflicts.md
