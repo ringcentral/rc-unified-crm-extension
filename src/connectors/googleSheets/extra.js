@@ -2,6 +2,8 @@ const axios = require('axios');
 const oauth = require('@app-connect/core/lib/oauth');
 const platformModule = require('./index');
 const path = require('path');
+const adminCore = require('@app-connect/core/handlers/admin');
+const util = require('@app-connect/core/lib/util');
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
@@ -12,6 +14,20 @@ async function renderPickerFile({ user }) {
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
     fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
+    return fileContent;
+}
+
+async function renderAdminPickerFile({ user, rcAccessToken }) {
+    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
+    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+    const filePath = path.join(__dirname, 'AdminPickerImp.html');
+    let fileContent = require('fs').readFileSync(filePath, 'utf8');
+    fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
+    fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
+    fileContent = fileContent.replace('{accessToken}', user.accessToken);
+    fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
+    fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
+    fileContent = fileContent.replace('{rcAccessToken}', rcAccessToken);
     return fileContent;
 }
 async function createNewSheet({ user, data }) {
@@ -108,7 +124,7 @@ async function createSpreadsheetWithHeaders({ accessToken, newSheetName }) {
 
 
         let range = `Call Logs!A1:append`;
-        const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording"];
+        const requestCallLogHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Notes", "Phone", "Start time", "End time", "Duration", "Session Id", "Direction", "Call Result", "Call Recording","Incoming Phone Number","Outgoing Phone Number","Transcript","Smart summary","RingSense Summary","RingSense Transcript","RingSense AI Score","RingSense Bulleted Summary","RingSense Link"];
 
         const requestContactHeaderData = ["ID", "Sheet Id", "Contact name", "Phone"];
         const requestMessageHeaderData = ["ID", "Sheet Id", "Subject", "Contact name", "Message", "Phone", "Message Type", "Message Time", "Direction"];
@@ -155,7 +171,53 @@ async function updateSelectedSheet({ user, data }) {
 
 }
 
+async function setAdminGoogleSheetsConfig({ rcAccountId, sheetName, sheetUrl, customizable }) {
+    const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+    
+    // Get existing admin settings
+    const existingAdminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
+    
+    // Update Google Sheets configuration in admin settings
+    const userSettings = existingAdminSettings?.userSettings || {};
+    userSettings.googleSheetsUrl = {
+        value: sheetUrl,
+        customizable: customizable
+    };
+    userSettings.googleSheetsName = {
+        value: sheetName,
+        customizable: customizable
+    };
+
+    // Save updated admin settings
+    await adminCore.upsertAdminSettings({ 
+        hashedRcAccountId, 
+        adminSettings: {
+            ...existingAdminSettings,
+            userSettings
+        }
+    });
+
+    return {
+        successful: true,
+        sheetName,
+        sheetUrl
+    };
+}
+
+async function getAdminGoogleSheetsConfig({ rcAccountId }) {
+    const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+    const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
+    
+    return {
+        googleSheetsUrl: adminSettings?.userSettings?.googleSheetsUrl || null,
+        googleSheetsName: adminSettings?.userSettings?.googleSheetsName || null
+    };
+}
+
 exports.createNewSheet = createNewSheet;
 exports.removeSheet = removeSheet;
 exports.updateSelectedSheet = updateSelectedSheet;
 exports.renderPickerFile = renderPickerFile;
+exports.renderAdminPickerFile = renderAdminPickerFile;
+exports.setAdminGoogleSheetsConfig = setAdminGoogleSheetsConfig;
+exports.getAdminGoogleSheetsConfig = getAdminGoogleSheetsConfig;

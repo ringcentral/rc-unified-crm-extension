@@ -287,7 +287,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         }
     }
 }
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript,ringSenseTranscript,
+    ringSenseSummary,
+    ringSenseAIScore,
+    ringSenseBulletedSummary,
+    ringSenseLink }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         //  const sheetName = user?.userSettings?.googleSheetNameId?.value;
@@ -360,23 +364,109 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         //         [nextLogRow, spreadsheetId, title, note, contactInfo.name, contactInfo.phoneNumber, callStartTime, callEndTime, callLog.duration, callLog.sessionId, callLog.direction]
         //     ],
         // };
-        const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        let columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+        
+        // Check if required phone number columns exist, if not add them
+        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number","Transcript","Smart summary","RingSense Summary","RingSense Transcript","RingSense AI Score","RingSense Bulleted Summary","RingSense Link"];
+        const missingColumns = requiredColumns.filter(col => !(col in columnIndexes));
+        console.log({message: 'missingColumns', missingColumns});
+        if (missingColumns.length > 0) {
+            try {   
+                console.log({message: 'Adding missing columns', missingColumns});
+                // Get current headers to append new ones
+                const currentHeaders = Object.keys(columnIndexes);
+                const newHeaders = [...currentHeaders, ...missingColumns];
+                
+                // Update the header row with new columns
+                const headerRange = `${sheetName}!1:1`;
+                await axios.put(
+                    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${headerRange}?valueInputOption=RAW`,
+                    { values: [newHeaders] },
+                    { headers: { Authorization: authHeader, "Content-Type": "application/json" } }
+                );
+                
+                // Refresh column indexes to include new columns
+                columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
+                console.log({message: 'Columns added successfully', newColumnIndexes: columnIndexes});
+            } catch (error) {
+                console.error('Error adding missing columns:');
+                // Continue with existing columns if adding fails
+            }
+        }
+        
         const rowData = new Array(Object.keys(columnIndexes).length).fill("");
+        // Determine incoming and outgoing phone numbers based on call direction
+        let incomingPhoneNumber='', outgoingPhoneNumber='';
+        if (callLog.direction === 'Outbound') {
+            outgoingPhoneNumber = callLog.from?.phoneNumber || '';
+            incomingPhoneNumber = callLog.to?.phoneNumber || contactInfo.phoneNumber;
+        } else { // Inbound
+            outgoingPhoneNumber = callLog.from?.phoneNumber || contactInfo.phoneNumber;
+            incomingPhoneNumber = callLog.to?.phoneNumber || '';
+        }
+
         const requestData = {
             "ID": nextLogRow,
             "Sheet Id": spreadsheetId,
-            "Subject": title,
             "Contact name": contactInfo.name,
-            "Notes": note,
-            "Phone": contactInfo.phoneNumber,
+            "Incoming Phone Number": incomingPhoneNumber,
+            "Outgoing Phone Number": outgoingPhoneNumber,
             "Start time": callStartTime,
             "End time": callEndTime,
-            "Duration": callLog.duration,
-            "Session Id": callLog.sessionId,
             "Direction": callLog.direction,
-            "Call Result": callLog.result,
-            "Call Recording": callLog?.recording?.link !== undefined ? callLog.recording.link : "",
         };
+
+        if (transcript && (user?.userSettings?.addCallLogTranscript?.value ?? true)) {
+            requestData.Transcript = transcript;
+        }
+        if (aiNote && (user?.userSettings?.addCallLogAiNote?.value ?? true)) {
+            requestData["Smart summary"] = aiNote;
+        }
+        if ( user?.userSettings?.addCallLogNote?.value ?? true) {
+            requestData.Notes = note;
+        }
+        if (user?.userSettings?.addCallSessionId?.value ?? true) {
+            requestData["Session Id"] = callLog.sessionId;
+        }
+        if (user?.userSettings?.addCallLogSubject?.value ?? true) {
+            requestData.Subject = title;
+        }
+
+        if (user?.userSettings?.addCallLogContactNumber?.value ?? true) {
+            requestData.Phone = contactInfo.phoneNumber;
+        }
+
+        if (user?.userSettings?.addCallLogDuration?.value ?? true){
+            requestData.Duration = callLog.duration;
+        }
+    
+        if (user?.userSettings?.addCallLogResult?.value ?? true) {
+            requestData["Call Result"] = callLog.result;
+        }
+    
+        if (user?.userSettings?.addCallLogRecording?.value ?? true) {
+            requestData["Call Recording"] = callLog?.recording?.link !== undefined ? callLog.recording.link : "";
+        }
+        if (ringSenseTranscript && (user?.userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true)) {
+            requestData["RingSense Transcript"] = ringSenseTranscript;
+        }
+
+        if (ringSenseSummary && (user?.userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true)) {
+            requestData["RingSense Summary"] = ringSenseSummary;
+        }
+    
+        if (ringSenseAIScore && (user?.userSettings?.addCallLogRingSenseRecordingAIScore?.value ?? true)) {
+            requestData["RingSense AI Score"] = ringSenseAIScore;
+        }
+    
+        if (ringSenseBulletedSummary && (user?.userSettings?.addCallLogRingSenseRecordingBulletedSummary?.value ?? true)) {
+            requestData["RingSense Bulleted Summary"] = ringSenseBulletedSummary;
+        }
+    
+        if (ringSenseLink && (user?.userSettings?.addCallLogRingSenseRecordingLink?.value ?? true)) {
+            requestData["RingSense Link"] = ringSenseLink;
+        }
+
         Object.entries(requestData).forEach(([key, value]) => {
             if (columnIndexes[key] !== undefined) {
                 rowData[columnIndexes[key]] = value;
@@ -417,7 +507,11 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
 }
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript,ringSenseTranscript,
+    ringSenseSummary,
+    ringSenseAIScore,
+    ringSenseBulletedSummary,
+    ringSenseLink }) {
     const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
     let sheetName = "";
     try {
@@ -501,6 +595,13 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const columnDurationIndex = headers.indexOf("Duration");
             const columnResultIndex = headers.indexOf("Call Result");
             const columnRecordingIndex = headers.indexOf("Call Recording");
+            const columnTranscriptIndex = headers.indexOf("Transcript");
+            const columnAiNoteIndex = headers.indexOf("Smart summary");
+            const columnRingSenseTranscriptIndex = headers.indexOf("RingSense Transcript");
+            const columnRingSenseSummaryIndex = headers.indexOf("RingSense Summary");
+            const columnRingSenseAIScoreIndex = headers.indexOf("RingSense AI Score");
+            const columnRingSenseBulletedSummaryIndex = headers.indexOf("RingSense Bulleted Summary");
+            const columnRingSenseLinkIndex = headers.indexOf("RingSense Link");
 
             if (columnCIndex === -1 || columnDIndex === -1) {
                 return {
@@ -516,6 +617,13 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const durationColumn = String.fromCharCode(65 + columnDurationIndex);
             const resultColumn = String.fromCharCode(65 + columnResultIndex);
             const recordingColumn = String.fromCharCode(65 + columnRecordingIndex);
+            const transcriptColumn = String.fromCharCode(65 + columnTranscriptIndex);
+            const aiNoteColumn = String.fromCharCode(65 + columnAiNoteIndex);
+            const ringSenseTranscriptColumn = String.fromCharCode(65 + columnRingSenseTranscriptIndex);
+            const ringSenseSummaryColumn = String.fromCharCode(65 + columnRingSenseSummaryIndex);
+            const ringSenseAIScoreColumn = String.fromCharCode(65 + columnRingSenseAIScoreIndex);
+            const ringSenseBulletedSummaryColumn = String.fromCharCode(65 + columnRingSenseBulletedSummaryIndex);
+            const ringSenseLinkColumn = String.fromCharCode(65 + columnRingSenseLinkIndex);
             const updateRequestData = [
                 {
                     range: `${sheetName}!${subjectColumn}${rowIndex}`,
@@ -538,6 +646,48 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 updateRequestData.push({
                     range: `${sheetName}!${recordingColumn}${rowIndex}`,
                     values: [[recordingLink]]
+                });
+            }
+            if (transcript && (user?.userSettings?.addCallLogTranscript?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${transcriptColumn}${rowIndex}`,
+                    values: [[transcript]]
+                });
+            }
+            if (aiNote && (user?.userSettings?.addCallLogAiNote?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${aiNoteColumn}${rowIndex}`,
+                    values: [[aiNote]]
+                });
+            }
+            if (ringSenseTranscript && (user?.userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${ringSenseTranscriptColumn}${rowIndex}`,
+                    values: [[ringSenseTranscript]]
+                });
+            }
+            if (ringSenseSummary && (user?.userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${ringSenseSummaryColumn}${rowIndex}`,
+                    values: [[ringSenseSummary]]
+                });
+            }
+            if (ringSenseAIScore && (user?.userSettings?.addCallLogRingSenseRecordingAIScore?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${ringSenseAIScoreColumn}${rowIndex}`,
+                    values: [[ringSenseAIScore]]
+                });
+            }
+            if (ringSenseBulletedSummary && (user?.userSettings?.addCallLogRingSenseRecordingBulletedSummary?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${ringSenseBulletedSummaryColumn}${rowIndex}`,
+                    values: [[ringSenseBulletedSummary]]
+                });
+            }
+            if (ringSenseLink && (user?.userSettings?.addCallLogRingSenseRecordingLink?.value ?? true)) {
+                updateRequestData.push({
+                    range: `${sheetName}!${ringSenseLinkColumn}${rowIndex}`,
+                    values: [[ringSenseLink]]
                 });
             }
             const response = await axios.post(
