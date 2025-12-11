@@ -181,10 +181,10 @@ class RingCentral {
     return response.json();
   }
 
-  async getCallsAggregationData({ token, timezone, timeFrom, timeTo }) {
+  async getCallsAggregationData({ token, timezone, timeFrom, timeTo, groupBy }) {
     const body = {
       grouping: {
-        groupBy: "Company"
+        groupBy
       },
       timeSettings: {
         timeZone: timezone,

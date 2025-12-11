@@ -7,6 +7,8 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
+const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
+
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
@@ -74,7 +76,7 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
     return {};
 }
 
-async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
+async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy }) {
     try {
         if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
             return {
@@ -101,29 +103,39 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo }) {
             token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
             timezone,
             timeFrom,
-            timeTo
+            timeTo,
+            groupBy: groupBy == 'undefined' ? CALL_AGGREGATION_GROUPS[0] : groupBy
         });
-        var dataCounter = callsAggregationData.data.records[0].counters;
-        var inboundCallCount = dataCounter.callsByDirection.values.inbound;
-        var outboundCallCount = dataCounter.callsByDirection.values.outbound;
-        var answeredCallCount = dataCounter.callsByResponse.values.answered;
-        // keep 2 decimal places
-        var answeredCallPercentage = inboundCallCount === 0 ? '0%' : `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
-
-        var dataTimer = callsAggregationData.data.records[0].timers;
-        // keep 2 decimal places
-        var totalTalkTime = (dataTimer.allCalls.values / 60).toFixed(2);
-        // keep 2 decimal places
-        var averageTalkTime = (totalTalkTime / (inboundCallCount + outboundCallCount)).toFixed(2);
-        return {
-            callLogStats: {
+        var callLogStats = [];
+        var itemKeys = [];
+        for (const record of callsAggregationData.data.records) {
+            if(!record?.info?.name){
+                continue;
+            }
+            itemKeys.push(record.info.name);
+            var dataCounter = record.counters;
+            var inboundCallCount = dataCounter.callsByDirection.values.inbound;
+            var outboundCallCount = dataCounter.callsByDirection.values.outbound;
+            var answeredCallCount = dataCounter.callsByResponse.values.answered;
+            // keep 2 decimal places
+            var answeredCallPercentage = inboundCallCount === 0 ? '0%' : `${((answeredCallCount / inboundCallCount) * 100).toFixed(2)}%`;
+            var totalTalkTime = Number(record.timers.allCalls.values) === 0 ? 0 : Number(record.timers.allCalls.values).toFixed(2);
+            var averageTalkTime = Number(totalTalkTime) === 0 ? 0 : (Number(totalTalkTime) / (inboundCallCount + outboundCallCount)).toFixed(2);
+            callLogStats.push({
+                name: record.info.name,
                 inboundCallCount,
                 outboundCallCount,
                 answeredCallCount,
                 answeredCallPercentage,
                 totalTalkTime,
                 averageTalkTime
-            }
+            });
+        }
+        return {
+            callLogStats,
+            itemKeys,
+            groupedBy: callsAggregationData.data.groupedBy,
+            groupKeys: CALL_AGGREGATION_GROUPS
         };
     } catch (error) {
         logger.error('Error getting admin report', { error });

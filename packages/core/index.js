@@ -1460,7 +1460,7 @@ function createCoreRouter() {
                 res.status(400).send('Missing id');
                 return;
             }
-            await calldown.markCalled({ jwtToken, id, lastCallAt: req.body?.lastCallAt });
+            await calldown.update({ jwtToken, id, updateData: req.body });
             success = true;
             res.status(200).send({ successful: true });
         } catch (e) {
@@ -1545,7 +1545,7 @@ function createCoreRouter() {
                     res.status(400).send('User not found');
                     return;
                 }
-                const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo, groupBy: req.query.groupBy });
                 res.status(200).send(report);
                 success = true;
                 return;
