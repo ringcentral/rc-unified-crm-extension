@@ -148,13 +148,11 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets admin \n${e.stack}`);
         res.status(500).send(e);
     }
 });
 
 app.post('/admin/googleSheets/sheet', async function (req, res) {
-    console.log({message: 'Admin sheet new called', rcAccessToken: req.query.rcAccessToken});
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
@@ -188,7 +186,6 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets admin \n${e.stack}`);
         res.status(500).send(e);
     }
 });
@@ -227,7 +224,6 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets admin \n${e.stack}`);
         res.status(500).send(e);
     }
 });
@@ -254,7 +250,6 @@ app.get('/admin/googleSheets/config', async function (req, res) {
         }
     }
     catch (e) {
-        console.log(`platform: googleSheets admin config \n${e.stack}`);
         res.status(500).send(e);
     }
 });

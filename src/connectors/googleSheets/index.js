@@ -389,7 +389,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
                 console.log({message: 'Columns added successfully', newColumnIndexes: columnIndexes});
             } catch (error) {
-                console.error('Error adding missing columns:', error);
+                console.error('Error adding missing columns:');
                 // Continue with existing columns if adding fails
             }
         }
