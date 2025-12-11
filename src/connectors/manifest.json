@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://contracts-part-collectors-cream.trycloudflare.com",
+  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",

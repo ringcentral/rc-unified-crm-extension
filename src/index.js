@@ -132,7 +132,6 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
 
 // Google Sheets admin routes
 app.get('/admin/googleSheets/filePicker', async function (req, res) {
-    console.log({message: 'Admin filePicker called', rcAccessToken:req.query.rcAccessToken});
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
