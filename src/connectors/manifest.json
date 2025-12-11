@@ -1536,12 +1536,10 @@
           "customState": "platform=googleSheets"
         }
       },
-       "settings": [
-        
-      ],
       "platform": "googleSheets",
       "logPageUrl": "https://{hostname}/spreadsheets/d/{logId}",
       "canOpenLogPage": false,
+      "settings": [],
       "page": {
         "callLog": {
           "additionalFields": []
