@@ -734,7 +734,7 @@ function createCoreRouter() {
                     res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
                     success = true;
                 }
-                else{
+                else {
                     res.status(200).send({ jwtToken, name: userInfo.name, returnMessage });
                     success = true;
                 }
@@ -1683,12 +1683,120 @@ function createCoreRouter() {
             }
         });
     }
+    // --- METADATA ENDPOINT 1: Resource Metadata ---
+    // Tells the client "I am protected" and "Here is who protects me"
+    router.get('/.well-known/oauth-protected-resource', (req, res) => {
+        res.json({
+            resource: process.env.APP_SERVER,
+            // CHANGE THIS: Point to your own server so the client fetches YOUR metadata next
+            authorization_servers: [process.env.APP_SERVER],
+            scopes_supported: ["ReadAccounts"]
+        });
+    });
 
+    // --- METADATA ENDPOINT 2: Auth Server Metadata ---
+    // Usually, you can redirect to your provider's configuration.
+    // If your provider supports OIDC discovery, this is often sufficient.
+    router.get('/.well-known/oauth-authorization-server', (req, res) => {
+        res.json({
+            issuer: process.env.APP_SERVER,
+            registration_endpoint: `${process.env.APP_SERVER}/oauth/register`,
+
+            // CHANGE THIS: Don't point to RingCentral. Point to your own Shim.
+            authorization_endpoint: `${process.env.APP_SERVER}/oauth/authorize_shim`,
+
+            // Keep the token endpoint pointing to RingCentral (that usually works fine)
+            token_endpoint: `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/token`,
+            token_endpoint_auth_methods_supported: ["client_secret_basic"],
+            response_types_supported: ["code"]
+        });
+    });
+
+    router.get('/oauth/authorize_shim', (req, res) => {
+        // 1. Get the parameters ChatGPT sent us
+        const { response_type, client_id, redirect_uri, state, scope } = req.query;
+
+        // 2. Rebuild the query string for RingCentral
+        // We explicitly LEAVE OUT 'resource' and any other junk
+        const params = new URLSearchParams({
+            response_type,
+            client_id, // This will be your RC Client ID (since ChatGPT got it from /register)
+            redirect_uri,
+            state,
+            scope
+        });
+
+        // 3. Redirect the user's browser to the REAL RingCentral URL
+        const rcUrl = `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/authorize?${params.toString()}`;
+
+        console.log("Proxying OAuth request to:", rcUrl); // Helpful for debugging
+        res.redirect(rcUrl);
+    });
+
+    router.post('/oauth/register', (req, res) => {
+        // The MCP client calls this to get credentials.
+        // We simply return our hardcoded RingCentral app credentials.
+        res.json({
+            client_id: process.env.RINGCENTRAL_CLIENT_ID,
+            client_secret: process.env.RINGCENTRAL_CLIENT_SECRET
+        });
+    });
+
+    router.use('/mcp', (req, res, next) => {// LOG EVERYTHING
+        console.log(`[${req.method}] /mcp`);
+        console.log("Headers:", JSON.stringify(req.headers['authorization'] ? "Auth Token Present" : "No Auth"));
+        
+        // IF req.body is undefined, you forgot app.use(express.json())
+        console.log("Body:", JSON.stringify(req.body)); 
+        return next();
+        // Capture the response finish to see the status code
+        res.on('finish', () => {
+            console.log(`[Response] Status: ${res.statusCode}`);
+            console.log(`[Response] data: ${JSON.stringify(res.data)}`);
+        });
+    
+        const authHeader = req.headers.authorization;
+        // Allow the initial connection (GET) and CORS checks (OPTIONS) to pass freely.
+        // We only want to block the actual commands (POST).
+        if (req.method === 'GET' || req.method === 'OPTIONS') {
+            return next();
+        }
+        // SCENARIO 1: No Token provided. Kick off the OAuth flow.
+        if (!authHeader) {
+            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
+            return res.status(401).send();
+        }
+
+        // SCENARIO 2: Token provided. Verify it.
+        console.log('authHeader', authHeader);
+        const token = authHeader.split(' ')[1]; // Remove "Bearer "
+
+        try {
+            // We validate the token by trying to make a lightweight call to RingCentral.
+            // There is no offline way to validate RC tokens easily without their SDK.
+            // const rcSDK = new RingCentral({
+            //     clientId: process.env.RINGCENTRAL_CLIENT_ID,
+            //     clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+            //     server: process.env.RINGCENTRAL_SERVER
+            // });
+            // await rcSDK.validateToken(token);
+
+            // If the above call doesn't throw an error, the token is valid!
+            next();
+
+        } catch (error) {
+            console.error("Token validation failed:", error.message);
+            // Token is invalid or expired
+            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
+            return res.status(401).send();
+        }
+    });
     // Handle OPTIONS for CORS preflight
     router.options('/mcp', (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         res.status(200).end();
     });
 
