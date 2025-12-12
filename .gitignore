@@ -29,3 +29,5 @@ client/src/manifest.json
 .dynamodb/shared-local-instance.db
 
 local.session.sql
+/minio.exe
+/data/*
