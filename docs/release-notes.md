@@ -25,7 +25,7 @@
 
 ## 1.7.3
 
-- New: RingSense data logging in server side logging
+- New: AI Conversation Expert (ACE) data logging in server side logging
 - New: New phone setting item to group phone related settings
 - Better: HUD enabled by default
 - Fix: A small issue on contact search feature
@@ -54,7 +54,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
 ## 1.6.12
 
-- New: Support RingSense logging with server-side logging
+- New: Support AI Conversation Expert (ACE) logging with server-side logging
 - Fix: An edge case of unwanted call log in call queue scenario
 
 ## 1.6.11

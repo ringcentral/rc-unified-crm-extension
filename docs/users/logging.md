@@ -18,7 +18,7 @@ It may take some time in order for a call log's record in the CRM to be complete
 1. **Call is completed**. Within a few seconds of the call completing, a record in the CRM is created. At this stage App Connect will log the fundamental basics of the call, including things like the start/stop time, the duration, the participants. 
 2. **Call notes** (optional). If a user has manually entered notes about a call, then the call log record created in step 1 will be updated to include the user's notes. 
 3. **Call recording is prepared**. It takes about as long as the call lasted to prepare a call recording file for playback and download. When this process is complete, the call log record created in step 1 will be updated to include a link to the call recording.
-4. **AI artifacts are generated**. If you are a RingSense subscriber, then when the call summary, transcript and other artifacts are generated, the final attempt to update the call log record created in step 1 will be updated with this information. 
+4. **AI artifacts are generated**. If you are an AI Conversation Expert (ACE) subscriber, then when the call summary, transcript and other artifacts are generated, the final attempt to update the call log record created in step 1 will be updated with this information. 
 
 !!! tip "Do not edit a call log record until it is complete"
     App Connect updates your call log record multiple times before it is complete. Until it is complete, if you make any edits to the record in the CRM you run the risk of losing those edits when the call log is updated by the framework. 
@@ -65,8 +65,8 @@ There is a lot of potential information about a call that can be logged. Dependi
 * **Duration** - the duration of the call
 * **Call result** - what did RingCentral observe as the result of the call, e.g. "call connected," "voicemail," "missed," etc. 
 * **Recording** - if there is a recording for the call, a link to the recording will be embedded 
-* **AI notes/summary** - AI-generated summary of the call (requires RingSense subscription)
-* **Transcript** - A transcript of the call (requires RingSense subscription)
+* **AI notes/summary** - AI-generated summary of the call (requires ACE subscription)
+* **Transcript** - A transcript of the call (requires ACE subscription)
 * **Call journey (Server-side logging only)** - Provides details on how calls are routed within the RingCentral phone system (e.g., IVR menus, call queue transfers). Manual call transfers performed by users are not included. This information is available only in Admin Settings and requires server-side logging to be enabled.
 
 <figure markdown>
