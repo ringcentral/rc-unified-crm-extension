@@ -747,11 +747,10 @@ function createCoreRouter() {
                 tracer?.trace('oauth-callback:missingCallbackUri', {});
                 res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing callbackUri' }) : { error: 'Missing callbackUri' });
                 return;
-                }
-                else {
-                    // eslint-disable-next-line no-param-reassign
-                    req.query.callbackUri = `${process.env.APP_SERVER}/oauth-callback?code=${req.query.code}`;
-                }
+            }
+            else {
+                // eslint-disable-next-line no-param-reassign
+                req.query.callbackUri = `${process.env.APP_SERVER}/oauth-callback?code=${req.query.code}`;
             }
             const stateParam = req.query.state ||
                 decodeURIComponent(req.originalUrl).split('state=')[1]?.split('&')[0];
@@ -811,13 +810,12 @@ function createCoreRouter() {
             }
             else {
                 res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
-                    await updateAuthSession(sessionId, {
-                        status: 'failed',
-                        errorMessage: returnMessage?.message || 'Authentication failed'
-                    });
-                }
-                success = false;
+                await updateAuthSession(sessionId, {
+                    status: 'failed',
+                    errorMessage: returnMessage?.message || 'Authentication failed'
+                });
             }
+            success = false;
         }
         catch (e) {
             logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });
@@ -846,7 +844,7 @@ function createCoreRouter() {
             author,
             eventAddedVia
         });
-    })
+    });
     router.post('/apiKeyLogin', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
@@ -1455,7 +1453,7 @@ function createCoreRouter() {
             try {
                 const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
                 success = true;
-            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
             }
             catch (e) {
                 return handleDatabaseError(e, 'Error scheduling call down');
@@ -1929,16 +1927,16 @@ function createCoreRouter() {
     router.use('/mcp', (req, res, next) => {// LOG EVERYTHING
         console.log(`[${req.method}] /mcp`);
         console.log("Headers:", JSON.stringify(req.headers['authorization'] ? "Auth Token Present" : "No Auth"));
-        
+
         // IF req.body is undefined, you forgot app.use(express.json())
-        console.log("Body:", JSON.stringify(req.body)); 
-        return next();
+        console.log("Body:", JSON.stringify(req.body));
+        // return next();
         // Capture the response finish to see the status code
         res.on('finish', () => {
             console.log(`[Response] Status: ${res.statusCode}`);
             console.log(`[Response] data: ${JSON.stringify(res.data)}`);
         });
-    
+
         const authHeader = req.headers.authorization;
         // Allow the initial connection (GET) and CORS checks (OPTIONS) to pass freely.
         // We only want to block the actual commands (POST).
