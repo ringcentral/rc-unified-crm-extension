@@ -188,4 +188,5 @@ nav:
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector': build.md
+  - 'Data sharing': data-sharing.md
   - 'Release notes': release-notes.md
