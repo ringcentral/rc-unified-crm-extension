@@ -89,7 +89,7 @@ function createCoreRouter() {
                 ...connectorReleaseNotes[version] ?? {}
             };
         }
-        res.json(tracer ? tracer.wrapResponse({ mergedReleaseNotes }) : { mergedReleaseNotes });
+        res.json(tracer ? tracer.wrapResponse(mergedReleaseNotes ?? {}) : (mergedReleaseNotes ?? {}));
     });
     // Obsolete
     router.get('/crmManifest', (req, res) => {
