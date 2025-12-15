@@ -133,6 +133,14 @@
             }
         ]
     },
+    "1.6.16": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ]
+    },
     "1.6.15": {
         "global": [
             {

@@ -50,6 +50,10 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.16
+
+- Fix: Call log record is shown with a wrong number after the call
+
 ## 1.6.15
 
 - Fix: Call log record is shown with a wrong number after the call
