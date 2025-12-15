@@ -1,4 +1,24 @@
 {
+    "1.7.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Error report feature on support page"
+            },
+            {
+                "type": "Better",
+                "description": "Calldown list supports better edit feature"
+            },
+            {
+                "type": "Better",
+                "description": "Connctor selection list can be opened back again"
+            },
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ]
+    },
     "1.7.7": {
         "global": [
             {

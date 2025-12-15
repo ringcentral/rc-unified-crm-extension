@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.7.8
+
+- New: Error report feature on support page
+- New: Google Sheets admin now can setup target sheet for all users
+- Better: Calldown list supports better edit feature
+- Better: Connctor selection list can be opened back again
+- Fix: Call log record is shown with a wrong number after the call
+
 ## 1.7.7
 
 - New: Admin report company stats now support grouping
@@ -41,6 +49,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.15
+
+- Fix: Call log record is shown with a wrong number after the call
 
 ## 1.6.14
 

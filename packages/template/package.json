@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/template",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "description": "Template project for RingCentral App Connect",
   "main": "server.js",
   "private": true,
