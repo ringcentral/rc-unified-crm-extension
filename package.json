@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.7.7",
+  "version": "1.7.8",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -28,7 +28,8 @@
     "dynamo-local": "node ./scripts/dynamo-local.js",
     "dynamo-admin": "dynamodb-admin --port 8001",
     "htt": "node ./tests/highTrafficTestRun.js",
-    "update": "node ./scripts/updateVersion.js"
+    "update": "node ./scripts/updateVersion.js",
+    "s3-local": "minio.exe server ./data --address \":9001\" --console-address \":9002\""
   },
   "repository": {
     "type": "git",

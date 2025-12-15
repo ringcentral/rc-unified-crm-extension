@@ -53,3 +53,14 @@ You can disable retroactive call logging under "Call and SMS logging" settings a
 <figure markdown>
   ![Disable retroactive call logging](../img/retroactive-logging.png){ .mw-400 }
 </figure>
+
+### Automatically resolving logging conflicts
+
+<!-- md:version 2.0 -->
+
+Users can select from a number of settings options that will help log more calls in an automated fashion by selecting policies to address known challenges like:
+
+* No contacts in the CRM are found
+* Multiple contacts in the CRM are found
+
+[Learn more &raquo;](logging-conflicts.md#resolving-conlicts-automatically)

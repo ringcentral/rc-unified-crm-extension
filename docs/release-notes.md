@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.7.8
+
+- New: Error report feature on support page
+- New: Google Sheets admin now can setup target sheet for all users
+- Better: Calldown list supports better edit feature
+- Better: Connctor selection list can be opened back again
+- Fix: Call log record is shown with a wrong number after the call
+
 ## 1.7.7
 
 - New: Admin report company stats now support grouping
@@ -25,7 +33,7 @@
 
 ## 1.7.3
 
-- New: RingSense data logging in server side logging
+- New: AI Conversation Expert (ACE) data logging in server side logging
 - New: New phone setting item to group phone related settings
 - Better: HUD enabled by default
 - Fix: A small issue on contact search feature
@@ -42,6 +50,10 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.15
+
+- Fix: Call log record is shown with a wrong number after the call
+
 ## 1.6.14
 
 - Fix: Clio authorization issue of mistaking Clio land page as user dashboard page
@@ -54,7 +66,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
 ## 1.6.12
 
-- New: Support RingSense logging with server-side logging
+- New: Support AI Conversation Expert (ACE) logging with server-side logging
 - Fix: An edge case of unwanted call log in call queue scenario
 
 ## 1.6.11

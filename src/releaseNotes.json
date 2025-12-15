@@ -1,4 +1,30 @@
 {
+    "1.7.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Error report feature on support page"
+            },
+            {
+                "type": "Better",
+                "description": "Calldown list supports better edit feature"
+            },
+            {
+                "type": "Better",
+                "description": "Connctor selection list can be opened back again"
+            },
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "New",
+                "description": "Admin now can setup target sheet for all users"
+            }
+        ]
+    },
     "1.7.7": {
         "global": [
             {
@@ -104,6 +130,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.15": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
             }
         ]
     },
