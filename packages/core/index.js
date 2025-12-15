@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors')
 const bodyParser = require('body-parser');
+require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
@@ -1817,6 +1818,15 @@ function createCoreRouter() {
 function createCoreMiddleware() {
     return [
         bodyParser.json(),
+        bodyParser.xml({
+            limit: '50mb',
+            xmlParseOptions: {
+                explicitArray: false,
+                normalize: true,
+                normalizeTags: false,
+                trim: true
+            }
+        }),
         cors({
             methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
         })
