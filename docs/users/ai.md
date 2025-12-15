@@ -46,8 +46,8 @@ When your phone call is complete, AI Assistant will process the phone call to ge
 
 ## Logging AI artifacts in your CRM
 
-!!! info "[RingSense](https://www.ringcentral.com/ringsense.html) license required for logging AI artifacts"
-    During the beta period of this feature, artifacts will be logged for free. When the feature becomes generally available, customers will need to purchase a RingSense license to continue logging AI artifacts. 
+!!! info "[AI Conversation Expert (ACE)](https://www.ringcentral.com/ringsense.html) license required for logging AI artifacts"
+    During the beta period of this feature, artifacts will be logged for free. When the feature becomes generally available, customers will need to purchase an ACE license to continue logging AI artifacts. 
 
 App Connect has the ability to log all AI-generated artifacts in your CRM, making sure your system of record has a complete record of the phone call. 
 

@@ -1,6 +1,8 @@
 # Voicemail drop
 
-Voicemail Drop is a powerful feature in App Connect designed to significantly **increase outbound call efficiency** by automating the process of leaving voicemail messages.
+<!-- md:version 2.0 -->
+
+Voicemail drop is a powerful feature in App Connect designed to significantly **increase outbound call efficiency** by automating the process of leaving voicemail messages.
 
 ## Key Benefits
 

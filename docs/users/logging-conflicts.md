@@ -51,3 +51,22 @@ When multiple contacts are found, users are given an opportunity to disambiguate
   <figcaption>Disambiguating between contacts when multiple matches are found in the connected CRM</figcaption>
 </figure>
 
+## Resolving conlicts automatically
+
+<!-- md:version 2.0 -->
+
+To help users maximize the efficacy of automated call logging and to log as many calls as possible, settings are available that allow you to select the rules and policies to help determine the best way to log a call when App Connect encounters one of the challenges outlined above. 
+
+For example, when a contact cannot be found, users can elect to have App Connect create a contact automatically. When doing so a user selects the default name and contact type (if applicable) of the contact that will be created. 
+
+When multiple contacts are matched, users can select a policy by which one of those contacts will be selected automatically. We currently support the following policies:
+
+* Select the last updated contact record
+* Select the first contact in alphabetical order
+
+<figure markdown>
+  ![Logging calls](../img/auto-logging-policies.png)
+  <figcaption>Settings to help users resolve conflicts in an automated fashion</figcaption>
+</figure>
+
+
