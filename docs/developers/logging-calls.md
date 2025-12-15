@@ -124,10 +124,6 @@ Transcripts are time coded to help systems known when words/phrases were uttered
 6. Edit subject and note, then click `Update`
 7. Check if call log is updated on CRM platform (`CHECK.6`)
 
-## Log page setup
-
-Please go to [manifest](manifest.md#adding-custom-fields-to-logging-forms).
-
 ### Internal call logging
 
 To enable internal call logging for extension numbers under your main number, please add `enableExtensionNumberLoggingSetting` under your manifest platform info. Users would need to turn on `Allow extension number logging` under `Contacts` settings. Then on server end, `isExtension` flag will be passed in as in `src/connectors/testCRM/index.js` - `findContact()`.

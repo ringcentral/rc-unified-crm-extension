@@ -90,8 +90,8 @@ Within your connector's `index.js` file, implement the following methods.
 
 Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
 
-1. Refresh and or save the [Custom CRM config url](../users/developer-options.md#loading-custom-crm-connector) setting under the extension's options. 
-   2. Access the Chrome extension. 
-3. Log out and log back into your CRM using the "Connect" button under the Settings tab, or by going through the appropriate CRM login and authorization flow for your connector.
+1. Go to the [Developer Options](../users/developer-options.md) and click "Clear platform info." This will clear within App Connect any link to an existing CRM. It is not quite a "factory reset" but it is close. 
+2. Refresh and reload the App Connect window. When complete, you should be prompted to select the CRM you wish to connect to.  
+3. Connect to the CRM you are testing.
 4. Finally, check to see if any user info was saved in the database (`CHECK.1`)
 
