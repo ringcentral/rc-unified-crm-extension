@@ -119,7 +119,7 @@ nav:
     - 'Becoming an admin': users/admin.md
     - 'Managed settings': users/managed-settings.md
     - 'Server-side call logging': users/server-side-logging.md
-    - 'AI Conversation Expert (ACE) logging': users/ringsense.md
+    - 'AI Conversation Expert (ACE) logging': users/ace.md
   - 'User settings':
     - 'Overview': users/settings-sync.md
     - 'Audio input/output': users/audio.md
@@ -136,7 +136,6 @@ nav:
   - 'Getting started': developers/getting-started.md
   - 'Developer Console': https://appconnect.labs.ringcentral.com/console
   - 'Is your CRM compatible?': developers/proprietary-crm.md
-#  - 'Call log composer': developers/call-log-composer.md
   - 'Connector': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
@@ -159,6 +158,7 @@ nav:
       - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
+      - 'getBasicAuth': developers/interfaces/getBasicAuth.md
       - 'getCallLog': developers/interfaces/getCallLog.md
       - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
       - 'getLogFormatType': developers/interfaces/getLogFormatType.md
@@ -188,4 +188,5 @@ nav:
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector': build.md
+  - 'Data sharing': data-sharing.md
   - 'Release notes': release-notes.md
