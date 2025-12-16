@@ -87,7 +87,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                         }
                         // Timeout -> let users try another time
                         if (processTime >= tokenLockTimeout) {
-                            logger.error('Token lock timeout');
+                            throw new Error('Token lock timeout');
                         }
                         user = await UserModel.findByPk(user.id);
                         console.log('locked. bypass')
