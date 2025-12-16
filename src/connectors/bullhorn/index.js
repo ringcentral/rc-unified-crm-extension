@@ -207,7 +207,7 @@ async function bullhornTokenRefresh(user, dateNow, tokenLockTimeout, oauthApp, s
                         }
                         // Timeout -> let users try another time
                         if (processTime >= tokenLockTimeout) {
-                            throw new Error('Bullhorn Token lock timeout');
+                            logger.error('Bullhorn Token lock timeout');
                         }
                         user = await UserModel.findByPk(user.id);
                         console.log('Bullhron locked. bypass')
