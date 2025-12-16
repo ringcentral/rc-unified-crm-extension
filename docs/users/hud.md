@@ -1,8 +1,8 @@
-# Heads-Up Display (HUD)
+# Monitoring calls across the network (a.k.a. "HUD")
 
 <!-- md:version 2.0 -->
 
-The Heads-Up Display (HUD) brings popular functionality from the RingCentral desktop application to App Connect. With HUD, you can monitor team member presence, see which calls are parked or queued, and pick up those calls directly—all in real-time, right where you work.
+The heads-up display feature, or "HUD," brings popular functionality from the RingCentral desktop application to App Connect. Using the HUD one can monitor team member presence, see which calls are parked or queued, and pick up those calls directly—all in real-time, right where you work.
 
 ## Key Benefits
 
@@ -14,11 +14,11 @@ The Heads-Up Display (HUD) brings popular functionality from the RingCentral des
 
 You can access the HUD from the **More** menu in the App Connect dialer. The HUD panel displays your configured monitoring groups and their current status.
 
-## HUD Types
+## Extensions one can monitor through the "HUD"
 
-App Connect supports four types of HUD monitoring:
+App Connect supports four types of monitoring:
 
-### 1. Extensions
+### Extensions
 
 Monitor team member presence to see who is available, busy, or on a call. This helps coordinate with colleagues and know when they're free to receive transferred calls.
 
@@ -27,7 +27,7 @@ Monitor team member presence to see who is available, busy, or on a call. This h
   <figcaption>Monitor team member presence via Extensions</figcaption>
 </figure>
 
-### 2. Park Locations
+### Park locations
 
 Park and pick up calls from specific [park locations](https://support.ringcentral.com/article-v2/Managing-park-locations-in-the-Admin-Portal.html?brand=RingCentral&product=RingEX&language=en_US). When a call is parked, any team member monitoring that location can pick it up.
 
@@ -36,7 +36,7 @@ Park and pick up calls from specific [park locations](https://support.ringcentra
   <figcaption>View and pick up parked calls</figcaption>
 </figure>
 
-### 3. Group Call Pickup
+### Group call pickup
 
 Pick up incoming calls from members of your [group call pickup](https://support.ringcentral.com/article-v2/Setting-up-Group-Call-Pickup-group.html?brand=RC_US&product=RingEX&language=en_US) group. This is useful when a colleague is away from their desk and you need to answer their call.
 
@@ -45,7 +45,7 @@ Pick up incoming calls from members of your [group call pickup](https://support.
   <figcaption>Pick up group member's call</figcaption>
 </figure>
 
-### 4. Call Queue Pickup
+### Call queue pickup
 
 Pick up queued calls when primary agents are busy. Monitor [call queues](https://support.ringcentral.com/article-v2/Set-up-Call-Queue-Pickup-Group.html?brand=RC_US&product=RingEX&language=en_US) and help reduce wait times by picking up calls during high-volume periods.
 
