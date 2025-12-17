@@ -57,7 +57,7 @@ describe('misc tests', () => {
 
             // Assert
             expect(res.status).toEqual(400);
-            expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+            expect(JSON.parse(res.error.text).error).toEqual('Please go to Settings and authorize CRM platform');
         });
         test('bad jwt - 400', async () => {
             // Act
@@ -80,7 +80,7 @@ describe('misc tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(200);
-                expect(res.text).toEqual(platform.hostname);
+                expect(JSON.parse(res.text).hostname).toEqual(platform.hostname);
             }
         });
     })

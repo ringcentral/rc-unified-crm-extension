@@ -90,8 +90,8 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                     });
                 }
                 console.log('store new matched contact info in account data');
-                return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
             }
+            return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
             tracer?.trace('handler.findContact:noContactsMatched', { matchedContactInfo });

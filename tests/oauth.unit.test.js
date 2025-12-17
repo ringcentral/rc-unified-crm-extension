@@ -368,7 +368,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123'
                 }
             });
@@ -398,7 +398,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com'
@@ -428,7 +428,7 @@ describe('oauth manage', () => {
                 .query(true)
                 .reply(200, {
                     BhRestToken: 'newBhRestToken',
-                    restUrl: 'https://rest.bullhorn.com'
+                    restUrl: 'https://rest.bullhorn.com/'
                 });
 
             // Act
@@ -450,7 +450,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com'
@@ -478,7 +478,7 @@ describe('oauth manage', () => {
                 .query(true)
                 .reply(200, {
                     BhRestToken: 'newBhRestToken',
-                    restUrl: 'https://rest.bullhorn.com'
+                    restUrl: 'https://rest.bullhorn.com/'
                 });
 
             // Act
@@ -503,7 +503,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com',
@@ -548,7 +548,7 @@ describe('oauth manage', () => {
                 .query(true)
                 .reply(200, {
                     BhRestToken: 'newBhRestToken',
-                    restUrl: 'https://rest.bullhorn.com'
+                    restUrl: 'https://rest.bullhorn.com/'
                 });
 
             // Act
@@ -573,7 +573,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com',
@@ -628,7 +628,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com',
@@ -681,7 +681,7 @@ describe('oauth manage', () => {
                 platform: 'bullhorn',
                 tokenExpiry: '2025-01-01T00:00:00.000Z',
                 platformAdditionalInfo: {
-                    restUrl: 'https://rest.bullhorn.com',
+                    restUrl: 'https://rest.bullhorn.com/',
                     bhRestToken: 'bhRestToken123',
                     tokenUrl: 'https://auth.bullhorn.com/token',
                     loginUrl: 'https://auth.bullhorn.com'
