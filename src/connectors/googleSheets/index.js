@@ -127,7 +127,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: "Invalid SheetName",
                     ttl: 30000
                 }
@@ -149,7 +149,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: "Invalid Headers, First Row of Sheet should be ID,SheetId, ContactName, PhoneNumber",
                     ttl: 30000
                 }
@@ -181,7 +181,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: "Error Finding Contact",
                 ttl: 30000
             }
@@ -234,7 +234,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: "Invalid SheetName",
                 ttl: 30000
             }
@@ -336,7 +336,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: "Invalid SheetName",
                     ttl: 30000
                 }
@@ -488,7 +488,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: 'Error logging call',
                 details: [
                     {
@@ -556,7 +556,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: "Invalid SheetName",
                     ttl: 30000
                 }
@@ -584,7 +584,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: 'Call log not updated',
                     ttl: 3000
                 }
@@ -717,7 +717,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: 'Error Updating call',
                 details: [
                     {
@@ -782,7 +782,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: "Invalid SheetName",
                 ttl: 30000
             }
@@ -809,7 +809,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
     if (rowIndex === -1) {
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: 'Call log not found',
                 ttl: 3000
             }
@@ -924,7 +924,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 return {
                     successful: false,
                     returnMessage: {
-                        messageType: 'danger',
+                        messageType: 'warning',
                         message: "Error creating Message Log Sheet",
                         ttl: 30000
                     }
@@ -1008,7 +1008,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: 'Error logging message',
                 details: [
                     {
@@ -1073,7 +1073,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: "Invalid SheetName",
                     ttl: 30000
                 }
@@ -1101,7 +1101,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             return {
                 successful: false,
                 returnMessage: {
-                    messageType: 'danger',
+                    messageType: 'warning',
                     message: 'Error while adding message',
                     ttl: 3000
                 }
@@ -1166,7 +1166,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: 'Error updating message',
                 ttl: 60000
             }
