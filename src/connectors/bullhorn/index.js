@@ -12,6 +12,7 @@ const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const { AccountDataModel, getOrRefreshAccountData } = require('@app-connect/core/models/accountDataModel');
 const {
     upsertCallDuration,
     upsertCallResult,
@@ -272,7 +273,7 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20,
     const dateNow = moment();
     const expiryBuffer = 1000 * 60 * 2; // 2 minutes => 120000ms
     try {
-        const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}/ping`, {
+        const pingResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}ping`, {
             headers: {
                 'BhRestToken': user.platformAdditionalInfo.bhRestToken,
             },
@@ -474,28 +475,26 @@ async function overrideSessionWithAuthInfo({ user, authData }) {
     return user;
 }
 
-async function findContact({ user, phoneNumber, isExtension }) {
+async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccountData }) {
     if (isExtension === 'true') {
         return {
             successful: false,
             matchedContactInfo: []
         }
     }
-    let commentActionListResponse;
     let extraDataTracking = {};
-    try {
-        commentActionListResponse = await axios.get(
-            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-            {
-                headers: {
-                    BhRestToken: user.platformAdditionalInfo.bhRestToken
-                }
+    const commentActionList = await getOrRefreshAccountData({
+        rcAccountId: user.rcAccountId,
+        platformName: 'bullhorn',
+        dataKey: 'commentActionList',
+        forceRefresh: isForceRefreshAccountData,
+        fetchFn: async () => {
+            const res = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`, {
+                headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
             });
-    }
-    catch (e) {
-        extraDataTracking['statusCode'] = e.response.status;
-    }
-    const commentActionList = commentActionListResponse ? commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } }) : [];
+            return res?.data?.commentActionList?.map(a => ({ const: a, title: a })) || [];
+        }
+    });
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
@@ -512,9 +511,9 @@ async function findContact({ user, phoneNumber, isExtension }) {
         });
     for (const result of contactPersonInfo.data.data) {
         // compare dateAdded, dateLastModified, dateLastVisit
-        var mostRecentDateForContact = getMostRecentDate({ 
+        var mostRecentDateForContact = getMostRecentDate({
             allDateValues: [result.dateAdded, result.dateLastModified, result.dateLastVisit]
-         });
+        });
         matchedContactInfo.push({
             id: result.id,
             name: result.name,
@@ -581,39 +580,54 @@ async function findContact({ user, phoneNumber, isExtension }) {
     if (matchedContactInfo.length === 0) {
         let leadStatuses = [];
         try {
-            const leadMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-            leadStatuses = leadMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+            leadStatuses = await getOrRefreshAccountData({
+                rcAccountId: user.rcAccountId,
+                platformName: 'bullhorn',
+                dataKey: 'leadStatuses',
+                forceRefresh: isForceRefreshAccountData,
+                fetchFn: async () => {
+                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`, {
+                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
+                    });
+                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
+                }
+            });
         }
         catch (e) {
             extraDataTracking['statusCode'] = e.response.status;
         }
         let candidateStatuses = [];
         try {
-            const candidateMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-            candidateStatuses = candidateMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+            candidateStatuses = await getOrRefreshAccountData({
+                rcAccountId: user.rcAccountId,
+                platformName: 'bullhorn',
+                dataKey: 'candidateStatuses',
+                forceRefresh: isForceRefreshAccountData,
+                fetchFn: async () => {
+                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`, {
+                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
+                    });
+                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
+                }
+            });
         }
         catch (e) {
             extraDataTracking['statusCode'] = e.response.status;
         }
         let contactStatuses = [];
         try {
-            const contactMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-            contactStatuses = contactMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+            contactStatuses = await getOrRefreshAccountData({
+                rcAccountId: user.rcAccountId,
+                platformName: 'bullhorn',
+                dataKey: 'contactStatuses',
+                forceRefresh: isForceRefreshAccountData,
+                fetchFn: async () => {
+                    const res = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`, {
+                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken }
+                    });
+                    return res?.data?.fields?.find(f => f.name === 'status')?.options?.map(s => { return { const: s.value, title: s.label } }) || [];
+                }
+            });
         }
         catch (e) {
             extraDataTracking['statusCode'] = e.response.status;
@@ -1170,7 +1184,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         postBody.comments = composedLogDetails;
     }
     // Case: update log should be able to update fields other than agent notes
-    else{
+    else {
         postBody.comments = getLogRes.data.data.comments;
         postBody.comments = upsertCallDuration({ body: postBody.comments, duration: duration, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
         postBody.comments = upsertCallResult({ body: postBody.comments, result: result, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });

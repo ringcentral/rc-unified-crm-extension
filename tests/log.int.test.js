@@ -98,7 +98,7 @@ describe('call&message log tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('post jwt validation', () => {
@@ -115,7 +115,7 @@ describe('call&message log tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('patch jwt validation', () => {
@@ -132,7 +132,7 @@ describe('call&message log tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('get call log', () => {
@@ -418,7 +418,7 @@ describe('call&message log tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
 

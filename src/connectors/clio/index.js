@@ -162,7 +162,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     const matchedContactInfo = [];
     for (var numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company,updated_at`,
+            `https://${user.hostname}/api/v4/contacts.json?query=${numberToQuery}&fields=type,id,name,updated_at`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -203,9 +203,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 matchedContactInfo.push({
                     id: result.id,
                     name: result.name,
-                    title: result.title ?? "",
-                    company: result.company?.name ?? "",
                     phone: numberFromRc,
+                    type: result.type,
                     mostRecentActivityDate: result.updated_at,
                     additionalInfo: returnedMatters.length > 0 ?
                         {
@@ -240,7 +239,7 @@ async function findContactWithName({ user, authHeader, name }) {
     Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
     It handles all variations without requiring the query to be split
     */
-    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
     extraDataTracking = {
@@ -275,9 +274,7 @@ async function findContactWithName({ user, authHeader, name }) {
             matchedContactInfo.push({
                 id: result.id,
                 name: result.name,
-                title: result.title ?? "",
                 type: 'contact',
-                company: result.company?.name ?? "",
                 phone: result.primary_phone_number ?? "",
                 additionalInfo: returnedMatters.length > 0 ?
                     {
@@ -299,14 +296,14 @@ async function findContactWithName({ user, authHeader, name }) {
     }
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType = 'Person' }) {
     let extraDataTracking = {};
     const personInfo = await axios.post(
         `https://${user.hostname}/api/v4/contacts.json`,
         {
             data: {
                 name: newContactName,
-                type: 'Person',
+                type: newContactType,
                 phone_numbers: [
                     {
                         name: "Work",

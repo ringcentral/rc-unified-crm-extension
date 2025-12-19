@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors')
 const bodyParser = require('body-parser');
+require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
@@ -10,6 +11,7 @@ const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
 const { CacheModel } = require('./models/cacheModel');
+const { AccountDataModel } = require('./models/accountDataModel');
 const jwt = require('./lib/jwt');
 const logCore = require('./handlers/log');
 const contactCore = require('./handlers/contact');
@@ -39,7 +41,13 @@ catch (e) {
 if (process.env.DYNAMODB_LOCALHOST) {
     dynamoose.aws.ddb.local(process.env.DYNAMODB_LOCALHOST);
 }
-
+// log axios requests
+if (process.env.IS_PROD === 'false') {
+    axios.interceptors.request.use(request => {
+        console.log('Request:', `[${request.method}]`, request.url);
+        return request;
+    });
+}
 axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.version;
 
 async function initDB() {
@@ -51,6 +59,7 @@ async function initDB() {
         await AdminConfigModel.sync();
         await CacheModel.sync();
         await CallDownListModel.sync();
+        await AccountDataModel.sync();
     }
 }
 
@@ -946,7 +955,15 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({ platform, userId, phoneNumber: req.query.phoneNumber.replace(' ', '+'), overridingFormat: req.query.overridingFormat, isExtension: req.query?.isExtension ?? false, tracer });
+                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({
+                    platform,
+                    userId,
+                    phoneNumber: req.query.phoneNumber.replace(' ', '+'),
+                    overridingFormat: req.query.overridingFormat,
+                    isExtension: req.query?.isExtension ?? false,
+                    tracer,
+                    isForceRefreshAccountData: req.query?.isForceRefreshAccountData === 'true'
+                });
                 tracer?.trace('findContact:result', { successful, returnMessage, contact });
                 res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
                 if (successful) {
@@ -1817,6 +1834,15 @@ function createCoreRouter() {
 function createCoreMiddleware() {
     return [
         bodyParser.json(),
+        bodyParser.xml({
+            limit: '50mb',
+            xmlParseOptions: {
+                explicitArray: false,
+                normalize: true,
+                normalizeTags: false,
+                trim: true
+            }
+        }),
         cors({
             methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
         })

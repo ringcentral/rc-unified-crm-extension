@@ -44,9 +44,9 @@ The platforms property is an associative array. Each key should be a unique iden
 | `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
 | `contactTypes`   | ARRAY of object | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. Each object has `display` and `value`. |
 | `contactPageUrl` | string          | A format string to open a CRM's contact page, e.g.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
-| `embeddedOnCrmPage` | object       | The rendering config for embedded page, explained [here](#customizing-the-welcome-message) |
+| `embeddedOnCrmPage` | object       | The rendering config for embedded page. |
 | `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
-| `page`           | object          | The rendering config for all pages, explained [here](#customizing-pages-within-the-client-application) |
+| `page`           | object          | The rendering config for all pages. |
 |`requestConfig`| object| Contains http request config for client extension, including `timeout` (number in seconds)|
 
 The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
@@ -59,7 +59,7 @@ The client-side authorization url that is opened by the extension will be: `{aut
 |------------------|-----------------|-------------|
 | `type`       | string          | The authorization mode utilized by the target CRM. Only two values are supported: `oauth` and `apiKey`. Setting up auth is covered in more detail in the [Authorization](auth.md) section. |
 | `oauth`        | object       | Only used with `type` equal to `oauth`. It contains `authUrl`, `clientId` and `redirectUri`. |
-| `apiKey`| object| Only used with `type` equal to `apiKey`. It contains [`page`](#apikey-auth-page) |
+| `apiKey`| object| Only used with `type` equal to `apiKey`. It contains [`page`](manifest-pages.md#customizing-apikey-auth-page) |
 
 ### oauth parameters
 

@@ -58,7 +58,7 @@ describe('contact tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         test('cannot find user - unsuccessful', async () => {
@@ -233,7 +233,7 @@ describe('contact tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(res.error.text).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         test('new contact - successful', async () => {
