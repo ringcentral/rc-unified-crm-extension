@@ -1,4 +1,12 @@
 {
+    "1.7.9": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            }
+        ]
+    },
     "1.7.8": {
         "global": [
             {
