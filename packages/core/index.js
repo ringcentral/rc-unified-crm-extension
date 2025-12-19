@@ -168,11 +168,11 @@ function createCoreRouter() {
                 result.getLicenseStatus = !!platformModule.getLicenseStatus;
                 result.getLogFormatType = !!platformModule.getLogFormatType;
                 result.cacheCallNote = !!process.env.USE_CACHE;
-                res.status(200).send(tracer ? tracer.wrapResponse({ result }) : { result });
+                res.status(200).send(tracer ? tracer.wrapResponse(result) : result);
             }
             else {
                 tracer?.trace('implementedInterfaces:noPlatform', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please provide platform.' }) : { error: 'Please provide platform.' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please provide platform.') : 'Please provide platform.');
                 return;
             }
         }
@@ -196,11 +196,11 @@ function createCoreRouter() {
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('licenseStatus:noUserId', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'No user ID' }) : { error: 'No user ID' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('No user ID') : 'No user ID');
                     success = true;
                 }
                 const licenseStatus = await authCore.getLicenseStatus({ userId, platform });
-                res.status(200).send(tracer ? tracer.wrapResponse({ licenseStatus }) : { licenseStatus });
+                res.status(200).send(tracer ? tracer.wrapResponse(licenseStatus) : licenseStatus);
                 success = true;
             }
             else {
@@ -262,7 +262,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('authValidation:invalidJwtToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Invalid JWT token' }) : { error: 'Invalid JWT token' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -276,7 +276,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('authValidation:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -323,12 +323,12 @@ function createCoreRouter() {
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
             if (isValidated) {
                 await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
-                res.status(200).send(tracer ? tracer.wrapResponse({ message: 'Admin settings updated' }) : { message: 'Admin settings updated' });
+                res.status(200).send(tracer ? tracer.wrapResponse('Admin settings updated') : 'Admin settings updated');
                 success = true;
             }
             else {
                 tracer?.trace('setAdminSettings:adminValidationFailed', {});
-                res.status(401).send(tracer ? tracer.wrapResponse({ error: 'Admin validation failed' }) : { error: 'Admin validation failed' });
+                res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 success = false;
             }
         }
@@ -367,7 +367,7 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getAdminSettings:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
@@ -375,7 +375,7 @@ function createCoreRouter() {
                 if (isValidated) {
                     const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
                     if (adminSettings) {
-                        res.status(200).send(tracer ? tracer.wrapResponse({ adminSettings }) : { adminSettings });
+                        res.status(200).send(tracer ? tracer.wrapResponse(adminSettings) : adminSettings);
                     }
                     else {
                         res.status(200).send(tracer ? tracer.wrapResponse({
@@ -390,13 +390,13 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('getAdminSettings:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse({ error: 'Admin validation failed' }) : { error: 'Admin validation failed' });
+                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
             else {
                 tracer?.trace('getAdminSettings:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -435,25 +435,25 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getUserMapping:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
-                    res.status(200).send(tracer ? tracer.wrapResponse({ userMapping }) : { userMapping });
+                    res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
                     success = true;
                 }
                 else {
                     tracer?.trace('getUserMapping:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse({ error: 'Admin validation failed' }) : { error: 'Admin validation failed' });
+                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
             else {
                 tracer?.trace('getUserMapping:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -486,7 +486,7 @@ function createCoreRouter() {
         const jwtToken = req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('getServerLoggingSettings:noToken', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
             return;
         }
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
@@ -494,18 +494,18 @@ function createCoreRouter() {
             const unAuthData = jwt.decodeJwt(jwtToken);
             if (!unAuthData?.id) {
                 tracer?.trace('getServerLoggingSettings:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             platformName = unAuthData?.platform ?? 'Unknown';
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 tracer?.trace('getServerLoggingSettings:userNotFound', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
             const serverLoggingSettings = await adminCore.getServerLoggingSettings({ user });
-            res.status(200).send(tracer ? tracer.wrapResponse({ serverLoggingSettings }) : { serverLoggingSettings });
+            res.status(200).send(tracer ? tracer.wrapResponse(serverLoggingSettings) : serverLoggingSettings);
             success = true;
         }
         catch (e) {
@@ -537,12 +537,12 @@ function createCoreRouter() {
         const jwtToken = req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('setServerLoggingSettings:noToken', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
             return;
         }
         if (!req.body.additionalFieldValues) {
             tracer?.trace('setServerLoggingSettings:missingAdditionalFieldValues', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing additionalFieldValues' }) : { error: 'Missing additionalFieldValues' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Missing additionalFieldValues') : 'Missing additionalFieldValues');
             return;
         }
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
@@ -550,14 +550,14 @@ function createCoreRouter() {
             const unAuthData = jwt.decodeJwt(jwtToken);
             if (!unAuthData?.id) {
                 tracer?.trace('setServerLoggingSettings:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             platformName = unAuthData?.platform ?? 'Unknown';
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 tracer?.trace('setServerLoggingSettings:userNotFound', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
             const { successful, returnMessage } = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
@@ -593,11 +593,11 @@ function createCoreRouter() {
             const rcAccountId = req.query.rcAccountId;
             if (rcAccessToken || rcAccountId) {
                 const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
-                res.status(200).send(tracer ? tracer.wrapResponse({ userSettings }) : { userSettings });
+                res.status(200).send(tracer ? tracer.wrapResponse(userSettings) : userSettings);
             }
             else {
                 tracer?.trace('getUserSettingsByAdmin:noRcAccessTokenOrRcAccountId', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Cannot find rc user login' }) : { error: 'Cannot find rc user login' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Cannot find rc user login') : 'Cannot find rc user login');
             }
         }
         catch (e) {
@@ -622,7 +622,7 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getUserSettings:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 else {
@@ -636,7 +636,7 @@ function createCoreRouter() {
             else {
                 success = false;
                 tracer?.trace('getUserSettings:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
             }
         }
         catch (e) {
@@ -673,13 +673,13 @@ function createCoreRouter() {
                 platformName = unAuthData?.platform;
                 if (!platformName) {
                     tracer?.trace('setUserSettings:unknownPlatform', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Unknown platform' }) : { error: 'Unknown platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Unknown platform') : 'Unknown platform');
                     return;
                 }
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('setUserSettings:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const { userSettings } = await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
@@ -688,7 +688,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('setUserSettings:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -722,14 +722,14 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('hostname:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ hostname: user.hostname }) : { hostname: user.hostname });
+                res.status(200).send(tracer ? tracer.wrapResponse(user.hostname) : user.hostname);
             }
             else {
                 tracer?.trace('hostname:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
             }
         }
         catch (e) {
@@ -748,7 +748,7 @@ function createCoreRouter() {
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
                 tracer?.trace('oauth-callback:missingCallbackUri', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing callbackUri' }) : { error: 'Missing callbackUri' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing callbackUri') : 'Missing callbackUri');
                 return;
             }
             platformName = req.query.state ?
@@ -758,7 +758,7 @@ function createCoreRouter() {
             const tokenUrl = req.query.tokenUrl;
             if (!platformName) {
                 tracer?.trace('oauth-callback:missingPlatformName', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing platform name' }) : { error: 'Missing platform name' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
             const hasAuthCodeInCallbackUri = req.query.callbackUri.includes('code=');
@@ -785,7 +785,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
+                res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
                 success = false;
             }
         }
@@ -826,12 +826,12 @@ function createCoreRouter() {
             const additionalInfo = req.body.additionalInfo;
             if (!platform) {
                 tracer?.trace('apiKeyLogin:missingPlatform', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing platform name' }) : { error: 'Missing platform name' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
             if (!apiKey) {
                 tracer?.trace('apiKeyLogin:missingApiKey', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing api key' }) : { error: 'Missing api key' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing api key') : 'Missing api key');
                 return;
             }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo });
@@ -844,7 +844,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(400).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
+                res.status(400).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
                 success = false;
             }
         }
@@ -884,17 +884,17 @@ function createCoreRouter() {
                 const userToLogout = await UserModel.findByPk(unAuthData?.id);
                 if (!userToLogout) {
                     tracer?.trace('unAuthorize:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const platformModule = connectorRegistry.getConnector(unAuthData?.platform ?? 'Unknown');
                 const { returnMessage } = await platformModule.unAuthorize({ user: userToLogout });
-                res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
+                res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
                 success = true;
             }
             else {
                 tracer?.trace('unAuthorize:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -950,7 +950,7 @@ function createCoreRouter() {
                 tracer?.trace('findContact:jwtDecoded', { decodedToken });
                 if (!decodedToken) {
                     tracer?.trace('findContact:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -977,7 +977,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('findContact:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1021,7 +1021,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('createContact:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1035,7 +1035,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('createContact:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1078,7 +1078,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('saveNoteCache:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1121,7 +1121,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('getCallLog:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1136,7 +1136,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('getCallLog:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1179,7 +1179,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('createCallLog:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1193,7 +1193,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('createCallLog:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1236,7 +1236,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('updateCallLog:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1250,7 +1250,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('updateCallLog:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1294,7 +1294,7 @@ function createCoreRouter() {
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('upsertCallDisposition:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { successful, returnMessage, extraDataTracking } = await dispositionCore.upsertCallDisposition({
@@ -1312,7 +1312,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('upsertCallDisposition:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1356,7 +1356,7 @@ function createCoreRouter() {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
                     tracer?.trace('createMessageLog:invalidToken', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
                 const { id: userId, platform } = decodedToken;
@@ -1370,7 +1370,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('createMessageLog:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
         }
@@ -1412,7 +1412,7 @@ function createCoreRouter() {
             const jwtToken = req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('scheduleCallDown:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
@@ -1455,7 +1455,7 @@ function createCoreRouter() {
             const jwtToken = req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('getCallDownList:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             const { items } = await calldown.list({ jwtToken, status: req.query.status });
@@ -1497,13 +1497,13 @@ function createCoreRouter() {
             const id = req.query.id;
             if (!jwtToken) {
                 tracer?.trace('deleteCallDownItem:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             const rid = req.params.id || id;
             if (!rid) {
                 tracer?.trace('deleteCallDownItem:missingId', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing id' }) : { error: 'Missing id' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing id') : 'Missing id');
                 return;
             }
             await calldown.remove({ jwtToken, id: rid });
@@ -1544,13 +1544,13 @@ function createCoreRouter() {
             const jwtToken = req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('markCallDownCalled:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
             const id = req.params.id || req.body?.id;
             if (!id) {
                 tracer?.trace('markCallDownCalled:missingId', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Missing id' }) : { error: 'Missing id' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing id') : 'Missing id');
                 return;
             }
             await calldown.update({ jwtToken, id, updateData: req.body });
@@ -1599,7 +1599,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('contactSearchByName:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Please go to Settings and authorize CRM platform' }) : { error: 'Please go to Settings and authorize CRM platform' });
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 success = false;
             }
 
@@ -1642,7 +1642,7 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getAdminReport:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo, groupBy: req.query.groupBy });
@@ -1651,7 +1651,7 @@ function createCoreRouter() {
                 return;
             }
             tracer?.trace('getAdminReport:invalidRequest', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Invalid request' }) : { error: 'Invalid request' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Invalid request') : 'Invalid request');
             success = false;
         }
         catch (e) {
@@ -1688,7 +1688,7 @@ function createCoreRouter() {
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getUserReport:userNotFound', {});
-                    res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
                 const report = await adminCore.getUserReport({ rcAccountId: user.rcAccountId, rcExtensionId: req.query.rcExtensionId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
@@ -1696,7 +1696,7 @@ function createCoreRouter() {
                 return;
             }
             tracer?.trace('getUserReport:invalidRequest', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Invalid request' }) : { error: 'Invalid request' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Invalid request') : 'Invalid request');
             success = false;
         }
         catch (e) {
@@ -1729,7 +1729,7 @@ function createCoreRouter() {
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 tracer?.trace('onRingcentralOAuthCallback:userNotFound', {});
-                res.status(400).send(tracer ? tracer.wrapResponse({ error: 'User not found' }) : { error: 'User not found' });
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
             await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId });
@@ -1737,7 +1737,7 @@ function createCoreRouter() {
             return;
         }
         tracer?.trace('onRingcentralOAuthCallback:invalidRequest', {});
-        res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Invalid request' }) : { error: 'Invalid request' });
+        res.status(400).send(tracer ? tracer.wrapResponse('Invalid request') : 'Invalid request');
     });
     router.get('/debug/report/url', async function (req, res) {
         const requestStartTime = new Date().getTime();
@@ -1755,7 +1755,7 @@ function createCoreRouter() {
         }
         else {
             tracer?.trace('getErrorLogReportURL:invalidRequest', {});
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: 'Invalid request' }) : { error: 'Invalid request' });
+            res.status(400).send(tracer ? tracer.wrapResponse('Invalid request') : 'Invalid request');
             success = false;
         }
         const requestEndTime = new Date().getTime();
