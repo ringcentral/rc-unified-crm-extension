@@ -3,6 +3,7 @@
 ## 1.7.9
 
 - Better: Contact match speed optimized
+- Better: Minor improvements on calldown list 
 - New: Clio supports Company as new Contact type
 - Fix: Google Sheet and NetSuite warning notifications
 
@@ -59,6 +60,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 ## 1.6.17
 
 - Better: Contact match speed optimized
+- Better: Minor improvements on calldown list 
 - New: Clio supports Company as new Contact type
 - Fix: Google Sheet and NetSuite warning notifications
 
