@@ -59,7 +59,7 @@ describe('Admin Server Logging Settings endpoints', () => {
                 expect(res.status).toBe(200);
                 expect(res.body).toBeDefined();
                 // pipedrive (and other non-bullhorn platforms) return empty object
-                expect(res.body.serverLoggingSettings).toEqual({});
+                expect(res.body).toEqual({});
             }
         });
 
@@ -69,7 +69,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('Please go to Settings and authorize CRM platform');
+            expect(res.text).toBe('Please go to Settings and authorize CRM platform');
         });
 
         test('should return 400 when JWT token is invalid', async () => {
@@ -92,7 +92,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('User not found');
+            expect(res.text).toBe('User not found');
         });
 
         test('should return 400 when JWT token has no user id', async () => {
@@ -106,7 +106,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('Please go to Settings and authorize CRM platform');
+            expect(res.text).toBe('Please go to Settings and authorize CRM platform');
         });
     });
 
@@ -149,7 +149,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('Please go to Settings and authorize CRM platform');
+            expect(res.text).toBe('Please go to Settings and authorize CRM platform');
         });
 
         test('should return 400 when JWT token is invalid', async () => {
@@ -182,7 +182,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('Missing additionalFieldValues');
+            expect(res.text).toBe('Missing additionalFieldValues');
         });
 
         test('should return 400 when user is not found', async () => {
@@ -203,7 +203,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('User not found');
+            expect(res.text).toBe('User not found');
         });
 
         test('should return 400 when JWT token has no user id', async () => {
@@ -223,7 +223,7 @@ describe('Admin Server Logging Settings endpoints', () => {
 
             // Assert
             expect(res.status).toBe(400);
-            expect(JSON.parse(res.text).error).toBe('Please go to Settings and authorize CRM platform');
+            expect(res.text).toBe('Please go to Settings and authorize CRM platform');
         });
 
         test('should handle empty additionalFieldValues', async () => {

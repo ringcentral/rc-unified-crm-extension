@@ -48,7 +48,7 @@ describe('auth tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(400);
-                    expect(JSON.parse(res.error.text).error).toEqual('Missing callbackUri');
+                    expect(res.text).toEqual('Missing callbackUri');
                 })
                 test('no platform - error', async () => {
                     // Act
@@ -56,7 +56,7 @@ describe('auth tests', () => {
 
                     // Assert
                     expect(res.status).toEqual(400);
-                    expect(JSON.parse(res.error.text).error).toEqual('Missing platform name');
+                    expect(res.text).toEqual('Missing platform name');
                 })
                 test('oauth callback - successful', async () => {
                     for (const platform of platforms) {
@@ -145,7 +145,7 @@ describe('auth tests', () => {
 
                 // Assert
                 expect(res.status).toEqual(400);
-                expect(JSON.parse(res.error.text).error).toEqual('Please go to Settings and authorize CRM platform');
+                expect(res.text).toEqual('Please go to Settings and authorize CRM platform');
             });
         });
         describe('logout', () => {
