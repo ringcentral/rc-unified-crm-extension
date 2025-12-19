@@ -621,7 +621,7 @@ function createCoreRouter() {
                     const rcAccountId = req.query.rcAccountId;
                     const userSettings = await userCore.getUserSettings({ user, rcAccessToken, rcAccountId });
                     success = true;
-                    res.status(200).send(tracer ? tracer.wrapResponse({ userSettings }) : { userSettings });
+                    res.status(200).send(tracer ? tracer.wrapResponse(userSettings) : userSettings);
                 }
             }
             else {
