@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 // Used to update existing message log so to group message in the same day together
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
     //--------------------------------------
