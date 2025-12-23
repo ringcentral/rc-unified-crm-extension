@@ -17,6 +17,7 @@ const pipedrive = require('./connectors/pipedrive');
 const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
+const piiRedactionProcessor = require('./processors/piiRedactionProcessor');
 
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
@@ -121,7 +122,7 @@ app.post('/googleSheets/selectedSheet', async function (req, res) {
     });
     const data = response?.data;
     const user = await UserModel.findByPk(`${data?.sub}-googleSheets`);
-    if (!user) {    
+    if (!user) {
         res.status(400).send('User not found');
         return;
     }
@@ -141,7 +142,7 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-            const fileContent = await googleSheetsExtra.renderAdminPickerFile({ user,rcAccessToken:req.query.rcAccessToken });
+            const fileContent = await googleSheetsExtra.renderAdminPickerFile({ user, rcAccessToken: req.query.rcAccessToken });
             res.send(fileContent);
         } else {
             res.status(400).send('Please authorize admin access');
@@ -162,14 +163,14 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
-        if (isValidated) {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (isValidated) {
                 const { successful, sheetName, sheetUrl } = await googleSheetsExtra.createNewSheet({ user, data: req.body });
                 if (successful) {
                     // Store admin configuration
-                    await googleSheetsExtra.setAdminGoogleSheetsConfig({ 
+                    await googleSheetsExtra.setAdminGoogleSheetsConfig({
                         rcAccountId,
-                        sheetName, 
+                        sheetName,
                         sheetUrl,
                         customizable: req.body.customizable || false
                     });
@@ -200,7 +201,7 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
         });
         const data = response?.data;
         const user = await UserModel.findByPk(`${data?.sub}-googleSheets`);
-        if (!user) {    
+        if (!user) {
             res.status(400).send('User not found');
             return;
         }
@@ -209,9 +210,9 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
             const { successful, sheetName, sheetUrl } = await googleSheetsExtra.updateSelectedSheet({ user, data: req.body });
             if (successful) {
                 // Store admin configuration
-                await googleSheetsExtra.setAdminGoogleSheetsConfig({  
+                await googleSheetsExtra.setAdminGoogleSheetsConfig({
                     rcAccountId,
-                    sheetName, 
+                    sheetName,
                     sheetUrl,
                     customizable: req.body.customizable || false
                 });
@@ -282,6 +283,26 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     catch (e) {
         console.log(`platform: pipedrive \n${e.stack}`);
         res.status(500).send(e);
+    }
+});
+
+app.post('/processor/:processorId', async function (req, res) {
+    try {
+        let result;
+        switch (req.params.processorId) {
+            case 'piiRedaction':
+                result = piiRedactionProcessor.redactPii(req.body.data);
+                break;
+            default:
+                res.status(400).send('Unknown processor');
+                return;
+        }
+
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
     }
 });
 

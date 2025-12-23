@@ -11,6 +11,7 @@ const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
+const axios = require('axios');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
@@ -40,6 +41,30 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             };
         }
+        // processor data: id, url, phase, supportedPlatforms, supportedLogTypes, isAsync
+        // Pass-thru processors
+        var passThruProcessors = user.userSettings?.passThruProcessors?.filter(p => p.targets.includes('callLog')) ?? [];
+        for (const processorSetting of passThruProcessors) {
+            const processorId = processorSetting.id;
+            const processorDataResponse = await axios.get(`${process.env.APP_CONNECT_API_URL}/processors/${processorId}`);
+            const processorData = processorDataResponse.data;
+            if (!processorData.url) { throw new Error('Processor URL is not set'); }
+            const processedResultResponse = await axios.post(processorData.url, { 
+                config: processorSetting.config ?? null,
+                data: incomingData 
+            });
+            // eslint-disable-next-line no-param-reassign
+            incomingData = processedResultResponse.data;
+        }
+
+        // TEMP
+        const processedResultResponse = await axios.post(`${process.env.APP_SERVER}/processor/piiRedaction`, {
+            config: null,
+            data: incomingData
+         });
+        // eslint-disable-next-line no-param-reassign
+        incomingData = processedResultResponse.data;
+
         const platformModule = connectorRegistry.getConnector(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
@@ -88,7 +113,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        
+
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
@@ -233,8 +258,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 }
             });
             for (const sId of sessionIdsArray) {
-                if(sId == 0)
-                {
+                if (sId == 0) {
                     logs.push({ sessionId: sId, matched: false });
                     continue;
                 }
