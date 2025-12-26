@@ -40,8 +40,7 @@ function secondsToHoursMinutesSeconds(seconds) {
 function getMostRecentDate({ allDateValues }) {
     var result = 0;
     for (const date of allDateValues) {
-        if(!date)
-        {
+        if (!date) {
             continue;
         }
         if (date > result) {
@@ -53,12 +52,29 @@ function getMostRecentDate({ allDateValues }) {
 
 // media reader link: https://ringcentral.github.io/ringcentral-media-reader/?media=https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
 // platform media link: https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
-function getMediaReaderLinkByPlatformMediaLink(platformMediaLink){
-    if(!platformMediaLink){
+function getMediaReaderLinkByPlatformMediaLink(platformMediaLink) {
+    if (!platformMediaLink) {
         return null;
     }
     const encodedPlatformMediaLink = encodeURIComponent(platformMediaLink);
     return `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodedPlatformMediaLink}`;
+}
+
+function getProcessorsFromUserSettings({ userSettings, phase, logType }) {
+    const result = [];
+    if (!userSettings) {
+        return result;
+    }
+    for (const userSettingKey in userSettings) {
+        if (!userSettingKey.startsWith('processor_')) {
+            continue;
+        }
+        const processorUserSetting = userSettings[userSettingKey];
+        if (processorUserSetting.value.phase === phase && processorUserSetting.value.supportedLogTypes.includes(logType)) {
+            result.push({ id: userSettingKey.split('_')[1], value: processorUserSetting.value });
+        }
+    }
+    return result;
 }
 
 exports.getTimeZone = getTimeZone;
@@ -66,3 +82,4 @@ exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
 exports.getMostRecentDate = getMostRecentDate;
 exports.getMediaReaderLinkByPlatformMediaLink = getMediaReaderLinkByPlatformMediaLink;
+exports.getProcessorsFromUserSettings = getProcessorsFromUserSettings;

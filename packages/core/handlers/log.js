@@ -12,6 +12,7 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const axios = require('axios');
+const { getProcessorsFromUserSettings } = require('../lib/util');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
@@ -41,29 +42,27 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             };
         }
-        // processor data: id, url, phase, supportedPlatforms, supportedLogTypes, isAsync
         // Pass-thru processors
-        var passThruProcessors = user.userSettings?.passThruProcessors?.filter(p => p.targets.includes('callLog')) ?? [];
-        for (const processorSetting of passThruProcessors) {
+        const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
+        for (const processorSetting of beforeLoggingProcessor) {
             const processorId = processorSetting.id;
-            const processorDataResponse = await axios.get(`${process.env.APP_CONNECT_API_URL}/processors/${processorId}`);
+            const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
             const processorData = processorDataResponse.data;
-            if (!processorData.url) { throw new Error('Processor URL is not set'); }
-            const processedResultResponse = await axios.post(processorData.url, { 
-                config: processorSetting.config ?? null,
-                data: incomingData 
-            });
-            // eslint-disable-next-line no-param-reassign
-            incomingData = processedResultResponse.data;
+            const processorManifest = processorData.platforms[processorSetting.value.name];
+            if (!processorManifest.endpointUrl) { throw new Error('Processor URL is not set'); }
+            if (processorSetting.value.isAsync) {
+                axios.post(processorManifest.endpointUrl, {
+                    data: incomingData
+                });
+            }
+            else {
+                const processedResultResponse = await axios.post(processorManifest.endpointUrl, {
+                    data: incomingData
+                });
+                // eslint-disable-next-line no-param-reassign
+                incomingData = processedResultResponse.data;
+            }
         }
-
-        // TEMP
-        const processedResultResponse = await axios.post(`${process.env.APP_SERVER}/processor/piiRedaction`, {
-            config: null,
-            data: incomingData
-         });
-        // eslint-disable-next-line no-param-reassign
-        incomingData = processedResultResponse.data;
 
         const platformModule = connectorRegistry.getConnector(platform);
         const callLog = incomingData.logInfo;
@@ -168,6 +167,35 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 userId,
                 contactId
             });
+        }
+        // after-logging processor
+        const afterLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
+        for (const processorSetting of afterLoggingProcessor) {
+            const processorId = processorSetting.id;
+            const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+            const processorData = processorDataResponse.data;
+            const processorManifest = processorData.platforms[processorSetting.value.name];
+            if (!processorManifest.endpointUrl) { throw new Error('Processor URL is not set'); }
+            if (processorSetting.value.isAsync) {
+                axios.post(processorManifest.endpointUrl, {
+                    data: {
+                        ...incomingData,
+                        logId,
+                        text: returnMessage?.message ?? ''
+                    }
+                });
+            }
+            else {
+
+                await axios.post(processorManifest.endpointUrl, {
+                    data: {
+                        ...incomingData,
+                        logId,
+                        text: returnMessage?.message ?? ''
+                    }
+                }
+                );
+            }
         }
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
     } catch (e) {

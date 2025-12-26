@@ -18,6 +18,7 @@ const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 const piiRedactionProcessor = require('./processors/piiRedactionProcessor');
+const sendToGlipProcessor = require('./processors/sendToGlipProcessor');
 
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
@@ -292,6 +293,9 @@ app.post('/processor/:processorId', async function (req, res) {
         switch (req.params.processorId) {
             case 'piiRedaction':
                 result = piiRedactionProcessor.redactPii(req.body.data);
+                break;
+            case 'sendToGlip':
+                result = sendToGlipProcessor.sendToGlip(req.body.data);
                 break;
             default:
                 res.status(400).send('Unknown processor');
