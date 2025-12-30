@@ -783,32 +783,133 @@ async function createCustomerContact(user, phoneNumber, nameParts, fullName) {
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     try {
-        console.log('Making dummy API call to create call log in Dominion');
+        console.log({m:'createCallLog', contactInfo, callLog});
         
-        const title = callLog.customSubject || `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-        const callStartTime = moment(callLog.startTime);
-        const callEndTime = callLog.duration === 'pending' ? moment(callStartTime) : moment(callStartTime).add(callLog.duration, 'seconds');
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
         
-        // Simulate call log creation
-        const callLogPayload = {
-            title: title,
-            contactId: contactInfo.id,
-            phone: contactInfo.phoneNumber || '',
-            startTime: callStartTime.toISOString(),
-            endTime: callEndTime.toISOString(),
-            direction: callLog.direction,
-            status: 'Completed',
-            notes: composedLogDetails,
-            duration: callLog.duration
-        };
-
-        if (additionalSubmission && additionalSubmission.opportunityId) {
-            callLogPayload.opportunityId = additionalSubmission.opportunityId;
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
 
-        console.log('Creating call log with payload:', callLogPayload);
+        // Build the API URL for ProcessServiceAppointment
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
         
-        const newLogId = Math.floor(Math.random() * 10000);
+        // Parse contact name
+        const nameParts = splitName(contactInfo.name || '');
+        
+        // Format call start time
+        const callStartTime = moment(callLog.startTime);
+        const appointmentDateTime = callStartTime.toISOString();
+        
+        // Parse phone number to get clean format
+        const phoneNumberObj = parsePhoneNumber(contactInfo.phoneNumber?.replace(' ', '+') || '');
+        const cleanPhoneNumber = phoneNumberObj?.number?.significant || contactInfo.phoneNumber || '';         
+        // Create XML payload for ProcessServiceAppointment request
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<ProcessServiceAppointment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>RingCentral</CreatorNameCode>
+            <SenderNameCode>RingCentral</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>Dominion</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <ProcessServiceAppointmentDataArea>
+        <Process>
+            <oagis:ActionCriteria>
+                <oagis:ActionExpression actionCode="Add"/>
+            </oagis:ActionCriteria>
+        </Process>
+        <ServiceAppointment>
+            <ServiceAppointmentHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                </DocumentIdentificationGroup>
+                <AppointmentContactParty>
+                    <SpecifiedPerson>
+                        <GivenName>${nameParts.firstName || ''}</GivenName>
+                        <FamilyName>${nameParts.lastName || ''}</FamilyName>
+                        ${cleanPhoneNumber ? `<TelephoneCommunication>
+                            <ChannelCode>Telephone</ChannelCode>
+                            <CompleteNumber>${cleanPhoneNumber}</CompleteNumber>
+                            <UseCode>Cellular/Pager</UseCode>
+                        </TelephoneCommunication>` : ''}
+                    </SpecifiedPerson>
+                </AppointmentContactParty>
+            </ServiceAppointmentHeader>
+            <ServiceAppointmentDetail>
+                <Appointment>
+                    <AppointmentDateTime>${appointmentDateTime}</AppointmentDateTime>
+                    <AppointmentNotes>${composedLogDetails}</AppointmentNotes>
+                </Appointment>
+            </ServiceAppointmentDetail>
+        </ServiceAppointment>
+    </ProcessServiceAppointmentDataArea>
+</ProcessServiceAppointment>`;
+
+        console.log('Making ProcessServiceAppointment API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
+
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('ProcessServiceAppointment API response received:', response.status);
+        console.log('Response data:', response.data);
+
+        // Parse XML response to extract appointment ID
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+        const result = await parser.parseStringPromise(response.data);
+        
+        let appointmentId = null;
+        
+        // Extract AlternateDocumentIdentification from AcknowledgeServiceAppointment response
+        const acknowledgeServiceAppointment = result.AcknowledgeServiceAppointment;
+        if (acknowledgeServiceAppointment && acknowledgeServiceAppointment.AcknowledgeServiceAppointmentDataArea) {
+            const serviceAppointment = acknowledgeServiceAppointment.AcknowledgeServiceAppointmentDataArea.ServiceAppointment;
+            if (serviceAppointment && serviceAppointment.ServiceAppointmentHeader) {
+                const docGroup = serviceAppointment.ServiceAppointmentHeader.DocumentIdentificationGroup;
+                if (docGroup && docGroup.AlternateDocumentIdentification) {
+                    appointmentId = docGroup.AlternateDocumentIdentification.DocumentID.toString();
+                }
+            }
+        }
+
+        if (!appointmentId) {
+            // Fallback: try to extract from response text if XML parsing didn't work
+            const idMatch = response.data.match(/<AlternateDocumentIdentification[^>]*>[\s\S]*?<DocumentID[^>]*>([^<]+)<\/DocumentID>/);
+            if (idMatch) {
+                appointmentId = idMatch[1];
+            } else {
+                // Use BODID as fallback
+                appointmentId = bodId;
+            }
+        }
 
         let extraDataTracking = {
             withSmartNoteLog: !!aiNote,
@@ -816,16 +917,16 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         };
 
         return {
-            logId: newLogId,
+            logId: appointmentId,
             returnMessage: {
-                message: 'Call logged successfully',
+                message: 'Call logged successfully in Dominion DMS',
                 messageType: 'success',
                 ttl: 2000
             },
             extraDataTracking
         };
     } catch (error) {
-        console.log('Error in createCallLog:', error.message);
+        console.log({m:'createCallLog error', error});
         return {
             returnMessage: {
                 messageType: 'warning',
@@ -837,7 +938,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                             {
                                 id: '1',
                                 type: 'text',
-                                text: 'There was an error creating the call log entry in Dominion. Please try again.'
+                                text: `There was an error creating the call log entry in Dominion DMS: ${error.response?.data || error.message}`
                             }
                         ]
                     }
@@ -898,33 +999,168 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function getCallLog({ user, callLogId, authHeader }) {
     try {
-        console.log(`Making dummy API call to get call log: ${callLogId}`);
+        console.log({m:'getCallLog', callLogId});
         
-        // Simulate getting call log details
-        const dummyCallLog = {
-            id: callLogId,
-            title: 'Outbound Call to John Doe',
-            notes: 'Discussed product demo and pricing options. Customer is interested in our premium package.',
-            fullBody: 'Complete call log with all details...',
-            status: 'Completed',
-            createdDate: new Date().toISOString()
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
+
+        // Build the API URL for GetServiceAppointment
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/GetServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
+        
+        // Create XML payload for GetServiceAppointment request
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<GetServiceAppointment releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>RingCentral</CreatorNameCode>
+            <SenderNameCode>RingCentral</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>Dominion</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <GetServiceAppointmentDataArea>
+        <Get maxItems="250" recordSetStartNumber="1">
+            <oagis:Expression>Get Service Appointment</oagis:Expression>
+        </Get>
+        <ServiceAppointment>
+            <ServiceAppointmentHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                    <AlternateDocumentIdentification>
+                        <DocumentID>${callLogId}</DocumentID>
+                    </AlternateDocumentIdentification>
+                </DocumentIdentificationGroup>
+            </ServiceAppointmentHeader>
+            <ServiceAppointmentDetail/>
+        </ServiceAppointment>
+    </GetServiceAppointmentDataArea>
+</GetServiceAppointment>`;
+
+        console.log('Making GetServiceAppointment API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
+
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('GetServiceAppointment API response received:', response.status);
+        console.log('Response data:', response.data);
+
+        // Parse XML response to extract appointment details
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+        const result = await parser.parseStringPromise(response.data);
+        
+        // Extract appointment details from ShowServiceAppointment response
+        const showServiceAppointment = result.ShowServiceAppointment;
+        if (!showServiceAppointment || !showServiceAppointment.ShowServiceAppointmentDataArea) {
+            throw new Error('No appointment found for call log ID: ' + callLogId);
+        }
+        
+        const serviceAppointment = showServiceAppointment.ShowServiceAppointmentDataArea.ServiceAppointment;
+        if (!serviceAppointment) {
+            throw new Error('No appointment found for call log ID: ' + callLogId);
+        }
+        
+        const header = serviceAppointment.ServiceAppointmentHeader;
+        const detail = serviceAppointment.ServiceAppointmentDetail;
+        
+        // Extract contact information step by step
+        let contactFirstName = '';
+        let contactMiddleName = '';
+        let contactLastName = '';
+        let contactPhone = '';
+        if (header && header.AppointmentContactParty && header.AppointmentContactParty.SpecifiedPerson) {
+            const person = header.AppointmentContactParty.SpecifiedPerson;
+            contactFirstName = person.GivenName || '';
+            contactMiddleName = person.MiddleName || '';
+            contactLastName = person.FamilyName || '';
+            if (person.TelephoneCommunication && person.TelephoneCommunication.CompleteNumber) {
+                contactPhone = person.TelephoneCommunication.CompleteNumber;
+            }
+        }
+        
+        // Build full contact name including middle name
+        const nameParts = [];
+        if (contactFirstName) nameParts.push(contactFirstName);
+        if (contactMiddleName) nameParts.push(contactMiddleName);
+        if (contactLastName) nameParts.push(contactLastName);
+        const contactName = nameParts.join(' ');
+        
+        // Extract appointment details step by step
+        let appointmentNotes = '';
+        
+        if (detail && detail.Appointment) {
+            const appointment = detail.Appointment;
+            appointmentNotes = appointment.AppointmentNotes?.toString() || '';
+        }
+        
+        // Parse notes to extract structured information (similar to Bullhorn parsing)
+        const fullBody = appointmentNotes;
+        
+        // Extract note value from "- Note: Value" pattern
+        let note = '';
+        if (appointmentNotes.includes('Note:')) {
+            const noteMatch = appointmentNotes.match(/[-\s]*Note:\s*([^\n\r-]*)/);
+            if (noteMatch) {
+                note = noteMatch[1].trim();
+            }
+        }
+        
+        // Extract subject from "- Summary: Value" pattern
+        let subject = '';
+        if (appointmentNotes.includes('Summary:')) {
+            const summaryMatch = appointmentNotes.match(/[-\s]*Summary:\s*([^\n\r-]*)/);
+            if (summaryMatch) {
+                subject = summaryMatch[1].trim();
+            }
+        }
+        
+        // Build callLogInfo object step by step (similar to Bullhorn pattern)
+        const callLogInfo = {
+            subject: subject,
+            note: note,
+            fullBody: fullBody,
+            fullLogResponse: serviceAppointment,
+            contactName: contactName
+            
         };
 
         return {
-            callLogInfo: {
-                subject: dummyCallLog.title,
-                note: dummyCallLog.notes,
-                fullBody: dummyCallLog.fullBody,
-                fullLogResponse: dummyCallLog,
-                additionalSubmission: {}
-            },
+            callLogInfo,
             returnMessage: {
                 messageType: 'success',
-                message: 'Call log retrieved successfully'
+                message: 'Call log retrieved successfully from Dominion DMS'
             }
         };
     } catch (error) {
-        console.log('Error in getCallLog:', error.message);
+        console.log({m:'getCallLog error', error});
         return {
             returnMessage: {
                 messageType: 'warning',
@@ -936,7 +1172,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
                             {
                                 id: '1',
                                 type: 'text',
-                                text: 'There was an error loading the call log from Dominion. Please try again.'
+                                text: `There was an error loading the call log from Dominion DMS: ${error.response?.data || error.message}`
                             }
                         ]
                     }
