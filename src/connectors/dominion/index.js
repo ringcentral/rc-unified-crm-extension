@@ -44,7 +44,7 @@ async function getValidAccessToken({ credentials, existingToken, tokenExpiry }) 
     tokenData.append('grant_type', 'client_credentials');
     tokenData.append('client_id', process.env.DOMINIONDMS_VUE_QA_CLIENT_ID);
     tokenData.append('client_secret', process.env.DOMINIONDMS_VUE_QA_CLIENT_SECRET);
-    tokenData.append('scope', 'GetCustomerInformation.S5.12.4-D1.0 GetPersonnel.S5.12.4-D1.0 GetServiceAppointment.S5.12.4-D1.0 GetSalesLead.S5.12.4-D1.0 ProcessServiceAppointment.S5.12.4-D1.0');
+    tokenData.append('scope', 'GetCustomerInformation.S5.12.4-D1.0 GetPersonnel.S5.12.4-D1.0 GetServiceAppointment.S5.12.4-D1.0 GetSalesLead.S5.12.4-D1.0 ProcessServiceAppointment.S5.12.4-D1.0 ProcessCustomerInformation.S5.12.4-D1.0');
 
     console.log('Making authentication request to:', 'https://vueauthentication.qa-dominiondms.com/connect/token');
     
@@ -590,36 +590,19 @@ async function findContactWithName({ user, authHeader, name }) {
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+
+    console.log({m:'createContact',phoneNumber, newContactName, newContactType});
     try {
-        console.log(`Making dummy API call to create contact: ${newContactName}`);
-        
         const nameParts = splitName(newContactName);
-        const newContactId = Math.floor(Math.random() * 10000);
-
-        // Simulate contact creation API call
-        const createContactPayload = {
-            firstName: nameParts.firstName,
-            lastName: nameParts.lastName,
-            phone: phoneNumber || '',
-            type: newContactType
-        };
-
-        console.log('Creating contact with payload:', createContactPayload);
-
-        return {
-            contactInfo: {
-                id: newContactId,
-                name: newContactName,
-                type: newContactType
-            },
-            returnMessage: {
-                message: `${newContactType === 'customer' ? 'Customer' : newContactType === 'lead' ? 'Lead' : 'Contact'} created successfully`,
-                messageType: 'success',
-                ttl: 3000
-            }
-        };
+        // Handle different contact types
+        if (newContactType === 'customer') {
+            return await createCustomerContact(user, phoneNumber, nameParts, newContactName);
+        } else {
+            throw new Error(`Unsupported contact type: ${newContactType}`);
+            
+        }
     } catch (error) {
-        console.log('Error in createContact:', error.message);
+        console.log({m:'createContact error',error});
         return {
             returnMessage: {
                 messageType: 'warning',
@@ -631,7 +614,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `Dominion was unable to create a contact named ${newContactName}. Please try again.`
+                                text: `Dominion was unable to create a ${newContactType} named ${newContactName}. Please try again.`
                             }
                         ]
                     }
@@ -641,6 +624,162 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         };
     }
 }
+
+// Create customer using ProcessCustomerInformation API
+async function createCustomerContact(user, phoneNumber, nameParts, fullName) {
+    try {
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
+
+        // Build the API URL for ProcessCustomerInformation
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessCustomerInformation/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
+        
+        // Parse phone number to get clean format
+        const phoneNumberObj = parsePhoneNumber(phoneNumber?.replace(' ', '+') || '');
+        const cleanPhoneNumber = phoneNumberObj?.number?.significant || phoneNumber || '';
+        
+        // Create XML payload for ProcessCustomerInformation request
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<ProcessCustomerInformation releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>RingCentral</CreatorNameCode>
+            <SenderNameCode>RingCentral</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>Dominion</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <ProcessCustomerInformationDataArea>
+        <Process>
+            <ActionCriteria xmlns="http://www.openapplications.org/oagis/9">
+                <ActionExpression actionCode="Add" />
+            </ActionCriteria>
+        </Process>
+        <CustomerInformation>
+            <CustomerInformationHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                </DocumentIdentificationGroup>
+                <TransactionTypeCode>N/A</TransactionTypeCode>
+            </CustomerInformationHeader>
+            <CustomerInformationDetail>
+                <CustomerParty>
+                    <SpecifiedPerson>
+                        <GivenName>${nameParts.firstName || ''}</GivenName>
+                        ${nameParts.middleName ? `<MiddleName>${nameParts.middleName}</MiddleName>` : ''}
+                        <FamilyName>${nameParts.lastName || ''}</FamilyName>
+                        ${cleanPhoneNumber ? `<TelephoneCommunication>
+                            <ChannelCode>Telephone</ChannelCode>
+                            <CompleteNumber>${cleanPhoneNumber}</CompleteNumber>
+                            <UseCode>Home</UseCode>
+                            <UsagePreference>
+                                <PreferredIndicator>true</PreferredIndicator>
+                            </UsagePreference>
+                        </TelephoneCommunication>` : ''}
+                    </SpecifiedPerson>
+                </CustomerParty>
+            </CustomerInformationDetail>
+        </CustomerInformation>
+    </ProcessCustomerInformationDataArea>
+</ProcessCustomerInformation>`;
+
+        console.log('Making ProcessCustomerInformation API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
+
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('ProcessCustomerInformation API response received:', response.status);
+        console.log('Response data:', response.data);
+
+        // Parse XML response to extract customer ID
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+        const result = await parser.parseStringPromise(response.data);
+        
+        let customerId = null;
+        let customerName = fullName;
+        
+        // Extract DealerManagementSystemID from AcknowledgeCustomerInformation response
+        const acknowledgeCustomerInfo = result.AcknowledgeCustomerInformation;
+        if (acknowledgeCustomerInfo && acknowledgeCustomerInfo.AcknowledgeCustomerInformationDataArea) {
+            const customerInfo = acknowledgeCustomerInfo.AcknowledgeCustomerInformationDataArea.CustomerInformation;
+            if (customerInfo && customerInfo.CustomerInformationDetail) {
+                const customerParty = customerInfo.CustomerInformationDetail.CustomerParty;
+                if (customerParty && customerParty.DealerManagementSystemID) {
+                    customerId = customerParty.DealerManagementSystemID.toString();
+                }
+                
+                // Extract actual name from response if available
+                const specifiedPerson = customerParty?.SpecifiedPerson;
+                if (specifiedPerson) {
+                    const nameParts = [];
+                    if (specifiedPerson.GivenName) nameParts.push(specifiedPerson.GivenName);
+                    if (specifiedPerson.MiddleName) nameParts.push(specifiedPerson.MiddleName);
+                    if (specifiedPerson.FamilyName) nameParts.push(specifiedPerson.FamilyName);
+                    if (nameParts.length > 0) {
+                        customerName = nameParts.join(' ');
+                    }
+                }
+            }
+        }
+
+        if (!customerId) {
+            // Fallback: try to extract from response text if XML parsing didn't work
+            const idMatch = response.data.match(/<DealerManagementSystemID[^>]*>([^<]+)<\/DealerManagementSystemID>/);
+            if (idMatch) {
+                customerId = idMatch[1];
+            } else {
+                throw new Error('Unable to extract customer ID from response');
+            }
+        }
+
+        return {
+            contactInfo: {
+                id: customerId,
+                name: customerName,
+                type: 'customer'
+            },
+            returnMessage: {
+                message: 'Customer created successfully in Dominion DMS',
+                messageType: 'success',
+                ttl: 3000
+            }
+        };
+    } catch (error) {
+        console.log('Error in createCustomerContact:', error.message);
+        console.log('Error response:', error.response?.data);
+        throw error;
+    }
+}
+
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     try {
