@@ -9,6 +9,7 @@ const jwt = require('@app-connect/core/lib/jwt');
 const axios = require('axios');
 const bullhorn = require('./connectors/bullhorn');
 const clio = require('./connectors/clio');
+const dominion = require('./connectors/dominion');
 const googleSheets = require('./connectors/googleSheets');
 const insightly = require('./connectors/insightly');
 const netsuite = require('./connectors/netsuite');
@@ -23,6 +24,8 @@ connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
 
 connectorRegistry.registerConnector('bullhorn', bullhorn);
 connectorRegistry.registerConnector('clio', clio);
+connectorRegistry.registerConnector('dominion', dominion);
+connectorRegistry.registerConnector('ringcentral_labs.dominion', dominion); // Register with full manifest name
 connectorRegistry.registerConnector('googleSheets', googleSheets);
 connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);

@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+  "serverUrl": "https://americas-performance-rent-savannah.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1855,6 +1855,190 @@
           ]
         }
       ]
+    },
+    "ringcentral_labs.dominion": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://vue.qa-dominiondms.com/"
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
+      "urlIdentifier": "vue.qa-dominiondms.com",
+      "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
+      "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/dominion/",
+      "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+      "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+      "name": "ringcentral_labs.dominion",
+      "embedUrls": [
+        "https://vue.qa-dominiondms.com/*"
+      ],
+      "serverSideLogging": {
+        "url": "https://crm-logging.labs.ringcentral.com",
+        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true
+      },
+      "displayName": "Dominion",
+      "auth": {
+        "type": "apiKey",
+        "apiKey": {
+          "page": {
+            "title": "Dominion DMS",
+            "warning": "Please enter your Dominion DMS credentials to connect to your system.",
+            "content": [
+              {
+                "const": "partyId",
+                "title": "Party ID",
+                "type": "string",
+                "required": true,
+                "placeholder": "Enter your Party ID"
+              },
+              {
+                "const": "dealerNumberId", 
+                "title": "Dealer Number ID",
+                "type": "string",
+                "required": true,
+                "placeholder": "Enter your Dealer Number ID"
+              },
+              {
+                "const": "bodVersion",
+                "title": "BOD Version", 
+                "type": "string",
+                "required": true,
+                "placeholder": "Enter BOD Version (e.g., 10.5)"
+              },
+              {
+                "const": "employeeNumber",
+                "title": "Employee Number",
+                "type": "string",
+                "required": true,
+                "placeholder": "Enter your Employee Number"
+              }
+            ]
+          }
+        }
+      },
+      "canOpenLogPage": true,
+      "contactPageUrl": "https://vue.qa-dominiondms.com/contacts/{contactId}",
+      "logPageUrl": "https://vue.qa-dominiondms.com/activities/{logId}",
+      "contactTypes": [
+        {
+          "display": "Customer",
+          "value": "customer"
+        },
+        {
+          "display": "Lead",
+          "value": "lead"
+        }
+      ],
+      "settings": [
+      ],
+      "page": {
+        "callLog": {
+          "additionalFields": []
+        },
+        "messageLog": {
+          "additionalFields": []
+        },
+        "newContact": {
+          "additionalFields": [
+            {
+              "const": "contactType",
+              "title": "Contact Type",
+              "type": "selection",
+              "required": true,
+              "selections": [
+                {
+                  "const": "customer",
+                  "title": "Customer"
+                },
+                {
+                  "const": "contact",
+                  "title": "Contact"
+                }
+              ],
+              "defaultSettingId": "dominionOptions",
+              "defaultSettingValues": {
+              }
+            }
+          ]
+        },
+        "feedback": {
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
+          "elements": [
+            {
+              "const": "pageDescription",
+              "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+              "type": "string",
+              "bold": false
+            },
+            {
+              "const": "scoreDescription",
+              "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+              "type": "string",
+              "bold": true
+            },
+            {
+              "const": "score",
+              "title": "Score from 1 to 10",
+              "type": "selection",
+              "selections": [
+                {
+                  "const": "1",
+                  "title": "1"
+                },
+                {
+                  "const": "2",
+                  "title": "2"
+                },
+                {
+                  "const": "3",
+                  "title": "3"
+                },
+                {
+                  "const": "4",
+                  "title": "4"
+                },
+                {
+                  "const": "5",
+                  "title": "5"
+                },
+                {
+                  "const": "6",
+                  "title": "6"
+                },
+                {
+                  "const": "7",
+                  "title": "7"
+                },
+                {
+                  "const": "8",
+                  "title": "8"
+                },
+                {
+                  "const": "9",
+                  "title": "9"
+                },
+                {
+                  "const": "10",
+                  "title": "10"
+                }
+              ],
+              "required": true
+            },
+            {
+              "const": "feedback",
+              "title": "Feedback",
+              "type": "inputField",
+              "placeholder": "Please share your feedback...",
+              "required": true
+            }
+          ]
+        },
+        "useContactSearch": true
+      }
     }
   },
   "version": "1.6.19"
