@@ -949,32 +949,141 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     }
 }
 
+// Helper function to truncate composedLogDetails at first <br/> tag
+function truncateLogDetailsAtBrTag(composedLogDetails) {
+    if (!composedLogDetails) return '';
+    
+    // Find the first occurrence of <br/> or <br> (case insensitive)
+    const brIndex = composedLogDetails.toLowerCase().indexOf('<br/>');
+    const brIndex2 = composedLogDetails.toLowerCase().indexOf('<br>');
+    
+    let firstBrIndex = -1;
+    if (brIndex !== -1 && brIndex2 !== -1) {
+        firstBrIndex = Math.min(brIndex, brIndex2);
+    } else if (brIndex !== -1) {
+        firstBrIndex = brIndex;
+    } else if (brIndex2 !== -1) {
+        firstBrIndex = brIndex2;
+    }
+    
+    // If no <br/> found, return the original string
+    if (firstBrIndex === -1) {
+        return composedLogDetails;
+    }
+    
+    // Return everything before the first <br/> tag
+    return composedLogDetails.substring(0, firstBrIndex).trim();
+}
+
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, composedLogDetails, existingCallLogDetails }) {
     try {
-        console.log('Making dummy API call to update call log in Dominion');
+        console.log({existingCallLog, composedLogDetails, existingCallLogDetails:existingCallLogDetails?.ServiceAppointmentDetail?.Appointment?.AppointmentNotes,SpecifiedPerson: existingCallLogDetails?.ServiceAppointmentHeader?.AppointmentContactParty?.SpecifiedPerson});
+        
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
+
+        // Build the API URL for ProcessServiceAppointment
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
         
         const existingLogId = existingCallLog.thirdPartyLogId;
         
-        // Simulate call log update
-        const updatePayload = {
-            title: subject,
-            notes: composedLogDetails,
-            result: result
-        };
-
-        if (startTime !== undefined && duration !== undefined) {
-            const callStartTime = moment(startTime);
-            const callEndTime = moment(callStartTime).add(duration, 'seconds');
-            updatePayload.startTime = callStartTime.toISOString();
-            updatePayload.endTime = callEndTime.toISOString();
-            updatePayload.duration = duration;
+        // Truncate composedLogDetails at first <br/> tag
+        const truncatedLogDetails = truncateLogDetailsAtBrTag(composedLogDetails);
+        
+        // Parse existing contact info from existingCallLogDetails if available
+        let contactName = { firstName: '', middleName: '', lastName: '' };
+        let phoneNumber = '';
+        
+        // Extract contact info from the structured SpecifiedPerson object
+        const specifiedPerson = existingCallLogDetails?.ServiceAppointmentHeader?.AppointmentContactParty?.SpecifiedPerson;
+        if (specifiedPerson) {
+            contactName = {
+                firstName: specifiedPerson.GivenName || '',
+                middleName: specifiedPerson.MiddleName || '',
+                lastName: specifiedPerson.FamilyName || ''
+            };
+            phoneNumber = specifiedPerson.TelephoneCommunication?.CompleteNumber || '';
         }
 
-        if (recordingLink) {
-            updatePayload.recordingLink = recordingLink;
-        }
+        
+        // Create XML payload for ProcessServiceAppointment request with Change action
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<ProcessServiceAppointment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>EX</CreatorNameCode>
+            <SenderNameCode>EX</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>D2</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <ProcessServiceAppointmentDataArea>
+        <Process>
+            <oagis:ActionCriteria>
+                <oagis:ActionExpression actionCode="Change"/>
+            </oagis:ActionCriteria>
+        </Process>
+        <ServiceAppointment>
+            <ServiceAppointmentHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                    <AlternateDocumentIdentification>
+                        <DocumentID>${existingLogId}</DocumentID>
+                    </AlternateDocumentIdentification>
+                </DocumentIdentificationGroup>
+                ${contactName.firstName || contactName.middleName || contactName.lastName || cleanPhoneNumber ? `<AppointmentContactParty>
+                    <SpecifiedPerson>
+                        <GivenName>${contactName.firstName || ''}</GivenName>
+                        ${contactName.middleName ? `<MiddleName>${contactName.middleName}</MiddleName>` : ''}
+                        <FamilyName>${contactName.lastName || ''}</FamilyName>
+                        ${phoneNumber ? `<TelephoneCommunication>
+                            <ChannelCode>Telephone</ChannelCode>
+                            <CompleteNumber>${phoneNumber}</CompleteNumber>
+                            <UseCode>Cellular/Pager</UseCode>
+                        </TelephoneCommunication>` : ''}
+                    </SpecifiedPerson>
+                </AppointmentContactParty>` : ''}
+            </ServiceAppointmentHeader>
+            <ServiceAppointmentDetail>
+                <Appointment>
+                    <AppointmentNotes>${truncatedLogDetails}</AppointmentNotes>
+                    <AppointmentType>Service</AppointmentType>
+                </Appointment>
+            </ServiceAppointmentDetail>
+        </ServiceAppointment>
+    </ProcessServiceAppointmentDataArea>
+</ProcessServiceAppointment>`;
 
-        console.log('Updating call log with payload:', updatePayload);
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
 
         return {
             updatedNote: note,
@@ -985,7 +1094,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             }
         };
     } catch (error) {
-        console.log('Error in updateCallLog:', error.message);
+        console.log('Error in updateCallLog:', error);
         return {
             successful: false,
             returnMessage: {
@@ -1123,22 +1232,26 @@ async function getCallLog({ user, callLogId, authHeader }) {
         
         // Parse notes to extract structured information (similar to Bullhorn parsing)
         const fullBody = appointmentNotes;
-        
-        // Extract note value from "- Note: Value" pattern
+
+        // Extract LAST note value from "- Note: Value" pattern
         let note = '';
         if (appointmentNotes.includes('Note:')) {
-            const noteMatch = appointmentNotes.match(/[-\s]*Note:\s*([^\n\r-]*)/);
-            if (noteMatch) {
-                note = noteMatch[1].trim();
+            const noteMatches = [...appointmentNotes.matchAll(/[-\s]*Note:\s*([^\n\r]*)/g)];
+            if (noteMatches.length > 0) {
+                // Get the last match
+                const lastNoteMatch = noteMatches[noteMatches.length - 1];
+                note = lastNoteMatch[1].trim();
             }
         }
         
-        // Extract subject from "- Summary: Value" pattern
+        // Extract LAST subject from "- Summary: Value" pattern
         let subject = '';
         if (appointmentNotes.includes('Summary:')) {
-            const summaryMatch = appointmentNotes.match(/[-\s]*Summary:\s*([^\n\r-]*)/);
-            if (summaryMatch) {
-                subject = summaryMatch[1].trim();
+            const summaryMatches = [...appointmentNotes.matchAll(/[-\s]*Summary:\s*([^\n\r]*)/g)];
+            if (summaryMatches.length > 0) {
+                // Get the last match
+                const lastSummaryMatch = summaryMatches[summaryMatches.length - 1];
+                subject = lastSummaryMatch[1].trim();
             }
         }
         
