@@ -1298,54 +1298,179 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     try {
-        console.log('Making dummy API call to create message log in Dominion');
+        console.log({m:'createMessageLog', contactInfo, message});
         
-        const userName = user?.dataValues?.platformAdditionalInfo?.name || 'Dominion User';
-        let messageType = '';
-        let title = '';
-        let logBody = '';
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
 
+        // Build the API URL for ProcessServiceAppointment
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
+        
+        // Parse contact name
+        const nameParts = splitName(contactInfo.name || '');
+        
+        // Format message time
+        const messageTime = moment(message.creationTime);
+        const appointmentDateTime = messageTime.toISOString();
+        
+        // Parse phone number to get clean format
+        const phoneNumberObj = parsePhoneNumber(contactInfo.phoneNumber?.replace(' ', '+') || '');
+        const cleanPhoneNumber = phoneNumberObj?.number?.significant || contactInfo.phoneNumber || '';
+        
+        // Build message body data for appointment notes
+        const userName = user?.dataValues?.platformAdditionalInfo?.name || 'User';
+        let messageBodyData = '';
+        
         if (recordingLink) {
-            messageType = 'Voicemail';
-            title = `Voicemail from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Voicemail recording link: ${recordingLink}\n\n--- Created via RingCentral App Connect`;
+            // Voicemail message body
+            messageBodyData = `Voicemail from ${contactInfo.name}\n` +
+                `Date/Time: ${messageTime.format('YYYY-MM-DD hh:mm:ss A')}\n` +
+                `Recording Link: ${recordingLink}\n` +
+                `Direction: ${message.direction}\n` +
+                `--- Created via RingCentral App Connect`;
         } else if (faxDocLink) {
-            messageType = 'Fax';
-            title = `Fax from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `Fax document link: ${faxDocLink}\n\n--- Created via RingCentral App Connect`;
+            // Fax message body
+            messageBodyData = `Fax from ${contactInfo.name}\n` +
+                `Date/Time: ${messageTime.format('YYYY-MM-DD hh:mm:ss A')}\n` +
+                `Document Link: ${faxDocLink}\n` +
+                `Direction: ${message.direction}\n` +
+                `--- Created via RingCentral App Connect`;
         } else {
-            messageType = 'SMS';
-            title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            logBody = `SMS: ${message.subject}\nFrom: ${message.direction === 'Inbound' ? contactInfo.name : userName}\n\n--- Created via RingCentral App Connect`;
+            // SMS message body
+            messageBodyData = `SMS Conversation with ${contactInfo.name}\n` +
+                `Date/Time: ${messageTime.format('YYYY-MM-DD hh:mm:ss A')}\n` +
+                `Message: ${message.subject || 'No message content'}\n` +
+                `From: ${message.direction === 'Inbound' ? contactInfo.name : userName}\n` +
+                `Direction: ${message.direction}\n` +
+                `--- Created via RingCentral App Connect`;
         }
 
-        const messageLogPayload = {
-            title: title,
-            contactId: contactInfo.id,
-            phone: contactInfo.phoneNumber || '',
-            type: messageType,
-            content: logBody,
-            createdAt: moment(message.creationTime).toISOString()
-        };
+        // Create XML payload for ProcessServiceAppointment request
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<ProcessServiceAppointment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>RingCentral</CreatorNameCode>
+            <SenderNameCode>RingCentral</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>Dominion</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <ProcessServiceAppointmentDataArea>
+        <Process>
+            <oagis:ActionCriteria>
+                <oagis:ActionExpression actionCode="Add"/>
+            </oagis:ActionCriteria>
+        </Process>
+        <ServiceAppointment>
+            <ServiceAppointmentHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                </DocumentIdentificationGroup>
+                <AppointmentContactParty>
+                    <SpecifiedPerson>
+                        <GivenName>${nameParts.firstName || ''}</GivenName>
+                        <FamilyName>${nameParts.lastName || ''}</FamilyName>
+                        ${cleanPhoneNumber ? `<TelephoneCommunication>
+                            <ChannelCode>Telephone</ChannelCode>
+                            <CompleteNumber>${cleanPhoneNumber}</CompleteNumber>
+                            <UseCode>Cellular/Pager</UseCode>
+                        </TelephoneCommunication>` : ''}
+                    </SpecifiedPerson>
+                </AppointmentContactParty>
+            </ServiceAppointmentHeader>
+            <ServiceAppointmentDetail>
+                <Appointment>
+                    <AppointmentDateTime>${appointmentDateTime}</AppointmentDateTime>
+                    <AppointmentNotes>${messageBodyData}</AppointmentNotes>
+                </Appointment>
+            </ServiceAppointmentDetail>
+        </ServiceAppointment>
+    </ProcessServiceAppointmentDataArea>
+</ProcessServiceAppointment>`;
 
-        if (additionalSubmission && additionalSubmission.opportunityId) {
-            messageLogPayload.opportunityId = additionalSubmission.opportunityId;
-        }
+        console.log('Making ProcessServiceAppointment API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
 
-        console.log('Creating message log with payload:', messageLogPayload);
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('ProcessServiceAppointment API response received:', response.status);
+        console.log('Response data:', response.data);
+
+        // Parse XML response to extract appointment ID
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+        const result = await parser.parseStringPromise(response.data);
         
-        const newLogId = Math.floor(Math.random() * 10000);
+        let appointmentId = null;
+        
+        // Extract AlternateDocumentIdentification from AcknowledgeServiceAppointment response
+        const acknowledgeServiceAppointment = result.AcknowledgeServiceAppointment;
+        if (acknowledgeServiceAppointment && acknowledgeServiceAppointment.AcknowledgeServiceAppointmentDataArea) {
+            const serviceAppointment = acknowledgeServiceAppointment.AcknowledgeServiceAppointmentDataArea.ServiceAppointment;
+            if (serviceAppointment && serviceAppointment.ServiceAppointmentHeader) {
+                const docGroup = serviceAppointment.ServiceAppointmentHeader.DocumentIdentificationGroup;
+                if (docGroup && docGroup.AlternateDocumentIdentification) {
+                    appointmentId = docGroup.AlternateDocumentIdentification.DocumentID.toString();
+                }
+            }
+        }
+
+        if (!appointmentId) {
+            // Fallback: try to extract from response text if XML parsing didn't work
+            const idMatch = response.data.match(/<AlternateDocumentIdentification[^>]*>[\s\S]*?<DocumentID[^>]*>([^<]+)<\/DocumentID>/);
+            if (idMatch) {
+                appointmentId = idMatch[1];
+            } else {
+                // Use BODID as fallback
+                appointmentId = bodId;
+            }
+        }
+
+        // Determine message type for success message
+        let messageTypeText = 'Message';
+        if (recordingLink) messageTypeText = 'Voicemail';
+        else if (faxDocLink) messageTypeText = 'Fax';
+        else messageTypeText = 'SMS';
 
         return {
-            logId: newLogId,
+            logId: appointmentId,
             returnMessage: {
-                message: `${messageType} logged successfully`,
+                message: `${messageTypeText} logged successfully in Dominion DMS`,
                 messageType: 'success',
-                ttl: 1000
+                ttl: 2000
             }
         };
     } catch (error) {
-        console.log('Error in createMessageLog:', error.message);
+        console.log({m:'createMessageLog error', error});
         return {
             returnMessage: {
                 messageType: 'warning',
@@ -1357,7 +1482,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                             {
                                 id: '1',
                                 type: 'text',
-                                text: 'There was an error creating the message log entry in Dominion. Please try again.'
+                                text: `There was an error creating the message log entry in Dominion DMS: ${error.response?.data || error.message}`
                             }
                         ]
                     }
@@ -1368,44 +1493,155 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber, existingMessageLogDetails }) {
     try {
-        console.log('Making dummy API call to update message log in Dominion');
+        console.log({m:'updateMessageLog', existingMessageLog, message});
+        
+        // Get valid access token
+        const accessToken = await getDominionAccessToken(user);
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
+
+        // Build the API URL for ProcessServiceAppointment
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        // Generate unique BODID for this request
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
         
         const existingLogId = existingMessageLog.thirdPartyLogId;
-        const userName = user?.dataValues?.platformAdditionalInfo?.name || 'Dominion User';
         
-        // Simulate updating existing message log with new message
-        const newMessageEntry = `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n${message.subject}\n\n`;
+        // Use the contactInfo parameter directly
+        const nameParts = splitName(contactInfo.name || '');
+        const phoneNumberObj = parsePhoneNumber(contactInfo.phoneNumber?.replace(' ', '+') || '');
+        const cleanPhoneNumber = phoneNumberObj?.number?.significant || contactInfo.phoneNumber || '';
+
+        // Get existing appointment notes (message body data) - we need existingMessageLogDetails only for this
+        let existingMessageBodyData = existingMessageLogDetails?.ServiceAppointmentDetail?.Appointment?.AppointmentNotes || '';
         
-        console.log('Updating message log with new entry:', newMessageEntry);
+        // Build new message body data to append
+        const userName = user?.dataValues?.platformAdditionalInfo?.name || 'User';
+        const messageTime = moment(message.creationTime);
+        let newMessageBodyData = '';
+        
+        if (message.type === 'Voicemail' || message.recordingLink) {
+            newMessageBodyData = `\n\n--- New Voicemail Message ---\n` +
+                `From: ${contactInfo.name}\n` +
+                `Date/Time: ${messageTime.format('YYYY-MM-DD hh:mm:ss A')}\n` +
+                `Direction: ${message.direction}\n` +
+                `Recording Link: ${message.recordingLink || 'N/A'}\n` +
+                `--- Added via RingCentral App Connect`;
+        } else if (message.type === 'Fax' || message.faxDocLink) {
+            newMessageBodyData = `\n\n--- New Fax Message ---\n` +
+                `From: ${contactInfo.name}\n` +
+                `Date/Time: ${messageTime.format('YYYY-MM-DD hh:mm:ss A')}\n` +
+                `Direction: ${message.direction}\n` +
+                `Document Link: ${message.faxDocLink || 'N/A'}\n` +
+                `--- Added via RingCentral App Connect`;
+        } else {
+            // SMS message
+            newMessageBodyData = `\n\n--- New SMS Message ---\n` +
+                `${message.direction === 'Inbound' ? contactInfo.name : userName} (${messageTime.format('hh:mm A')})\n` +
+                `Message: ${message.subject || 'No message content'}\n` +
+                `Direction: ${message.direction}\n` +
+                `--- Added via RingCentral App Connect`;
+        }
+        
+        // Combine existing and new message body data
+        const updatedMessageBodyData = existingMessageBodyData + newMessageBodyData;
+
+        // Create XML payload for ProcessServiceAppointment request with Change action
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<ProcessServiceAppointment xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>EX</CreatorNameCode>
+            <SenderNameCode>EX</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>D2</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <ProcessServiceAppointmentDataArea>
+        <Process>
+            <oagis:ActionCriteria>
+                <oagis:ActionExpression actionCode="Change"/>
+            </oagis:ActionCriteria>
+        </Process>
+        <ServiceAppointment>
+            <ServiceAppointmentHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                    <AlternateDocumentIdentification>
+                        <DocumentID>${existingLogId}</DocumentID>
+                    </AlternateDocumentIdentification>
+                </DocumentIdentificationGroup>
+                ${nameParts.firstName || nameParts.lastName || cleanPhoneNumber ? `<AppointmentContactParty>
+                    <SpecifiedPerson>
+                        <GivenName>${nameParts.firstName || ''}</GivenName>
+                        <FamilyName>${nameParts.lastName || ''}</FamilyName>
+                        ${cleanPhoneNumber ? `<TelephoneCommunication>
+                            <ChannelCode>Telephone</ChannelCode>
+                            <CompleteNumber>${cleanPhoneNumber}</CompleteNumber>
+                            <UseCode>Cellular/Pager</UseCode>
+                        </TelephoneCommunication>` : ''}
+                    </SpecifiedPerson>
+                </AppointmentContactParty>` : ''}
+            </ServiceAppointmentHeader>
+            <ServiceAppointmentDetail>
+                <Appointment>
+                    <AppointmentNotes>${updatedMessageBodyData}</AppointmentNotes>
+                    <AppointmentType>Service</AppointmentType>
+                </Appointment>
+            </ServiceAppointmentDetail>
+        </ServiceAppointment>
+    </ProcessServiceAppointmentDataArea>
+</ProcessServiceAppointment>`;
+
+        console.log('Making ProcessServiceAppointment API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
+
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('ProcessServiceAppointment API response received:', response.status);
+        console.log('Response data:', response.data);
 
         return {
-            logId: existingLogId,
             returnMessage: {
-                message: 'Message log updated successfully',
+                message: 'Message log updated successfully in Dominion DMS',
                 messageType: 'success',
-                ttl: 3000
+                ttl: 2000
             }
         };
     } catch (error) {
-        console.log('Error in updateMessageLog:', error.message);
+        console.log('Error in updateMessageLog:', error);
         return {
+            successful: false,
             returnMessage: {
-                messageType: 'warning',
                 message: 'Error updating message log',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: 'There was an error updating the message log in Dominion. Please try again.'
-                            }
-                        ]
-                    }
-                ],
+                messageType: 'warning',
                 ttl: 3000
             }
         };
