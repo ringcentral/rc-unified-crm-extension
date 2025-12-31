@@ -11,7 +11,7 @@ function getAuthType() {
 }
 
 function getLogFormatType() {
-    return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+    return LOG_DETAILS_FORMAT_TYPE.HTML;
 }
 
 function getBasicAuth({ apiKey }) {
