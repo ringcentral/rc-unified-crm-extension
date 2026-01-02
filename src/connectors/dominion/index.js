@@ -222,6 +222,9 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, apiKey, user 
                             }
                         }
                     }
+                } else {
+                    console.log('No personnel information found in the response');
+                    throw new Error('No personnel information found in the response');
                 }
                 
                 console.log('Extracted user info:', userInfo);
@@ -248,6 +251,9 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, apiKey, user 
                 
                 if (idMatch) {
                     userInfo.id = idMatch[1];
+                }
+                if(!userInfo.id || !userInfo.name) {
+                    throw new Error('No user information found in the response');  
                 }
             }
         const id = `${userInfo?.id}-dominion`;
@@ -554,35 +560,213 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
 async function findContactWithName({ user, authHeader, name }) {
     try {
-        console.log(`Making dummy API call to search contacts by name: ${name}`);
+        console.log(`Making API call to search contacts by name in Dominion DMS: ${name}`);
         
-        // Simulate contact search by name
-        const matchedContactInfo = [
-            {
-                id: Math.floor(Math.random() * 10000),
-                name: name,
-                phone: '+1234567890',
-                email: `${name.toLowerCase().replace(' ', '.')}@example.com`,
-                type: 'Contact',
-                additionalInfo: {
-                    opportunities: [
-                        { const: '2001', title: 'New Business Opportunity' }
-                    ]
+        // Get valid access token (cached or new)
+        const accessToken = await getDominionAccessToken(user);
+        console.log('Using access token for contact search:', accessToken ? 'Token available' : 'No token');
+        
+        // Extract authentication information from the user object
+        const partyId = user.platformAdditionalInfo?.partyId;
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+        const bodVersion = user.platformAdditionalInfo?.bodVersion;
+        
+        if (!partyId || !dealerNumberId || !bodVersion) {
+            throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+        }
+
+        // Split name into given and family name
+        const nameParts = splitName(name || '');
+        const givenName = nameParts.firstName || '';
+        const familyName = nameParts.lastName || '';
+        
+        // If no valid name parts, return empty results
+        if (!givenName && !familyName) {
+            console.log('No valid name parts found for search');
+            return {
+                successful: true,
+                matchedContactInfo: [{
+                    id: 'createNewContact',
+                    name: 'Create new contact...',
+                    additionalInfo: null,
+                    isNewContact: true
+                }]
+            };
+        }
+
+        // Build the API URL for GetCustomerInformation
+        const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/GetCustomerInformation/${partyId}/${dealerNumberId}/${bodVersion}`;
+
+        const matchedContactInfo = [];
+        const bodId = crypto.randomUUID();
+        const currentDateTime = new Date().toISOString();
+            
+        // Create XML payload for GetCustomerInformation request with name search
+        const xmlPayload = `<?xml version="1.0" encoding="UTF-8"?>
+<GetCustomerInformation releaseID="${bodVersion}" xmlns="http://www.starstandard.org/STAR/5" xmlns:oagis="http://www.openapplications.org/oagis/9">
+    <ApplicationArea>
+        <Sender>
+            <CreatorNameCode>RingCentral</CreatorNameCode>
+            <SenderNameCode>RingCentral</SenderNameCode>
+            <PartyID>${partyId}</PartyID>
+        </Sender>
+        <CreationDateTime>${currentDateTime}</CreationDateTime>
+        <BODID>${bodId}</BODID>
+        <Destination>
+            <DestinationNameCode>Dominion</DestinationNameCode>
+            <DealerNumberID>${dealerNumberId}</DealerNumberID>
+            <ServiceMessageID>${bodVersion}</ServiceMessageID>
+        </Destination>
+    </ApplicationArea>
+    <GetCustomerInformationDataArea>
+        <Get maxItems="250" recordSetStartNumber="1">
+            <oagis:Expression>Get Customer Information</oagis:Expression>
+        </Get>
+        <CustomerInformation>
+            <CustomerInformationHeader>
+                <DocumentIdentificationGroup>
+                    <DocumentIdentification>
+                        <DocumentID>N/A</DocumentID>
+                    </DocumentIdentification>
+                </DocumentIdentificationGroup>
+                <TransactionTypeCode>N/A</TransactionTypeCode>
+            </CustomerInformationHeader>
+            <CustomerInformationDetail>
+                <CustomerParty>
+                    <SpecifiedPerson>
+                        ${givenName ? `<GivenName>${givenName}</GivenName>` : ''}
+                        ${familyName ? `<FamilyName>${familyName}</FamilyName>` : ''}
+                    </SpecifiedPerson>
+                </CustomerParty>
+            </CustomerInformationDetail>
+        </CustomerInformation>
+    </GetCustomerInformationDataArea>
+</GetCustomerInformation>`;
+
+        console.log('Making GetCustomerInformation API call to:', apiUrl);
+        console.log('Request payload:', xmlPayload);
+
+        // Make the API request to Dominion DMS
+        const response = await axios.post(apiUrl, xmlPayload, {
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            timeout: 30000 // 30 second timeout
+        });
+
+        console.log('GetCustomerInformation API response received:', response.status);
+        console.log('Response data:', response.data);
+                    
+        // Parse XML response using xml2js
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+        const result = await parser.parseStringPromise(response.data);
+        
+        const showCustomerInformation = result.ShowCustomerInformation;
+        if (showCustomerInformation && showCustomerInformation.ShowCustomerInformationDataArea && 
+            showCustomerInformation.ShowCustomerInformationDataArea.CustomerInformation) {
+            
+            const customerInformationList = showCustomerInformation.ShowCustomerInformationDataArea.CustomerInformation;
+            const customerInfoArray = Array.isArray(customerInformationList) ? customerInformationList : [customerInformationList];
+            
+            // Track unique contacts by ID to avoid duplicates
+            const uniqueContacts = new Map();
+            
+            for (const customerInfo of customerInfoArray) {
+                if (customerInfo.CustomerInformationDetail && customerInfo.CustomerInformationDetail.CustomerParty) {
+                    const customerParty = customerInfo.CustomerInformationDetail.CustomerParty;
+                    const specifiedPerson = customerParty.SpecifiedPerson;
+                    
+                    if (specifiedPerson) {
+                        // Extract name (including middle name if available)
+                        const customerNameParts = [];
+                        if (specifiedPerson.GivenName) {
+                            customerNameParts.push(specifiedPerson.GivenName);
+                        }
+                        if (specifiedPerson.MiddleName) {
+                            customerNameParts.push(specifiedPerson.MiddleName);
+                        }
+                        if (specifiedPerson.FamilyName) {
+                            customerNameParts.push(specifiedPerson.FamilyName);
+                        }
+                        const customerName = customerNameParts.join(' ').trim();
+                        
+                        // Extract phone number
+                        let customerPhone = '';
+                        if (specifiedPerson.TelephoneCommunication && specifiedPerson.TelephoneCommunication.CompleteNumber) {
+                            customerPhone = specifiedPerson.TelephoneCommunication.CompleteNumber.toString();
+                        }
+                        
+                        // Extract customer ID
+                        let customerId = null;
+                        if (customerParty.DealerManagementSystemID) {
+                            customerId = customerParty.DealerManagementSystemID.toString();
+                        }
+                        
+                        // Extract customer status
+                        let customerStatus = '';
+                        if (specifiedPerson.CustomerStatusCode) {
+                            customerStatus = specifiedPerson.CustomerStatusCode.toString();
+                        }
+                        
+                        
+                        
+                        // Extract privacy settings
+                        const privacySettings = {};
+                        if (customerParty.Privacy) {
+                            const privacyArray = Array.isArray(customerParty.Privacy) ? customerParty.Privacy : [customerParty.Privacy];
+                            for (const privacy of privacyArray) {
+                                if (privacy.PrivacyTypeString) {
+                                    privacySettings[privacy.PrivacyTypeString] = privacy.PrivacyIndicator === 'true';
+                                }
+                            }
+                        }
+                        
+                        // Only add if we have at least a name and it's not already added
+                        if (customerName && customerId && !uniqueContacts.has(customerId)) {
+                            const contact = {
+                                id: customerId,
+                                name: customerName,
+                                phone: customerPhone,
+                                type: 'Customer',
+                                additionalInfo:null
+                            };
+                            
+                            uniqueContacts.set(customerId, contact);
+                            matchedContactInfo.push(contact);
+                        }
+                    }
                 }
             }
-        ];
-
+        } else {
+            console.log('No customer information found in the response');
+        }
+        
         return {
             successful: true,
             matchedContactInfo
         };
     } catch (error) {
-        console.log('Error in findContactWithName:', error.message);
+        console.log('Error in findContactWithName:', error);
         return {
             successful: false,
+            matchedContactInfo: [],
             returnMessage: {
                 messageType: 'warning',
-                message: 'Error searching contacts by name',
+                message: 'Unable to search for customers by name in Dominion DMS',
+                details: [
+                    {
+                        title: 'Details',
+                        items: [
+                            {
+                                id: '1',
+                                type: 'text',
+                                text: `Error searching customers by name: ${error.response?.data || error.message}`
+                            }
+                        ]
+                    }
+                ],
                 ttl: 3000
             }
         };
