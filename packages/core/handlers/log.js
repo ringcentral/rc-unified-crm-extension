@@ -93,7 +93,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-            composedLogDetails = await composeCallLog({
+            composedLogDetails = composeCallLog({
                 logFormat,
                 callLog,
                 contactInfo,
@@ -373,7 +373,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 } catch (error) {
                     console.log('Error getting existing log details, proceeding with empty body', error);
                 }
-                composedLogDetails = await composeCallLog({
+                composedLogDetails = composeCallLog({
                     logFormat,
                     existingBody,
                     callLog: {
@@ -546,6 +546,10 @@ async function createMessageLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+        // For shared SMS
+        const assigneeName = incomingData.logInfo.assignee?.name;
+        const ownerName = incomingData.logInfo.owner?.name;
+
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
         const existingMessages = await MessageLogModel.findAll({
             where: {
@@ -599,12 +603,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;

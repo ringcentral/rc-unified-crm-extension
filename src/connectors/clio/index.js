@@ -601,7 +601,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
+async function createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
     let extraDataTracking = {};
     const sender =
     {
@@ -647,6 +647,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 'Participants\n' +
                 `    ${userName}\n` +
                 `    ${contactInfo.name}\n` +
+                `${ownerName ? `Shared SMS owned by: ${ownerName}\n` : ''}` +
+                `${assigneeName ? `Shared SMS assigned to: ${assigneeName}\n` : ''}` +
                 '\nConversation(1 messages)\n' +
                 'BEGIN\n' +
                 '------------\n' +
@@ -658,7 +660,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             break;
         case 'Voicemail':
             logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
-            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
+            logBody = `${ownerName ? `Shared Voicemail owned by: ${ownerName}\n` : ''}` + 
+                    `${assigneeName ? `Shared Voicemail assigned to: ${assigneeName}\n` : ''}` +
+                    `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
             break;
         case 'Image':
             try {
@@ -711,7 +715,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 )
                 logSubject = `Image document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `Image uploaded to Clio successfully.\nImage document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    logBody = `${ownerName ? `Shared Image owned by: ${ownerName}\n` : ''}` + 
+                    `${assigneeName ? `Shared Image assigned to: ${assigneeName}\n` : ''}` +
+                    `Image uploaded to Clio successfully.\nImage document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                 }
                 else {
                     logBody = `Image failed to be uploaded to Clio.\nImage document link: ${imageDownloadLink} \n\n--- Created via RingCentral App Connect`;
@@ -773,7 +779,9 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
                 )
                 logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    logBody = `${ownerName ? `Shared Fax owned by: ${ownerName}\n` : ''}` + 
+                    `${assigneeName ? `Shared Fax assigned to: ${assigneeName}\n` : ''}` +
+                    `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                 }
                 else {
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
@@ -825,7 +833,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, imageLink, videoLink }) {
+async function updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog, message, authHeader, imageLink, videoLink }) {
     let extraDataTracking = {};
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     const getLogRes = await axios.get(
@@ -858,6 +866,17 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
     const regex = RegExp('Conversation.(.*) messages.');
     const matchResult = regex.exec(logBody);
     logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+
+    if(assigneeName || ownerName) {
+        const sharedSMSAssigneeRegex = RegExp(`Shared SMS assigned to: ${assigneeName}\n`);
+        const sharedSMSOwnerRegex = RegExp(`Shared SMS owned by: ${ownerName}\n`);
+        if(assigneeName) {
+            logBody = logBody.replace(sharedSMSAssigneeRegex, `Shared SMS assigned to: ${assigneeName}\n`);
+        }
+        if(ownerName) {
+            logBody = logBody.replace(sharedSMSOwnerRegex, `Shared SMS owned by: ${ownerName}\n`);
+        }
+    }
 
     patchBody = {
         data: {
