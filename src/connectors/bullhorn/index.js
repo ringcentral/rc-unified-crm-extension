@@ -663,6 +663,9 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
+    if (newContactType === '') {
+        return null;
+    }
     let commentActionListResponse;
     let extraDataTracking = {};
     try {

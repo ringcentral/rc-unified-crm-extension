@@ -48,6 +48,8 @@ app.get('/googleSheets/filePicker', async function (req, res) {
             }
             const fileContent = await googleSheetsExtra.renderPickerFile({ user });
             res.send(fileContent);
+        } else {
+            res.status(400).send('Please go to Settings and authorize CRM platform');
         }
     }
     catch (e) {
@@ -98,6 +100,7 @@ app.delete('/googleSheets/sheet', async function (req, res) {
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
                 res.status(400).send();
+                return;
             }
             await googleSheetsExtra.removeSheet({ user });
             res.status(200).send('Sheet removed');
@@ -269,14 +272,27 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     try {
         const basicAuthHeader = Buffer.from(`${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`).toString('base64');
         if (`Basic ${basicAuthHeader}` === req.get('authorization')) {
-            const platformModule = require(`./connectors/pipedrive`);
-            await platformModule.unAuthorize({ id: req.body.user_id });
-            await UserModel.destroy({
-                where: {
-                    id: req.body.user_id,
-                    platform: 'pipedrive'
-                }
-            });
+            const userId = req.body.user_id;
+            if (!userId) {
+                res.status(400).send('Missing user_id');
+                return;
+            }
+            
+            // Find the user to get refresh token for revocation
+            const user = await UserModel.findByPk(userId);
+            if (user) {
+                const platformModule = require(`./connectors/pipedrive`);
+                await platformModule.unAuthorize({ user });
+                await UserModel.destroy({
+                    where: {
+                        id: userId,
+                        platform: 'pipedrive'
+                    }
+                });
+            }
+            res.status(200).send('User deleted');
+        } else {
+            res.status(401).send('Unauthorized');
         }
     }
     catch (e) {

@@ -15,5 +15,20 @@
         "tokenRevokePath": "/oauth/revoke",
         "dealPath": "/api/v2/deals",
         "leadPath": "/v1/leads"
+    },
+    {
+        "name": "bullhorn",
+        "hostname": "rest.bullhorn.com",
+        "userInfoDomain": "https://rest.bullhorn.com",
+        "userInfoPath": "/query/CorporateUser",
+        "domain": "https://rest.bullhorn.com",
+        "callLogPath": "/entity/Note",
+        "messageLogPath": "/entity/Note",
+        "contactPath": "/search/ClientContact",
+        "oauthDomain": "https://auth.bullhorn.com",
+        "oauthTokenPath": "/oauth/token",
+        "tokenRevokePath": "/oauth/revoke",
+        "loginPath": "/login",
+        "pingPath": "/ping"
     }
 ]
