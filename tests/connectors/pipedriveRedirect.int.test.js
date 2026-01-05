@@ -172,6 +172,40 @@ describe('Pipedrive Redirect Routes', () => {
             // Should return 200 even for non-existent user (idempotent delete)
             expect(res.status).toEqual(200);
         });
+
+        test('should return 500 when revocation fails', async () => {
+            // Create a temporary user for this test with unique ID
+            const tempUserId = `tempDeleteUser3_${Date.now()}`;
+            await UserModel.create({
+                id: tempUserId,
+                hostname: 'test.pipedrive.com',
+                platform: 'pipedrive',
+                rcUserNumber: '+19876543212',
+                accessToken: 'tempAccessToken3',
+                refreshToken: 'tempRefreshToken3'
+            });
+            
+            // Mock the token revocation API to fail
+            nock('https://oauth.pipedrive.com')
+                .post('/oauth/revoke')
+                .replyWithError('Network error');
+            
+            // Create proper basic auth header
+            const credentials = Buffer.from(
+                `${process.env.PIPEDRIVE_CLIENT_ID}:${process.env.PIPEDRIVE_CLIENT_SECRET}`
+            ).toString('base64');
+            
+            const res = await request(getServer())
+                .delete('/pipedrive-redirect')
+                .set('Authorization', `Basic ${credentials}`)
+                .send({ user_id: tempUserId });
+            
+            // Should return 500 on error
+            expect(res.status).toEqual(500);
+            
+            // Clean up
+            await UserModel.destroy({ where: { id: tempUserId } });
+        });
     });
 });
 

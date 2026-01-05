@@ -1050,6 +1050,909 @@ describe('Clio Connector', () => {
         });
     });
 
+    // ==================== Additional findContact scenarios ====================
+    describe('findContact with overridingFormat', () => {
+        it('should search with formatted phone numbers when overridingFormat is provided', async () => {
+            // First query with original number
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            // Second query with formatted number
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 101,
+                        name: 'John Doe',
+                        type: 'Person',
+                        updated_at: '2024-01-15T10:00:00Z'
+                    }]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/matters.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            const result = await clio.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '(***) ***-****',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo.length).toBeGreaterThan(0);
+        });
+
+        it('should skip duplicate contacts in search results', async () => {
+            // Same contact returned from multiple queries
+            const contactData = {
+                id: 101,
+                name: 'John Doe',
+                type: 'Person',
+                updated_at: '2024-01-15T10:00:00Z'
+            };
+
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, { data: [contactData] }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/matters.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            // Second query returns same contact
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, { data: [contactData] }, mockRateLimitHeaders);
+
+            const result = await clio.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '***-***-****',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            // Should only have 2 entries: the contact and "create new contact"
+            expect(result.matchedContactInfo.length).toBe(2);
+        });
+
+        it('should handle invalid phone number format gracefully', async () => {
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            const result = await clio.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: 'invalid-number',
+                overridingFormat: '(***) ***-****',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo.find(c => c.isNewContact)).toBeDefined();
+        });
+    });
+
+    // ==================== Image Message Logging ====================
+    describe('createMessageLog - Image Messages', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234', type: 'Person' });
+        const mockMessageData = createMockMessage();
+
+        it('should create an image message log with successful upload', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download image
+            nock('https://media.example.com')
+                .get('/image.jpg')
+                .reply(200, Buffer.from('fake-image-data'));
+
+            // Create document
+            nock(apiUrl)
+                .post(/\/api\/v4\/documents/)
+                .reply(200, {
+                    data: {
+                        id: 501,
+                        latest_document_version: {
+                            uuid: 'doc-uuid-123',
+                            put_url: 'https://upload.clio.com/upload',
+                            put_headers: [
+                                { name: 'Content-Type', value: 'image/jpeg' }
+                            ]
+                        }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Upload to put_url
+            nock('https://upload.clio.com')
+                .put('/upload')
+                .reply(200);
+
+            // Patch document as fully uploaded
+            nock(apiUrl)
+                .patch(/\/api\/v4\/documents\/501/)
+                .reply(200, {
+                    data: {
+                        id: 501,
+                        latest_document_version: { fully_uploaded: true }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Create communication
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 601 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: null,
+                faxDownloadLink: null,
+                imageLink: 'https://media.example.com/image.jpg',
+                imageDownloadLink: 'https://media.example.com/image.jpg',
+                imageContentType: 'image/jpeg',
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(601);
+        });
+
+        it('should handle image upload failure gracefully', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download image fails
+            nock('https://media.example.com')
+                .get('/image.jpg')
+                .replyWithError('Network error');
+
+            // Create communication - should still succeed with error message
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 602 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null,
+                faxDownloadLink: null,
+                imageLink: 'https://media.example.com/image.jpg',
+                imageDownloadLink: 'https://media.example.com/image.jpg',
+                imageContentType: 'image/jpeg',
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(602);
+        });
+
+        it('should handle incomplete image upload', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download image
+            nock('https://media.example.com')
+                .get('/image.jpg')
+                .reply(200, Buffer.from('fake-image-data'));
+
+            // Create document
+            nock(apiUrl)
+                .post(/\/api\/v4\/documents/)
+                .reply(200, {
+                    data: {
+                        id: 502,
+                        latest_document_version: {
+                            uuid: 'doc-uuid-456',
+                            put_url: 'https://upload.clio.com/upload2',
+                            put_headers: []
+                        }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Upload to put_url
+            nock('https://upload.clio.com')
+                .put('/upload2')
+                .reply(200);
+
+            // Patch document - NOT fully uploaded
+            nock(apiUrl)
+                .patch(/\/api\/v4\/documents\/502/)
+                .reply(200, {
+                    data: {
+                        id: 502,
+                        latest_document_version: { fully_uploaded: false }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Create communication
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 603 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null,
+                faxDownloadLink: null,
+                imageLink: 'https://media.example.com/image.jpg',
+                imageDownloadLink: 'https://media.example.com/image.jpg',
+                imageContentType: 'image/png',
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(603);
+        });
+    });
+
+    // ==================== Fax Message Logging ====================
+    describe('createMessageLog - Fax Messages', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234', type: 'Person' });
+        const mockMessageData = createMockMessage({ messageStatus: 'Received', faxPageCount: 3 });
+
+        it('should create a fax message log with successful upload', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download fax
+            nock('https://fax.example.com')
+                .get('/document.pdf')
+                .reply(200, Buffer.from('fake-pdf-data'));
+
+            // Create document
+            nock(apiUrl)
+                .post(/\/api\/v4\/documents/)
+                .reply(200, {
+                    data: {
+                        id: 503,
+                        latest_document_version: {
+                            uuid: 'fax-uuid-123',
+                            put_url: 'https://upload.clio.com/fax-upload',
+                            put_headers: [
+                                { name: 'Content-Type', value: 'application/pdf' }
+                            ]
+                        }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Upload to put_url
+            nock('https://upload.clio.com')
+                .put('/fax-upload')
+                .reply(200);
+
+            // Patch document as fully uploaded
+            nock(apiUrl)
+                .patch(/\/api\/v4\/documents\/503/)
+                .reply(200, {
+                    data: {
+                        id: 503,
+                        latest_document_version: { fully_uploaded: true }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Create communication
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 604 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/view/document.pdf',
+                faxDownloadLink: 'https://fax.example.com/document.pdf',
+                imageLink: null,
+                imageDownloadLink: null,
+                imageContentType: null,
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(604);
+        });
+
+        it('should handle fax upload failure gracefully', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download fax fails
+            nock('https://fax.example.com')
+                .get('/document.pdf')
+                .replyWithError('Network error');
+
+            // Create communication - should still succeed with error message
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 605 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/view/document.pdf',
+                faxDownloadLink: 'https://fax.example.com/document.pdf',
+                imageLink: null,
+                imageDownloadLink: null,
+                imageContentType: null,
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(605);
+        });
+
+        it('should handle incomplete fax upload', async () => {
+            // User info
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            // Download fax
+            nock('https://fax.example.com')
+                .get('/document.pdf')
+                .reply(200, Buffer.from('fake-pdf-data'));
+
+            // Create document
+            nock(apiUrl)
+                .post(/\/api\/v4\/documents/)
+                .reply(200, {
+                    data: {
+                        id: 504,
+                        latest_document_version: {
+                            uuid: 'fax-uuid-456',
+                            put_url: 'https://upload.clio.com/fax-upload2',
+                            put_headers: []
+                        }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Upload to put_url
+            nock('https://upload.clio.com')
+                .put('/fax-upload2')
+                .reply(200);
+
+            // Patch document - NOT fully uploaded
+            nock(apiUrl)
+                .patch(/\/api\/v4\/documents\/504/)
+                .reply(200, {
+                    data: {
+                        id: 504,
+                        latest_document_version: { fully_uploaded: false }
+                    }
+                }, mockRateLimitHeaders);
+
+            // Create communication
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 606 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/view/document.pdf',
+                faxDownloadLink: 'https://fax.example.com/document.pdf',
+                imageLink: null,
+                imageDownloadLink: null,
+                imageContentType: null,
+                videoLink: null
+            });
+
+            expect(result.logId).toBe(606);
+        });
+    });
+
+    // ==================== Video Message Logging ====================
+    describe('createMessageLog - Video Messages', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234', type: 'Person' });
+        const mockMessageData = createMockMessage();
+
+        it('should create a video message log', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, { data: { id: 607 } }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: null,
+                faxDownloadLink: null,
+                imageLink: null,
+                imageDownloadLink: null,
+                imageContentType: null,
+                videoLink: 'https://video.example.com/video.mp4'
+            });
+
+            expect(result.logId).toBe(607);
+        });
+    });
+
+    // ==================== updateMessageLog with Image/Video ====================
+    describe('updateMessageLog with media links', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });
+        const mockMessageData = createMockMessage();
+        const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '401' });
+
+        it('should update message log with image link', async () => {
+            nock(apiUrl)
+                .get('/api/v4/communications/401.json')
+                .query({ fields: 'body' })
+                .reply(200, {
+                    data: {
+                        id: 401,
+                        body: '\nConversation(1 messages)\nBEGIN\n------------\nFirst message\n------------\nEND\n'
+                    }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .patch('/api/v4/communications/401.json')
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            await clio.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader,
+                imageLink: 'https://media.example.com/image.jpg',
+                videoLink: null
+            });
+
+            // No return value to check, but no error means success
+        });
+
+        it('should update message log with video link', async () => {
+            nock(apiUrl)
+                .get('/api/v4/communications/401.json')
+                .query({ fields: 'body' })
+                .reply(200, {
+                    data: {
+                        id: 401,
+                        body: '\nConversation(1 messages)\nBEGIN\n------------\nFirst message\n------------\nEND\n'
+                    }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .patch('/api/v4/communications/401.json')
+                .reply(200, { data: { id: 401 } }, mockRateLimitHeaders);
+
+            await clio.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader,
+                imageLink: null,
+                videoLink: 'https://media.example.com/video.mp4'
+            });
+
+            // No return value to check, but no error means success
+        });
+    });
+
+    // ==================== updateCallLog with admin assignment ====================
+    describe('updateCallLog with admin assignment', () => {
+        const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '301' });
+
+        it('should update call log with admin assigned user from mapping', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: 'ext-123', crmUserId: 888 }
+                ]
+            });
+
+            // Existing call log details with sender as User
+            const existingCallLogDetails = {
+                id: 301,
+                body: 'Existing body',
+                senders: [{ id: 12345, type: 'User' }],
+                receivers: [{ id: 101, type: 'Person' }]
+            };
+
+            nock(apiUrl)
+                .patch('/api/v4/communications/301.json')
+                .reply(200, { data: { id: 301 } }, mockRateLimitHeaders);
+
+            const result = await clio.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: null,
+                duration: null,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: 'ext-123'
+                },
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should update call log with admin assigned user when receiver is User type', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['ext-456', 'ext-789'], crmUserId: 999 }
+                ]
+            });
+
+            // Existing call log details with receiver as User
+            const existingCallLogDetails = {
+                id: 301,
+                body: 'Existing body',
+                senders: [{ id: 101, type: 'Person' }],
+                receivers: [{ id: 12345, type: 'User' }]
+            };
+
+            nock(apiUrl)
+                .patch('/api/v4/communications/301.json')
+                .reply(200, { data: { id: 301 } }, mockRateLimitHeaders);
+
+            const result = await clio.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: null,
+                note: null,
+                startTime: null,
+                duration: null,
+                result: null,
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: 'ext-456'
+                },
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+    });
+
+    // ==================== createCallLog with admin assignment from mapping ====================
+    describe('createCallLog with admin assignment from mapping', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phone: '+14155551234', type: 'Person' });
+        const mockCallLogData = createMockCallLog();
+
+        it('should use admin mapping when token decode fails', async () => {
+            const jwt = require('@app-connect/core/lib/jwt');
+            jwt.decodeJwt.mockImplementation(() => { throw new Error('Invalid token'); });
+
+            UserModel.findByPk.mockResolvedValue(null);
+
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: 'ext-123', crmUserId: 777 }
+                ]
+            });
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => body.data.senders[0].id === 777)
+                .reply(201, { data: { id: 307 } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json')
+                .reply(201, { data: { id: 407 } }, mockRateLimitHeaders);
+
+            const result = await clio.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'invalid-token',
+                    adminAssignedUserRcId: 'ext-123',
+                    nonBillable: false
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(307);
+        });
+
+        it('should use admin mapping with array of extension IDs', async () => {
+            UserModel.findByPk.mockResolvedValue(null);
+
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['ext-100', 'ext-200'], crmUserId: 666 }
+                ]
+            });
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => body.data.senders[0].id === 666)
+                .reply(201, { data: { id: 308 } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json')
+                .reply(201, { data: { id: 408 } }, mockRateLimitHeaders);
+
+            const result = await clio.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: 'ext-200',
+                    nonBillable: false
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(308);
+        });
+
+        it('should handle inbound call direction with assigned user', async () => {
+            // Reset the jwt.decodeJwt mock to default behavior (not throwing)
+            const jwt = require('@app-connect/core/lib/jwt');
+            jwt.decodeJwt.mockReturnValue({ id: 'assigned-user-id' });
+
+            UserModel.findByPk.mockResolvedValue({
+                platformAdditionalInfo: { id: 555 }
+            });
+
+            const inboundCallLog = { ...mockCallLogData, direction: 'Inbound' };
+
+            // For inbound calls, the receiver is the User, so the assigned user ID should be in receivers
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => {
+                    // Verify that assigned user ID is in receivers array
+                    return body.data.receivers[0].id === 555 && body.data.receivers[0].type === 'User';
+                })
+                .reply(201, { data: { id: 309 } }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json')
+                .reply(201, { data: { id: 409 } }, mockRateLimitHeaders);
+
+            const result = await clio.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: inboundCallLog,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'valid-jwt-token',
+                    nonBillable: false
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(309);
+        });
+    });
+
+    // ==================== getUserInfo timezone handling ====================
+    describe('getUserInfo timezone handling', () => {
+        it('should handle invalid timezone gracefully', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'id,name,time_zone' })
+                .reply(200, {
+                    data: {
+                        id: 12345,
+                        name: 'Test User',
+                        time_zone: 'Invalid/Timezone'
+                    }
+                });
+
+            const result = await clio.getUserInfo({ authHeader, hostname });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.timezoneOffset).toBe(0);
+        });
+
+        it('should handle null timezone', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'id,name,time_zone' })
+                .reply(200, {
+                    data: {
+                        id: 12345,
+                        name: 'Test User',
+                        time_zone: null
+                    }
+                });
+
+            const result = await clio.getUserInfo({ authHeader, hostname });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.timezoneOffset).toBe(0);
+        });
+    });
+
+    // ==================== findContactWithName with matters ====================
+    describe('findContactWithName with matters', () => {
+        it('should include matters in contact info', async () => {
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query({ query: 'John Doe', fields: 'id,name,primary_phone_number' })
+                .reply(200, {
+                    data: [{
+                        id: 101,
+                        name: 'John Doe',
+                        type: 'Person',
+                        primary_phone_number: '+14155551234'
+                    }]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/matters.json')
+                .query({ client_id: '101', fields: 'id,display_number,description,status' })
+                .reply(200, {
+                    data: [
+                        { id: 201, display_number: 'MAT-001', description: 'Open Matter', status: 'Open' },
+                        { id: 202, display_number: 'MAT-002', description: 'Closed Matter', status: 'Closed' }
+                    ]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query({ contact_id: '101', fields: 'matter{id,display_number,description,status}' })
+                .reply(200, {
+                    data: [
+                        { matter: { id: 203, display_number: 'MAT-003', description: 'Related Open', status: 'Open' } },
+                        { matter: { id: 204, display_number: 'MAT-004', description: 'Related Closed', status: 'Closed' } }
+                    ]
+                }, mockRateLimitHeaders);
+
+            const result = await clio.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'John Doe'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.matters).toBeDefined();
+            // Should filter out closed matters from relationships
+            expect(result.matchedContactInfo[0].additionalInfo.matters.length).toBe(2);
+        });
+
+        it('should handle user settings for default time entry and non-billable', async () => {
+            const userWithSettings = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    clioDefaultTimeEntryTick: false,
+                    clioDefaultNonBillableTick: true
+                }
+            });
+
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query({ query: 'Jane', fields: 'id,name,primary_phone_number' })
+                .reply(200, {
+                    data: [{
+                        id: 102,
+                        name: 'Jane Smith',
+                        primary_phone_number: '+14155555678'
+                    }]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/matters.json')
+                .query(true)
+                .reply(200, {
+                    data: [{ id: 301, display_number: 'MAT-005', status: 'Open' }]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query(true)
+                .reply(200, { data: [] }, mockRateLimitHeaders);
+
+            const result = await clio.findContactWithName({
+                user: userWithSettings,
+                authHeader,
+                name: 'Jane'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.logTimeEntry).toBe(false);
+            expect(result.matchedContactInfo[0].additionalInfo.nonBillable).toBe(true);
+        });
+    });
+
     // ==================== Error Scenarios ====================
     describe('Error Scenarios', () => {
         it('should handle 401 unauthorized errors', async () => {

@@ -363,7 +363,8 @@ describe('Bullhorn Connector', () => {
             });
 
             expect(result.successful).toBe(false);
-            expect(result.returnMessage.message).toContain('Invalid phone number');
+            expect(result.returnMessage.message).toContain('Invalid phone number format');
+            expect(result.matchedContactInfo).toEqual([]);
         });
 
         it('should find ClientContacts by phone number', async () => {

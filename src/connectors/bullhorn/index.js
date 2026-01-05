@@ -482,6 +482,18 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             matchedContactInfo: []
         }
     }
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    if (!phoneNumberObj.valid) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Invalid phone number format',
+                ttl: 3000
+            },
+            matchedContactInfo: []
+        }
+    }
     let extraDataTracking = {};
     const commentActionList = await getOrRefreshAccountData({
         rcAccountId: user.rcAccountId,
@@ -495,7 +507,6 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             return res?.data?.commentActionList?.map(a => ({ const: a, title: a })) || [];
         }
     });
-    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
     // check for Contact

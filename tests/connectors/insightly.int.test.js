@@ -1000,6 +1000,803 @@ describe('Insightly Connector', () => {
         });
     });
 
+    // ==================== Additional Coverage Tests ====================
+    describe('getUserInfo - Additional Coverage', () => {
+        it('should default to UTC offset when timezone conversion fails', async () => {
+            nock(apiUrl)
+                .get('/v3.1/users/me')
+                .reply(200, {
+                    USER_ID: 12345,
+                    FIRST_NAME: 'Test',
+                    LAST_NAME: 'User',
+                    TIMEZONE_ID: 'Invalid/Timezone/That/Does/Not/Exist'
+                });
+
+            const result = await insightly.getUserInfo({
+                authHeader,
+                additionalInfo: { apiUrl }
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.timezoneOffset).toBe(0);
+        });
+    });
+
+    describe('findContact - Additional Coverage', () => {
+        it('should use overridingFormat when provided', async () => {
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, function(uri) {
+                    // The formatted number should match the pattern
+                    if (uri.includes('contacts/search') && uri.includes('field_name=PHONE') && !uri.includes('PHONE_MOBILE')) {
+                        return [{
+                            CONTACT_ID: 101,
+                            FIRST_NAME: 'John',
+                            LAST_NAME: 'Doe',
+                            PHONE: '415-555-1234',
+                            LINKS: []
+                        }];
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '***-***-****',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+        });
+
+        it('should handle multiple overriding formats', async () => {
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, []);
+
+            const result = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '(***) ***-****, ***-***-****',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+        });
+
+        it('should find contacts by mobile phone', async () => {
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, function(uri) {
+                    if (uri.includes('contacts/search') && uri.includes('field_name=PHONE_MOBILE')) {
+                        return [{
+                            CONTACT_ID: 101,
+                            FIRST_NAME: 'Mobile',
+                            LAST_NAME: 'Contact',
+                            PHONE_MOBILE: '+14155551234',
+                            TITLE: 'Engineer',
+                            LINKS: []
+                        }];
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            const mobileContact = result.matchedContactInfo.find(c => c.name === 'Mobile Contact');
+            expect(mobileContact).toBeDefined();
+            expect(mobileContact.type).toBe('Contact');
+        });
+
+        it('should find leads by mobile phone', async () => {
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, function(uri) {
+                    if (uri.includes('leads/search') && uri.includes('field_name=MOBILE')) {
+                        return [{
+                            LEAD_ID: 102,
+                            FIRST_NAME: 'Mobile',
+                            LAST_NAME: 'Lead',
+                            MOBILE: '+14155551234',
+                            TITLE: 'Manager',
+                            LINKS: []
+                        }];
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            const mobileLead = result.matchedContactInfo.find(c => c.name === 'Mobile Lead');
+            expect(mobileLead).toBeDefined();
+            expect(mobileLead.type).toBe('Lead');
+        });
+
+        it('should handle lead extra phone fields', async () => {
+            const userWithExtraFields = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    insightlyExtraPhoneFieldNameForLead: { value: 'CUSTOM_LEAD_PHONE' }
+                },
+                platformAdditionalInfo: { apiUrl }
+            });
+
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, function(uri) {
+                    if (uri.includes('leads/search') && uri.includes('CUSTOM_LEAD_PHONE')) {
+                        return [{
+                            LEAD_ID: 103,
+                            FIRST_NAME: 'Extra',
+                            LAST_NAME: 'Phone Lead',
+                            CUSTOMFIELDS: [{ FIELD_NAME: 'CUSTOM_LEAD_PHONE', FIELD_VALUE: '+14155551234' }],
+                            LINKS: []
+                        }];
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: userWithExtraFields,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+        });
+
+        it('should handle extra phone field errors gracefully', async () => {
+            const userWithExtraFields = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    insightlyExtraPhoneFieldNameForContact: { value: 'INVALID_FIELD' }
+                },
+                platformAdditionalInfo: { apiUrl }
+            });
+
+            // Set up standard search mocks that return empty arrays
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'PHONE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'PHONE_MOBILE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            // This is the failing extra phone field request
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'INVALID_FIELD', field_value: '4155551234', brief: 'false' })
+                .reply(400, { error: 'Field not found' });
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'PHONE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'MOBILE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            const result = await insightly.findContact({
+                user: userWithExtraFields,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+        });
+
+        it('should handle lead extra phone field errors gracefully', async () => {
+            const userWithExtraFields = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    insightlyExtraPhoneFieldNameForLead: { value: 'INVALID_LEAD_FIELD' }
+                },
+                platformAdditionalInfo: { apiUrl }
+            });
+
+            // Set up standard search mocks that return empty arrays
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'PHONE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'PHONE_MOBILE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'PHONE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'MOBILE', field_value: '4155551234', brief: 'false' })
+                .reply(200, []);
+
+            // This is the failing extra phone field request
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'INVALID_LEAD_FIELD', field_value: '4155551234', brief: 'false' })
+                .reply(400, { error: 'Field not found' });
+
+            const result = await insightly.findContact({
+                user: userWithExtraFields,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+        });
+
+        it('should fetch related projects', async () => {
+            nock(apiUrl)
+                .persist()
+                .get(/.*/)
+                .reply(200, function(uri) {
+                    if (uri.includes('contacts/search') && uri.includes('field_name=PHONE') && !uri.includes('PHONE_MOBILE')) {
+                        return [{
+                            CONTACT_ID: 101,
+                            FIRST_NAME: 'John',
+                            LAST_NAME: 'Doe',
+                            PHONE: '+14155551234',
+                            LINKS: [
+                                { LINK_OBJECT_NAME: 'Project', LINK_OBJECT_ID: 401 }
+                            ]
+                        }];
+                    }
+                    if (uri.includes('projects/401')) {
+                        return { PROJECT_ID: 401, PROJECT_NAME: 'Test Project' };
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.project).toBeDefined();
+            expect(result.matchedContactInfo[0].additionalInfo.project[0].title).toBe('Test Project');
+        });
+    });
+
+    describe('findContactWithName - Additional Coverage', () => {
+        it('should find leads by full name with last name search', async () => {
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'Jane', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'LAST_NAME', field_value: 'Lead', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'Jane Lead', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'LAST_NAME', field_value: 'Lead', brief: 'false' })
+                .reply(200, [{
+                    LEAD_ID: 201,
+                    FIRST_NAME: 'Jane',
+                    LAST_NAME: 'Lead',
+                    PHONE: '+14155551234',
+                    LINKS: []
+                }]);
+
+            const result = await insightly.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'Jane Lead'
+            });
+
+            expect(result.successful).toBe(true);
+            const leadResult = result.matchedContactInfo.find(c => c.type === 'Lead');
+            expect(leadResult).toBeDefined();
+            expect(leadResult.name).toBe('Jane Lead');
+        });
+
+        it('should fetch related organisations in findContactWithName', async () => {
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, [{
+                    CONTACT_ID: 101,
+                    FIRST_NAME: 'John',
+                    LAST_NAME: 'Doe',
+                    PHONE: '+14155551234',
+                    LINKS: [
+                        { LINK_OBJECT_NAME: 'Organisation', LINK_OBJECT_ID: 201 }
+                    ]
+                }]);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/organisations/201')
+                .reply(200, { ORGANISATION_ID: 201, ORGANISATION_NAME: 'Test Corp' });
+
+            const result = await insightly.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'John'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.organisation).toBeDefined();
+            expect(result.matchedContactInfo[0].additionalInfo.organisation[0].title).toBe('Test Corp');
+        });
+
+        it('should fetch related opportunities in findContactWithName', async () => {
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, [{
+                    CONTACT_ID: 101,
+                    FIRST_NAME: 'John',
+                    LAST_NAME: 'Doe',
+                    PHONE: '+14155551234',
+                    LINKS: [
+                        { LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 301 }
+                    ]
+                }]);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/opportunities/301')
+                .reply(200, { OPPORTUNITY_ID: 301, OPPORTUNITY_NAME: 'Big Deal' });
+
+            const result = await insightly.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'John'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.opportunity).toBeDefined();
+            expect(result.matchedContactInfo[0].additionalInfo.opportunity[0].title).toBe('Big Deal');
+        });
+
+        it('should fetch related projects in findContactWithName', async () => {
+            nock(apiUrl)
+                .get('/v3.1/contacts/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, [{
+                    CONTACT_ID: 101,
+                    FIRST_NAME: 'John',
+                    LAST_NAME: 'Doe',
+                    PHONE: '+14155551234',
+                    LINKS: [
+                        { LINK_OBJECT_NAME: 'Project', LINK_OBJECT_ID: 401 }
+                    ]
+                }]);
+
+            nock(apiUrl)
+                .get('/v3.1/leads/search')
+                .query({ field_name: 'FIRST_NAME', field_value: 'John', brief: 'false' })
+                .reply(200, []);
+
+            nock(apiUrl)
+                .get('/v3.1/projects/401')
+                .reply(200, { PROJECT_ID: 401, PROJECT_NAME: 'Important Project' });
+
+            const result = await insightly.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'John'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.project).toBeDefined();
+            expect(result.matchedContactInfo[0].additionalInfo.project[0].title).toBe('Important Project');
+        });
+    });
+
+    describe('createCallLog - Additional Coverage', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', type: 'Contact' });
+        const mockCallLogData = createMockCallLog();
+
+        it('should fallback to adminConfig for assignee lookup when token decode fails', async () => {
+            const jwt = require('@app-connect/core/lib/jwt');
+            jwt.decodeJwt.mockImplementationOnce(() => { throw new Error('Invalid token'); });
+
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: '12345', crmUserId: 888 }
+                ]
+            });
+
+            nock(apiUrl)
+                .post('/v3.1/events', body => body.OWNER_USER_ID === 888)
+                .reply(201, { EVENT_ID: 205 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/205/links')
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'invalid-token',
+                    adminAssignedUserRcId: '12345'
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(205);
+        });
+
+        it('should use adminConfig with array rcExtensionId', async () => {
+            UserModel.findByPk.mockResolvedValue(null);
+
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['12345', '67890'], crmUserId: 777 }
+                ]
+            });
+
+            nock(apiUrl)
+                .post('/v3.1/events', body => body.OWNER_USER_ID === 777)
+                .reply(201, { EVENT_ID: 206 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/206/links')
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: null,
+                    adminAssignedUserRcId: '12345'
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(206);
+        });
+
+        it('should link project when provided in additionalSubmission', async () => {
+            nock(apiUrl)
+                .post('/v3.1/events')
+                .reply(201, { EVENT_ID: 207 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/207/links')
+                .times(4)
+                .reply(201, {});
+
+            const result = await insightly.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Test note',
+                additionalSubmission: {
+                    organization: 301,
+                    opportunity: 401,
+                    project: 501
+                },
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Call details',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(207);
+        });
+    });
+
+    describe('updateCallLog - Additional Coverage', () => {
+        const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '201' });
+
+        it('should use adminConfig for assignee lookup in updateCallLog', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: '12345', crmUserId: 666 }
+                ]
+            });
+
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, { EVENT_ID: 201, TITLE: 'Existing Call' });
+
+            nock(apiUrl)
+                .put('/v3.1/events', body => body.OWNER_USER_ID === 666)
+                .reply(200, { EVENT_ID: 201 });
+
+            const result = await insightly.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: 'Updated Subject',
+                note: 'Updated note',
+                startTime: Date.now(),
+                duration: 600,
+                result: 'Connected',
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: '12345'
+                },
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should handle array rcExtensionId in updateCallLog', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['12345', '67890'], crmUserId: 555 }
+                ]
+            });
+
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, { EVENT_ID: 201, TITLE: 'Existing Call' });
+
+            nock(apiUrl)
+                .put('/v3.1/events', body => body.OWNER_USER_ID === 555)
+                .reply(200, { EVENT_ID: 201 });
+
+            const result = await insightly.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: null,
+                subject: 'Updated Subject',
+                note: 'Updated note',
+                startTime: Date.now(),
+                duration: 600,
+                result: 'Connected',
+                aiNote: null,
+                transcript: null,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: '12345'
+                },
+                composedLogDetails: 'Updated details',
+                existingCallLogDetails: null,
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+    });
+
+    describe('upsertCallDisposition - Additional Coverage', () => {
+        const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '201' });
+
+        it('should update opportunity disposition', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, { EVENT_ID: 201, LINKS: [] });
+
+            nock(apiUrl)
+                .post('/v3.1/events/201/links', {
+                    LINK_OBJECT_NAME: 'Opportunity',
+                    LINK_OBJECT_ID: 401
+                })
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { opportunity: 401 }
+            });
+
+            expect(result.logId).toBe('201');
+        });
+
+        it('should delete existing opportunity link and create new one when different', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, {
+                    EVENT_ID: 201,
+                    LINKS: [{ LINK_ID: 2, LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 400 }]
+                });
+
+            nock(apiUrl)
+                .delete('/v3.1/events/201/links/2')
+                .reply(200, {});
+
+            nock(apiUrl)
+                .post('/v3.1/events/201/links', {
+                    LINK_OBJECT_NAME: 'Opportunity',
+                    LINK_OBJECT_ID: 401
+                })
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { opportunity: 401 }
+            });
+
+            expect(result.logId).toBe('201');
+        });
+
+        it('should update project disposition', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, { EVENT_ID: 201, LINKS: [] });
+
+            nock(apiUrl)
+                .post('/v3.1/events/201/links', {
+                    LINK_OBJECT_NAME: 'Project',
+                    LINK_OBJECT_ID: 501
+                })
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { project: 501 }
+            });
+
+            expect(result.logId).toBe('201');
+        });
+
+        it('should delete existing project link and create new one when different', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, {
+                    EVENT_ID: 201,
+                    LINKS: [{ LINK_ID: 3, LINK_OBJECT_NAME: 'Project', LINK_OBJECT_ID: 500 }]
+                });
+
+            nock(apiUrl)
+                .delete('/v3.1/events/201/links/3')
+                .reply(200, {});
+
+            nock(apiUrl)
+                .post('/v3.1/events/201/links', {
+                    LINK_OBJECT_NAME: 'Project',
+                    LINK_OBJECT_ID: 501
+                })
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { project: 501 }
+            });
+
+            expect(result.logId).toBe('201');
+        });
+
+        it('should handle all disposition types together', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, { EVENT_ID: 201, LINKS: [] });
+
+            nock(apiUrl)
+                .post('/v3.1/events/201/links')
+                .times(3)
+                .reply(201, {});
+
+            const result = await insightly.upsertCallDisposition({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                dispositions: { 
+                    organisation: 301,
+                    opportunity: 401,
+                    project: 501 
+                }
+            });
+
+            expect(result.logId).toBe('201');
+        });
+    });
+
+    describe('getCallLog - Additional Coverage', () => {
+        it('should handle disposition links in getCallLog', async () => {
+            nock(apiUrl)
+                .get('/v3.1/events/201')
+                .reply(200, {
+                    EVENT_ID: 201,
+                    TITLE: 'Test Call',
+                    DETAILS: '- Note: Test note\n',
+                    LINKS: [
+                        { LINK_OBJECT_NAME: 'contact', LINK_OBJECT_ID: 101 },
+                        { LINK_OBJECT_NAME: 'Organisation', LINK_OBJECT_ID: 201 },
+                        { LINK_OBJECT_NAME: 'Opportunity', LINK_OBJECT_ID: 301 },
+                        { LINK_OBJECT_NAME: 'Project', LINK_OBJECT_ID: 401 }
+                    ]
+                });
+
+            nock(apiUrl)
+                .get('/v3.1/contacts/101')
+                .reply(200, { FIRST_NAME: 'John', LAST_NAME: 'Doe' });
+
+            const result = await insightly.getCallLog({
+                user: mockUser,
+                callLogId: '201',
+                authHeader
+            });
+
+            expect(result.callLogInfo.dispositions).toBeDefined();
+            expect(result.callLogInfo.dispositions.organisation).toBe(201);
+            expect(result.callLogInfo.dispositions.opportunity).toBe(301);
+            expect(result.callLogInfo.dispositions.project).toBe(401);
+        });
+    });
+
     // ==================== Error Scenarios ====================
     describe('Error Scenarios', () => {
         it('should handle 401 unauthorized errors', async () => {
