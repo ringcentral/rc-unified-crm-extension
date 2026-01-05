@@ -25,8 +25,7 @@ async function getValidAccessToken({ credentials, existingToken, tokenExpiry }) 
     // Check if existing token is still valid (with 5 minute buffer)
     if (existingToken && tokenExpiry) {
         const expiryTime = new Date(tokenExpiry);
-        const bufferTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
-        
+        const bufferTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now    
         if (expiryTime > bufferTime) {
             console.log('Using cached access token');
             return {
@@ -332,6 +331,16 @@ async function getDominionAccessToken(user) {
         existingToken: user?.accessToken,
         tokenExpiry: user?.tokenExpiry
     });
+    
+    // Update user record if new token was generated
+    if (tokenInfo.isNewToken) {
+        user.accessToken = tokenInfo.accessToken;
+        user.tokenExpiry = tokenInfo.tokenExpiry;
+        await user.save();
+        console.log('Updated user with new Dominion access token, expires at:', tokenInfo.tokenExpiry);
+    } else {
+        console.log('Using cached Dominion access token');
+    }
     
     return tokenInfo.accessToken;
 }
