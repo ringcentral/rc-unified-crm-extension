@@ -3,7 +3,6 @@ const { UserModel } = require('../models/userModel');
 const connectorRegistry = require('../connector/registry');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleApiError } = require('../lib/errorHandler');
-const { DebugTracer } = require('../lib/debugTracer');
 const { AccountDataModel } = require('../models/accountDataModel');
 
 async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension, tracer, isForceRefreshAccountData = false }) {
@@ -126,8 +125,8 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             };
         }
     } catch (e) {
-        return handleApiError(e, platform, 'findContact', { userId, overridingFormat, isExtension });
         tracer?.traceError('handler.findContact:error', e, { platform, statusCode: e.response?.status });
+        return handleApiError(e, platform, 'findContact', { userId, overridingFormat, isExtension });
 
     }
 }

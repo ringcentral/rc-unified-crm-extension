@@ -758,7 +758,7 @@ function createCoreRouter() {
                 return;
             }
             else {
-                // eslint-disable-next-line no-param-reassign
+                 
                 decodeURIComponent(decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0]).split('platform=')[1];
             }
             const stateParam = req.query.state ||
@@ -786,7 +786,7 @@ function createCoreRouter() {
                 platform: platformName,
                 hostname,
                 tokenUrl,
-                query: req.query
+                query: req.query,
                 proxyId: req.query.proxyId,
                 isFromMCP: !!sessionId
             });
