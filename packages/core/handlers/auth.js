@@ -7,13 +7,18 @@ const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiUrl, username, query, proxyId, isFromMCP = false }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP = false }) {
+    const callbackUri = query.callbackUri;
+    const apiUrl = query.apiUrl;
+    const username = query.username;
+    const proxyId = query.proxyId;
+    const userEmail = query.userEmail;
     const platformModule = connectorRegistry.getConnector(platform);
     let proxyConfig = null;
     if (proxyId) {
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query?.rcAccountId, proxyId, proxyConfig, isFromMCP });
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,
@@ -27,12 +32,13 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, callbackUri, apiU
     // Some platforms require different oauth queries, this won't affect normal OAuth process unless CRM module implements getOverridingOAuthOption() method
     let overridingOAuthOption = null;
     if (platformModule.getOverridingOAuthOption != null) {
-        overridingOAuthOption = platformModule.getOverridingOAuthOption({ code: callbackUri.split('code=')[1] });
+        const code = new URL(callbackUri).searchParams.get('code');
+        overridingOAuthOption = platformModule.getOverridingOAuthOption({ code });
     }
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail });
 
     if (successful) {
         let userInfo = null;

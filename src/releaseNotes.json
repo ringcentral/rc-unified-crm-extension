@@ -1,4 +1,34 @@
 {
+    "1.7.9": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            },
+            {
+                "type": "Better",
+                "description": "Minor improvements on calldown list"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio supports Company as new Contact type"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ]
+    },
     "1.7.8": {
         "global": [
             {
@@ -130,6 +160,40 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.17": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio supports Company as new Contact type"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ]
+    },
+    "1.6.16": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
             }
         ]
     },

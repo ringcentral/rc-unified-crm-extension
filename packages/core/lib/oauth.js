@@ -123,8 +123,6 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             }
             catch (e) {
                 console.log('token refreshing failed', e.stack)
-            }
-            finally {
                 if (newLock) {
                     await newLock.delete();
                 }

@@ -432,6 +432,16 @@
         "useAdminAssignedUserToken": true,
         "enableUserMapping": true
       },
+      "contactTypes": [
+        {
+          "display": "Contact",
+          "value": "Contact"
+        },
+        {
+          "display": "Company",
+          "value": "Company"
+        }
+      ],
       "displayName": "Clio",
       "auth": {
         "type": "oauth",
@@ -1793,5 +1803,5 @@
       ]
     }
   },
-  "version": "1.6.15"
+  "version": "1.6.17"
 }

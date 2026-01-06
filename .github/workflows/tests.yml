@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run root tests
+        run: npm run test-coverage
+        env:
+          NODE_ENV: test
+
+      - name: Run core package tests
+        run: npm run test:ci
+        working-directory: packages/core
+        env:
+          NODE_ENV: test
+

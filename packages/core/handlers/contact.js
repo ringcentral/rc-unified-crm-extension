@@ -4,10 +4,10 @@ const connectorRegistry = require('../connector/registry');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleApiError } = require('../lib/errorHandler');
 const { DebugTracer } = require('../lib/debugTracer');
+const { AccountDataModel } = require('../models/accountDataModel');
 
-async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension, tracer }) {
+async function findContact({ platform, userId, phoneNumber, overridingFormat, isExtension, tracer, isForceRefreshAccountData = false }) {
     tracer?.trace('handler.findContact:entered', { platform, userId, phoneNumber });
-    
     try {
         let user = await UserModel.findOne({
             where: {
@@ -16,7 +16,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             }
         });
         tracer?.trace('handler.findContact:userFound', { user });
-        
+
         if (!user || !user.accessToken) {
             tracer?.trace('handler.findContact:noUser', { userId });
             return {
@@ -28,6 +28,20 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 }
             };
         }
+        // find cached contact by composite key; findByPk expects raw PK values, so use where clause
+        const existingMatchedContactInfo = await AccountDataModel.findOne({
+            where: {
+                rcAccountId: user.rcAccountId,
+                platformName: platform,
+                dataKey: `contact-${phoneNumber}`
+            }
+        })
+        if (!isForceRefreshAccountData) {
+            if (existingMatchedContactInfo) {
+                console.log('found existing matched contact info in account data');
+                return { successful: true, returnMessage: null, contact: existingMatchedContactInfo.data, extraDataTracking: null };
+            }
+        }
         const proxyId = user.platformAdditionalInfo?.proxyId;
         let proxyConfig = null;
         if (proxyId) {
@@ -37,7 +51,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         const platformModule = connectorRegistry.getConnector(platform);
         const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
         tracer?.trace('handler.findContact:authType', { authType });
-        
+
         let authHeader = '';
         switch (authType) {
             case 'oauth':
@@ -52,12 +66,31 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
                 tracer?.trace('handler.findContact:apiKeyAuth', {});
                 break;
         }
-        
-        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer });
+
+        const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
         tracer?.trace('handler.findContact:platformFindResult', { successful, matchedContactInfo });
-        
+
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
             tracer?.trace('handler.findContact:contactsFound', { count: matchedContactInfo.length });
+            // save in org data
+            // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
+            if (user.rcAccountId) {
+                if(existingMatchedContactInfo)
+                {
+                    await existingMatchedContactInfo.update({
+                        data: matchedContactInfo
+                    });
+                }
+                else{
+                    await AccountDataModel.create({
+                        rcAccountId: user.rcAccountId,
+                        platformName: platform,
+                        dataKey: `contact-${phoneNumber}`,
+                        data: matchedContactInfo
+                    });
+                }
+                console.log('store new matched contact info in account data');
+            }
             return { successful, returnMessage, contact: matchedContactInfo, extraDataTracking };
         }
         else {
@@ -95,7 +128,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
     } catch (e) {
         return handleApiError(e, platform, 'findContact', { userId, overridingFormat, isExtension });
         tracer?.traceError('handler.findContact:error', e, { platform, statusCode: e.response?.status });
-        
+
     }
 }
 

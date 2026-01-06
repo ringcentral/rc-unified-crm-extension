@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 // message : same as in https://developers.ringcentral.com/api-reference/Message-Store/readMessage
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');

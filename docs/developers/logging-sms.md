@@ -32,6 +32,3 @@ Within your connector's `index.js` file, implement the following methods.
 
 The framework checks database to see if there's existing message log on the day. If you want to setup a scenario to test 1st message, you could delete all message log records in database.
 
-## Log page setup
-
-Please go to [manifest](manifest.md#adding-custom-fields-to-logging-forms).

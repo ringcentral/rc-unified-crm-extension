@@ -88,7 +88,7 @@ async function getUserInfo({ authHeader, query }) {
                 return {
                     successful: false,
                     returnMessage: {
-                        messageType: 'danger',
+                        messageType: 'warning',
                         message: requiredPermissions,
                         ttl: 60000
                     }
@@ -123,7 +123,7 @@ async function getUserInfo({ authHeader, query }) {
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorDetails,
                 details: [
                     {
@@ -569,7 +569,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         return {
             successful: false,
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
@@ -891,7 +891,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
         }
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
@@ -951,7 +951,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
         const errorMessage = netSuiteErrorDetails(error, "Error loading call log");
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
@@ -1132,7 +1132,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         const errorMessage = netSuiteErrorDetails(error, "Error logging text message");
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
@@ -1190,7 +1190,7 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         const errorMessage = netSuiteErrorDetails(error, "Error updating activity");
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
@@ -1276,7 +1276,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         },
                         returnMessage: {
                             message: netSuiteErrorDetails(error, "Error creating contact"),
-                            messageType: 'danger',
+                            messageType: 'warning',
                             details: [
                                 {
                                     title: 'Details',
@@ -1325,7 +1325,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         },
                         returnMessage: {
                             message: netSuiteErrorDetails(error, "Error creating customer"),
-                            messageType: 'danger',
+                            messageType: 'warning',
                             details: [
                                 {
                                     title: 'Details',
@@ -1373,7 +1373,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         },
                         returnMessage: {
                             message: netSuiteErrorDetails(error, "Error creating vendor"),
-                            messageType: 'danger',
+                            messageType: 'warning',
                             details: [
                                 {
                                     title: 'Details',
@@ -1410,7 +1410,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         const errorMessage = netSuiteErrorDetails(error, "Error creating contact");
         return {
             returnMessage: {
-                messageType: 'danger',
+                messageType: 'warning',
                 message: errorMessage,
                 details: [
                     {
