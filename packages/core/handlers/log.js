@@ -176,7 +176,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         }
         let logs = [];
         let returnMessage = null;
-        let extraDataTracking = {};;
+        let extraDataTracking = {};
 
         // Handle undefined or null sessionIds
         if (!sessionIds) {
@@ -386,7 +386,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 async function createMessageLog({ platform, userId, incomingData }) {
     try {
         let returnMessage = null;
-        let extraDataTracking = {};;
+        let extraDataTracking = {};
         if (incomingData.logInfo.messages.length === 0) {
             return {
                 successful: false,

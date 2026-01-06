@@ -156,7 +156,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     numberToQueryArray.push(numberFromRc);
     if (overridingFormat !== '') {
         const formats = overridingFormat.split(',');
-        for (var format of formats) {
+        for (const format of formats) {
             const phoneNumberObj = parsePhoneNumber(numberFromRc);
             if (phoneNumberObj.valid) {
                 const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -169,7 +169,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         }
     }
     const matchedContactInfo = [];
-    for (var numberToQuery of numberToQueryArray) {
+    for (const numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
             `https://${user.hostname}/api/v4/contacts.json?query=${numberToQuery}&fields=type,id,name,updated_at`,
             {
@@ -181,7 +181,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             ratelimitReset: personInfo.headers['x-ratelimit-reset']
         };
         if (personInfo.data.data.length > 0) {
-            for (var result of personInfo.data.data) {
+            for (const result of personInfo.data.data) {
                 if (matchedContactInfo.some(c => c.id === result.id)) {
                     continue;
                 }
@@ -257,7 +257,7 @@ async function findContactWithName({ user, authHeader, name }) {
         ratelimitReset: personInfo.headers['x-ratelimit-reset']
     };
     if (personInfo.data.data.length > 0) {
-        for (var result of personInfo.data.data) {
+        for (const result of personInfo.data.data) {
             const matterInfo = await axios.get(
                 `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                 {
