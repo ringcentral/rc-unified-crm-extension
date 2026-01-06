@@ -126,7 +126,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             };
         }
     } catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.responxse?.data)}`);
+        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         tracer?.traceError('handler.findContact:error', e, { platform, statusCode: e.response?.status });
 
         if (e.response?.status === 429) {
@@ -212,7 +212,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
             return { successful: false, returnMessage };
         }
     } catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,
