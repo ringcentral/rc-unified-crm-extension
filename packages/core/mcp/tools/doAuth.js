@@ -16,11 +16,11 @@ const toolDefinition = {
         properties: {
             connectorManifest: {
                 type: 'object',
-                description: 'Connector manifest from conversation or memory.'
+                description: 'connectorManifest variable from above conversation. Must be the full manifest object, not just serverUrl'
             },
             connectorName: {
                 type: 'string',
-                description: 'Connector name from conversation or memory.'
+                description: 'connectorName variable from above conversation.'
             },
             hostname: {
                 type: 'string',
@@ -52,7 +52,8 @@ const toolDefinition = {
                 type: 'string',
                 description: 'Callback URI to authenticate to.'
             }
-        }
+        },
+        required: ['connectorManifest', 'connectorName', 'hostname']
     }
 };
 

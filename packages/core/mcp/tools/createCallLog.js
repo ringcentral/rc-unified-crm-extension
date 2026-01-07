@@ -1,6 +1,7 @@
 const jwt = require('../../lib/jwt');
 const connectorRegistry = require('../../connector/registry');
 const logCore = require('../../handlers/log');
+const contactCore = require('../../handlers/contact');
 const util = require('../../lib/util');
 const { CallLogModel } = require('../../models/callLogModel');
 /**
@@ -121,19 +122,7 @@ const toolDefinition = {
                                 description: 'RingCentral account ID'
                             }
                         },
-                        required: ['id','sessionId', 'direction', 'startTime', 'duration', 'to', 'from']
-                    },
-                    contactId: {
-                        type: ['string', 'number'],
-                        description: 'CRM contact ID to associate the call log with'
-                    },
-                    contactName: {
-                        type: 'string',
-                        description: 'Contact name'
-                    },
-                    contactType: {
-                        type: 'string',
-                        description: 'Contact type in the CRM'
+                        required: ['id', 'sessionId', 'direction', 'startTime', 'duration', 'to', 'from']
                     },
                     note: {
                         type: 'string',
@@ -166,7 +155,7 @@ const toolDefinition = {
                         }
                     }
                 },
-                required: ['logInfo', 'contactId']
+                required: ['logInfo']
             }
         },
         required: ['jwtToken', 'incomingData']
@@ -191,7 +180,7 @@ const toolDefinition = {
 async function execute(args) {
     try {
         const { jwtToken, incomingData } = args;
-        
+
         if (!jwtToken) {
             throw new Error('Please go to Settings and authorize CRM platform');
         }
@@ -219,14 +208,14 @@ async function execute(args) {
 
         // Decode JWT to get userId and platform
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-        
+
         if (!userId) {
             throw new Error('Invalid JWT token: userId not found');
         }
 
         // Get the platform connector module
         const platformModule = connectorRegistry.getConnector(platform);
-        
+
         if (!platformModule) {
             throw new Error(`Platform connector not found for: ${platform}`);
         }
@@ -237,19 +226,42 @@ async function execute(args) {
         }
 
         // Calculate hashed account ID
-        const hashedAccountId = incomingData.logInfo?.accountId 
-            ? util.getHashValue(incomingData.logInfo.accountId, process.env.HASH_KEY) 
+        const hashedAccountId = incomingData.logInfo?.accountId
+            ? util.getHashValue(incomingData.logInfo.accountId, process.env.HASH_KEY)
             : undefined;
 
-        // Call the createCallLog method
-        const { successful, logId, returnMessage } = await logCore.createCallLog({ 
-            platform, 
-            userId, 
-            incomingData, 
-            hashedAccountId,
-            isFromSSCL: false 
+        // Get contact Id from logInfo
+        const callDirection = logInfo.direction;
+        const contactNumber = callDirection === 'Inbound' ? logInfo.from.phoneNumber : logInfo.to.phoneNumber;
+        const contactInfo = await contactCore.findContact({
+            platform,
+            userId,
+            phoneNumber: contactNumber,
+            overridingFormat: '',
+            isExtension: 'false'
         });
-        
+        const filteredContact = contactInfo.contact?.filter(c => !c.isNewContact);
+        let contactId = null;
+        if (contactInfo.successful && filteredContact?.length > 0) {
+            contactId = filteredContact[0].id;
+            incomingData.contactId = contactId;
+        }
+        else {
+            return {
+                success: false,
+                error: 'Failed to get contact with number ' + contactNumber
+            }
+        }
+
+        // Call the createCallLog method
+        const { successful, logId, returnMessage } = await logCore.createCallLog({
+            platform,
+            userId,
+            incomingData,
+            hashedAccountId,
+            isFromSSCL: false
+        });
+
         if (successful) {
             return {
                 success: true,

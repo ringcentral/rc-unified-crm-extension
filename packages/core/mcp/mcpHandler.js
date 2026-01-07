@@ -47,6 +47,10 @@ async function handleMcpRequest(req, res) {
                 break;
             case 'tools/call':
                 const { name: toolName, arguments: args } = params;
+                const rcAccessToken = req.headers['authorization']?.split('Bearer ')?.[1];
+                if (args && rcAccessToken) {
+                    args.rcAccessToken = rcAccessToken;
+                }
                 try {
                     const result = await executeTool(toolName, args || {});
                     response = {

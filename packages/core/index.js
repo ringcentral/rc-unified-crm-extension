@@ -753,24 +753,24 @@ function createCoreRouter() {
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
-                tracer?.trace('oauth-callback:missingCallbackUri', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing callbackUri') : 'Missing callbackUri');
-                return;
+                // case: from mcp
+                if (req.query.code) {
+                    // eslint-disable-next-line no-param-reassign
+                    req.query.callbackUri = `${process.env.APP_SERVER}/oauth-callback?code=${req.query.code}`;
+                }
+                else {
+                    tracer?.trace('oauth-callback:missingCallbackUri', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Missing callbackUri') : 'Missing callbackUri');
+                    return;
+                }
             }
-            else {
-                 
-                decodeURIComponent(decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0]).split('platform=')[1];
-            }
-            const stateParam = req.query.state ||
-                decodeURIComponent(req.originalUrl).split('state=')[1]?.split('&')[0];
-
-            // Extract sessionId if present
-            if (stateParam && stateParam.includes('sessionId=')) {
-                sessionId = stateParam.split('sessionId=')[1].split('&')[0];
-            }
-
-            platformName = stateParam?.split('platform=')[1].split('&')[0] || stateParam;
-            const hostname = req.query.hostname || stateParam?.split('hostname=')[1].split('&')[0];
+            const state = new URL(req.query.callbackUri).searchParams.get('state') ?? req.query.state;
+            const stateParams = new URLSearchParams(state ? decodeURIComponent(state) : '');
+            platformName = stateParams.get('platform');
+            // Extract mcp auth sessionId if present
+            sessionId = stateParams?.get('sessionId');
+            const isFromMCP = !!sessionId;
+            const hostname = req.query.hostname ?? stateParams.get('hostname');
             const tokenUrl = req.query.tokenUrl;
             if (!platformName) {
                 tracer?.trace('oauth-callback:missingPlatformName', {});
@@ -788,16 +788,15 @@ function createCoreRouter() {
                 tokenUrl,
                 query: req.query,
                 proxyId: req.query.proxyId,
-                isFromMCP: !!sessionId
+                isFromMCP
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
                     platform: platformName
                 });
-                res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
                 // Store in session if sessionId exists (MCP flow)
-                if (sessionId) {
+                if (isFromMCP) {
                     await updateAuthSession(sessionId, {
                         status: 'completed',
                         jwtToken,
@@ -809,10 +808,10 @@ function createCoreRouter() {
                     res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
                     success = true;
                 }
-                else {
+                else {                
+                    res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
                     success = true;
                 }
-
             }
             else {
                 res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
@@ -1941,8 +1940,6 @@ function createCoreRouter() {
     router.use('/mcp', (req, res, next) => {// LOG EVERYTHING
         console.log(`[${req.method}] /mcp`);
         console.log("Headers:", JSON.stringify(req.headers['authorization'] ? "Auth Token Present" : "No Auth"));
-
-        // IF req.body is undefined, you forgot app.use(express.json())
         console.log("Body:", JSON.stringify(req.body));
         // return next();
         // Capture the response finish to see the status code
@@ -1952,34 +1949,21 @@ function createCoreRouter() {
         });
 
         const authHeader = req.headers.authorization;
+        const token = authHeader?.split(' ')[1]; // Remove "Bearer "
         // Allow the initial connection (GET) and CORS checks (OPTIONS) to pass freely.
         // We only want to block the actual commands (POST).
         if (req.method === 'GET' || req.method === 'OPTIONS') {
             return next();
         }
         // SCENARIO 1: No Token provided. Kick off the OAuth flow.
-        if (!authHeader) {
+        if (!token) {
             res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
             return res.status(401).send();
         }
 
         // SCENARIO 2: Token provided. Verify it.
-        console.log('authHeader', authHeader);
-        const token = authHeader.split(' ')[1]; // Remove "Bearer "
-
         try {
-            // We validate the token by trying to make a lightweight call to RingCentral.
-            // There is no offline way to validate RC tokens easily without their SDK.
-            // const rcSDK = new RingCentral({
-            //     clientId: process.env.RINGCENTRAL_CLIENT_ID,
-            //     clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
-            //     server: process.env.RINGCENTRAL_SERVER
-            // });
-            // await rcSDK.validateToken(token);
-
-            // If the above call doesn't throw an error, the token is valid!
             next();
-
         } catch (error) {
             console.error("Token validation failed:", error.message);
             // Token is invalid or expired

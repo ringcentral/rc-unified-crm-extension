@@ -16,6 +16,7 @@ const pipedrive = require('./connectors/pipedrive');
 const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const logger = require('@app-connect/core/lib/logger');
+const adminCore = require('@app-connect/core/handlers/admin');
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
