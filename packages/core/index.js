@@ -840,7 +840,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(400).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(400).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 success = false;
             }
         }
