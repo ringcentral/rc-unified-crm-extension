@@ -781,7 +781,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 success = false;
             }
         }
