@@ -194,7 +194,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         }
         let logs = [];
         let returnMessage = null;
-        let extraDataTracking = {};;
+        let extraDataTracking = {};
 
         // Handle undefined or null sessionIds
         if (!sessionIds) {
@@ -302,7 +302,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                             {
                                 id: '1',
                                 type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
+                                text: `Please check if your account has permission to READ logs.`
                             }
                         ]
                     }
@@ -482,7 +482,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 async function createMessageLog({ platform, userId, incomingData }) {
     try {
         let returnMessage = null;
-        let extraDataTracking = {};;
+        let extraDataTracking = {};
         if (incomingData.logInfo.messages.length === 0) {
             return {
                 successful: false,
@@ -649,7 +649,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
         return { successful: true, logIds, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.log(`platform: ${platform} \n${e.stack}`);
+        console.error(`platform: ${platform} \n${e.stack}`);
         if (e.response?.status === 429) {
             return {
                 successful: false,

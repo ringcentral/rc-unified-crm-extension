@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const oauth = require('@app-connect/core/lib/oauth');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const dynamoose = require('dynamoose');
 const jwt = require('@app-connect/core/lib/jwt');
 const { getMostRecentDate } = require('@app-connect/core/lib/util');
 const { encode, decoded } = require('@app-connect/core/lib/encode');
@@ -482,6 +481,18 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             matchedContactInfo: []
         }
     }
+    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
+    if (!phoneNumberObj.valid) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Invalid phone number format',
+                ttl: 3000
+            },
+            matchedContactInfo: []
+        }
+    }
     let extraDataTracking = {};
     const commentActionList = await getOrRefreshAccountData({
         rcAccountId: user.rcAccountId,
@@ -495,7 +506,6 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             return res?.data?.commentActionList?.map(a => ({ const: a, title: a })) || [];
         }
     });
-    const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
     // check for Contact
@@ -511,7 +521,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
         });
     for (const result of contactPersonInfo.data.data) {
         // compare dateAdded, dateLastModified, dateLastVisit
-        var mostRecentDateForContact = getMostRecentDate({
+        const mostRecentDateForContact = getMostRecentDate({
             allDateValues: [result.dateAdded, result.dateLastModified, result.dateLastVisit]
         });
         matchedContactInfo.push({
@@ -535,7 +545,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             }
         });
     for (const result of candidatePersonInfo.data.data) {
-        var mostRecentDateForCandidate = getMostRecentDate({
+        const mostRecentDateForCandidate = getMostRecentDate({
             allDateValues: [result.dateAdded, result.dateLastComment, result.dateLastModified]
         });
         matchedContactInfo.push({
@@ -559,7 +569,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             }
         });
     for (const result of leadPersonInfo.data.data) {
-        var mostRecentDateForLead = getMostRecentDate({
+        const mostRecentDateForLead = getMostRecentDate({
             allDateValues: [result.dateAdded, result.dateLastComment, result.dateLastModified]
         });
         matchedContactInfo.push({
@@ -663,6 +673,9 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
+    if (newContactType === '') {
+        return null;
+    }
     let commentActionListResponse;
     let extraDataTracking = {};
     try {

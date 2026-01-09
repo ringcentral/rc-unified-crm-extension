@@ -268,4 +268,149 @@ describe('ConnectorRegistry Interface Registration with Composition', () => {
     expect(composedConnector.getAuthType).toBeDefined();
     expect(await composedConnector.getAuthType()).toBe('apiKey');
   });
+
+  test('should set and get default manifest', () => {
+    const defaultManifest = {
+      name: 'Default CRM',
+      version: '1.0.0',
+      features: ['call_logging', 'contact_sync']
+    };
+
+    connectorRegistry.setDefaultManifest(defaultManifest);
+
+    // Get manifest with fallback should return default
+    const manifest = connectorRegistry.getManifest('nonExistentPlatform', true);
+    expect(manifest).toEqual(defaultManifest);
+  });
+
+  test('should throw error when getting manifest without fallback and platform not found', () => {
+    expect(() => {
+      connectorRegistry.getManifest('nonExistentPlatform', false);
+    }).toThrow('Manifest not found for platform: nonExistentPlatform');
+  });
+
+  test('should throw error when getting manifest with fallback but no default set', () => {
+    connectorRegistry.manifests.clear();
+    expect(() => {
+      connectorRegistry.getManifest('nonExistentPlatform', true);
+    }).toThrow('Manifest not found for platform: nonExistentPlatform');
+  });
+
+  test('should register connector with manifest', () => {
+    const mockConnector = {
+      getAuthType: () => 'apiKey',
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn()
+    };
+    const manifest = {
+      name: 'Test CRM',
+      version: '2.0.0',
+      authType: 'oauth'
+    };
+
+    connectorRegistry.registerConnector('testPlatformWithManifest', mockConnector, manifest);
+
+    const retrievedManifest = connectorRegistry.getManifest('testPlatformWithManifest');
+    expect(retrievedManifest).toEqual(manifest);
+  });
+
+  test('should set and get release notes', () => {
+    const releaseNotes = {
+      version: '1.5.0',
+      date: '2024-01-15',
+      changes: ['Bug fixes', 'New features']
+    };
+
+    connectorRegistry.setReleaseNotes(releaseNotes);
+
+    // getReleaseNotes currently returns the same object regardless of platform
+    const notes = connectorRegistry.getReleaseNotes('anyPlatform');
+    expect(notes).toEqual(releaseNotes);
+  });
+
+  test('should get registered platforms', () => {
+    const connector1 = {
+      getAuthType: () => 'apiKey',
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn()
+    };
+    const connector2 = {
+      getAuthType: () => 'oauth',
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn()
+    };
+
+    connectorRegistry.registerConnector('platform1', connector1);
+    connectorRegistry.registerConnector('platform2', connector2);
+
+    const platforms = connectorRegistry.getRegisteredPlatforms();
+    expect(platforms).toContain('platform1');
+    expect(platforms).toContain('platform2');
+    expect(platforms).toHaveLength(2);
+  });
+
+  test('should check if platform is registered', () => {
+    const mockConnector = {
+      getAuthType: () => 'apiKey',
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn()
+    };
+
+    connectorRegistry.registerConnector('registeredPlatform', mockConnector);
+
+    expect(connectorRegistry.isRegistered('registeredPlatform')).toBe(true);
+    expect(connectorRegistry.isRegistered('unregisteredPlatform')).toBe(false);
+  });
+
+  test('should throw error for original connector when not found', () => {
+    expect(() => {
+      connectorRegistry.getOriginalConnector('nonExistentPlatform');
+    }).toThrow('Connector not found for platform: nonExistentPlatform');
+  });
+
+  test('should validate connector interface with missing required methods', () => {
+    const incompleteConnector = {
+      getAuthType: () => 'apiKey',
+      createCallLog: jest.fn()
+      // Missing updateCallLog
+    };
+
+    expect(() => {
+      connectorRegistry.registerConnector('incompletePlatform', incompleteConnector);
+    }).toThrow('Connector incompletePlatform missing required method: updateCallLog');
+  });
+
+  test('should return proxy connector when platform not found but proxy exists', () => {
+    const proxyConnector = {
+      getAuthType: () => 'proxy',
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn(),
+      proxy: true
+    };
+
+    connectorRegistry.registerConnector('proxy', proxyConnector);
+
+    const connector = connectorRegistry.getConnector('unknownPlatformWithProxy');
+    expect(connector).toBe(proxyConnector);
+    expect(connector.proxy).toBe(true);
+  });
+
+  test('should handle getAuthType error in getConnectorCapabilities', async () => {
+    const mockConnector = {
+      getAuthType: jest.fn().mockRejectedValue(new Error('Auth type error')),
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn()
+    };
+
+    connectorRegistry.registerConnector('errorPlatform', mockConnector);
+
+    const capabilities = await connectorRegistry.getConnectorCapabilities('errorPlatform');
+    expect(capabilities.authType).toBe('unknown');
+  });
+
+  test('should handle unregistering non-existent interface gracefully', () => {
+    // This should not throw
+    connectorRegistry.unregisterConnectorInterface('nonExistentPlatform', 'nonExistentInterface');
+    expect(connectorRegistry.hasPlatformInterface('nonExistentPlatform', 'nonExistentInterface')).toBe(false);
+  });
 }); 
