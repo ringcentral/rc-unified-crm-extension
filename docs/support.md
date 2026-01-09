@@ -12,7 +12,7 @@
 
 </div>
 
-## Common issues
+## Common questions and issues
 
 !!! tip "Always make sure you are running the latest version"
     
@@ -36,6 +36,26 @@ There are two ways to fix the issue:
 1. Update the contact record's phone number so that it conforms to the E.164 standard. This will be the most reliable solution and the most performant. However, reformatting the phone numbers across a huge contact database may not be feasible or practical. 
 
 2. Update the advanced configuration settings of App Connect to add the phone number formats commonly used by your company. App Connect will then search for contacts using each of the phone number formats stored with us. This solution is easier to deploy, but can sometimes introduce latencies as multiple API calls are needed to successfully find a contact. 
+
+## Does App Connect support contact synchronization?
+
+No. App Connect does not currently support contact synchronization between your CRM and RingCentral.
+
+**Understanding "Contact Synchronization"**
+
+When users ask for contact sync, they are typically looking for a way to pull CRM contacts into the RingCentral Personal Address Book.
+
+The goal of this process is usually to ensure that a caller is properly identified by name when receiving calls on the RingCentral desktop or mobile applications. To achieve this, App Connect would need to copy contact details from your CRM and write them into your RingCentral account. App Connect does not perform this action.
+
+**What App Connect does instead**
+
+While we do not sync or "copy" data between systems, App Connect provides high-visibility Contact Lookups and Contact Pops exclusively within the App Connect interface:
+
+* **Real-Time Lookup**. When a call arrives, App Connect searches your CRM for a matching phone number.
+* **Contact Pop**. If a match is found, the contact’s information is displayed within the App Connect sidebar, allowing you to identify the caller and click through to their CRM record.
+* **No Data Transfer**. This process is a "read-only" lookup. It does not create, move, or sync any data into your RingCentral address book.
+
+Summary: If you need a contact to appear in your native RingCentral app's directory or native Caller ID, they must be added to RingCentral manually or via a CSV import. App Connect’s identification features function exclusively within the integration's own interface.
 
 ## Managing software updates
 
