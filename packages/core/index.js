@@ -814,7 +814,7 @@ function createCoreRouter() {
                 }
             }
             else {
-                res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 await updateAuthSession(sessionId, {
                     status: 'failed',
                     errorMessage: returnMessage?.message || 'Authentication failed'
@@ -884,7 +884,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(400).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(400).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 success = false;
             }
         }
