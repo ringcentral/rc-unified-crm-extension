@@ -88,7 +88,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
-        
+
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
@@ -233,8 +233,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 }
             });
             for (const sId of sessionIdsArray) {
-                if(sId == 0)
-                {
+                if (sId == 0) {
                     logs.push({ sessionId: sId, matched: false });
                     continue;
                 }
@@ -549,6 +548,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
         // For shared SMS
         const assigneeName = incomingData.logInfo.assignee?.name;
         const ownerName = incomingData.logInfo.owner?.name;
+        const isSharedSMS = !!ownerName;
 
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
         const existingMessages = await MessageLogModel.findAll({
@@ -596,22 +596,42 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
                 }
             }
-            const existingSameDateMessageLog = await MessageLogModel.findOne({
-                where: {
-                    conversationLogId: incomingData.logInfo.conversationLogId
-                }
-            });
             let crmLogId = ''
-            if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
-                crmLogId = existingSameDateMessageLog.thirdPartyLogId;
-                returnMessage = updateMessageResult?.returnMessage;
+            if (isSharedSMS) {
+                const existingSameDateMessageLog = await MessageLogModel.findOne({
+                    where: {
+                        conversationLogId: incomingData.logInfo.conversationLogId
+                    }
+                });
+                if (existingSameDateMessageLog) {
+                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    crmLogId = existingSameDateMessageLog.thirdPartyLogId;
+                    returnMessage = updateMessageResult?.returnMessage;
+                }
+                else {
+                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    crmLogId = createMessageLogResult.logId;
+                    returnMessage = createMessageLogResult?.returnMessage;
+                    extraDataTracking = createMessageLogResult.extraDataTracking;
+                }
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                crmLogId = createMessageLogResult.logId;
-                returnMessage = createMessageLogResult?.returnMessage;
-                extraDataTracking = createMessageLogResult.extraDataTracking;
+                const existingSharedMessageLog = await MessageLogModel.findOne({
+                    where: {
+                        conversationId: incomingData.logInfo.conversationId
+                    }
+                });
+                if (existingSharedMessageLog) {
+                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSharedMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    crmLogId = existingSharedMessageLog.thirdPartyLogId;
+                    returnMessage = updateMessageResult?.returnMessage;
+                }
+                else {
+                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    crmLogId = createMessageLogResult.logId;
+                    returnMessage = createMessageLogResult?.returnMessage;
+                    extraDataTracking = createMessageLogResult.extraDataTracking;
+                }
             }
             if (crmLogId) {
                 const createdMessageLog =
