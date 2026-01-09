@@ -44,8 +44,8 @@ describe('callLogComposer', () => {
       result: 'Completed'
     };
 
-    test('should compose call log with default settings (plain text)', () => {
-      const result = composeCallLog(baseParams);
+    test('should compose call log with default settings (plain text)', async () => {
+      const result = await composeCallLog(baseParams);
 
       expect(result).toContain('- Note: Test note');
       expect(result).toContain('- Summary: Test Call');
@@ -53,8 +53,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('- Result: Completed');
     });
 
-    test('should compose call log in HTML format', () => {
-      const result = composeCallLog({
+    test('should compose call log in HTML format', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
       });
@@ -65,8 +65,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('<b>Result</b>');
     });
 
-    test('should compose call log in Markdown format', () => {
-      const result = composeCallLog({
+    test('should compose call log in Markdown format', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
       });
@@ -77,8 +77,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('**Result**:');
     });
 
-    test('should respect user settings to disable fields', () => {
-      const result = composeCallLog({
+    test('should respect user settings to disable fields', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         user: {
           userSettings: {
@@ -95,8 +95,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Result: Completed');
     });
 
-    test('should add session ID when enabled', () => {
-      const result = composeCallLog({
+    test('should add session ID when enabled', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         user: {
           userSettings: { addCallSessionId: { value: true } },
@@ -107,8 +107,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Session Id: session-123');
     });
 
-    test('should add recording link when provided', () => {
-      const result = composeCallLog({
+    test('should add recording link when provided', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         recordingLink: 'https://recording.example.com/123'
       });
@@ -116,8 +116,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Call recording link: https://recording.example.com/123');
     });
 
-    test('should add AI note when provided', () => {
-      const result = composeCallLog({
+    test('should add AI note when provided', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         aiNote: 'AI generated summary of the call'
       });
@@ -126,8 +126,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('AI generated summary of the call');
     });
 
-    test('should add transcript when provided', () => {
-      const result = composeCallLog({
+    test('should add transcript when provided', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         transcript: 'Hello, this is a test transcript.'
       });
@@ -136,8 +136,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Hello, this is a test transcript.');
     });
 
-    test('should add RingSense data when provided', () => {
-      const result = composeCallLog({
+    test('should add RingSense data when provided', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         ringSenseTranscript: 'RS Transcript',
         ringSenseSummary: 'RS Summary',
@@ -152,8 +152,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('RingSense recording link');
     });
 
-    test('should add call legs when provided', () => {
-      const result = composeCallLog({
+    test('should add call legs when provided', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         callLog: {
           ...baseParams.callLog,
@@ -166,9 +166,9 @@ describe('callLogComposer', () => {
       expect(result).toContain('Call journey');
     });
 
-    test('should handle RingCentral user name setting', () => {
+    test('should handle RingCentral user name setting', async () => {
       // For Outbound calls, it picks from.name
-      const result = composeCallLog({
+      const result = await composeCallLog({
         ...baseParams,
         user: {
           userSettings: { addRingCentralUserName: { value: true } },
@@ -180,8 +180,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('RingCentral user name: John Doe');
     });
 
-    test('should handle RingCentral number and extension setting', () => {
-      const result = composeCallLog({
+    test('should handle RingCentral number and extension setting', async () => {
+      const result = await composeCallLog({
         ...baseParams,
         user: {
           userSettings: { addRingCentralNumber: { value: true } },
@@ -1194,8 +1194,8 @@ describe('callLogComposer', () => {
   });
 
   describe('Edge Cases', () => {
-    test('should handle null user settings', () => {
-      const result = composeCallLog({
+    test('should handle null user settings', async () => {
+      const result = await composeCallLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         callLog: { direction: 'Outbound', startTime: new Date() },
         user: { userSettings: null },
@@ -1207,8 +1207,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Duration:');
     });
 
-    test('should handle undefined user settings', () => {
-      const result = composeCallLog({
+    test('should handle undefined user settings', async () => {
+      const result = await composeCallLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         callLog: { direction: 'Outbound' },
         user: {},
@@ -1218,8 +1218,8 @@ describe('callLogComposer', () => {
       expect(result).toContain('Result: Completed');
     });
 
-    test('should return empty string for empty params', () => {
-      const result = composeCallLog({
+    test('should return empty string for empty params', async () => {
+      const result = await composeCallLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         user: {}
       });
