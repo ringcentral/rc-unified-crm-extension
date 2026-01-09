@@ -10,7 +10,7 @@ module.exports = {
   ],
   reporters: ['default'],
   testEnvironment: 'node',
-  coveragePathIgnorePatterns: ['/node_modules/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/packages/'],
   modulePathIgnorePatterns: [
     '<rootDir>/build/',
     '<rootDir>/serverless-deploy/',

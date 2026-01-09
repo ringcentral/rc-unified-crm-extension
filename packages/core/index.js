@@ -753,7 +753,7 @@ function createCoreRouter() {
             }
             platformName = req.query.state ?
                 req.query.state.split('platform=')[1] :
-                decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0].split('platform=')[1];
+                decodeURIComponent(decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0]).split('platform=')[1];
             const hostname = req.query.hostname;
             const tokenUrl = req.query.tokenUrl;
             if (!platformName) {
@@ -770,11 +770,7 @@ function createCoreRouter() {
                 platform: platformName,
                 hostname,
                 tokenUrl,
-                callbackUri: req.query.callbackUri,
-                apiUrl: req.query.apiUrl,
-                username: req.query.username,
-                query: req.query,
-                proxyId: req.query.proxyId
+                query: req.query
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
@@ -785,7 +781,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(200).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 success = false;
             }
         }
@@ -844,7 +840,7 @@ function createCoreRouter() {
                 success = true;
             }
             else {
-                res.status(400).send(tracer ? tracer.wrapResponse(returnMessage) : returnMessage);
+                res.status(400).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
                 success = false;
             }
         }
