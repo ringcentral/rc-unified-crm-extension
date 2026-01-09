@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://americas-performance-rent-savannah.trycloudflare.com",
+  "serverUrl": "https://psychology-attract-gasoline-telling.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1866,7 +1866,7 @@
         "url": "https://labs.ringcentral.com"
       },
       "urlIdentifier": "vue.qa-dominiondms.com",
-      "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Bullhorn_Logo.png",
+      "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/VUE_Dominion.png",
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/dominion/",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
