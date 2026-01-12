@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 async function getCallLog({ user, callLogId, authHeader }) {
     const path = require('path');
     const mockCallLogsPath = path.join(__dirname, '..', 'mockCallLogs.json');

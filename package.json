@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.7.9",
+  "version": "1.7.10",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -47,7 +47,7 @@
     "awesome-phonenumber": "^5.6.0",
     "axios": "^1.12.2",
     "dotenv": "^16.0.3",
-    "express": "^4.21.2",
+    "express": "^4.22.1",
     "googleapis": "^148.0.0",
     "moment": "^2.29.4",
     "moment-timezone": "^0.5.39",
