@@ -705,6 +705,9 @@ describe('Log Handler', () => {
         createMessageLog: jest.fn().mockResolvedValue({
           logId: 'msg-log-new',
           returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn().mockResolvedValue({
+          returnMessage: { message: 'Message updated', messageType: 'success', ttl: 2000 }
         })
       };
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
@@ -733,8 +736,9 @@ describe('Log Handler', () => {
 
       // Assert
       expect(result.successful).toBe(true);
-      // Only the new message should be logged
-      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      // msg-1 is skipped (already logged), msg-2 uses updateMessageLog because same conversationId exists
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(0);
+      expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
     });
   });
 
