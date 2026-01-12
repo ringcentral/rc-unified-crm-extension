@@ -1,4 +1,16 @@
 {
+    "1.7.10": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Upon completing warm transfer, it opens contact page for a second time"
+            },
+            {
+                "type": "New",
+                "description": "RingCX RingSense call logging event support for Server-side logging"
+            }
+        ]
+    },
     "1.7.9": {
         "global": [
             {
