@@ -1413,6 +1413,111 @@ describe('Bullhorn Connector', () => {
         });
     });
 
+    // ==================== Message Log Format Tests ====================
+    describe('createMessageLog format', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });
+        const mockMessageData = createMockMessage();
+
+        beforeEach(() => {
+            // Mock user info query
+            nock(restUrl.slice(0, -1))
+                .get(/query\/CorporateUser/)
+                .query(true)
+                .reply(200, {
+                    data: [{ id: 123, name: 'Test User' }]
+                }, mockBullhornRateLimitHeaders);
+        });
+
+        it('should format SMS message log with HTML tags', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 701
+                }, mockBullhornRateLimitHeaders);
+
+            await bullhorn.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { noteActions: 'SMS' },
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            // Verify HTML format
+            expect(capturedBody.comments).toContain('<br>');
+            expect(capturedBody.comments).toContain('<b>');
+            expect(capturedBody.comments).toContain('<ul>');
+            expect(capturedBody.comments).toContain('<li>');
+            expect(capturedBody.comments).toContain('Conversation summary');
+            expect(capturedBody.comments).toContain('Participants');
+            expect(capturedBody.comments).toContain('RingCentral App Connect');
+        });
+
+        it('should format Voicemail message log with HTML tags', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 702
+                }, mockBullhornRateLimitHeaders);
+
+            await bullhorn.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: 'https://recording.example.com/voicemail.mp3',
+                faxDocLink: null
+            });
+
+            // Verify HTML format
+            expect(capturedBody.comments).toContain('<br>');
+            expect(capturedBody.comments).toContain('<b>');
+            expect(capturedBody.comments).toContain('Voicemail recording link');
+            expect(capturedBody.comments).toContain('https://recording.example.com/voicemail.mp3');
+            expect(capturedBody.comments).toContain('RingCentral App Connect');
+        });
+
+        it('should format Fax message log with HTML tags', async () => {
+            let capturedBody;
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Note', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, {
+                    changedEntityId: 703
+                }, mockBullhornRateLimitHeaders);
+
+            await bullhorn.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/document.pdf'
+            });
+
+            // Verify HTML format
+            expect(capturedBody.comments).toContain('<br>');
+            expect(capturedBody.comments).toContain('<b>');
+            expect(capturedBody.comments).toContain('Fax document link');
+            expect(capturedBody.comments).toContain('https://fax.example.com/document.pdf');
+            expect(capturedBody.comments).toContain('RingCentral App Connect');
+        });
+    });
+
     // ==================== updateMessageLog ====================
     describe('updateMessageLog', () => {
         const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });

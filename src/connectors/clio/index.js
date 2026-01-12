@@ -640,10 +640,10 @@ async function createMessageLog({ user, contactInfo, assigneeName, ownerName, au
     switch (messageType) {
         case 'SMS':
         case 'Video':
-            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
+            logSubject = !ownerName ? `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}` : `Shared SMS conversation with ${contactInfo.name}`;
             logBody =
                 '\nConversation summary\n' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                `${!ownerName ? `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` : ''}` +
                 'Participants\n' +
                 `    ${userName}\n` +
                 `    ${contactInfo.name}\n` +
@@ -652,7 +652,7 @@ async function createMessageLog({ user, contactInfo, assigneeName, ownerName, au
                 '\nConversation(1 messages)\n' +
                 'BEGIN\n' +
                 '------------\n' +
-                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format(!ownerName ? 'hh:mm A' : 'MM/DD/YYYY hh:mm A')}\n` +
                 `${messageSubject}\n` +
                 '------------\n' +
                 'END\n\n' +
@@ -660,9 +660,9 @@ async function createMessageLog({ user, contactInfo, assigneeName, ownerName, au
             break;
         case 'Voicemail':
             logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
-            logBody = `${ownerName ? `Shared Voicemail owned by: ${ownerName}\n` : ''}` + 
-                    `${assigneeName ? `Shared Voicemail assigned to: ${assigneeName}\n` : ''}` +
-                    `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
+            logBody = `${ownerName ? `Shared Voicemail owned by: ${ownerName}\n` : ''}` +
+                `${assigneeName ? `Shared Voicemail assigned to: ${assigneeName}\n` : ''}` +
+                `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
             break;
         case 'Image':
             try {
@@ -715,9 +715,9 @@ async function createMessageLog({ user, contactInfo, assigneeName, ownerName, au
                 )
                 logSubject = `Image document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `${ownerName ? `Shared Image owned by: ${ownerName}\n` : ''}` + 
-                    `${assigneeName ? `Shared Image assigned to: ${assigneeName}\n` : ''}` +
-                    `Image uploaded to Clio successfully.\nImage document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    logBody = `${ownerName ? `Shared Image owned by: ${ownerName}\n` : ''}` +
+                        `${assigneeName ? `Shared Image assigned to: ${assigneeName}\n` : ''}` +
+                        `Image uploaded to Clio successfully.\nImage document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                 }
                 else {
                     logBody = `Image failed to be uploaded to Clio.\nImage document link: ${imageDownloadLink} \n\n--- Created via RingCentral App Connect`;
@@ -779,9 +779,9 @@ async function createMessageLog({ user, contactInfo, assigneeName, ownerName, au
                 )
                 logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                 if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `${ownerName ? `Shared Fax owned by: ${ownerName}\n` : ''}` + 
-                    `${assigneeName ? `Shared Fax assigned to: ${assigneeName}\n` : ''}` +
-                    `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    logBody = `${ownerName ? `Shared Fax owned by: ${ownerName}\n` : ''}` +
+                        `${assigneeName ? `Shared Fax assigned to: ${assigneeName}\n` : ''}` +
+                        `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                 }
                 else {
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
@@ -859,7 +859,7 @@ async function updateMessageLog({ user, contactInfo, assigneeName, ownerName, ex
     const originalNote = logBody.split('BEGIN\n------------\n')[1];
     const endMarker = '------------\nEND';
     const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format(!ownerName ? 'hh:mm A' : 'MM/DD/YYYY hh:mm A')}\n` +
         `${messageSubject}\n\n`;
     logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
@@ -867,13 +867,13 @@ async function updateMessageLog({ user, contactInfo, assigneeName, ownerName, ex
     const matchResult = regex.exec(logBody);
     logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
 
-    if(assigneeName || ownerName) {
-        const sharedSMSAssigneeRegex = RegExp(`Shared SMS assigned to: ${assigneeName}\n`);
-        const sharedSMSOwnerRegex = RegExp(`Shared SMS owned by: ${ownerName}\n`);
-        if(assigneeName) {
+    if (assigneeName || ownerName) {
+        const sharedSMSAssigneeRegex = RegExp(`Shared SMS assigned to: .+\n`);
+        const sharedSMSOwnerRegex = RegExp(`Shared SMS owned by: .+\n`);
+        if (assigneeName) {
             logBody = logBody.replace(sharedSMSAssigneeRegex, `Shared SMS assigned to: ${assigneeName}\n`);
         }
-        if(ownerName) {
+        if (ownerName) {
             logBody = logBody.replace(sharedSMSOwnerRegex, `Shared SMS owned by: ${ownerName}\n`);
         }
     }

@@ -869,6 +869,122 @@ describe('Pipedrive Connector', () => {
         });
     });
 
+    // ==================== Message Log Format Tests ====================
+    describe('createMessageLog format', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });
+        const mockMessageData = createMockMessage();
+
+        beforeEach(() => {
+            nock(`https://${hostname}`)
+                .get('/v1/users/me')
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/101')
+                .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'SMS', key_string: 'sms', active_flag: true },
+                        { name: 'Call', key_string: 'call', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+        });
+
+        it('should format SMS message log with HTML tags', async () => {
+            let capturedBody;
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 601 }
+                }, mockRateLimitHeaders);
+
+            await pipedrive.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { deals: 201 },
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            // Verify HTML format
+            expect(capturedBody.note).toContain('<br>');
+            expect(capturedBody.note).toContain('<b>');
+            expect(capturedBody.note).toContain('<ul>');
+            expect(capturedBody.note).toContain('<li>');
+            expect(capturedBody.note).toContain('Conversation summary');
+            expect(capturedBody.note).toContain('Participants');
+            expect(capturedBody.note).toContain('RingCentral App Connect');
+        });
+
+        it('should format Voicemail message log with HTML tags', async () => {
+            let capturedBody;
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 602 }
+                }, mockRateLimitHeaders);
+
+            await pipedrive.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: 'https://recording.example.com/voicemail.mp3',
+                faxDocLink: null
+            });
+
+            // Verify HTML format
+            expect(capturedBody.note).toContain('<br>');
+            expect(capturedBody.note).toContain('<b>');
+            expect(capturedBody.note).toContain('Voicemail recording link');
+            expect(capturedBody.note).toContain('https://recording.example.com/voicemail.mp3');
+            expect(capturedBody.note).toContain('RingCentral App Connect');
+        });
+
+        it('should format Fax message log with HTML tags', async () => {
+            let capturedBody;
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 603 }
+                }, mockRateLimitHeaders);
+
+            await pipedrive.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/document.pdf'
+            });
+
+            // Verify HTML format
+            expect(capturedBody.note).toContain('<br>');
+            expect(capturedBody.note).toContain('<b>');
+            expect(capturedBody.note).toContain('Fax document link');
+            expect(capturedBody.note).toContain('https://fax.example.com/document.pdf');
+            expect(capturedBody.note).toContain('RingCentral App Connect');
+        });
+    });
+
     // ==================== updateMessageLog ====================
     describe('updateMessageLog', () => {
         const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });
