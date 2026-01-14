@@ -26,6 +26,7 @@ rm('-rf', `${deployPath}/*.json`);
 rm('-rf', `${deployPath}/packages`);
 rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/connectors`);
+rm('-rf', `${deployPath}/processors`);
 echo('building...');
 mkdir(deployPath)
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
@@ -38,7 +39,7 @@ cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 mkdir(`${deployPath}/packages`);
 cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
 cp('-r', `${projectPath}/src/connectors`, `${deployPath}/connectors`);
-
+cp('-r', `${projectPath}/src/processors`, `${deployPath}/processors`);
 async function run() {
     const installCmd = 'npm i --production';
     console.log(`run cmd: ${installCmd}`);
