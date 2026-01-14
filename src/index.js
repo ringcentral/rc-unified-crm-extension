@@ -19,6 +19,7 @@ const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 const piiRedactionProcessor = require('./processors/piiRedactionProcessor');
 const sendToGlipProcessor = require('./processors/sendToGlipProcessor');
+const googleDriveProcessor = require('./processors/googleDriveProcessor');
 
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
@@ -35,6 +36,18 @@ connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality
 const app = createCoreApp();
+
+const { PtpUserModel } = require('./processors/models/ptpUserModel');
+const { GoogleDriveFileModel } = require('./processors/models/googleDriveFileModel');
+async function initDB() {
+    if (!process.env.DISABLE_SYNC_DB_TABLE) {
+        console.log('creating db tables if not exist...');
+        await PtpUserModel.sync();
+        await GoogleDriveFileModel.sync();
+    }
+}
+
+initDB();
 
 // Add custom routes for specific connectors
 // Google Sheets specific routes
@@ -279,7 +292,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
                 res.status(400).send('Missing user_id');
                 return;
             }
-            
+
             // Find the user to get refresh token for revocation
             const user = await UserModel.findByPk(userId);
             if (user) {
@@ -305,19 +318,66 @@ app.delete('/pipedrive-redirect', async function (req, res) {
 
 app.post('/processor/:processorId', async function (req, res) {
     try {
+        const jwtToken = req.query.jwtToken;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
         let result;
         switch (req.params.processorId) {
             case 'piiRedaction':
                 result = piiRedactionProcessor.redactPii(req.body.data);
                 break;
             case 'sendToGlip':
-                result = sendToGlipProcessor.sendToGlip(req.body.data);
+                result = sendToGlipProcessor.sendToGlip({ data: req.body.data, taskId: req.body.asyncTaskId });
+                break;
+            case 'googleDrive':
+                result = googleDriveProcessor.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
                 break;
             default:
                 res.status(400).send('Unknown processor');
                 return;
         }
 
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.get('/googleDrive/oauthUrl', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const result = await googleDriveProcessor.getOAuthUrl({ jwtToken });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.get('/googleDrive/oauthCallback', async function (req, res) {
+    try {
+        const state = req.query.callbackUri.split('state=')[1];
+        // add params back to callbackUri
+        const callbackUri = `${req.query.callbackUri}&code=${req.query.code}&scope=${req.query.scope}`;
+        const jwtToken = JSON.parse(decodeURIComponent(state)).jwtToken;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const result = await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
         res.status(200).send(result);
     }
     catch (e) {

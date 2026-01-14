@@ -2,6 +2,7 @@ const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
+const { CacheModel } = require('../models/cacheModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog } = require('../lib/callLogComposer');
@@ -13,8 +14,9 @@ const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const axios = require('axios');
 const { getProcessorsFromUserSettings } = require('../lib/util');
+const { v4: uuidv4 } = require('uuid');
 
-async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function createCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -42,6 +44,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             };
         }
+        const ptpAsyncTaskIds = [];
         // Pass-thru processors
         const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
         for (const processorSetting of beforeLoggingProcessor) {
@@ -49,14 +52,36 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
             const processorData = processorDataResponse.data;
             const processorManifest = processorData.platforms[processorSetting.value.name];
-            if (!processorManifest.endpointUrl) { throw new Error('Processor URL is not set'); }
+            let processorEndpointUrl = processorManifest.endpointUrl;
+            if (!processorEndpointUrl) {
+                throw new Error('Processor URL is not set');
+            }
+            else {
+                // check if endpoint has query params already
+                if (processorEndpointUrl.includes('?')) {
+                    processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
             if (processorSetting.value.isAsync) {
-                axios.post(processorManifest.endpointUrl, {
-                    data: incomingData
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                ptpAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `ptpTask-${processorSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(processorEndpointUrl, {
+                    data: incomingData,
+                    asyncTaskId
                 });
             }
             else {
-                const processedResultResponse = await axios.post(processorManifest.endpointUrl, {
+                const processedResultResponse = await axios.post(processorEndpointUrl, {
                     data: incomingData
                 });
                 // eslint-disable-next-line no-param-reassign
@@ -175,19 +200,37 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
             const processorData = processorDataResponse.data;
             const processorManifest = processorData.platforms[processorSetting.value.name];
-            if (!processorManifest.endpointUrl) { throw new Error('Processor URL is not set'); }
+            let processorEndpointUrl = processorManifest.endpointUrl;
+            if (!processorEndpointUrl) { throw new Error('Processor URL is not set'); }
+            else {
+                if (processorEndpointUrl.includes('?')) {
+                    processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
             if (processorSetting.value.isAsync) {
-                axios.post(processorManifest.endpointUrl, {
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                ptpAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `ptpTask-${processorSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(processorEndpointUrl, {
                     data: {
                         ...incomingData,
                         logId,
                         text: returnMessage?.message ?? ''
-                    }
+                    },
+                    asyncTaskId
                 });
             }
             else {
-
-                await axios.post(processorManifest.endpointUrl, {
+                const processedResultResponse = await axios.post(processorEndpointUrl, {
                     data: {
                         ...incomingData,
                         logId,
@@ -197,7 +240,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 );
             }
         }
-        return { successful: !!logId, logId, returnMessage, extraDataTracking };
+        return { successful: !!logId, logId, returnMessage, extraDataTracking, ptpAsyncTaskIds };
     } catch (e) {
         console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
         if (e.response?.status === 429) {
@@ -369,7 +412,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: {
@@ -377,11 +420,54 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             }
         });
         if (existingCallLog) {
-            const platformModule = connectorRegistry.getConnector(platform);
             let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
+            const ptpAsyncTaskIds = [];
+            // Pass-thru processors
+            const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
+            for (const processorSetting of beforeLoggingProcessor) {
+                const processorId = processorSetting.id;
+                const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                const processorData = processorDataResponse.data;
+                const processorManifest = processorData.platforms[processorSetting.value.name];
+                let processorEndpointUrl = processorManifest.endpointUrl;
+                if (!processorEndpointUrl) {
+                    throw new Error('Processor URL is not set');
+                }
+                else {
+                    if (processorEndpointUrl.includes('?')) {
+                        processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                    }
+                    else {
+                        processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                    }
+                }
+                if (processorSetting.value.isAsync) {
+                    const asyncTaskId = `${userId}-${uuidv4()}`;
+                    ptpAsyncTaskIds.push(asyncTaskId);
+                    await CacheModel.create({
+                        id: asyncTaskId,
+                        status: 'initialized',
+                        userId,
+                        cacheKey: `ptpTask-${processorSetting.value.name}`,
+                        expiry: moment().add(1, 'hour').toDate()
+                    });
+                    axios.post(processorEndpointUrl, {
+                        data: { logInfo: { ...incomingData } },
+                        asyncTaskId
+                    });
+                }
+                else {
+                    const processedResultResponse = await axios.post(processorEndpointUrl, {
+                        data: { logInfo: { ...incomingData } }
+                    });
+                    // eslint-disable-next-line no-param-reassign
+                    incomingData = processedResultResponse.data;
+                }
+            }
+            const platformModule = connectorRegistry.getConnector(platform);
             const proxyId = user.platformAdditionalInfo?.proxyId;
             let proxyConfig = null;
             if (proxyId) {
@@ -482,7 +568,55 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
-            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
+            // after-logging processor
+            const afterLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
+            for (const processorSetting of afterLoggingProcessor) {
+                const processorId = processorSetting.id;
+                const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                const processorData = processorDataResponse.data;
+                const processorManifest = processorData.platforms[processorSetting.value.name];
+                let processorEndpointUrl = processorManifest.endpointUrl;
+                if (!processorEndpointUrl) { throw new Error('Processor URL is not set'); }
+                else {
+                    // check if endpoint has query params already
+                    if (processorEndpointUrl.includes('?')) {
+                        processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                    }
+                    else {
+                        processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                    }
+                }
+                if (processorSetting.value.isAsync) {
+                    const asyncTaskId = `${userId}-${uuidv4()}`;
+                    ptpAsyncTaskIds.push(asyncTaskId);
+                    await CacheModel.create({
+                        id: asyncTaskId,
+                        status: 'initialized',
+                        userId,
+                        cacheKey: `ptpTask-${processorSetting.value.name}`,
+                        expiry: moment().add(1, 'hour').toDate()
+                    });
+                    axios.post(processorEndpointUrl, {
+                        data: {
+                            logInfo: { ...incomingData },
+                            logId: existingCallLog.id,
+                            text: returnMessage?.message ?? ''
+                        },
+                        asyncTaskId
+                    });
+                }
+                else {
+                    await axios.post(processorEndpointUrl, {
+                        data: {
+                            logInfo: { ...incomingData },
+                            logId: existingCallLog.id,
+                            text: returnMessage?.message ?? ''
+                        }
+                    }
+                    );
+                }
+            }
+            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, ptpAsyncTaskIds };
         }
         return { successful: false };
     } catch (e) {

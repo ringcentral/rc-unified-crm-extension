@@ -28,6 +28,7 @@ const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
 const { DebugTracer } = require('./lib/debugTracer');
 const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
+const ptpCore = require('./handlers/ptp');
 
 let packageJson = null;
 try {
@@ -1180,11 +1181,11 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, returnMessage, extraDataTracking, ptpAsyncTaskIds } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage }) : { successful, logId, returnMessage });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage, ptpAsyncTaskIds }) : { successful, logId, returnMessage, ptpAsyncTaskIds });
                 success = true;
             }
             else {
@@ -1237,11 +1238,11 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking, ptpAsyncTaskIds } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, updatedNote, returnMessage }) : { successful, logId, updatedNote, returnMessage });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, updatedNote, returnMessage, ptpAsyncTaskIds }) : { successful, logId, updatedNote, returnMessage, ptpAsyncTaskIds });
                 success = true;
             }
             else {
@@ -1758,6 +1759,55 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get error log report URL',
             interfaceName: 'getErrorLogReportURL',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
+    router.post('/ptpAsyncTask', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('ptpAsyncTask:start', { query: req.query });
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const { jwtToken } = req.query;
+        try {
+            if (!jwtToken) {
+                tracer?.trace('ptpAsyncTask:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                tracer?.trace('ptpAsyncTask:userNotFound', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                return;
+            }
+            const { asyncTaskIds } = req.body;
+            const filteredTasksIds = asyncTaskIds.filter(taskId => taskId.startsWith(user.id));
+            const tasks = await ptpCore.getPtpAsyncTasks({ asyncTaskIds: filteredTasksIds });
+            res.status(200).send(tracer ? tracer.wrapResponse({ tasks }) : { tasks });
+            success = true;
+        }
+        catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            tracer?.traceError('ptpAsyncTask:error', e, { platform: platformName });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'PTP Async Task',
+            interfaceName: 'ptpAsyncTask',
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
