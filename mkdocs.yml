@@ -40,9 +40,12 @@ theme:
     code: Roboto Mono
 
 plugins:
+#  - pdf-export:
+#      combined: true
+  - print-site
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - badges
+#  - badges
   - exclude:
       regex:
         - '^\.#.*'

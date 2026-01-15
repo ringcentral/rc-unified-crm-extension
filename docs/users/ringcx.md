@@ -1,3 +1,6 @@
+---
+title: Logging RingCX calls via App Connect
+---
 # Logging RingCX calls via App Connect
 
 <!-- md:version 2.0-experimental -->
