@@ -1426,10 +1426,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
         // Parse notes to extract structured information (similar to Bullhorn parsing)
         const fullBody = appointmentNotes;
 
-        // Extract LAST note value from "- Note: Value" pattern
+        // Extract LAST note value from "- Note: Value" pattern (supports multi-line)
         let note = '';
         if (appointmentNotes.includes('Note:')) {
-            const noteMatches = [...appointmentNotes.matchAll(/[-\s]*Note:\s*([^\n\r]*)/g)];
+            const noteMatches = [...appointmentNotes.matchAll(/[-\s]*Note:\s*([\s\S]*?)(?=\n[-\s]*[A-Z][a-zA-Z\s/]*:|\n$|$)/g)];
             if (noteMatches.length > 0) {
                 // Get the last match
                 const lastNoteMatch = noteMatches[noteMatches.length - 1];
@@ -1437,10 +1437,10 @@ async function getCallLog({ user, callLogId, authHeader }) {
             }
         }
         
-        // Extract LAST subject from "- Summary: Value" pattern
+        // Extract LAST subject from "- Summary: Value" pattern (supports multi-line)
         let subject = '';
         if (appointmentNotes.includes('Summary:')) {
-            const summaryMatches = [...appointmentNotes.matchAll(/[-\s]*Summary:\s*([^\n\r]*)/g)];
+            const summaryMatches = [...appointmentNotes.matchAll(/[-\s]*Summary:\s*([\s\S]*?)(?=\n[-\s]*[A-Z][a-zA-Z\s/]*:|\n$|$)/g)];
             if (summaryMatches.length > 0) {
                 // Get the last match
                 const lastSummaryMatch = summaryMatches[summaryMatches.length - 1];
