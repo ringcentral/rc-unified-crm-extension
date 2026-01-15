@@ -828,11 +828,47 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value) {
+        try {
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: additionalSubmission?.smsTimeTrackingSeconds??0,
+                    note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`,
+                    communication: {
+                        id: addLogRes.data.data.id
+                    },
+                     non_billable: !(user.userSettings?.smsTimeTrackingDefaultBillable?.value ?? false)
+                }
+            };
+
+            // Add matter to time entry if available
+            if (additionalSubmission?.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+
+            console.log('SMS time entry created successfully:', timeEntryRes.data.data.id);
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: addLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
@@ -844,10 +880,14 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
     };
 }
 
-async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, imageLink, videoLink }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, imageLink, videoLink, additionalSubmission }) {
     let extraDataTracking = {};
     let logBody = '';
     let patchBody = {};
+    console.log('updateMessageLog called with:', {
+        existingMessageLog,
+       
+    });
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     // Case: shared SMS
     if (sharedSMSLogContent?.body) {
@@ -895,12 +935,47 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value) {
+        try {
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: additionalSubmission?.smsTimeTrackingSeconds??0,
+                    note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`,
+                    communication: {
+                        id: existingClioLogId
+                    },
+                     non_billable: !(user.userSettings?.smsTimeTrackingDefaultBillable?.value ?? false)
+                }
+            };
 
+            // Add matter to time entry if available
+            if (additionalSubmission.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+
+            console.log('SMS time entry created successfully:', timeEntryRes.data.data.id);
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         extraDataTracking
     }
