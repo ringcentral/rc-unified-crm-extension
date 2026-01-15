@@ -290,6 +290,49 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
     }
 }
 
+async function checkAuth({ userId }) {
+    const user = await PtpUserModel.findByPk(userId);
+    if (user?.accessToken) {
+        return {
+            successful: true
+        }
+    }
+    else {
+        return {
+            successful: false
+        }
+    }
+}
+
+async function logout({ userId }) {
+    try {
+        const user = await PtpUserModel.findByPk(userId);
+        if (user) {
+            await user.destroy();
+        }
+        return {
+            successful: true,
+            returnMessage: {
+                message: 'User logged out',
+                messageType: 'success',
+                ttl: 3000
+            }
+        }
+    }
+    catch (e) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Failed to logout',
+                messageType: 'error',
+                ttl: 3000
+            }
+        }
+    }
+}
+
 exports.getOAuthUrl = getOAuthUrl;
 exports.onOAuthCallback = onOAuthCallback;
 exports.uploadToGoogleDrive = uploadToGoogleDrive;
+exports.checkAuth = checkAuth;
+exports.logout = logout;

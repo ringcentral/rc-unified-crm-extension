@@ -386,6 +386,40 @@ app.get('/googleDrive/oauthCallback', async function (req, res) {
     }
 });
 
+app.get('/googleDrive/checkAuth', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const result = await googleDriveProcessor.checkAuth({ userId });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
+app.post('/googleDrive/logout', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        if (!jwtToken) {
+            res.status(400).send('JWT token is required');
+            return;
+        }
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const result = await googleDriveProcessor.logout({ userId });
+        res.status(200).send(result);
+    }
+    catch (e) {
+        console.log(e.stack);
+        res.status(400).send();
+    }
+});
+
 exports.getServer = function getServer() {
     return app;
 }
