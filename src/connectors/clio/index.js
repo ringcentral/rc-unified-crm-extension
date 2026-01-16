@@ -831,11 +831,16 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
     // Create SMS time entry if SMS time tracking is enabled
     if (user.userSettings?.smsTimeTrackingEnabled?.value) {
         try {
+            const actualTimeSeconds =  0; //TODO this will be come from client after Embeddable implement Time Tracking.
+            const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
+            const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
+            const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+            
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
-                    quantity: additionalSubmission?.smsTimeTrackingSeconds??0,
+                    quantity: billableTimeSeconds,
                     note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`,
                     communication: {
                         id: addLogRes.data.data.id
@@ -938,11 +943,16 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
     // Create SMS time entry if SMS time tracking is enabled
     if (user.userSettings?.smsTimeTrackingEnabled?.value) {
         try {
+            const actualTimeSeconds =  0; //TODO this will be come from client after Embeddable implement Time Tracking.
+            const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
+            const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
+            const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+            
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
-                    quantity: additionalSubmission?.smsTimeTrackingSeconds??0,
+                    quantity: billableTimeSeconds,
                     note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`,
                     communication: {
                         id: existingClioLogId

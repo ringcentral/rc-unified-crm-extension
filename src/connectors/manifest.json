@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://shops-zip-personally-asthma.trycloudflare.com",
+  "serverUrl": "https://contribute-album-promising-cartoons.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -472,6 +472,28 @@
               "type": "boolean",
               "name": "See closed matters",
               "description": "Show closed matters in the matter selection dropdown",
+              "defaultValue": false
+            },
+            {
+              "id": "smsTimeTrackingEnabled",
+              "type": "boolean",
+              "name": "Enable SMS Time Tracking",
+              "description": "Automatically track time spent drafting and sending SMS messages",
+              "defaultValue": false
+            },
+            {
+              "id": "smsTimeTrackingMinimumDuration",
+              "type": "inputField",
+              "name": "Minimum Billable Time Duration (seconds)",
+              "description": "Minimum time duration in seconds for time entries (e.g., 30 for 30 seconds, 360 for 6 minutes)",
+              "placeholder": "30",
+              "defaultValue": "30"
+            },
+            {
+              "id": "smsTimeTrackingDefaultBillable",
+              "type": "boolean",
+              "name": "Default Time Entries to Billable",
+              "description": "Set whether time entries created from SMS tracking default to billable status",
               "defaultValue": false
             }
           ]
