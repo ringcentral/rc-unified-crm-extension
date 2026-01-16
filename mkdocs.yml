@@ -42,7 +42,6 @@ theme:
 plugins:
 #  - pdf-export:
 #      combined: true
-  - print-site
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
 #  - badges
@@ -50,6 +49,8 @@ plugins:
       regex:
         - '^\.#.*'
         - '.*\.\#.*$'
+  - print-site
+
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
 
