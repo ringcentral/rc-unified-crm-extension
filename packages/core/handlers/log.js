@@ -5,6 +5,7 @@ const { UserModel } = require('../models/userModel');
 const oauth = require('../lib/oauth');
 const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog } = require('../lib/callLogComposer');
+const { composeSharedSMSLog } = require('../lib/sharedSMSComposer');
 const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
@@ -558,46 +559,66 @@ async function createMessageLog({ platform, userId, incomingData }) {
         });
         const existingIds = existingMessages.map(m => m.id);
         const logIds = [];
-        // reverse the order of messages to log the oldest message first
-        const reversedMessages = incomingData.logInfo.messages.reverse();
-        for (const message of reversedMessages) {
-            if (existingIds.includes(message.id.toString())) {
-                continue;
-            }
-            let recordingLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
-                recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
-            }
-            let faxDocLink = null;
-            let faxDownloadLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
-                faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
-                faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
-            }
-            let imageLink = null;
-            let imageDownloadLink = null;
-            let imageContentType = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
-                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-                if (imageAttachment) {
-                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-                    imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
-                    imageContentType = imageAttachment?.contentType;
+        // Case: Shared SMS
+        if (isSharedSMS) {
+            const existingSharedMessageLog = await MessageLogModel.findOne({
+                where: {
+                    conversationId: incomingData.logInfo.conversationId
                 }
+            });
+            const entities = incomingData.logInfo.entities;
+            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
+            if (existingSharedMessageLog) {
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingSharedMessageLog, authHeader, additionalSubmission, proxyConfig });
+                returnMessage = updateMessageResult?.returnMessage;
             }
-            let videoLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
-                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-                if (imageAttachment) {
-                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-                }
-                const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
-                if (videoAttachment) {
-                    videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
-                }
+            else {
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, additionalSubmission, proxyConfig });
+                const crmLogId = createMessageLogResult.logId;
+                returnMessage = createMessageLogResult?.returnMessage;
+                extraDataTracking = createMessageLogResult.extraDataTracking;
             }
-            let crmLogId = ''
-            if (isSharedSMS) {
+        }
+        // Case: normal SMS
+        else {
+            // reverse the order of messages to log the oldest message first
+            const reversedMessages = incomingData.logInfo.messages.reverse();
+            for (const message of reversedMessages) {
+                if (existingIds.includes(message.id.toString())) {
+                    continue;
+                }
+                let recordingLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
+                    recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
+                }
+                let faxDocLink = null;
+                let faxDownloadLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
+                    faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+                    faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
+                }
+                let imageLink = null;
+                let imageDownloadLink = null;
+                let imageContentType = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
+                    const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                    if (imageAttachment) {
+                        imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                        imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+                        imageContentType = imageAttachment?.contentType;
+                    }
+                }
+                let videoLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
+                    const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                    if (imageAttachment) {
+                        imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                    }
+                    const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
+                    if (videoAttachment) {
+                        videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
+                    }
+                }
                 const existingSameDateMessageLog = await MessageLogModel.findOne({
                     where: {
                         conversationLogId: incomingData.logInfo.conversationLogId
@@ -605,45 +626,26 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 });
                 if (existingSameDateMessageLog) {
                     const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
-                    crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                     returnMessage = updateMessageResult?.returnMessage;
                 }
                 else {
                     const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                    crmLogId = createMessageLogResult.logId;
-                    returnMessage = createMessageLogResult?.returnMessage;
-                    extraDataTracking = createMessageLogResult.extraDataTracking;
-                }
-            }
-            else {
-                const existingSharedMessageLog = await MessageLogModel.findOne({
-                    where: {
-                        conversationId: incomingData.logInfo.conversationId
+                    const crmLogId = createMessageLogResult.logId;
+                    if (crmLogId) {
+                        const createdMessageLog =
+                            await MessageLogModel.create({
+                                id: message.id.toString(),
+                                platform,
+                                conversationId: incomingData.logInfo.conversationId,
+                                thirdPartyLogId: crmLogId,
+                                userId,
+                                conversationLogId: incomingData.logInfo.conversationLogId
+                            });
+                        logIds.push(createdMessageLog.id);
                     }
-                });
-                if (existingSharedMessageLog) {
-                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSharedMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
-                    crmLogId = existingSharedMessageLog.thirdPartyLogId;
-                    returnMessage = updateMessageResult?.returnMessage;
-                }
-                else {
-                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                    crmLogId = createMessageLogResult.logId;
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;
                 }
-            }
-            if (crmLogId) {
-                const createdMessageLog =
-                    await MessageLogModel.create({
-                        id: message.id.toString(),
-                        platform,
-                        conversationId: incomingData.logInfo.conversationId,
-                        thirdPartyLogId: crmLogId,
-                        userId,
-                        conversationLogId: incomingData.logInfo.conversationLogId
-                    });
-                logIds.push(createdMessageLog.id);
             }
         }
         return { successful: true, logIds, returnMessage, extraDataTracking };
