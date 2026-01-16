@@ -798,7 +798,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
             subject: logSubject,
             body: logBody,
             type: 'PhoneCommunication',
-            received_at: moment(message.creationTime).toISOString(),
+            received_at: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).toISOString() : moment(message.creationTime).toISOString(),
             senders: [sender],
             receivers: [receiver],
             notification_event_subscribers: [

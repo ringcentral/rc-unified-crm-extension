@@ -2,31 +2,42 @@ const moment = require('moment-timezone');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
 function composeSharedSMSLog({ logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT, conversation, contactName, timezoneOffset }) {
-    const conversationDate = moment(conversation?.creationTime);
+    const conversationCreatedDate = moment(conversation?.creationTime);
+    const conversationUpdatedDate = moment(findLatestModifiedTime(conversation.messages));
     if (timezoneOffset) {
-        conversationDate.utcOffset(timezoneOffset);
+        conversationCreatedDate.utcOffset(timezoneOffset);
+        conversationUpdatedDate.utcOffset(timezoneOffset);
     }
 
     const subject = composeSubject({
         logFormat,
-        contactName,
-        date: conversationDate
+        contactName
     });
 
     const body = composeBody({
         logFormat,
         conversation,
         contactName,
-        conversationDate,
+        conversationCreatedDate,
+        conversationUpdatedDate,
         timezoneOffset,
     });
 
     return { subject, body };
 }
 
-function composeSubject({ logFormat, contactName, date }) {
-    const formattedDate = date.format('MM/DD/YY');
-    const title = `SMS conversation with ${contactName} - ${formattedDate}`;
+function findLatestModifiedTime(messages) {
+    let result = 0;
+    for (const message of messages) {
+        if (message.lastModifiedTime > result) {
+            result = message.lastModifiedTime;
+        }
+    }
+    return result;
+}
+
+function composeSubject({ logFormat, contactName }) {
+    const title = `SMS conversation with ${contactName}`;
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
@@ -43,11 +54,12 @@ function composeBody({
     logFormat,
     conversation,
     contactName,
-    conversationDate,
+    conversationCreatedDate,
+    conversationUpdatedDate,
     timezoneOffset
 }) {
     // Gather participants from entities
-    const participants = gatherParticipants(conversation.entities || []).concat(contactName);
+    const agents = gatherAgents(conversation.entities || []);
 
     // Get owner/call queue info
     const ownerInfo = getOwnerInfo(conversation);
@@ -67,8 +79,10 @@ function composeBody({
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
             return composeHTMLBody({
-                conversationDate,
-                participants,
+                conversationCreatedDate,
+                conversationUpdatedDate,
+                contactName,
+                agents,
                 ownerInfo,
                 messageCount,
                 noteCount,
@@ -76,8 +90,10 @@ function composeBody({
             });
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
             return composeMarkdownBody({
-                conversationDate,
-                participants,
+                conversationCreatedDate,
+                conversationUpdatedDate,
+                contactName,
+                agents,
                 ownerInfo,
                 messageCount,
                 noteCount,
@@ -86,8 +102,10 @@ function composeBody({
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
         default:
             return composePlainTextBody({
-                conversationDate,
-                participants,
+                conversationCreatedDate,
+                conversationUpdatedDate,
+                contactName,
+                agents,
                 ownerInfo,
                 messageCount,
                 noteCount,
@@ -96,7 +114,7 @@ function composeBody({
     }
 }
 
-function gatherParticipants(entities) {
+function gatherAgents(entities) {
     const participantSet = new Set();
 
     // Add from entities
@@ -148,7 +166,7 @@ function countEntities(entities) {
     for (const entity of entities) {
         if (entity.recordType === 'AliveMessage') {
             messageCount++;
-        } else if (entity.recordType === 'NoteHint' || entity.recordType === 'ThreadNoteAddedHint' || entity.recordType === 'ThreadAssignedHint') {
+        } else if (entity.recordType === 'NoteHint' || entity.recordType === 'ThreadNoteAddedHint' || entity.recordType === 'ThreadAssignedHint' || entity.recordType === 'AliveNote') {
             noteCount++;
         }
     }
@@ -192,14 +210,7 @@ function processEntity({ entity, timezoneOffset, logFormat, contactName }) {
         case 'ThreadAssignedHint':
             return formatAssignment({ entity, formattedTime, creationTime, logFormat });
 
-        case 'ThreadResolvedHint':
-            return formatResolved({ entity, formattedTime, creationTime, logFormat });
-
-        case 'ThreadReopenedHint':
-            return formatReopened({ entity, formattedTime, creationTime, logFormat });
-
-        case 'NoteHint':
-        case 'ThreadNoteAddedHint':
+        case 'AliveNote':
             return formatNote({ entity, formattedTime, creationTime, logFormat });
 
         case 'ThreadCreatedHint':
@@ -211,10 +222,10 @@ function processEntity({ entity, timezoneOffset, logFormat, contactName }) {
     }
 }
 
-function formatMessage({ entity, correspondentName, correspondentEntity, formattedTime, creationTime, logFormat }) {
+function formatMessage({ entity, contactName, formattedTime, creationTime, logFormat }) {
     const authorName = entity.author?.name || entity.from?.name;
     const isInbound = entity.direction === 'Inbound';
-    const senderName = isInbound ? correspondentName : authorName;
+    const senderName = isInbound ? contactName : authorName;
     const messageText = entity.text || entity.subject || '';
 
     switch (logFormat) {
@@ -345,17 +356,20 @@ function formatNote({ entity, formattedTime, creationTime, logFormat }) {
     }
 }
 
-function composePlainTextBody({ conversationDate, participants, ownerInfo, messageCount, noteCount, formattedEntries }) {
+function composePlainTextBody({ conversationCreatedDate, conversationUpdatedDate, contactName, agents, ownerInfo, messageCount, noteCount, formattedEntries }) {
     let body = '';
 
     // Conversation summary header
     body += 'Conversation summary\n';
-    body += `${conversationDate.format('dddd, MMMM DD, YYYY')}\n\n`;
-
+    body += `Started: ${conversationCreatedDate.format('dddd, MMMM DD, YYYY')} at ${conversationCreatedDate.format('hh:mm A')}\n`;
+    body += `Ended: ${conversationUpdatedDate ? conversationUpdatedDate.format('dddd, MMMM DD, YYYY') : 'On-going'} at ${conversationUpdatedDate ? conversationUpdatedDate.format('hh:mm A') : 'On-going'}\n`;
+    body += `Duration: ${conversationUpdatedDate ? `${conversationUpdatedDate.diff(conversationCreatedDate, 'days')} d ${conversationUpdatedDate.diff(conversationCreatedDate, 'hours')} h` : 'On-going'} \n`;
+    body += '\n';
     // Participants
     body += 'Participants\n';
-    for (const participant of participants) {
-        body += `* ${participant}\n`;
+    body += `* ${contactName} (customer)\n`;
+    for (const agent of agents) {
+        body += `* ${agent}\n`;
     }
     body += '\n';
 
@@ -391,17 +405,20 @@ function composePlainTextBody({ conversationDate, participants, ownerInfo, messa
     return body;
 }
 
-function composeHTMLBody({ conversationDate, participants, ownerInfo, messageCount, noteCount, formattedEntries }) {
+function composeHTMLBody({ conversationCreatedDate, conversationUpdatedDate, contactName, agents, ownerInfo, messageCount, noteCount, formattedEntries }) {
     let body = '';
 
     // Conversation summary header
     body += '<div><b>Conversation summary</b><br>';
-    body += `${conversationDate.format('dddd, MMMM DD, YYYY')}</div><br>`;
-
+    body += `Started: ${conversationCreatedDate.format('dddd, MMMM DD, YYYY')} at ${conversationCreatedDate.format('hh:mm A')}</div><br>`;
+    body += `Ended: ${conversationUpdatedDate ? conversationUpdatedDate.format('dddd, MMMM DD, YYYY') : 'On-going'} at ${conversationUpdatedDate ? conversationUpdatedDate.format('hh:mm A') : 'On-going'}</div><br>`;
+    body += `Duration: ${conversationUpdatedDate ? `${conversationUpdatedDate.diff(conversationCreatedDate, 'days')} d ${conversationUpdatedDate.diff(conversationCreatedDate, 'hours')} h` : 'On-going'} </div><br>`;
+    body += '</div><br>';
     // Participants
     body += '<div><b>Participants</b><ul>';
-    for (const participant of participants) {
-        body += `<li>${escapeHtml(participant)}</li>`;
+    body += `<li>${escapeHtml(contactName)} (customer)</li>`;
+    for (const agent of agents) {
+        body += `<li>${escapeHtml(agent)}</li>`;
     }
     body += '</ul></div>';
 
@@ -437,17 +454,20 @@ function composeHTMLBody({ conversationDate, participants, ownerInfo, messageCou
     return body;
 }
 
-function composeMarkdownBody({ conversationDate, participants, ownerInfo, messageCount, noteCount, formattedEntries }) {
+function composeMarkdownBody({ conversationCreatedDate, conversationUpdatedDate, contactName, agents, ownerInfo, messageCount, noteCount, formattedEntries }) {
     let body = '';
 
     // Conversation summary header
     body += '## Conversation summary\n';
-    body += `${conversationDate.format('dddd, MMMM DD, YYYY')}\n\n`;
-
+    body += `Started: ${conversationCreatedDate.format('dddd, MMMM DD, YYYY')} at ${conversationCreatedDate.format('hh:mm A')}\n`;
+    body += `Ended: ${conversationUpdatedDate ? conversationUpdatedDate.format('dddd, MMMM DD, YYYY') : 'On-going'} at ${conversationUpdatedDate ? conversationUpdatedDate.format('hh:mm A') : 'On-going'}\n`;
+    body += `Duration: ${conversationUpdatedDate ? `${conversationUpdatedDate.diff(conversationCreatedDate, 'days')} d ${conversationUpdatedDate.diff(conversationCreatedDate, 'hours')} h` : 'On-going'} \n`;
+    body += '\n';
     // Participants
     body += '### Participants\n';
-    for (const participant of participants) {
-        body += `* ${participant}\n`;
+    body += `* ${contactName} (customer)\n`;
+    for (const agent of agents) {
+        body += `* ${agent}\n`;
     }
     body += '\n';
 
@@ -495,7 +515,7 @@ function escapeHtml(text) {
 
 module.exports = {
     composeSharedSMSLog,
-    gatherParticipants,
+    gatherParticipants: gatherAgents,
     countEntities,
     processEntities,
     escapeHtml

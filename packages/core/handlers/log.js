@@ -561,15 +561,15 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const logIds = [];
         // Case: Shared SMS
         if (isSharedSMS) {
-            const existingSharedMessageLog = await MessageLogModel.findOne({
+            const existingMessageLog = await MessageLogModel.findOne({
                 where: {
-                    conversationId: incomingData.logInfo.conversationId
+                    conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
             const entities = incomingData.logInfo.entities;
             const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
-            if (existingSharedMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingSharedMessageLog, authHeader, additionalSubmission, proxyConfig });
+            if (existingMessageLog) {
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
@@ -577,6 +577,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 const crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
+                logIds.push(createMessageLogResult.logId);
             }
         }
         // Case: normal SMS
