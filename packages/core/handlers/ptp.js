@@ -13,11 +13,11 @@ async function getPtpAsyncTasks({ asyncTaskIds }) {
         cacheKey: cache.cacheKey,
         status: cache.status
     }));
-    const toRemoveIds = caches.map(cache => cache.id);
+    const toRemoveCaches = caches.filter(cache => cache.status === 'completed' || cache.status === 'failed');
     await CacheModel.destroy({
         where: {
             id: {
-                [Op.in]: toRemoveIds
+                [Op.in]: toRemoveCaches.map(cache => cache.id)
             }
         }
     });
