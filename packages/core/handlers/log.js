@@ -577,7 +577,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 const crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
-                logIds.push(createMessageLogResult.logId);
+                if (createMessageLogResult.logId) {
+                    const createdMessageLog =
+                        await MessageLogModel.create({
+                            id: incomingData.logInfo.conversationLogId,
+                            platform,
+                            conversationId: incomingData.logInfo.conversationId,
+                            thirdPartyLogId: createMessageLogResult.logId,
+                            userId,
+                            conversationLogId: incomingData.logInfo.conversationLogId
+                        });
+                    logIds.push(createdMessageLog.id);
+                }
             }
         }
         // Case: normal SMS

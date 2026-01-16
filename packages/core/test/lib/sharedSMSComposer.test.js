@@ -333,10 +333,10 @@ describe('sharedSMSComposer', () => {
       expect(result.noteCount).toBe(0);
     });
 
-    test('should count notes correctly', () => {
+    test('should count AliveNote as note', () => {
       const entities = [
-        { recordType: 'NoteHint' },
-        { recordType: 'ThreadNoteAddedHint' }
+        { recordType: 'AliveNote' },
+        { recordType: 'AliveNote' }
       ];
 
       const result = countEntities(entities);
@@ -345,39 +345,40 @@ describe('sharedSMSComposer', () => {
       expect(result.noteCount).toBe(2);
     });
 
-    test('should count ThreadAssignedHint as note', () => {
+    test('should not count NoteHint as note (only AliveNote is counted)', () => {
+      const entities = [
+        { recordType: 'NoteHint' },
+        { recordType: 'ThreadNoteAddedHint' }
+      ];
+
+      const result = countEntities(entities);
+
+      expect(result.messageCount).toBe(0);
+      expect(result.noteCount).toBe(0);
+    });
+
+    test('should not count ThreadAssignedHint as note', () => {
       const entities = [
         { recordType: 'ThreadAssignedHint' }
       ];
 
       const result = countEntities(entities);
 
-      expect(result.noteCount).toBe(1);
-    });
-
-    test('should count AliveNote as note', () => {
-      const entities = [
-        { recordType: 'AliveNote' }
-      ];
-
-      const result = countEntities(entities);
-
-      expect(result.noteCount).toBe(1);
+      expect(result.noteCount).toBe(0);
     });
 
     test('should count both messages and notes', () => {
       const entities = [
         { recordType: 'AliveMessage' },
         { recordType: 'AliveMessage' },
-        { recordType: 'NoteHint' },
-        { recordType: 'ThreadNoteAddedHint' },
-        { recordType: 'ThreadAssignedHint' }
+        { recordType: 'AliveNote' },
+        { recordType: 'AliveNote' }
       ];
 
       const result = countEntities(entities);
 
       expect(result.messageCount).toBe(2);
-      expect(result.noteCount).toBe(3);
+      expect(result.noteCount).toBe(2);
     });
 
     test('should return zero counts for empty array', () => {
@@ -391,7 +392,10 @@ describe('sharedSMSComposer', () => {
       const entities = [
         { recordType: 'ThreadResolvedHint' },
         { recordType: 'ThreadReopenedHint' },
-        { recordType: 'ThreadCreatedHint' }
+        { recordType: 'ThreadCreatedHint' },
+        { recordType: 'NoteHint' },
+        { recordType: 'ThreadNoteAddedHint' },
+        { recordType: 'ThreadAssignedHint' }
       ];
 
       const result = countEntities(entities);

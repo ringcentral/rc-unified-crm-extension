@@ -765,49 +765,57 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
-    const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
-        headers: {
-            'Authorization': authHeader
-        }
-    });;
-    const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let details = '';
     let title = '';
-    switch (messageType) {
-        case 'SMS':
-            title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            details =
-                '\nConversation summary\n' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-                'Participants\n' +
-                `    ${userName}\n` +
-                `    ${contactInfo.name}\n` +
-                '\nConversation(1 messages)\n' +
-                'BEGIN\n' +
-                '------------\n' +
-                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n\n` +
-                '------------\n' +
-                'END\n\n' +
-                '--- Created via RingCentral App Connect';
-            break;
-        case 'Voicemail':
-            title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            details = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
-            break;
-        case 'Fax':
-            title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-            details = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
-            break;
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {
+        details = sharedSMSLogContent.body;
+        title = sharedSMSLogContent.subject;
+    }
+    // Case: normal SMS
+    else {
+        const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+            headers: {
+                'Authorization': authHeader
+            }
+        });;
+        const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+        switch (messageType) {
+            case 'SMS':
+                title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                details =
+                    '\nConversation summary\n' +
+                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                    'Participants\n' +
+                    `    ${userName}\n` +
+                    `    ${contactInfo.name}\n` +
+                    '\nConversation(1 messages)\n' +
+                    'BEGIN\n' +
+                    '------------\n' +
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${message.subject}\n\n` +
+                    '------------\n' +
+                    'END\n\n' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                details = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
+                break;
+            case 'Fax':
+                title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                details = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                break;
+        }
     }
 
     const postBody = {
         TITLE: title,
         DETAILS: details,
-        START_DATE_UTC: moment(message.creationTime).utc(),
-        END_DATE_UTC: moment(message.creationTime).utc()
+        START_DATE_UTC: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc() : moment(message.creationTime).utc(),
+        END_DATE_UTC: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc() : moment(message.creationTime).utc()
     }
     const addLogRes = await axios.post(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,
@@ -848,36 +856,43 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
-    const existingLogId = existingMessageLog.thirdPartyLogId;
-    const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
-        headers: {
-            'Authorization': authHeader
-        }
-    });;
-    const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
-    let logBody = getLogRes.data.DETAILS;
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader }) {
     let putBody = {};
-    const originalNote = logBody.split('BEGIN\n------------\n')[1];
-    const endMarker = '------------\nEND';
-    const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${message.subject}\n`;
-    logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
+    let logBody = '';
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        logBody = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events/${existingLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const userInfoResponse = await axios.get(`${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/users/me`, {
+            headers: {
+                'Authorization': authHeader
+            }
+        });;
+        const userName = `${userInfoResponse.data.FIRST_NAME} ${userInfoResponse.data.LAST_NAME}`;
+        logBody = getLogRes.data.DETAILS;
+        const originalNote = logBody.split('BEGIN\n------------\n')[1];
+        const endMarker = '------------\nEND';
+        const newMessageLog =
+            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+            `${message.subject}\n`;
+        logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
-    const regex = RegExp('Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-
+        const regex = RegExp('Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    }
     putBody = {
         EVENT_ID: existingLogId,
         DETAILS: logBody,
-        END_DATE_UTC: moment(message.creationTime).utc()
+        END_DATE_UTC: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc() : moment(message.creationTime).utc()
     }
     const putLogRes = await axios.put(
         `${user.platformAdditionalInfo.apiUrl}/${process.env.INSIGHTLY_API_VERSION}/events`,

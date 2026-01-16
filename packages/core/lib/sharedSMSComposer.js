@@ -166,7 +166,7 @@ function countEntities(entities) {
     for (const entity of entities) {
         if (entity.recordType === 'AliveMessage') {
             messageCount++;
-        } else if (entity.recordType === 'NoteHint' || entity.recordType === 'ThreadNoteAddedHint' || entity.recordType === 'ThreadAssignedHint' || entity.recordType === 'AliveNote') {
+        } else if (entity.recordType === 'AliveNote') {
             noteCount++;
         }
     }
@@ -259,13 +259,13 @@ function formatAssignment({ entity, formattedTime, creationTime, logFormat }) {
             return {
                 type: 'assignment',
                 creationTime,
-                content: `<p><i>Conversation assigned to ${escapeHtml(assigneeName)}</i></p>`
+                content: `<p><i>Conversation assigned to <b>${escapeHtml(assigneeName)}</b></i></p>`
             };
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
             return {
                 type: 'assignment',
                 creationTime,
-                content: `*Conversation assigned to ${assigneeName}*\n`
+                content: `*Conversation assigned to **${assigneeName}***\n`
             };
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
         default:
@@ -273,58 +273,6 @@ function formatAssignment({ entity, formattedTime, creationTime, logFormat }) {
                 type: 'assignment',
                 creationTime,
                 content: `Conversation assigned to ${assigneeName}\n`
-            };
-    }
-}
-
-function formatResolved({ entity, formattedTime, creationTime, logFormat }) {
-    const initiatorName = entity.initiator?.name || 'Unknown';
-
-    switch (logFormat) {
-        case LOG_DETAILS_FORMAT_TYPE.HTML:
-            return {
-                type: 'resolved',
-                creationTime,
-                content: `<p><i>${escapeHtml(initiatorName)} resolved the conversation on ${formattedTime}</i></p>`
-            };
-        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            return {
-                type: 'resolved',
-                creationTime,
-                content: `*${initiatorName} resolved the conversation on ${formattedTime}*\n`
-            };
-        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-        default:
-            return {
-                type: 'resolved',
-                creationTime,
-                content: `${initiatorName} resolved the conversation on ${formattedTime}\n`
-            };
-    }
-}
-
-function formatReopened({ entity, formattedTime, creationTime, logFormat }) {
-    const initiatorName = entity.initiator?.name || 'Unknown';
-
-    switch (logFormat) {
-        case LOG_DETAILS_FORMAT_TYPE.HTML:
-            return {
-                type: 'reopened',
-                creationTime,
-                content: `<p><i>${escapeHtml(initiatorName)} reopened the conversation on ${formattedTime}</i></p>`
-            };
-        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            return {
-                type: 'reopened',
-                creationTime,
-                content: `*${initiatorName} reopened the conversation on ${formattedTime}*\n`
-            };
-        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-        default:
-            return {
-                type: 'reopened',
-                creationTime,
-                content: `${initiatorName} reopened the conversation on ${formattedTime}\n`
             };
     }
 }
@@ -338,13 +286,13 @@ function formatNote({ entity, formattedTime, creationTime, logFormat }) {
             return {
                 type: 'note',
                 creationTime,
-                content: `<p><i>${escapeHtml(authorName)} left a note on ${formattedTime}:</i><br>${escapeHtml(noteText)}</p>`
+                content: `<p><b>${escapeHtml(authorName)}</b> left a note on ${formattedTime}:<br>${escapeHtml(noteText)}</p>`
             };
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
             return {
                 type: 'note',
                 creationTime,
-                content: `*${authorName} left a note on ${formattedTime}:*\n${noteText}\n`
+                content: `**${authorName}** left a note on ${formattedTime}:\n${noteText}\n`
             };
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
         default:
@@ -410,9 +358,9 @@ function composeHTMLBody({ conversationCreatedDate, conversationUpdatedDate, con
 
     // Conversation summary header
     body += '<div><b>Conversation summary</b><br>';
-    body += `Started: ${conversationCreatedDate.format('dddd, MMMM DD, YYYY')} at ${conversationCreatedDate.format('hh:mm A')}</div><br>`;
-    body += `Ended: ${conversationUpdatedDate ? conversationUpdatedDate.format('dddd, MMMM DD, YYYY') : 'On-going'} at ${conversationUpdatedDate ? conversationUpdatedDate.format('hh:mm A') : 'On-going'}</div><br>`;
-    body += `Duration: ${conversationUpdatedDate ? `${conversationUpdatedDate.diff(conversationCreatedDate, 'days')} d ${conversationUpdatedDate.diff(conversationCreatedDate, 'hours')} h` : 'On-going'} </div><br>`;
+    body += `Started: ${conversationCreatedDate.format('dddd, MMMM DD, YYYY')} at ${conversationCreatedDate.format('hh:mm A')}<br>`;
+    body += `Ended: ${conversationUpdatedDate ? conversationUpdatedDate.format('dddd, MMMM DD, YYYY') : 'On-going'} at ${conversationUpdatedDate ? conversationUpdatedDate.format('hh:mm A') : 'On-going'}<br>`;
+    body += `Duration: ${conversationUpdatedDate ? `${conversationUpdatedDate.diff(conversationCreatedDate, 'days')} d ${conversationUpdatedDate.diff(conversationCreatedDate, 'hours')} h` : 'On-going'}<br>`;
     body += '</div><br>';
     // Participants
     body += '<div><b>Participants</b><ul>';

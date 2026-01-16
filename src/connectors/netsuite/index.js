@@ -142,31 +142,31 @@ async function getUserInfo({ authHeader, additionalInfo, query }) {
 }
 
 async function getUserList({ user, authHeader }) {
-    try{
-    const query = {
-        q: "SELECT id, firstname,middlename, lastname, email, giveaccess, isinactive FROM employee"
-      };
+    try {
+        const query = {
+            q: "SELECT id, firstname,middlename, lastname, email, giveaccess, isinactive FROM employee"
+        };
 
-    const userListResponse = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`, query, {
-        headers: { 'Authorization': authHeader,'Content-Type': 'application/json', 'Prefer': 'transient' }
-    });
+        const userListResponse = await axios.post(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`, query, {
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+        });
 
-    const userList = [];
-    if (userListResponse?.data?.items?.length > 0) {
-        for (const user of userListResponse?.data?.items) {
-            if(user.email===undefined || user.email===null || user.email==='') continue;
-            userList.push({
-                id: user.id,
-                name: [user.firstname, user.middlename, user.lastname].filter(Boolean).join(' '),
-                email: user.email
-            });
+        const userList = [];
+        if (userListResponse?.data?.items?.length > 0) {
+            for (const user of userListResponse?.data?.items) {
+                if (user.email === undefined || user.email === null || user.email === '') continue;
+                userList.push({
+                    id: user.id,
+                    name: [user.firstname, user.middlename, user.lastname].filter(Boolean).join(' '),
+                    email: user.email
+                });
+            }
         }
+        return userList;
+    } catch (error) {
+        console.log({ message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list") });
+        return [];
     }
-    return userList;
-} catch (error) {
-    console.log({message: "Error in getting user list", errorDetails: netSuiteErrorDetails(error, "Error in getting user list")});
-    return [];
-}
 }
 
 async function unAuthorize({ user }) {
@@ -1049,7 +1049,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     try {
         const sender =
         {
@@ -1061,37 +1061,45 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
             id: user?.id,
             type: 'User'
         }
-        const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
-        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
         let logBody = '';
         let title = '';
-        switch (messageType) {
-            case 'SMS':
-                title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody =
-                    '\nConversation summary\n' +
-                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-                    'Participants\n' +
-                    `    ${userName}\n` +
-                    `    ${contactInfo.name}\n` +
-                    '\nConversation(1 messages)\n' +
-                    'BEGIN\n' +
-                    '------------\n' +
-                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                    `${message.subject}\n\n` +
-                    '------------\n' +
-                    'END\n\n' +
-                    '--- Created via RingCentral App Connect';
-                break;
-            case 'Voicemail':
-                const decodedRecordingLink = decodeURIComponent(recordingLink);
-                title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
-                break;
-            case 'Fax':
-                title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
-                break;
+        // Case: shared SMS
+        if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {
+            logBody = sharedSMSLogContent.body;
+            title = sharedSMSLogContent.subject;
+        }
+        // Case: normal SMS
+        else {
+            const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
+            const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+            switch (messageType) {
+                case 'SMS':
+                    title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody =
+                        '\nConversation summary\n' +
+                        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                        'Participants\n' +
+                        `    ${userName}\n` +
+                        `    ${contactInfo.name}\n` +
+                        '\nConversation(1 messages)\n' +
+                        'BEGIN\n' +
+                        '------------\n' +
+                        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                        `${message.subject}\n\n` +
+                        '------------\n' +
+                        'END\n\n' +
+                        '--- Created via RingCentral App Connect';
+                    break;
+                case 'Voicemail':
+                    const decodedRecordingLink = decodeURIComponent(recordingLink);
+                    title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
+                    break;
+                case 'Fax':
+                    title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                    break;
+            }
         }
         const postBody = {
             data: {
@@ -1165,26 +1173,34 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, contactNumber }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, contactNumber }) {
     try {
         const existingLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
-        const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-        const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
-        let logBody = getLogRes.data.message;
+        let logBody = '';
         let patchBody = {};
-        const originalNote = logBody.split('BEGIN\n------------\n')[1];
-        const endMarker = '------------\nEND';
-        const newMessageLog =
-            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-            `${message.subject}\n\n`;
-        logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
+        // Case: shared SMS
+        if (sharedSMSLogContent?.body) {
+            logBody = sharedSMSLogContent.body;
+        }
+        // Case: normal SMS
+        else {
+            const getLogRes = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phonecall/${existingLogId}`,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+            const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'NetSuiteCRM';
+            logBody = getLogRes.data.message;
+            const originalNote = logBody.split('BEGIN\n------------\n')[1];
+            const endMarker = '------------\nEND';
+            const newMessageLog =
+                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                `${message.subject}\n\n`;
+            logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
-        const regex = RegExp('Conversation.(.*) messages.');
-        const matchResult = regex.exec(logBody);
-        logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+            const regex = RegExp('Conversation.(.*) messages.');
+            const matchResult = regex.exec(logBody);
+            logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+        }
         const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             {
