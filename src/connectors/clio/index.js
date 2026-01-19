@@ -841,7 +841,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')} time`,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
                     communication: {
                         id: addLogRes.data.data.id
                     },
