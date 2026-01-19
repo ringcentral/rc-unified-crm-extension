@@ -560,24 +560,23 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                     const crmLogId = createMessageLogResult.logId;
                     if (crmLogId) {
-                try {
-                    const createdMessageLog =
-                        await MessageLogModel.create({
-                            id: message.id.toString(),
-                            platform,
-                            conversationId: incomingData.logInfo.conversationId,
-                            thirdPartyLogId: crmLogId,
-                            userId,
-                            conversationLogId: incomingData.logInfo.conversationLogId
-                        });
-                    logIds.push(createdMessageLog.id);
+                        try {
+                            const createdMessageLog =
+                                await MessageLogModel.create({
+                                    id: message.id.toString(),
+                                    platform,
+                                    conversationId: incomingData.logInfo.conversationId,
+                                    thirdPartyLogId: crmLogId,
+                                    userId,
+                                    conversationLogId: incomingData.logInfo.conversationLogId
+                                });
+                            logIds.push(createdMessageLog.id);
+                        } catch (error) {
+                            return handleDatabaseError(error, 'Error creating message log');
+                        }
                     }
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;
-                }
-                }
-                catch (error) {
-                    return handleDatabaseError(error, 'Error creating message log');
                 }
             }
         }
