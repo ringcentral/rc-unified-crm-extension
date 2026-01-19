@@ -11,15 +11,23 @@ const toolDefinition = {
             jwtToken: {
                 type: 'string',
                 description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
+            },
+            timeFrom: {
+                type: 'string',
+                description: 'MUST be ISO string. Default is 24 hours ago.'
+            },
+            timeTo: {
+                type: 'string',
+                description: 'MUST be ISO string. Default is now.'
             }
         },
-        required: ['jwtToken']
+        required: ['jwtToken', 'timeFrom', 'timeTo']
     }
 }
 
 async function execute(args) {
     try {
-        const { jwtToken, rcAccessToken } = args;
+        const { jwtToken, rcAccessToken, timeFrom, timeTo } = args;
         if (!rcAccessToken) {
             throw new Error('RingCentral access token not found');
         }
@@ -35,18 +43,18 @@ async function execute(args) {
         });
         const callLogData = await rcSDK.getCallLogData({
             token: { access_token: rcAccessToken, token_type: 'Bearer' },
-            timeFrom: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            timeTo: new Date().toISOString(),
+            timeFrom: timeFrom ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            timeTo: timeTo ?? new Date().toISOString(),
         });
         // hack: remove already logged calls
         const existingCalls = [];
-        for(const call of callLogData.records){
+        for (const call of callLogData.records) {
             const existingCallLog = await CallLogModel.findOne({
                 where: {
                     sessionId: call.sessionId
                 }
             });
-            if(existingCallLog){
+            if (existingCallLog) {
                 existingCalls.push(existingCallLog.sessionId);
             }
         }

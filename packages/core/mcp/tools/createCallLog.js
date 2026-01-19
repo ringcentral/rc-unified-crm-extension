@@ -12,7 +12,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 
 const toolDefinition = {
     name: 'createCallLog',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Create a call log in the CRM platform. Returns the created log ID if successful.',
+    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Create only one call log in the CRM platform. Returns the created log ID if successful.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -156,6 +156,10 @@ const toolDefinition = {
                     }
                 },
                 required: ['logInfo']
+            },
+            contactId: {
+                type: 'string',
+                description: 'OPTIONAL: CRM contact ID to associate with the call.'
             }
         },
         required: ['jwtToken', 'incomingData']
@@ -166,15 +170,15 @@ const toolDefinition = {
  * Execute the createCallLog tool
  * @param {Object} args - The tool arguments
  * @param {string} args.jwtToken - JWT token with user and platform info
- * @param {Object} args.incomingData - Call log data including logInfo (RingCentral call log schema), contactId, contactName, contactType, note, aiNote, transcript, and additionalSubmission
+ * @param {Object} args.incomingData - Call log data including logInfo (RingCentral call log schema), contactName, contactType, note, aiNote, transcript, and additionalSubmission
  * @param {Object} args.incomingData.logInfo - RingCentral call log information with sessionId, direction, startTime, duration, from, to, result, recording, customSubject, etc.
- * @param {string|number} args.incomingData.contactId - CRM contact ID to associate with the call
  * @param {string} [args.incomingData.contactName] - Contact name
  * @param {string} [args.incomingData.contactType] - Contact type in CRM
  * @param {string} [args.incomingData.note] - User-entered call note
  * @param {string} [args.incomingData.aiNote] - AI-generated call summary
  * @param {string} [args.incomingData.transcript] - Call transcript
  * @param {Object} [args.incomingData.additionalSubmission] - Platform-specific custom fields
+ * @param {string} args.contactId - OPTIONAL: CRM contact ID to associate with the call
  * @returns {Object} Result object with created log ID
  */
 async function execute(args) {
@@ -230,26 +234,29 @@ async function execute(args) {
             ? util.getHashValue(incomingData.logInfo.accountId, process.env.HASH_KEY)
             : undefined;
 
-        // Get contact Id from logInfo
-        const callDirection = logInfo.direction;
-        const contactNumber = callDirection === 'Inbound' ? logInfo.from.phoneNumber : logInfo.to.phoneNumber;
-        const contactInfo = await contactCore.findContact({
-            platform,
-            userId,
-            phoneNumber: contactNumber,
-            overridingFormat: '',
-            isExtension: 'false'
-        });
-        const filteredContact = contactInfo.contact?.filter(c => !c.isNewContact);
-        let contactId = null;
-        if (contactInfo.successful && filteredContact?.length > 0) {
-            contactId = filteredContact[0].id;
-            incomingData.contactId = contactId;
-        }
-        else {
-            return {
-                success: false,
-                error: 'Failed to get contact with number ' + contactNumber
+        // Get contact Id from conversation
+        let contactId = args.contactId ?? null;
+        // Get contact Id from conversation if not provided
+        if (!contactId) {
+            const callDirection = logInfo.direction;
+            const contactNumber = callDirection === 'Inbound' ? logInfo.from.phoneNumber : logInfo.to.phoneNumber;
+            const contactInfo = await contactCore.findContact({
+                platform,
+                userId,
+                phoneNumber: contactNumber,
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+            const filteredContact = contactInfo.contact?.filter(c => !c.isNewContact);
+            if (contactInfo.successful && filteredContact?.length > 0) {
+                contactId = filteredContact[0].id;
+                incomingData.contactId = contactId;
+            }
+            else {
+                return {
+                    success: false,
+                    error: 'Failed to get contact with number ' + contactNumber
+                }
             }
         }
 

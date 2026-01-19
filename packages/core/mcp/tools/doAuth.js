@@ -2,6 +2,7 @@ const authCore = require('../../handlers/auth');
 const jwt = require('../../lib/jwt');
 const crypto = require('crypto');
 const { createAuthSession } = require('../../lib/authSession');
+const { isManifestValid } = require('../lib/validator');
 /**
  * MCP Tool: Do Authentication
  * 
@@ -10,7 +11,7 @@ const { createAuthSession } = require('../../lib/authSession');
 
 const toolDefinition = {
     name: 'doAuth',
-    description: 'Auth flow step.4. Do the authentication.',
+    description: 'Auth flow step.4. Do the authentication. Next step is calling step.5 "checkAuthStatus" tool.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -71,6 +72,14 @@ const toolDefinition = {
 async function execute(args) {
     try {
         const { connectorManifest, connectorName, hostname, apiKey, additionalInfo, callbackUri } = args;
+        const { isValid, errors } = isManifestValid({ connectorManifest, connectorName });
+        if (!isValid) {
+            return {
+                success: false,
+                error: "Invalid connector manifest",
+                errorDetails: errors.join(', '),
+            }
+        }
         const platform = connectorManifest.platforms[connectorName];
         switch (platform.auth.type) {
             case 'apiKey':
@@ -96,7 +105,8 @@ async function execute(args) {
                     }
                 }
             case 'oauth':
-                if (callbackUri) {
+                const hasValidCallbackUri = callbackUri && callbackUri.includes('code=') && callbackUri.includes('state=');
+                if (hasValidCallbackUri) {
                     const query = Object.fromEntries(new URL(callbackUri).searchParams);
                     query.hostname = hostname;
                     const { userInfo } = await authCore.onOAuthCallback({ platform: platform.name, hostname, callbackUri, query });

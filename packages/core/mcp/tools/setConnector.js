@@ -8,7 +8,7 @@ const developerPortal = require('../../connector/developerPortal');
 
 const toolDefinition = {
     name: 'setConnector',
-    description: 'Auth flow step.2. Save connectorManifest to memory if successful.',
+    description: 'Auth flow step.2. Save connectorManifest to memory if successful. Next step is optional, if it is oauth, go to step.3 "collectAuthInfo" tool.',
     inputSchema: {
         type: 'object',
         properties: {

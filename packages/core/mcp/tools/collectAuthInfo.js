@@ -5,9 +5,11 @@
  * It uses the platform-specific connector to authenticate the user.
  */
 
+const { isManifestValid } = require('../lib/validator');
+
 const toolDefinition = {
     name: 'collectAuthInfo',
-    description: '(This step is skipped if auth type is "apiKey" or environment type is "fixed", this is a MUST if environment type is "dynamic" or "selectable") Auth flow step.3. Get information that is required for authentication.',
+    description: '(This step is skipped if auth type is "apiKey" or environment type is "fixed", this is a MUST if environment type is "dynamic" or "selectable") Auth flow step.3. Get information that is required for authentication. Next step is calling step.4 "doAuth" tool.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -44,6 +46,14 @@ const toolDefinition = {
 async function execute(args) {
     try {
         const { connectorManifest, hostname, selection, connectorName } = args;
+        const { isValid, errors } = isManifestValid({ connectorManifest, connectorName });
+        if (!isValid) {
+            return {
+                success: false,
+                error: "Invalid connector manifest",
+                errorDetails: errors.join(', '),
+            }
+        }
         let result = '';
         switch (connectorManifest.platforms[connectorName].environment.type) {
             case 'selectable':

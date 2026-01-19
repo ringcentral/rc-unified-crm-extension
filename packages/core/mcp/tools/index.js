@@ -5,6 +5,7 @@
  */
 
 // const auth = require('./auth');
+const getHelp = require('./getHelp');
 const getPublicConnectors = require('./getPublicConnectors');
 const setConnector = require('./setConnector');
 const collectAuthInfo = require('./collectAuthInfo');
@@ -21,6 +22,7 @@ const rcGetCallLogs = require('./rcGetCallLogs');
 
 // Export all tools
 module.exports = {
+    getHelp,
     getPublicConnectors,
     setConnector,
     collectAuthInfo,
@@ -38,6 +40,7 @@ module.exports = {
 
 // Export tools as an array for easy iteration
 module.exports.tools = [
+    getHelp,
     getPublicConnectors,
     setConnector,
     collectAuthInfo,

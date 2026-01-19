@@ -8,7 +8,7 @@ const developerPortal = require('../../connector/developerPortal');
 
 const toolDefinition = {
     name: 'getPublicConnectors',
-    description: 'Auth flow step.1. Get a list of all available connectors from the developer portal. Returns a list of connector names for users to choose.',
+    description: 'Auth flow step.1. Get a list of all available connectors from the developer portal. Returns a list of connector names for users to choose. Next step is calling step.2 "setConnector" tool.',
     inputSchema: {
         type: 'object',
         properties: {},
