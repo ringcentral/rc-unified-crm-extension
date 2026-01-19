@@ -12,11 +12,15 @@ Here are some of the features new to App Connect 2.0.
 
     Easily view your entire company’s collective performance or drill down into any individual agent to drive coaching and success.
 
+    [Learn more &raquo;](../users/user-report.md)
+
 -   :material-monitor-dashboard:{ .lg .middle } __Call monitoring__
 
     ---
 
     Monitor agent presence, see parked and queued calls, and answer them directly from your view.
+
+    [Learn more &raquo;](../users/hud.md)
 
 -   :fontawesome-solid-square-parking:{ .lg .middle } __Improved call park__
 
@@ -24,11 +28,15 @@ Here are some of the features new to App Connect 2.0.
 
     Select the exact location to park a call and automatically notify a colleague via text to ensure a seamless pickup every time.
 
+    [Learn more &raquo;](../users/hud.md)
+
 -   :material-auto-fix:{ .lg .middle } __Call logging policies__
 
     ---
 
     Create custom rules to automatically log calls that previously failed, eliminating manual effort and capturing every interaction.
+
+    [Learn more &raquo;](../users/logging-conflicts.md#resolving-conlicts-automatically)
 
 -   :material-clipboard-list:{ .lg .middle } __Call-down lists__
 
@@ -36,17 +44,31 @@ Here are some of the features new to App Connect 2.0.
 
     Create and prioritize lists of contacts to call later, viewing and executing your daily schedule with precision.
 
+    [Learn more &raquo;](../users/calldown-lists.md)
+
 -   :material-voicemail:{ .lg .middle } __Voicemail drop__
 
     ---
 
     Pre-record perfect, on-message voicemails, drop them instantly, and move immediately to your next call.
 
+    [Learn more &raquo;](../users/voicemail-drop.md)
+
 -   :fontawesome-solid-mask:{ .lg .middle } __Enhanced phone number privacy__
 
     ---
 
     Mask full customer phone numbers on your agents' displays to comply with strict internal privacy and security controls.
+
+    [Learn more &raquo;](../users/phone-number-formats.md)
+
+-   :material-card-account-phone:{ .lg .middle } __RingCX support (experimental)__
+
+    ---
+
+    Log your RingCX calls to any App Connect-enabled CRM. RingSense license required. 
+
+    [Learn more &raquo;](../users/ringcx.md)
 
 </div>
 

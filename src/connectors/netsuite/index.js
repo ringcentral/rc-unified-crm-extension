@@ -26,6 +26,21 @@ async function getOauthInfo({ hostname }) {
 }
 
 async function getUserInfo({ authHeader, query }) {
+    // Parse entity and company from callbackUri since they're not directly in query
+    if (query.callbackUri) {
+        const parsedUrl = url.parse(query.callbackUri, true);
+        if (parsedUrl.query.entity) {
+            query.entity = parsedUrl.query.entity;
+        }
+        if (parsedUrl.query.company) {
+            query.company = parsedUrl.query.company;
+        }
+        if (parsedUrl.query.role) {
+            query.role = parsedUrl.query.role;
+        }
+        console.log('Parsed NetSuite parameters:', { entity: query.entity, company: query.company, role: query.role });
+    }
+    
     try {
         let getCurrentLoggedInUserResponse;
 
@@ -98,6 +113,18 @@ async function getUserInfo({ authHeader, query }) {
         } catch (error) {
             logger.error({ message: "Error in getting permission set", stack: error.stack });
         }
+        // Validate that we have the required NetSuite parameters
+        if (!query.entity || !query.company) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Missing required NetSuite parameters (entity or company). Please try reconnecting to NetSuite.',
+                    ttl: 10000
+                }
+            };
+        }
+
         return {
             successful: true,
             platformUserInfo: {
@@ -1216,6 +1243,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         let contactId = 0;
         const subsidiaryId = user.platformAdditionalInfo?.subsidiaryId;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
+        let displayMessage="New Contact";
         switch (newContactType) {
             case 'contact':
                 let companyId = 0;
@@ -1267,6 +1295,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                         });
                     contactId = extractIdFromUrl(createContactRes.headers.location);
+                    displayMessage = 'The new contact is created under a placeholder company, please click "View contact details" to check out';
                     break;
                 } catch (error) {
                     return {
@@ -1316,6 +1345,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
                         });
                     contactId = extractIdFromUrl(createCustomerRes.headers.location);
+                    displayMessage = 'Customer created';
                     break;
                 } catch (error) {
                     return {
@@ -1364,6 +1394,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         }
                     );
                     contactId = extractIdFromUrl(createVendorRes.headers.location);
+                    displayMessage = 'Vendor created';
                     break;
                 } catch (error) {
                     return {
@@ -1390,11 +1421,202 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                         }
                     }
                 }
+            case 'lead':
+                try {
+                    // First, fetch lead customer status
+                    const leadStatusQuery = `SELECT id, name FROM CustomerStatus WHERE stage = 'LEAD' AND isinactive = 'F' ORDER BY id ASC`;
+                    const leadStatusResponse = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                        {
+                            q: leadStatusQuery
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                        }
+                    );
+
+                    if (!leadStatusResponse.data.items || leadStatusResponse.data.items.length === 0) {
+                        return {
+                            contactInfo: {
+                                id: 0,
+                                name: newContactName
+                            },
+                            returnMessage: {
+                                message: 'No lead customer status found',
+                                messageType: 'warning',
+                                details: [
+                                    {
+                                        title: 'Details',
+                                        items: [
+                                            {
+                                                id: '1',
+                                                type: 'text',
+                                                text: `No active lead customer status found in NetSuite. Please create a lead customer status first.`
+                                            }
+                                        ]
+                                    }
+                                ],
+                                ttl: 5000
+                            }
+                        };
+                    }
+
+                    // Use the first record ID as entity status
+                    const leadStatusId = leadStatusResponse.data.items[0].id;
+
+                    // Create the lead using customer endpoint with lead status
+                    const lLastName = nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName;
+                    const leadPayload = {
+                        isPerson: true,
+                        firstName: nameParts.firstName,
+                        middleName: nameParts.middleName,
+                        lastName: lLastName,
+                        entityId: nameParts.firstName + " " + lLastName,
+                        phone: phoneNumber || '',
+                        entityStatus: { id: leadStatusId }
+                    };
+
+                    if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                        leadPayload.subsidiary = { id: subsidiaryId.toString() };
+                    }
+                    const createLeadRes = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                        leadPayload,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        }
+                    );
+
+                    contactId = extractIdFromUrl(createLeadRes.headers.location);
+                    displayMessage = 'Lead created';
+                    break;
+
+                } catch (error) {
+                    return {
+                        contactInfo: {
+                            id: 0,
+                            name: newContactName
+                        },
+                        returnMessage: {
+                            message: netSuiteErrorDetails(error, "Error creating lead"),
+                            messageType: 'warning',
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `NetSuite was unable to create a lead named ${newContactName}. Please check your permissions and lead customer status configuration.`
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 5000
+                        }
+                    };
+                }
+            case 'prospect':
+                try {
+                    // First, fetch prospect customer status
+                    const prospectStatusQuery = `SELECT id, name FROM CustomerStatus WHERE stage = 'PROSPECT' AND isinactive = 'F' ORDER BY id ASC`;
+                    const prospectStatusResponse = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
+                        {
+                            q: prospectStatusQuery
+                        },
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
+                        }
+                    );
+
+                    if (!prospectStatusResponse?.data?.items || prospectStatusResponse?.data?.items?.length === 0) {
+                        return {
+                            contactInfo: {
+                                id: 0,
+                                name: newContactName
+                            },
+                            returnMessage: {
+                                message: 'No prospect customer status found',
+                                messageType: 'warning',
+                                details: [
+                                    {
+                                        title: 'Details',
+                                        items: [
+                                            {
+                                                id: '1',
+                                                type: 'text',
+                                                text: `No active prospect customer status found in NetSuite. Please create a prospect customer status first.`
+                                            }
+                                        ]
+                                    }
+                                ],
+                                ttl: 5000
+                            }
+                        };
+                    }
+
+                    // Use the first record ID as entity status
+                    const prospectStatusId = prospectStatusResponse.data.items[0].id;
+
+                    // Create the prospect using customer endpoint with prospect status
+                    const pLastName = nameParts.lastName.length > 0 ? nameParts.lastName : nameParts.firstName;
+                    const prospectPayload = {
+                        isPerson: true,
+                        firstName: nameParts.firstName,
+                        middleName: nameParts.middleName,
+                        lastName: pLastName,
+                        entityId: nameParts.firstName + " " + pLastName,
+                        phone: phoneNumber || '',
+                        entityStatus: { id: prospectStatusId }
+                    };
+
+                    if (oneWorldEnabled !== undefined && oneWorldEnabled === true) {
+                        prospectPayload.subsidiary = { id: subsidiaryId };
+                    }
+
+                    const createProspectRes = await axios.post(
+                        `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/customer`,
+                        prospectPayload,
+                        {
+                            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
+                        }
+                    );
+
+                    contactId = extractIdFromUrl(createProspectRes.headers.location);
+                    displayMessage = 'Prospect created';
+                    break;
+
+                } catch (error) {
+                    return {
+                        contactInfo: {
+                            id: 0,
+                            name: newContactName
+                        },
+                        returnMessage: {
+                            message: netSuiteErrorDetails(error, "Error creating prospect"),
+                            messageType: 'warning',
+                            details: [
+                                {
+                                    title: 'Details',
+                                    items: [
+                                        {
+                                            id: '1',
+                                            type: 'text',
+                                            text: `NetSuite was unable to create a prospect named ${newContactName}. Please check your permissions and prospect customer status configuration.`
+                                        }
+                                    ]
+                                }
+                            ],
+                            ttl: 5000
+                        }
+                    };
+                }
 
         }
-        const displayMessage = newContactType === 'contact'
-            ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
-            : (newContactType === 'customer' ? 'Customer created' : 'Vendor created');
+        // const displayMessage = newContactType === 'contact'
+        //     ? 'The new contact is created under a placeholder company, please click "View contact details" to check out'
+        //     : (newContactType === 'customer' ? 'Customer created' : 'Vendor created');
         return {
             contactInfo: {
                 id: contactId,
