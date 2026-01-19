@@ -813,6 +813,167 @@ describe('Google Sheets Connector', () => {
         });
     });
 
+    // ==================== Message Log Format Tests ====================
+    describe('createMessageLog format', () => {
+        const mockContact = createMockContact({ id: '1', name: 'John Doe', phoneNumber: '+14155551234' });
+        const mockMessageData = createMockMessage();
+
+        it('should format SMS message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}`)
+                .reply(200, {
+                    sheets: [
+                        { properties: { title: 'Message Logs', sheetId: 2 } }
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, {
+                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']]
+                });
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`, body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            // Verify plain text format (no HTML tags)
+            const messageContent = capturedBody.values[0][4]; // Message column
+            expect(messageContent).not.toContain('<br>');
+            expect(messageContent).not.toContain('<b>');
+            expect(messageContent).not.toContain('<ul>');
+            expect(messageContent).not.toContain('<li>');
+            expect(messageContent).toContain('Conversation summary');
+            expect(messageContent).toContain('Participants');
+            expect(messageContent).toContain('RingCentral App Connect');
+        });
+
+        it('should format Voicemail message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}`)
+                .reply(200, {
+                    sheets: [
+                        { properties: { title: 'Message Logs', sheetId: 2 } }
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, {
+                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']]
+                });
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`, body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: 'https://recording.example.com/voicemail.mp3',
+                faxDocLink: null
+            });
+
+            // Verify plain text format (no HTML tags)
+            const messageContent = capturedBody.values[0][4]; // Message column
+            expect(messageContent).not.toContain('<br>');
+            expect(messageContent).not.toContain('<b>');
+            expect(messageContent).toContain('Voicemail recording link');
+            expect(messageContent).toContain('https://recording.example.com/voicemail.mp3');
+            expect(messageContent).toContain('RingCentral App Connect');
+        });
+
+        it('should format Fax message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}`)
+                .reply(200, {
+                    sheets: [
+                        { properties: { title: 'Message Logs', sheetId: 2 } }
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, {
+                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']]
+                });
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`, body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/document.pdf'
+            });
+
+            // Verify plain text format (no HTML tags)
+            const messageContent = capturedBody.values[0][4]; // Message column
+            expect(messageContent).not.toContain('<br>');
+            expect(messageContent).not.toContain('<b>');
+            expect(messageContent).toContain('Fax document link');
+            expect(messageContent).toContain('https://fax.example.com/document.pdf');
+            expect(messageContent).toContain('RingCentral App Connect');
+        });
+    });
+
     // ==================== updateMessageLog ====================
     describe('updateMessageLog', () => {
         const mockContact = createMockContact({ id: '1', name: 'John Doe', phoneNumber: '+14155551234' });

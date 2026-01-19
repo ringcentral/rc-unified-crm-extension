@@ -288,7 +288,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
         }
     }
 }
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript,ringSenseTranscript,
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, ringSenseTranscript,
     ringSenseSummary,
     ringSenseAIScore,
     ringSenseBulletedSummary,
@@ -366,18 +366,18 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         //     ],
         // };
         let columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
-        
+
         // Check if required phone number columns exist, if not add them
-        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number","Transcript","Smart summary","RingSense Summary","RingSense Transcript","RingSense AI Score","RingSense Bulleted Summary","RingSense Link"];
+        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number", "Transcript", "Smart summary", "RingSense Summary", "RingSense Transcript", "RingSense AI Score", "RingSense Bulleted Summary", "RingSense Link"];
         const missingColumns = requiredColumns.filter(col => !(col in columnIndexes));
-        console.log({message: 'missingColumns', missingColumns});
+        console.log({ message: 'missingColumns', missingColumns });
         if (missingColumns.length > 0) {
-            try {   
-                console.log({message: 'Adding missing columns', missingColumns});
+            try {
+                console.log({ message: 'Adding missing columns', missingColumns });
                 // Get current headers to append new ones
                 const currentHeaders = Object.keys(columnIndexes);
                 const newHeaders = [...currentHeaders, ...missingColumns];
-                
+
                 // Update the header row with new columns
                 const headerRange = `${sheetName}!1:1`;
                 await axios.put(
@@ -385,19 +385,19 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                     { values: [newHeaders] },
                     { headers: { Authorization: authHeader, "Content-Type": "application/json" } }
                 );
-                
+
                 // Refresh column indexes to include new columns
                 columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
-                console.log({message: 'Columns added successfully', newColumnIndexes: columnIndexes});
+                console.log({ message: 'Columns added successfully', newColumnIndexes: columnIndexes });
             } catch (error) {
                 console.error('Error adding missing columns:');
                 // Continue with existing columns if adding fails
             }
         }
-        
+
         const rowData = new Array(Object.keys(columnIndexes).length).fill("");
         // Determine incoming and outgoing phone numbers based on call direction
-        let incomingPhoneNumber='', outgoingPhoneNumber='';
+        let incomingPhoneNumber = '', outgoingPhoneNumber = '';
         if (callLog.direction === 'Outbound') {
             outgoingPhoneNumber = callLog.from?.phoneNumber || '';
             incomingPhoneNumber = callLog.to?.phoneNumber || contactInfo.phoneNumber;
@@ -423,7 +423,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (aiNote && (user?.userSettings?.addCallLogAiNote?.value ?? true)) {
             requestData["Smart summary"] = aiNote;
         }
-        if ( user?.userSettings?.addCallLogNote?.value ?? true) {
+        if (user?.userSettings?.addCallLogNote?.value ?? true) {
             requestData.Notes = note;
         }
         if (user?.userSettings?.addCallSessionId?.value ?? true) {
@@ -437,14 +437,14 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             requestData.Phone = contactInfo.phoneNumber;
         }
 
-        if (user?.userSettings?.addCallLogDuration?.value ?? true){
+        if (user?.userSettings?.addCallLogDuration?.value ?? true) {
             requestData.Duration = callLog.duration;
         }
-    
+
         if (user?.userSettings?.addCallLogResult?.value ?? true) {
             requestData["Call Result"] = callLog.result;
         }
-    
+
         if (user?.userSettings?.addCallLogRecording?.value ?? true) {
             requestData["Call Recording"] = callLog?.recording?.link !== undefined ? callLog.recording.link : "";
         }
@@ -455,15 +455,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (ringSenseSummary && (user?.userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true)) {
             requestData["RingSense Summary"] = ringSenseSummary;
         }
-    
+
         if (ringSenseAIScore && (user?.userSettings?.addCallLogRingSenseRecordingAIScore?.value ?? true)) {
             requestData["RingSense AI Score"] = ringSenseAIScore;
         }
-    
+
         if (ringSenseBulletedSummary && (user?.userSettings?.addCallLogRingSenseRecordingBulletedSummary?.value ?? true)) {
             requestData["RingSense Bulleted Summary"] = ringSenseBulletedSummary;
         }
-    
+
         if (ringSenseLink && (user?.userSettings?.addCallLogRingSenseRecordingLink?.value ?? true)) {
             requestData["RingSense Link"] = ringSenseLink;
         }
@@ -509,7 +509,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         }
     }
 }
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript,ringSenseTranscript,
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, ringSenseTranscript,
     ringSenseSummary,
     ringSenseAIScore,
     ringSenseBulletedSummary,
@@ -858,7 +858,7 @@ async function getCallLog({ user, callLogId, authHeader }) {
 
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
@@ -941,40 +941,48 @@ async function createMessageLog({ user, contactInfo, authHeader, message, record
                 'Content-Type': 'application/json',
             }
         });
+        let logBody = '';
+        let title = '';
         const nextLogRow = spreadsheetData.data?.values?.length === undefined ? 1 : spreadsheetData.data?.values?.length + 1;
         const columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
         const rowData = new Array(Object.keys(columnIndexes).length).fill("");
         const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'GoogleSheetCRM';
         const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
-        let logBody = '';
-        let title = '';
-        switch (messageType) {
-            case 'SMS':
-                title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody =
-                    '\nConversation summary\n' +
-                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-                    'Participants\n' +
-                    `    ${userName}\n` +
-                    `    ${contactInfo.name}\n` +
-                    '\nConversation(1 messages)\n' +
-                    'BEGIN\n' +
-                    '------------\n' +
-                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                    `${message.subject}\n\n` +
-                    '------------\n' +
-                    'END\n\n' +
-                    '--- Created via RingCentral App Connect';
-                break;
-            case 'Voicemail':
-                const decodedRecordingLink = decodeURIComponent(recordingLink);
-                title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
-                break;
-            case 'Fax':
-                title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
-                break;
+        // Case: shared SMS
+        if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {
+            logBody = sharedSMSLogContent.body;
+            title = sharedSMSLogContent.subject;
+        }
+        // Case: normal SMS
+        else {
+            switch (messageType) {
+                case 'SMS':
+                    title = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody =
+                        '\nConversation summary\n' +
+                        `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                        'Participants\n' +
+                        `    ${userName}\n` +
+                        `    ${contactInfo.name}\n` +
+                        '\nConversation(1 messages)\n' +
+                        'BEGIN\n' +
+                        '------------\n' +
+                        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                        `${message.subject}\n\n` +
+                        '------------\n' +
+                        'END\n\n' +
+                        '--- Created via RingCentral App Connect';
+                    break;
+                case 'Voicemail':
+                    const decodedRecordingLink = decodeURIComponent(recordingLink);
+                    title = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody = `Voicemail recording link: ${decodedRecordingLink} \n\n--- Created via RingCentral App Connect`;
+                    break;
+                case 'Fax':
+                    title = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody = `Fax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                    break;
+            }
         }
 
         const requestData = {
@@ -985,7 +993,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, record
             "Phone": contactInfo.phoneNumber,
             "Message": logBody,
             "Message Type": messageType,
-            "Message Time": moment(message.creationTime).format('YYYY-MM-DD HH:mm:ss'),
+            "Message Time": sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).format('YYYY-MM-DD HH:mm:ss') : moment(message.creationTime).format('YYYY-MM-DD HH:mm:ss'),
             "Direction": message.direction,
         };
         Object.entries(requestData).forEach(([key, value]) => {
@@ -1032,7 +1040,7 @@ async function createMessageLog({ user, contactInfo, authHeader, message, record
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, contactNumber }) {
     try {
         const sheetUrl = user?.userSettings?.googleSheetsUrl?.value;
         let sheetName = "";
@@ -1123,17 +1131,26 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             }
             const userName = user?.dataValues?.platformAdditionalInfo?.name ?? 'GoogleSheetCRM';
             const messageColumn = String.fromCharCode(65 + messageColumnIndex);
-            let logBody = rows[rowIndex][messageColumnIndex];
-            const endMarker = '------------\nEND';
-            const newMessageLog =
-                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${message.subject}\n\n`;
-            // Add new message at the end (before the END marker)
-            logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
+            let logBody = '';
+            // Case: shared SMS
+            if (sharedSMSLogContent?.body) {
+                logBody = sharedSMSLogContent.body;
+            }
+            // Case: normal SMS
+            else {
+                logBody = rows[rowIndex][messageColumnIndex];
+                const originalNote = logBody.split('BEGIN\n------------\n')[1];
+                const endMarker = '------------\nEND';
+                const newMessageLog =
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo?.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${message.subject}\n\n`;
+                // Add new message at the end (before the END marker)
+                logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
-            const regex = RegExp('Conversation.(.*) messages.');
-            const matchResult = regex.exec(logBody);
-            logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+                const regex = RegExp('Conversation.(.*) messages.');
+                const matchResult = regex.exec(logBody);
+                logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+            }
             const updateRequestData = [
                 {
                     range: `${sheetName}!${messageColumn}${rowIndex + 1}`,// rowIndex is 0-based, so we add 1 for Sheets

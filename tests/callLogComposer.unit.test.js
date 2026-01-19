@@ -955,7 +955,7 @@ describe('callLogComposer', () => {
         };
 
         test('should compose complete call log with all fields in HTML format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -983,7 +983,7 @@ describe('callLogComposer', () => {
         });
 
         test('should compose complete call log with all fields in plain text format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1020,7 +1020,7 @@ describe('callLogComposer', () => {
                 }
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1043,7 +1043,7 @@ describe('callLogComposer', () => {
                 userSettings: {}
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1063,7 +1063,7 @@ describe('callLogComposer', () => {
 
         test('should handle updating existing body', async () => {
             const existingBody = '- Note: Old note\n- Duration: 30 seconds\n';
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 existingBody,
                 callLog: mockCallLog,
@@ -1079,7 +1079,7 @@ describe('callLogComposer', () => {
         });
 
         test('should include RingSense fields when provided in HTML format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1113,7 +1113,7 @@ describe('callLogComposer', () => {
                 }
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,

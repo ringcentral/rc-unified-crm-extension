@@ -1343,10 +1343,12 @@ async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     }
 }
 
-async function createMessageLog({ user, contactInfo, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission?.noteActions ?? '';
     let userInfoResponse;
     let extraDataTracking = {};;
+    let subject = '';
+    let comments = '';
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
             {
@@ -1368,50 +1370,53 @@ async function createMessageLog({ user, contactInfo, message, additionalSubmissi
         else {
             throw e;
         }
+    }// Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        comments = sharedSMSLogContent.body;
     }
-    const userData = userInfoResponse.data.data[0];
-    const userName = userData.name;
-    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
-    let subject = '';
-    let comments = '';
-    switch (messageType) {
-        case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
-            comments =
-                `<br><b>${subject}</b><br>` +
-                '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}<br>` +
-                'Participants<br>' +
-                `<ul><li><b>${userName}</b><br></li>` +
-                `<li><b>${contactInfo.name}</b></li></ul><br>` +
-                'Conversation(1 messages)<br>' +
-                'BEGIN<br>' +
-                '------------<br>' +
-                '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
-                `<b>${message.subject}</b></li>` +
-                '</ul>' +
-                '------------<br>' +
-                'END<br><br>' +
-                '--- Created via RingCentral App Connect';
-            break;
-        case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
-            comments = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
-        case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
-            comments = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
+    // Case: normal SMS
+    else {
+        const userData = userInfoResponse.data.data[0];
+        const userName = userData.name;
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+        switch (messageType) {
+            case 'SMS':
+                subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
+                comments =
+                    `<br><b>${subject}</b><br>` +
+                    '<b>Conversation summary</b><br>' +
+                    `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}<br>` +
+                    'Participants<br>' +
+                    `<ul><li><b>${userName}</b><br></li>` +
+                    `<li><b>${contactInfo.name}</b></li></ul><br>` +
+                    'Conversation(1 messages)<br>' +
+                    'BEGIN<br>' +
+                    '------------<br>' +
+                    '<ul>' +
+                    `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
+                    `<b>${message.subject}</b></li>` +
+                    '</ul>' +
+                    '------------<br>' +
+                    'END<br><br>' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
+                comments = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+            case 'Fax':
+                subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
+                comments = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+        }
     }
-
     const putBody = {
         comments: comments,
         action: noteActions,
         personReference: {
             id: contactInfo.id
         },
-        dateAdded: message.creationTime
+        dateAdded: sharedSMSLogContent ? sharedSMSLogContent.conversationCreatedDate : message.creationTime
     }
     const addLogRes = await axios.put(
         `${user.platformAdditionalInfo.restUrl}entity/Note`,
@@ -1438,9 +1443,11 @@ async function createMessageLog({ user, contactInfo, message, additionalSubmissi
     }
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader }) {
     const existingLogId = existingMessageLog.thirdPartyLogId;
     let userInfoResponse;
+    let logBody = '';
+    let patchBody = {};
     let extraDataTracking = {};;
     try {
         userInfoResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name&where=masterUserID=${user.id.replace('-bullhorn', '')}`,
@@ -1464,31 +1471,36 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
             throw e;
         }
     }
-    const userData = userInfoResponse.data.data[0];
-    const userName = userData.name;
-    const getLogRes = await axios.get(
-        `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?fields=id,comments`,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        logBody = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const userData = userInfoResponse.data.data[0];
+        const userName = userData.name;
+        const getLogRes = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}entity/Note/${existingLogId}?fields=id,comments`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
             }
-        }
-    );
-    let logBody = getLogRes.data.data.comments;
-    let patchBody = {};
-    const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
-        `<b>${message.subject}</b></li>`;
-    // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
-    logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
+        );
+        logBody = getLogRes.data.data.comments;
+        const newMessageLog =
+            `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}<br>` +
+            `<b>${message.subject}</b></li>`;
+        // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
+        logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
 
-    const regex = RegExp('<br>Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-
+        const regex = RegExp('<br>Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    }
     patchBody = {
         comments: logBody,
-        dateAdded: message.creationTime
+        dateAdded: sharedSMSLogContent ? sharedSMSLogContent.conversationCreatedDate : message.creationTime
     }
     try {
         // I dunno, Bullhorn uses POST as PATCH

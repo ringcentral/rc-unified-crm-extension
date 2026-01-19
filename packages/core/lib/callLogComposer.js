@@ -26,7 +26,7 @@ const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
  * @param {string} params.result - Call result
  * @returns {Promise<string>} Composed log body
  */
-async function composeCallLog(params) {
+function composeCallLog(params) {
     const {
         logFormat = LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
         existingBody = '',
@@ -157,150 +157,161 @@ async function composeCallLog(params) {
 function upsertCallAgentNote({ body, note, logFormat }) {
     if (!note) return body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // HTML logFormat with proper Agent notes section handling
-        const noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
-        if (noteRegex.test(body)) {
-            return body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
-        }
-        return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown logFormat with proper Agent notes section handling
-        const noteRegex = /## Agent notes\n([\s\S]*?)\n## Call details/;
-        if (noteRegex.test(body)) {
-            return body.replace(noteRegex, `## Agent notes\n${note}\n\n## Call details`);
-        }
-        if (body.startsWith('## Call details')) {
-            return `## Agent notes\n${note}\n\n` + body;
-        }
-        return `## Agent notes\n${note}\n\n## Call details\n` + body;
-    } else {
-        // Plain text logFormat - FIXED REGEX for multi-line notes with blank lines
-        const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
-        if (noteRegex.test(body)) {
-            return body.replace(noteRegex, `- Note: ${note}`);
-        }
-        return `- Note: ${note}\n` + body;
+    let noteRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // HTML logFormat with proper Agent notes section handling
+            noteRegex = RegExp('<b>Agent notes</b>([\\s\\S]+?)Call details</b>');
+            if (noteRegex.test(body)) {
+                return body.replace(noteRegex, `<b>Agent notes</b><br>${note}<br><br><b>Call details</b>`);
+            }
+            return `<b>Agent notes</b><br>${note}<br><br><b>Call details</b><br>` + body;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown logFormat with proper Agent notes section handling
+            noteRegex = /## Agent notes\n([\s\S]*?)\n## Call details/;
+            if (noteRegex.test(body)) {
+                return body.replace(noteRegex, `## Agent notes\n${note}\n\n## Call details`);
+            }
+            if (body.startsWith('## Call details')) {
+                return `## Agent notes\n${note}\n\n` + body;
+            }
+            return `## Agent notes\n${note}\n\n## Call details\n` + body;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // Plain text logFormat - FIXED REGEX for multi-line notes with blank lines
+            noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
+            if (noteRegex.test(body)) {
+                return body.replace(noteRegex, `- Note: ${note}`);
+            }
+            return `- Note: ${note}\n` + body;
     }
 }
 
 function upsertCallSessionId({ body, id, logFormat }) {
     if (!id) return body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const idRegex = /(?:<li>)?<b>Session Id<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (idRegex.test(body)) {
-            return body.replace(idRegex, `<li><b>Session Id</b>: ${id}</li>`);
-        }
-        return body + `<li><b>Session Id</b>: ${id}</li>`;
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Session Id**: value
-        const sessionIdRegex = /\*\*Session Id\*\*: [^\n]*\n*/;
-        if (sessionIdRegex.test(body)) {
-            return body.replace(sessionIdRegex, `**Session Id**: ${id}\n`);
-        }
-        return body + `**Session Id**: ${id}\n`;
-    } else {
-        // Match Session Id field and any trailing newlines, replace with single newline
-        const sessionIdRegex = /- Session Id: [^\n]*\n*/;
-        if (sessionIdRegex.test(body)) {
-            return body.replace(sessionIdRegex, `- Session Id: ${id}\n`);
-        }
-        return body + `- Session Id: ${id}\n`;
+    let idRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            idRegex = /(?:<li>)?<b>Session Id<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (idRegex.test(body)) {
+                return body.replace(idRegex, `<li><b>Session Id</b>: ${id}</li>`);
+            }
+            return body + `<li><b>Session Id</b>: ${id}</li>`;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Session Id**: value
+            idRegex = /\*\*Session Id\*\*: [^\n]*\n*/;
+            if (idRegex.test(body)) {
+                return body.replace(idRegex, `**Session Id**: ${id}\n`);
+            }
+            return body + `**Session Id**: ${id}\n`;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // Match Session Id field and any trailing newlines, replace with single newline
+            idRegex = /- Session Id: [^\n]*\n*/;
+            if (idRegex.test(body)) {
+                return body.replace(idRegex, `- Session Id: ${id}\n`);
+            }
+            return body + `- Session Id: ${id}\n`;
     }
 }
 
 function upsertRingCentralUserName({ body, userName, logFormat }) {
     if (!userName) return body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const userNameRegex = /(?:<li>)?<b>RingCentral user name<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        const match = body.match(userNameRegex);
-        if (match) {
-            // Only replace if existing value is (pending...)
-            if (match[1].trim() === '(pending...)') {
-                return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+    let userNameRegex = null;
+    let match = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            userNameRegex = /(?:<li>)?<b>RingCentral user name<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            match = body.match(userNameRegex);
+            if (match) {
+                // Only replace if existing value is (pending...)
+                if (match[1].trim() === '(pending...)') {
+                    return body.replace(userNameRegex, `<li><b>RingCentral user name</b>: ${userName}</li>`);
+                }
+                return body;
+            } else {
+                return body + `<li><b>RingCentral user name</b>: ${userName}</li>`;
             }
-            return body;
-        } else {
-            return body + `<li><b>RingCentral user name</b>: ${userName}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const userNameRegex = /\*\*RingCentral user name\*\*: ([^\n]*)\n*/i;
-        const match = body.match(userNameRegex);
-        if (match) {
-            // Only replace if existing value is (pending...)
-            if (match[1].trim() === '(pending...)') {
-                return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            userNameRegex = /\*\*RingCentral user name\*\*: ([^\n]*)\n*/i;
+            match = body.match(userNameRegex);
+            if (match) {
+                // Only replace if existing value is (pending...)
+                if (match[1].trim() === '(pending...)') {
+                    return body.replace(userNameRegex, `**RingCentral user name**: ${userName}\n`);
+                }
+                return body;
+            } else {
+                return body + `**RingCentral user name**: ${userName}\n`;
             }
-            return body;
-        } else {
-            return body + `**RingCentral user name**: ${userName}\n`;
-        }
-    } else {
-        const userNameRegex = /- RingCentral user name: ([^\n]*)\n*/;
-        const match = body.match(userNameRegex);
-        if (match) {
-            // Only replace if existing value is (pending...)
-            if (match[1].trim() === '(pending...)') {
-                return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            userNameRegex = /- RingCentral user name: ([^\n]*)\n*/;
+            match = body.match(userNameRegex);
+            if (match) {
+                // Only replace if existing value is (pending...)
+                if (match[1].trim() === '(pending...)') {
+                    return body.replace(userNameRegex, `- RingCentral user name: ${userName}\n`);
+                }
+                return body;
+            } else {
+                return body + `- RingCentral user name: ${userName}\n`;
             }
-            return body;
-        } else {
-            return body + `- RingCentral user name: ${userName}\n`;
-        }
     }
 }
 
 function upsertRingCentralNumberAndExtension({ body, number, extension, logFormat }) {
     if (!number && !extension) return body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const numberAndExtensionRegex = /(?:<li>)?<b>RingCentral number and extension<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (numberAndExtensionRegex.test(body)) {
-            return body.replace(numberAndExtensionRegex, `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`);
-        }
-        return body + `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`;
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const numberAndExtensionRegex = /\*\*RingCentral number and extension\*\*: [^\n]*\n*/i;
-        if (numberAndExtensionRegex.test(body)) {
-            return body.replace(numberAndExtensionRegex, `**RingCentral number and extension**: ${number} ${extension}\n`);
-        }
-        return body + `**RingCentral number and extension**: ${number} ${extension}\n`;
-    } else {
-        const numberAndExtensionRegex = /- RingCentral number and extension: [^\n]*\n*/;
-        if (numberAndExtensionRegex.test(body)) {
-            return body.replace(numberAndExtensionRegex, `- RingCentral number and extension: ${number} ${extension}\n`);
-        }
-        return body + `- RingCentral number and extension: ${number} ${extension}\n`;
+    let numberAndExtensionRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            numberAndExtensionRegex = /(?:<li>)?<b>RingCentral number and extension<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (numberAndExtensionRegex.test(body)) {
+                return body.replace(numberAndExtensionRegex, `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`);
+            }
+            return body + `<li><b>RingCentral number and extension</b>: ${number} ${extension}</li>`;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            numberAndExtensionRegex = /\*\*RingCentral number and extension\*\*: [^\n]*\n*/i;
+            if (numberAndExtensionRegex.test(body)) {
+                return body.replace(numberAndExtensionRegex, `**RingCentral number and extension**: ${number} ${extension}\n`);
+            }
+            return body + `**RingCentral number and extension**: ${number} ${extension}\n`;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            numberAndExtensionRegex = /- RingCentral number and extension: [^\n]*\n*/;
+            if (numberAndExtensionRegex.test(body)) {
+                return body.replace(numberAndExtensionRegex, `- RingCentral number and extension: ${number} ${extension}\n`);
+            }
+            return body + `- RingCentral number and extension: ${number} ${extension}\n`;
     }
 }
 
 function upsertCallSubject({ body, subject, logFormat }) {
     if (!subject) return body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const subjectRegex = /(?:<li>)?<b>Summary<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (subjectRegex.test(body)) {
-            return body.replace(subjectRegex, `<li><b>Summary</b>: ${subject}</li>`);
-        }
-        return body + `<li><b>Summary</b>: ${subject}</li>`;
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Summary**: value
-        const subjectRegex = /\*\*Summary\*\*: [^\n]*\n*/;
-        if (subjectRegex.test(body)) {
-            return body.replace(subjectRegex, `**Summary**: ${subject}\n`);
-        }
-        return body + `**Summary**: ${subject}\n`;
-    } else {
-        // Match Summary field and any trailing newlines, replace with single newline
-        const subjectRegex = /- Summary: [^\n]*\n*/;
-        if (subjectRegex.test(body)) {
-            return body.replace(subjectRegex, `- Summary: ${subject}\n`);
-        }
-        return body + `- Summary: ${subject}\n`;
+    let subjectRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            subjectRegex = /(?:<li>)?<b>Summary<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (subjectRegex.test(body)) {
+                return body.replace(subjectRegex, `<li><b>Summary</b>: ${subject}</li>`);
+            }
+            return body + `<li><b>Summary</b>: ${subject}</li>`;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Summary**: value
+            subjectRegex = /\*\*Summary\*\*: [^\n]*\n*/;
+            if (subjectRegex.test(body)) {
+                return body.replace(subjectRegex, `**Summary**: ${subject}\n`);
+            }
+            return body + `**Summary**: ${subject}\n`;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // Match Summary field and any trailing newlines, replace with single newline
+            subjectRegex = /- Summary: [^\n]*\n*/;
+            if (subjectRegex.test(body)) {
+                return body.replace(subjectRegex, `- Summary: ${subject}\n`);
+            }
+            return body + `- Summary: ${subject}\n`;
     }
 }
 
@@ -310,30 +321,35 @@ function upsertContactPhoneNumber({ body, phoneNumber, direction, logFormat }) {
     const label = direction === 'Outbound' ? 'Recipient' : 'Caller';
     let result = body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const phoneNumberRegex = new RegExp(`(?:<li>)?<b>${label} phone number</b>:\\s*([^<\\n]+)(?:</li>|(?=<|$))`, 'i');
-        if (phoneNumberRegex.test(result)) {
-            result = result.replace(phoneNumberRegex, `<li><b>${label} phone number</b>: ${phoneNumber}</li>`);
-        } else {
-            result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Contact Number**: value
-        const phoneNumberRegex = /\*\*Contact Number\*\*: [^\n]*\n*/;
-        if (phoneNumberRegex.test(result)) {
-            result = result.replace(phoneNumberRegex, `**Contact Number**: ${phoneNumber}\n`);
-        } else {
-            result += `**Contact Number**: ${phoneNumber}\n`;
-        }
-    } else {
-        // More flexible regex that handles both with and without newlines
-        const phoneNumberRegex = /- Contact Number: ([^\n-]+)(?=\n-|\n|$)/;
-        if (phoneNumberRegex.test(result)) {
-            result = result.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
-        } else {
-            result += `- Contact Number: ${phoneNumber}\n`;
-        }
+    let phoneNumberRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            phoneNumberRegex = new RegExp(`(?:<li>)?<b>${label} phone number</b>:\\s*([^<\\n]+)(?:</li>|(?=<|$))`, 'i');
+            if (phoneNumberRegex.test(result)) {
+                result = result.replace(phoneNumberRegex, `<li><b>${label} phone number</b>: ${phoneNumber}</li>`);
+            } else {
+                result += `<li><b>${label} phone number</b>: ${phoneNumber}</li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Contact Number**: value
+            phoneNumberRegex = /\*\*Contact Number\*\*: [^\n]*\n*/;
+            if (phoneNumberRegex.test(result)) {
+                result = result.replace(phoneNumberRegex, `**Contact Number**: ${phoneNumber}\n`);
+            } else {
+                result += `**Contact Number**: ${phoneNumber}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // More flexible regex that handles both with and without newlines
+            phoneNumberRegex = /- Contact Number: ([^\n-]+)(?=\n-|\n|$)/;
+            if (phoneNumberRegex.test(result)) {
+                result = result.replace(phoneNumberRegex, `- Contact Number: ${phoneNumber}\n`);
+            } else {
+                result += `- Contact Number: ${phoneNumber}\n`;
+            }
+            break;
     }
     return result;
 }
@@ -356,30 +372,35 @@ function upsertCallDateTime({ body, startTime, timezoneOffset, logFormat, logDat
     const formattedDateTime = momentTime.format(logDateFormat || 'YYYY-MM-DD hh:mm:ss A');
     let result = body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const dateTimeRegex = /(?:<li>)?<b>Date\/time<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (dateTimeRegex.test(result)) {
-            result = result.replace(dateTimeRegex, `<li><b>Date/time</b>: ${formattedDateTime}</li>`);
-        } else {
-            result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Date/Time**: value
-        const dateTimeRegex = /\*\*Date\/Time\*\*: [^\n]*\n*/;
-        if (dateTimeRegex.test(result)) {
-            result = result.replace(dateTimeRegex, `**Date/Time**: ${formattedDateTime}\n`);
-        } else {
-            result += `**Date/Time**: ${formattedDateTime}\n`;
-        }
-    } else {
-        // Handle duplicated Date/Time entries and match complete date/time values
-        const dateTimeRegex = /^(- Date\/Time:).*$/m;
-        if (dateTimeRegex.test(result)) {
-            result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
-        } else {
-            result += `- Date/Time: ${formattedDateTime}\n`;
-        }
+    let dateTimeRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            dateTimeRegex = /(?:<li>)?<b>Date\/time<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (dateTimeRegex.test(result)) {
+                result = result.replace(dateTimeRegex, `<li><b>Date/time</b>: ${formattedDateTime}</li>`);
+            } else {
+                result += `<li><b>Date/time</b>: ${formattedDateTime}</li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Date/Time**: value
+            dateTimeRegex = /\*\*Date\/Time\*\*: [^\n]*\n*/;
+            if (dateTimeRegex.test(result)) {
+                result = result.replace(dateTimeRegex, `**Date/Time**: ${formattedDateTime}\n`);
+            } else {
+                result += `**Date/Time**: ${formattedDateTime}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // Handle duplicated Date/Time entries and match complete date/time values
+            dateTimeRegex = /^(- Date\/Time:).*$/m;
+            if (dateTimeRegex.test(result)) {
+                result = result.replace(dateTimeRegex, `- Date/Time: ${formattedDateTime}`);
+            } else {
+                result += `- Date/Time: ${formattedDateTime}\n`;
+            }
+            break;
     }
     return result;
 }
@@ -389,31 +410,35 @@ function upsertCallDuration({ body, duration, logFormat }) {
 
     const formattedDuration = secondsToHoursMinutesSeconds(duration);
     let result = body;
-
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const durationRegex = /(?:<li>)?<b>Duration<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (durationRegex.test(result)) {
-            result = result.replace(durationRegex, `<li><b>Duration</b>: ${formattedDuration}</li>`);
-        } else {
-            result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Duration**: value
-        const durationRegex = /\*\*Duration\*\*: [^\n]*\n*/;
-        if (durationRegex.test(result)) {
-            result = result.replace(durationRegex, `**Duration**: ${formattedDuration}\n`);
-        } else {
-            result += `**Duration**: ${formattedDuration}\n`;
-        }
-    } else {
-        // More flexible regex that handles both with and without newlines
-        const durationRegex = /- Duration: ([^\n-]+)(?=\n-|\n|$)/;
-        if (durationRegex.test(result)) {
-            result = result.replace(durationRegex, `- Duration: ${formattedDuration}`);
-        } else {
-            result += `- Duration: ${formattedDuration}\n`;
-        }
+    let durationRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            durationRegex = /(?:<li>)?<b>Duration<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (durationRegex.test(result)) {
+                result = result.replace(durationRegex, `<li><b>Duration</b>: ${formattedDuration}</li>`);
+            } else {
+                result += `<li><b>Duration</b>: ${formattedDuration}</li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Duration**: value
+            durationRegex = /\*\*Duration\*\*: [^\n]*\n*/;
+            if (durationRegex.test(result)) {
+                result = result.replace(durationRegex, `**Duration**: ${formattedDuration}\n`);
+            } else {
+                result += `**Duration**: ${formattedDuration}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // More flexible regex that handles both with and without newlines
+            durationRegex = /- Duration: ([^\n-]+)(?=\n-|\n|$)/;
+            if (durationRegex.test(result)) {
+                result = result.replace(durationRegex, `- Duration: ${formattedDuration}`);
+            } else {
+                result += `- Duration: ${formattedDuration}\n`;
+            }
+            break;
     }
     return result;
 }
@@ -423,30 +448,35 @@ function upsertCallResult({ body, result, logFormat }) {
 
     let bodyResult = body;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        // More flexible regex that handles both <li> wrapped and unwrapped content
-        const resultRegex = /(?:<li>)?<b>Result<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (resultRegex.test(bodyResult)) {
-            bodyResult = bodyResult.replace(resultRegex, `<li><b>Result</b>: ${result}</li>`);
-        } else {
-            bodyResult += `<li><b>Result</b>: ${result}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Result**: value
-        const resultRegex = /\*\*Result\*\*: [^\n]*\n*/;
-        if (resultRegex.test(bodyResult)) {
-            bodyResult = bodyResult.replace(resultRegex, `**Result**: ${result}\n`);
-        } else {
-            bodyResult += `**Result**: ${result}\n`;
-        }
-    } else {
-        // More flexible regex that handles both with and without newlines
-        const resultRegex = /- Result: ([^\n-]+)(?=\n-|\n|$)/;
-        if (resultRegex.test(bodyResult)) {
-            bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}`);
-        } else {
-            bodyResult += `- Result: ${result}\n`;
-        }
+    let resultRegex = null;
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content
+            resultRegex = /(?:<li>)?<b>Result<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (resultRegex.test(bodyResult)) {
+                bodyResult = bodyResult.replace(resultRegex, `<li><b>Result</b>: ${result}</li>`);
+            } else {
+                bodyResult += `<li><b>Result</b>: ${result}</li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Result**: value
+            resultRegex = /\*\*Result\*\*: [^\n]*\n*/;
+            if (resultRegex.test(bodyResult)) {
+                bodyResult = bodyResult.replace(resultRegex, `**Result**: ${result}\n`);
+            } else {
+                bodyResult += `**Result**: ${result}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // More flexible regex that handles both with and without newlines
+            resultRegex = /- Result: ([^\n-]+)(?=\n-|\n|$)/;
+            if (resultRegex.test(bodyResult)) {
+                bodyResult = bodyResult.replace(resultRegex, `- Result: ${result}`);
+            } else {
+                bodyResult += `- Result: ${result}\n`;
+            }
+            break;
     }
     return bodyResult;
 }
@@ -455,11 +485,12 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
     if (!recordingLink) return body;
 
     let result = body;
+    let recordingLinkRegex = null;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-		// More flexible regex that handles both <li> wrapped and unwrapped content, and existing <a> anchors
-		const recordingLinkRegex = /(?:<li>)?<b>Call recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
-        if (recordingLink) {
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            // More flexible regex that handles both <li> wrapped and unwrapped content, and existing <a> anchors
+            recordingLinkRegex = /(?:<li>)?<b>Call recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
             if (recordingLinkRegex.test(result)) {
                 if (recordingLink.startsWith('http')) {
                     result = result.replace(recordingLinkRegex, `<li><b>Call recording link</b>: <a target="_blank" href="${recordingLink}">open</a></li>`);
@@ -479,26 +510,28 @@ function upsertCallRecording({ body, recordingLink, logFormat }) {
                     result = result.replace('</ul>', `${text}</ul>`);
                 }
             }
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: **Call recording link**: value
-        const recordingLinkRegex = /\*\*Call recording link\*\*: [^\n]*\n*/;
-        if (recordingLinkRegex.test(result)) {
-            result = result.replace(recordingLinkRegex, `**Call recording link**: ${recordingLink}\n`);
-        } else {
-            result += `**Call recording link**: ${recordingLink}\n`;
-        }
-    } else {
-        // Match recording link field and any trailing content, replace with single newline
-        const recordingLinkRegex = /- Call recording link: [^\n]*\n*/;
-        if (recordingLinkRegex.test(result)) {
-            result = result.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
-        } else {
-            if (result && !result.endsWith('\n')) {
-                result += '\n';
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: **Call recording link**: value
+            recordingLinkRegex = /\*\*Call recording link\*\*: [^\n]*\n*/;
+            if (recordingLinkRegex.test(result)) {
+                result = result.replace(recordingLinkRegex, `**Call recording link**: ${recordingLink}\n`);
+            } else {
+                result += `**Call recording link**: ${recordingLink}\n`;
             }
-            result += `- Call recording link: ${recordingLink}\n`;
-        }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            // Match recording link field and any trailing content, replace with single newline
+            recordingLinkRegex = /- Call recording link: [^\n]*\n*/;
+            if (recordingLinkRegex.test(result)) {
+                result = result.replace(recordingLinkRegex, `- Call recording link: ${recordingLink}\n`);
+            } else {
+                if (result && !result.endsWith('\n')) {
+                    result += '\n';
+                }
+                result += `- Call recording link: ${recordingLink}\n`;
+            }
+            break;
     }
     return result;
 }
@@ -508,30 +541,35 @@ function upsertAiNote({ body, aiNote, logFormat }) {
 
     const clearedAiNote = aiNote.replace(/\n+$/, '');
     let result = body;
+    let aiNoteRegex = null;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const formattedAiNote = clearedAiNote.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        const aiNoteRegex = /<div><b>AI Note<\/b><br>(.+?)<\/div>/;
-        if (aiNoteRegex.test(result)) {
-            result = result.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}</div>`);
-        } else {
-            result += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: ### AI Note
-        const aiNoteRegex = /### AI Note\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (aiNoteRegex.test(result)) {
-            result = result.replace(aiNoteRegex, `### AI Note\n${clearedAiNote}\n`);
-        } else {
-            result += `### AI Note\n${clearedAiNote}\n`;
-        }
-    } else {
-        const aiNoteRegex = /- AI Note:([\s\S]*?)--- END/;
-        if (aiNoteRegex.test(result)) {
-            result = result.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
-        } else {
-            result += `\n- AI Note:\n${clearedAiNote}\n--- END\n`;
-        }
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            const formattedAiNote = clearedAiNote.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            aiNoteRegex = /<div><b>AI Note<\/b><br>(.+?)<\/div>/;
+            if (aiNoteRegex.test(result)) {
+                result = result.replace(aiNoteRegex, `<div><b>AI Note</b><br>${formattedAiNote}</div>`);
+            } else {
+                result += `<div><b>AI Note</b><br>${formattedAiNote}</div><br>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: ### AI Note
+            aiNoteRegex = /### AI Note\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (aiNoteRegex.test(result)) {
+                result = result.replace(aiNoteRegex, `### AI Note\n${clearedAiNote}\n`);
+            } else {
+                result += `### AI Note\n${clearedAiNote}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            aiNoteRegex = /- AI Note:([\s\S]*?)--- END/;
+            if (aiNoteRegex.test(result)) {
+                result = result.replace(aiNoteRegex, `- AI Note:\n${clearedAiNote}\n--- END`);
+            } else {
+                result += `\n- AI Note:\n${clearedAiNote}\n--- END\n`;
+            }
+            break;
     }
     return result;
 }
@@ -540,30 +578,35 @@ function upsertTranscript({ body, transcript, logFormat }) {
     if (!transcript) return body;
 
     let result = body;
+    let transcriptRegex = null;
 
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        const transcriptRegex = /<div><b>Transcript<\/b><br>(.+?)<\/div>/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
-        } else {
-            result += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        // Markdown format: ### Transcript
-        const transcriptRegex = /### Transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `### Transcript\n${transcript}\n`);
-        } else {
-            result += `### Transcript\n${transcript}\n`;
-        }
-    } else {
-        const transcriptRegex = /- Transcript:([\s\S]*?)--- END/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
-        } else {
-            result += `\n- Transcript:\n${transcript}\n--- END\n`;
-        }
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            const formattedTranscript = transcript.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            transcriptRegex = /<div><b>Transcript<\/b><br>(.+?)<\/div>/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `<div><b>Transcript</b><br>${formattedTranscript}</div>`);
+            } else {
+                result += `<div><b>Transcript</b><br>${formattedTranscript}</div><br>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            // Markdown format: ### Transcript
+            transcriptRegex = /### Transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `### Transcript\n${transcript}\n`);
+            } else {
+                result += `### Transcript\n${transcript}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            transcriptRegex = /- Transcript:([\s\S]*?)--- END/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `- Transcript:\n${transcript}\n--- END`);
+            } else {
+                result += `\n- Transcript:\n${transcript}\n--- END\n`;
+            }
+            break;
     }
     return result;
 }
@@ -616,28 +659,34 @@ function upsertLegs({ body, legs, logFormat }) {
 
     let result = body;
     let legsJourney = getLegsJourney(legs);
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        legsJourney = legsJourney.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        const legsRegex = /<div><b>Call journey<\/b><br>(.+?)<\/div>/;
-        if (legsRegex.test(result)) {
-            result = result.replace(legsRegex, `<div><b>Call journey</b><br>${legsJourney}</div>`);
-        } else {
-            result += `<div><b>Call journey</b><br>${legsJourney}</div>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const legsRegex = /### Call journey\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (legsRegex.test(result)) {
-            result = result.replace(legsRegex, `### Call journey\n${legsJourney}\n`);
-        } else {
-            result += `### Call journey\n${legsJourney}\n`;
-        }
-    } else {
-        const legsRegex = /- Call journey:([\s\S]*?)--- JOURNEY END/;
-        if (legsRegex.test(result)) {
-            result = result.replace(legsRegex, `- Call journey:\n${legsJourney}\n--- JOURNEY END`);
-        } else {
-            result += `- Call journey:\n${legsJourney}\n--- JOURNEY END\n`;
-        }
+    let legsRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            legsJourney = legsJourney.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            legsRegex = /<div><b>Call journey<\/b><br>(.+?)<\/div>/;
+            if (legsRegex.test(result)) {
+                result = result.replace(legsRegex, `<div><b>Call journey</b><br>${legsJourney}</div>`);
+            } else {
+                result += `<div><b>Call journey</b><br>${legsJourney}</div>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            legsRegex = /### Call journey\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (legsRegex.test(result)) {
+                result = result.replace(legsRegex, `### Call journey\n${legsJourney}\n`);
+            } else {
+                result += `### Call journey\n${legsJourney}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            legsRegex = /- Call journey:([\s\S]*?)--- JOURNEY END/;
+            if (legsRegex.test(result)) {
+                result = result.replace(legsRegex, `- Call journey:\n${legsJourney}\n--- JOURNEY END`);
+            } else {
+                result += `- Call journey:\n${legsJourney}\n--- JOURNEY END\n`;
+            }
+            break;
     }
 
     return result;
@@ -648,28 +697,34 @@ function upsertRingSenseTranscript({ body, transcript, logFormat }) {
 
     let result = body;
     const clearedTranscript = transcript.replace(/\n+$/, '');
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const formattedTranscript = clearedTranscript.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        const transcriptRegex = /<div><b>RingSense transcript<\/b><br>(.+?)<\/div>/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`);
-        } else {
-            result += `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const transcriptRegex = /### RingSense transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `### RingSense transcript\n${clearedTranscript}\n`);
-        } else {
-            result += `### RingSense transcript\n${clearedTranscript}\n`;
-        }
-    } else {
-        const transcriptRegex = /- RingSense transcript:([\s\S]*?)--- END/;
-        if (transcriptRegex.test(result)) {
-            result = result.replace(transcriptRegex, `- RingSense transcript:\n${clearedTranscript}\n--- END`);
-        } else {
-            result += `\n- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
-        }
+    let transcriptRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            const formattedTranscript = clearedTranscript.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            transcriptRegex = /<div><b>RingSense transcript<\/b><br>(.+?)<\/div>/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`);
+            } else {
+                result += `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            transcriptRegex = /### RingSense transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `### RingSense transcript\n${clearedTranscript}\n`);
+            } else {
+                result += `### RingSense transcript\n${clearedTranscript}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            transcriptRegex = /- RingSense transcript:([\s\S]*?)--- END/;
+            if (transcriptRegex.test(result)) {
+                result = result.replace(transcriptRegex, `- RingSense transcript:\n${clearedTranscript}\n--- END`);
+            } else {
+                result += `\n- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
+            }
+            break;
     }
     return result;
 }
@@ -680,28 +735,34 @@ function upsertRingSenseSummary({ body, summary, logFormat }) {
     let result = body;
     // remove new line in last line of summary
     const clearedSummary = summary.replace(/\n+$/, '');
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const summaryRegex = /<div><b>RingSense summary<\/b><br>(.+?)<\/div>/;
-        const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `<div><b>RingSense summary</b><br>${formattedSummary}</div>`);
-        } else {
-            result += `<div><b>RingSense summary</b><br>${formattedSummary}</div>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const summaryRegex = /### RingSense summary\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `### RingSense summary\n${summary}\n`);
-        } else {
-            result += `### RingSense summary\n${summary}\n`;
-        }
-    } else {
-        const summaryRegex = /- RingSense summary:([\s\S]*?)--- END/;
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `- RingSense summary:\n${summary}\n--- END`);
-        } else {
-            result += `\n- RingSense summary:\n${summary}\n--- END\n`;
-        }
+    let summaryRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            summaryRegex = /<div><b>RingSense summary<\/b><br>(.+?)<\/div>/;
+            const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `<div><b>RingSense summary</b><br>${formattedSummary}</div>`);
+            } else {
+                result += `<div><b>RingSense summary</b><br>${formattedSummary}</div>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            summaryRegex = /### RingSense summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `### RingSense summary\n${summary}\n`);
+            } else {
+                result += `### RingSense summary\n${summary}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            summaryRegex = /- RingSense summary:([\s\S]*?)--- END/;
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `- RingSense summary:\n${summary}\n--- END`);
+            } else {
+                result += `\n- RingSense summary:\n${summary}\n--- END\n`;
+            }
+            break;
     }
     return result;
 }
@@ -710,27 +771,33 @@ function upsertRingSenseAIScore({ body, score, logFormat }) {
     if (!score) return body;
 
     let result = body;
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const scoreRegex = /(?:<li>)?<b>Call score<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
-        if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `<li><b>Call score</b>: ${score}</li>`);
-        } else {
-            result += `<li><b>Call score</b>: ${score}</li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const scoreRegex = /\*\*Call score\*\*: [^\n]*\n*/;
-        if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `**Call score**: ${score}\n`);
-        } else {
-            result += `**Call score**: ${score}\n`;
-        }
-    } else {
-        const scoreRegex = /- Call score:\s*([^<\n]+)(?=\n|$)/i;
-        if (scoreRegex.test(result)) {
-            result = result.replace(scoreRegex, `- Call score: ${score}`);
-        } else {
-            result += `- Call score: ${score}\n`;
-        }
+    let scoreRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            scoreRegex = /(?:<li>)?<b>Call score<\/b>:\s*([^<\n]+)(?:<\/li>|(?=<|$))/i;
+            if (scoreRegex.test(result)) {
+                result = result.replace(scoreRegex, `<li><b>Call score</b>: ${score}</li>`);
+            } else {
+                result += `<li><b>Call score</b>: ${score}</li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            scoreRegex = /\*\*Call score\*\*: [^\n]*\n*/;
+            if (scoreRegex.test(result)) {
+                result = result.replace(scoreRegex, `**Call score**: ${score}\n`);
+            } else {
+                result += `**Call score**: ${score}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            scoreRegex = /- Call score:\s*([^<\n]+)(?=\n|$)/i;
+            if (scoreRegex.test(result)) {
+                result = result.replace(scoreRegex, `- Call score: ${score}`);
+            } else {
+                result += `- Call score: ${score}\n`;
+            }
+            break;
     }
     return result;
 }
@@ -740,28 +807,34 @@ function upsertRingSenseBulletedSummary({ body, summary, logFormat }) {
 
     let result = body;
     const clearedSummary = summary.replace(/\n+$/, '');
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-        const summaryRegex = /<div><b>RingSense bulleted summary<\/b><br>(.+?)<\/div>/;
-        const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`);
-        } else {
-            result += `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const summaryRegex = /### RingSense bulleted summary\n([\s\S]*?)(?=\n### |\n$|$)/;
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `### RingSense bulleted summary\n${summary}\n`);
-        } else {
-            result += `### RingSense bulleted summary\n${summary}\n`;
-        }
-    } else {
-        const summaryRegex = /- RingSense bulleted summary:\s*([^<\n]+)(?=\n|$)/i;
-        if (summaryRegex.test(result)) {
-            result = result.replace(summaryRegex, `- RingSense bulleted summary:\n${summary}\n--- END`);
-        } else {
-            result += `\n- RingSense bulleted summary:\n${summary}\n--- END\n`;
-        }
+    let summaryRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            summaryRegex = /<div><b>RingSense bulleted summary<\/b><br>(.+?)<\/div>/;
+            const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`);
+            } else {
+                result += `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            summaryRegex = /### RingSense bulleted summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `### RingSense bulleted summary\n${summary}\n`);
+            } else {
+                result += `### RingSense bulleted summary\n${summary}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            summaryRegex = /- RingSense bulleted summary:\s*([^<\n]+)(?=\n|$)/i;
+            if (summaryRegex.test(result)) {
+                result = result.replace(summaryRegex, `- RingSense bulleted summary:\n${summary}\n--- END`);
+            } else {
+                result += `\n- RingSense bulleted summary:\n${summary}\n--- END\n`;
+            }
+            break;
     }
     return result;
 }
@@ -770,27 +843,33 @@ function upsertRingSenseLink({ body, link, logFormat }) {
     if (!link) return body;
 
     let result = body;
-    if (logFormat === LOG_DETAILS_FORMAT_TYPE.HTML) {
-		const linkRegex = /(?:<li>)?<b>RingSense recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
-        if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`);
-        } else {
-            result += `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`;
-        }
-    } else if (logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-        const linkRegex = /\*\*RingSense recording link\*\*:\s*([^<\n]+)(?=\n|$)/i;
-        if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `**RingSense recording link**: ${link}\n`);
-        } else {
-            result += `**RingSense recording link**: ${link}\n`;
-        }
-    } else {
-        const linkRegex = /- RingSense recording link:\s*([^<\n]+)(?=\n|$)/i;
-        if (linkRegex.test(result)) {
-            result = result.replace(linkRegex, `- RingSense recording link: ${link}`);
-        } else {
-            result += `- RingSense recording link: ${link}\n`;
-        }
+    let linkRegex = null;
+
+    switch (logFormat) {
+        case LOG_DETAILS_FORMAT_TYPE.HTML:
+            linkRegex = /(?:<li>)?<b>RingSense recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
+            if (linkRegex.test(result)) {
+                result = result.replace(linkRegex, `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`);
+            } else {
+                result += `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
+            linkRegex = /\*\*RingSense recording link\*\*:\s*([^<\n]+)(?=\n|$)/i;
+            if (linkRegex.test(result)) {
+                result = result.replace(linkRegex, `**RingSense recording link**: ${link}\n`);
+            } else {
+                result += `**RingSense recording link**: ${link}\n`;
+            }
+            break;
+        case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
+            linkRegex = /- RingSense recording link:\s*([^<\n]+)(?=\n|$)/i;
+            if (linkRegex.test(result)) {
+                result = result.replace(linkRegex, `- RingSense recording link: ${link}`);
+            } else {
+                result += `- RingSense recording link: ${link}\n`;
+            }
+            break;
     }
     return result;
 }

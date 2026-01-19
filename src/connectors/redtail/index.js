@@ -398,48 +398,56 @@ async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     };
 }
 
-async function createMessageLog({ user, contactInfo, message, recordingLink, faxDocLink }) {
-    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const userName = user.id.split('-')[0];
-    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let subject = '';
     let description = '';
-    switch (messageType) {
-        case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
-            description =
-                `<br><b>${subject}</b><br>` +
-                '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('dddd, MMMM DD, YYYY')}<br>` +
-                'Participants<br>' +
-                `<ul><li><b>${userName}</b><br></li>` +
-                `<li><b>${contactInfo.name}</b></li></ul><br>` +
-                'Conversation(1 messages)<br>' +
-                'BEGIN<br>' +
-                '------------<br>' +
-                '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('hh:mm A')}<br>` +
-                `<b>${message.subject}</b></li>` +
-                '</ul>' +
-                '------------<br>' +
-                'END<br><br>' +
-                '--- Created via RingCentral App Connect';
-            break;
-        case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
-            description = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
-        case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
-            description = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
+    const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {
+        subject = sharedSMSLogContent.subject;
+        description = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const userName = user.id.split('-')[0];
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+        switch (messageType) {
+            case 'SMS':
+                subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
+                description =
+                    `<br><b>${subject}</b><br>` +
+                    '<b>Conversation summary</b><br>' +
+                    `${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('dddd, MMMM DD, YYYY')}<br>` +
+                    'Participants<br>' +
+                    `<ul><li><b>${userName}</b><br></li>` +
+                    `<li><b>${contactInfo.name}</b></li></ul><br>` +
+                    'Conversation(1 messages)<br>' +
+                    'BEGIN<br>' +
+                    '------------<br>' +
+                    '<ul>' +
+                    `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('hh:mm A')}<br>` +
+                    `<b>${message.subject}</b></li>` +
+                    '</ul>' +
+                    '------------<br>' +
+                    'END<br><br>' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
+                description = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+            case 'Fax':
+                subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.userSettings?.redtailCustomTimezone?.value ?? 0)).format('YY/MM/DD')}`;
+                description = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+        }
     }
 
     const postBody = {
         subject,
         description,
-        start_date: moment(message.creationTime).utc().toISOString(),
-        end_date: moment(message.creationTime).utc().toISOString(),
+        start_date: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc().toISOString() : moment(message.creationTime).utc().toISOString(),
+        end_date: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc().toISOString() : moment(message.creationTime).utc().toISOString(),
         activity_code_id: 3,
         repeats: 'never',
         linked_contacts: [
@@ -472,30 +480,37 @@ async function createMessageLog({ user, contactInfo, message, recordingLink, fax
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader }) {
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
-    const existingLogId = existingMessageLog.thirdPartyLogId;
-    const userName = user.id.split('-')[0];
-    const getLogRes = await axios.get(
-        `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
-        {
-            headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
-        });
-    let logBody = getLogRes.data.activity.description;
+    let logBody = '';
     let putBody = {};
-    const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
-        `<b>${message.subject}</b></li>`;
-    // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
-    logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
+    const existingLogId = existingMessageLog.thirdPartyLogId;
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        logBody = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const userName = user.id.split('-')[0];
+        const getLogRes = await axios.get(
+            `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
+            {
+                headers: { 'Authorization': overrideAuthHeader, 'include': 'linked_contacts' }
+            });
+        logBody = getLogRes.data.activity.description;
+        const newMessageLog =
+            `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}<br>` +
+            `<b>${message.subject}</b></li>`;
+        // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
+        logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
 
-    const regex = RegExp('<br>Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-
+        const regex = RegExp('<br>Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    }
     putBody = {
         description: logBody,
-        end_date: moment(message.creationTime).utc().toISOString()
+        end_date: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utc().toISOString() : moment(message.creationTime).utc().toISOString()
     }
     await axios.patch(
         `${process.env.REDTAIL_API_SERVER}/activities/${existingLogId}`,
