@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.11
+
+- New: Shared-SMS logging
+- New: MCP tools
+- New: Netsuite now supports Lead and Prospect
+
 ## 1.7.10
 
 - New: RingCX RingSense call logging event support for Server-side logging

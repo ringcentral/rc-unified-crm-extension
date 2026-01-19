@@ -1006,6 +1006,122 @@ describe('Clio Connector', () => {
         });
     });
 
+    // ==================== Message Log Format Tests ====================
+    describe('createMessageLog format', () => {
+        const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234', type: 'Person' });
+        const mockMessageData = createMockMessage();
+
+        it('should format SMS message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 501 }
+                }, mockRateLimitHeaders);
+
+            await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            // Verify plain text format (no HTML tags)
+            expect(capturedBody.data.body).not.toContain('<br>');
+            expect(capturedBody.data.body).not.toContain('<b>');
+            expect(capturedBody.data.body).not.toContain('<ul>');
+            expect(capturedBody.data.body).not.toContain('<li>');
+            expect(capturedBody.data.body).toContain('Conversation summary');
+            expect(capturedBody.data.body).toContain('Participants');
+            expect(capturedBody.data.body).toContain('RingCentral App Connect');
+        });
+
+        it('should format Voicemail message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 502 }
+                }, mockRateLimitHeaders);
+
+            await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: 'https://recording.example.com/voicemail.mp3',
+                faxDocLink: null
+            });
+
+            // Verify plain text format (no HTML tags)
+            expect(capturedBody.data.body).not.toContain('<br>');
+            expect(capturedBody.data.body).not.toContain('<b>');
+            expect(capturedBody.data.body).toContain('Voicemail recording link');
+            expect(capturedBody.data.body).toContain('https://recording.example.com/voicemail.mp3');
+            expect(capturedBody.data.body).toContain('RingCentral App Connect');
+        });
+
+        it('should format Fax message log with plain text (no HTML tags)', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, {
+                    data: { id: 503 }
+                }, mockRateLimitHeaders);
+
+            await clio.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: 'https://fax.example.com/document.pdf'
+            });
+
+            // Verify plain text format (no HTML tags)
+            expect(capturedBody.data.body).not.toContain('<br>');
+            expect(capturedBody.data.body).not.toContain('<b>');
+            expect(capturedBody.data.body).toContain('Fax document link');
+            expect(capturedBody.data.body).toContain('https://fax.example.com/document.pdf');
+            expect(capturedBody.data.body).toContain('RingCentral App Connect');
+        });
+    });
+
     // ==================== updateMessageLog ====================
     describe('updateMessageLog', () => {
         const mockContact = createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' });

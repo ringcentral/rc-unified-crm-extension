@@ -5,8 +5,9 @@ const Op = require('sequelize').Op;
 const { RingCentral } = require('../lib/ringcentral');
 const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
+const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, query }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
     const apiUrl = query.apiUrl;
     const username = query.username;
@@ -17,8 +18,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query }) {
     if (proxyId) {
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail });
-
+    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,
@@ -41,19 +41,25 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query }) {
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail });
 
     if (successful) {
-        let userInfo = await saveUserInfo({
-            platformUserInfo,
-            platform,
-            tokenUrl,
-            apiUrl,
-            username,
-            hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
-            accessToken,
-            refreshToken,
-            tokenExpiry: expires,
-            rcAccountId: query.rcAccountId,
-            proxyId
-        });
+        let userInfo = null;
+        try {
+            userInfo = await saveUserInfo({
+                platformUserInfo,
+                platform,
+                tokenUrl,
+                apiUrl,
+                username,
+                hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
+                accessToken,
+                refreshToken,
+                tokenExpiry: expires,
+                rcAccountId: query?.rcAccountId,
+                proxyId
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error saving user info');
+        }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
         }
@@ -75,13 +81,19 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalIn
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey, proxyId });
     if (successful) {
-        let userInfo = await saveUserInfo({
-            platformUserInfo,
-            platform,
-            hostname,
-            proxyId,
-            accessToken: platformUserInfo.overridingApiKey ?? apiKey
-        });
+        let userInfo = null;
+        try {
+            userInfo = await saveUserInfo({
+                platformUserInfo,
+                platform,
+                hostname,
+                proxyId,
+                accessToken: platformUserInfo.overridingApiKey ?? apiKey
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error saving user info');
+        }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
         }
@@ -107,43 +119,65 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     const platformAdditionalInfo = platformUserInfo.platformAdditionalInfo || {};
     platformAdditionalInfo.proxyId = proxyId;
     if (existingUser) {
-        await existingUser.update(
-            {
-                platform,
-                hostname,
-                timezoneName,
-                timezoneOffset,
-                accessToken,
-                refreshToken,
-                tokenExpiry,
-                rcAccountId,
-                platformAdditionalInfo: {
-                    ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
-                    ...platformAdditionalInfo,
-                }
-            }
-        );
-    }
-    else {
-        // TEMP: replace user with old ID
-        if (id.endsWith(`-${platform}`)) {
-            const oldID = id.split('-');
-            const userWithOldID = await UserModel.findByPk(oldID[0]);
-            if (userWithOldID) {
-                await UserModel.create({
-                    id,
+        try {
+            await existingUser.update(
+                {
+                    platform,
                     hostname,
                     timezoneName,
                     timezoneOffset,
-                    platform,
                     accessToken,
                     refreshToken,
                     tokenExpiry,
                     rcAccountId,
-                    platformAdditionalInfo,
-                    userSettings: userWithOldID.userSettings
-                });
-                await userWithOldID.destroy();
+                    platformAdditionalInfo: {
+                        ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
+                        ...platformAdditionalInfo,
+                    }
+                }
+            );
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error saving user info');
+        }
+    }
+    else {
+        try {
+            // TEMP: replace user with old ID
+            if (id.endsWith(`-${platform}`)) {
+                const oldID = id.split('-');
+                const userWithOldID = await UserModel.findByPk(oldID[0]);
+                if (userWithOldID) {
+                    await UserModel.create({
+                        id,
+                        hostname,
+                        timezoneName,
+                        timezoneOffset,
+                        platform,
+                        accessToken,
+                        refreshToken,
+                        tokenExpiry,
+                        rcAccountId,
+                        platformAdditionalInfo,
+                        userSettings: userWithOldID.userSettings
+                    });
+                    await userWithOldID.destroy();
+                }
+                else {
+                    await UserModel.create({
+                        id,
+                        hostname,
+                        timezoneName,
+                        timezoneOffset,
+                        platform,
+                        accessToken,
+                        refreshToken,
+                        tokenExpiry,
+                        rcAccountId,
+                        platformAdditionalInfo,
+                        userSettings: {}
+                    });
+                }
             }
             else {
                 await UserModel.create({
@@ -161,20 +195,8 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                 });
             }
         }
-        else {
-            await UserModel.create({
-                id,
-                hostname,
-                timezoneName,
-                timezoneOffset,
-                platform,
-                accessToken,
-                refreshToken,
-                tokenExpiry,
-                rcAccountId,
-                platformAdditionalInfo,
-                userSettings: {}
-            });
+        catch (error) {
+            return handleDatabaseError(error, 'Error saving user info');
         }
     }
     return {

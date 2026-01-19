@@ -1,4 +1,16 @@
 {
+    "1.7.11": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Shared-SMS logging"
+            },
+            {
+                "type": "New",
+                "description": "MCP tools"
+            }
+        ]
+    },
     "1.7.10": {
         "global": [
             {

@@ -4,8 +4,8 @@ const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
 const { CacheModel } = require('../models/cacheModel');
 const oauth = require('../lib/oauth');
-const errorMessage = require('../lib/generalErrorMessage');
 const { composeCallLog } = require('../lib/callLogComposer');
+const { composeSharedSMSLog } = require('../lib/sharedSMSComposer');
 const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../lib/constants');
 const { NoteCache } = require('../models/dynamo/noteCacheSchema');
@@ -14,15 +14,23 @@ const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const axios = require('axios');
 const { getProcessorsFromUserSettings } = require('../lib/util');
+const logger = require('../lib/logger');
+const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 
 async function createCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
-        const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId: incomingData.logInfo.sessionId
-            }
-        });
+        let existingCallLog = null;
+        try {
+            existingCallLog = await CallLogModel.findOne({
+                where: {
+                    sessionId: incomingData.logInfo.sessionId
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing call log');
+        }
         if (existingCallLog) {
             return {
                 successful: false,
@@ -33,7 +41,13 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 }
             }
         }
-        let user = await UserModel.findByPk(userId);
+        let user = null;
+        try {
+            user = await UserModel.findByPk(userId);
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding user');
+        }
         if (!user || !user.accessToken) {
             return {
                 successful: false,
@@ -142,7 +156,7 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
         let composedLogDetails = '';
         if (logFormat === LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT || logFormat === LOG_DETAILS_FORMAT_TYPE.HTML || logFormat === LOG_DETAILS_FORMAT_TYPE.MARKDOWN) {
-            composedLogDetails = await composeCallLog({
+            composedLogDetails = composeCallLog({
                 logFormat,
                 callLog,
                 contactInfo,
@@ -184,15 +198,16 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             proxyConfig,
         });
         if (logId) {
-            await CallLogModel.create({
-                id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
-                sessionId: incomingData.logInfo.sessionId,
-                platform,
-                thirdPartyLogId: logId,
-                userId,
-                contactId
-            });
-        }
+            try {
+                await CallLogModel.create({
+                    id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
+                    sessionId: incomingData.logInfo.sessionId,
+                    platform,
+                    thirdPartyLogId: logId,
+                    userId,
+                    contactId
+                });
+            }
         // after-logging processor
         const afterLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
         for (const processorSetting of afterLoggingProcessor) {
@@ -241,44 +256,11 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             }
         }
         return { successful: !!logId, logId, returnMessage, extraDataTracking, ptpAsyncTaskIds };
-    } catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform })
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error creating call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
             }
-        };
+        }
+        return { successful: !!logId, logId, returnMessage, extraDataTracking };
+    } catch (e) {
+        return handleApiError(e, platform, 'createCallLog', { userId });
     }
 }
 
@@ -366,59 +348,23 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         return { successful: true, logs, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error getting call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to READ logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails });
     }
 }
 
 async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
-        const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId: incomingData.sessionId
-            }
-        });
+        let existingCallLog = null;
+        try {
+            existingCallLog = await CallLogModel.findOne({
+                where: {
+                    sessionId: incomingData.sessionId
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing call log');
+        }
         if (existingCallLog) {
             let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
@@ -509,9 +455,9 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                         existingBody = getLogResult.callLogInfo.note;
                     }
                 } catch (error) {
-                    console.log('Error getting existing log details, proceeding with empty body', error);
+                    logger.error('Error getting existing log details, proceeding with empty body', { stack: error.stack });
                 }
-                composedLogDetails = await composeCallLog({
+                composedLogDetails = composeCallLog({
                     logFormat,
                     existingBody,
                     callLog: {
@@ -620,49 +566,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
         }
         return { successful: false };
     } catch (e) {
-        console.error(`platform: ${platform} \n${e.stack} \n${JSON.stringify(e.response?.data)}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error updating call log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if the log entity still exist on ${platform} and your account has permission to EDIT logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'updateCallLog', { userId });
     }
 }
 
@@ -684,7 +588,13 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const platformModule = connectorRegistry.getConnector(platform);
         const contactNumber = incomingData.logInfo.correspondents[0].phoneNumber;
         const additionalSubmission = incomingData.additionalSubmission;
-        let user = await UserModel.findByPk(userId);
+        let user = null;
+        try {
+            user = await UserModel.findByPk(userId);
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding user');
+        }
         if (!user || !user.accessToken) {
             return {
                 successful: false,
@@ -732,139 +642,144 @@ async function createMessageLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+        // For shared SMS
+        const assigneeName = incomingData.logInfo.assignee?.name;
+        const ownerName = incomingData.logInfo.owner?.name;
+        const isSharedSMS = !!ownerName;
+
         const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
-        const existingMessages = await MessageLogModel.findAll({
-            where: {
-                [Op.or]: messageIds
-            }
-        });
+        let existingMessages = null;
+        try {
+            existingMessages = await MessageLogModel.findAll({
+                where: {
+                    [Op.or]: messageIds
+                }
+            });
+        }
+        catch (error) {
+            return handleDatabaseError(error, 'Error finding existing messages');
+        }
         const existingIds = existingMessages.map(m => m.id);
         const logIds = [];
-        // reverse the order of messages to log the oldest message first
-        const reversedMessages = incomingData.logInfo.messages.reverse();
-        for (const message of reversedMessages) {
-            if (existingIds.includes(message.id.toString())) {
-                continue;
-            }
-            let recordingLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
-                recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
-            }
-            let faxDocLink = null;
-            let faxDownloadLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
-                faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
-                faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
-            }
-            let imageLink = null;
-            let imageDownloadLink = null;
-            let imageContentType = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
-                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-                if (imageAttachment) {
-                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-                    imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
-                    imageContentType = imageAttachment?.contentType;
-                }
-            }
-            let videoLink = null;
-            if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
-                const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
-                if (imageAttachment) {
-                    imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-                }
-                const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
-                if (videoAttachment) {
-                    videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
-                }
-            }
-            const existingSameDateMessageLog = await MessageLogModel.findOne({
+        // Case: Shared SMS
+        if (isSharedSMS) {
+            const existingMessageLog = await MessageLogModel.findOne({
                 where: {
                     conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
-            let crmLogId = ''
-            if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
-                crmLogId = existingSameDateMessageLog.thirdPartyLogId;
+            const entities = incomingData.logInfo.entities;
+            const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
+            if (existingMessageLog) {
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                crmLogId = createMessageLogResult.logId;
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, additionalSubmission, proxyConfig });
+                const crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
+                if (createMessageLogResult.logId) {
+                    const createdMessageLog =
+                        await MessageLogModel.create({
+                            id: incomingData.logInfo.conversationLogId,
+                            platform,
+                            conversationId: incomingData.logInfo.conversationId,
+                            thirdPartyLogId: createMessageLogResult.logId,
+                            userId,
+                            conversationLogId: incomingData.logInfo.conversationLogId
+                        });
+                    logIds.push(createdMessageLog.id);
+                }
             }
-            if (crmLogId) {
-                const createdMessageLog =
-                    await MessageLogModel.create({
-                        id: message.id.toString(),
-                        platform,
-                        conversationId: incomingData.logInfo.conversationId,
-                        thirdPartyLogId: crmLogId,
-                        userId,
+        }
+        // Case: normal SMS
+        else {
+            // reverse the order of messages to log the oldest message first
+            const reversedMessages = incomingData.logInfo.messages.reverse();
+            for (const message of reversedMessages) {
+                if (existingIds.includes(message.id.toString())) {
+                    continue;
+                }
+                let recordingLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'AudioRecording')) {
+                    recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
+                }
+                let faxDocLink = null;
+                let faxDownloadLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
+                    faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+                    faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
+                }
+                let imageLink = null;
+                let imageDownloadLink = null;
+                let imageContentType = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
+                    const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                    if (imageAttachment) {
+                        imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                        imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+                        imageContentType = imageAttachment?.contentType;
+                    }
+                }
+                let videoLink = null;
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment')) {
+                    const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
+                    if (imageAttachment) {
+                        imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
+                    }
+                    const videoAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('video/'));
+                    if (videoAttachment) {
+                        videoLink = getMediaReaderLinkByPlatformMediaLink(videoAttachment?.uri);
+                    }
+                }
+                const existingSameDateMessageLog = await MessageLogModel.findOne({
+                    where: {
                         conversationLogId: incomingData.logInfo.conversationLogId
-                    });
-                logIds.push(createdMessageLog.id);
+                    }
+                });
+                if (existingSameDateMessageLog) {
+                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    returnMessage = updateMessageResult?.returnMessage;
+                }
+                else {
+                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    const crmLogId = createMessageLogResult.logId;
+                    if (crmLogId) {
+                        try {
+                            const createdMessageLog =
+                                await MessageLogModel.create({
+                                    id: message.id.toString(),
+                                    platform,
+                                    conversationId: incomingData.logInfo.conversationId,
+                                    thirdPartyLogId: crmLogId,
+                                    userId,
+                                    conversationLogId: incomingData.logInfo.conversationLogId
+                                });
+                            logIds.push(createdMessageLog.id);
+                        } catch (error) {
+                            return handleDatabaseError(error, 'Error creating message log');
+                        }
+                    }
+                    returnMessage = createMessageLogResult?.returnMessage;
+                    extraDataTracking = createMessageLogResult.extraDataTracking;
+                }
             }
         }
         return { successful: true, logIds, returnMessage, extraDataTracking };
     }
     catch (e) {
-        console.error(`platform: ${platform} \n${e.stack}`);
-        if (e.response?.status === 429) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.rateLimitErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        else if (e.response?.status >= 400 && e.response?.status < 410) {
-            return {
-                successful: false,
-                returnMessage: errorMessage.authorizationErrorMessage({ platform }),
-                extraDataTracking: {
-                    statusCode: e.response?.status,
-                }
-            };
-        }
-        return {
-            successful: false,
-            returnMessage:
-            {
-                message: `Error creating message log`,
-                messageType: 'warning',
-                details: [
-                    {
-                        title: 'Details',
-                        items: [
-                            {
-                                id: '1',
-                                type: 'text',
-                                text: `Please check if your account has permission to CREATE logs.`
-                            }
-                        ]
-                    }
-                ],
-                ttl: 5000
-            },
-            extraDataTracking: {
-                statusCode: e.response?.status,
-            }
-        };
+        return handleApiError(e, platform, 'createMessageLog', { userId });
     }
 }
 
-async function saveNoteCache({ sessionId, note }) {
+async function saveNoteCache({ platform, userId, sessionId, note }) {
     try {
         const now = moment();
-        const noteCache = await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
+        await NoteCache.create({ sessionId, note, ttl: now.unix() + 3600 });
         return { successful: true, returnMessage: 'Note cache saved' };
     } catch (e) {
-        console.error(`Error saving note cache: ${e.stack}`);
-        return { successful: false, returnMessage: 'Error saving note cache' };
+        return handleApiError(e, platform, 'saveNoteCache', { userId, sessionId, note });
     }
 }
 

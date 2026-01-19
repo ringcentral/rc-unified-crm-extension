@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.7.10",
+  "version": "1.7.11",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -16,8 +16,9 @@
     "server": "nodemon ./src/server.js",
     "start": "npm run server",
     "start-debug": "node --inspect ./src/server.js",
-    "test": "set NODE_ENV=test&&jest --forceExit -i",
-    "test-coverage": "set NODE_ENV=test&&jest --coverage --runInBand",
+    "test": "set NODE_ENV=test&&jest --forceExit -i && npm run test --workspace=@app-connect/core",
+    "test:root": "set NODE_ENV=test&&jest --forceExit -i",
+    "test-coverage": "set NODE_ENV=test&&jest --coverage --runInBand && npm run test:coverage --workspace=@app-connect/core",
     "build-local": "node ./scripts/build",
     "build": "node ./scripts/serverless-build",
     "deploy": "node ./scripts/serverless-deploy",

@@ -4,6 +4,8 @@ const connectorRegistry = require('../connector/registry');
 const oauth = require('../lib/oauth');
 const { RingCentral } = require('../lib/ringcentral');
 const { Connector } = require('../models/dynamo/connectorSchema');
+const logger = require('../lib/logger');
+const { handleDatabaseError } = require('../lib/errorHandler');
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
 
@@ -136,7 +138,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
             groupKeys: CALL_AGGREGATION_GROUPS
         };
     } catch (error) {
-        console.error(error);
+        logger.error('Error getting admin report', { error });
         return {
             callLogStats: {}
         };
@@ -206,13 +208,19 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
         };
         return reportStats;
     } catch (error) {
-        console.error(error);
+        logger.error('Error getting user report', { error });
         return null;
     }
 }
 
 async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
-    const adminConfig = await getAdminSettings({ hashedRcAccountId });
+    let adminConfig = null;
+    try {
+        adminConfig = await getAdminSettings({ hashedRcAccountId });
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error getting user mapping');
+    }
     const platformModule = connectorRegistry.getConnector(user.platform);
     if (platformModule.getUserList) {
         const proxyId = user.platformAdditionalInfo?.proxyId;
@@ -318,12 +326,17 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                     });
                 }
             }
-            await upsertAdminSettings({
-                hashedRcAccountId,
-                adminSettings: {
-                    userMappings: initialUserMappings
-                }
-            });
+            try {
+                await upsertAdminSettings({
+                    hashedRcAccountId,
+                    adminSettings: {
+                        userMappings: initialUserMappings
+                    }
+                });
+            }
+            catch (error) {
+                return handleDatabaseError(error, 'Error initializing user mapping');
+            }
         }
         // Incremental update
         if (newUserMappings.length > 0) {
@@ -333,20 +346,30 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                     ...u,
                     rcExtensionId: [u.rcExtensionId]
                 }));
-                await upsertAdminSettings({
-                    hashedRcAccountId,
-                    adminSettings: {
-                        userMappings: [...adminConfig.userMappings, ...newUserMappings]
-                    }
-                });
+                try {
+                    await upsertAdminSettings({
+                        hashedRcAccountId,
+                        adminSettings: {
+                            userMappings: [...adminConfig.userMappings, ...newUserMappings]
+                        }
+                    });
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error updating user mapping');
+                }
             }
             else {
-                await upsertAdminSettings({
-                    hashedRcAccountId,
-                    adminSettings: {
-                        userMappings: [...newUserMappings]
-                    }
-                });
+                try {
+                    await upsertAdminSettings({
+                        hashedRcAccountId,
+                        adminSettings: {
+                            userMappings: [...newUserMappings]
+                        }
+                    });
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error updating user mapping');
+                }
             }
         }
         return userMappingResult;

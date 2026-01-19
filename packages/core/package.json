@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/core",
-  "version": "1.7.10",
+  "version": "1.7.11",
   "description": "RingCentral App Connect Core",
   "main": "index.js",
   "repository": {
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "@aws-sdk/client-s3": "^3.947.0",
     "@aws-sdk/s3-request-presigner": "^3.947.0",
     "body-parser": "^1.20.4",

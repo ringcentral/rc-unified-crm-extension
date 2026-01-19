@@ -2,6 +2,7 @@ const axios = require('axios');
 const oauth = require('@app-connect/core/lib/oauth');
 const platformModule = require('./index');
 const path = require('path');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 const adminCore = require('@app-connect/core/handlers/admin');
 const util = require('@app-connect/core/lib/util');
 async function renderPickerFile({ user }) {
@@ -69,7 +70,12 @@ async function createNewSheet({ user, data }) {
     user.userSettings = {};
     // eslint-disable-next-line no-param-reassign
     user.userSettings = updatedUserSettings;
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         successful: true,
         sheetName,
@@ -162,7 +168,12 @@ async function updateSelectedSheet({ user, data }) {
     user.userSettings = {};
     // eslint-disable-next-line no-param-reassign
     user.userSettings = updatedUserSettings;
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         successful: true,
         sheetName: sheetData?.name,

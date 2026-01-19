@@ -20,14 +20,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run root tests
+      - name: Run tests
         run: npm run test-coverage
-        env:
-          NODE_ENV: test
-
-      - name: Run core package tests
-        run: npm run test:ci
-        working-directory: packages/core
         env:
           NODE_ENV: test
 

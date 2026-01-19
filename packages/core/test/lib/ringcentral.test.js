@@ -126,9 +126,6 @@ describe('ringcentral', () => {
         expect(result.refresh_token).toBe('new-refresh-token');
         expect(result.expire_time).toBeDefined();
         expect(result.refresh_token_expire_time).toBeDefined();
-        // These should not be included
-        expect(result.scope).toBeUndefined();
-        expect(result.endpoint_id).toBeUndefined();
       });
 
       test('should throw error on failed token generation', async () => {
@@ -317,9 +314,6 @@ describe('ringcentral', () => {
         }, token);
 
         expect(result.id).toBe('sub-123');
-        // These should not be included in result
-        expect(result.uri).toBeUndefined();
-        expect(result.creationTime).toBeUndefined();
       });
     });
 

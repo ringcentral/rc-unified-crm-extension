@@ -7,6 +7,8 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
 function getAuthType() {
     return 'oauth';
@@ -58,6 +60,7 @@ async function getUserInfo({ authHeader, hostname }) {
         };
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -87,7 +90,7 @@ async function unAuthorize({ user }) {
     const refreshTokenParams = new url.URLSearchParams({
         token: user.refreshToken
     });
-    const refreshTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         refreshTokenParams,
         {
@@ -96,7 +99,7 @@ async function unAuthorize({ user }) {
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
-    const accessTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         accessTokenParams,
         {
@@ -105,7 +108,12 @@ async function unAuthorize({ user }) {
     // remove user credentials
     user.accessToken = '';
     user.refreshToken = '';
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         returnMessage: {
             messageType: 'success',
@@ -115,7 +123,7 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+async function findContact({ user, authHeader, phoneNumber, isExtension }) {
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -178,7 +186,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
             };
         }
-        catch (e) { leadsResponse = null; }
+        catch (e) {
+            logger.error('Error getting leads', { stack: e.stack });
+            leadsResponse = null;
+        }
         const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
@@ -243,7 +254,10 @@ async function findContactWithName({ user, authHeader, name }) {
                 ratelimitReset: leadsResponse.headers['x-ratelimit-reset']
             };
         }
-        catch (e) { leadsResponse = null; }
+        catch (e) {
+            logger.error('Error getting leads', { stack: e.stack });
+            leadsResponse = null;
+        }
         const relatedLeads = leadsResponse?.data?.data ?
             leadsResponse.data.data.map(l => { return { const: l.id, title: l.title } })
             : null;
@@ -339,7 +353,7 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const leadId = additionalSubmission ? additionalSubmission.leads : '';
     const personResponse = await axios.get(`https://${user.hostname}/api/v2/persons/${contactInfo.id}`, { headers: { 'Authorization': authHeader } });
@@ -363,7 +377,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -420,22 +434,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, duration, additionalSubmission, composedLogDetails, hashedAccountId }) {
     let extraDataTracking = {};
     const existingPipedriveLogId = existingCallLog.thirdPartyLogId;
-
-    // Use passed existingCallLogDetails to avoid duplicate API call
-    let getLogRes = null;
-    if (existingCallLogDetails) {
-        getLogRes = { data: { data: existingCallLogDetails } };
-    } else {
-        // Fallback to API call if details not provided
-        getLogRes = await axios.get(
-            `https://${user.hostname}/api/v2/activities/${existingPipedriveLogId}`,
-            {
-                headers: { 'Authorization': authHeader }
-            });
-    }
 
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -513,8 +514,11 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     let extraDataTracking = {};
+    let subject = '';
+    let note = '';
+
     const userInfoResponse = await axios.get(`https://${user.hostname}/v1/users/me`, {
         headers: {
             'Authorization': authHeader
@@ -526,43 +530,48 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const leadId = additionalSubmission ? additionalSubmission.leads : '';
     const orgId = personResponse.data.data.org_id ?? '';
-    const timeUtc = moment(message.creationTime).utcOffset(0).format('HH:mm')
-    const dateUtc = moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
+    const timeUtc = sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utcOffset(0).format('HH:mm') : moment(message.creationTime).utcOffset(0).format('HH:mm')
+    const dateUtc = sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utcOffset(0).format('YYYY-MM-DD') : moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const smsType = activityTypesResponse.data.data.find(t => t.name === 'SMS' && t.active_flag);
-
-    const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
-    let subject = '';
-    let note = '';
-    switch (messageType) {
-        case 'SMS':
-            subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
-            note =
-                `<br><b>${subject}</b><br>` +
-                '<b>Conversation summary</b><br>' +
-                `${moment(message.creationTime).utcOffset(user.timezoneOffset).format('dddd, MMMM DD, YYYY')}<br>` +
-                'Participants<br>' +
-                `<ul><li><b>${userName}</b><br></li>` +
-                `<li><b>${contactInfo.name}</b></li></ul><br>` +
-                'Conversation(1 messages)<br>' +
-                'BEGIN<br>' +
-                '------------<br>' +
-                '<ul>' +
-                `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
-                `<b>${message.subject}</b></li>` +
-                '</ul>' +
-                '------------<br>' +
-                'END<br><br>' +
-                '--- Created via RingCentral App Connect';
-            break;
-        case 'Voicemail':
-            subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
-            note = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
-        case 'Fax':
-            subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
-            note = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
-            break;
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {
+        subject = sharedSMSLogContent.subject;
+        note = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const messageType = recordingLink ? 'Voicemail' : (faxDocLink ? 'Fax' : 'SMS');
+        switch (messageType) {
+            case 'SMS':
+                subject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
+                note =
+                    `<br><b>${subject}</b><br>` +
+                    '<b>Conversation summary</b><br>' +
+                    `${moment(message.creationTime).utcOffset(user.timezoneOffset).format('dddd, MMMM DD, YYYY')}<br>` +
+                    'Participants<br>' +
+                    `<ul><li><b>${userName}</b><br></li>` +
+                    `<li><b>${contactInfo.name}</b></li></ul><br>` +
+                    'Conversation(1 messages)<br>' +
+                    'BEGIN<br>' +
+                    '------------<br>' +
+                    '<ul>' +
+                    `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
+                    `<b>${message.subject}</b></li>` +
+                    '</ul>' +
+                    '------------<br>' +
+                    'END<br><br>' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                subject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
+                note = `<br><b>${subject}</b><br>Voicemail recording link: ${recordingLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+            case 'Fax':
+                subject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('YY/MM/DD')}`;
+                note = `<br><b>${subject}</b><br>Fax document link: ${faxDocLink} <br><br>--- Created via RingCentral App Connect`;
+                break;
+        }
     }
     const postBody = {
         owner_id: Number(user.id.split('-')[0]),
@@ -608,34 +617,42 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, additionalSubmission }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, additionalSubmission }) {
     const dealId = additionalSubmission ? additionalSubmission.deals : '';
     const leadId = additionalSubmission ? additionalSubmission.leads : '';
     let extraDataTracking = {};
     const existingLogId = existingMessageLog.thirdPartyLogId;
-    const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
-        headers: {
-            'Authorization': authHeader
-        }
-    });
-    const userName = userInfoResponse.data.data.name;
-    const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v2/activities/${existingLogId}`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    let logBody = getLogRes.data.data.note;
+    let logBody = '';
     let patchBody = {};
-    const newMessageLog =
-        `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
-        `<b>${message.subject}</b></li>`;
-    // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
-    logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
 
-    const regex = RegExp('<br>Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        logBody = sharedSMSLogContent.body;
+    }
+    // Case: normal SMS
+    else {
+        const userInfoResponse = await axios.get('https://api.pipedrive.com/v1/users/me', {
+            headers: {
+                'Authorization': authHeader
+            }
+        });
+        const userName = userInfoResponse.data.data.name;
+        const getLogRes = await axios.get(
+            `https://${user.hostname}/api/v2/activities/${existingLogId}`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        logBody = getLogRes.data.data.note;
+        const newMessageLog =
+            `<li>${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(user.timezoneOffset).format('hh:mm A')}<br>` +
+            `<b>${message.subject}</b></li>`;
+        // Add new message at the end (before the closing </ul> tag inside BEGIN/END block)
+        logBody = logBody.replace('</ul>------------<br>', `${newMessageLog}</ul>------------<br>`);
 
+        const regex = RegExp('<br>Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `<br>Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    }
     patchBody = {
         note: logBody,
         deal_id: dealId

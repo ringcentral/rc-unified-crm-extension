@@ -6,7 +6,6 @@ const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
 const { CallDownListModel } = require('./models/callDownListModel');
-const { Op } = require('sequelize');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
@@ -26,15 +25,20 @@ const analytics = require('./lib/analytics');
 const util = require('./lib/util');
 const connectorRegistry = require('./connector/registry');
 const calldown = require('./handlers/calldown');
+const mcpHandler = require('./mcp/mcpHandler');
+const logger = require('./lib/logger');
 const { DebugTracer } = require('./lib/debugTracer');
 const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const ptpCore = require('./handlers/ptp');
+const { handleDatabaseError } = require('./lib/errorHandler');
+const { updateAuthSession } = require('./lib/authSession');
 
 let packageJson = null;
 try {
     packageJson = require('./package.json');
 }
 catch (e) {
+    logger.error('Error loading package.json', { stack: e.stack });
     packageJson = require('../package.json');
 }
 
@@ -53,7 +57,7 @@ axios.defaults.headers.common['Unified-CRM-Extension-Version'] = packageJson.ver
 
 async function initDB() {
     if (!process.env.DISABLE_SYNC_DB_TABLE) {
-        console.log('creating db tables if not exist...');
+        logger.info('creating db tables if not exist...');
         await UserModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
@@ -130,6 +134,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
+            logger.error('Error getting crm manifest', { stack: e.stack });
             res.status(400).send('Platform not found');
         }
     });
@@ -282,7 +287,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Auth validation failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('authValidation:error', e);
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
@@ -334,7 +339,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Set admin settings failed', { stack: e.stack });
             tracer?.traceError('setAdminSettings:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             success = false;
@@ -459,7 +464,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user mapping failed', { stack: e.stack });
             tracer?.traceError('getUserMapping:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -510,7 +515,7 @@ function createCoreRouter() {
             success = true;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get server logging settings failed', { stack: e.stack });
             tracer?.traceError('getServerLoggingSettings:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -566,7 +571,7 @@ function createCoreRouter() {
             success = true;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Set server logging settings failed', { stack: e.stack });
             tracer?.traceError('setServerLoggingSettings:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: { messageType: 'warning', message: 'Server logging settings update failed', ttl: 5000 } }) : { successful: false, returnMessage: { messageType: 'warning', message: 'Server logging settings update failed', ttl: 5000 } });
             success = false;
@@ -602,7 +607,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user preload settings failed', { stack: e.stack });
             tracer?.traceError('getUserSettingsByAdmin:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -641,7 +646,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get user settings failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('getUserSettings:error', e, { platform: platformName });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -694,7 +699,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Set user settings failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('setUserSettings:error', e, { platform: platformName });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -734,7 +739,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get hostname failed', { stack: e.stack });
             tracer?.traceError('hostname:error', e);
             res.status(500).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
@@ -745,17 +750,28 @@ function createCoreRouter() {
         tracer?.trace('oauth-callback:start', { query: req.query });
         let platformName = null;
         let success = false;
+        let sessionId = null;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             if (!req.query?.callbackUri || req.query.callbackUri === 'undefined') {
-                tracer?.trace('oauth-callback:missingCallbackUri', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing callbackUri') : 'Missing callbackUri');
-                return;
+                // case: from mcp
+                if (req.query.code) {
+                    // eslint-disable-next-line no-param-reassign
+                    req.query.callbackUri = `${process.env.APP_SERVER}/oauth-callback?code=${req.query.code}`;
+                }
+                else {
+                    tracer?.trace('oauth-callback:missingCallbackUri', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Missing callbackUri') : 'Missing callbackUri');
+                    return;
+                }
             }
-            platformName = req.query.state ?
-                req.query.state.split('platform=')[1] :
-                decodeURIComponent(decodeURIComponent(req.originalUrl).split('state=')[1].split('&')[0]).split('platform=')[1];
-            const hostname = req.query.hostname;
+            const state = new URL(req.query.callbackUri).searchParams.get('state') ?? req.query.state;
+            const stateParams = new URLSearchParams(state ? decodeURIComponent(state) : '');
+            platformName = stateParams.get('platform');
+            // Extract mcp auth sessionId if present
+            sessionId = stateParams?.get('sessionId');
+            const isFromMCP = !!sessionId;
+            const hostname = req.query.hostname ?? stateParams.get('hostname');
             const tokenUrl = req.query.tokenUrl;
             if (!platformName) {
                 tracer?.trace('oauth-callback:missingPlatformName', {});
@@ -771,25 +787,53 @@ function createCoreRouter() {
                 platform: platformName,
                 hostname,
                 tokenUrl,
-                query: req.query
+                query: req.query,
+                proxyId: req.query.proxyId,
+                isFromMCP
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
                     platform: platformName
                 });
-                res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
-                success = true;
+                // Store in session if sessionId exists (MCP flow)
+                if (isFromMCP) {
+                    await updateAuthSession(sessionId, {
+                        status: 'completed',
+                        jwtToken,
+                        userInfo: {
+                            id: userInfo.id,
+                            name: userInfo.name
+                        }
+                    });
+                    res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
+                    success = true;
+                }
+                else {                
+                    res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
+                    success = true;
+                }
             }
             else {
                 res.status(200).send(tracer ? tracer.wrapResponse({ returnMessage }) : { returnMessage });
-                success = false;
+                await updateAuthSession(sessionId, {
+                    status: 'failed',
+                    errorMessage: returnMessage?.message || 'Authentication failed'
+                });
             }
+            success = false;
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('OAuth callback failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('oauth-callback:error', e, { platform: platformName });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            if (sessionId) {
+                await updateAuthSession(sessionId, {
+                    status: 'failed',
+                    errorMessage: e.message || e.toString()
+                });
+            }
+
             success = false;
         }
         const requestEndTime = new Date().getTime();
@@ -806,7 +850,7 @@ function createCoreRouter() {
             author,
             eventAddedVia
         });
-    })
+    });
     router.post('/apiKeyLogin', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
@@ -846,7 +890,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('API key login failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('apiKeyLogin:error', e, { platform: platformName });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             success = false;
@@ -896,7 +940,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Unauthorize failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('unAuthorize:error', e, { platform: platformName });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             success = false;
@@ -925,7 +969,7 @@ function createCoreRouter() {
             res.status(200).send(tracer ? tracer.wrapResponse({ extensionId, accountId }) : { extensionId, accountId });
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user info hash failed', { stack: e.stack });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('userInfoHash:error', e);
         }
@@ -979,7 +1023,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Find contact failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('findContact:error', e, { platform: platformName });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
@@ -1037,7 +1081,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create contact failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('createContact:error', e, { platform: platformName });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
@@ -1080,7 +1124,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ sessionId: req.body.sessionId, note: req.body.note });
+                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ platform, userId, sessionId: req.body.sessionId, note: req.body.note });
                 res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                 success = true;
                 if (extraDataTracking) {
@@ -1088,7 +1132,7 @@ function createCoreRouter() {
                 }
             }
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Save note cache failed', { platform: platformName, stack: e.stack });
             tracer?.traceError('saveNoteCache:error', e, { platform: platformName });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
@@ -1102,6 +1146,14 @@ function createCoreRouter() {
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia,
+            extras: {
+                ...extraData
+            }
         });
     })
     router.get('/callLog', async function (req, res) {
@@ -1138,7 +1190,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('getCallLog:error', e, { platform: platformName });
@@ -1195,7 +1247,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('createCallLog:error', e, { platform: platformName });
@@ -1252,7 +1304,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Update call log failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('updateCallLog:error', e, { platform: platformName });
@@ -1314,7 +1366,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Upsert call disposition failed', { platform: platformName, stack: e.stack });
             extraData.statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('upsertCallDisposition:error', e, { platform: platformName });
@@ -1372,7 +1424,7 @@ function createCoreRouter() {
             }
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Create message log failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('createMessageLog:error', e, { platform: platformName });
@@ -1412,11 +1464,16 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
-            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
-            success = true;
-            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
+            try {
+                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
+                success = true;
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
+            }
+            catch (e) {
+                return handleDatabaseError(e, 'Error scheduling call down');
+            }
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Schedule call down failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('scheduleCallDown:error', e, { platform: platformName });
@@ -1459,7 +1516,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, items }) : { successful: true, items });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Get call down list failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('getCallDownList:error', e, { platform: platformName });
@@ -1507,7 +1564,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Delete call down item failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('deleteCallDownItem:error', e, { platform: platformName });
@@ -1554,7 +1611,7 @@ function createCoreRouter() {
             success = true;
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
         } catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Mark call down called failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('markCallDownCalled:error', e, { platform: platformName });
@@ -1582,7 +1639,6 @@ function createCoreRouter() {
         tracer?.trace('contactSearchByName:start', { query: req.query });
         let platformName = null;
         let success = false;
-        let resultCount = 0;
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
@@ -1602,7 +1658,7 @@ function createCoreRouter() {
 
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
+            logger.error('Contact search by name failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('contactSearchByName:error', e, { platform: platformName });
@@ -1652,7 +1708,7 @@ function createCoreRouter() {
             success = false;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get admin report failed', { stack: e.stack });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('getAdminReport:error', e, { platform: platformName });
         }
@@ -1697,7 +1753,7 @@ function createCoreRouter() {
             success = false;
         }
         catch (e) {
-            console.log(`${e.stack}`);
+            logger.error('Get user report failed', { stack: e.stack });
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
             tracer?.traceError('getUserReport:error', e, { platform: platformName });
         }
@@ -1872,6 +1928,116 @@ function createCoreRouter() {
             }
         });
     }
+    // --- METADATA ENDPOINT 1: Resource Metadata ---
+    // Tells the client "I am protected" and "Here is who protects me"
+    router.get('/.well-known/oauth-protected-resource', (req, res) => {
+        res.json({
+            resource: process.env.APP_SERVER,
+            // CHANGE THIS: Point to your own server so the client fetches YOUR metadata next
+            authorization_servers: [process.env.APP_SERVER],
+            scopes_supported: ["ReadAccounts"]
+        });
+    });
+
+    // --- METADATA ENDPOINT 2: Auth Server Metadata ---
+    // Usually, you can redirect to your provider's configuration.
+    // If your provider supports OIDC discovery, this is often sufficient.
+    router.get('/.well-known/oauth-authorization-server', (req, res) => {
+        res.json({
+            issuer: process.env.APP_SERVER,
+            registration_endpoint: `${process.env.APP_SERVER}/oauth/register`,
+
+            // CHANGE THIS: Don't point to RingCentral. Point to your own Shim.
+            authorization_endpoint: `${process.env.APP_SERVER}/oauth/authorize_shim`,
+
+            // Keep the token endpoint pointing to RingCentral (that usually works fine)
+            token_endpoint: `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/token`,
+            token_endpoint_auth_methods_supported: ["client_secret_basic"],
+            response_types_supported: ["code"]
+        });
+    });
+
+    router.get('/oauth/authorize_shim', (req, res) => {
+        // 1. Get the parameters ChatGPT sent us
+        const { response_type, client_id, redirect_uri, state, scope } = req.query;
+
+        // 2. Rebuild the query string for RingCentral
+        // We explicitly LEAVE OUT 'resource' and any other junk
+        const params = new URLSearchParams({
+            response_type,
+            client_id, // This will be your RC Client ID (since ChatGPT got it from /register)
+            redirect_uri,
+            state,
+            scope
+        });
+
+        // 3. Redirect the user's browser to the REAL RingCentral URL
+        const rcUrl = `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/authorize?${params.toString()}`;
+
+        console.log("Proxying OAuth request to:", rcUrl); // Helpful for debugging
+        res.redirect(rcUrl);
+    });
+
+    router.post('/oauth/register', (req, res) => {
+        // The MCP client calls this to get credentials.
+        // We simply return our hardcoded RingCentral app credentials.
+        res.json({
+            client_id: process.env.RINGCENTRAL_CLIENT_ID,
+            client_secret: process.env.RINGCENTRAL_CLIENT_SECRET
+        });
+    });
+
+    router.use('/mcp', (req, res, next) => {// LOG EVERYTHING
+        console.log(`[${req.method}] /mcp`);
+        console.log("Headers:", JSON.stringify(req.headers['authorization'] ? "Auth Token Present" : "No Auth"));
+        console.log("Body:", JSON.stringify(req.body));
+        // return next();
+        // Capture the response finish to see the status code
+        res.on('finish', () => {
+            console.log(`[Response] Status: ${res.statusCode}`);
+            console.log(`[Response] data: ${JSON.stringify(res.data)}`);
+        });
+
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.split(' ')[1]; // Remove "Bearer "
+        // Allow the initial connection (GET) and CORS checks (OPTIONS) to pass freely.
+        // We only want to block the actual commands (POST).
+        if (req.method === 'GET' || req.method === 'OPTIONS') {
+            return next();
+        }
+        // SCENARIO 1: No Token provided. Kick off the OAuth flow.
+        if (!token) {
+            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
+            return res.status(401).send();
+        }
+
+        // SCENARIO 2: Token provided. Verify it.
+        try {
+            next();
+        } catch (error) {
+            console.error("Token validation failed:", error.message);
+            // Token is invalid or expired
+            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
+            return res.status(401).send();
+        }
+    });
+    // Handle OPTIONS for CORS preflight
+    router.options('/mcp', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.status(200).end();
+    });
+
+    // Dedicated endpoint for all MCP traffic
+    router.post('/mcp', async (req, res) => {
+        // Set CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        await mcpHandler.handleMcpRequest(req, res);
+    });
 
     return router;
 }

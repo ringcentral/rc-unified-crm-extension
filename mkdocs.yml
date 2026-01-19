@@ -40,13 +40,17 @@ theme:
     code: Roboto Mono
 
 plugins:
+#  - pdf-export:
+#      combined: true
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - badges
+#  - badges
   - exclude:
       regex:
         - '^\.#.*'
         - '.*\.\#.*$'
+  - print-site
+
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
 
@@ -60,10 +64,6 @@ extra_css:
   - extra.css
 extra_javascript:
   - extra.js
-
-#plugins:
-#  pdf-export:
-#    combined: true
 
 markdown_extensions:
   - attr_list
@@ -100,16 +100,17 @@ nav:
    - 'Redtail CRM': crm/redtail.md
    - 'ServiceNow': crm/servicenow.md
 - 'User guide':
-  - 'Using App Connect': 
-    - 'Accessing App Connect': users/access.md
-    - 'Click-to-dial': users/making-calls.md
-    - 'Screen-pop': users/screen-pop.md
+  - 'Introduction': users/access.md
+  - 'App Connect features': 
     - 'AI Assistant': users/ai.md
-    - 'Sending SMS': users/sms.md
+    - 'Call-down lists (2.0)': users/calldown-lists.md
+    - 'Call monitoring (2.0)': users/hud.md
+    - 'Click-to-dial': users/making-calls.md
     - 'Metrics and reports': users/user-report.md
     - 'Presence and status': users/presence.md
-    - 'Call park and queue monitoring (2.0)': users/hud.md
-    - 'Call-down lists (2.0)': users/calldown-lists.md
+    - 'RingCX support (experimental)': users/ringcx.md
+    - 'Screen-pop': users/screen-pop.md
+    - 'Sending SMS': users/sms.md
     - 'Voicemail drop (2.0)': users/voicemail-drop.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md

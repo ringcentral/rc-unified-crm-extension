@@ -691,10 +691,12 @@ describe('Log Handler', () => {
         platformAdditionalInfo: {}
       });
 
+      // Create existing message log with same conversationLogId
       await MessageLogModel.create({
         id: 'msg-1',
         platform: 'testCRM',
         conversationId: 'conv-123',
+        conversationLogId: 'conv-log-123',
         thirdPartyLogId: 'existing-log',
         userId: 'test-user-id'
       });
@@ -705,6 +707,9 @@ describe('Log Handler', () => {
         createMessageLog: jest.fn().mockResolvedValue({
           logId: 'msg-log-new',
           returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn().mockResolvedValue({
+          returnMessage: { message: 'Message updated', messageType: 'success', ttl: 2000 }
         })
       };
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
@@ -717,7 +722,7 @@ describe('Log Handler', () => {
           ],
           correspondents: [{ phoneNumber: '+1234567890' }],
           conversationId: 'conv-123',
-          conversationLogId: 'new-conv-log-123'
+          conversationLogId: 'conv-log-123'  // Same conversationLogId as existing record
         },
         contactId: 'contact-123',
         contactType: 'Contact',
@@ -733,8 +738,9 @@ describe('Log Handler', () => {
 
       // Assert
       expect(result.successful).toBe(true);
-      // Only the new message should be logged
-      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(1);
+      // msg-1 is skipped (already logged), msg-2 uses updateMessageLog because same conversationLogId exists
+      expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(0);
+      expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -767,7 +773,8 @@ describe('Log Handler', () => {
 
       // Assert
       expect(result.successful).toBe(false);
-      expect(result.returnMessage).toBe('Error saving note cache');
+      expect(result.returnMessage.message).toBe('Error performing saveNoteCache');
+      expect(result.returnMessage.messageType).toBe('warning');
     });
   });
 

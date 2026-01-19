@@ -1,4 +1,22 @@
 {
+    "1.7.11":{
+        "global": [
+            {
+                "type": "New",
+                "description": "Shared-SMS logging"
+            },
+            {
+                "type": "New",
+                "description": "MCP tools"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "Netsuite now supports Lead and Prospect"
+            }
+        ]
+    },
     "1.7.10": {
         "global": [
             {

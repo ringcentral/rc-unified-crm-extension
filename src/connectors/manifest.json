@@ -1402,6 +1402,14 @@
         {
           "display": "Vendor",
           "value": "vendor"
+        },
+        {
+          "display": "Lead",
+          "value": "lead"
+        },
+        {
+          "display": "Prospect",
+          "value": "prospect"
         }
       ],
       "page": {
