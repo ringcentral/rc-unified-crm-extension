@@ -61,7 +61,7 @@ describe('sharedSMSComposer', () => {
         timezoneOffset: '+00:00'
       });
 
-      expect(result.subject).toBe('<b>SMS conversation with John Customer</b>');
+      expect(result.subject).toBe('SMS conversation with John Customer');
       expect(result.body).toContain('<b>Conversation summary</b>');
       expect(result.body).toContain('<b>Participants</b>');
       expect(result.body).toContain('<li>');

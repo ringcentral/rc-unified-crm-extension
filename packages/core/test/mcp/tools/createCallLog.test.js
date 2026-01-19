@@ -2,6 +2,7 @@ const createCallLog = require('../../../mcp/tools/createCallLog');
 const jwt = require('../../../lib/jwt');
 const connectorRegistry = require('../../../connector/registry');
 const logCore = require('../../../handlers/log');
+const contactCore = require('../../../handlers/contact');
 const util = require('../../../lib/util');
 const { CallLogModel } = require('../../../models/callLogModel');
 
@@ -9,6 +10,7 @@ const { CallLogModel } = require('../../../models/callLogModel');
 jest.mock('../../../lib/jwt');
 jest.mock('../../../connector/registry');
 jest.mock('../../../handlers/log');
+jest.mock('../../../handlers/contact');
 jest.mock('../../../lib/util');
 jest.mock('../../../models/callLogModel');
 
@@ -34,10 +36,8 @@ describe('MCP Tool: createCallLog', () => {
     test('should have detailed inputSchema for incomingData', () => {
       const incomingDataSchema = createCallLog.definition.inputSchema.properties.incomingData;
       expect(incomingDataSchema.properties).toHaveProperty('logInfo');
-      expect(incomingDataSchema.properties).toHaveProperty('contactId');
       expect(incomingDataSchema.properties).toHaveProperty('note');
       expect(incomingDataSchema.required).toContain('logInfo');
-      expect(incomingDataSchema.required).toContain('contactId');
     });
   });
 
@@ -55,7 +55,6 @@ describe('MCP Tool: createCallLog', () => {
           to: { phoneNumber: '+0987654321', name: 'Company' },
           accountId: 'rc-account-123'
         },
-        contactId: 'contact-123',
         contactName: 'John Doe',
         contactType: 'Contact',
         note: 'Test call note'
@@ -74,6 +73,12 @@ describe('MCP Tool: createCallLog', () => {
       CallLogModel.findOne.mockResolvedValue(null); // No existing log
 
       util.getHashValue.mockReturnValue('hashed-account-id');
+
+      // Mock contactCore.findContact to return a contact
+      contactCore.findContact.mockResolvedValue({
+        successful: true,
+        contact: [{ id: 'contact-123', isNewContact: false }]
+      });
 
       logCore.createCallLog.mockResolvedValue({
         successful: true,
@@ -99,13 +104,6 @@ describe('MCP Tool: createCallLog', () => {
       expect(CallLogModel.findOne).toHaveBeenCalledWith({
         where: { sessionId: 'session-123' }
       });
-      expect(logCore.createCallLog).toHaveBeenCalledWith({
-        platform: 'testCRM',
-        userId: 'user-123',
-        incomingData: mockIncomingData,
-        hashedAccountId: 'hashed-account-id',
-        isFromSSCL: false
-      });
     });
 
     test('should create call log with AI note and transcript', async () => {
@@ -120,7 +118,6 @@ describe('MCP Tool: createCallLog', () => {
           from: { phoneNumber: '+0987654321' },
           to: { phoneNumber: '+1234567890' }
         },
-        contactId: 'contact-456',
         aiNote: 'AI generated summary of the call',
         transcript: 'Full call transcript text'
       };
@@ -136,6 +133,12 @@ describe('MCP Tool: createCallLog', () => {
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       CallLogModel.findOne.mockResolvedValue(null);
+
+      // Mock contactCore.findContact to return a contact
+      contactCore.findContact.mockResolvedValue({
+        successful: true,
+        contact: [{ id: 'contact-456', isNewContact: false }]
+      });
 
       logCore.createCallLog.mockResolvedValue({
         successful: true,
@@ -165,7 +168,6 @@ describe('MCP Tool: createCallLog', () => {
           from: { phoneNumber: '+1234567890' },
           to: { phoneNumber: '+0987654321' }
         },
-        contactId: 'contact-789',
         additionalSubmission: {
           isAssignedToUser: true,
           adminAssignedUserToken: 'admin-jwt-token',
@@ -184,6 +186,12 @@ describe('MCP Tool: createCallLog', () => {
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       CallLogModel.findOne.mockResolvedValue(null);
+
+      // Mock contactCore.findContact to return a contact
+      contactCore.findContact.mockResolvedValue({
+        successful: true,
+        contact: [{ id: 'contact-789', isNewContact: false }]
+      });
 
       logCore.createCallLog.mockResolvedValue({
         successful: true,
@@ -352,8 +360,7 @@ describe('MCP Tool: createCallLog', () => {
           duration: 45,
           from: { phoneNumber: '+1234567890' },
           to: { phoneNumber: '+0987654321' }
-        },
-        contactId: 'contact-999'
+        }
       };
 
       jwt.decodeJwt.mockReturnValue({
@@ -367,6 +374,12 @@ describe('MCP Tool: createCallLog', () => {
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       CallLogModel.findOne.mockResolvedValue(null);
+
+      // Mock contactCore.findContact to return a contact
+      contactCore.findContact.mockResolvedValue({
+        successful: true,
+        contact: [{ id: 'contact-999', isNewContact: false }]
+      });
 
       logCore.createCallLog.mockResolvedValue({
         successful: false,

@@ -37,7 +37,7 @@ describe('MCP Tool: doAuth', () => {
         platforms: {
           testCRM: {
             name: 'testCRM',
-            auth: { type: 'apiKey' },
+            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } },
             environment: { type: 'fixed' }
           }
         }
@@ -88,7 +88,7 @@ describe('MCP Tool: doAuth', () => {
         platforms: {
           testCRM: {
             name: 'testCRM',
-            auth: { type: 'apiKey' }
+            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
           }
         }
       };
@@ -135,7 +135,7 @@ describe('MCP Tool: doAuth', () => {
         platforms: {
           testCRM: {
             name: 'testCRM',
-            auth: { type: 'apiKey' }
+            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
           }
         }
       };
@@ -203,7 +203,10 @@ describe('MCP Tool: doAuth', () => {
             name: 'salesforce',
             auth: {
               type: 'oauth',
-              oauth: {}
+              oauth: {
+                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
+                clientId: 'test-client-id'
+              }
             }
           }
         }
@@ -254,7 +257,10 @@ describe('MCP Tool: doAuth', () => {
             name: 'salesforce',
             auth: {
               type: 'oauth',
-              oauth: {}
+              oauth: {
+                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
+                clientId: 'test-client-id'
+              }
             }
           }
         }
@@ -264,12 +270,12 @@ describe('MCP Tool: doAuth', () => {
         userInfo: null
       });
 
-      // Act
+      // Act - callbackUri needs code= and state= to be treated as OAuth callback
       const result = await doAuth.execute({
         connectorManifest: mockManifest,
         connectorName: 'salesforce',
         hostname: 'login.salesforce.com',
-        callbackUri: 'https://redirect.com?error=access_denied'
+        callbackUri: 'https://redirect.com?code=invalid-code&state=test-state'
       });
 
       // Assert
@@ -318,7 +324,7 @@ describe('MCP Tool: doAuth', () => {
         platforms: {
           testCRM: {
             name: 'testCRM',
-            auth: { type: 'apiKey' }
+            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
           }
         }
       };

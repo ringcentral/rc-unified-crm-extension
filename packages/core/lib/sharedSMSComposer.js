@@ -373,7 +373,7 @@ function composeHTMLBody({ conversationCreatedDate, conversationUpdatedDate, con
     // Owner/Call queue info
     if (ownerInfo) {
         if (ownerInfo.type === 'callQueue') {
-            body += `<div>Receiving call queue: <b>${escapeHtml(ownerInfo.name)}</b>, ext. &lt;extension&gt;</div><br>`;
+            body += `<div>Receiving call queue: <b>${escapeHtml(ownerInfo.name)}</b></div><br>`;
         } else {
             body += `<div>Owner: <b>${escapeHtml(ownerInfo.name)}</b></div><br>`;
         }
@@ -422,7 +422,7 @@ function composeMarkdownBody({ conversationCreatedDate, conversationUpdatedDate,
     // Owner/Call queue info
     if (ownerInfo) {
         if (ownerInfo.type === 'callQueue') {
-            body += `Receiving call queue: **${ownerInfo.name}**, ext. \\<extension\\>\n\n`;
+            body += `Receiving call queue: **${ownerInfo.name}**\n\n`;
         } else {
             body += `Owner: **${ownerInfo.name}**\n\n`;
         }

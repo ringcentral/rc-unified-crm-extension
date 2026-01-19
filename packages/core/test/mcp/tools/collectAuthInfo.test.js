@@ -22,6 +22,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           salesforce: {
             name: 'salesforce',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'selectable',
               selections: [
@@ -56,6 +63,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           netsuite: {
             name: 'netsuite',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://system.netsuite.com/app/login/oauth2/authorize.nl',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'dynamic'
             }
@@ -86,6 +100,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           salesforce: {
             name: 'salesforce',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'selectable',
               selections: [
@@ -115,6 +136,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           netsuite: {
             name: 'netsuite',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://system.netsuite.com/app/login/oauth2/authorize.nl',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'dynamic'
             }
@@ -141,6 +169,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           salesforce: {
             name: 'salesforce',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'selectable',
               selections: [
@@ -169,6 +204,13 @@ describe('MCP Tool: collectAuthInfo', () => {
         platforms: {
           netsuite: {
             name: 'netsuite',
+            auth: {
+              type: 'oauth',
+              oauth: {
+                authUrl: 'https://system.netsuite.com/app/login/oauth2/authorize.nl',
+                clientId: 'test-client-id'
+              }
+            },
             environment: {
               type: 'dynamic'
             }
