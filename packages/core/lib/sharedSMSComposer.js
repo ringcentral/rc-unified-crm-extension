@@ -41,7 +41,7 @@ function composeSubject({ logFormat, contactName }) {
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
-            return `<b>${title}</b>`;
+            return title;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
             return `**${title}**`;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
