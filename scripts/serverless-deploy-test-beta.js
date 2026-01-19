@@ -8,11 +8,12 @@ const execAsync = (cmd, options = {
 }) => {
   return new Promise((resolve, reject) => {
     exec(cmd, options, (error, stdout, stderr) => {
+      // Always log output so we can see serverless error details
+      if (stdout) console.log(`stdout: ${stdout}`);
+      if (stderr) console.error(`stderr: ${stderr}`);
       if (error) {
         return reject(error);
       }
-      console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
       resolve(stdout);
     })
   });
