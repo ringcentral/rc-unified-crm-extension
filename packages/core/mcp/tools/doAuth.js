@@ -93,7 +93,7 @@ async function execute(args) {
                         success: true,
                         data: {
                             jwtToken,
-                            message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use.",
+                            message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
                         }
                     }
                 }
@@ -119,7 +119,7 @@ async function execute(args) {
                             success: true,
                             data: {
                                 jwtToken,
-                                message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use.",
+                                message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
                             }
                         }
                     }
