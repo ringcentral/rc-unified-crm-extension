@@ -55,6 +55,11 @@ const toolDefinition = {
             }
         },
         required: ['connectorManifest', 'connectorName', 'hostname']
+    },
+    annotations: {
+        readOnlyHint: false,
+        openWorldHint: true,
+        destructiveHint: false
     }
 };
 
