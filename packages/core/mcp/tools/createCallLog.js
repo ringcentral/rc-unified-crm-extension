@@ -259,6 +259,9 @@ async function execute(args) {
                 }
             }
         }
+        else {
+            incomingData.contactId = contactId;
+        }
 
         // Call the createCallLog method
         const { successful, logId, returnMessage } = await logCore.createCallLog({
