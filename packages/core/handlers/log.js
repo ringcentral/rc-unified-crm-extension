@@ -225,7 +225,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     logs.push({ sessionId: sId, matched: false });
                 }
                 else {
-                    const getCallLogResult = await platformModule.getCallLog({ user, callLogId: callLog.thirdPartyLogId, contactId: callLog.contactId, authHeader, proxyConfig });
+                    const getCallLogResult = await platformModule.getCallLog({ user, telephonySessionId: callLog.id, callLogId: callLog.thirdPartyLogId, contactId: callLog.contactId, authHeader, proxyConfig });
                     returnMessage = getCallLogResult.returnMessage;
                     extraDataTracking = getCallLogResult.extraDataTracking;
                     logs.push({ sessionId: callLog.sessionId, matched: true, logId: callLog.thirdPartyLogId, logData: getCallLogResult.callLogInfo });
@@ -304,6 +304,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 try {
                     const getLogResult = await platformModule.getCallLog({
                         user,
+                        telephonySessionId: existingCallLog.id,
                         callLogId: existingCallLog.thirdPartyLogId,
                         contactId: existingCallLog.contactId,
                         authHeader,

@@ -7,12 +7,12 @@ const { handleApiError } = require('../lib/errorHandler');
 
 async function upsertCallDisposition({ platform, userId, sessionId, dispositions }) {
     try {
-        const log = await CallLogModel.findOne({
+        const existingCallLog = await CallLogModel.findOne({
             where: {
                 sessionId
             }
         });
-        if (!log) {
+        if (!existingCallLog) {
             return {
                 successful: false,
                 returnMessage: {
@@ -54,7 +54,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
         }
         const { logId, returnMessage, extraDataTracking } = await platformModule.upsertCallDisposition({
             user,
-            existingCallLog: log,
+            existingCallLog,
             authHeader,
             dispositions,
             proxyConfig
