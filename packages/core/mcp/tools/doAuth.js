@@ -59,7 +59,7 @@ const toolDefinition = {
     annotations: {
         readOnlyHint: false,
         openWorldHint: true,
-        destructiveHint: false
+        destructiveHint: true
     }
 };
 
