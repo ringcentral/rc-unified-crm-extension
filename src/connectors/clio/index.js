@@ -449,6 +449,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
+    const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
     const addTimerBody = {
         data: {
             communication: {
@@ -457,7 +458,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             quantity: callLog.duration,
             date: moment(callLog.startTime).toISOString(),
             type: 'TimeEntry',
-            non_billable: additionalSubmission?.nonBillable ?? true,
+            non_billable: nonBillable,
             note: composedLogDetails
         }
     }
@@ -796,7 +797,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     }
                 }
                 catch (e) {
-                logger.error('Error uploading fax document', { stack: e.stack });
+                    logger.error('Error uploading fax document', { stack: e.stack });
                     logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
                 }

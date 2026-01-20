@@ -434,8 +434,8 @@
       },
       "contactTypes": [
         {
-          "display": "Contact",
-          "value": "Contact"
+          "display": "Person",
+          "value": "Person"
         },
         {
           "display": "Company",
