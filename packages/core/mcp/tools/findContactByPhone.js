@@ -33,6 +33,11 @@ const toolDefinition = {
             }
         },
         required: ['jwtToken', 'phoneNumber']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+        destructiveHint: false
     }
 };
 

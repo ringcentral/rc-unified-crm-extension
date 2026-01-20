@@ -25,6 +25,11 @@ const toolDefinition = {
             }
         },
         required: ['jwtToken', 'name']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: true,
+        destructiveHint: false
     }
 };
 

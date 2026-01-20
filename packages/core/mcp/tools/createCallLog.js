@@ -163,6 +163,11 @@ const toolDefinition = {
             }
         },
         required: ['jwtToken', 'incomingData']
+    },
+    annotations: {
+        readOnlyHint: false,
+        openWorldHint: true,
+        destructiveHint: false
     }
 };
 

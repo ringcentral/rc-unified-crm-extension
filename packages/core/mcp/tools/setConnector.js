@@ -18,6 +18,11 @@ const toolDefinition = {
             }
         },
         required: ['connectorDisplayName']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 

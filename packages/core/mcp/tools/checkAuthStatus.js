@@ -18,6 +18,11 @@ const toolDefinition = {
             }
         },
         required: ['sessionId']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 

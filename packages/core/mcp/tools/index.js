@@ -31,10 +31,10 @@ module.exports = {
     logout,
     findContact,
     findContactWithName,
-    getCallLog,
+    //getCallLog,
     createCallLog,
-    updateCallLog,
-    createMessageLog,
+    //updateCallLog,
+    //createMessageLog,
     rcGetCallLogs
 };
 
@@ -49,10 +49,10 @@ module.exports.tools = [
     logout,
     findContact,
     findContactWithName,
-    getCallLog,
+    //getCallLog,
     createCallLog,
-    updateCallLog,
-    createMessageLog,
+    //updateCallLog,
+    //createMessageLog,
     rcGetCallLogs
 ];
 

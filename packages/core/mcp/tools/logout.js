@@ -19,6 +19,11 @@ const toolDefinition = {
                 description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
             }
         }
+    },
+    annotations: {
+        readOnlyHint: false,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 

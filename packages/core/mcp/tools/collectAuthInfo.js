@@ -31,6 +31,11 @@ const toolDefinition = {
             }
         },
         required: ['connectorManifest', 'connectorName']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 
