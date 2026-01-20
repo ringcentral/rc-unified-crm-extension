@@ -829,13 +829,12 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
             headers: { 'Authorization': authHeader }
         });
     // Create SMS time entry if SMS time tracking is enabled
-    if (user.userSettings?.smsTimeTrackingEnabled?.value) {
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
         try {
-            const actualTimeSeconds =  0; //TODO this will be come from client after Embeddable implement Time Tracking.
+            const actualTimeSeconds =  (message?.typingDurationMs??0)/1000; 
             const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
             const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
             const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
-            
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
@@ -861,7 +860,6 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     headers: { 'Authorization': authHeader }
                 });
 
-            console.log('SMS time entry created successfully:', timeEntryRes.data.data.id);
         } catch (timeEntryError) {
             console.error('Failed to create SMS time entry:', timeEntryError.message);
             // Don't fail the main function if time entry creation fails
@@ -889,10 +887,6 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
     let extraDataTracking = {};
     let logBody = '';
     let patchBody = {};
-    console.log('updateMessageLog called with:', {
-        existingMessageLog,
-       
-    });
     const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
     // Case: shared SMS
     if (sharedSMSLogContent?.body) {
@@ -941,19 +935,18 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             headers: { 'Authorization': authHeader }
         });
     // Create SMS time entry if SMS time tracking is enabled
-    if (user.userSettings?.smsTimeTrackingEnabled?.value) {
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
         try {
-            const actualTimeSeconds =  0; //TODO this will be come from client after Embeddable implement Time Tracking.
+            const actualTimeSeconds =  (message?.typingDurationMs??0)/1000; 
             const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
             const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
             const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
-            
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS Communication with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')} time`,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
                     communication: {
                         id: existingClioLogId
                     },
@@ -972,8 +965,6 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
                 {
                     headers: { 'Authorization': authHeader }
                 });
-
-            console.log('SMS time entry created successfully:', timeEntryRes.data.data.id);
         } catch (timeEntryError) {
             console.error('Failed to create SMS time entry:', timeEntryError.message);
             // Don't fail the main function if time entry creation fails
