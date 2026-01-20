@@ -994,7 +994,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
             "Message": logBody,
             "Message Type": messageType,
             "Message Time": sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).format('YYYY-MM-DD HH:mm:ss') : moment(message.creationTime).format('YYYY-MM-DD HH:mm:ss'),
-            "Direction": message.direction,
+            "Direction": message?.direction ?? "",
         };
         Object.entries(requestData).forEach(([key, value]) => {
             if (columnIndexes[key] !== undefined) {

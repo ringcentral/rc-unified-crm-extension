@@ -163,6 +163,11 @@ const toolDefinition = {
             }
         },
         required: ['jwtToken', 'incomingData']
+    },
+    annotations: {
+        readOnlyHint: false,
+        openWorldHint: true,
+        destructiveHint: false
     }
 };
 
@@ -258,6 +263,9 @@ async function execute(args) {
                     error: 'Failed to get contact with number ' + contactNumber
                 }
             }
+        }
+        else {
+            incomingData.contactId = contactId;
         }
 
         // Call the createCallLog method

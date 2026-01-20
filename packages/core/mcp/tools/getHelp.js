@@ -12,6 +12,11 @@ const toolDefinition = {
         type: 'object',
         properties: {},
         required: []
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 

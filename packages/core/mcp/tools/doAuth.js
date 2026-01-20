@@ -55,6 +55,11 @@ const toolDefinition = {
             }
         },
         required: ['connectorManifest', 'connectorName', 'hostname']
+    },
+    annotations: {
+        readOnlyHint: false,
+        openWorldHint: true,
+        destructiveHint: true
     }
 };
 
@@ -93,7 +98,7 @@ async function execute(args) {
                         success: true,
                         data: {
                             jwtToken,
-                            message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use.",
+                            message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
                         }
                     }
                 }
@@ -119,7 +124,7 @@ async function execute(args) {
                             success: true,
                             data: {
                                 jwtToken,
-                                message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use.",
+                                message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
                             }
                         }
                     }

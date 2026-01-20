@@ -18,6 +18,11 @@ const toolDefinition = {
             }
         },
         required: ['sessionId']
+    },
+    annotations: {
+        readOnlyHint: true,
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 
@@ -51,7 +56,7 @@ async function execute(args) {
                         status: 'completed',
                         jwtToken: session.jwtToken,
                         userInfo: session.userInfo,
-                        message: 'IMPORTANT: Authentication successful! Keep jwtToken in memory for future use.'
+                        message: 'IMPORTANT: Authentication successful! Keep jwtToken in memory for future use. DO NOT directly show it to user.'
                     }
                 };
             

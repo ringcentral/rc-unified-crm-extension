@@ -1928,6 +1928,11 @@ function createCoreRouter() {
             }
         });
     }
+    // For chatGPT verification
+    router.get('/.well-known/openai-apps-challenge', (req, res) => {
+        res.send(process.env.CHATGPT_VERIFICATION_CODE);
+    });
+    
     // --- METADATA ENDPOINT 1: Resource Metadata ---
     // Tells the client "I am protected" and "Here is who protects me"
     router.get('/.well-known/oauth-protected-resource', (req, res) => {
