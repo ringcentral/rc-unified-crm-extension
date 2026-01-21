@@ -386,11 +386,6 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
 }
 
 async function createMessageLog({ platform, userId, incomingData }) {
-    console.log('createMessageLog called with:', {
-        platform,
-        userId,
-        incomingData
-    });
     try {
         let returnMessage = null;
         let extraDataTracking = {};
