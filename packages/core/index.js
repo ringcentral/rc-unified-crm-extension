@@ -768,6 +768,11 @@ function createCoreRouter() {
             const state = new URL(req.query.callbackUri).searchParams.get('state') ?? req.query.state;
             const stateParams = new URLSearchParams(state ? decodeURIComponent(state) : '');
             platformName = stateParams.get('platform');
+            // backward compatibility
+            if(!platformName)
+            {
+                platformName = req.query.callbackUri.split('platform=')[1];
+            }
             // Extract mcp auth sessionId if present
             sessionId = stateParams?.get('sessionId');
             const isFromMCP = !!sessionId;
