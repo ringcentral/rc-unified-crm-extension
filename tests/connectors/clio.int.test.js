@@ -2065,7 +2065,10 @@ describe('Clio Connector', () => {
 
             expect(result.successful).toBe(true);
             expect(result.matchedContactInfo[0].additionalInfo.logTimeEntry).toBe(false);
-            expect(result.matchedContactInfo[0].additionalInfo.nonBillable).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.billableStatus).toEqual([
+                { "const": "billable", "title": "Billable" },
+                { "const": "non-billable", "title": "Non-billable" }
+            ]);
         });
     });
 
