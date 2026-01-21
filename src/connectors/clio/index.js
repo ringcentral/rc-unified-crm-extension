@@ -856,6 +856,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
             const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
             const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
             const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+            const nonBillable = (user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable' )? true : false;
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
@@ -865,7 +866,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     communication: {
                         id: addLogRes.data.data.id
                     },
-                     non_billable: !(user.userSettings?.smsTimeTrackingDefaultBillable?.value ?? false)
+                     non_billable: nonBillable
                 }
             };
 
@@ -962,6 +963,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
             const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
             const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+            const nonBillable = (user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable' )? true : false;
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
@@ -971,7 +973,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
                     communication: {
                         id: existingClioLogId
                     },
-                     non_billable: !(user.userSettings?.smsTimeTrackingDefaultBillable?.value ?? false)
+                     non_billable: nonBillable
                 }
             };
 
