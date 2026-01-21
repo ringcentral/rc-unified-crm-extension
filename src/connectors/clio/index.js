@@ -219,7 +219,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         {
                             matters: returnedMatters,
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                            nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                            billableStatus: [
+                                { "const": "billable", "title": "Billable" },
+                                { "const": "non-billable", "title": "Non-billable" }
+                              ]
                         } :
                         {
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -289,7 +292,10 @@ async function findContactWithName({ user, authHeader, name }) {
                     {
                         matters: returnedMatters,
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                        nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                        billableStatus: [
+                            { "const": "billable", "title": "Billable" },
+                            { "const": "non-billable", "title": "Non-billable" }
+                          ]
                     } :
                     {
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -449,7 +455,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
-    const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
+   // const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
+    // Determine billable status with clear precedence order
+    let nonBillable;
+    
+    if (additionalSubmission?.nonBillable !== undefined) {
+      // Use explicit nonBillable value if provided
+      nonBillable = additionalSubmission.nonBillable;
+    } else if (additionalSubmission?.billableStatus !== undefined) {
+      // Convert billableStatus to nonBillable (inverse relationship)
+      nonBillable = additionalSubmission.billableStatus !== 'billable';
+    } else {
+      // Fall back to user settings
+      const defaultSetting = user.userSettings?.clioDefaultNonBillableTick?.value;
+      nonBillable = !(defaultSetting === 'billable' || defaultSetting === false);
+    }
+
     const addTimerBody = {
         data: {
             communication: {
