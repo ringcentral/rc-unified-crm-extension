@@ -19,6 +19,34 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
+/**
+ * Calculates SMS time tracking details including duration and billable status
+ * @param {Object} message - The SMS message object
+ * @param {number} message.typingDurationMs - Time spent typing in milliseconds
+ * @param {Object} user - User object with settings
+ * @returns {Object} Object containing billableTimeSeconds and nonBillable status
+ */
+function calculateSmsTimeEntry({message, user}) {
+    // Convert typing duration from milliseconds to seconds
+    const actualTimeSeconds = (message?.typingDurationMs ?? 0) / 1000;
+    
+    // Get minimum duration setting with fallback to 30 seconds
+    const minimumDuration = parseInt(user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30", 10) || 30;
+    
+    // Calculate billable time (actual or minimum, whichever is greater)
+    const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+    
+    // Determine if entry should be non-billable (simplified boolean logic)
+    const nonBillable = user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable';
+    
+    return {
+        billableTimeSeconds,
+        nonBillable,
+        actualTimeSeconds,
+        minimumDuration
+    };
+}
+
 async function getOauthInfo({ hostname, isFromMCP }) {
     if (hostname.startsWith('au.')) {
         return {
@@ -852,11 +880,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
     // Create SMS time entry if SMS time tracking is enabled
     if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
         try {
-            const actualTimeSeconds =  (message?.typingDurationMs??0)/1000; 
-            const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
-            const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
-            const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
-            const nonBillable = (user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable' )? true : false;
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
@@ -959,11 +983,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
     // Create SMS time entry if SMS time tracking is enabled
     if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
         try {
-            const actualTimeSeconds =  (message?.typingDurationMs??0)/1000; 
-            const minimumDurationSetting = user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30";
-            const minimumDuration = parseInt(minimumDurationSetting, 10) || 30;
-            const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
-            const nonBillable = (user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable' )? true : false;
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
             const timeEntryBody = {
                 data: {
                     type: "TimeEntry",
