@@ -535,6 +535,7 @@
               "contactDependent": false,
               "required": false,
               "description": "Set whether time entries relating to phone calls are billable or not by default",
+              "includeNoneOption":false,
               "options": [
                 { "const": "billable", "title": "Billable" },
                 { "const": "non-billable", "title": "Non-billable" }
