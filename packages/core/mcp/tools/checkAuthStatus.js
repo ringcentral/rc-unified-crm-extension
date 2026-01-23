@@ -15,6 +15,10 @@ const toolDefinition = {
             sessionId: {
                 type: 'string',
                 description: 'The session ID returned from doAuth tool'
+            },
+            platform: {
+                type: 'string',
+                description: 'The platform to check the status of'
             }
         },
         required: ['sessionId']
@@ -34,7 +38,7 @@ const toolDefinition = {
  */
 async function execute(args) {
     try {
-        const { sessionId } = args;
+        const { sessionId, platform } = args;
         
         const session = await getAuthSession(sessionId);
         
@@ -50,6 +54,17 @@ async function execute(args) {
         
         switch (session.status) {
             case 'completed':
+                if(platform === 'googleSheets') {
+                    return {
+                        success: true,
+                        data: {
+                            status: 'completed',
+                            jwtToken: session.jwtToken,
+                            userInfo: session.userInfo,
+                            message: 'IMPORTANT: Authentication successful! Keep jwtToken in memory for future use. DO NOT directly show it to user. Next step is to call getGoogleFilePicker tool.'
+                        }
+                    };
+                }
                 return {
                     success: true,
                     data: {

@@ -34,7 +34,7 @@ async function execute() {
                 '2. Follow authorization flow to authorize your CRM',
                 '3. Once authorized, I can help find contacts and log your calls'
             ],
-            supportedCRMs: ["Clio"],
+            supportedCRMs: ["Clio", "Google Sheets"],
         }
     };
 }
