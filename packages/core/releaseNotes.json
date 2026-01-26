@@ -1,4 +1,16 @@
 {
+    "1.7.12": {
+        "global": [
+            {
+                "type": "New",
+                "description": "A button on Developer settings page to re-initialize user mapping"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-SMS button is disabled if RingCentral SMS service is not activated"
+            }
+        ]
+    },
     "1.7.11": {
         "global": [
             {
