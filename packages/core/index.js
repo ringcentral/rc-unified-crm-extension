@@ -482,6 +482,63 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.post('/admin/reinitializeUserMapping', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('reinitializeUserMapping:start', { body: req.body });
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                platformName = unAuthData?.platform ?? 'Unknown';
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    tracer?.trace('reinitializeUserMapping:userNotFound', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                    return;
+                }
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+                if (isValidated) {
+                    const userMapping = await adminCore.reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
+                    res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
+                    success = true;
+                }
+                else {
+                    tracer?.trace('reinitializeUserMapping:adminValidationFailed', {});
+                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    success = true;
+                }
+            }
+            else {
+                tracer?.trace('reinitializeUserMapping:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Reinitialize user mapping failed', { stack: e.stack });
+            tracer?.traceError('reinitializeUserMapping:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Reinitialize user mapping',
+            interfaceName: 'reinitializeUserMapping',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
     router.get('/admin/serverLoggingSettings', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;

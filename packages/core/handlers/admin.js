@@ -377,6 +377,95 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
     return [];
 }
 
+async function reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
+    const platformModule = connectorRegistry.getConnector(user.platform);
+    if (!platformModule.getUserList) {
+        return [];
+    }
+
+    const proxyId = user.platformAdditionalInfo?.proxyId;
+    let proxyConfig = null;
+    if (proxyId) {
+        proxyConfig = await Connector.getProxyConfig(proxyId);
+        if (!proxyConfig?.operations?.getUserList) {
+            return [];
+        }
+    }
+
+    const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth':
+            const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
+            // eslint-disable-next-line no-param-reassign
+            user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        case 'apiKey':
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+    }
+
+    const crmUserList = await platformModule.getUserList({ user, authHeader, proxyConfig });
+    const userMappingResult = [];
+    const initialUserMappings = [];
+
+    // Auto-match CRM users with RC extensions by email or name
+    for (const crmUser of crmUserList) {
+        const rcExtensionForMapping = rcExtensionList.find(u =>
+            u.email === crmUser.email ||
+            u.name === crmUser.name ||
+            (`${u.firstName} ${u.lastName}` === crmUser.name)
+        );
+
+        if (rcExtensionForMapping) {
+            userMappingResult.push({
+                crmUser: {
+                    id: crmUser.id,
+                    name: crmUser.name ?? '',
+                    email: crmUser.email ?? '',
+                },
+                rcUser: [{
+                    extensionId: rcExtensionForMapping.id,
+                    name: rcExtensionForMapping.name || `${rcExtensionForMapping.firstName} ${rcExtensionForMapping.lastName}`,
+                    extensionNumber: rcExtensionForMapping?.extensionNumber ?? '',
+                    email: rcExtensionForMapping?.email ?? ''
+                }]
+            });
+            initialUserMappings.push({
+                crmUserId: crmUser.id.toString(),
+                rcExtensionId: [rcExtensionForMapping.id.toString()]
+            });
+        }
+        else {
+            userMappingResult.push({
+                crmUser: {
+                    id: crmUser.id,
+                    name: crmUser.name ?? '',
+                    email: crmUser.email ?? '',
+                },
+                rcUser: []
+            });
+        }
+    }
+
+    // Overwrite existing mappings with fresh auto-matched mappings
+    try {
+        await upsertAdminSettings({
+            hashedRcAccountId,
+            adminSettings: {
+                userMappings: initialUserMappings
+            }
+        });
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error reinitializing user mapping');
+    }
+
+    return userMappingResult;
+}
+
 exports.validateAdminRole = validateAdminRole;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
@@ -386,3 +475,4 @@ exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.getAdminReport = getAdminReport;
 exports.getUserReport = getUserReport;
 exports.getUserMapping = getUserMapping;
+exports.reinitializeUserMapping = reinitializeUserMapping;
