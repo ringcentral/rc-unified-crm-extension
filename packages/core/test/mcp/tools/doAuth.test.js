@@ -311,9 +311,16 @@ describe('MCP Tool: doAuth', () => {
         connectorName: 'customCRM'
       });
 
-      // Assert
+      // Assert - state is now URL-encoded and includes sessionId, platform, hostname, plus customState
       expect(result.success).toBe(true);
-      expect(result.data.authUri).toContain('state=custom=state&other=value');
+      // The state parameter now contains session info and custom state appended
+      // Decode and verify custom state is included
+      const stateMatch = result.data.authUri.match(/state=([^&]+)/);
+      expect(stateMatch).toBeTruthy();
+      const decodedState = decodeURIComponent(stateMatch[1]);
+      expect(decodedState).toContain('custom=state&other=value');
+      expect(decodedState).toContain('sessionId=');
+      expect(decodedState).toContain('platform=customCRM');
     });
   });
 

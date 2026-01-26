@@ -26,10 +26,10 @@ describe('MCP Tool: getPublicConnectors', () => {
 
   describe('execute', () => {
     test('should return public connectors successfully', async () => {
-      // Arrange
+      // Arrange - use supported platform names: 'googleSheets' and 'clio'
       const mockConnectors = [
-        { id: '1', name: 'salesforce', displayName: 'Salesforce' },
-        { id: '2', name: 'hubspot', displayName: 'HubSpot' }
+        { id: '1', name: 'googleSheets', displayName: 'Google Sheets' },
+        { id: '2', name: 'clio', displayName: 'Clio' }
       ];
 
       developerPortal.getPublicConnectorList.mockResolvedValue({
@@ -42,20 +42,20 @@ describe('MCP Tool: getPublicConnectors', () => {
       // Assert
       expect(result).toEqual({
         success: true,
-        data: ['Salesforce', 'HubSpot']
+        data: ['Google Sheets', 'Clio']
       });
       expect(developerPortal.getPublicConnectorList).toHaveBeenCalledTimes(1);
     });
 
     test('should include private connectors when RC_ACCOUNT_ID is set', async () => {
-      // Arrange
+      // Arrange - use supported platform names
       process.env.RC_ACCOUNT_ID = 'test-account-id';
       
       const mockPublicConnectors = [
-        { id: '1', name: 'salesforce', displayName: 'Salesforce' }
+        { id: '1', name: 'googleSheets', displayName: 'Google Sheets' }
       ];
       const mockPrivateConnectors = [
-        { id: '3', name: 'custom-crm', displayName: 'Custom CRM' }
+        { id: '3', name: 'clio', displayName: 'Clio' }
       ];
 
       developerPortal.getPublicConnectorList.mockResolvedValue({
@@ -71,7 +71,7 @@ describe('MCP Tool: getPublicConnectors', () => {
       // Assert
       expect(result).toEqual({
         success: true,
-        data: ['Salesforce', 'Custom CRM']
+        data: ['Google Sheets', 'Clio']
       });
       expect(developerPortal.getPublicConnectorList).toHaveBeenCalledTimes(1);
       expect(developerPortal.getPrivateConnectorList).toHaveBeenCalledTimes(1);

@@ -260,6 +260,7 @@ async function execute(args) {
             else {
                 return {
                     success: false,
+                    message: 'Cannot find the contact. Please create the contact first.',
                     error: 'Failed to get contact with number ' + contactNumber
                 }
             }

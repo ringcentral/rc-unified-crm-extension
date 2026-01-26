@@ -21,6 +21,8 @@ const toolDefinition = {
     }
 };
 
+const supportedPlatforms = ['googleSheets','clio'];
+
 /**
  * Execute the getPublicConnectors tool
  * @returns {Object} Result object with connector names
@@ -35,7 +37,7 @@ async function execute() {
         }
         return {
             success: true,
-            data: connectorList.map(c => c.displayName)
+            data: connectorList.filter(c => supportedPlatforms.includes(c.name)).map(c => c.displayName)
         };
     }
     catch (error) {

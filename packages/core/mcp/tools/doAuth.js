@@ -168,21 +168,21 @@ async function execute(args) {
 }
 
 function composeAuthUri({ platform, sessionId, hostname }) {
-    let customState = '';
-    if (platform.auth.oauth.customState) {
-        customState = platform.auth.oauth.customState;
-    }
-    
-    // Include sessionId in state if provided
-    const stateParam = sessionId ? 
+    // Build base state param
+    let stateParam = sessionId ? 
         `sessionId=${sessionId}&platform=${platform.name}&hostname=${hostname}` : 
         `platform=${platform.name}&hostname=${hostname}`;
+    
+    // Merge customState if provided
+    if (platform.auth.oauth.customState) {
+        stateParam += `&${platform.auth.oauth.customState}`;
+    }
     
     return `${platform.auth.oauth.authUrl}?` +
         `response_type=code` +
         `&client_id=${platform.auth.oauth.clientId}` +
         `${!!platform.auth.oauth.scope && platform.auth.oauth.scope != '' ? `&${platform.auth.oauth.scope}` : ''}` +
-        `&state=${customState === '' ? encodeURIComponent(stateParam) : customState}` +
+        `&state=${encodeURIComponent(stateParam)}` +
         `&redirect_uri=${process.env.APP_SERVER}/oauth-callback`;
 }
 

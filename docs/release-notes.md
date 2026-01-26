@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.12
+
+- New: A button on Developer settings page to re-initialize user mapping
+- Better: Click-to-SMS button is disabled if RingCentral SMS service is not activated
+
 ## 1.7.11
 
 - New: Shared-SMS logging
@@ -67,6 +72,12 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.19
+
+- New: A button on Developer settings page to re-initialize user mapping
+- New: A banner for official announcements
+- Better: Click-to-SMS button is disabled if RingCentral SMS service is not activated
 
 ## 1.6.18
 

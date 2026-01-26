@@ -19,6 +19,8 @@ const createCallLog = require('./createCallLog');
 const updateCallLog = require('./updateCallLog');
 const createMessageLog = require('./createMessageLog');
 const rcGetCallLogs = require('./rcGetCallLogs');
+const getGoogleFilePicker = require('./getGoogleFilePicker');
+const createContact = require('./createContact');
 
 // Export all tools
 module.exports = {
@@ -35,7 +37,9 @@ module.exports = {
     createCallLog,
     //updateCallLog,
     //createMessageLog,
-    rcGetCallLogs
+    rcGetCallLogs,
+    getGoogleFilePicker,
+    createContact
 };
 
 // Export tools as an array for easy iteration
@@ -53,6 +57,8 @@ module.exports.tools = [
     createCallLog,
     //updateCallLog,
     //createMessageLog,
-    rcGetCallLogs
+    rcGetCallLogs,
+    getGoogleFilePicker,
+    createContact
 ];
 
