@@ -424,6 +424,7 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "clio",
+      "trackSmsTypingDuration": true,
       "embedUrls": [
         "https://*.clio.com/*"
       ],
