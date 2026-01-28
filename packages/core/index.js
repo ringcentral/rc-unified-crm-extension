@@ -827,7 +827,7 @@ function createCoreRouter() {
             // backward compatibility
             if(!platformName)
             {
-                platformName = req.query.callbackUri.split('platform=')[1];
+                platformName = req.query.callbackUri?.split('platform=')[1] ?? state.split('platform=')[1];
             }
             // Extract mcp auth sessionId if present
             sessionId = stateParams?.get('sessionId');
