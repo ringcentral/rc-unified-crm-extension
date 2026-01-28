@@ -12,11 +12,12 @@ const oauthApp = oauth.getOAuthApp({
     scopes: 'https://www.googleapis.com/auth/drive.file'
 });
 
-async function getOAuthUrl({ jwtToken }) {
+async function getOAuthUrl({ jwtToken, processorId }) {
     const state = {
         jwtToken,
         from: 'ptp',
-        redirectTo: `${process.env.APP_SERVER}/googleDrive/oauthCallback`
+        redirectTo: `${process.env.APP_SERVER}/googleDrive/oauthCallback`,
+        processorId
     }
     const stateString = encodeURIComponent(JSON.stringify(state));
     return oauthApp.code.getUri({
@@ -40,6 +41,7 @@ async function onOAuthCallback({ user, callbackUri }) {
     else {
         await PtpUserModel.create({ id: user.id, accessToken, refreshToken, tokenExpiry: expires });
     }
+    return 
 }
 
 /**

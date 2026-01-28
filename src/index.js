@@ -351,7 +351,7 @@ app.get('/googleDrive/oauthUrl', async function (req, res) {
             res.status(400).send('JWT token is required');
             return;
         }
-        const result = await googleDriveProcessor.getOAuthUrl({ jwtToken });
+        const result = await googleDriveProcessor.getOAuthUrl({ jwtToken, processorId: req.query.processorId });
         res.status(200).send(result);
     }
     catch (e) {
@@ -365,15 +365,17 @@ app.get('/googleDrive/oauthCallback', async function (req, res) {
         const state = req.query.callbackUri.split('state=')[1];
         // add params back to callbackUri
         const callbackUri = `${req.query.callbackUri}&code=${req.query.code}&scope=${req.query.scope}`;
-        const jwtToken = JSON.parse(decodeURIComponent(state)).jwtToken;
+        const stateJson = JSON.parse(decodeURIComponent(state));
+        const jwtToken = stateJson.jwtToken;
+        const processorId = stateJson.processorId;
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
         const user = await UserModel.findByPk(userId);
         if (!user) {
             res.status(400).send('User not found');
             return;
         }
-        const result = await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
-        res.status(200).send(result);
+        await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
+        res.status(200).send({ processorId });
     }
     catch (e) {
         console.log(e.stack);

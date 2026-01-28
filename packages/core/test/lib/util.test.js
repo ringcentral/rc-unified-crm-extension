@@ -8,7 +8,8 @@ const {
   getHashValue,
   secondsToHoursMinutesSeconds,
   getMostRecentDate,
-  getMediaReaderLinkByPlatformMediaLink
+  getMediaReaderLinkByPlatformMediaLink,
+  getProcessorsFromUserSettings
 } = require('../../lib/util');
 
 describe('Utility Functions', () => {
@@ -276,6 +277,341 @@ describe('Utility Functions', () => {
       // Verify the URL is properly encoded
       expect(result).not.toContain('&type=');
       expect(result).toContain('%26type%3D');
+    });
+  });
+
+  describe('getProcessorsFromUserSettings', () => {
+    test('should return empty array when userSettings is null', () => {
+      const result = getProcessorsFromUserSettings({
+        userSettings: null,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array when userSettings is undefined', () => {
+      const result = getProcessorsFromUserSettings({
+        userSettings: undefined,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array when userSettings is empty object', () => {
+      const result = getProcessorsFromUserSettings({
+        userSettings: {},
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return processors matching phase and logType', () => {
+      const userSettings = {
+        processor_googleDrive: {
+          value: {
+            activated: true,
+            phase: 'afterLogging',
+            supportedLogType: 'call',
+            name: 'Google Drive Upload',
+            isAsync: true
+          }
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'afterLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('googleDrive');
+      expect(result[0].value.name).toBe('Google Drive Upload');
+    });
+
+    test('should filter out non-processor settings', () => {
+      const userSettings = {
+        processor_piiRedaction: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'PII Redaction'
+          }
+        },
+        theme: { value: 'dark' },
+        autoLog: { value: true },
+        notificationSound: { value: 'default' }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('piiRedaction');
+    });
+
+    test('should filter out deactivated processors', () => {
+      const userSettings = {
+        processor_googleDrive: {
+          value: {
+            activated: false,
+            phase: 'afterLogging',
+            supportedLogType: 'call',
+            name: 'Google Drive Upload'
+          }
+        },
+        processor_piiRedaction: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'PII Redaction'
+          }
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('piiRedaction');
+    });
+
+    test('should correctly parse processor ID from setting key', () => {
+      const userSettings = {
+        processor_myCustomProcessor: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'My Custom Processor'
+          }
+        },
+        processor_anotherOne: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'Another One'
+          }
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(2);
+      const ids = result.map(r => r.id);
+      expect(ids).toContain('myCustomProcessor');
+      expect(ids).toContain('anotherOne');
+    });
+
+    test('should support multiple processors with different phases', () => {
+      const userSettings = {
+        processor_piiRedaction: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'PII Redaction'
+          }
+        },
+        processor_googleDrive: {
+          value: {
+            activated: true,
+            phase: 'afterLogging',
+            supportedLogType: 'call',
+            name: 'Google Drive Upload'
+          }
+        },
+        processor_analytics: {
+          value: {
+            activated: true,
+            phase: 'afterLogging',
+            supportedLogType: 'call',
+            name: 'Analytics'
+          }
+        }
+      };
+
+      // Test beforeLogging phase
+      const beforeResult = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+      expect(beforeResult).toHaveLength(1);
+      expect(beforeResult[0].id).toBe('piiRedaction');
+
+      // Test afterLogging phase
+      const afterResult = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'afterLogging',
+        logType: 'call'
+      });
+      expect(afterResult).toHaveLength(2);
+      const afterIds = afterResult.map(r => r.id);
+      expect(afterIds).toContain('googleDrive');
+      expect(afterIds).toContain('analytics');
+    });
+
+    test('should filter by logType - call only', () => {
+      const userSettings = {
+        processor_callOnly: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'Call Only Processor'
+          }
+        },
+        processor_messageOnly: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'message',
+            name: 'Message Only Processor'
+          }
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('callOnly');
+    });
+
+    test('should filter by logType - message only', () => {
+      const userSettings = {
+        processor_callOnly: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'Call Only Processor'
+          }
+        },
+        processor_messageOnly: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'message',
+            name: 'Message Only Processor'
+          }
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'message'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('messageOnly');
+    });
+
+    test('should only return processor when logType matches supportedLogType', () => {
+      const userSettings = {
+        processor_callProcessor: {
+          value: {
+            activated: true,
+            phase: 'beforeLogging',
+            supportedLogType: 'call',
+            name: 'Call Processor'
+          }
+        }
+      };
+
+      const callResult = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+      expect(callResult).toHaveLength(1);
+      expect(callResult[0].id).toBe('callProcessor');
+
+      const messageResult = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'message'
+      });
+      expect(messageResult).toHaveLength(0);
+    });
+
+    test('should return empty array when no processors match criteria', () => {
+      const userSettings = {
+        processor_googleDrive: {
+          value: {
+            activated: true,
+            phase: 'afterLogging',
+            supportedLogType: 'call',
+            name: 'Google Drive Upload'
+          }
+        }
+      };
+
+      // Wrong phase
+      const wrongPhase = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'beforeLogging',
+        logType: 'call'
+      });
+      expect(wrongPhase).toEqual([]);
+
+      // Wrong logType
+      const wrongLogType = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'afterLogging',
+        logType: 'message'
+      });
+      expect(wrongLogType).toEqual([]);
+    });
+
+    test('should preserve full processor value in result', () => {
+      const processorValue = {
+        activated: true,
+        phase: 'afterLogging',
+        supportedLogTypes: ['call'],
+        name: 'Google Drive Upload',
+        isAsync: true,
+        customOption: 'someValue'
+      };
+
+      const userSettings = {
+        processor_googleDrive: {
+          value: processorValue
+        }
+      };
+
+      const result = getProcessorsFromUserSettings({
+        userSettings,
+        phase: 'afterLogging',
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].value).toEqual(processorValue);
     });
   });
 });

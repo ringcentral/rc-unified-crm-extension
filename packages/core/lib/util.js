@@ -70,7 +70,7 @@ function getProcessorsFromUserSettings({ userSettings, phase, logType }) {
             continue;
         }
         const processorUserSetting = userSettings[userSettingKey];
-        if (processorUserSetting.value.activated && processorUserSetting.value.phase === phase && processorUserSetting.value.supportedLogTypes.includes(logType)) {
+        if (processorUserSetting.value.activated && processorUserSetting.value.phase === phase && processorUserSetting.value.supportedLogType.includes(logType)) {
             result.push({ id: userSettingKey.split('_')[1], value: processorUserSetting.value });
         }
     }
