@@ -68,6 +68,50 @@ function updateVersionInFile(filePath, newVersion, description) {
 }
 
 /**
+ * Updates the @app-connect/core dependency version in packages/template/package.json
+ * @param {string} newVersion - New version to set
+ * @returns {boolean} - True if update was successful
+ */
+function updateCoreDependencyVersion(newVersion) {
+  const filePath = 'packages/template/package.json';
+  const dependencyName = '@app-connect/core';
+  
+  try {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.error(`❌ File not found: ${filePath}`);
+      return false;
+    }
+
+    // Read and parse the JSON file
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const jsonData = JSON.parse(fileContent);
+    
+    // Check if dependency exists
+    if (!jsonData.dependencies || !jsonData.dependencies[dependencyName]) {
+      console.error(`❌ Dependency ${dependencyName} not found in ${filePath}`);
+      return false;
+    }
+    
+    // Store old version for logging
+    const oldDepVersion = jsonData.dependencies[dependencyName];
+    const newDepVersion = `^${newVersion}`;
+    
+    // Update dependency version
+    jsonData.dependencies[dependencyName] = newDepVersion;
+    
+    // Write back to file with proper formatting
+    fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2) + '\n');
+    
+    console.log(`✅ ${dependencyName} dependency (${filePath}): ${oldDepVersion} → ${newDepVersion}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error updating ${dependencyName} dependency (${filePath}):`, error.message);
+    return false;
+  }
+}
+
+/**
  * Main function to update versions in all configured files
  */
 function main() {
@@ -84,6 +128,7 @@ function main() {
     FILES_TO_UPDATE.forEach(file => {
       console.log(`  • ${file.path} (${file.description})`);
     });
+    console.log(`  • packages/template/package.json (@app-connect/core dependency)`);
     process.exit(1);
   }
   
@@ -109,6 +154,12 @@ function main() {
     }
   }
   
+  // Update @app-connect/core dependency in template package
+  const coreDependencySuccess = updateCoreDependencyVersion(newVersion);
+  if (!coreDependencySuccess) {
+    allUpdatesSuccessful = false;
+  }
+  
   console.log('');
   
   if (allUpdatesSuccessful) {
@@ -126,5 +177,6 @@ if (require.main === module) {
 
 module.exports = {
   updateVersionInFile,
+  updateCoreDependencyVersion,
   isValidVersion
 };

@@ -19,6 +19,34 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
+/**
+ * Calculates SMS time tracking details including duration and billable status
+ * @param {Object} message - The SMS message object
+ * @param {number} message.typingDurationMs - Time spent typing in milliseconds
+ * @param {Object} user - User object with settings
+ * @returns {Object} Object containing billableTimeSeconds and nonBillable status
+ */
+function calculateSmsTimeEntry({message, user}) {
+    // Convert typing duration from milliseconds to seconds
+    const actualTimeSeconds = (message?.typingDurationMs ?? 0) / 1000;
+    
+    // Get minimum duration setting with fallback to 30 seconds
+    const minimumDuration = parseInt(user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30", 10) || 30;
+    
+    // Calculate billable time (actual or minimum, whichever is greater)
+    const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+    
+    // Determine if entry should be non-billable (simplified boolean logic)
+    const nonBillable = user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable';
+    
+    return {
+        billableTimeSeconds,
+        nonBillable,
+        actualTimeSeconds,
+        minimumDuration
+    };
+}
+
 async function getOauthInfo({ hostname, isFromMCP }) {
     if (hostname.startsWith('au.')) {
         return {
@@ -219,7 +247,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         {
                             matters: returnedMatters,
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                            nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                            billableStatus: [
+                                { "const": "billable", "title": "Billable" },
+                                { "const": "non-billable", "title": "Non-billable" }
+                              ]
                         } :
                         {
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -289,7 +320,10 @@ async function findContactWithName({ user, authHeader, name }) {
                     {
                         matters: returnedMatters,
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                        nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                        billableStatus: [
+                            { "const": "billable", "title": "Billable" },
+                            { "const": "non-billable", "title": "Non-billable" }
+                          ]
                     } :
                     {
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -449,7 +483,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
-    const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
+   // const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
+    // Determine billable status with clear precedence order
+    let nonBillable;
+    
+    if (additionalSubmission?.nonBillable !== undefined) {
+      // Use explicit nonBillable value if provided
+      nonBillable = additionalSubmission.nonBillable;
+    } else if (additionalSubmission?.billableStatus !== undefined) {
+      // Convert billableStatus to nonBillable (inverse relationship)
+      nonBillable = additionalSubmission.billableStatus !== 'billable';
+    } else {
+      // Fall back to user settings
+      const defaultSetting = user.userSettings?.clioDefaultNonBillableTick?.value;
+      nonBillable = !(defaultSetting === 'billable' || defaultSetting === false);
+    }
+
     const addTimerBody = {
         data: {
             communication: {
@@ -828,11 +877,47 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+        try {
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: billableTimeSeconds,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    communication: {
+                        id: addLogRes.data.data.id
+                    },
+                     non_billable: nonBillable
+                }
+            };
+
+            // Add matter to time entry if available
+            if (additionalSubmission?.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: addLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
@@ -844,7 +929,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
     };
 }
 
-async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, imageLink, videoLink }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, imageLink, videoLink, additionalSubmission }) {
     let extraDataTracking = {};
     let logBody = '';
     let patchBody = {};
@@ -895,12 +980,46 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+        try {
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: billableTimeSeconds,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    communication: {
+                        id: existingClioLogId
+                    },
+                     non_billable: nonBillable
+                }
+            };
 
+            // Add matter to time entry if available
+            if (additionalSubmission.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         extraDataTracking
     }

@@ -103,7 +103,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 
     Get live call transcripts, auto-generated summaries, action items, reminders, and more.
 
-    [:octicons-arrow-right-24: Learn more](#)
+    [:octicons-arrow-right-24: Learn more](users/ai.md)
 
 -   :octicons-server-24:{ .lg .middle } __Server-side call logging__ (BETA)
 
@@ -112,6 +112,8 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
     Log every company call, even for employees who haven’t installed App Connect.
 
     [:octicons-arrow-right-24: Learn more](users/server-side-logging.md)
+
+-   :material-clipboard-list:{ .lg .middle } __Call-down lists__ (BETA)
 
     ---
 
