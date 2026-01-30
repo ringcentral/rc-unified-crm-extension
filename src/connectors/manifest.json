@@ -464,7 +464,7 @@
             {
               "id": "clioDefaultNonBillableTick",
               "type": "option",
-              "name": "Default billable status",
+              "name": "Default phone call billable status",
               "helper": "Set whether time entries relating to phone calls are billable or not by default",
               "defaultValue": "billable",
               "options": [
@@ -495,7 +495,7 @@
             { 
               "id": "smsTimeTrackingMinimumDuration",
               "type": "inputField",
-              "name": "Minimum billable duration",
+              "name": "Minimum SMS billable duration",
               "helper": "Set the minimum time duration (in seconds) for SMS correspondence (e.g., 30 for 30 seconds, 360 for 6 minutes)",
               "placeholder": "30",
               "defaultValue": "30"
@@ -503,7 +503,7 @@
             {
               "id": "smsTimeTrackingDefaultBillable",
               "type": "option",
-              "name": "Default billable status",
+              "name": "Default SMS billable status",
               "helper": "Set whether time entries relating to SMS correspondence are billable or not by default",
               "defaultValue": "billable",
               "options": [
