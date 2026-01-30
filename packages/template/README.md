@@ -82,6 +82,8 @@ app.use((req, res, next) => {
 
 Check [document](https://ringcentral.github.io/rc-unified-crm-extension/developers/deploy/) here.
 
+- [Azure App Service deployment guide](./azure-deploy/README.md)
+
 ## Support
 
 For support and questions:
