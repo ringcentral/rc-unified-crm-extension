@@ -80,7 +80,7 @@ app.use((req, res, next) => {
 
 ## Deployment
 
-Check [document](https://ringcentral.github.io/rc-unified-crm-extension/developers/deploy/) here.
+Check [AWS serverless deployment](https://ringcentral.github.io/rc-unified-crm-extension/developers/deploy/) here.
 
 - [Azure App Service deployment guide](./azure-deploy/README.md)
 
