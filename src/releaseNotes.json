@@ -1,4 +1,12 @@
 {
+    "1.7.14":{
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio now supports SMS time tracking"
+            }
+        ]
+    },
     "1.7.12":{
         "global": [
             {
@@ -202,6 +210,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.20": {
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio now supports SMS time tracking"
             }
         ]
     },
