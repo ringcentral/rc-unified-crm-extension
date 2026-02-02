@@ -479,11 +479,21 @@
               ]
             },
             {
-              "id": "clioSeeClosedMatters",
-              "type": "boolean",
-              "name": "See closed matters",
-              "description": "Show closed matters in the matter selection dropdown",
-              "defaultValue": false
+              "id": "smsTimeTrackingDefaultBillable",
+              "type": "option",
+              "name": "Default SMS billable status",
+              "helper": "Set whether time entries relating to SMS correspondence are billable or not by default",
+              "defaultValue": "billable",
+              "options": [
+                {
+                  "id": "billable",
+                  "name": "Billable"
+                },
+                {
+                  "id": "non-billable",
+                  "name": "Non-billable"
+                }
+              ]
             },
             {
               "id": "smsTimeTrackingEnabled",
@@ -501,22 +511,13 @@
               "defaultValue": "30"
             },
             {
-              "id": "smsTimeTrackingDefaultBillable",
-              "type": "option",
-              "name": "Default SMS billable status",
-              "helper": "Set whether time entries relating to SMS correspondence are billable or not by default",
-              "defaultValue": "billable",
-              "options": [
-                {
-                  "id": "billable",
-                  "name": "Billable"
-                },
-                {
-                  "id": "non-billable",
-                  "name": "Non-billable"
-                }
-              ]
+              "id": "clioSeeClosedMatters",
+              "type": "boolean",
+              "name": "See closed matters",
+              "description": "Show closed matters in the matter selection dropdown",
+              "defaultValue": false
             }
+            
           ]
         }
       ],
