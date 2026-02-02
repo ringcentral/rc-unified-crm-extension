@@ -4,9 +4,9 @@
 - Insightly
 - Redtail
 - NetSuite
+- Google Sheets
 
 # Unsupported platforms
 
 - Bullhorn (unique OAuth)
 - Pipedrive (unique OAuth)
-- Google Sheets (extra sheet config)
