@@ -8,7 +8,7 @@ This interface is central to App Connect's framework as it is responsible for ma
 
 This interface can return zero, one or more contacts. If multiple contacts are returned, App Connect will prompt the end user to select the specific contact to be used when logging calls. 
 
-If no contact is found, do not create a contact in its place. When logging calls, if no contacts are found associated with a phone number, then the framework to prompt the user to create a contact. The user will enter a name, and then call the [createContact](createContact.md) interface, and then call the [createCallLog](createCallLog.md) with the newly created contact ID. 
+## When is this interface called?
 
 This interface is called in the following circumstances:
 
@@ -20,6 +20,25 @@ This interface is called in the following circumstances:
   ![Manually refresh contact](../../img/manually-refresh-contact.png)
   <figcaption>The "Refresh contact" action in App Connect's contact list</figcaption>
 </figure>
+
+## What to do if no contacts are found
+
+If no contact is found, do not create a contact in its place. When logging calls, if no contacts are found associated with a phone number, then the framework will prompt the user to create a contact. The user will enter a name, and then call the [`createContact`](createContact.md) interface, and then call the [`createCallLog`](createCallLog.md) with the newly created contact ID. 
+
+To facilitate this process, return the following data element in your response to this interface.
+
+```js
+matchedContactInfo.push({
+    id: 'createNewContact',
+    name: 'Create new contact...',
+    isNewContact: true,
+    additionalInfo: { ... }
+});
+```
+
+This adds an option to the list of matched contacts, that when selected will automatically prompt the user to enter a name for the contact that will created. If the user then selects this and logs the call, App Connect will then call the [`createContact`](createContact.md) interface using the data provided, and then log the call against that contact. 
+
+!!! warning "We discourage the practice of automatically creating placeholder contacts when the `findContact` interface is called."
 
 ## Request parameters
 
