@@ -63,7 +63,18 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
         const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
         for (const processorSetting of beforeLoggingProcessor) {
             const processorId = processorSetting.id;
-            const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+            let processorDataResponse = null;
+            switch (processorSetting.value.access) {
+                case 'public':
+                    processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                    break;
+                case 'private':
+                case 'shared':
+                    processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?access=internal&type=connector&accountId=${processorSetting.value.rcAccountId}`);
+                    break;
+                default:
+                    throw new Error('Invalid processor access');
+            }
             const processorData = processorDataResponse.data;
             const processorManifest = processorData.platforms[processorSetting.value.name];
             let processorEndpointUrl = processorManifest.endpointUrl;
@@ -376,7 +387,18 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
             const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
             for (const processorSetting of beforeLoggingProcessor) {
                 const processorId = processorSetting.id;
-                const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                let processorDataResponse = null;
+                switch (processorSetting.value.access) {
+                    case 'public':
+                        processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                        break;
+                    case 'private':
+                    case 'shared':
+                        processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?access=internal&type=connector&accountId=${processorSetting.value.rcAccountId}`);
+                        break;
+                    default:
+                        throw new Error('Invalid processor access');
+                }
                 const processorData = processorDataResponse.data;
                 const processorManifest = processorData.platforms[processorSetting.value.name];
                 let processorEndpointUrl = processorManifest.endpointUrl;
@@ -402,13 +424,13 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                         expiry: moment().add(1, 'hour').toDate()
                     });
                     axios.post(processorEndpointUrl, {
-                        data: { logInfo: { ...incomingData } },
+                        data: incomingData,
                         asyncTaskId
                     });
                 }
                 else {
                     const processedResultResponse = await axios.post(processorEndpointUrl, {
-                        data: { logInfo: { ...incomingData } }
+                        data: incomingData
                     });
                     // eslint-disable-next-line no-param-reassign
                     incomingData = processedResultResponse.data;

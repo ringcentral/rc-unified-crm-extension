@@ -19,6 +19,7 @@ const logger = require('@app-connect/core/lib/logger');
 const adminCore = require('@app-connect/core/handlers/admin');
 const piiRedactionProcessor = require('./processors/piiRedactionProcessor');
 const googleDriveProcessor = require('./processors/googleDriveProcessor');
+const allCapProcessor = require('./processors/allCapProcessor');
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
@@ -330,6 +331,9 @@ app.post('/processor/:processorId', async function (req, res) {
                 break;
             case 'googleDrive':
                 result = googleDriveProcessor.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
+                break;
+            case 'all_cap':
+                result = allCapProcessor.allCap({ data: req.body.data });
                 break;
             default:
                 res.status(400).send('Unknown processor');
