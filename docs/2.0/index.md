@@ -2,7 +2,17 @@
 
 App Connect 2.0 is a turning point for the product as not only does it make it easier for developers to connect RingCentral to more CRMs, it contains many new features that will bring greater value to App Connects thousands of users. 
 
-Here are some of the features new to App Connect 2.0. 
+## Download the beta
+
+The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlisted and private Chrome Store extension. 
+
+<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-350" src="../img/chrome-web-store.png"></a>
+
+!!! info "Things you should know"
+    * Version 2.0 is completely backwards compatible with App Connect 1.6.x. If you experience a problem and wish to revert, you can do so safely without loss of data. 
+	* We will continue to maintain App Connect 1.6.x, but only with bug fixes.
+
+## What's new
 
 <div class="grid cards" markdown>
 
@@ -111,16 +121,6 @@ We have commitments from developers to build adapters to the following CRMs usin
 </div>
 
 !!! warning "RingCentral cannot make guarantees the services above will be supported. We are dependent upon third-party developers."
-
-## Download the beta
-
-The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlisted and private Chrome Store extension. 
-
-<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-350" src="../img/chrome-web-store.png"></a>
-
-!!! info "Things you should know"
-    * Version 2.0 is completely backwards compatible with App Connect 1.6.x. If you experience a problem and wish to revert, you can do so safely without loss of data. 
-	* We will continue to maintain App Connect 1.6.x, but only with bug fixes.
 
 ## Future costs
 

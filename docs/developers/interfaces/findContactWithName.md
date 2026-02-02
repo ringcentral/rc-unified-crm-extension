@@ -29,7 +29,7 @@ This interface returns a single object. That object describes the contacts that 
 
 | Parameter            | Description                                                                                     |
 |----------------------|-------------------------------------------------------------------------------------------------|
-| `successful`         | True or false is a contact was found or not.                                                    |
+|`successful`| Should be `true` if the flow is executed successfully including case of no match, `false` if an error happens during the process |
 | `matchedContactInfo` | An array of objects containing `id`, `name` and optionally `additionalInfo` and `isNewContact`. |
 
 **Example**
