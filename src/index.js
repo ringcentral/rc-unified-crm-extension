@@ -17,7 +17,6 @@ const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const logger = require('@app-connect/core/lib/logger');
 const adminCore = require('@app-connect/core/handlers/admin');
-const piiRedactionProcessor = require('./processors/piiRedactionProcessor');
 const googleDriveProcessor = require('./processors/googleDriveProcessor');
 const allCapProcessor = require('./processors/allCapProcessor');
 // Register connectors
@@ -326,9 +325,6 @@ app.post('/processor/:processorId', async function (req, res) {
         }
         let result;
         switch (req.params.processorId) {
-            case 'piiRedaction':
-                result = piiRedactionProcessor.redactPii(req.body.data);
-                break;
             case 'googleDrive':
                 result = googleDriveProcessor.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
                 break;
