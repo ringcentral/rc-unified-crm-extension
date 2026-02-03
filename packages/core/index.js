@@ -745,7 +745,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { userSettings } = await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, platformName });
+                const { userSettings } = await userCore.updateUserSettings({ user, userSettings: req.body.userSettings, settingKeysToRemove: req.body.settingKeysToRemove || [], platformName });
                 res.status(200).send(tracer ? tracer.wrapResponse({ userSettings }) : { userSettings });
                 success = true;
             }
@@ -826,8 +826,7 @@ function createCoreRouter() {
             const stateParams = new URLSearchParams(state ? decodeURIComponent(state) : '');
             platformName = stateParams.get('platform');
             // backward compatibility
-            if(!platformName)
-            {
+            if (!platformName) {
                 platformName = req.query.callbackUri?.split('platform=')[1] ?? state.split('platform=')[1];
             }
             // Extract mcp auth sessionId if present
@@ -871,7 +870,7 @@ function createCoreRouter() {
                     res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
                     success = true;
                 }
-                else {                
+                else {
                     res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
                     success = true;
                 }
@@ -1994,7 +1993,7 @@ function createCoreRouter() {
     router.get('/.well-known/openai-apps-challenge', (req, res) => {
         res.send(process.env.CHATGPT_VERIFICATION_CODE);
     });
-    
+
     // --- METADATA ENDPOINT 1: Resource Metadata ---
     // Tells the client "I am protected" and "Here is who protects me"
     router.get('/.well-known/oauth-protected-resource', (req, res) => {

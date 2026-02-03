@@ -68,13 +68,18 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
     return result;
 }
 
-async function updateUserSettings({ user, userSettings, platformName }) {
+async function updateUserSettings({ user, userSettings, settingKeysToRemove, platformName }) {
     const keys = Object.keys(userSettings || {});
     let updatedSettings = {
         ...(user.userSettings || {})
     };
     for (const k of keys) {
         updatedSettings[k] = userSettings[k];
+    }
+    for (const k of settingKeysToRemove) {
+        if (updatedSettings[k]) {
+            delete updatedSettings[k];
+        }
     }
     const platformModule = connectorRegistry.getConnector(platformName);
     if (platformModule.onUpdateUserSettings) {
