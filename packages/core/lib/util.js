@@ -60,18 +60,18 @@ function getMediaReaderLinkByPlatformMediaLink(platformMediaLink) {
     return `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodedPlatformMediaLink}`;
 }
 
-function getProcessorsFromUserSettings({ userSettings, phase, logType }) {
+function getPluginsFromUserSettings({ userSettings, phase, logType }) {
     const result = [];
     if (!userSettings) {
         return result;
     }
     for (const userSettingKey in userSettings) {
-        if (!userSettingKey.startsWith('processor_')) {
+        if (!userSettingKey.startsWith('plugin_')) {
             continue;
         }
-        const processorUserSetting = userSettings[userSettingKey];
-        if (processorUserSetting.value.activated && processorUserSetting.value.phase === phase && processorUserSetting.value.logType == logType) {
-            result.push({ id: userSettingKey.replace('processor_', ''), value: processorUserSetting.value });
+        const pluginUserSetting = userSettings[userSettingKey];
+        if (pluginUserSetting.value.activated && pluginUserSetting.value.phase === phase && pluginUserSetting.value.logType == logType) {
+            result.push({ id: userSettingKey.replace('plugin_', ''), value: pluginUserSetting.value });
         }
     }
     return result;
@@ -82,4 +82,4 @@ exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
 exports.getMostRecentDate = getMostRecentDate;
 exports.getMediaReaderLinkByPlatformMediaLink = getMediaReaderLinkByPlatformMediaLink;
-exports.getProcessorsFromUserSettings = getProcessorsFromUserSettings;
+exports.getPluginsFromUserSettings = getPluginsFromUserSettings;

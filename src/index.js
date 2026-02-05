@@ -17,8 +17,8 @@ const redtail = require('./connectors/redtail');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const logger = require('@app-connect/core/lib/logger');
 const adminCore = require('@app-connect/core/handlers/admin');
-const googleDriveProcessor = require('./processors/googleDriveProcessor');
-const allCapProcessor = require('./processors/allCapProcessor');
+const googleDrivePlugin = require('./plugins/googleDrivePlugin');
+const allCapPlugin = require('./plugins/allCapPlugin');
 // Register connectors
 connectorRegistry.setDefaultManifest(require('./connectors/manifest.json'));
 connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
@@ -35,12 +35,12 @@ connectorRegistry.registerConnector('proxy', proxyConnector);
 // Create Express app with core functionality
 const app = createCoreApp();
 
-const { PtpUserModel } = require('./processors/models/ptpUserModel');
-const { GoogleDriveFileModel } = require('./processors/models/googleDriveFileModel');
+const { PluginUserModel } = require('./plugins/models/pluginUserModel');
+const { GoogleDriveFileModel } = require('./plugins/models/googleDriveFileModel');
 async function initDB() {
     if (!process.env.DISABLE_SYNC_DB_TABLE) {
         console.log('creating db tables if not exist...');
-        await PtpUserModel.sync();
+        await PluginUserModel.sync();
         await GoogleDriveFileModel.sync();
     }
 }
@@ -314,7 +314,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 });
 
-app.post('/processor/:processorId', async function (req, res) {
+app.post('/plugin/:pluginId', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
@@ -324,15 +324,15 @@ app.post('/processor/:processorId', async function (req, res) {
             return;
         }
         let result;
-        switch (req.params.processorId) {
+        switch (req.params.pluginId) {
             case 'googleDrive':
-                result = googleDriveProcessor.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
+                result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
                 break;
             case 'all_cap':
-                result = allCapProcessor.allCap({ data: req.body.data });
+                result = allCapPlugin.allCap({ data: req.body.data });
                 break;
             default:
-                res.status(400).send('Unknown processor');
+                res.status(400).send('Unknown plugin');
                 return;
         }
 
@@ -351,7 +351,7 @@ app.get('/googleDrive/oauthUrl', async function (req, res) {
             res.status(400).send('JWT token is required');
             return;
         }
-        const result = await googleDriveProcessor.getOAuthUrl({ jwtToken, processorId: req.query.processorId });
+        const result = await googleDrivePlugin.getOAuthUrl({ jwtToken, pluginId: req.query.pluginId });
         res.status(200).send(result);
     }
     catch (e) {
@@ -367,15 +367,15 @@ app.get('/googleDrive/oauthCallback', async function (req, res) {
         const callbackUri = `${req.query.callbackUri}&code=${req.query.code}&scope=${req.query.scope}`;
         const stateJson = JSON.parse(decodeURIComponent(state));
         const jwtToken = stateJson.jwtToken;
-        const processorId = stateJson.processorId;
+        const pluginId = stateJson.pluginId;
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
         const user = await UserModel.findByPk(userId);
         if (!user) {
             res.status(400).send('User not found');
             return;
         }
-        await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
-        res.status(200).send({ processorId });
+        await googleDrivePlugin.onOAuthCallback({ user, callbackUri });
+        res.status(200).send({ pluginId });
     }
     catch (e) {
         console.log(e.stack);
@@ -391,7 +391,7 @@ app.get('/googleDrive/checkAuth', async function (req, res) {
             return;
         }
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-        const result = await googleDriveProcessor.checkAuth({ userId });
+        const result = await googleDrivePlugin.checkAuth({ userId });
         res.status(200).send(result);
     }
     catch (e) {
@@ -408,7 +408,7 @@ app.post('/googleDrive/logout', async function (req, res) {
             return;
         }
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
-        const result = await googleDriveProcessor.logout({ userId });
+        const result = await googleDrivePlugin.logout({ userId });
         res.status(200).send(result);
     }
     catch (e) {

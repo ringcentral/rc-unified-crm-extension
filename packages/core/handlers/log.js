@@ -13,7 +13,7 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const axios = require('axios');
-const { getProcessorsFromUserSettings } = require('../lib/util');
+const { getPluginsFromUserSettings } = require('../lib/util');
 const logger = require('../lib/logger');
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
 const { v4: uuidv4 } = require('uuid');
@@ -58,55 +58,55 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 }
             };
         }
-        const ptpAsyncTaskIds = [];
-        // Pass-thru processors
-        const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
-        for (const processorSetting of beforeLoggingProcessor) {
-            const processorId = processorSetting.id;
-            let processorDataResponse = null;
-            switch (processorSetting.value.access) {
+        const pluginAsyncTaskIds = [];
+        // Plugins
+        const beforeLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
+        for (const pluginSetting of beforeLoggingPlugins) {
+            const pluginId = pluginSetting.id;
+            let pluginDataResponse = null;
+            switch (pluginSetting.value.access) {
                 case 'public':
-                    processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
                     break;
                 case 'private':
                 case 'shared':
-                    processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?access=internal&type=connector&accountId=${processorSetting.value.rcAccountId}`);
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${pluginSetting.value.rcAccountId}`);
                     break;
                 default:
-                    throw new Error('Invalid processor access');
+                    throw new Error('Invalid plugin access');
             }
-            const processorData = processorDataResponse.data;
-            const processorManifest = processorData.platforms[processorSetting.value.name];
-            let processorEndpointUrl = processorManifest.endpointUrl;
-            if (!processorEndpointUrl) {
-                throw new Error('Processor URL is not set');
+                const pluginData = pluginDataResponse.data;
+            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
             }
             else {
                 // check if endpoint has query params already
-                if (processorEndpointUrl.includes('?')) {
-                    processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                if (pluginEndpointUrl.includes('?')) {
+                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
                 }
                 else {
-                    processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
                 }
             }
-            if (processorSetting.value.isAsync) {
+            if (pluginSetting.value.isAsync) {
                 const asyncTaskId = `${userId}-${uuidv4()}`;
-                ptpAsyncTaskIds.push(asyncTaskId);
+                pluginAsyncTaskIds.push(asyncTaskId);
                 await CacheModel.create({
                     id: asyncTaskId,
                     status: 'initialized',
                     userId,
-                    cacheKey: `ptpTask-${processorSetting.value.name}`,
+                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
                     expiry: moment().add(1, 'hour').toDate()
                 });
-                axios.post(processorEndpointUrl, {
+                axios.post(pluginEndpointUrl, {
                     data: incomingData,
                     asyncTaskId
                 });
             }
             else {
-                const processedResultResponse = await axios.post(processorEndpointUrl, {
+                const processedResultResponse = await axios.post(pluginEndpointUrl, {
                     data: incomingData
                 });
                 // eslint-disable-next-line no-param-reassign
@@ -222,34 +222,34 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             catch (error) {
                 return handleDatabaseError(error, 'Error creating call log');
             }
-            // after-logging processor
-            const afterLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
-            for (const processorSetting of afterLoggingProcessor) {
-                const processorId = processorSetting.id;
-                const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
-                const processorData = processorDataResponse.data;
-                const processorManifest = processorData.platforms[processorSetting.value.name];
-                let processorEndpointUrl = processorManifest.endpointUrl;
-                if (!processorEndpointUrl) { throw new Error('Processor URL is not set'); }
+            // after-logging plugins
+            const afterLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
+            for (const pluginSetting of afterLoggingPlugins) {
+                const pluginId = pluginSetting.id;
+                const pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                const pluginData = pluginDataResponse.data;
+                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+                let pluginEndpointUrl = pluginManifest.endpointUrl;
+                if (!pluginEndpointUrl) { throw new Error('Plugin URL is not set'); }
                 else {
-                    if (processorEndpointUrl.includes('?')) {
-                        processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                    if (pluginEndpointUrl.includes('?')) {
+                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
                     }
                     else {
-                        processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
                     }
                 }
-                if (processorSetting.value.isAsync) {
+                if (pluginSetting.value.isAsync) {
                     const asyncTaskId = `${userId}-${uuidv4()}`;
-                    ptpAsyncTaskIds.push(asyncTaskId);
+                    pluginAsyncTaskIds.push(asyncTaskId);
                     await CacheModel.create({
                         id: asyncTaskId,
                         status: 'initialized',
                         userId,
-                        cacheKey: `ptpTask-${processorSetting.value.name}`,
+                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
                         expiry: moment().add(1, 'hour').toDate()
                     });
-                    axios.post(processorEndpointUrl, {
+                    axios.post(pluginEndpointUrl, {
                         data: {
                             ...incomingData,
                             logId,
@@ -259,7 +259,7 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     });
                 }
                 else {
-                    const processedResultResponse = await axios.post(processorEndpointUrl, {
+                    const processedResultResponse = await axios.post(pluginEndpointUrl, {
                         data: {
                             ...incomingData,
                             logId,
@@ -269,7 +269,7 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     );
                 }
             }
-            return { successful: !!logId, logId, returnMessage, extraDataTracking, ptpAsyncTaskIds };
+            return { successful: !!logId, logId, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
@@ -382,54 +382,54 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
-            const ptpAsyncTaskIds = [];
-            // Pass-thru processors
-            const beforeLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
-            for (const processorSetting of beforeLoggingProcessor) {
-                const processorId = processorSetting.id;
-                let processorDataResponse = null;
-                switch (processorSetting.value.access) {
+            const pluginAsyncTaskIds = [];
+            // Pass-thru plugins
+            const beforeLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
+            for (const pluginSetting of beforeLoggingPlugins) {
+                const pluginId = pluginSetting.id;
+                let pluginDataResponse = null;
+                switch (pluginSetting.value.access) {
                     case 'public':
-                        processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
+                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
                         break;
                     case 'private':
                     case 'shared':
-                        processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?access=internal&type=connector&accountId=${processorSetting.value.rcAccountId}`);
+                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${pluginSetting.value.rcAccountId}`);
                         break;
                     default:
-                        throw new Error('Invalid processor access');
+                        throw new Error('Invalid plugin access');
                 }
-                const processorData = processorDataResponse.data;
-                const processorManifest = processorData.platforms[processorSetting.value.name];
-                let processorEndpointUrl = processorManifest.endpointUrl;
-                if (!processorEndpointUrl) {
-                    throw new Error('Processor URL is not set');
+                const pluginData = pluginDataResponse.data;
+                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+                let pluginEndpointUrl = pluginManifest.endpointUrl;
+                if (!pluginEndpointUrl) {
+                    throw new Error('Plugin URL is not set');
                 }
                 else {
-                    if (processorEndpointUrl.includes('?')) {
-                        processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                    if (pluginEndpointUrl.includes('?')) {
+                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
                     }
                     else {
-                        processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
                     }
                 }
-                if (processorSetting.value.isAsync) {
+                if (pluginSetting.value.isAsync) {
                     const asyncTaskId = `${userId}-${uuidv4()}`;
-                    ptpAsyncTaskIds.push(asyncTaskId);
+                    pluginAsyncTaskIds.push(asyncTaskId);
                     await CacheModel.create({
                         id: asyncTaskId,
                         status: 'initialized',
                         userId,
-                        cacheKey: `ptpTask-${processorSetting.value.name}`,
+                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
                         expiry: moment().add(1, 'hour').toDate()
                     });
-                    axios.post(processorEndpointUrl, {
+                    axios.post(pluginEndpointUrl, {
                         data: incomingData,
                         asyncTaskId
                     });
                 }
                 else {
-                    const processedResultResponse = await axios.post(processorEndpointUrl, {
+                    const processedResultResponse = await axios.post(pluginEndpointUrl, {
                         data: incomingData
                     });
                     // eslint-disable-next-line no-param-reassign
@@ -538,35 +538,35 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 isFromSSCL,
                 proxyConfig,
             });
-            // after-logging processor
-            const afterLoggingProcessor = getProcessorsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
-            for (const processorSetting of afterLoggingProcessor) {
-                const processorId = processorSetting.id;
-                const processorDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${processorId}/manifest?type=processor`);
-                const processorData = processorDataResponse.data;
-                const processorManifest = processorData.platforms[processorSetting.value.name];
-                let processorEndpointUrl = processorManifest.endpointUrl;
-                if (!processorEndpointUrl) { throw new Error('Processor URL is not set'); }
+            // after-logging plugins
+            const afterLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
+            for (const pluginSetting of afterLoggingPlugins) {
+                const pluginId = pluginSetting.id;
+                const pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                const pluginData = pluginDataResponse.data;
+                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+                let pluginEndpointUrl = pluginManifest.endpointUrl;
+                if (!pluginEndpointUrl) { throw new Error('Plugin URL is not set'); }
                 else {
                     // check if endpoint has query params already
-                    if (processorEndpointUrl.includes('?')) {
-                        processorEndpointUrl += `&jwtToken=${jwtToken}`;
+                    if (pluginEndpointUrl.includes('?')) {
+                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
                     }
                     else {
-                        processorEndpointUrl += `?jwtToken=${jwtToken}`;
+                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
                     }
                 }
-                if (processorSetting.value.isAsync) {
+                if (pluginSetting.value.isAsync) {
                     const asyncTaskId = `${userId}-${uuidv4()}`;
-                    ptpAsyncTaskIds.push(asyncTaskId);
+                    pluginAsyncTaskIds.push(asyncTaskId);
                     await CacheModel.create({
                         id: asyncTaskId,
                         status: 'initialized',
                         userId,
-                        cacheKey: `ptpTask-${processorSetting.value.name}`,
+                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
                         expiry: moment().add(1, 'hour').toDate()
                     });
-                    axios.post(processorEndpointUrl, {
+                    axios.post(pluginEndpointUrl, {
                         data: {
                             logInfo: { ...incomingData },
                             logId: existingCallLog.id,
@@ -576,7 +576,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     });
                 }
                 else {
-                    await axios.post(processorEndpointUrl, {
+                    await axios.post(pluginEndpointUrl, {
                         data: {
                             logInfo: { ...incomingData },
                             logId: existingCallLog.id,
@@ -586,7 +586,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     );
                 }
             }
-            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, ptpAsyncTaskIds };
+            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
         return { successful: false };
     } catch (e) {

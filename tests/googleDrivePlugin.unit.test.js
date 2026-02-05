@@ -1,9 +1,9 @@
 /**
- * Unit tests for googleDriveProcessor.js
+ * Unit tests for googleDrivePlugin.js
  * Tests OAuth authentication, file uploads, and user management for Google Drive integration
  */
 
-// Mock oauth module before importing the processor
+// Mock oauth module before importing the plugin
 jest.mock('@app-connect/core/lib/oauth', () => ({
     getOAuthApp: jest.fn().mockReturnValue({
         code: {
@@ -22,32 +22,32 @@ jest.mock('axios');
 
 const axios = require('axios');
 const oauth = require('@app-connect/core/lib/oauth');
-const { PtpUserModel } = require('../src/processors/models/ptpUserModel');
-const { GoogleDriveFileModel } = require('../src/processors/models/googleDriveFileModel');
+const { PluginUserModel } = require('../src/plugins/models/pluginUserModel');
+const { GoogleDriveFileModel } = require('../src/plugins/models/googleDriveFileModel');
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
 
-// Import processor after mocks are set up
-const googleDriveProcessor = require('../src/processors/googleDriveProcessor');
+// Import plugin after mocks are set up
+const googleDrivePlugin = require('../src/plugins/googleDrivePlugin');
 
-describe('googleDriveProcessor', () => {
+describe('googleDrivePlugin', () => {
     beforeAll(async () => {
         // Set up environment variables
-        process.env.GOOGLE_DRIVE_PTP_CLIENT_ID = 'test-client-id';
-        process.env.GOOGLE_DRIVE_PTP_CLIENT_SECRET = 'test-client-secret';
-        process.env.GOOGLE_DRIVE_PTP_REDIRECT_URI = 'https://example.com/callback';
-        process.env.GOOGLE_DRIVE_PTP_TOKEN_URI = 'https://oauth2.googleapis.com/token';
-        process.env.GOOGLE_DRIVE_PTP_AUTHORIZATION_URI = 'https://accounts.google.com/o/oauth2/v2/auth';
+        process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_ID = 'test-client-id';
+        process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_SECRET = 'test-client-secret';
+        process.env.GOOGLE_DRIVE_PLUGIN_REDIRECT_URI = 'https://example.com/callback';
+        process.env.GOOGLE_DRIVE_PLUGIN_TOKEN_URI = 'https://oauth2.googleapis.com/token';
+        process.env.GOOGLE_DRIVE_PLUGIN_AUTHORIZATION_URI = 'https://accounts.google.com/o/oauth2/v2/auth';
         process.env.APP_SERVER = 'https://app.example.com';
 
         // Sync models
-        await PtpUserModel.sync({ force: true });
+        await PluginUserModel.sync({ force: true });
         await GoogleDriveFileModel.sync({ force: true });
         await CacheModel.sync({ force: true });
     });
 
     afterEach(async () => {
         // Clean up test data
-        await PtpUserModel.destroy({ where: {} });
+        await PluginUserModel.destroy({ where: {} });
         await GoogleDriveFileModel.destroy({ where: {} });
         await CacheModel.destroy({ where: {} });
         jest.clearAllMocks();
@@ -56,14 +56,14 @@ describe('googleDriveProcessor', () => {
     describe('checkAuth', () => {
         test('should return successful true when user has accessToken', async () => {
             // Arrange
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user-123',
                 accessToken: 'valid-access-token',
                 refreshToken: 'valid-refresh-token'
             });
 
             // Act
-            const result = await googleDriveProcessor.checkAuth({ userId: 'test-user-123' });
+            const result = await googleDrivePlugin.checkAuth({ userId: 'test-user-123' });
 
             // Assert
             expect(result).toEqual({ successful: true });
@@ -71,7 +71,7 @@ describe('googleDriveProcessor', () => {
 
         test('should return successful false when user not found', async () => {
             // Act
-            const result = await googleDriveProcessor.checkAuth({ userId: 'non-existent-user' });
+            const result = await googleDrivePlugin.checkAuth({ userId: 'non-existent-user' });
 
             // Assert
             expect(result).toEqual({ successful: false });
@@ -79,14 +79,14 @@ describe('googleDriveProcessor', () => {
 
         test('should return successful false when user has no accessToken', async () => {
             // Arrange
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user-no-token',
                 accessToken: null,
                 refreshToken: null
             });
 
             // Act
-            const result = await googleDriveProcessor.checkAuth({ userId: 'test-user-no-token' });
+            const result = await googleDrivePlugin.checkAuth({ userId: 'test-user-no-token' });
 
             // Assert
             expect(result).toEqual({ successful: false });
@@ -94,14 +94,14 @@ describe('googleDriveProcessor', () => {
 
         test('should return successful false when user has empty accessToken', async () => {
             // Arrange
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user-empty-token',
                 accessToken: '',
                 refreshToken: ''
             });
 
             // Act
-            const result = await googleDriveProcessor.checkAuth({ userId: 'test-user-empty-token' });
+            const result = await googleDrivePlugin.checkAuth({ userId: 'test-user-empty-token' });
 
             // Assert
             expect(result).toEqual({ successful: false });
@@ -111,14 +111,14 @@ describe('googleDriveProcessor', () => {
     describe('logout', () => {
         test('should destroy user and return success message', async () => {
             // Arrange
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user-to-logout',
                 accessToken: 'some-token',
                 refreshToken: 'some-refresh-token'
             });
 
             // Act
-            const result = await googleDriveProcessor.logout({ userId: 'test-user-to-logout' });
+            const result = await googleDrivePlugin.logout({ userId: 'test-user-to-logout' });
 
             // Assert
             expect(result.successful).toBe(true);
@@ -127,13 +127,13 @@ describe('googleDriveProcessor', () => {
             expect(result.returnMessage.ttl).toBe(3000);
 
             // Verify user was deleted
-            const deletedUser = await PtpUserModel.findByPk('test-user-to-logout');
+            const deletedUser = await PluginUserModel.findByPk('test-user-to-logout');
             expect(deletedUser).toBeNull();
         });
 
         test('should return success even if user not found', async () => {
             // Act
-            const result = await googleDriveProcessor.logout({ userId: 'non-existent-user' });
+            const result = await googleDrivePlugin.logout({ userId: 'non-existent-user' });
 
             // Assert
             expect(result.successful).toBe(true);
@@ -147,7 +147,7 @@ describe('googleDriveProcessor', () => {
             const jwtToken = 'test-jwt-token-123';
 
             // Act
-            const result = await googleDriveProcessor.getOAuthUrl({ jwtToken });
+            const result = await googleDrivePlugin.getOAuthUrl({ jwtToken });
 
             // Assert
             expect(result).toBeDefined();
@@ -163,30 +163,30 @@ describe('googleDriveProcessor', () => {
             // Verify state contains jwtToken
             const decodedState = JSON.parse(decodeURIComponent(callArgs.state));
             expect(decodedState.jwtToken).toBe(jwtToken);
-            expect(decodedState.from).toBe('ptp');
+            expect(decodedState.from).toBe('plugin');
             expect(decodedState.redirectTo).toContain('/googleDrive/oauthCallback');
         });
     });
 
     describe('onOAuthCallback', () => {
-        test('should create new PtpUser when user does not exist', async () => {
+        test('should create new PluginUser when user does not exist', async () => {
             // Arrange
             const user = { id: 'new-user-123' };
             const callbackUri = 'https://example.com/callback?code=auth-code';
 
             // Act
-            await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
+            await googleDrivePlugin.onOAuthCallback({ user, callbackUri });
 
             // Assert
-            const createdUser = await PtpUserModel.findByPk('new-user-123');
+            const createdUser = await PluginUserModel.findByPk('new-user-123');
             expect(createdUser).not.toBeNull();
             expect(createdUser.accessToken).toBe('new-access-token');
             expect(createdUser.refreshToken).toBe('new-refresh-token');
         });
 
-        test('should update existing PtpUser when user exists', async () => {
+        test('should update existing PluginUser when user exists', async () => {
             // Arrange
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'existing-user-123',
                 accessToken: 'old-access-token',
                 refreshToken: 'old-refresh-token'
@@ -196,10 +196,10 @@ describe('googleDriveProcessor', () => {
             const callbackUri = 'https://example.com/callback?code=auth-code';
 
             // Act
-            await googleDriveProcessor.onOAuthCallback({ user, callbackUri });
+            await googleDrivePlugin.onOAuthCallback({ user, callbackUri });
 
             // Assert
-            const updatedUser = await PtpUserModel.findByPk('existing-user-123');
+            const updatedUser = await PluginUserModel.findByPk('existing-user-123');
             expect(updatedUser.accessToken).toBe('new-access-token');
             expect(updatedUser.refreshToken).toBe('new-refresh-token');
         });
@@ -221,7 +221,7 @@ describe('googleDriveProcessor', () => {
             const user = { id: 'test-user' };
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'non-existent-cache'
@@ -238,7 +238,7 @@ describe('googleDriveProcessor', () => {
                 id: 'task-123',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
             await GoogleDriveFileModel.create({
                 id: 'existing-file-id',
@@ -249,7 +249,7 @@ describe('googleDriveProcessor', () => {
             const user = { id: 'test-user' };
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'task-123'
@@ -270,7 +270,7 @@ describe('googleDriveProcessor', () => {
                 id: 'task-no-url',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
 
             const user = { id: 'test-user' };
@@ -282,7 +282,7 @@ describe('googleDriveProcessor', () => {
             };
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: dataNoUrl,
                 taskId: 'task-no-url'
@@ -293,19 +293,19 @@ describe('googleDriveProcessor', () => {
             expect(result.message).toBe('No recording download URL found');
         });
 
-        test('should return error when PtpUser not found', async () => {
+        test('should return error when PluginUser not found', async () => {
             // Arrange
             await CacheModel.create({
                 id: 'task-no-user',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
 
-            const user = { id: 'non-existent-ptp-user' };
+            const user = { id: 'non-existent-plugin-user' };
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'task-no-user'
@@ -322,9 +322,9 @@ describe('googleDriveProcessor', () => {
                 id: 'task-success',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user',
                 accessToken: 'valid-token',
                 refreshToken: 'valid-refresh'
@@ -353,7 +353,7 @@ describe('googleDriveProcessor', () => {
             });
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'task-success'
@@ -379,15 +379,15 @@ describe('googleDriveProcessor', () => {
                 id: 'task-processing',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
 
-            // This will fail because no PtpUser exists, but we can check
+            // This will fail because no PluginUser exists, but we can check
             // that status was set to processing first
             const user = { id: 'test-user' };
 
             // Act
-            await googleDriveProcessor.uploadToGoogleDrive({
+            await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'task-processing'
@@ -403,9 +403,9 @@ describe('googleDriveProcessor', () => {
                 id: 'task-fail',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user',
                 accessToken: 'valid-token',
                 refreshToken: 'valid-refresh'
@@ -417,7 +417,7 @@ describe('googleDriveProcessor', () => {
             axios.get.mockRejectedValueOnce(new Error('Network error'));
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: mockUploadData,
                 taskId: 'task-fail'
@@ -438,9 +438,9 @@ describe('googleDriveProcessor', () => {
                 id: 'task-outbound',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user',
                 accessToken: 'valid-token',
                 refreshToken: 'valid-refresh'
@@ -467,7 +467,7 @@ describe('googleDriveProcessor', () => {
             });
 
             // Act
-            await googleDriveProcessor.uploadToGoogleDrive({
+            await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: outboundData,
                 taskId: 'task-outbound'
@@ -484,9 +484,9 @@ describe('googleDriveProcessor', () => {
                 id: 'task-inbound',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user',
                 accessToken: 'valid-token',
                 refreshToken: 'valid-refresh'
@@ -513,7 +513,7 @@ describe('googleDriveProcessor', () => {
             });
 
             // Act
-            await googleDriveProcessor.uploadToGoogleDrive({
+            await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: inboundData,
                 taskId: 'task-inbound'
@@ -530,9 +530,9 @@ describe('googleDriveProcessor', () => {
                 id: 'task-fallback-url',
                 status: 'initialized',
                 userId: 'test-user',
-                cacheKey: 'ptpTask-googleDrive'
+                cacheKey: 'pluginTask-googleDrive'
             });
-            await PtpUserModel.create({
+            await PluginUserModel.create({
                 id: 'test-user',
                 accessToken: 'valid-token',
                 refreshToken: 'valid-refresh'
@@ -561,7 +561,7 @@ describe('googleDriveProcessor', () => {
                 .mockResolvedValueOnce({ data: { id: 'file-id', name: 'recording.mp3' } }); // upload
 
             // Act
-            const result = await googleDriveProcessor.uploadToGoogleDrive({
+            const result = await googleDrivePlugin.uploadToGoogleDrive({
                 user,
                 data: dataWithFallbackUrl,
                 taskId: 'task-fallback-url'

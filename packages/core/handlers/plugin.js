@@ -1,7 +1,7 @@
 const { CacheModel } = require('../models/cacheModel');
 const { Op } = require('sequelize');
 
-async function getPtpAsyncTasks({ asyncTaskIds }) {
+async function getPluginAsyncTasks({ asyncTaskIds }) {
     const caches = await CacheModel.findAll({
         where: {
             id: {
@@ -24,4 +24,4 @@ async function getPtpAsyncTasks({ asyncTaskIds }) {
     return result;
 }
 
-exports.getPtpAsyncTasks = getPtpAsyncTasks;
+exports.getPluginAsyncTasks = getPluginAsyncTasks;

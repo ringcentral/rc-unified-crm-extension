@@ -9,7 +9,7 @@ const {
   secondsToHoursMinutesSeconds,
   getMostRecentDate,
   getMediaReaderLinkByPlatformMediaLink,
-  getProcessorsFromUserSettings
+  getPluginsFromUserSettings
 } = require('../../lib/util');
 
 describe('Utility Functions', () => {
@@ -326,9 +326,9 @@ describe('Utility Functions', () => {
     });
   });
 
-  describe('getProcessorsFromUserSettings', () => {
+  describe('getPluginsFromUserSettings', () => {
     test('should return empty array when userSettings is null', () => {
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings: null,
         phase: 'beforeLogging',
         logType: 'call'
@@ -338,7 +338,7 @@ describe('Utility Functions', () => {
     });
 
     test('should return empty array when userSettings is undefined', () => {
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings: undefined,
         phase: 'beforeLogging',
         logType: 'call'
@@ -348,7 +348,7 @@ describe('Utility Functions', () => {
     });
 
     test('should return empty array when userSettings is empty object', () => {
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings: {},
         phase: 'beforeLogging',
         logType: 'call'
@@ -357,9 +357,9 @@ describe('Utility Functions', () => {
       expect(result).toEqual([]);
     });
 
-    test('should return processors matching phase and logType', () => {
+    test('should return plugins matching phase and logType', () => {
       const userSettings = {
-        processor_googleDrive: {
+        plugin_googleDrive: {
           value: {
             activated: true,
             phase: 'afterLogging',
@@ -370,7 +370,7 @@ describe('Utility Functions', () => {
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'afterLogging',
         logType: 'call'
@@ -381,9 +381,9 @@ describe('Utility Functions', () => {
       expect(result[0].value.name).toBe('Google Drive Upload');
     });
 
-    test('should filter out non-processor settings', () => {
+    test('should filter out non-plugin settings', () => {
       const userSettings = {
-        processor_piiRedaction: {
+        plugin_piiRedaction: {
           value: {
             activated: true,
             phase: 'beforeLogging',
@@ -396,7 +396,7 @@ describe('Utility Functions', () => {
         notificationSound: { value: 'default' }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -406,9 +406,9 @@ describe('Utility Functions', () => {
       expect(result[0].id).toBe('piiRedaction');
     });
 
-    test('should filter out deactivated processors', () => {
+    test('should filter out deactivated plugins', () => {
       const userSettings = {
-        processor_googleDrive: {
+        plugin_googleDrive: {
           value: {
             activated: false,
             phase: 'afterLogging',
@@ -416,7 +416,7 @@ describe('Utility Functions', () => {
             name: 'Google Drive Upload'
           }
         },
-        processor_piiRedaction: {
+        plugin_piiRedaction: {
           value: {
             activated: true,
             phase: 'beforeLogging',
@@ -426,7 +426,7 @@ describe('Utility Functions', () => {
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -436,17 +436,17 @@ describe('Utility Functions', () => {
       expect(result[0].id).toBe('piiRedaction');
     });
 
-    test('should correctly parse processor ID from setting key', () => {
+    test('should correctly parse plugin ID from setting key', () => {
       const userSettings = {
-        processor_myCustomProcessor: {
+        plugin_myCustomPlugin: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'My Custom Processor'
+            name: 'My Custom Plugin'
           }
         },
-        processor_anotherOne: {
+        plugin_anotherOne: {
           value: {
             activated: true,
             phase: 'beforeLogging',
@@ -456,7 +456,7 @@ describe('Utility Functions', () => {
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -464,13 +464,13 @@ describe('Utility Functions', () => {
 
       expect(result).toHaveLength(2);
       const ids = result.map(r => r.id);
-      expect(ids).toContain('myCustomProcessor');
+      expect(ids).toContain('myCustomPlugin');
       expect(ids).toContain('anotherOne');
     });
 
-    test('should support multiple processors with different phases', () => {
+    test('should support multiple plugins with different phases', () => {
       const userSettings = {
-        processor_piiRedaction: {
+        plugin_piiRedaction: {
           value: {
             activated: true,
             phase: 'beforeLogging',
@@ -478,7 +478,7 @@ describe('Utility Functions', () => {
             name: 'PII Redaction'
           }
         },
-        processor_googleDrive: {
+        plugin_googleDrive: {
           value: {
             activated: true,
             phase: 'afterLogging',
@@ -486,7 +486,7 @@ describe('Utility Functions', () => {
             name: 'Google Drive Upload'
           }
         },
-        processor_analytics: {
+        plugin_analytics: {
           value: {
             activated: true,
             phase: 'afterLogging',
@@ -497,7 +497,7 @@ describe('Utility Functions', () => {
       };
 
       // Test beforeLogging phase
-      const beforeResult = getProcessorsFromUserSettings({
+      const beforeResult = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -506,7 +506,7 @@ describe('Utility Functions', () => {
       expect(beforeResult[0].id).toBe('piiRedaction');
 
       // Test afterLogging phase
-      const afterResult = getProcessorsFromUserSettings({
+      const afterResult = getPluginsFromUserSettings({
         userSettings,
         phase: 'afterLogging',
         logType: 'call'
@@ -519,25 +519,25 @@ describe('Utility Functions', () => {
 
     test('should filter by logType - call only', () => {
       const userSettings = {
-        processor_callOnly: {
+        plugin_callOnly: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'Call Only Processor'
+            name: 'Call Only Plugin'
           }
         },
-        processor_messageOnly: {
+        plugin_messageOnly: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'message',
-            name: 'Message Only Processor'
+            name: 'Message Only Plugin'
           }
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -549,25 +549,25 @@ describe('Utility Functions', () => {
 
     test('should filter by logType - message only', () => {
       const userSettings = {
-        processor_callOnly: {
+        plugin_callOnly: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'Call Only Processor'
+            name: 'Call Only Plugin'
           }
         },
-        processor_messageOnly: {
+        plugin_messageOnly: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'message',
-            name: 'Message Only Processor'
+            name: 'Message Only Plugin'
           }
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'message'
@@ -577,27 +577,27 @@ describe('Utility Functions', () => {
       expect(result[0].id).toBe('messageOnly');
     });
 
-    test('should only return processor when logType matches supportedLogType', () => {
+    test('should only return plugin when logType matches supportedLogType', () => {
       const userSettings = {
-        processor_callProcessor: {
+        plugin_callPlugin: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'Call Processor'
+            name: 'Call Plugin'
           }
         }
       };
 
-      const callResult = getProcessorsFromUserSettings({
+      const callResult = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
       });
       expect(callResult).toHaveLength(1);
-      expect(callResult[0].id).toBe('callProcessor');
+      expect(callResult[0].id).toBe('callPlugin');
 
-      const messageResult = getProcessorsFromUserSettings({
+      const messageResult = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'message'
@@ -605,9 +605,9 @@ describe('Utility Functions', () => {
       expect(messageResult).toHaveLength(0);
     });
 
-    test('should return empty array when no processors match criteria', () => {
+    test('should return empty array when no plugins match criteria', () => {
       const userSettings = {
-        processor_googleDrive: {
+        plugin_googleDrive: {
           value: {
             activated: true,
             phase: 'afterLogging',
@@ -618,7 +618,7 @@ describe('Utility Functions', () => {
       };
 
       // Wrong phase
-      const wrongPhase = getProcessorsFromUserSettings({
+      const wrongPhase = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
@@ -626,7 +626,7 @@ describe('Utility Functions', () => {
       expect(wrongPhase).toEqual([]);
 
       // Wrong logType
-      const wrongLogType = getProcessorsFromUserSettings({
+      const wrongLogType = getPluginsFromUserSettings({
         userSettings,
         phase: 'afterLogging',
         logType: 'message'
@@ -634,8 +634,8 @@ describe('Utility Functions', () => {
       expect(wrongLogType).toEqual([]);
     });
 
-    test('should preserve full processor value in result', () => {
-      const processorValue = {
+    test('should preserve full plugin value in result', () => {
+      const pluginValue = {
         activated: true,
         phase: 'afterLogging',
         logType: 'call',
@@ -645,61 +645,61 @@ describe('Utility Functions', () => {
       };
 
       const userSettings = {
-        processor_googleDrive: {
-          value: processorValue
+        plugin_googleDrive: {
+          value: pluginValue
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'afterLogging',
         logType: 'call'
       });
 
       expect(result).toHaveLength(1);
-      expect(result[0].value).toEqual(processorValue);
+      expect(result[0].value).toEqual(pluginValue);
     });
 
-    test('should correctly parse processor ID containing underscores', () => {
-      // Bug test: processor IDs with underscores should be fully preserved
+    test('should correctly parse plugin ID containing underscores', () => {
+      // Bug test: plugin IDs with underscores should be fully preserved
       const userSettings = {
-        processor_my_custom_processor: {
+        plugin_my_custom_plugin: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'My Custom Processor'
+            name: 'My Custom Plugin'
           }
         }
       };
 
-      const result = getProcessorsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
         phase: 'beforeLogging',
         logType: 'call'
       });
 
       expect(result).toHaveLength(1);
-      // The full ID should be 'my_custom_processor', not just 'my'
-      expect(result[0].id).toBe('my_custom_processor');
+      // The full ID should be 'my_custom_plugin', not just 'my'
+      expect(result[0].id).toBe('my_custom_plugin');
     });
 
-    test('should handle processor settings with missing value property gracefully', () => {
+    test('should handle plugin settings with missing value property gracefully', () => {
       const userSettings = {
-        processor_broken: null,
-        processor_working: {
+        plugin_broken: null,
+        plugin_working: {
           value: {
             activated: true,
             phase: 'beforeLogging',
             logType: 'call',
-            name: 'Working Processor'
+            name: 'Working Plugin'
           }
         }
       };
 
       // This should not throw, even with malformed settings
       expect(() => {
-        getProcessorsFromUserSettings({
+        getPluginsFromUserSettings({
           userSettings,
           phase: 'beforeLogging',
           logType: 'call'

@@ -20,7 +20,7 @@ rc-unified-crm-extension/
 │   └── template/                # Template for new connector projects
 ├── src/                         # Main development server
 │   ├── connectors/              # CRM connector implementations
-│   ├── processors/              # Data processors
+│   ├── plugins/                 # Data plugins
 │   ├── index.js                 # App entry point
 │   ├── server.js                # Express server
 │   └── lambda.js                # AWS Lambda handler

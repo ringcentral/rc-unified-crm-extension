@@ -1,23 +1,23 @@
 const axios = require('axios');
-const { PtpUserModel } = require('./models/ptpUserModel');
+const { PluginUserModel } = require('./models/pluginUserModel');
 const { GoogleDriveFileModel } = require('./models/googleDriveFileModel');
 const oauth = require('@app-connect/core/lib/oauth');
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
 const oauthApp = oauth.getOAuthApp({
-    clientId: process.env.GOOGLE_DRIVE_PTP_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_DRIVE_PTP_CLIENT_SECRET,
-    redirectUri: process.env.GOOGLE_DRIVE_PTP_REDIRECT_URI,
-    accessTokenUri: process.env.GOOGLE_DRIVE_PTP_TOKEN_URI,
-    authorizationUri: process.env.GOOGLE_DRIVE_PTP_AUTHORIZATION_URI,
+    clientId: process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_DRIVE_PLUGIN_REDIRECT_URI,
+    accessTokenUri: process.env.GOOGLE_DRIVE_PLUGIN_TOKEN_URI,
+    authorizationUri: process.env.GOOGLE_DRIVE_PLUGIN_AUTHORIZATION_URI,
     scopes: 'https://www.googleapis.com/auth/drive.file'
 });
 
-async function getOAuthUrl({ jwtToken, processorId }) {
+async function getOAuthUrl({ jwtToken, pluginId }) {
     const state = {
         jwtToken,
-        from: 'ptp',
+        from: 'plugin',
         redirectTo: `${process.env.APP_SERVER}/googleDrive/oauthCallback`,
-        processorId
+        pluginId
     }
     const stateString = encodeURIComponent(JSON.stringify(state));
     return oauthApp.code.getUri({
@@ -30,7 +30,7 @@ async function getOAuthUrl({ jwtToken, processorId }) {
 }
 async function onOAuthCallback({ user, callbackUri }) {
     const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri);
-    const existingUser = await PtpUserModel.findByPk(user.id);
+    const existingUser = await PluginUserModel.findByPk(user.id);
     if (existingUser) {
         await existingUser.update({
             accessToken,
@@ -39,7 +39,7 @@ async function onOAuthCallback({ user, callbackUri }) {
         });
     }
     else {
-        await PtpUserModel.create({ id: user.id, accessToken, refreshToken, tokenExpiry: expires });
+        await PluginUserModel.create({ id: user.id, accessToken, refreshToken, tokenExpiry: expires });
     }
     return 
 }
@@ -200,15 +200,15 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
                 message: 'No recording download URL found'
             }
         }
-        let ptpUser = await PtpUserModel.findByPk(user.id);
-        if (!ptpUser) {
+        let pluginUser = await PluginUserModel.findByPk(user.id);
+        if (!pluginUser) {
             await cache.destroy();
             return {
                 successful: false,
                 message: 'User not found'
             }
         }
-        ptpUser = await oauth.checkAndRefreshAccessToken(oauthApp, ptpUser);
+        pluginUser = await oauth.checkAndRefreshAccessToken(oauthApp, pluginUser);
 
         // Extract file properties
         const fileName = `${new Date().toISOString("YYYY-MM-DD HH:mm:ss")}.mp3`;
@@ -224,7 +224,7 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
         const fromNumber = data.logInfo?.from?.phoneNumber;
         const toNumber = data.logInfo?.to?.phoneNumber;
         const folderName = callDirection === 'Inbound' ? `${fromNumber}` : `${toNumber}`;
-        const folderId = await getOrCreateFolder(ptpUser.accessToken, folderName);
+        const folderId = await getOrCreateFolder(pluginUser.accessToken, folderName);
         // Create multipart boundary
         const boundary = `----WebKitFormBoundary${Date.now()}`;
 
@@ -263,7 +263,7 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
             multipartBody,
             {
                 headers: {
-                    'Authorization': `Bearer ${ptpUser.accessToken}`,
+                    'Authorization': `Bearer ${pluginUser.accessToken}`,
                     'Content-Type': `multipart/related; boundary=${boundary}`,
                     'Content-Length': multipartBody.length.toString()
                 },
@@ -293,7 +293,7 @@ async function uploadToGoogleDrive({ user, data, taskId }) {
 }
 
 async function checkAuth({ userId }) {
-    const user = await PtpUserModel.findByPk(userId);
+    const user = await PluginUserModel.findByPk(userId);
     if (user?.accessToken) {
         return {
             successful: true
@@ -308,7 +308,7 @@ async function checkAuth({ userId }) {
 
 async function logout({ userId }) {
     try {
-        const user = await PtpUserModel.findByPk(userId);
+        const user = await PluginUserModel.findByPk(userId);
         if (user) {
             await user.destroy();
         }

@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 const { sequelize } = require('@app-connect/core/models/sequelize');
 
-exports.PtpUserModel = sequelize.define('ptp_users', {
+exports.PluginUserModel = sequelize.define('plugin_users', {
     id: {
         type: Sequelize.STRING,
         primaryKey: true,
