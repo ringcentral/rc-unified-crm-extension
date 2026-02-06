@@ -82,6 +82,11 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.21
+
+- Fix: Click-to-dial injection for HTML shadow roots
+- Fix: A not-found error for user mapping
+
 ## 1.6.20
 
 - New: Clio now supports SMS time tracking
