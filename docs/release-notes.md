@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.15
+
+- Fix: Click-to-dial injection for HTML shadow roots
+- Fix: A not-found error for user mapping
+
 ## 1.7.14
 
 - New: Clio now supports SMS time tracking

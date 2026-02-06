@@ -1,4 +1,16 @@
 {
+    "1.7.15": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial injection for HTML shadow roots"
+            },
+            {
+                "type": "Fix",
+                "description": "A not-found error for user mapping"
+            }
+        ]
+    },
     "1.7.12": {
         "global": [
             {
@@ -175,7 +187,7 @@
             }
         ]
     },
-    "1.6.11":{
+    "1.6.11": {
         "global": [
             {
                 "type": "Fix",

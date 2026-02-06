@@ -1,5 +1,17 @@
 {
-    "1.7.14":{
+    "1.7.15": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial injection for HTML shadow roots"
+            },
+            {
+                "type": "Fix",
+                "description": "A not-found error for user mapping"
+            }
+        ]
+    },
+    "1.7.14": {
         "clio": [
             {
                 "type": "New",
@@ -7,7 +19,7 @@
             }
         ]
     },
-    "1.7.12":{
+    "1.7.12": {
         "global": [
             {
                 "type": "New",
@@ -19,7 +31,7 @@
             }
         ]
     },
-    "1.7.11":{
+    "1.7.11": {
         "global": [
             {
                 "type": "New",
@@ -213,6 +225,18 @@
             }
         ]
     },
+    "1.6.21": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial injection for HTML shadow roots"
+            },
+            {
+                "type": "Fix",
+                "description": "A not-found error for user mapping"
+            }
+        ]
+    },
     "1.6.20": {
         "clio": [
             {
@@ -221,7 +245,7 @@
             }
         ]
     },
-    "1.6.19":{
+    "1.6.19": {
         "global": [
             {
                 "type": "New",
