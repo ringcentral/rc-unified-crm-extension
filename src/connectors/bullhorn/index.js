@@ -1103,7 +1103,8 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
     const putBody = {
         comments: composedLogDetails,
         personReference: {
-            id: contactInfo.id
+            id: contactInfo.id,
+            personSubtype: contactInfo.type
         },
         action: noteActions,
         dateAdded: callLog.startTime,
@@ -1112,7 +1113,8 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
     }
     if (assigneeId) {
         putBody.commentingPerson = {
-            id: assigneeId
+            id: assigneeId,
+            personSubtype: 'CorporateUser'
         }
     }
     let addLogRes;
@@ -1221,7 +1223,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     }
     if (assigneeId) {
         postBody.commentingPerson = {
-            id: assigneeId
+            id: assigneeId,
+            personSubtype: 'CorporateUser'
         }
     }
     // If user has input agent notes, SSCL won't update it
@@ -1414,7 +1417,8 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
         comments: comments,
         action: noteActions,
         personReference: {
-            id: contactInfo.id
+            id: contactInfo.id,
+            personSubtype: contactInfo.type
         },
         dateAdded: sharedSMSLogContent ? sharedSMSLogContent.conversationCreatedDate : message.creationTime
     }

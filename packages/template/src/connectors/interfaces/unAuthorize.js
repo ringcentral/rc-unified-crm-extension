@@ -14,7 +14,15 @@ async function unAuthorize({ user }) {
     //     {
     //         headers: { 'Authorization': `Basic ${getBasicAuth({ apiKey: user.accessToken })}` }
     //     });
-    await user.destroy();
+
+    
+    // A. If you want to remove just user credentials, NOT user settings
+    user.accessToken = '';
+    user.refreshToken = '';
+    await user.save();
+
+    // B. If you want to destroy the whole user record
+    // await user.destroy();
     return {
         returnMessage: {
             messageType: 'success',

@@ -36,9 +36,9 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP 
         overridingOAuthOption = platformModule.getOverridingOAuthOption({ code });
     }
     const oauthApp = oauth.getOAuthApp(oauthInfo);
-    const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
+    const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
 
     if (successful) {
         let userInfo = null;

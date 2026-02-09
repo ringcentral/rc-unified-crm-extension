@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.7.15
+
+- New: Clio time entries (activities) will be associated with matters
+- Fix: Click-to-dial injection for HTML shadow roots
+- Fix: A not-found error for user mapping
+- Fix: Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates 
+
+## 1.7.14
+
+- New: Clio now supports SMS time tracking
+
 ## 1.7.12
 
 - New: A button on Developer settings page to re-initialize user mapping
@@ -72,6 +83,17 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.21
+
+- New: Clio time entries (activities) will be associated with matters
+- Fix: Click-to-dial injection for HTML shadow roots
+- Fix: A not-found error for user mapping
+- Fix: Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates 
+
+## 1.6.20
+
+- New: Clio now supports SMS time tracking
 
 ## 1.6.19
 

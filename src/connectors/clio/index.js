@@ -511,6 +511,9 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             note: composedLogDetails
         }
     }
+    if (additionalSubmission && additionalSubmission.matters) {
+        addTimerBody.data['matter'] = { id: additionalSubmission.matters };
+    }
     const addTimerRes = await axios.post(
         `https://${user.hostname}/api/v4/activities.json`,
         addTimerBody,
