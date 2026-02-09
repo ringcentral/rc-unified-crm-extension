@@ -15,6 +15,12 @@
                 "type": "New",
                 "description": "Clio time entries (activities) will be associated with matters"
             }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates"
+            }
         ]
     },
     "1.7.14": {
@@ -246,6 +252,12 @@
             {
                 "type": "New",
                 "description": "Clio time entries (activities) will be associated with matters"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates"
             }
         ]
     },

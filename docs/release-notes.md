@@ -5,6 +5,7 @@
 - New: Clio time entries (activities) will be associated with matters
 - Fix: Click-to-dial injection for HTML shadow roots
 - Fix: A not-found error for user mapping
+- Fix: Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates 
 
 ## 1.7.14
 
@@ -88,6 +89,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 - New: Clio time entries (activities) will be associated with matters
 - Fix: Click-to-dial injection for HTML shadow roots
 - Fix: A not-found error for user mapping
+- Fix: Edge cases where Bullhorn Note authors are assigned to Contacts/Candidates 
 
 ## 1.6.20
 
