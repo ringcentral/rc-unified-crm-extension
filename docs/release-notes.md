@@ -2,6 +2,7 @@
 
 ## 1.7.15
 
+- New: Clio time entries (activities) will be associated with matters
 - Fix: Click-to-dial injection for HTML shadow roots
 - Fix: A not-found error for user mapping
 
@@ -84,6 +85,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
 ## 1.6.21
 
+- New: Clio time entries (activities) will be associated with matters
 - Fix: Click-to-dial injection for HTML shadow roots
 - Fix: A not-found error for user mapping
 

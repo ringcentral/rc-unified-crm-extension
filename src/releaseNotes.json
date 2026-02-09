@@ -9,6 +9,12 @@
                 "type": "Fix",
                 "description": "A not-found error for user mapping"
             }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio time entries (activities) will be associated with matters"
+            }
         ]
     },
     "1.7.14": {
@@ -234,6 +240,12 @@
             {
                 "type": "Fix",
                 "description": "A not-found error for user mapping"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio time entries (activities) will be associated with matters"
             }
         ]
     },
