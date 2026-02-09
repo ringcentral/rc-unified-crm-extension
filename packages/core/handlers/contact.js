@@ -38,7 +38,7 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         if (!isForceRefreshAccountData) {
             if (existingMatchedContactInfo) {
                 console.log('found existing matched contact info in account data');
-                return { successful: true, returnMessage: null, contact: existingMatchedContactInfo.data, extraDataTracking: null };
+                return { successful: true, returnMessage: null, contact: existingMatchedContactInfo.data, extraDataTracking: { isCached: true } };
             }
         }
         const proxyId = user.platformAdditionalInfo?.proxyId;
@@ -74,13 +74,12 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
             // save in org data
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
             if (user.rcAccountId) {
-                if(existingMatchedContactInfo)
-                {
+                if (existingMatchedContactInfo) {
                     await existingMatchedContactInfo.update({
                         data: matchedContactInfo
                     });
                 }
-                else{
+                else {
                     await AccountDataModel.create({
                         rcAccountId: user.rcAccountId,
                         platformName: platform,
