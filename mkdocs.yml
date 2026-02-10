@@ -70,6 +70,7 @@ markdown_extensions:
   - md_in_html
   - admonition
   - mdx_include
+  - footnotes
   - pymdownx.superfences
   - pymdownx.superfences:
       custom_fences:
@@ -86,21 +87,42 @@ copyright: "2023-2025 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md
-- 'Installation': getting-started.md
-- 'Supported CRMs':
-   - 'Overview': crm/index.md
-   - 'Bullhorn': crm/bullhorn.md
-   - 'Clio': crm/clio.md
-   - 'Freshdesk': crm/freshdesk.md
-   - 'GoHighLevel': crm/gohighlevel.md
-   - 'Google Sheets': crm/google-sheets.md
-   - 'Insightly': crm/insightly.md
-   - 'NetSuite': crm/netsuite.md
-   - 'Pipedrive': crm/pipedrive.md
-   - 'Redtail CRM': crm/redtail.md
-   - 'ServiceNow': crm/servicenow.md
-- 'User guide':
+- 'Integrations':
+  - 'Overview': crm/index.md
+  - 'Bullhorn': crm/bullhorn.md
+  - 'Clio': crm/clio.md
+  - 'Freshdesk': crm/freshdesk.md
+  - 'GoHighLevel': crm/gohighlevel.md
+  - 'Google Sheets': crm/google-sheets.md
+  - 'Insightly': crm/insightly.md
+  - 'NetSuite': crm/netsuite.md
+  - 'Pipedrive': crm/pipedrive.md
+  - 'Redtail CRM': crm/redtail.md
+  - 'ServiceNow': crm/servicenow.md
+- 'Solutions':
+  - 'Overview': solutions/index.md
+  - 'Embedded communications': solutions/embedded-communications.md
+  - 'Sales velocity': solutions/sales-velocity.md
+  - 'Supervision &amp; monitoring': solutions/supervision.md
+  - 'Automated logging': solutions/communication-logging.md
+  - 'AI-generated insights': solutions/artificial-intelligence.md
+  - 'Universal connector': solutions/integrations.md
+- 'Documentation':
   - 'Introduction': users/access.md
+  - 'Installation': getting-started.md
+  
+  - 'App Connect 2.0 Beta':
+    - "What's new": 2.0/index.md
+    - 'Download': 2.0/download.md
+    - 'New CRMs': 
+      - 'RecruiterPM': crm/recruiterpm.md
+      - 'Service Titan': crm/servicetitan.md
+      - 'Smokeball': crm/smokeball.md
+      - 'Zoho': crm/zoho.md
+    - 'Developers': 
+      - 'Connector migration guide': 2.0/migration.md
+      - 'Proxy connector (new)': developers/proxy-connector.md
+
   - 'App Connect features': 
     - 'AI Assistant': users/ai.md
     - 'Call-down lists (2.0)': users/calldown-lists.md
@@ -173,18 +195,6 @@ nav:
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
       - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
-
-- 'App Connect 2.0 Beta':
-  - "What's new": 2.0/index.md
-  - 'Download': 2.0/download.md
-  - 'New CRMs': 
-    - 'RecruiterPM': crm/recruiterpm.md
-    - 'Service Titan': crm/servicetitan.md
-    - 'Smokeball': crm/smokeball.md
-    - 'Zoho': crm/zoho.md
-  - 'Developers': 
-    - 'Connector migration guide': 2.0/migration.md
-    - 'Proxy connector (new)': developers/proxy-connector.md
 
 - 'Support':
   - 'Troubleshooting': support.md
