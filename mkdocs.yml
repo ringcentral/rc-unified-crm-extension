@@ -132,7 +132,7 @@ nav:
     - 'Presence and status': users/presence.md
     - 'RingCX support (experimental)': users/ringcx.md
     - 'Screen-pop': users/screen-pop.md
-    - 'Sending SMS': users/sms.md
+    - 'Sending &amp; receiving SMS': users/sms.md
     - 'Voicemail drop (2.0)': users/voicemail-drop.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md
