@@ -1,8 +1,12 @@
 # App Connect Solutions
 
+<div class="solution-header" markdown>
+
 ### One Extension. Infinite Possibilities.
 
 RingCentral App Connect isn't just a dialer; it is a high-performance integration framework designed to bridge the gap between your conversations and your business data. Whether you are looking to accelerate sales, automate data entry, or gain deep AI insights, we have a solution built for your workflow.
+
+</div>
 
 ## Explore by Business Need
 
@@ -37,11 +41,11 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 
     [Learn about Auto-Logging](communication-logging.md)
 
--   :fontawesome-solid-wand-magic-sparkles:{ .lg .middle } __AI-Generated Insights__
+-   :fontawesome-solid-wand-magic-sparkles:{ .lg .middle } __Artificial Intelligence__
 
     ---
 	
-    Turn "dark data" into strategic assets. Use AI Assistant and ACE (AI Conversation Expert) to automatically summarize calls, detect sentiment, and create follow-up tasks.
+    Turn "dark data" into strategic assets. Use AI Assistant and ACE (AI Conversation Expert) to automatically summarize calls, detect sentiment, and create follow-up tasks. Plus App Connect into any LLM.
 	
 	---
 	
