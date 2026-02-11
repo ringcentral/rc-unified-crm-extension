@@ -18,11 +18,10 @@ Stop waiting for third-party developers to build the integration you need. App C
 * [Proxy Connector](../developers/proxy-connector.md): Use our proxy architecture to bridge the gap between RingCentral and your internal databases. This allows for secure, real-time data exchange even with apps sitting behind your corporate firewall.
 * [Connector SDK](../developers/getting-started.md): For deeper, more specialized workflows, our SDK allows you to customize the behavior of the extension. Trigger specific events in your web app based on call states (e.g., "On Call," "Call Ended").
 
-<!--
-!!! tip "Built for the &quot;Un-integratable&quot;"
-    "We spent years looking for a telephony partner that would work with our proprietary legal billing software. With the App Connect JSON framework, we had a fully functional integration running in less than an afternoon."
-    — Lead Developer, Enterprise Solutions
--->
+!!! tip "Optimized for quick integrations"
+    > "RingCentral App Connect handles all te heavy lifting on the telephony side so we can focus on the specifics of the integration. It really cuts development-time in half and provides a robust integration platform!"
+	
+    — Jeroen Couwenberg, Lead Developer, Loyally
 
 ## Why the Universal Connector Wins
 
