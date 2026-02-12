@@ -83,7 +83,7 @@ markdown_extensions:
        emoji_index: !!python/name:material.extensions.emoji.twemoji 
        emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
-copyright: "2023-2025 RingCentral, Inc. All rights reserved."
+copyright: "2023-2026 RingCentral, Inc. All rights reserved."
 
 nav:
 - 'Home': index.md
@@ -99,6 +99,7 @@ nav:
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
+  - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
   - 'Embedded communications': solutions/embedded-communications.md
