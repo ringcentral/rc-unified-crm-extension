@@ -6,6 +6,7 @@ Zoho CRM is a cloud-based customer relationship management software that helps b
 
 RingClone's integration with Zoho helps streamline communications with customers, and helps sales teams track communications so that they can have a full 360-view of their customers and deals in the pipeline. With a focus on ease of use, accurate contact matching, and fast deployment, the RingClone Zoho App Connect adapter helps teams work faster while keeping CRM data clean and complete.
 
+!!! money "As a third-party integration, the Zoho integration comes at an additional cost"
 
 ## Install the extension
 

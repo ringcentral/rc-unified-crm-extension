@@ -4,7 +4,7 @@ Freshdesk, the online customer engagement solution from Freshworks, lets you str
 
 RingCentral supports Freshdesk via a trusted third-party vendor and Premium Partner [Loyally](https://loyally.eu/), whose experience with Freshdesk began with their popular custom-built [Freshdesk integration](https://www.ringcentral.com/apps/freshdesk-premium-cti). 
 
-!!! info "As a third-party integration, the Freshdesk integration comes at an additional cost"
+!!! money "As a third-party integration, the Freshdesk integration comes at an additional cost"
 
 ## Install the extension
 
