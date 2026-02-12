@@ -1,4 +1,4 @@
-# Advanced configuration options
+## Advanced configuration options
 
 Most users will not need to access these advanced configuration options. However, they have been provided to assist in resolving less common, low-level challenges. These options can be accessed both in Chrome and Edge by opening the "Manage Extensions" area from the Window menu, or from the extension menu found adjacent to your browser's location bar. 
 

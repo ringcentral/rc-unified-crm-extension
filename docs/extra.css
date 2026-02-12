@@ -56,19 +56,6 @@
     text-wrap: nowrap;
 }
 
-.solution-header h3 {
-    font-weight: 1000;
-    margin-top: 0.75rem;
-}
-
-.solution-header
-{
-    background-image: url(img/hero-bg-02.png);
-    padding: 1px 30px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
 .badge {
     font-size: .85em;
     color: rgb(64, 81, 181) !important;
