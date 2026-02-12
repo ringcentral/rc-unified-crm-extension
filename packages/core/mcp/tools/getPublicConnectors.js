@@ -8,7 +8,7 @@ const developerPortal = require('../../connector/developerPortal');
 
 const toolDefinition = {
     name: 'getPublicConnectors',
-    description: 'Auth flow step.1. Get a list of all available connectors from the developer portal. Returns a list of connector names for users to choose. Next step is calling step.2 "setConnector" tool.',
+    description: 'Get available connectors. Returns an interactive widget - do NOT summarize or list the results in text, just show the widget.',
     inputSchema: {
         type: 'object',
         properties: {},
@@ -18,10 +18,15 @@ const toolDefinition = {
         readOnlyHint: true,
         openWorldHint: false,
         destructiveHint: false
+    },
+    _meta: {
+        "openai/outputTemplate": 'ui://widget/ConnectorList.html',
+        "openai/toolBehavior": 'interactive',
+        "openai/widgetAccessible": true
     }
 };
 
-const supportedPlatforms = ['googleSheets','clio'];
+const supportedPlatforms = ['googleSheets', 'clio'];
 
 /**
  * Execute the getPublicConnectors tool
@@ -30,21 +35,36 @@ const supportedPlatforms = ['googleSheets','clio'];
 async function execute() {
     try {
         const { connectors: publicConnectorList } = await developerPortal.getPublicConnectorList();
-        const connectorList = publicConnectorList;
-        if(process.env.RC_ACCOUNT_ID) {
+        const connectorList = [...publicConnectorList];
+        
+        if (process.env.RC_ACCOUNT_ID) {
             const { privateConnectors } = await developerPortal.getPrivateConnectorList();
             connectorList.push(...privateConnectors);
         }
+        
+        // Filter to supported platforms and format for UI
+        const supportedConnectors = connectorList
+            .filter(c => supportedPlatforms.includes(c.name))
+            .map(c => ({
+                name: c.name,
+                displayName: c.displayName,
+                description: c.description || `Connect to ${c.displayName}`,
+                status: c.status || 'public'
+            }));
+        
         return {
-            success: true,
-            data: connectorList.filter(c => supportedPlatforms.includes(c.name)).map(c => c.displayName)
+            // structuredContent is sent to the UI widget - no text content needed
+            structuredContent: {
+                connectors: supportedConnectors
+            }
         };
     }
     catch (error) {
         return {
-            success: false,
-            error: error.message || 'Unknown error occurred',
-            errorDetails: error.stack
+            structuredContent: {
+                error: true,
+                errorMessage: error.message || 'Failed to load connectors'
+            }
         };
     }
 }
