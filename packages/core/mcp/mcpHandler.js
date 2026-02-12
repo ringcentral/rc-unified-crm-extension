@@ -4,163 +4,186 @@
  * This module provides MCP (Model Context Protocol) interface for the CRM extension.
  * It exposes tools that can be called by AI assistants or other MCP clients.
  */
-
+const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
+const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
 const tools = require('./tools');
 const logger = require('../lib/logger');
+const fs = require('fs');
+const path = require('path');
 
-const JSON_RPC_INTERNAL_ERROR = -32603;
-const JSON_RPC_METHOD_NOT_FOUND = -32601;
+// Map to store sessions (server + transport pairs) by session ID
+const sessions = new Map();
 
-async function handleMcpRequest(req, res) {
-    try {
-        const { method, params, id } = req.body;
-        logger.info('Received MCP request:', { method });
+/**
+ * Create and configure a new MCP Server instance
+ * Each session needs its own server instance since the SDK only allows one transport per server
+ * @param {Object} req - Express request object (for auth token access)
+ * @returns {McpServer} Configured MCP Server
+ */
+function createMcpServer(req) {
+    const mcpServer = new McpServer({
+        name: 'rc-unified-crm-extension',
+        version: '1.0.0'
+    });
 
-        let response;
+    // Get auth token from request for tool execution
+    const rcAccessToken = req?.headers?.['authorization']?.split('Bearer ')?.[1];
 
-        switch (method) {
-            case 'initialize':
-                response = {
-                    jsonrpc: '2.0',
-                    id,
-                    result: {
-                        protocolVersion: '2024-11-05',
-                        capabilities: {
-                            tools: {},
-                            prompts: {}
-                        },
-                        serverInfo: {
-                            name: 'rc-unified-crm-extension',
-                            version: '1.0.0'
-                        }
-                    }
-                };
-                break;
-            case 'tools/list':
-                response = {
-                    jsonrpc: '2.0',
-                    id,
-                    result: {
-                        tools: getTools()
-                    }
-                };
-                break;
-            case 'tools/call':
-                const { name: toolName, arguments: args } = params;
-                const rcAccessToken = req.headers['authorization']?.split('Bearer ')?.[1];
-                if (args && rcAccessToken) {
-                    args.rcAccessToken = rcAccessToken;
+    // Register each tool from the tools module
+    // Note: Don't pass inputSchema to registerTool - it expects Zod schemas, not JSON Schema
+    // ChatGPT gets the parameter info from description and _meta
+    for (const tool of tools.tools) {
+        const { name, description, annotations, _meta } = tool.definition;
+        
+        mcpServer.registerTool(
+            name,
+            {
+                description,
+                annotations,
+                _meta
+            },
+            async (params) => {
+                // Add auth token to params if available
+                const toolArgs = { ...params };
+                if (rcAccessToken) {
+                    toolArgs.rcAccessToken = rcAccessToken;
                 }
-                try {
-                    const result = await executeTool(toolName, args || {});
-                    response = {
-                        jsonrpc: '2.0',
-                        id,
-                        result: {
-                            content: [
-                                {
-                                    type: 'text',
-                                    text: JSON.stringify(result, null, 2)
-                                }
-                            ]
-                        }
+
+                const result = await tool.execute(toolArgs);
+
+                // If tool returned structuredContent, return it at top level
+                // This is the format ChatGPT expects for widget rendering
+                if (result?.structuredContent) {
+                    return {
+                        structuredContent: result.structuredContent,
+                        content: [
+                            {
+                                type: 'text',
+                                text: '[Interactive widget displayed above - no additional response needed]'
+                            }
+                        ]
                     };
-                } catch (toolError) {
-                    response = {
-                        jsonrpc: '2.0',
-                        id,
-                        error: {
-                            code: JSON_RPC_INTERNAL_ERROR,
-                            message: `Tool execution failed: ${toolError.message}`,
-                            data: {
-                                error: toolError.message,
-                                stack: process.env.NODE_ENV !== 'production' ? toolError.stack : undefined
+                }
+
+                // Otherwise return as text content
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: JSON.stringify(result, null, 2)
+                        }
+                    ]
+                };
+            }
+        );
+    }
+
+    // Register the widget resource
+    const appUrl = process.env.APP_SERVER || 'https://localhost:6066';
+    
+    mcpServer.registerResource(
+        'connector-list-widget',
+        'ui://widget/ConnectorList.html',
+        {
+            title: 'ConnectorList',
+            description: 'ChatGPT widget for connector selection'
+        },
+        async () => {
+            // Try to read the built dist/index.html first
+            const distPath = path.join(__dirname, 'ui', 'dist', 'index.html');
+            const devPath = path.join(__dirname, 'ui', 'index.html');
+
+            let htmlContent;
+            try {
+                htmlContent = fs.readFileSync(distPath, 'utf8');
+            } catch {
+                htmlContent = fs.readFileSync(devPath, 'utf8');
+            }
+
+            return {
+                contents: [
+                    {
+                        uri: 'ui://widget/ConnectorList.html',
+                        mimeType: 'text/html+skybridge',
+                        text: htmlContent,
+                        _meta: {
+                            'openai/widgetPrefersBorder': true,
+                            'openai/widgetDomain': appUrl,
+                            'openai/widgetCSP': {
+                                connect_domains: [appUrl],
+                                resource_domains: [appUrl]
                             }
                         }
-                    };
-                }
-                break;
-            case 'ping':
-                response = {
-                    jsonrpc: '2.0',
-                    id,
-                    result: {}
-                };
-                break;
-            default:
-                response = {
-                    jsonrpc: '2.0',
-                    id,
-                    error: {
-                        code: JSON_RPC_METHOD_NOT_FOUND,
-                        message: `Method not found: ${method}`
                     }
-                };
+                ]
+            };
+        }
+    );
+
+    return mcpServer;
+}
+
+/**
+ * Handle incoming MCP HTTP requests using the SDK's StreamableHTTPServerTransport
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+async function handleMcpRequest(req, res) {
+    try {
+        logger.info('Received MCP request:', { method: req.body?.method });
+
+        // Check for existing session
+        const sessionId = req.body?.params?._meta?.['openai/session'];
+        let session;
+
+        if (sessionId && sessions.has(sessionId)) {
+            // Reuse existing session
+            session = sessions.get(sessionId);
+        } else {
+            // Create new server and transport for new session
+            const server = createMcpServer(req);
+            const transport = new StreamableHTTPServerTransport({
+                sessionIdGenerator: undefined,
+                onsessioninitialized: (newSessionId) => {
+                    sessions.set(newSessionId, { server, transport });
+                    logger.info('MCP session initialized:', { sessionId: newSessionId });
+                }
+            });
+
+            // Set up cleanup on transport close
+            transport.onclose = () => {
+                const sid = transport.sessionId;
+                if (sid) {
+                    sessions.delete(sid);
+                    logger.info('MCP session closed:', { sessionId: sid });
+                }
+            };
+
+            // Connect server to transport
+            await server.connect(transport);
+            session = { server, transport };
         }
 
-        res.status(200).json(response);
+        // Let the transport handle the request
+        await session.transport.handleRequest(req, res, req.body);
+
     } catch (error) {
         logger.error('Error handling MCP request:', { stack: error.stack });
-        const errorResponse = {
+
+        // Send JSON-RPC error response
+        res.status(200).json({
             jsonrpc: '2.0',
             id: req.body?.id || null,
             error: {
-                code: JSON_RPC_INTERNAL_ERROR,
+                code: -32603,
                 message: 'Internal server error',
                 data: {
                     error: error.message,
                     stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
                 }
             }
-        };
-        res.status(200).json(errorResponse);
+        });
     }
-}
-
-
-/**
- * Get all registered MCP tools
- * @returns {Array} Array of tool definitions
- */
-function getTools() {
-    return tools.tools.map(tool => tool.definition);
-}
-
-/**
- * Execute a specific MCP tool
- * @param {string} toolName - Name of the tool to execute
- * @param {Object} args - Arguments to pass to the tool
- * @returns {Promise<Object>} Tool execution result
- */
-async function executeTool(toolName, args) {
-    // Find the tool by name
-    const tool = tools.tools.find(t => t.definition.name === toolName);
-
-    if (!tool) {
-        throw new Error(`Tool not found: ${toolName}`);
-    }
-
-    // Execute the tool
-    return await tool.execute(args);
-}
-
-/**
- * Get a specific tool definition
- * @param {string} toolName - Name of the tool
- * @returns {Object} Tool definition
- */
-function getToolDefinition(toolName) {
-    const tool = tools.tools.find(t => t.definition.name === toolName);
-
-    if (!tool) {
-        throw new Error(`Tool not found: ${toolName}`);
-    }
-
-    return tool.definition;
 }
 
 exports.handleMcpRequest = handleMcpRequest;
-exports.getTools = getTools;
-exports.executeTool = executeTool;
-exports.getToolDefinition = getToolDefinition;
-exports.tools = tools.tools;
