@@ -35,6 +35,7 @@ RingCentral's App Connect for RingEX is a browser extension for Google Chrome an
 * <span class="helper"></span>[![Pipedrive](img/crm-logo-pipedrive-bw.png)![Pipedrive](img/crm-logo-pipedrive.png)](crm/pipedrive.md)
 * <span class="helper"></span>[![Redtail](img/crm-logo-redtail-bw.png)![Redtail](img/crm-logo-redtail.png)](crm/redtail.md)
 * <span class="helper"></span>[![ServiceNow](img/crm-logo-servicenow-bw.png)![ServiceNow](img/crm-logo-servicenow.png)](crm/servicenow.md)
+* <span class="helper"></span>[![Zoho](img/crm-logo-zoho-bw.png)![Zoho CRM](img/crm-logo-zoho.png)](crm/zoho.md)
 *   
 
 ## Highlighted Features

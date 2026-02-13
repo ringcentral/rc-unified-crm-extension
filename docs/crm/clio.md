@@ -8,7 +8,7 @@ RingCentral's integration with Clio helps streamline communications with clients
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
 
-<iframe width="825" height="464" src="https://www.youtube.com/embed/pQgdsAR1UCI?si=PaSTDhHkTUa9fMtk" title="App Connect for Clio - quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="825" height="464" src="https://www.youtube.com/embed/wHkPpEpalnI" title="App Connect - Clio quick start" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
