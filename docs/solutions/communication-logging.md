@@ -18,7 +18,7 @@ Stop chasing "ghost calls" that aren't in the system. App Connect bridges the ga
 ### Core Capabilities
 
 * **[Automated Call Logging](../users/automatic-logging.md):** As soon as a call ends, App Connect creates a task or activity record in your CRM. Duration, direction, timestamp, and participant details are synced instantly.
-* **[SMS & Fax Synchronization](../users/sms.md#logging-sms-conversations):** Communication isn't just voice. App Connect logs inbound and outbound text messages and faxes directly to the contact record.
+* **[SMS & Fax Synchronization](../users/sms.md#direct-vs-shared-sms-inboxes):** Communication isn't just voice. App Connect logs inbound and outbound text messages and faxes directly to the contact record.
 * **[Multi-Match Intelligence](../users/automatic-logging.md#automatically-resolving-logging-conflicts):** When a phone number is associated with multiple contacts, App Connect intelligently prompts the user to select the correct record.
 * **[Server-Side Logging](../users/server-side-logging.md):** Ensure nothing slips through the cracks. Calls are recorded in the CRM even if the browser is closed or the user is on a mobile device.
 

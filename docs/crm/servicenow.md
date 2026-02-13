@@ -8,7 +8,7 @@ ServiceNow is an IT service and operations management company that helps compani
 
 RingCentral supports ServiceNow via a trusted third-party vendor [Gate6](https://gate6.com/).
 
-!!! info "As a third-party integration, the ServiceNow integration comes at an additional cost"
+!!! money "As a third-party integration, the ServiceNow integration comes at an additional cost"
 
 ## Install the extension
 

@@ -29,6 +29,8 @@ RingCentral's App Connect for RingEX provides support for a number of different 
      [Redtail CRM](redtail.md)
 -    [![ServiceNow Logo](../img/crm-logo-servicenow.png){.crm-logo}](servicenow.md)
      [ServiceNow by Gate6](servicenow.md)
+-    [![Zoho Logo](../img/crm-logo-zoho.png){.crm-logo}](zoho.md)
+     [Zoho by RingClone](zoho.md)
 
 </div>
 
