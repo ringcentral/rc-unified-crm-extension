@@ -1,9 +1,12 @@
-const developerPortal = require('../../connector/developerPortal');
+const axios = require('axios');
 
 /**
  * MCP Tool: Get Public Connectors
- * 
- * This tool retrieves a list of public connectors from the developer portal.
+ *
+ * Triggers the connector selection widget. The widget fetches the connector
+ * list and manifests directly from the developer portal on the client side.
+ * This tool only needs to resolve the RC account ID (for private connector
+ * support) and return the server URL for widget-to-server tool calls.
  */
 
 const toolDefinition = {
@@ -20,53 +23,43 @@ const toolDefinition = {
         destructiveHint: false
     },
     _meta: {
-        "openai/outputTemplate": 'ui://widget/ConnectorList.html',
+        // openai/outputTemplate is injected at registration time by mcpHandler.js
+        // using the module-level WIDGET_URI — do not hardcode a version here.
         "openai/toolBehavior": 'interactive',
         "openai/widgetAccessible": true
     }
 };
 
-const supportedPlatforms = ['googleSheets', 'clio'];
-
 /**
- * Execute the getPublicConnectors tool
- * @returns {Object} Result object with connector names
+ * Execute the getPublicConnectors tool.
+ * Uses the RC access token (injected by mcpHandler) to resolve the account ID,
+ * which the widget needs to fetch private connectors directly from the developer portal.
  */
-async function execute() {
-    try {
-        const { connectors: publicConnectorList } = await developerPortal.getPublicConnectorList();
-        const connectorList = [...publicConnectorList];
-        
-        if (process.env.RC_ACCOUNT_ID) {
-            const { privateConnectors } = await developerPortal.getPrivateConnectorList();
-            connectorList.push(...privateConnectors);
+async function execute({ rcAccessToken, openaiSessionId } = {}) {
+    let rcExtensionId = null;
+    let rcAccountId = null;
+
+    if (rcAccessToken) {
+        try {
+            const resp = await axios.get(
+                'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
+                { headers: { Authorization: `Bearer ${rcAccessToken}` } }
+            );
+            rcExtensionId = resp.data?.id ?? null;
+            rcAccountId = resp.data?.account?.id ?? null;
+        } catch {
+            // Non-fatal: widget will only show public connectors
         }
-        
-        // Filter to supported platforms and format for UI
-        const supportedConnectors = connectorList
-            .filter(c => supportedPlatforms.includes(c.name))
-            .map(c => ({
-                name: c.name,
-                displayName: c.displayName,
-                description: c.description || `Connect to ${c.displayName}`,
-                status: c.status || 'public'
-            }));
-        
-        return {
-            // structuredContent is sent to the UI widget - no text content needed
-            structuredContent: {
-                connectors: supportedConnectors
-            }
-        };
     }
-    catch (error) {
-        return {
-            structuredContent: {
-                error: true,
-                errorMessage: error.message || 'Failed to load connectors'
-            }
-        };
-    }
+
+    return {
+        structuredContent: {
+            serverUrl: process.env.APP_SERVER || 'https://localhost:6066',
+            rcExtensionId,
+            rcAccountId,
+            openaiSessionId: openaiSessionId ?? null,
+        }
+    };
 }
 
 exports.definition = toolDefinition;

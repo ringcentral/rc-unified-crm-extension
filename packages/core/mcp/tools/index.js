@@ -1,64 +1,39 @@
 /**
  * MCP Tools Index
- * 
- * This file exports all available MCP tools for the RC Unified CRM Extension.
+ *
+ * Two separate registries:
+ *  - tools:       Registered in the MCP server — visible to and callable by the AI model
+ *  - widgetTools: Only accessible via POST /mcp/widget-tool-call — hidden from the AI model
  */
 
-// const auth = require('./auth');
 const getHelp = require('./getHelp');
 const getPublicConnectors = require('./getPublicConnectors');
-const setConnector = require('./setConnector');
-const collectAuthInfo = require('./collectAuthInfo');
 const doAuth = require('./doAuth');
 const checkAuthStatus = require('./checkAuthStatus');
 const logout = require('./logout');
 const findContact = require('./findContactByPhone');
 const findContactWithName = require('./findContactByName');
-const getCallLog = require('./getCallLog');
 const createCallLog = require('./createCallLog');
-const updateCallLog = require('./updateCallLog');
-const createMessageLog = require('./createMessageLog');
 const rcGetCallLogs = require('./rcGetCallLogs');
 const getGoogleFilePicker = require('./getGoogleFilePicker');
 const createContact = require('./createContact');
 
-// Export all tools
-module.exports = {
-    getHelp,
-    getPublicConnectors,
-    setConnector,
-    collectAuthInfo,
-    doAuth,
-    checkAuthStatus,
-    logout,
-    findContact,
-    findContactWithName,
-    //getCallLog,
-    createCallLog,
-    //updateCallLog,
-    //createMessageLog,
-    rcGetCallLogs,
-    getGoogleFilePicker,
-    createContact
-};
-
-// Export tools as an array for easy iteration
+// AI-visible MCP tools — registered in the MCP server
 module.exports.tools = [
     getHelp,
     getPublicConnectors,
-    setConnector,
-    collectAuthInfo,
-    doAuth,
-    checkAuthStatus,
     logout,
     findContact,
     findContactWithName,
-    //getCallLog,
     createCallLog,
-    //updateCallLog,
-    //createMessageLog,
     rcGetCallLogs,
     getGoogleFilePicker,
-    createContact
+    createContact,
+];
+
+// Widget-only tools — callable via /mcp/widget-tool-call, NOT registered as MCP tools
+module.exports.widgetTools = [
+    doAuth,
+    checkAuthStatus,
 ];
 

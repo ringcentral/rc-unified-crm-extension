@@ -10,14 +10,10 @@ const contactCore = require('../../handlers/contact');
 
 const toolDefinition = {
     name: 'createContact',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Create a new contact in the CRM platform. Returns the created contact information if successful.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Create a new contact in the CRM platform. Returns the created contact information if successful.',
     inputSchema: {
         type: 'object',
         properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
-            },
             phoneNumber: {
                 type: 'string',
                 description: 'Phone number of the new contact (MUST BE in E.164 format, e.g., +14155551234)'
@@ -27,7 +23,7 @@ const toolDefinition = {
                 description: 'Full name of the new contact. If not provided, use phone number as the name'
             }
         },
-        required: ['jwtToken', 'phoneNumber']
+        required: ['phoneNumber']
     },
     annotations: {
         readOnlyHint: false,

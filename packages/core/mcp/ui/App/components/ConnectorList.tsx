@@ -3,6 +3,7 @@ import { Button } from "@openai/apps-sdk-ui/components/Button"
 import { Badge } from "@openai/apps-sdk-ui/components/Badge"
 
 export interface Connector {
+  id: string
   name: string
   displayName: string
   description?: string
@@ -11,11 +12,12 @@ export interface Connector {
 
 interface ConnectorListProps {
   connectors: Connector[]
-  onSelect?: (connector: Connector) => void
+  disabled?: boolean
+  onSelect: (connector: Connector) => void
 }
 
-export function ConnectorList({ connectors, onSelect }: ConnectorListProps) {
-  const [connectedDisplayName, setConnectedDisplayName] = useState<string | null>(null)
+export function ConnectorList({ connectors, disabled, onSelect }: ConnectorListProps) {
+  const [selectedName, setSelectedName] = useState<string | null>(null)
 
   if (!connectors || connectors.length === 0) {
     return (
@@ -25,23 +27,9 @@ export function ConnectorList({ connectors, onSelect }: ConnectorListProps) {
     )
   }
 
-  const handleSelect = async (connector: Connector) => {
-    setConnectedDisplayName(connector.displayName)
-    
-    // Call tool via MCP Apps bridge (postMessage)
-    if (window.parent !== window) {
-      window.parent.postMessage({
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'tools/call',
-        params: {
-          name: 'setConnector',
-          arguments: { connectorDisplayName: connector.displayName }
-        }
-      }, '*')
-    }
-    
-    onSelect?.(connector)
+  const handleSelect = (connector: Connector) => {
+    setSelectedName(connector.displayName)
+    onSelect(connector)
   }
 
   return (
@@ -55,7 +43,7 @@ export function ConnectorList({ connectors, onSelect }: ConnectorListProps) {
       
       <div className="space-y-3">
         {connectors.map((connector) => {
-          const isConnected = connectedDisplayName === connector.displayName
+          const isSelected = selectedName === connector.displayName
           return (
             <div
               key={connector.displayName}
@@ -76,12 +64,12 @@ export function ConnectorList({ connectors, onSelect }: ConnectorListProps) {
                   )}
                 </div>
                 <Button
-                  color={isConnected ? 'secondary' : 'primary'}
+                  color={isSelected ? 'secondary' : 'primary'}
                   size="sm"
                   onClick={() => handleSelect(connector)}
-                  disabled={isConnected}
+                  disabled={disabled || isSelected}
                 >
-                  {isConnected ? 'Connected' : 'Connect'}
+                  {isSelected ? 'Connecting...' : 'Connect'}
                 </Button>
               </div>
             </div>

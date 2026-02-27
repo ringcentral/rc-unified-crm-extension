@@ -11,20 +11,16 @@ const contactCore = require('../../handlers/contact');
 
 const toolDefinition = {
     name: 'findContactByName',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Search for a contact in the CRM platform by name. Returns contact details if found.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Search for a contact in the CRM platform by name. Returns contact details if found.',
     inputSchema: {
         type: 'object',
         properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
-            },
             name: {
                 type: 'string',
                 description: 'Name to search for'
             }
         },
-        required: ['jwtToken', 'name']
+        required: ['name']
     },
     annotations: {
         readOnlyHint: true,
@@ -36,14 +32,15 @@ const toolDefinition = {
 /**
  * Execute the findContactByName tool
  * @param {Object} args - The tool arguments
- * @param {string} args.jwtToken - JWT token with user and platform info
  * @param {string} args.name - Name to search for
  * @returns {Object} Result object with contact information
  */
 async function execute(args) {
     try {
-        const { jwtToken, name } = args;
-
+        const { name, jwtToken } = args;
+        if (!jwtToken) {
+            throw new Error('Not authenticated. Please connect to your CRM first.');
+        }
         // Decode JWT to get userId and platform
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
         
