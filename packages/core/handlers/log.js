@@ -563,31 +563,34 @@ async function createMessageLog({ platform, userId, incomingData }) {
                         conversationLogId: incomingData.logInfo.conversationLogId
                     }
                 });
+            let crmLogId = ''
                 if (existingSameDateMessageLog) {
                     const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                     returnMessage = updateMessageResult?.returnMessage;
+                    extraDataTracking = updateMessageResult.extraDataTracking;
                 }
                 else {
                     const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                    const crmLogId = createMessageLogResult.logId;
-                    if (crmLogId) {
-                        try {
-                            const createdMessageLog =
-                                await MessageLogModel.create({
-                                    id: message.id.toString(),
-                                    platform,
-                                    conversationId: incomingData.logInfo.conversationId,
-                                    thirdPartyLogId: crmLogId,
-                                    userId,
-                                    conversationLogId: incomingData.logInfo.conversationLogId
-                                });
-                            logIds.push(createdMessageLog.id);
-                        } catch (error) {
-                            return handleDatabaseError(error, 'Error creating message log');
-                        }
-                    }
+                    crmLogId = createMessageLogResult.logId;
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;
+                }
+                if (crmLogId) {
+                    try {
+                        const createdMessageLog =
+                            await MessageLogModel.create({
+                                id: message.id.toString(),
+                                platform,
+                                conversationId: incomingData.logInfo.conversationId,
+                                thirdPartyLogId: crmLogId,
+                                userId,
+                                conversationLogId: incomingData.logInfo.conversationLogId
+                            });
+                        logIds.push(createdMessageLog.id);
+                    } catch (error) {
+                        return handleDatabaseError(error, 'Error creating message log');
+                    }
                 }
             }
         }
