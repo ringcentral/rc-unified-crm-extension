@@ -19,6 +19,8 @@ cp(`${projectPath}/src/server.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 mkdir(`${deployPath}/packages`);
 cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
+rm('-rf', `${deployPath}/packages/core/mcp/ui/node_modules`);
+rm('-rf', `${deployPath}/packages/core/mcp/ui/App`);
 cp('-r', `${projectPath}/src/connectors`, `${deployPath}/connectors`);
 
 echo(`build done, output in ${deployPath}`);

@@ -37,6 +37,8 @@ cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 mkdir(`${deployPath}/packages`);
 cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
+rm('-rf', `${deployPath}/packages/core/mcp/ui/node_modules`);
+rm('-rf', `${deployPath}/packages/core/mcp/ui/App`);
 cp('-r', `${projectPath}/src/connectors`, `${deployPath}/connectors`);
 
 const manifestPath = resolve(projectPath, 'serverless-deploy-test/connectors/manifest.json');
