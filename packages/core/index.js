@@ -1435,8 +1435,8 @@ function createCoreRouter() {
         }
         const requestEndTime = new Date().getTime();
         analytics.track({
-            eventName: 'Create call log',
-            interfaceName: 'createCallLog',
+            eventName: 'Disposition call log',
+            interfaceName: 'dispositionCallLog',
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,

@@ -356,7 +356,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 });
             }
 
-            const { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
+            let { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
                 user,
                 existingCallLog,
                 authHeader,
@@ -382,6 +382,11 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
+            if(!extraDataTracking){
+                extraDataTracking = {};
+            }
+            extraDataTracking.withSmartNoteLog = !!incomingData.aiNote;
+            extraDataTracking.withTranscript = !!incomingData.transcript;
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
         return { successful: false };
