@@ -228,10 +228,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
     const overrideAuthHeader = getAuthHeader({ userKey: user.platformAdditionalInfo.userResponse.user_key });
 
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name}`;
-    let extraDataTracking = {
-        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-    };
+    const extraDataTracking = {};
     if (user.userSettings?.redtailCustomTimezone?.value ?? false) {
         composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callLog.startTime, user });
     }

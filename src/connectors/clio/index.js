@@ -449,11 +449,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
                 break;
         }
     }
-
-    let extraDataTracking = {
-        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-    };
+    
     if (composedLogDetails === '') {
         composedLogDetails = 'No details available';
     }
@@ -520,7 +516,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
         {
             headers: { 'Authorization': authHeader }
         });
-    extraDataTracking = {
+    let extraDataTracking = {
         ratelimitRemaining: addTimerRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: addTimerRes.headers['x-ratelimit-limit'],
         ratelimitReset: addTimerRes.headers['x-ratelimit-reset']

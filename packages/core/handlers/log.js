@@ -129,7 +129,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             });
         }
 
-        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
+        let { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
             user,
             contactInfo,
             authHeader,
@@ -148,6 +148,11 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             isFromSSCL,
             proxyConfig,
         });
+        if (!extraDataTracking) {
+            extraDataTracking = {};
+        }
+        extraDataTracking.withSmartNoteLog = !!aiNote;
+        extraDataTracking.withTranscript = !!transcript;
         if (logId) {
             try {
                 await CallLogModel.create({

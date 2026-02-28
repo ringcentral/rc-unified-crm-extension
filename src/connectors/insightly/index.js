@@ -498,10 +498,7 @@ async function getUserList({ user, authHeader }) {
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
-    let extraDataTracking = {
-        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-    };
+    const extraDataTracking = {};
 
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
