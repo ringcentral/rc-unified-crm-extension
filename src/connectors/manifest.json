@@ -1889,27 +1889,6 @@
             "warning": "Please enter your Dominion DMS credentials to connect to your system.",
             "content": [
               {
-                "const": "partyId",
-                "title": "Party ID",
-                "type": "string",
-                "required": true,
-                "placeholder": "Enter your Party ID"
-              },
-              {
-                "const": "dealerNumberId", 
-                "title": "Dealer Number ID",
-                "type": "string",
-                "required": true,
-                "placeholder": "Enter your Dealer Number ID"
-              },
-              {
-                "const": "bodVersion",
-                "title": "BOD Version", 
-                "type": "string",
-                "required": true,
-                "placeholder": "Enter BOD Version (e.g., 10.5)"
-              },
-              {
                 "const": "employeeNumber",
                 "title": "Employee Number",
                 "type": "string",

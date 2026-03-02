@@ -25,6 +25,7 @@ connectorRegistry.setReleaseNotes(require('./releaseNotes.json'));
 connectorRegistry.registerConnector('bullhorn', bullhorn);
 connectorRegistry.registerConnector('clio', clio);
 connectorRegistry.registerConnector('dominion', dominion);
+connectorRegistry.registerConnector('dominion_sushil_local', dominion);
 connectorRegistry.registerConnector('ringcentral_labs.dominion', dominion); // Register with full manifest name
 connectorRegistry.registerConnector('googleSheets', googleSheets);
 connectorRegistry.registerConnector('insightly', insightly);
