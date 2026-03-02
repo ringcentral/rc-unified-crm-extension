@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.16
+
+- Fix: SMS logging issue of repeatedly logging same messages
+- Fix: Mixpanel token issue that blocks certain webpage access
+
 ## 1.7.15
 
 - New: Clio time entries (activities) will be associated with matters
@@ -83,6 +88,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.22
+
+- Fix: SMS logging issue of repeatedly logging same messages
+- Fix: Mixpanel token issue that blocks certain webpage access
 
 ## 1.6.21
 
