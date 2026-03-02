@@ -16,7 +16,7 @@
     "server": "nodemon ./src/server.js",
     "start": "npm run server",
     "start-debug": "node --inspect ./src/server.js",
-    "test": "set NODE_ENV=test&&jest --forceExit -i && npm run test --workspace=@app-connect/core",
+    "test": "node scripts/run-tests.js",
     "test:root": "set NODE_ENV=test&&jest --forceExit -i",
     "test-coverage": "set NODE_ENV=test&&jest --coverage --runInBand && npm run test:coverage --workspace=@app-connect/core",
     "build-local": "node ./scripts/build",
