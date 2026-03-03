@@ -333,7 +333,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('setAdminSettings:adminValidationFailed', {});
-                res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 success = false;
             }
         }
@@ -395,7 +395,7 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('getAdminSettings:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -452,7 +452,7 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('getUserMapping:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -509,7 +509,7 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('reinitializeUserMapping:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -1896,7 +1896,7 @@ function createCoreRouter() {
                 res.status(200).send(mockUser ? 'Mock user registered' : 'Mock user already existed');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.delete('/deleteMockUser', async function (req, res) {
@@ -1906,7 +1906,7 @@ function createCoreRouter() {
                 res.status(200).send(foundAndDeleted ? 'Mock user deleted' : 'Mock user not found');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.get('/mockCallLog', async function (req, res) {
@@ -1916,7 +1916,7 @@ function createCoreRouter() {
                 res.status(200).send(callLogs);
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.post('/mockCallLog', async function (req, res) {
@@ -1926,7 +1926,7 @@ function createCoreRouter() {
                 res.status(200).send('Mock call log created');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.delete('/mockCallLog', async function (req, res) {
@@ -1936,7 +1936,7 @@ function createCoreRouter() {
                 res.status(200).send('Mock call logs cleaned up');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
     }
