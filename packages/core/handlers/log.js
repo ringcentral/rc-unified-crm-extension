@@ -532,14 +532,14 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
                 let faxDocLink = null;
                 let faxDownloadLink = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
+                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && incomingData.logInfo.rcAccessToken) {
                     faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
                     faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
                 }
                 let imageLink = null;
                 let imageDownloadLink = null;
                 let imageContentType = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && incomingData.logInfo.rcAccessToken) {
                     const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
                     if (imageAttachment) {
                         imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
@@ -565,7 +565,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 });
             let crmLogId = ''
                 if (existingSameDateMessageLog) {
-                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                     crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                     returnMessage = updateMessageResult?.returnMessage;
                     extraDataTracking = updateMessageResult.extraDataTracking;
