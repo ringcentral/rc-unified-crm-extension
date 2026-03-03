@@ -126,16 +126,23 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 if (newLock) {
                     await newLock.delete();
                 }
+                return null;
             }
         }
         // case: run withou token refresh lock
         else {
-            logger.info('token refreshing...')
-            const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            const { accessToken, refreshToken, expires } = await token.refresh();
-            user.accessToken = accessToken;
-            user.refreshToken = refreshToken;
-            user.tokenExpiry = expires;
+            try {
+                logger.info('token refreshing...')
+                const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+                const { accessToken, refreshToken, expires } = await token.refresh();
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                user.tokenExpiry = expires;
+            }
+            catch (e) {
+                console.log('token refreshing failed', e.stack)
+                return null;
+            }
             try {
                 await user.save();
             }

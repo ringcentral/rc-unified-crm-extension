@@ -77,6 +77,17 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -206,6 +217,17 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 case 'oauth':
                     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    if (!user) {
+                        return {
+                            successful: false,
+                            returnMessage: {
+                                message: `User session expired. Please connect again.`,
+                                messageType: 'warning',
+                                ttl: 5000
+                            },
+                            isRevokeUserSession: true
+                        }
+                    }
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
                 case 'apiKey':
@@ -292,6 +314,17 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 case 'oauth':
                     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    if (!user) {
+                        return {
+                            successful: false,
+                            returnMessage: {
+                                message: `User session expired. Please connect again.`,
+                                messageType: 'warning',
+                                ttl: 5000
+                            },
+                            isRevokeUserSession: true
+                        }
+                    }
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
                 case 'apiKey':
@@ -382,7 +415,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
-            if(!extraDataTracking){
+            if (!extraDataTracking) {
                 extraDataTracking = {};
             }
             extraDataTracking.withSmartNoteLog = !!incomingData.aiNote;
@@ -442,6 +475,17 @@ async function createMessageLog({ platform, userId, incomingData }) {
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -563,7 +607,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                         conversationLogId: incomingData.logInfo.conversationLogId
                     }
                 });
-            let crmLogId = ''
+                let crmLogId = ''
                 if (existingSameDateMessageLog) {
                     const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                     crmLogId = existingSameDateMessageLog.thirdPartyLogId;
