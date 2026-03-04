@@ -659,7 +659,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
+async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
     let extraDataTracking = {};
     let logBody = '';
     let logSubject = '';
@@ -719,6 +719,7 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     'Participants\n' +
                     `    ${userName}\n` +
                     `    ${contactInfo.name}\n` +
+                    `${correspondents.map(c => `    ${c[0]?.name ?? 'Unknown'}`).join('\n')}` +
                     '\nConversation(1 messages)\n' +
                     'BEGIN\n' +
                     '------------\n' +
