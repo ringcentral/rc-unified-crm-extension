@@ -1343,7 +1343,7 @@ async function upsertCallDisposition({ user, existingCallLog, dispositions }) {
     }
 }
 
-async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
+async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     const noteActions = additionalSubmission?.noteActions ?? '';
     let userInfoResponse;
     let extraDataTracking = {};;
@@ -1388,7 +1388,8 @@ async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHe
                     `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}<br>` +
                     'Participants<br>' +
                     `<ul><li><b>${userName}</b><br></li>` +
-                    `<li><b>${contactInfo.name}</b></li></ul><br>` +
+                    `<li><b>${contactInfo.name}</b></li>` +
+                    `${(correspondents ?? []).map(c => `<li><b>${c[0]?.name ?? 'Unknown'}</b></li>`).join('')}</ul><br>` +
                     'Conversation(1 messages)<br>' +
                     'BEGIN<br>' +
                     '------------<br>' +
