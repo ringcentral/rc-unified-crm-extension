@@ -335,7 +335,7 @@ function createCoreRouter() {
             }
             else {
                 tracer?.trace('setAdminSettings:adminValidationFailed', {});
-                res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 success = false;
             }
         }
@@ -397,7 +397,7 @@ function createCoreRouter() {
                 }
                 else {
                     tracer?.trace('getAdminSettings:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -449,12 +449,18 @@ function createCoreRouter() {
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
-                    res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
-                    success = true;
+                    if (userMapping?.isRevokeUserSession) {
+                        res.status(401).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
+                        success = false;
+                    }
+                    else {
+                        res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
+                        success = true;
+                    }
                 }
                 else {
                     tracer?.trace('getUserMapping:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -506,12 +512,18 @@ function createCoreRouter() {
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
-                    res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
-                    success = true;
+                    if (userMapping?.isRevokeUserSession) {
+                        res.status(401).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
+                        success = false;
+                    }
+                    else {
+                        res.status(200).send(tracer ? tracer.wrapResponse(userMapping) : userMapping);
+                        success = true;
+                    }
                 }
                 else {
                     tracer?.trace('reinitializeUserMapping:adminValidationFailed', {});
-                    res.status(401).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                    res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                     success = true;
                 }
             }
@@ -827,8 +839,7 @@ function createCoreRouter() {
             const stateParams = new URLSearchParams(state ? decodeURIComponent(state) : '');
             platformName = stateParams.get('platform');
             // backward compatibility
-            if(!platformName)
-            {
+            if (!platformName) {
                 platformName = req.query.callbackUri?.split('platform=')[1] ?? state.split('platform=')[1];
             }
             // Extract mcp auth sessionId if present
@@ -872,7 +883,7 @@ function createCoreRouter() {
                     res.status(200).send("Authentication successful. Please go back to AI Agent and confirm it.");
                     success = true;
                 }
-                else {                
+                else {
                     res.status(200).send(tracer ? tracer.wrapResponse({ jwtToken, name: userInfo.name, returnMessage }) : { jwtToken, name: userInfo.name, returnMessage });
                     success = true;
                 }
@@ -1059,7 +1070,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.findContact({
+                const { successful, returnMessage, contact, extraDataTracking, isRevokeUserSession } = await contactCore.findContact({
                     platform,
                     userId,
                     phoneNumber: req.query.phoneNumber.replace(' ', '+'),
@@ -1068,15 +1079,21 @@ function createCoreRouter() {
                     tracer,
                     isForceRefreshAccountData: req.query?.isForceRefreshAccountData === 'true'
                 });
-                tracer?.trace('findContact:result', { successful, returnMessage, contact });
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
-                if (successful) {
-                    const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
-                    resultCount = nonNewContact.length;
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
                 }
-                success = successful;
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                else {
+                    tracer?.trace('findContact:result', { successful, returnMessage, contact });
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
+                    if (successful) {
+                        const nonNewContact = contact?.filter(c => !c.isNewContact) ?? [];
+                        resultCount = nonNewContact.length;
+                    }
+                    success = successful;
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
                 }
             }
             else {
@@ -1130,11 +1147,17 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, extraDataTracking } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType, additionalSubmission: req.body.additionalSubmission });
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
-                success = true;
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                const { successful, returnMessage, contact, extraDataTracking, isRevokeUserSession } = await contactCore.createContact({ platform, userId, phoneNumber: req.body.phoneNumber, newContactName: req.body.newContactName, newContactType: req.body.newContactType, additionalSubmission: req.body.additionalSubmission });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
+                }
+                else {
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
+                    success = true;
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
                 }
             }
             else {
@@ -1238,13 +1261,19 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logs, returnMessage, extraDataTracking } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logs, returnMessage }) : { successful, logs, returnMessage });
-                success = true;
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
                 }
-                extraData.requireDetails = req.query.requireDetails === 'true';
+                else {
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, logs, returnMessage }) : { successful, logs, returnMessage });
+                    success = true;
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    extraData.requireDetails = req.query.requireDetails === 'true';
+                }
             }
             else {
                 tracer?.trace('getCallLog:noToken', {});
@@ -1296,12 +1325,18 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                const { successful, logId, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage }) : { successful, logId, returnMessage });
-                success = true;
+                else {
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage }) : { successful, logId, returnMessage });
+                    success = true;
+                }
             }
             else {
                 tracer?.trace('createCallLog:noToken', {});
@@ -1409,18 +1444,24 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
                 }
-                const { successful, returnMessage, extraDataTracking } = await dispositionCore.upsertCallDisposition({
+                const { successful, returnMessage, extraDataTracking, isRevokeUserSession } = await dispositionCore.upsertCallDisposition({
                     platform,
                     userId,
                     sessionId: req.body.sessionId,
                     dispositions: req.body.dispositions,
                     additionalSubmission: req.body.additionalSubmission
                 });
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
-                success = true;
+                else {
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = true;
+                }
             }
             else {
                 tracer?.trace('upsertCallDisposition:noToken', {});
@@ -1437,8 +1478,8 @@ function createCoreRouter() {
         }
         const requestEndTime = new Date().getTime();
         analytics.track({
-            eventName: 'Create call log',
-            interfaceName: 'createCallLog',
+            eventName: 'Disposition call log',
+            interfaceName: 'dispositionCallLog',
             connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
@@ -1473,12 +1514,18 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, logIds, extraDataTracking } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                const { successful, returnMessage, logIds, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, logIds }) : { successful, returnMessage, logIds });
-                success = true;
+                else {
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, logIds }) : { successful, returnMessage, logIds });
+                    success = true;
+                }
             }
             else {
                 tracer?.trace('createMessageLog:noToken', {});
@@ -1709,9 +1756,15 @@ function createCoreRouter() {
             if (jwtToken) {
                 const { id: userId, platform } = jwt.decodeJwt(jwtToken);
                 platformName = platform;
-                const { successful, returnMessage, contact } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
-                success = successful;
+                const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
+                }
+                else {
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, contact }) : { successful, returnMessage, contact });
+                    success = successful;
+                }
             }
             else {
                 tracer?.trace('contactSearchByName:noToken', {});
@@ -1898,7 +1951,7 @@ function createCoreRouter() {
                 res.status(200).send(mockUser ? 'Mock user registered' : 'Mock user already existed');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.delete('/deleteMockUser', async function (req, res) {
@@ -1908,7 +1961,7 @@ function createCoreRouter() {
                 res.status(200).send(foundAndDeleted ? 'Mock user deleted' : 'Mock user not found');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.get('/mockCallLog', async function (req, res) {
@@ -1918,7 +1971,7 @@ function createCoreRouter() {
                 res.status(200).send(callLogs);
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.post('/mockCallLog', async function (req, res) {
@@ -1928,7 +1981,7 @@ function createCoreRouter() {
                 res.status(200).send('Mock call log created');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
         router.delete('/mockCallLog', async function (req, res) {
@@ -1938,7 +1991,7 @@ function createCoreRouter() {
                 res.status(200).send('Mock call logs cleaned up');
             }
             else {
-                res.status(401).send('Unauthorized');
+                res.status(403).send('Unauthorized');
             }
         });
     }
@@ -1946,7 +1999,7 @@ function createCoreRouter() {
     router.get('/.well-known/openai-apps-challenge', (req, res) => {
         res.send(process.env.CHATGPT_VERIFICATION_CODE);
     });
-    
+
     // --- METADATA ENDPOINT 1: Resource Metadata ---
     // Tells the client "I am protected" and "Here is who protects me"
     router.get('/.well-known/oauth-protected-resource', (req, res) => {

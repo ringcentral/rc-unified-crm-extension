@@ -45,6 +45,17 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':

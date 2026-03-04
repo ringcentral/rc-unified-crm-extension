@@ -1118,10 +1118,7 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
         }
     }
     let addLogRes;
-    let extraDataTracking = {
-        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-    };
+    const extraDataTracking = {};
     try {
         addLogRes = await axios.put(
             `${user.platformAdditionalInfo.restUrl}entity/Note`,

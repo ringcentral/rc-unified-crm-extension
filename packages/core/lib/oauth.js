@@ -101,41 +101,48 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
             try {
                 const startRefreshTime = moment();
                 const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            logger.info('token refreshing...')
+                logger.info('token refreshing...')
                 const { accessToken, refreshToken, expires } = await token.refresh();
                 user.accessToken = accessToken;
                 user.refreshToken = refreshToken;
                 user.tokenExpiry = expires;
-            try {
-                await user.save();
-            }
-            catch (error) {
-                return handleDatabaseError(error, 'Error saving user');
-            }
+                try {
+                    await user.save();
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error saving user');
+                }
                 if (newLock) {
                     const deletionStartTime = moment();
                     await newLock.delete();
                     const deletionEndTime = moment();
-                logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
+                    logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
                 }
                 const endRefreshTime = moment();
-            logger.info(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
+                logger.info(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
             }
             catch (e) {
                 console.log('token refreshing failed', e.stack)
                 if (newLock) {
                     await newLock.delete();
                 }
+                return null;
             }
         }
         // case: run withou token refresh lock
         else {
-            logger.info('token refreshing...')
-            const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            const { accessToken, refreshToken, expires } = await token.refresh();
-            user.accessToken = accessToken;
-            user.refreshToken = refreshToken;
-            user.tokenExpiry = expires;
+            try {
+                logger.info('token refreshing...')
+                const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+                const { accessToken, refreshToken, expires } = await token.refresh();
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                user.tokenExpiry = expires;
+            }
+            catch (e) {
+                console.log('token refreshing failed', e.stack)
+                return null;
+            }
             try {
                 await user.save();
             }

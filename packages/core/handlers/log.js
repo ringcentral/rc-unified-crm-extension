@@ -77,6 +77,17 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -129,7 +140,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             });
         }
 
-        const { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
+        let { logId, returnMessage, extraDataTracking } = await platformModule.createCallLog({
             user,
             contactInfo,
             authHeader,
@@ -148,6 +159,11 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             isFromSSCL,
             proxyConfig,
         });
+        if (!extraDataTracking) {
+            extraDataTracking = {};
+        }
+        extraDataTracking.withSmartNoteLog = !!aiNote;
+        extraDataTracking.withTranscript = !!transcript;
         if (logId) {
             try {
                 await CallLogModel.create({
@@ -201,6 +217,17 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                 case 'oauth':
                     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    if (!user) {
+                        return {
+                            successful: false,
+                            returnMessage: {
+                                message: `User session expired. Please connect again.`,
+                                messageType: 'warning',
+                                ttl: 5000
+                            },
+                            isRevokeUserSession: true
+                        }
+                    }
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
                 case 'apiKey':
@@ -287,6 +314,17 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 case 'oauth':
                     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    if (!user) {
+                        return {
+                            successful: false,
+                            returnMessage: {
+                                message: `User session expired. Please connect again.`,
+                                messageType: 'warning',
+                                ttl: 5000
+                            },
+                            isRevokeUserSession: true
+                        }
+                    }
                     authHeader = `Bearer ${user.accessToken}`;
                     break;
                 case 'apiKey':
@@ -351,7 +389,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 });
             }
 
-            const { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
+            let { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
                 user,
                 existingCallLog,
                 authHeader,
@@ -377,6 +415,11 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
+            if (!extraDataTracking) {
+                extraDataTracking = {};
+            }
+            extraDataTracking.withSmartNoteLog = !!incomingData.aiNote;
+            extraDataTracking.withTranscript = !!incomingData.transcript;
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
         return { successful: false };
@@ -432,6 +475,17 @@ async function createMessageLog({ platform, userId, incomingData }) {
             case 'oauth':
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -522,14 +576,14 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
                 let faxDocLink = null;
                 let faxDownloadLink = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
+                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && incomingData.logInfo.rcAccessToken) {
                     faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
                     faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
                 }
                 let imageLink = null;
                 let imageDownloadLink = null;
                 let imageContentType = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'))) {
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && incomingData.logInfo.rcAccessToken) {
                     const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
                     if (imageAttachment) {
                         imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
@@ -553,31 +607,34 @@ async function createMessageLog({ platform, userId, incomingData }) {
                         conversationLogId: incomingData.logInfo.conversationLogId
                     }
                 });
+                let crmLogId = ''
                 if (existingSameDateMessageLog) {
-                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, videoLink, proxyConfig });
+                    const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, assigneeName, ownerName, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                     returnMessage = updateMessageResult?.returnMessage;
+                    extraDataTracking = updateMessageResult.extraDataTracking;
                 }
                 else {
                     const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
-                    const crmLogId = createMessageLogResult.logId;
-                    if (crmLogId) {
-                        try {
-                            const createdMessageLog =
-                                await MessageLogModel.create({
-                                    id: message.id.toString(),
-                                    platform,
-                                    conversationId: incomingData.logInfo.conversationId,
-                                    thirdPartyLogId: crmLogId,
-                                    userId,
-                                    conversationLogId: incomingData.logInfo.conversationLogId
-                                });
-                            logIds.push(createdMessageLog.id);
-                        } catch (error) {
-                            return handleDatabaseError(error, 'Error creating message log');
-                        }
-                    }
+                    crmLogId = createMessageLogResult.logId;
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;
+                }
+                if (crmLogId) {
+                    try {
+                        const createdMessageLog =
+                            await MessageLogModel.create({
+                                id: message.id.toString(),
+                                platform,
+                                conversationId: incomingData.logInfo.conversationId,
+                                thirdPartyLogId: crmLogId,
+                                userId,
+                                conversationLogId: incomingData.logInfo.conversationLogId
+                            });
+                        logIds.push(createdMessageLog.id);
+                    } catch (error) {
+                        return handleDatabaseError(error, 'Error creating message log');
+                    }
                 }
             }
         }

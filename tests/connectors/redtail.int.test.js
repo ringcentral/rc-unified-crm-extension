@@ -632,7 +632,7 @@ describe('Redtail Connector', () => {
             expect(result.logId).toBe(204);
         });
 
-        it('should track extra data for AI features', async () => {
+        it('should return extraDataTracking for AI features (populated by core handler)', async () => {
             nock(apiUrl)
                 .post('/activities')
                 .reply(201, { activity: { id: 205 } });
@@ -658,8 +658,8 @@ describe('Redtail Connector', () => {
                 hashedAccountId: 'hash-123'
             });
 
-            expect(result.extraDataTracking.withSmartNoteLog).toBe(true);
-            expect(result.extraDataTracking.withTranscript).toBe(true);
+            // extraDataTracking.withSmartNoteLog and .withTranscript are set by core handler (log.js)
+            expect(result.extraDataTracking).toBeDefined();
         });
     });
 

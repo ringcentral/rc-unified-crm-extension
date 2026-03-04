@@ -361,11 +361,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
     const timeUtc = moment(callLog.startTime).utcOffset(0).format('HH:mm')
     const dateUtc = moment(callLog.startTime).utcOffset(0).format('YYYY-MM-DD');
 
-    let extraDataTracking = {
-        withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-        withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-    };
-
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         if (additionalSubmission.adminAssignedUserToken) {
@@ -418,7 +413,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
         {
             headers: { 'Authorization': authHeader }
         });
-    extraDataTracking = {
+    const extraDataTracking = {
         ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: addLogRes.headers['x-ratelimit-reset']
