@@ -1,4 +1,16 @@
 {
+    "1.7.16": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "SMS logging issue of repeatedly logging same messages"
+            },
+            {
+                "type": "Fix",
+                "description": "Mixpanel token issue that blocks certain webpage access"
+            }
+        ]
+    },
     "1.7.15": {
         "global": [
             {
@@ -234,6 +246,18 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.22": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "SMS logging issue of repeatedly logging same messages"
+            },
+            {
+                "type": "Fix",
+                "description": "Mixpanel token issue that blocks certain webpage access"
             }
         ]
     },

@@ -40,7 +40,7 @@ async function getUserInfo({ authHeader, query }) {
         }
         console.log('Parsed NetSuite parameters:', { entity: query.entity, company: query.company, role: query.role });
     }
-    
+
     try {
         let getCurrentLoggedInUserResponse;
 
@@ -809,10 +809,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
         if (user.userSettings?.addCallLogDateTime?.value ?? true) {
             composedLogDetails = await overrideDateTimeInComposedLogDetails({ composedLogDetails, startTime: callStartTime });
         }
-        let extraDataTracking = {
-            withSmartNoteLog: !!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true),
-            withTranscript: !!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)
-        };
         let postBody = {
             title: title,
             phone: contactInfo?.phoneNumber || '',
@@ -902,8 +898,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
                 message: 'Call logged',
                 messageType: 'success',
                 ttl: 2000
-            },
-            extraDataTracking
+            }
         };
     } catch (error) {
         let errorMessage = netSuiteErrorDetails(error, "Error logging call");
@@ -1215,7 +1210,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
             const matchResult = regex.exec(logBody);
             logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
         }
-	    const patchLogRes = await axios.patch(
+        const patchLogRes = await axios.patch(
             `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/phoneCall/${existingLogId}`,
             {
                 message: logBody
@@ -1261,7 +1256,7 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
         let contactId = 0;
         const subsidiaryId = user.platformAdditionalInfo?.subsidiaryId;
         const oneWorldEnabled = user?.platformAdditionalInfo?.oneWorldEnabled;
-        let displayMessage="New Contact";
+        let displayMessage = "New Contact";
         switch (newContactType) {
             case 'contact':
                 let companyId = 0;

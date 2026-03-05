@@ -382,14 +382,14 @@ describe('Google Sheets Routes', () => {
                 expect(res.body.name).toBeDefined();
             });
 
-            it('should return 401 when admin validation fails', async () => {
+            it('should return 403 when admin validation fails', async () => {
                 adminCore.validateAdminRole.mockResolvedValue({ isValidated: false });
 
                 const res = await request(getServer())
                     .post(`/admin/googleSheets/sheet?jwtToken=${validJwt}&rcAccessToken=test-rc-token`)
                     .send({ name: 'Admin Sheet' });
 
-                expect(res.status).toBe(401);
+                expect(res.status).toBe(403);
                 expect(res.text).toBe('Admin validation failed');
             });
 
@@ -468,7 +468,7 @@ describe('Google Sheets Routes', () => {
                 expect(res.body.message).toBe('Admin sheet configuration saved');
             });
 
-            it('should return 401 when admin validation fails', async () => {
+            it('should return 403 when admin validation fails', async () => {
                 adminCore.validateAdminRole.mockResolvedValue({ isValidated: false });
 
                 nock('https://www.googleapis.com')
@@ -489,7 +489,7 @@ describe('Google Sheets Routes', () => {
                         }
                     });
 
-                expect(res.status).toBe(401);
+                expect(res.status).toBe(403);
                 expect(res.text).toBe('Admin validation failed');
             });
 
@@ -552,13 +552,13 @@ describe('Google Sheets Routes', () => {
                 expect(res.body.googleSheetsName).toBeDefined();
             });
 
-            it('should return 401 when admin validation fails', async () => {
+            it('should return 403 when admin validation fails', async () => {
                 adminCore.validateAdminRole.mockResolvedValue({ isValidated: false });
 
                 const res = await request(getServer())
                     .get(`/admin/googleSheets/config?jwtToken=${validJwt}&rcAccessToken=test-rc-token`);
 
-                expect(res.status).toBe(401);
+                expect(res.status).toBe(403);
                 expect(res.text).toBe('Admin validation failed');
             });
 

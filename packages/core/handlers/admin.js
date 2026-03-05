@@ -109,7 +109,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
         var callLogStats = [];
         var itemKeys = [];
         for (const record of callsAggregationData.data.records) {
-            if(!record?.info?.name){
+            if (!record?.info?.name) {
                 continue;
             }
             itemKeys.push(record.info.name);
@@ -238,6 +238,17 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
                 const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
                 // eslint-disable-next-line no-param-reassign
                 user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
                 authHeader = `Bearer ${user.accessToken}`;
                 break;
             case 'apiKey':
@@ -399,6 +410,17 @@ async function reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionLis
             const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
             // eslint-disable-next-line no-param-reassign
             user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            if (!user) {
+                return {
+                    successful: false,
+                    returnMessage: {
+                        message: `User session expired. Please connect again.`,
+                        messageType: 'warning',
+                        ttl: 5000
+                    },
+                    isRevokeUserSession: true
+                }
+            }
             authHeader = `Bearer ${user.accessToken}`;
             break;
         case 'apiKey':

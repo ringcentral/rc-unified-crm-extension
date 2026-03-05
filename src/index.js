@@ -197,7 +197,7 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
                     res.status(500).send('Failed to create new sheet');
                 }
             } else {
-                res.status(401).send('Admin validation failed');
+                res.status(403).send('Admin validation failed');
             }
         }
     }
@@ -236,7 +236,7 @@ app.post('/admin/googleSheets/selectedSheet', async function (req, res) {
                 res.status(500).send('Failed to configure sheet');
             }
         } else {
-            res.status(401).send('Admin validation failed');
+            res.status(403).send('Admin validation failed');
         }
     }
     catch (e) {
@@ -259,7 +259,7 @@ app.get('/admin/googleSheets/config', async function (req, res) {
                 const config = await googleSheetsExtra.getAdminGoogleSheetsConfig({ rcAccountId });
                 res.status(200).send(config);
             } else {
-                res.status(401).send('Admin validation failed');
+                res.status(403).send('Admin validation failed');
             }
         } else {
             res.status(400).send('Please authorize admin access');
