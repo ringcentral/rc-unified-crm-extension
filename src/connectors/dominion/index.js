@@ -84,8 +84,8 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, apiKey, user 
         console.log({message:'Making API call to get user info from Dominion DMS', authHeader, hostname, additionalInfo});
         
         
-        const { employeeNumber } = additionalInfo;
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
+        const { employeeNumber,dealerNumberId } = additionalInfo;
+        const { partyId, bodVersion } = getDominionKeysInfo();
         
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
@@ -318,8 +318,12 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, apiKey, user 
 
 // Generic helper function for getting valid access token for any Dominion API call
 async function getDominionAccessToken(user) {
-    const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
+    const { partyId, bodVersion } = getDominionKeysInfo();
     const employeeNumber = user.platformAdditionalInfo?.employeeNumber;
+    const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
+    if (!partyId || !dealerNumberId || !bodVersion) {
+        throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
+    }
     const tokenInfo = await getValidAccessToken({
         existingToken: user?.accessToken,
         tokenExpiry: user?.tokenExpiry
@@ -400,8 +404,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         console.log('Using access token for contact search:', accessToken ? 'Token available' : 'No token');
         const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
         const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+        const { partyId, bodVersion } = getDominionKeysInfo();
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
@@ -560,11 +564,11 @@ async function findContactWithName({ user, authHeader, name }) {
         // Get valid access token (cached or new)
         const accessToken = await getDominionAccessToken(user);
         console.log('Using access token for contact search:', accessToken ? 'Token available' : 'No token');
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
+        const { partyId, bodVersion } = getDominionKeysInfo();
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
-
         // Split name into given and family name
         const nameParts = splitName(name || '');
         const givenName = nameParts.firstName || '';
@@ -804,8 +808,8 @@ async function createCustomerContact(user, phoneNumber, nameParts, fullName) {
     try {
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+        const { partyId, bodVersion } = getDominionKeysInfo();
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
@@ -958,8 +962,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
         
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-
+        const { partyId, bodVersion } = getDominionKeysInfo();
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         // Build the API URL for ProcessServiceAppointment
         const apiUrl = `${process.env.DOMINIONDMS_VUE_QA_BASE_URL}/secureapi/ProcessServiceAppointment/${partyId}/${dealerNumberId}/${bodVersion}`;
 
@@ -1145,8 +1149,8 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
         
-       const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+       const { partyId, bodVersion } = getDominionKeysInfo();
+       const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
@@ -1273,8 +1277,8 @@ async function getCallLog({ user, callLogId, authHeader }) {
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
         
-       const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+       const { partyId, bodVersion } = getDominionKeysInfo();
+       const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
@@ -1460,8 +1464,8 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
         
-       const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+       const { partyId, bodVersion } = getDominionKeysInfo();
+       const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
@@ -1654,8 +1658,8 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         // Get valid access token
         const accessToken = await getDominionAccessToken(user);
         
-        const { partyId, dealerNumberId, bodVersion } = getDominionKeysInfo();
-        
+        const { partyId, bodVersion } = getDominionKeysInfo();
+        const dealerNumberId = user.platformAdditionalInfo?.dealerNumberId;
         if (!partyId || !dealerNumberId || !bodVersion) {
             throw new Error('Missing required parameters: partyId, dealerNumberId, or bodVersion');
         }
