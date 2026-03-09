@@ -29,6 +29,7 @@ const logHandler = require('../../handlers/log');
 const { CallLogModel } = require('../../models/callLogModel');
 const { MessageLogModel } = require('../../models/messageLogModel');
 const { UserModel } = require('../../models/userModel');
+const { AccountDataModel } = require('../../models/accountDataModel');
 const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { composeCallLog } = require('../../lib/callLogComposer');
@@ -40,12 +41,14 @@ describe('Log Handler', () => {
     await CallLogModel.sync({ force: true });
     await MessageLogModel.sync({ force: true });
     await UserModel.sync({ force: true });
+    await AccountDataModel.sync({ force: true });
   });
 
   afterEach(async () => {
     await CallLogModel.destroy({ where: {} });
     await MessageLogModel.destroy({ where: {} });
     await UserModel.destroy({ where: {} });
+    await AccountDataModel.destroy({ where: {} });
     jest.clearAllMocks();
   });
 
@@ -741,6 +744,228 @@ describe('Log Handler', () => {
       // msg-1 is skipped (already logged), msg-2 uses updateMessageLog because same conversationLogId exists
       expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(0);
       expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle group SMS with contactId suffix for message IDs', async () => {
+      // Arrange - group SMS has multiple correspondents
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-group-123',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const incomingData = {
+        logInfo: {
+          messages: [{ id: 'msg-group-1', subject: 'Group SMS', direction: 'Outbound', creationTime: new Date() }],
+          correspondents: [
+            { phoneNumber: '+1234567890' },
+            { phoneNumber: '+0987654321' }
+          ],
+          conversationId: 'conv-group-123',
+          conversationLogId: 'conv-log-group-123'
+        },
+        contactId: 'contact-456',
+        contactType: 'Contact',
+        contactName: 'Primary Contact',
+        additionalSubmission: {}
+      };
+
+      // Act
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      expect(result.logIds).toContain('msg-group-1-contact-456');
+      const savedLog = await MessageLogModel.findOne({ where: { id: 'msg-group-1-contact-456' } });
+      expect(savedLog).not.toBeNull();
+      expect(savedLog.thirdPartyLogId).toBe('msg-log-group-123');
+    });
+
+    test('should pass correspondents to createMessageLog when group SMS has different contact names', async () => {
+      // Arrange - correspondent in cache with different name
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+0987654321',
+        data: [{ name: 'Other Contact', id: 'contact-789' }]
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-correspondents',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const incomingData = {
+        logInfo: {
+          messages: [{ id: 'msg-correspondents', subject: 'Group SMS', direction: 'Outbound', creationTime: new Date() }],
+          correspondents: [
+            { phoneNumber: '+1234567890' },
+            { phoneNumber: '+0987654321' }
+          ],
+          conversationId: 'conv-correspondents',
+          conversationLogId: 'conv-log-correspondents'
+        },
+        contactId: 'contact-456',
+        contactType: 'Contact',
+        contactName: 'Primary Contact',
+        additionalSubmission: {}
+      };
+
+      // Act
+      await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData
+      });
+
+      // Assert - createMessageLog should receive correspondents with different name
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correspondents: [[{ name: 'Other Contact', id: 'contact-789' }]]
+        })
+      );
+    });
+
+    test('should not add correspondent when name matches contactName in group SMS', async () => {
+      // Arrange - correspondent in cache with same name as contactName
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+0987654321',
+        data: [{ name: 'Primary Contact', id: 'contact-789' }]
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-same-name',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const incomingData = {
+        logInfo: {
+          messages: [{ id: 'msg-same-name', subject: 'Group SMS', direction: 'Outbound', creationTime: new Date() }],
+          correspondents: [
+            { phoneNumber: '+1234567890' },
+            { phoneNumber: '+0987654321' }
+          ],
+          conversationId: 'conv-same-name',
+          conversationLogId: 'conv-log-same-name'
+        },
+        contactId: 'contact-456',
+        contactType: 'Contact',
+        contactName: 'Primary Contact',
+        additionalSubmission: {}
+      };
+
+      // Act
+      await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData
+      });
+
+      // Assert - correspondents should be empty when names match
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correspondents: []
+        })
+      );
+    });
+
+    test('should use suffixed conversationLogId and conversationId for group SMS', async () => {
+      // Arrange
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-suffix',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const incomingData = {
+        logInfo: {
+          messages: [{ id: 'msg-suffix', subject: 'Group SMS', direction: 'Outbound', creationTime: new Date() }],
+          correspondents: [
+            { phoneNumber: '+1234567890' },
+            { phoneNumber: '+0987654321' }
+          ],
+          conversationId: 'conv-original',
+          conversationLogId: 'conv-log-original'
+        },
+        contactId: 'contact-999',
+        contactType: 'Contact',
+        contactName: 'Test Contact',
+        additionalSubmission: {}
+      };
+
+      // Act
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData
+      });
+
+      // Assert - message log saved with suffixed conversationLogId
+      expect(result.successful).toBe(true);
+      const savedLog = await MessageLogModel.findOne({ where: { id: 'msg-suffix-contact-999' } });
+      expect(savedLog).not.toBeNull();
+      expect(savedLog.conversationLogId).toBe('conv-log-original-contact-999');
+      expect(savedLog.conversationId).toBe('conv-original-contact-999');
     });
   });
 
