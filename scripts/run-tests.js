@@ -76,16 +76,40 @@ async function main() {
     const totalTestsFailed = rootResult.summary.testsFailed + coreResult.summary.testsFailed;
     const totalTests = rootResult.summary.testsTotal + coreResult.summary.testsTotal;
 
+    const hasFailed = totalSuitesFailed > 0 || totalTestsFailed > 0;
+
+    const RED = '\x1b[31m';
+    const GREEN = '\x1b[32m';
+    const BOLD = '\x1b[1m';
+    const RESET = '\x1b[0m';
+
+    const statusIcon = hasFailed ? `${RED}${BOLD}✖ FAILED${RESET}` : `${GREEN}${BOLD}✔ PASSED${RESET}`;
+
     console.log('\n' + '='.repeat(60));
-    console.log('OVERALL TEST SUMMARY');
+    console.log(`${BOLD}OVERALL TEST SUMMARY${RESET}  ${statusIcon}`);
     console.log('='.repeat(60));
-    console.log(`Root (server):        ${rootResult.summary.suitesPassed} suites, ${rootResult.summary.testsPassed} tests passed`);
-    console.log(`Core (@app-connect/core): ${coreResult.summary.suitesPassed} suites, ${coreResult.summary.testsPassed} tests passed`);
+
+    const rootFailed = rootResult.summary.suitesFailed > 0 || rootResult.summary.testsFailed > 0;
+    const coreFailed = coreResult.summary.suitesFailed > 0 || coreResult.summary.testsFailed > 0;
+
+    const rootStatus = rootFailed ? `${RED}${BOLD}[FAILED]${RESET}` : `${GREEN}[OK]${RESET}`;
+    const coreStatus = coreFailed ? `${RED}${BOLD}[FAILED]${RESET}` : `${GREEN}[OK]${RESET}`;
+
+    console.log(`Root (server):          ${rootStatus} ${rootResult.summary.suitesPassed} suites, ${rootResult.summary.testsPassed} tests passed` +
+        (rootFailed ? `  ${RED}${BOLD}(${rootResult.summary.suitesFailed} suites, ${rootResult.summary.testsFailed} tests FAILED)${RESET}` : ''));
+    console.log(`Core (@app-connect/core): ${coreStatus} ${coreResult.summary.suitesPassed} suites, ${coreResult.summary.testsPassed} tests passed` +
+        (coreFailed ? `  ${RED}${BOLD}(${coreResult.summary.suitesFailed} suites, ${coreResult.summary.testsFailed} tests FAILED)${RESET}` : ''));
+
     console.log('-'.repeat(60));
-    console.log(`Total:                ${totalSuitesPassed} suites, ${totalTestsPassed} tests passed`);
-    if (totalSuitesFailed > 0 || totalTestsFailed > 0) {
-        console.log(`Failed:               ${totalSuitesFailed} suites, ${totalTestsFailed} tests`);
+    console.log(`Total:                  ${totalSuitesPassed} suites, ${totalTestsPassed} tests passed`);
+
+    if (hasFailed) {
+        console.log('');
+        console.log(`${RED}${'█'.repeat(60)}${RESET}`);
+        console.log(`${RED}${BOLD}  ✖  FAILURES: ${totalSuitesFailed} suite(s), ${totalTestsFailed} test(s) failed — see output above${RESET}`);
+        console.log(`${RED}${'█'.repeat(60)}${RESET}`);
     }
+
     console.log('='.repeat(60) + '\n');
 
     const exitCode = rootResult.code !== 0 || coreResult.code !== 0 ? 1 : 0;
