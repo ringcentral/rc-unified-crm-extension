@@ -13,6 +13,7 @@ const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const logger = require('../lib/logger');
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
+const { AccountDataModel } = require('../models/accountDataModel');
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
@@ -511,12 +512,33 @@ async function createMessageLog({ platform, userId, incomingData }) {
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+        const isGroupSMS = incomingData.logInfo.correspondents.length > 1;
         // For shared SMS
         const assigneeName = incomingData.logInfo.assignee?.name;
         const ownerName = incomingData.logInfo.owner?.name;
         const isSharedSMS = !!ownerName;
 
-        const messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
+        let messageIds = [];
+        const correspondents = [];
+        if (isGroupSMS) {
+            messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() + `-${incomingData.contactId}` }; });
+            for (var i = 0; i < incomingData.logInfo.correspondents.length; i++) {
+                // find cached contact by composite key; findByPk expects raw PK values, so use where clause
+                const correspondentContactInfo = await AccountDataModel.findOne({
+                    where: {
+                        rcAccountId: user.rcAccountId,
+                        platformName: platform,
+                        dataKey: `contact-${incomingData.logInfo.correspondents[i].phoneNumber}`
+                    }
+                })
+                if (correspondentContactInfo && correspondentContactInfo.data[0]?.name != incomingData.contactName) {
+                    correspondents.push(correspondentContactInfo.data);
+                }
+            }
+        }
+        else {
+            messageIds = incomingData.logInfo.messages.map(m => { return { id: m.id.toString() }; });
+        }
         let existingMessages = null;
         try {
             existingMessages = await MessageLogModel.findAll({
@@ -564,9 +586,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
         }
         // Case: normal SMS
         else {
+            if (isGroupSMS) {
+                // eslint-disable-next-line no-param-reassign
+                incomingData.logInfo.conversationLogId = incomingData.logInfo.conversationLogId + `-${incomingData.contactId}`;
+                // eslint-disable-next-line no-param-reassign
+                incomingData.logInfo.conversationId = incomingData.logInfo.conversationId + `-${incomingData.contactId}`;
+            }
             // reverse the order of messages to log the oldest message first
             const reversedMessages = incomingData.logInfo.messages.reverse();
             for (const message of reversedMessages) {
+                if (isGroupSMS) {
+                    message.id = message.id.toString() + `-${incomingData.contactId}`;
+                }
                 if (existingIds.includes(message.id.toString())) {
                     continue;
                 }
@@ -615,7 +646,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     extraDataTracking = updateMessageResult.extraDataTracking;
                 }
                 else {
-                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
+                    const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, correspondents, assigneeName, ownerName, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink, proxyConfig });
                     crmLogId = createMessageLogResult.logId;
                     returnMessage = createMessageLogResult?.returnMessage;
                     extraDataTracking = createMessageLogResult.extraDataTracking;
