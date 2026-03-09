@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.17
+
+- New: Support for Group SMS logging
+- Better: User session will log be revoked is token refresh fails
+- Fix: Contact call pop issue
+
 ## 1.7.16
 
 - Fix: SMS logging issue of repeatedly logging same messages
@@ -88,6 +94,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.23
+
+- Fix: Contact call pop issue
 
 ## 1.6.22
 

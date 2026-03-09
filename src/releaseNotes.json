@@ -1,4 +1,20 @@
 {
+    "1.7.17": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Support for Group SMS logging"
+            },
+            {
+                "type": "Better",
+                "description": "User session will log be revoked is token refresh fails"
+            },
+            {
+                "type": "Fix",
+                "description": "Contact call pop issue"
+            }
+        ]
+    },
     "1.7.16": {
         "global": [
             {
@@ -246,6 +262,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.23": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Contact call pop issue"
             }
         ]
     },

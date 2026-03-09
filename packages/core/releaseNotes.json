@@ -1,4 +1,20 @@
 {
+    "1.7.17": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Support for Group SMS logging"
+            },
+            {
+                "type": "Better",
+                "description": "User session will log be revoked is token refresh fails"
+            },
+            {
+                "type": "Fix",
+                "description": "Contact call pop issue"
+            }
+        ]
+    },
     "1.7.16": {
         "global": [
             {
