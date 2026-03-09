@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.7.17
+## 1.7.18
 
 - New: Support for Group SMS logging
 - Better: User session will log be revoked is token refresh fails
