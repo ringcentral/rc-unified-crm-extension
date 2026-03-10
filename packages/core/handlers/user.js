@@ -49,7 +49,10 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
             const keys = Object.keys(userSettingsByAdmin.userSettings).concat(Object.keys(userSettings));
             // distinct keys
             for (const key of new Set(keys)) {
-                // from user's own settings
+                // marked as removed
+                if (userSettingsByAdmin.userSettings[key]?.isRemoved) {
+                    continue;
+                }
                 if ((userSettingsByAdmin.userSettings[key] === undefined || userSettingsByAdmin.userSettings[key].customizable) && userSettings[key] !== undefined) {
                     result[key] = {
                         customizable: true,
@@ -57,6 +60,27 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                         defaultValue: userSettings[key].defaultValue,
                         options: userSettings[key].options
                     };
+                    // Special case: plugins
+                    if (key.startsWith('plugin_')) {
+                        const config = Object.keys(result[key].value.config)?.length === 0 ? null : result[key].value.config;
+                        if (config) {
+                            const configFromadminSettings = userSettingsByAdmin.userSettings[key].value.config ?? {};
+                            for (const k in config) {
+                                // use admin setting to replace, if not customizable
+                                if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
+                                    config[k] = configFromadminSettings[k];
+                                }
+                                else {
+                                    config[k].customizable = configFromadminSettings[k].customizable;
+                                }
+                            }
+                            result[key].value.config = config;
+                        }
+                        //Case: no config at all, use admin setting directly
+                        else {
+                            result[key].value.config = userSettingsByAdmin.userSettings[key].value.config;
+                        }
+                    }
                 }
                 // from admin settings
                 else {
