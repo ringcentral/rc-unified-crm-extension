@@ -1133,18 +1133,9 @@ async function createAppointment({ user, authHeader, payload }) {
     const durationMinutes = Number(payload?.durationMinutes ?? 0);
     const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
 
-    const externalProperties = [
-        { name: APPOINTMENT_EXTERNAL_PROPERTIES.source, value: 'rc-unified-crm-extension' },
-        payload?.participantName ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.participantName, value: `${payload.participantName}` } : null,
-        payload?.contactId != null ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.contactId, value: `${payload.contactId}` } : null,
-        payload?.contactType ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.contactType, value: `${payload.contactType}` } : null,
-        payload?.status ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: `${payload.status}` } : { name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: 'tentative' },
-        payload?.title ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.title, value: `${payload.title}` } : null
-    ].filter(Boolean);
-
-    const attendees = payload?.contactId != null
-        ? [{ id: Number(payload.contactId), type: 'Contact' }]
-        : undefined;
+    // const attendees = payload?.contactId != null
+    //     ? [{ id: Number(payload.contactId), type: 'Contact' }]
+    //     : undefined;
 
     const body = {
         data: {
@@ -1154,8 +1145,6 @@ async function createAppointment({ user, authHeader, payload }) {
             start_at: startAt,
             end_at: endAt,
             send_email_notification: false,
-            external_properties: externalProperties,
-            ...(attendees ? { attendees } : {})
         }
     };
 
@@ -1170,7 +1159,8 @@ async function createAppointment({ user, authHeader, payload }) {
     return { appointmentId: appointment.id, appointment };
 }
 
-async function updateAppointment({ user, authHeader, appointmentId, patch }) {
+async function updateAppointment({ user, authHeader, appointmentId, patchBody }) {
+    console.log({message:'updateAppointment function called', appointmentId, patchBody});
     const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!existing) {
         return {
@@ -1183,47 +1173,28 @@ async function updateAppointment({ user, authHeader, appointmentId, patch }) {
         };
     }
 
-    const existingStartAt = existing?.start_at;
-    const existingEndAt = existing?.end_at;
-    const existingDurationMinutes = (existingStartAt && existingEndAt) ? moment(existingEndAt).diff(moment(existingStartAt), 'minutes', true) : 0;
 
-    const startAt = patch?.startTimeUtc ?? patch?.startTime ?? existingStartAt;
-    const durationMinutes = patch?.durationMinutes != null ? Number(patch.durationMinutes) : existingDurationMinutes;
-    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : existingEndAt;
-
-    const externalProperties = [];
-    if (patch?.participantName != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.participantName, value: `${patch.participantName}` });
-    if (patch?.contactId != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.contactId, value: `${patch.contactId}` });
-    if (patch?.contactType != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.contactType, value: `${patch.contactType}` });
-    if (patch?.status != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: `${patch.status}` });
-    if (patch?.title != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.title, value: `${patch.title}` });
-
+    const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
+    const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
+    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
     const updateBody = {
         data: {
-            ...(patch?.title != null ? { summary: `${patch.title}` } : {}),
-            ...(patch?.summary != null ? { description: `${patch.summary}` } : {}),
-            ...(startAt != null ? { start_at: startAt } : {}),
-            ...(endAt != null ? { end_at: endAt } : {}),
-            ...(externalProperties.length ? { external_properties: externalProperties } : {})
+            summary: patchBody?.title ?? '',
+            description: patchBody?.summary ?? '',
+            start_at: startAt,
+            end_at: endAt,
         }
     };
 
-    if (patch?.contactId != null) {
-        updateBody.data.attendees = [{ id: Number(patch.contactId), type: 'Contact' }];
-    }
-
-    await axios.patch(
+    const updateResponseBody = await axios.patch(
         `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
         updateBody,
         { headers: { 'Authorization': authHeader }, params: { fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id' } }
     );
-
-    const refreshed = await getCalendarEntryById({ user, authHeader, appointmentId });
-    return { appointment: normalizeCalendarEntryToAppointment(refreshed) };
+    return { appointment: normalizeCalendarEntryToAppointment(updateResponseBody?.data?.data) };
 }
 
 async function refreshAppointment({ user, authHeader, appointmentId }) {
-    console.log({message:'refreshAppointment function called'});
     const calendarEntry = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!calendarEntry) {
         return {
@@ -1240,14 +1211,12 @@ async function refreshAppointment({ user, authHeader, appointmentId }) {
 
 
 async function cancelAppointment({ user, authHeader, appointmentId }) {
-    await upsertCalendarEntryExternalProperty({
-        user,
-        authHeader,
-        appointmentId,
-        name: APPOINTMENT_EXTERNAL_PROPERTIES.status,
-        value: 'cancelled'
-    });
-    return refreshAppointment({ user, authHeader, appointmentId });
+    console.log({message:'cancelAppointment function called', appointmentId});
+    const cancelResponseBody = await axios.delete(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        { headers: { 'Authorization': authHeader } }
+    );
+    return { appointment: normalizeCalendarEntryToAppointment(cancelResponseBody?.data?.data) };
 }
 
 async function uploadImageToClio({ user, authHeader, imageDownloadLink, imageContentType, message, contactInfo, additionalSubmission, messageSubject }) {
