@@ -968,6 +968,288 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
+const APPOINTMENT_EXTERNAL_PROPERTIES = {
+    source: 'rcAppointmentSource',
+    participantName: 'rcAppointmentParticipantName',
+    contactId: 'rcAppointmentContactId',
+    contactType: 'rcAppointmentContactType',
+    status: 'rcAppointmentStatus',
+    title: 'rcAppointmentTitle'
+};
+
+function buildExternalPropertiesMap(externalProperties) {
+    const map = {};
+    for (const p of (externalProperties ?? [])) {
+        if (!p?.name) continue;
+        map[p.name] = p;
+    }
+    return map;
+}
+
+function normalizeCalendarEntryToAppointment(calendarEntry) {
+    const props = buildExternalPropertiesMap(calendarEntry?.external_properties);
+    const startAt = calendarEntry?.start_at;
+    const endAt = calendarEntry?.end_at;
+    const durationMinutes = (startAt && endAt) ? Math.max(0, Math.round(moment(endAt).diff(moment(startAt), 'minutes', true))) : null;
+
+    const attendee = (calendarEntry?.attendees ?? [])[0] ?? null;
+    const contactId = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactId]?.value ?? (attendee?.id != null ? `${attendee.id}` : null);
+    const contactType = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactType]?.value ?? (attendee?.type ?? null);
+
+    return {
+        id: calendarEntry?.id != null ? `${calendarEntry.id}` : null,
+        participantName: props[APPOINTMENT_EXTERNAL_PROPERTIES.participantName]?.value ?? attendee?.name ?? null,
+        contactId,
+        contactType,
+        title: props[APPOINTMENT_EXTERNAL_PROPERTIES.title]?.value ?? calendarEntry?.summary ?? null,
+        summary: calendarEntry?.description ?? null,
+        startTimeUtc: startAt ?? null,
+        durationMinutes,
+        status: props[APPOINTMENT_EXTERNAL_PROPERTIES.status]?.value ?? 'tentative'
+    };
+}
+
+async function getWriteableUserCalendarId({ user, authHeader }) {
+    const res = await axios.get(
+        `https://${user.hostname}/api/v4/calendars.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                owner: true,
+                writeable: true,
+                visible: true,
+                type: 'UserCalendar',
+                order: 'id(desc)',
+                limit: 1,
+                fields: 'id,type,permission,visible'
+            }
+        }
+    );
+    const calendarId = res?.data?.data?.[0]?.id;
+    if (calendarId == null) {
+        const fallbackRes = await axios.get(
+            `https://${user.hostname}/api/v4/calendars.json`,
+            {
+                headers: { 'Authorization': authHeader },
+                params: {
+                    writeable: true,
+                    visible: true,
+                    order: 'id(desc)',
+                    limit: 1,
+                    fields: 'id,type,permission,visible'
+                }
+            }
+        );
+        return fallbackRes?.data?.data?.[0]?.id ?? null;
+    }
+    return calendarId;
+}
+
+async function getCalendarEntryById({ user, authHeader, appointmentId }) {
+    console.log({message:'getCalendarEntryById function called'});
+    const res = await axios.get(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id'
+            }
+        }
+    );
+    return res?.data?.data ?? null;
+}
+
+async function upsertCalendarEntryExternalProperty({ user, authHeader, appointmentId, name, value }) {
+    const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
+    const props = buildExternalPropertiesMap(existing?.external_properties);
+    const existingProp = props[name];
+
+    const externalPropertyPayload = existingProp?.id != null
+        ? [{ id: existingProp.id, name, value: `${value}` }]
+        : [{ name, value: `${value}` }];
+
+    await axios.patch(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        { data: { external_properties: externalPropertyPayload } },
+        { headers: { 'Authorization': authHeader } }
+    );
+}
+
+async function listAppointments({ user, authHeader, range, mineOnly }) {
+    console.log({message:'listAppointments function called'});
+    const listRes = await axios.get(
+        `https://${user.hostname}/api/v4/calendar_entries.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                fields: 'id,summary,start_at,end_at,description'
+            }
+        }
+    );
+
+    const entries = listRes?.data?.data ?? [];
+
+    const appointments = entries.map(e => {
+        const startUtc = e?.start_at ? moment.parseZone(e.start_at).utc() : null;
+        const endUtc = e?.end_at ? moment.parseZone(e.end_at).utc() : null;
+        const durationMinutes = (startUtc && endUtc)
+            ? Math.max(0, Math.round(endUtc.diff(startUtc, 'minutes', true)))
+            : 0;
+
+        const id = e?.id != null ? `${e.id}` : null;
+        return {
+            thirdPartyAppointmentId: id,
+            id,
+            title: e?.summary ?? '',
+            description: e?.description ?? '',
+            participantName: '',
+            startTimeUtc: startUtc ? startUtc.toISOString() : null,
+            durationMinutes,
+            status: 'scheduled',
+            contactId: ''
+        };
+    });
+
+    console.log({message:'appointments', appointments});
+    return { appointments };
+}
+
+async function createAppointment({ user, authHeader, payload }) {
+    const calendarId = await getWriteableUserCalendarId({ user, authHeader });
+
+    console.log({message:'createAppointment function called ', calendarId,payload});
+    if (calendarId == null) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'No writeable calendar found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+
+    const startAt = payload?.startTimeUtc ?? payload?.startTime ?? null;
+    const durationMinutes = Number(payload?.durationMinutes ?? 0);
+    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
+
+    const externalProperties = [
+        { name: APPOINTMENT_EXTERNAL_PROPERTIES.source, value: 'rc-unified-crm-extension' },
+        payload?.participantName ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.participantName, value: `${payload.participantName}` } : null,
+        payload?.contactId != null ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.contactId, value: `${payload.contactId}` } : null,
+        payload?.contactType ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.contactType, value: `${payload.contactType}` } : null,
+        payload?.status ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: `${payload.status}` } : { name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: 'tentative' },
+        payload?.title ? { name: APPOINTMENT_EXTERNAL_PROPERTIES.title, value: `${payload.title}` } : null
+    ].filter(Boolean);
+
+    const attendees = payload?.contactId != null
+        ? [{ id: Number(payload.contactId), type: 'Contact' }]
+        : undefined;
+
+    const body = {
+        data: {
+            calendar_owner: { id: calendarId },
+            summary: payload?.title ?? payload?.summary ?? 'Appointment',
+            description: payload?.summary ?? '',
+            start_at: startAt,
+            end_at: endAt,
+            send_email_notification: false,
+            external_properties: externalProperties,
+            ...(attendees ? { attendees } : {})
+        }
+    };
+
+    const createRes = await axios.post(
+        `https://${user.hostname}/api/v4/calendar_entries.json`,
+        body,
+        { headers: { 'Authorization': authHeader }, params: { fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id' } }
+    );
+
+    const calendarEntry = createRes?.data?.data ?? null;
+    const appointment = normalizeCalendarEntryToAppointment(calendarEntry);
+    return { appointmentId: appointment.id, appointment };
+}
+
+async function updateAppointment({ user, authHeader, appointmentId, patch }) {
+    const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
+    if (!existing) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Appointment not found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+
+    const existingStartAt = existing?.start_at;
+    const existingEndAt = existing?.end_at;
+    const existingDurationMinutes = (existingStartAt && existingEndAt) ? moment(existingEndAt).diff(moment(existingStartAt), 'minutes', true) : 0;
+
+    const startAt = patch?.startTimeUtc ?? patch?.startTime ?? existingStartAt;
+    const durationMinutes = patch?.durationMinutes != null ? Number(patch.durationMinutes) : existingDurationMinutes;
+    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : existingEndAt;
+
+    const externalProperties = [];
+    if (patch?.participantName != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.participantName, value: `${patch.participantName}` });
+    if (patch?.contactId != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.contactId, value: `${patch.contactId}` });
+    if (patch?.contactType != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.contactType, value: `${patch.contactType}` });
+    if (patch?.status != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.status, value: `${patch.status}` });
+    if (patch?.title != null) externalProperties.push({ name: APPOINTMENT_EXTERNAL_PROPERTIES.title, value: `${patch.title}` });
+
+    const updateBody = {
+        data: {
+            ...(patch?.title != null ? { summary: `${patch.title}` } : {}),
+            ...(patch?.summary != null ? { description: `${patch.summary}` } : {}),
+            ...(startAt != null ? { start_at: startAt } : {}),
+            ...(endAt != null ? { end_at: endAt } : {}),
+            ...(externalProperties.length ? { external_properties: externalProperties } : {})
+        }
+    };
+
+    if (patch?.contactId != null) {
+        updateBody.data.attendees = [{ id: Number(patch.contactId), type: 'Contact' }];
+    }
+
+    await axios.patch(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        updateBody,
+        { headers: { 'Authorization': authHeader }, params: { fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id' } }
+    );
+
+    const refreshed = await getCalendarEntryById({ user, authHeader, appointmentId });
+    return { appointment: normalizeCalendarEntryToAppointment(refreshed) };
+}
+
+async function refreshAppointment({ user, authHeader, appointmentId }) {
+    console.log({message:'refreshAppointment function called'});
+    const calendarEntry = await getCalendarEntryById({ user, authHeader, appointmentId });
+    if (!calendarEntry) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Appointment not found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+    return { appointment: normalizeCalendarEntryToAppointment(calendarEntry) };
+}
+
+
+async function cancelAppointment({ user, authHeader, appointmentId }) {
+    await upsertCalendarEntryExternalProperty({
+        user,
+        authHeader,
+        appointmentId,
+        name: APPOINTMENT_EXTERNAL_PROPERTIES.status,
+        value: 'cancelled'
+    });
+    return refreshAppointment({ user, authHeader, appointmentId });
+}
+
 async function uploadImageToClio({ user, authHeader, imageDownloadLink, imageContentType, message, contactInfo, additionalSubmission, messageSubject }) {
     // download media from server mediaLink (image/jpeg or image/png) - do this first because RC Access Token might expire during the process
     const mediaRes = await axios.get(imageDownloadLink, { responseType: 'arraybuffer' });
@@ -1101,3 +1383,8 @@ exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
+exports.listAppointments = listAppointments;
+exports.createAppointment = createAppointment;
+exports.updateAppointment = updateAppointment;
+exports.refreshAppointment = refreshAppointment;
+exports.cancelAppointment = cancelAppointment;
