@@ -1353,8 +1353,8 @@ function createCoreRouter() {
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 const appointmentId = req.params.appointmentId;
-                const patch = req.body?.patch ?? req.body;
-                const { successful, appointment, returnMessage, extraDataTracking, isRevokeUserSession } = await appointmentCore.updateAppointment({ platform, userId, appointmentId, patch });
+                const patchBody = req.body?.patch ?? req.body;
+                const { successful, appointment, returnMessage, extraDataTracking, isRevokeUserSession } = await appointmentCore.updateAppointment({ platform, userId, appointmentId, patchBody });
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;

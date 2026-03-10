@@ -111,7 +111,7 @@ async function createAppointment({ platform, userId, payload }) {
     }
 }
 
-async function updateAppointment({ platform, userId, appointmentId, patch }) {
+async function updateAppointment({ platform, userId, appointmentId, patchBody }) {
     try {
         const authResult = await resolveAuth({ platform, userId });
         if (!authResult.successful) return authResult;
@@ -120,7 +120,7 @@ async function updateAppointment({ platform, userId, appointmentId, patch }) {
             user: authResult.user,
             authHeader: authResult.authHeader,
             appointmentId,
-            patch,
+            patchBody,
             proxyConfig: authResult.proxyConfig
         });
         return { successful: true, ...result };
