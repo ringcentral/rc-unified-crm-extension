@@ -51,7 +51,7 @@ function getBasicAuth({ apiKey }) {
   return Buffer.from(`${apiKey}:`).toString('base64');
 }
 
-async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey, proxyId, proxyConfig } = {}) {
+async function getUserInfo({ authHeader, hostname, additionalInfo, platform, apiKey, proxyId, proxyConfig, userEmail } = {}) {
   const cfg = proxyConfig ? proxyConfig : (await loadPlatformConfig(proxyId));
   if (!cfg || !cfg.operations?.getUserInfo) {
     // Fallback if no getUserInfo operation defined
@@ -72,6 +72,7 @@ async function getUserInfo({ authHeader, hostname, additionalInfo, platform, api
       apiKey,
       hostname,
       platform,
+      userEmail,
     },
     user: {},
     authHeader
