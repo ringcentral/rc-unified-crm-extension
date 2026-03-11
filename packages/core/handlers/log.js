@@ -61,8 +61,8 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
         }
         const pluginAsyncTaskIds = [];
         // Plugins
-        const beforeLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
-        for (const pluginSetting of beforeLoggingPlugins) {
+        const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
+        for (const pluginSetting of loggingPlugins) {
             const pluginId = pluginSetting.id;
             let pluginDataResponse = null;
             switch (pluginSetting.value.access) {
@@ -71,12 +71,12 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     break;
                 case 'private':
                 case 'shared':
-                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${pluginSetting.value.rcAccountId}`);
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
                     break;
                 default:
                     throw new Error('Invalid plugin access');
             }
-                const pluginData = pluginDataResponse.data;
+            const pluginData = pluginDataResponse.data;
             const pluginManifest = pluginData.platforms[pluginSetting.value.name];
             let pluginEndpointUrl = pluginManifest.endpointUrl;
             if (!pluginEndpointUrl) {
@@ -239,53 +239,6 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             catch (error) {
                 return handleDatabaseError(error, 'Error creating call log');
             }
-            // after-logging plugins
-            const afterLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
-            for (const pluginSetting of afterLoggingPlugins) {
-                const pluginId = pluginSetting.id;
-                const pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                const pluginData = pluginDataResponse.data;
-                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-                let pluginEndpointUrl = pluginManifest.endpointUrl;
-                if (!pluginEndpointUrl) { throw new Error('Plugin URL is not set'); }
-                else {
-                    if (pluginEndpointUrl.includes('?')) {
-                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                    }
-                    else {
-                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                    }
-                }
-                if (pluginSetting.value.isAsync) {
-                    const asyncTaskId = `${userId}-${uuidv4()}`;
-                    pluginAsyncTaskIds.push(asyncTaskId);
-                    await CacheModel.create({
-                        id: asyncTaskId,
-                        status: 'initialized',
-                        userId,
-                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
-                        expiry: moment().add(1, 'hour').toDate()
-                    });
-                    axios.post(pluginEndpointUrl, {
-                        data: {
-                            ...incomingData,
-                            logId,
-                            text: returnMessage?.message ?? ''
-                        },
-                        asyncTaskId
-                    });
-                }
-                else {
-                    const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                        data: {
-                            ...incomingData,
-                            logId,
-                            text: returnMessage?.message ?? ''
-                        }
-                    }
-                    );
-                }
-            }
             return { successful: !!logId, logId, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
     } catch (e) {
@@ -412,8 +365,8 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
             }
             const pluginAsyncTaskIds = [];
             // Pass-thru plugins
-            const beforeLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'beforeLogging', logType: 'call' });
-            for (const pluginSetting of beforeLoggingPlugins) {
+            const plugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
+            for (const pluginSetting of plugins) {
                 const pluginId = pluginSetting.id;
                 let pluginDataResponse = null;
                 switch (pluginSetting.value.access) {
@@ -422,7 +375,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                         break;
                     case 'private':
                     case 'shared':
-                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${pluginSetting.value.rcAccountId}`);
+                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
                         break;
                     default:
                         throw new Error('Invalid plugin access');

@@ -70,7 +70,7 @@ function getPluginsFromUserSettings({ userSettings, phase, logType }) {
             continue;
         }
         const pluginUserSetting = userSettings[userSettingKey];
-        if (pluginUserSetting.value.activated && pluginUserSetting.value.phase === phase && pluginUserSetting.value.logType == logType) {
+        if (pluginUserSetting.value.logTypes.includes(logType)) {
             result.push({ id: userSettingKey.replace('plugin_', ''), value: pluginUserSetting.value });
         }
     }
