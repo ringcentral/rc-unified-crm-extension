@@ -314,6 +314,27 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 });
 
+app.get('/plugin/licenseStatus', async function (req, res) {
+    try {
+        const jwtToken = req.query.jwtToken;
+        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const user = await UserModel.findByPk(userId);
+        if (!user) {
+            res.status(400).send('User not found');
+            return;
+        }
+        const responseData = {
+            licenseStatus: true,
+            licenseStatusDescription: 'License is valid'
+        }
+        res.status(200).send(responseData);
+    }
+    catch (e) {
+        logger.error('Error getting plugin license status', { stack: e.stack });
+        res.status(500).send(e);
+    }
+});
+
 app.post('/plugin/:pluginId', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
