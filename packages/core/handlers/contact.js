@@ -194,7 +194,7 @@ async function createContact({ platform, userId, phoneNumber, newContactName, ne
     }
 }
 
-async function findContactWithName({ platform, userId, name }) {
+async function findContactWithName({ platform, userId, name, appointment }) {
     try {
         let user = await UserModel.findOne({
             where: {
@@ -242,7 +242,7 @@ async function findContactWithName({ platform, userId, name }) {
                 authHeader = `Basic ${basicAuth}`;
                 break;
         }
-        const { successful, matchedContactInfo, returnMessage } = await platformModule.findContactWithName({ user, authHeader, name, proxyConfig });
+        const { successful, matchedContactInfo, returnMessage } = await platformModule.findContactWithName({ user, authHeader, name, proxyConfig, appointment });
         if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
             return { successful, returnMessage, contact: matchedContactInfo };
         }
