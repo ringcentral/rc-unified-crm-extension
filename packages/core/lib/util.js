@@ -60,7 +60,7 @@ function getMediaReaderLinkByPlatformMediaLink(platformMediaLink) {
     return `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodedPlatformMediaLink}`;
 }
 
-function getPluginsFromUserSettings({ userSettings, phase, logType }) {
+function getPluginsFromUserSettings({ userSettings, logType }) {
     const result = [];
     if (!userSettings) {
         return result;
@@ -70,16 +70,8 @@ function getPluginsFromUserSettings({ userSettings, phase, logType }) {
             continue;
         }
         const pluginUserSetting = userSettings[userSettingKey];
-        const pluginValue = pluginUserSetting.value;
-        if (phase && pluginValue.phase !== phase) {
-            continue;
-        }
-        const pluginLogType = pluginValue.logTypes ?? pluginValue.logType;
-        const logTypeMatches = Array.isArray(pluginLogType)
-            ? pluginLogType.includes(logType)
-            : pluginLogType === logType;
-        if (logTypeMatches) {
-            result.push({ id: userSettingKey.replace('plugin_', ''), value: pluginValue });
+        if (pluginUserSetting.value.logTypes.includes(logType)) {
+            result.push({ id: userSettingKey.replace('plugin_', ''), value: pluginUserSetting.value });
         }
     }
     return result;

@@ -330,7 +330,6 @@ describe('Utility Functions', () => {
     test('should return empty array when userSettings is null', () => {
       const result = getPluginsFromUserSettings({
         userSettings: null,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -340,7 +339,6 @@ describe('Utility Functions', () => {
     test('should return empty array when userSettings is undefined', () => {
       const result = getPluginsFromUserSettings({
         userSettings: undefined,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -350,20 +348,18 @@ describe('Utility Functions', () => {
     test('should return empty array when userSettings is empty object', () => {
       const result = getPluginsFromUserSettings({
         userSettings: {},
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
       expect(result).toEqual([]);
     });
 
-    test('should return plugins matching phase and logType', () => {
+    test('should return plugins matching logType', () => {
       const userSettings = {
         plugin_googleDrive: {
           value: {
             activated: true,
-            phase: 'afterLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Google Drive Upload',
             isAsync: true
           }
@@ -372,7 +368,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'afterLogging',
         logType: 'call'
       });
 
@@ -386,8 +381,7 @@ describe('Utility Functions', () => {
         plugin_piiRedaction: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'PII Redaction'
           }
         },
@@ -398,7 +392,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -406,21 +399,19 @@ describe('Utility Functions', () => {
       expect(result[0].id).toBe('piiRedaction');
     });
 
-    test('should filter out deactivated plugins', () => {
+    test('should return all matching plugins regardless of logType mismatch', () => {
       const userSettings = {
         plugin_googleDrive: {
           value: {
             activated: false,
-            phase: 'afterLogging',
-            logType: 'call',
+            logTypes: ['message'],
             name: 'Google Drive Upload'
           }
         },
         plugin_piiRedaction: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'PII Redaction'
           }
         }
@@ -428,7 +419,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -441,16 +431,14 @@ describe('Utility Functions', () => {
         plugin_myCustomPlugin: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'My Custom Plugin'
           }
         },
         plugin_anotherOne: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Another One'
           }
         }
@@ -458,7 +446,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -468,53 +455,41 @@ describe('Utility Functions', () => {
       expect(ids).toContain('anotherOne');
     });
 
-    test('should support multiple plugins with different phases', () => {
+    test('should return all plugins matching logType', () => {
       const userSettings = {
         plugin_piiRedaction: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'PII Redaction'
           }
         },
         plugin_googleDrive: {
           value: {
             activated: true,
-            phase: 'afterLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Google Drive Upload'
           }
         },
         plugin_analytics: {
           value: {
             activated: true,
-            phase: 'afterLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Analytics'
           }
         }
       };
 
-      // Test beforeLogging phase
-      const beforeResult = getPluginsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
-      expect(beforeResult).toHaveLength(1);
-      expect(beforeResult[0].id).toBe('piiRedaction');
 
-      // Test afterLogging phase
-      const afterResult = getPluginsFromUserSettings({
-        userSettings,
-        phase: 'afterLogging',
-        logType: 'call'
-      });
-      expect(afterResult).toHaveLength(2);
-      const afterIds = afterResult.map(r => r.id);
-      expect(afterIds).toContain('googleDrive');
-      expect(afterIds).toContain('analytics');
+      expect(result).toHaveLength(3);
+      const ids = result.map(r => r.id);
+      expect(ids).toContain('piiRedaction');
+      expect(ids).toContain('googleDrive');
+      expect(ids).toContain('analytics');
     });
 
     test('should filter by logType - call only', () => {
@@ -522,16 +497,14 @@ describe('Utility Functions', () => {
         plugin_callOnly: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Call Only Plugin'
           }
         },
         plugin_messageOnly: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'message',
+            logTypes: ['message'],
             name: 'Message Only Plugin'
           }
         }
@@ -539,7 +512,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -552,16 +524,14 @@ describe('Utility Functions', () => {
         plugin_callOnly: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Call Only Plugin'
           }
         },
         plugin_messageOnly: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'message',
+            logTypes: ['message'],
             name: 'Message Only Plugin'
           }
         }
@@ -569,7 +539,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'message'
       });
 
@@ -582,8 +551,7 @@ describe('Utility Functions', () => {
         plugin_callPlugin: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Call Plugin'
           }
         }
@@ -591,7 +559,6 @@ describe('Utility Functions', () => {
 
       const callResult = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
       expect(callResult).toHaveLength(1);
@@ -599,46 +566,33 @@ describe('Utility Functions', () => {
 
       const messageResult = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'message'
       });
       expect(messageResult).toHaveLength(0);
     });
 
-    test('should return empty array when no plugins match criteria', () => {
+    test('should return empty array when no plugins match logType', () => {
       const userSettings = {
         plugin_googleDrive: {
           value: {
             activated: true,
-            phase: 'afterLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Google Drive Upload'
           }
         }
       };
 
-      // Wrong phase
-      const wrongPhase = getPluginsFromUserSettings({
+      const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
-        logType: 'call'
-      });
-      expect(wrongPhase).toEqual([]);
-
-      // Wrong logType
-      const wrongLogType = getPluginsFromUserSettings({
-        userSettings,
-        phase: 'afterLogging',
         logType: 'message'
       });
-      expect(wrongLogType).toEqual([]);
+      expect(result).toEqual([]);
     });
 
     test('should preserve full plugin value in result', () => {
       const pluginValue = {
         activated: true,
-        phase: 'afterLogging',
-        logType: 'call',
+        logTypes: ['call'],
         name: 'Google Drive Upload',
         isAsync: true,
         customOption: 'someValue'
@@ -652,7 +606,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'afterLogging',
         logType: 'call'
       });
 
@@ -666,8 +619,7 @@ describe('Utility Functions', () => {
         plugin_my_custom_plugin: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'My Custom Plugin'
           }
         }
@@ -675,7 +627,6 @@ describe('Utility Functions', () => {
 
       const result = getPluginsFromUserSettings({
         userSettings,
-        phase: 'beforeLogging',
         logType: 'call'
       });
 
@@ -690,8 +641,7 @@ describe('Utility Functions', () => {
         plugin_working: {
           value: {
             activated: true,
-            phase: 'beforeLogging',
-            logType: 'call',
+            logTypes: ['call'],
             name: 'Working Plugin'
           }
         }
@@ -701,7 +651,6 @@ describe('Utility Functions', () => {
       expect(() => {
         getPluginsFromUserSettings({
           userSettings,
-          phase: 'beforeLogging',
           logType: 'call'
         });
       }).toThrow(); // Currently throws - documenting existing behavior
