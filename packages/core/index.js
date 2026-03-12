@@ -2401,6 +2401,7 @@ function createCoreRouter() {
         });
     });
     router.get('/custom/contact/search', async function (req, res) {
+        console.log({message:'contactSearchByName function called', query: req.query});
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('contactSearchByName:start', { query: req.query });
@@ -2420,7 +2421,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
+                const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name , appointment: req.query.appointment});
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;

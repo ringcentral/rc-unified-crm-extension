@@ -281,14 +281,15 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     };
 }
 
-async function findContactWithName({ user, authHeader, name }) {
+async function findContactWithName({ user, authHeader, name, appointment }) {
+    console.log({message:'findContactWithName function called', name, appointment});
     const matchedContactInfo = [];
     let extraDataTracking = {};
     /*
     Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
     It handles all variations without requiring the query to be split
     */
-    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_phone_number`, {
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_email_address,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
     extraDataTracking = {
@@ -297,7 +298,12 @@ async function findContactWithName({ user, authHeader, name }) {
         ratelimitReset: personInfo.headers['x-ratelimit-reset']
     };
     if (personInfo.data.data.length > 0) {
+        // If appointment is true, only include contacts that have an email.
         for (const result of personInfo.data.data) {
+            console.log({message:'result', result});
+            if (appointment && (!result.primary_email_address || result.primary_email_address.trim() === "")) {
+                continue;
+            }
             const matterInfo = await axios.get(
                 `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                 {
@@ -339,6 +345,48 @@ async function findContactWithName({ user, authHeader, name }) {
                     }
             })
         }
+        // for (const result of personInfo.data.data) {
+        //     const matterInfo = await axios.get(
+        //         `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
+        //         {
+        //             headers: { 'Authorization': authHeader }
+        //         });
+        //     let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+        //     matters = matters?.filter(m => m.status !== 'Closed');
+        //     let associatedMatterInfo = await axios.get(
+        //         `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
+        //         {
+        //             headers: { 'Authorization': authHeader }
+        //         });
+        //     extraDataTracking = {
+        //         ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
+        //         ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
+        //         ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
+        //     };
+        //     let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+        //     associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
+        //     let returnedMatters = [];
+        //     returnedMatters = returnedMatters.concat(matters ?? []);
+        //     returnedMatters = returnedMatters.concat(associatedMatters ?? []);
+        //     matchedContactInfo.push({
+        //         id: result.id,
+        //         name: result.name,
+        //         type: 'contact',
+        //         phone: result.primary_phone_number ?? "",
+        //         additionalInfo: returnedMatters.length > 0 ?
+        //             {
+        //                 matters: returnedMatters,
+        //                 logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+        //                 billableStatus: [
+        //                     { "const": "billable", "title": "Billable" },
+        //                     { "const": "non-billable", "title": "Non-billable" }
+        //                 ]
+        //             } :
+        //             {
+        //                 logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+        //             }
+        //     })
+        // }
     }
 
     return {
@@ -1018,6 +1066,9 @@ function normalizeCalendarEntryToAppointment(calendarEntry) {
     const durationMinutes = (startAt && endAt) ? Math.max(0, Math.round(moment(endAt).diff(moment(startAt), 'minutes', true))) : null;
 
     const attendee = (calendarEntry?.attendees ?? [])[0] ?? null;
+    const attendeeIds = (calendarEntry?.attendees ?? [])
+        .map(a => (a?.id != null ? `${a.id}` : null))
+        .filter(Boolean);
     const contactId = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactId]?.value ?? (attendee?.id != null ? `${attendee.id}` : null);
     const contactType = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactType]?.value ?? (attendee?.type ?? null);
 
@@ -1026,6 +1077,7 @@ function normalizeCalendarEntryToAppointment(calendarEntry) {
         participantName: props[APPOINTMENT_EXTERNAL_PROPERTIES.participantName]?.value ?? attendee?.name ?? null,
         contactId,
         contactType,
+        attendeeIds,
         title: props[APPOINTMENT_EXTERNAL_PROPERTIES.title]?.value ?? calendarEntry?.summary ?? null,
         summary: calendarEntry?.description ?? null,
         startTimeUtc: startAt ?? null,
@@ -1107,7 +1159,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
         {
             headers: { 'Authorization': authHeader },
             params: {
-                fields: 'id,summary,start_at,end_at,description'
+                fields: 'id,summary,start_at,end_at,description,attendees'
             }
         }
     );
@@ -1122,6 +1174,9 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             : 0;
 
         const id = e?.id != null ? `${e.id}` : null;
+        const attendeeIds = (e?.attendees ?? [])
+            .map(a => (a?.id != null ? `${a.id}` : null))
+            .filter(Boolean);
         return {
             thirdPartyAppointmentId: id,
             id,
@@ -1131,7 +1186,8 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             startTimeUtc: startUtc ? startUtc.toISOString() : null,
             durationMinutes,
             status: 'scheduled',
-            contactId: ''
+            contactId: '',
+            attendeeIds
         };
     });
 
@@ -1170,6 +1226,12 @@ async function createAppointment({ user, authHeader, payload }) {
             start_at: startAt,
             end_at: endAt,
             send_email_notification: false,
+            attendees: [
+                   {
+          id: payload?.contactId,
+          type: "Contact"
+                     }
+      ]
         }
     };
 
@@ -1220,6 +1282,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
 }
 
 async function refreshAppointment({ user, authHeader, appointmentId }) {
+    console.log({message:'refreshAppointment function called', authHeader});
     const calendarEntry = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!calendarEntry) {
         return {
