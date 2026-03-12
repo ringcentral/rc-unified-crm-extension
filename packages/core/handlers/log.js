@@ -59,61 +59,6 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 }
             };
         }
-        const pluginAsyncTaskIds = [];
-        // Plugins
-        const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
-        for (const pluginSetting of loggingPlugins) {
-            const pluginId = pluginSetting.id;
-            let pluginDataResponse = null;
-            switch (pluginSetting.value.access) {
-                case 'public':
-                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                    break;
-                case 'private':
-                case 'shared':
-                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
-                    break;
-                default:
-                    throw new Error('Invalid plugin access');
-            }
-            const pluginData = pluginDataResponse.data;
-            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-            let pluginEndpointUrl = pluginManifest.endpointUrl;
-            if (!pluginEndpointUrl) {
-                throw new Error('Plugin URL is not set');
-            }
-            else {
-                // check if endpoint has query params already
-                if (pluginEndpointUrl.includes('?')) {
-                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                }
-                else {
-                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                }
-            }
-            if (pluginSetting.value.isAsync) {
-                const asyncTaskId = `${userId}-${uuidv4()}`;
-                pluginAsyncTaskIds.push(asyncTaskId);
-                await CacheModel.create({
-                    id: asyncTaskId,
-                    status: 'initialized',
-                    userId,
-                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
-                    expiry: moment().add(1, 'hour').toDate()
-                });
-                axios.post(pluginEndpointUrl, {
-                    data: incomingData,
-                    asyncTaskId
-                });
-            }
-            else {
-                const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                    data: incomingData
-                });
-                // eslint-disable-next-line no-param-reassign
-                incomingData = processedResultResponse.data;
-            }
-        }
 
         const platformModule = connectorRegistry.getConnector(platform);
         const callLog = incomingData.logInfo;
@@ -174,6 +119,63 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+
+
+        const pluginAsyncTaskIds = [];
+        // Plugins
+        const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
+        for (const pluginSetting of loggingPlugins) {
+            const pluginId = pluginSetting.id;
+            let pluginDataResponse = null;
+            switch (pluginSetting.value.access) {
+                case 'public':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                    break;
+                case 'private':
+                case 'shared':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                    break;
+                default:
+                    throw new Error('Invalid plugin access');
+            }
+            const pluginData = pluginDataResponse.data;
+            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
+            }
+            else {
+                // check if endpoint has query params already
+                if (pluginEndpointUrl.includes('?')) {
+                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
+            if (pluginSetting.value.isAsync) {
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                pluginAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(pluginEndpointUrl, {
+                    data: incomingData,
+                    asyncTaskId
+                });
+            }
+            else {
+                const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                    data: incomingData
+                });
+                // eslint-disable-next-line no-param-reassign
+                incomingData = processedResultResponse.data;
+            }
+        }
 
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
@@ -363,8 +365,39 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
+            const platformModule = connectorRegistry.getConnector(platform);
+            const proxyId = user.platformAdditionalInfo?.proxyId;
+            let proxyConfig = null;
+            if (proxyId) {
+                proxyConfig = await Connector.getProxyConfig(proxyId);
+            }
+            const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
+            let authHeader = '';
+            switch (authType) {
+                case 'oauth':
+                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
+                    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                    if (!user) {
+                        return {
+                            successful: false,
+                            returnMessage: {
+                                message: `User session expired. Please connect again.`,
+                                messageType: 'warning',
+                                ttl: 5000
+                            },
+                            isRevokeUserSession: true
+                        }
+                    }
+                    authHeader = `Bearer ${user.accessToken}`;
+                    break;
+                case 'apiKey':
+                    const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                    authHeader = `Basic ${basicAuth}`;
+                    break;
+            }
+
             const pluginAsyncTaskIds = [];
-            // Pass-thru plugins
+            // Plugins
             const plugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
             for (const pluginSetting of plugins) {
                 const pluginId = pluginSetting.id;
@@ -405,7 +438,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                         expiry: moment().add(1, 'hour').toDate()
                     });
                     axios.post(pluginEndpointUrl, {
-                        data: incomingData,
+                        data: { logInfo: incomingData },
                         asyncTaskId
                     });
                 }
@@ -416,36 +449,6 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     // eslint-disable-next-line no-param-reassign
                     incomingData = processedResultResponse.data;
                 }
-            }
-            const platformModule = connectorRegistry.getConnector(platform);
-            const proxyId = user.platformAdditionalInfo?.proxyId;
-            let proxyConfig = null;
-            if (proxyId) {
-                proxyConfig = await Connector.getProxyConfig(proxyId);
-            }
-            const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
-            let authHeader = '';
-            switch (authType) {
-                case 'oauth':
-                    const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
-                    user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
-                    if (!user) {
-                        return {
-                            successful: false,
-                            returnMessage: {
-                                message: `User session expired. Please connect again.`,
-                                messageType: 'warning',
-                                ttl: 5000
-                            },
-                            isRevokeUserSession: true
-                        }
-                    }
-                    authHeader = `Bearer ${user.accessToken}`;
-                    break;
-                case 'apiKey':
-                    const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
-                    authHeader = `Basic ${basicAuth}`;
-                    break;
             }
 
             // Fetch existing call log details once to avoid duplicate API calls
@@ -530,54 +533,6 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 isFromSSCL,
                 proxyConfig,
             });
-            // after-logging plugins
-            const afterLoggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, phase: 'afterLogging', logType: 'call' });
-            for (const pluginSetting of afterLoggingPlugins) {
-                const pluginId = pluginSetting.id;
-                const pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                const pluginData = pluginDataResponse.data;
-                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-                let pluginEndpointUrl = pluginManifest.endpointUrl;
-                if (!pluginEndpointUrl) { throw new Error('Plugin URL is not set'); }
-                else {
-                    // check if endpoint has query params already
-                    if (pluginEndpointUrl.includes('?')) {
-                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                    }
-                    else {
-                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                    }
-                }
-                if (pluginSetting.value.isAsync) {
-                    const asyncTaskId = `${userId}-${uuidv4()}`;
-                    pluginAsyncTaskIds.push(asyncTaskId);
-                    await CacheModel.create({
-                        id: asyncTaskId,
-                        status: 'initialized',
-                        userId,
-                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
-                        expiry: moment().add(1, 'hour').toDate()
-                    });
-                    axios.post(pluginEndpointUrl, {
-                        data: {
-                            logInfo: { ...incomingData },
-                            logId: existingCallLog.id,
-                            text: returnMessage?.message ?? ''
-                        },
-                        asyncTaskId
-                    });
-                }
-                else {
-                    await axios.post(pluginEndpointUrl, {
-                        data: {
-                            logInfo: { ...incomingData },
-                            logId: existingCallLog.id,
-                            text: returnMessage?.message ?? ''
-                        }
-                    }
-                    );
-                }
-            }
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
         return { successful: false };
@@ -674,6 +629,65 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const assigneeName = incomingData.logInfo.assignee?.name;
         const ownerName = incomingData.logInfo.owner?.name;
         const isSharedSMS = !!ownerName;
+
+        const pluginAsyncTaskIds = [];
+        // Plugins
+        const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
+        const isFax = incomingData.logInfo.messages.some(m => m.type === 'Fax');
+        const smsPlugins = isSMS ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'sms' }) : [];
+        const faxPlugins = isFax ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'fax' }) : [];
+        const plugins = [...smsPlugins, ...faxPlugins];
+        for (const pluginSetting of plugins) {
+            const pluginId = pluginSetting.id;
+            let pluginDataResponse = null;
+            switch (pluginSetting.value.access) {
+                case 'public':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                    break;
+                case 'private':
+                case 'shared':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                    break;
+                default:
+                    throw new Error('Invalid plugin access');
+            }
+            const pluginData = pluginDataResponse.data;
+            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
+            }
+            else {
+                if (pluginEndpointUrl.includes('?')) {
+                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
+            if (pluginSetting.value.isAsync) {
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                pluginAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(pluginEndpointUrl, {
+                    data: { logInfo: incomingData },
+                    asyncTaskId
+                });
+            }
+            else {
+                const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                    data: incomingData
+                });
+                // eslint-disable-next-line no-param-reassign
+                incomingData = processedResultResponse.data;
+            }
+        }
 
         let messageIds = [];
         const correspondents = [];

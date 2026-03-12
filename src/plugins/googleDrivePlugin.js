@@ -41,7 +41,7 @@ async function onOAuthCallback({ user, callbackUri }) {
     else {
         await PluginUserModel.create({ id: user.id, accessToken, refreshToken, tokenExpiry: expires });
     }
-    return 
+    return
 }
 
 /**

@@ -350,7 +350,7 @@ app.post('/plugin/:pluginId', async function (req, res) {
                 result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
                 break;
             case 'all_cap':
-                result = allCapPlugin.allCap({ data: req.body.data });
+                result = allCapPlugin.allCap({ user, data: req.body.data });
                 break;
             default:
                 res.status(400).send('Unknown plugin');
