@@ -3,6 +3,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser');
 require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
+const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
 const { CallDownListModel } = require('./models/callDownListModel');
@@ -42,8 +43,13 @@ catch (e) {
 }
 
 // For using dynamodb in local env
+// AWS SDK v3 requires a region even for local; ddb.local() omits it, so set manually.
 if (process.env.DYNAMODB_LOCALHOST) {
-    dynamoose.aws.ddb.local(process.env.DYNAMODB_LOCALHOST);
+    dynamoose.aws.ddb.set(new DynamoDB({
+        endpoint: process.env.DYNAMODB_LOCALHOST,
+        region: 'local',
+        credentials: { accessKeyId: 'local', secretAccessKey: 'local' },
+    }));
 }
 // log axios requests
 if (process.env.IS_PROD === 'false') {
