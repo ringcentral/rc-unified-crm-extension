@@ -52,28 +52,26 @@ packages/core/mcp/
 
 ### MCP Handler (`mcpHandler.js`)
 
-The main entry point that creates and manages the MCP server using the `@modelcontextprotocol/sdk`.
+A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no SSE, no in-memory sessions. Each POST request is handled independently, making it fully compatible with stateless deployments like AWS Lambda.
 
 **Key Features:**
 - Defines `WIDGET_VERSION` — the **single source of truth** for the widget cache-busting URI
-- Creates new `McpServer` instances per session
-- Manages session lifecycle with session ID tracking
-- Registers Zod `inputSchema` for every tool that takes parameters (required so ChatGPT forwards arguments)
-- Injects `rcAccessToken`, `openaiSessionId`, and (after first verification) `rcExtensionId` into every tool call's args
-- Lazily verifies the RC access token against the RC API **once per MCP session** and caches the resulting `rcExtensionId` in an in-memory `sessionContext` object — subsequent tool calls skip the API call entirely
-- Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback), so ChatGPT doesn't need to pass it explicitly after auth
-- Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at registration time
-- Keys the sessions Map on `openai/session` ID so the same server/transport/sessionContext are reused for the lifetime of a ChatGPT conversation
-- Registers the `connector-list-widget` resource for UI rendering
+- Handles `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, and `ping` methods
+- Defines `inputSchema` (JSON Schema) for every tool that takes parameters — required so ChatGPT forwards arguments
+- Injects `rcAccessToken`, `openaiSessionId`, and `rcExtensionId` into every `tools/call` request
+- Verifies the RC access token against the RC API and caches `rcExtensionId` in `CacheModel` keyed by `openaiSessionId` (24h TTL) — subsequent requests hit the cache instead of the RC API
+- Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback)
+- Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
+- Serves the widget HTML via `resources/read`
 - Exposes `handleWidgetToolCall` which searches both `tools.tools` and `tools.widgetTools`
 
 **Request Flow:**
-1. Receives MCP HTTP request at `/mcp` endpoint
-2. Identifies or creates session based on `openai/session` metadata (Map keyed on this stable ID)
-3. On first tool call, verifies `rcAccessToken` via RC API and caches `rcExtensionId` in `sessionContext`
+1. Receives `POST /mcp` with a JSON-RPC body
+2. Extracts `rcAccessToken` from `Authorization` header and `openaiSessionId` from `params._meta['openai/session']`
+3. On `tools/call`: checks `CacheModel` for a cached `rcExtensionId`; if missing, verifies via RC API and persists to cache
 4. Injects server-side context (`rcAccessToken`, `openaiSessionId`, `rcExtensionId`, `jwtToken`) into tool args
-5. Routes request to the appropriate tool handler
-6. Returns JSON-RPC response with tool output
+5. Routes to the appropriate tool handler via a `switch` on `method`
+6. Returns a JSON-RPC response immediately — no streaming, no SSE
 
 ### Widget Version Management
 
