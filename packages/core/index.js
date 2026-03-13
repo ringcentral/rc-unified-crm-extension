@@ -2114,15 +2114,6 @@ function createCoreRouter() {
         res.status(200).end();
     });
 
-    // MCP 2025-03-26 Streamable HTTP: clients send GET /mcp to open an SSE stream.
-    // This server is stateless (no SSE). Per the spec, respond 405 with Allow: POST
-    // so clients fall back to POST-only mode instead of treating it as a server error.
-    router.get('/mcp', (req, res) => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Allow', 'POST, OPTIONS');
-        res.status(405).end();
-    });
-
     // Dedicated endpoint for all MCP traffic
     router.post('/mcp', async (req, res) => {
         // Set CORS headers
