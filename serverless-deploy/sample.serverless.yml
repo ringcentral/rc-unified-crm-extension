@@ -24,9 +24,10 @@ provider:
 package:
   excludeDevDependencies: true
   patterns:
-    - '.json'
-    - '.js'
-    - 'node_modules/**'
+    - '**/*.json'
+    - '**/*.js'
+    - '!**/node_modules/**'
+    - '!packages/core/mcp/ui/App/**'
     
 functions:
   # dbAccessor:
@@ -120,7 +121,7 @@ resources:
         DBInstanceIdentifier: ${self:service}-${self:provider.stage}
         Engine: postgres
         AllocatedStorage: 20
-        EngineVersion: 12.17
+        EngineVersion: 16.9
         DBInstanceClass: db.t3.micro
         MasterUsername: ${self:provider.environment.RINGCENTRAL_CHATBOT_DATABASE_USERNAME}
         MasterUserPassword: ${self:provider.environment.RINGCENTRAL_CHATBOT_DATABASE_PASSWORD}

@@ -9,7 +9,6 @@ The MCP (Model Context Protocol) module provides an AI assistant interface for t
 ```
 packages/core/mcp/
 ├── mcpHandler.js          # Main MCP server handler + WIDGET_VERSION constant
-├── SupportedPlatforms.md  # Platform support documentation
 ├── lib/
 │   └── validator.js       # Connector manifest validation
 ├── tools/                 # MCP tool implementations
@@ -24,7 +23,7 @@ packages/core/mcp/
 │   ├── createContact.js   # Create new contact
 │   ├── createCallLog.js   # Create call log entry
 │   ├── rcGetCallLogs.js   # Fetch RingCentral call logs
-│   ├── getGoogleFilePicker.js # Google Sheets picker
+│   ├── getGoogleFilePicker.js # Google Sheets picker (disabled)
 │   ├── getCallLog.js      # Get call log (disabled)
 │   ├── updateCallLog.js   # Update call log (disabled)
 │   └── createMessageLog.js # Create message log (disabled)
@@ -132,7 +131,7 @@ Provides onboarding guidance for new users.
 |----------|-------|
 | Read-only | Yes |
 | Parameters | None |
-| Returns | Overview, steps, supported CRMs |
+| Returns | Overview, steps |
 
 #### `getPublicConnectors`
 Triggers the interactive connector selection widget. The widget fetches the connector list and manifests directly from the developer portal on the client side.
@@ -164,7 +163,6 @@ Logs out user from the CRM platform.
 | `createContact` | `phoneNumber`, `newContactName?` | Create new CRM contact |
 | `rcGetCallLogs` | `timeFrom`, `timeTo` (ISO 8601) | Fetch RingCentral call logs |
 | `createCallLog` | `incomingData?`, `contactId?`, `contactType?`, `note?` | Create call log in CRM |
-| `getGoogleFilePicker` | `sheetName?` | Google Sheets file picker or new sheet |
 
 ### Widget-Only Tools (`widgetTools`)
 
@@ -274,7 +272,7 @@ Calls `appconnect.labs.ringcentral.com/public-api` directly from the browser:
 | `fetchConnectors(rcAccountId?)` | Fetches public + private connectors, filters to `SUPPORTED_PLATFORMS` |
 | `fetchManifest(connectorId, isPrivate, rcAccountId?)` | Fetches connector manifest by ID |
 
-`SUPPORTED_PLATFORMS` is defined in this file: `['googleSheets', 'clio']`.
+`SUPPORTED_PLATFORMS` is defined in this file: `['clio']`.
 
 ### Building the Widget
 
@@ -344,7 +342,6 @@ Called by the widget via `fetch()` to invoke `doAuth` and `checkAuthStatus` with
 
 Currently supported for MCP integration:
 - **Clio** - Legal practice management
-- **Google Sheets** - Spreadsheet logging
 
 ## Security Considerations
 

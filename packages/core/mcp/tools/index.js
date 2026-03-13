@@ -27,7 +27,7 @@ module.exports.tools = [
     findContactWithName,
     createCallLog,
     rcGetCallLogs,
-    getGoogleFilePicker,
+    // getGoogleFilePicker,
     createContact,
 ];
 

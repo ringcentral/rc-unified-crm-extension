@@ -2,7 +2,7 @@ import { dbg } from './debugLog'
 
 const PORTAL_BASE = 'https://appconnect.labs.ringcentral.com/public-api'
 
-export const SUPPORTED_PLATFORMS = ['googleSheets', 'clio']
+export const SUPPORTED_PLATFORMS = ['clio']
 
 export interface Connector {
   id: string
