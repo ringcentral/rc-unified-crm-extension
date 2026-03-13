@@ -21,8 +21,8 @@ describe('MCP Tool: logout', () => {
       expect(logout.definition.inputSchema).toBeDefined();
     });
 
-    test('should have jwtToken property', () => {
-      expect(logout.definition.inputSchema.properties).toHaveProperty('jwtToken');
+    test('should have empty properties (jwtToken is server-injected, not in schema)', () => {
+      expect(logout.definition.inputSchema.properties).toEqual({});
     });
   });
 

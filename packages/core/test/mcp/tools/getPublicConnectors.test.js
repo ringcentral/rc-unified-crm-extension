@@ -1,20 +1,19 @@
 const getPublicConnectors = require('../../../mcp/tools/getPublicConnectors');
-const developerPortal = require('../../../connector/developerPortal');
+const axios = require('axios');
 
-// Mock the developerPortal module
-jest.mock('../../../connector/developerPortal');
+jest.mock('axios');
 
 describe('MCP Tool: getPublicConnectors', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    delete process.env.RC_ACCOUNT_ID;
+    process.env.APP_SERVER = 'https://test-server.com';
   });
 
   describe('tool definition', () => {
     test('should have correct tool definition', () => {
       expect(getPublicConnectors.definition).toBeDefined();
       expect(getPublicConnectors.definition.name).toBe('getPublicConnectors');
-      expect(getPublicConnectors.definition.description).toContain('Auth flow step.1');
+      expect(getPublicConnectors.definition.description).toContain('connectors');
       expect(getPublicConnectors.definition.inputSchema).toBeDefined();
       expect(getPublicConnectors.definition.inputSchema.type).toBe('object');
     });
@@ -25,104 +24,84 @@ describe('MCP Tool: getPublicConnectors', () => {
   });
 
   describe('execute', () => {
-    test('should return public connectors successfully', async () => {
-      // Arrange - use supported platform names: 'googleSheets' and 'clio'
-      const mockConnectors = [
-        { id: '1', name: 'googleSheets', displayName: 'Google Sheets' },
-        { id: '2', name: 'clio', displayName: 'Clio' }
-      ];
-
-      developerPortal.getPublicConnectorList.mockResolvedValue({
-        connectors: mockConnectors
-      });
-
+    test('should return structuredContent with server URL when no rcAccessToken', async () => {
       // Act
-      const result = await getPublicConnectors.execute();
+      const result = await getPublicConnectors.execute({});
 
       // Assert
       expect(result).toEqual({
-        success: true,
-        data: ['Google Sheets', 'Clio']
+        structuredContent: {
+          serverUrl: 'https://test-server.com',
+          rcExtensionId: null,
+          rcAccountId: null,
+          openaiSessionId: null,
+        }
       });
-      expect(developerPortal.getPublicConnectorList).toHaveBeenCalledTimes(1);
+      expect(axios.get).not.toHaveBeenCalled();
     });
 
-    test('should include private connectors when RC_ACCOUNT_ID is set', async () => {
-      // Arrange - use supported platform names
-      process.env.RC_ACCOUNT_ID = 'test-account-id';
-      
-      const mockPublicConnectors = [
-        { id: '1', name: 'googleSheets', displayName: 'Google Sheets' }
-      ];
-      const mockPrivateConnectors = [
-        { id: '3', name: 'clio', displayName: 'Clio' }
-      ];
-
-      developerPortal.getPublicConnectorList.mockResolvedValue({
-        connectors: mockPublicConnectors
-      });
-      developerPortal.getPrivateConnectorList.mockResolvedValue({
-        privateConnectors: mockPrivateConnectors
-      });
-
-      // Act
-      const result = await getPublicConnectors.execute();
-
-      // Assert
-      expect(result).toEqual({
-        success: true,
-        data: ['Google Sheets', 'Clio']
-      });
-      expect(developerPortal.getPublicConnectorList).toHaveBeenCalledTimes(1);
-      expect(developerPortal.getPrivateConnectorList).toHaveBeenCalledTimes(1);
-    });
-
-    test('should return empty array when no connectors available', async () => {
+    test('should resolve RC account and extension IDs when rcAccessToken provided', async () => {
       // Arrange
-      developerPortal.getPublicConnectorList.mockResolvedValue({
-        connectors: []
+      axios.get.mockResolvedValue({
+        data: { id: 'ext-456', account: { id: 'acc-789' } }
       });
 
       // Act
-      const result = await getPublicConnectors.execute();
+      const result = await getPublicConnectors.execute({
+        rcAccessToken: 'valid-rc-token',
+        openaiSessionId: 'session-abc'
+      });
 
       // Assert
       expect(result).toEqual({
-        success: true,
-        data: []
+        structuredContent: {
+          serverUrl: 'https://test-server.com',
+          rcExtensionId: 'ext-456',
+          rcAccountId: 'acc-789',
+          openaiSessionId: 'session-abc',
+        }
       });
-    });
-
-    test('should handle errors gracefully', async () => {
-      // Arrange
-      const errorMessage = 'Failed to fetch connectors';
-      developerPortal.getPublicConnectorList.mockRejectedValue(
-        new Error(errorMessage)
+      expect(axios.get).toHaveBeenCalledWith(
+        'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
+        { headers: { Authorization: 'Bearer valid-rc-token' } }
       );
-
-      // Act
-      const result = await getPublicConnectors.execute();
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBe(errorMessage);
-      expect(result.errorDetails).toBeDefined();
     });
 
-    test('should handle network errors', async () => {
-      // Arrange
-      const networkError = new Error('Network request failed');
-      networkError.code = 'ECONNREFUSED';
-      developerPortal.getPublicConnectorList.mockRejectedValue(networkError);
+    test('should return null RC IDs and continue when RC API call fails', async () => {
+      // Arrange — RC API failure is non-fatal: widget only shows public connectors
+      axios.get.mockRejectedValue(new Error('RC API unavailable'));
 
       // Act
-      const result = await getPublicConnectors.execute();
+      const result = await getPublicConnectors.execute({ rcAccessToken: 'bad-token' });
+
+      // Assert — still returns structuredContent, just without RC IDs
+      expect(result).toEqual({
+        structuredContent: {
+          serverUrl: 'https://test-server.com',
+          rcExtensionId: null,
+          rcAccountId: null,
+          openaiSessionId: null,
+        }
+      });
+    });
+
+    test('should include openaiSessionId when provided', async () => {
+      // Act
+      const result = await getPublicConnectors.execute({ openaiSessionId: 'my-session' });
 
       // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Network request failed');
-      expect(result.errorDetails).toBeDefined();
+      expect(result.structuredContent.openaiSessionId).toBe('my-session');
+    });
+
+    test('should use default server URL when APP_SERVER is not set', async () => {
+      // Arrange
+      delete process.env.APP_SERVER;
+
+      // Act
+      const result = await getPublicConnectors.execute({});
+
+      // Assert
+      expect(result.structuredContent.serverUrl).toBe('https://localhost:6066');
     });
   });
 });
-

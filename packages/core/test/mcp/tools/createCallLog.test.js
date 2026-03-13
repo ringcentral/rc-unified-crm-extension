@@ -24,12 +24,12 @@ describe('MCP Tool: createCallLog', () => {
     test('should have correct tool definition', () => {
       expect(createCallLog.definition).toBeDefined();
       expect(createCallLog.definition.name).toBe('createCallLog');
-      expect(createCallLog.definition.description).toContain('REQUIRES AUTHENTICATION');
+      expect(createCallLog.definition.description).toContain('REQUIRES CRM CONNECTION');
       expect(createCallLog.definition.inputSchema).toBeDefined();
     });
 
-    test('should require jwtToken and incomingData parameters', () => {
-      expect(createCallLog.definition.inputSchema.required).toContain('jwtToken');
+    test('should require incomingData parameter (jwtToken is server-injected)', () => {
+      expect(createCallLog.definition.inputSchema.required).not.toContain('jwtToken');
       expect(createCallLog.definition.inputSchema.required).toContain('incomingData');
     });
 

@@ -1,376 +1,113 @@
 const doAuth = require('../../../mcp/tools/doAuth');
-const authCore = require('../../../handlers/auth');
-const jwt = require('../../../lib/jwt');
+const { createAuthSession } = require('../../../lib/authSession');
 
-// Mock dependencies
-jest.mock('../../../handlers/auth');
-jest.mock('../../../lib/jwt');
+jest.mock('../../../lib/authSession');
 
 describe('MCP Tool: doAuth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.APP_SERVER_SECRET_KEY = 'test-secret-key';
   });
 
   describe('tool definition', () => {
     test('should have correct tool definition', () => {
       expect(doAuth.definition).toBeDefined();
       expect(doAuth.definition.name).toBe('doAuth');
-      expect(doAuth.definition.description).toContain('Auth flow step.4');
+      expect(doAuth.definition.description).toContain('OAuth session');
       expect(doAuth.definition.inputSchema).toBeDefined();
     });
 
-    test('should have optional parameters', () => {
-      expect(doAuth.definition.inputSchema.properties).toHaveProperty('connectorManifest');
+    test('should require connectorName and have optional hostname', () => {
+      expect(doAuth.definition.inputSchema.required).toContain('connectorName');
       expect(doAuth.definition.inputSchema.properties).toHaveProperty('connectorName');
       expect(doAuth.definition.inputSchema.properties).toHaveProperty('hostname');
-      expect(doAuth.definition.inputSchema.properties).toHaveProperty('apiKey');
-      expect(doAuth.definition.inputSchema.properties).toHaveProperty('additionalInfo');
-      expect(doAuth.definition.inputSchema.properties).toHaveProperty('callbackUri');
     });
   });
 
-  describe('execute - apiKey authentication', () => {
-    test('should authenticate with API key successfully', async () => {
+  describe('execute', () => {
+    test('should create auth session successfully', async () => {
       // Arrange
-      const mockManifest = {
-        platforms: {
-          testCRM: {
-            name: 'testCRM',
-            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } },
-            environment: { type: 'fixed' }
-          }
-        }
-      };
-
-      const mockUserInfo = {
-        id: 'test-user-123',
-        name: 'Test User'
-      };
-
-      authCore.onApiKeyLogin.mockResolvedValue({
-        userInfo: mockUserInfo
-      });
-
-      jwt.generateJwt.mockReturnValue('mock-jwt-token');
+      createAuthSession.mockResolvedValue(undefined);
 
       // Act
       const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'test-api-key'
+        sessionId: 'session-abc',
+        connectorName: 'pipedrive',
+        hostname: 'mycompany.pipedrive.com'
       });
 
       // Assert
-      expect(result).toEqual({
-        success: true,
-        data: {
-          jwtToken: 'mock-jwt-token',
-          message: expect.stringContaining('IMPORTANT')
-        }
-      });
-      expect(authCore.onApiKeyLogin).toHaveBeenCalledWith({
-        platform: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'test-api-key',
-        additionalInfo: undefined
-      });
-      expect(jwt.generateJwt).toHaveBeenCalledWith({
-        id: 'test-user-123',
-        platform: 'testCRM'
+      expect(result).toEqual({ success: true });
+      expect(createAuthSession).toHaveBeenCalledWith('session-abc', {
+        platform: 'pipedrive',
+        hostname: 'mycompany.pipedrive.com'
       });
     });
 
-    test('should handle apiKey authentication with additional info', async () => {
+    test('should create auth session with empty hostname when not provided', async () => {
       // Arrange
-      const mockManifest = {
-        platforms: {
-          testCRM: {
-            name: 'testCRM',
-            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
-          }
-        }
-      };
-
-      const additionalInfo = {
-        username: 'testuser',
-        password: 'testpass',
-        apiUrl: 'https://api.test.com'
-      };
-
-      const mockUserInfo = {
-        id: 'test-user-456',
-        name: 'Test User'
-      };
-
-      authCore.onApiKeyLogin.mockResolvedValue({
-        userInfo: mockUserInfo
-      });
-
-      jwt.generateJwt.mockReturnValue('mock-jwt-token-2');
+      createAuthSession.mockResolvedValue(undefined);
 
       // Act
       const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'test-api-key',
-        additionalInfo
+        sessionId: 'session-xyz',
+        connectorName: 'clio'
       });
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(authCore.onApiKeyLogin).toHaveBeenCalledWith({
-        platform: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'test-api-key',
-        additionalInfo
+      expect(result).toEqual({ success: true });
+      expect(createAuthSession).toHaveBeenCalledWith('session-xyz', {
+        platform: 'clio',
+        hostname: ''
       });
     });
 
-    test('should return error when user info not found', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {
-          testCRM: {
-            name: 'testCRM',
-            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
-          }
-        }
-      };
-
-      authCore.onApiKeyLogin.mockResolvedValue({
-        userInfo: null
-      });
-
+    test('should return error when sessionId is missing', async () => {
       // Act
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'invalid-api-key'
-      });
+      const result = await doAuth.execute({ connectorName: 'pipedrive' });
 
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'Authentication failed',
-        errorDetails: 'User info not found'
+        error: 'Missing required fields: sessionId, connectorName'
       });
+      expect(createAuthSession).not.toHaveBeenCalled();
     });
-  });
 
-  describe('execute - OAuth authentication', () => {
-    test('should return auth URI when callback not provided', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {
-          salesforce: {
-            name: 'salesforce',
-            auth: {
-              type: 'oauth',
-              oauth: {
-                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
-                clientId: 'test-client-id',
-                scope: 'api refresh_token',
-                customState: ''
-              }
-            }
-          }
-        }
-      };
-
+    test('should return error when connectorName is missing', async () => {
       // Act
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'salesforce'
-      });
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.authUri).toContain('https://login.salesforce.com');
-      expect(result.data.authUri).toContain('client_id=test-client-id');
-      expect(result.data.authUri).toContain('response_type=code');
-      expect(result.data.message).toContain('IMPORTANT');
-    });
-
-    test('should handle OAuth callback successfully', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {
-          salesforce: {
-            name: 'salesforce',
-            auth: {
-              type: 'oauth',
-              oauth: {
-                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
-                clientId: 'test-client-id'
-              }
-            }
-          }
-        }
-      };
-
-      const mockUserInfo = {
-        id: 'sf-user-123',
-        name: 'SF User'
-      };
-
-      authCore.onOAuthCallback.mockResolvedValue({
-        userInfo: mockUserInfo
-      });
-
-      jwt.generateJwt.mockReturnValue('mock-jwt-token-oauth');
-
-      // Act
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'salesforce',
-        hostname: 'login.salesforce.com',
-        callbackUri: 'https://redirect.com?code=test-code&state=test-state'
-      });
-
-      // Assert
-      expect(result).toEqual({
-        success: true,
-        data: {
-          jwtToken: 'mock-jwt-token-oauth',
-          message: expect.stringContaining('IMPORTANT')
-        }
-      });
-      expect(authCore.onOAuthCallback).toHaveBeenCalledWith({
-        platform: 'salesforce',
-        hostname: 'login.salesforce.com',
-        callbackUri: 'https://redirect.com?code=test-code&state=test-state',
-        query: expect.objectContaining({
-          hostname: 'login.salesforce.com'
-        })
-      });
-    });
-
-    test('should return error when OAuth callback fails', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {
-          salesforce: {
-            name: 'salesforce',
-            auth: {
-              type: 'oauth',
-              oauth: {
-                authUrl: 'https://login.salesforce.com/services/oauth2/authorize',
-                clientId: 'test-client-id'
-              }
-            }
-          }
-        }
-      };
-
-      authCore.onOAuthCallback.mockResolvedValue({
-        userInfo: null
-      });
-
-      // Act - callbackUri needs code= and state= to be treated as OAuth callback
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'salesforce',
-        hostname: 'login.salesforce.com',
-        callbackUri: 'https://redirect.com?code=invalid-code&state=test-state'
-      });
+      const result = await doAuth.execute({ sessionId: 'session-abc' });
 
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'Authentication failed',
-        errorDetails: 'User info not found'
+        error: 'Missing required fields: sessionId, connectorName'
       });
+      expect(createAuthSession).not.toHaveBeenCalled();
     });
 
-    test('should include custom state in auth URI', async () => {
+    test('should return error when both sessionId and connectorName are missing', async () => {
+      // Act
+      const result = await doAuth.execute({});
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Missing required fields');
+    });
+
+    test('should handle unexpected errors gracefully', async () => {
       // Arrange
-      const mockManifest = {
-        platforms: {
-          customCRM: {
-            name: 'customCRM',
-            auth: {
-              type: 'oauth',
-              oauth: {
-                authUrl: 'https://custom.com/oauth',
-                clientId: 'custom-client-id',
-                scope: '',
-                customState: 'custom=state&other=value'
-              }
-            }
-          }
-        }
-      };
+      createAuthSession.mockRejectedValue(new Error('DB write failed'));
 
       // Act
       const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'customCRM'
-      });
-
-      // Assert - state is now URL-encoded and includes sessionId, platform, hostname, plus customState
-      expect(result.success).toBe(true);
-      // The state parameter now contains session info and custom state appended
-      // Decode and verify custom state is included
-      const stateMatch = result.data.authUri.match(/state=([^&]+)/);
-      expect(stateMatch).toBeTruthy();
-      const decodedState = decodeURIComponent(stateMatch[1]);
-      expect(decodedState).toContain('custom=state&other=value');
-      expect(decodedState).toContain('sessionId=');
-      expect(decodedState).toContain('platform=customCRM');
-    });
-  });
-
-  describe('error handling', () => {
-    test('should handle authentication errors gracefully', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {
-          testCRM: {
-            name: 'testCRM',
-            auth: { type: 'apiKey', apiKey: { name: 'apiKey' } }
-          }
-        }
-      };
-
-      authCore.onApiKeyLogin.mockRejectedValue(
-        new Error('Invalid credentials')
-      );
-
-      // Act
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'testCRM',
-        hostname: 'test.crm.com',
-        apiKey: 'bad-key'
+        sessionId: 'session-abc',
+        connectorName: 'pipedrive'
       });
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Invalid credentials');
+      expect(result.error).toBe('DB write failed');
       expect(result.errorDetails).toBeDefined();
-    });
-
-    test('should handle missing platform in manifest', async () => {
-      // Arrange
-      const mockManifest = {
-        platforms: {}
-      };
-
-      // Act
-      const result = await doAuth.execute({
-        connectorManifest: mockManifest,
-        connectorName: 'nonExistent',
-        apiKey: 'test-key'
-      });
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
     });
   });
 });
-
