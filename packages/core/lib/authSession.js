@@ -10,20 +10,29 @@ const AUTH_SESSION_PREFIX = 'auth-session';
 const SESSION_EXPIRY_MINUTES = 5;
 
 /**
- * Create a new auth session
+ * Create (or reset) an auth session.
+ * If a record already exists for the sessionId (e.g., user retries auth within
+ * the same ChatGPT conversation), it is reset to 'pending' so polling works
+ * correctly for the new attempt.
  */
 async function createAuthSession(sessionId, data) {
-    await CacheModel.create({
-        id: `${AUTH_SESSION_PREFIX}-${sessionId}`,
-        cacheKey: AUTH_SESSION_PREFIX,
-        userId: sessionId,
-        status: 'pending',
-        data: {
-            ...data,
-            createdAt: new Date().toISOString()
-        },
-        expiry: new Date(Date.now() + SESSION_EXPIRY_MINUTES * 60 * 1000)
-    });
+    const id = `${AUTH_SESSION_PREFIX}-${sessionId}`;
+    const expiry = new Date(Date.now() + SESSION_EXPIRY_MINUTES * 60 * 1000);
+    const sessionData = { ...data, createdAt: new Date().toISOString() };
+
+    const existing = await CacheModel.findByPk(id);
+    if (existing) {
+        await existing.update({ status: 'pending', data: sessionData, expiry });
+    } else {
+        await CacheModel.create({
+            id,
+            cacheKey: AUTH_SESSION_PREFIX,
+            userId: sessionId,
+            status: 'pending',
+            data: sessionData,
+            expiry,
+        });
+    }
 }
 
 /**

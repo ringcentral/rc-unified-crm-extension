@@ -11,20 +11,16 @@ const axios = require('axios');
 
 const toolDefinition = {
     name: 'getGoogleFilePicker',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate with googleSheets platform. | Returns a URL for the Google Sheets file picker (1st preference) OR create a new sheet with input sheet name (2nd preference). The user should open this URL in their browser to select a Google Sheet for logging.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Returns a URL for the Google Sheets file picker (1st preference) OR create a new sheet with input sheet name (2nd preference). The user should open this URL in their browser to select a Google Sheet for logging.',
     inputSchema: {
         type: 'object',
         properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token obtained from authentication. If user does not have this, direct them to use the "doAuth" tool first with googleSheets platform.'
-            },
             sheetName: {
                 type: 'string',
                 description: 'OPTIONAL. Name of the new sheet to create.'
             }
         },
-        required: ['jwtToken']
+        required: []
     },
     annotations: {
         readOnlyHint: false,
@@ -47,7 +43,7 @@ async function execute(args) {
         if (!jwtToken) {
             return {
                 success: false,
-                error: 'JWT token is required. Please authenticate with googleSheets platform first using the doAuth tool.'
+                error: 'JWT token is required. Please connect to the CRM first using getPublicConnectors.'
             };
         }
 
@@ -67,7 +63,7 @@ async function execute(args) {
         if (!user) {
             return {
                 success: false,
-                error: 'User not found. Please authenticate with googleSheets platform first.'
+                error: 'User not found. Please connect to the CRM first using getPublicConnectors.'
             };
         }
 
@@ -78,7 +74,7 @@ async function execute(args) {
         }
         else {
             // Generate the file picker URL
-            const filePickerUrl = `${process.env.APP_SERVER}/googleSheets/filePicker?token=${jwtToken}}`;
+            const filePickerUrl = `${process.env.APP_SERVER}/googleSheets/filePicker?token=${jwtToken}`;
 
             return {
                 success: true,

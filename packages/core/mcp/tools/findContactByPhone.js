@@ -11,14 +11,10 @@ const contactCore = require('../../handlers/contact');
 
 const toolDefinition = {
     name: 'findContactByPhone',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Search for a contact in the CRM platform by phone number. Returns contact details if found.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Search for a contact in the CRM platform by phone number. Returns contact details if found.',
     inputSchema: {
         type: 'object',
         properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
-            },
             phoneNumber: {
                 type: 'string',
                 description: 'Phone number to search for, if not in E.164 format, convert it to E.164 format'
@@ -32,7 +28,7 @@ const toolDefinition = {
                 description: 'Whether the request is from an extension'
             }
         },
-        required: ['jwtToken', 'phoneNumber']
+        required: ['phoneNumber']
     },
     annotations: {
         readOnlyHint: true,

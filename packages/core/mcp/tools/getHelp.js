@@ -29,12 +29,11 @@ async function execute() {
         success: true,
         data: {
             overview: "I help you connect RingCentral with your CRM to log calls.",
-            steps:[
+            steps: [
                 '1. Tell me to show all connectors and let me connect you to your CRM',
                 '2. Follow authorization flow to authorize your CRM',
                 '3. Once authorized, I can help find contacts and log your calls'
-            ],
-            supportedCRMs: ["Clio", "Google Sheets"],
+            ]
         }
     };
 }
