@@ -17,7 +17,7 @@ const toolDefinition = {
     },
     annotations: {
         readOnlyHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
         destructiveHint: true
     }
 };
@@ -32,9 +32,9 @@ async function execute(args) {
     try {
         const { jwtToken } = args;
         const { platform, id } = jwt.decodeJwt(jwtToken);
-        
+
         const userToLogout = await UserModel.findByPk(id);
-            if (!userToLogout) {
+        if (!userToLogout) {
             return {
                 success: false,
                 error: "User not found",

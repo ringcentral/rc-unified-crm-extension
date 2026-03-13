@@ -4,7 +4,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 
 const toolDefinition = {
     name: 'rcGetCallLogs',
-    description: '⚠️ REQUIRES CRM CONNECTION. | Get call logs from RingCentral',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Get today\'s call logs from RingCentral',
     inputSchema: {
         type: 'object',
         properties: {
@@ -21,7 +21,7 @@ const toolDefinition = {
     },
     annotations: {
         readOnlyHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
         destructiveHint: false
     }
 }
@@ -47,19 +47,6 @@ async function execute(args) {
             timeFrom: timeFrom ?? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
             timeTo: timeTo ?? new Date().toISOString(),
         });
-        // hack: remove already logged calls
-        const existingCalls = [];
-        for (const call of callLogData.records) {
-            const existingCallLog = await CallLogModel.findOne({
-                where: {
-                    sessionId: call.sessionId
-                }
-            });
-            if (existingCallLog) {
-                existingCalls.push(existingCallLog.sessionId);
-            }
-        }
-        callLogData.records = callLogData.records.filter(call => !existingCalls.includes(call.sessionId));
         return callLogData;
     }
     catch (e) {
