@@ -2078,6 +2078,19 @@ function createCoreRouter() {
         if (req.method === 'GET' || req.method === 'OPTIONS') {
             return next();
         }
+        // Allow MCP discovery/handshake methods — these carry no user data and must be
+        // reachable without auth so the ChatGPT developer portal can scan tools.
+        const mcpMethod = req.body?.method;
+        const UNAUTHENTICATED_MCP_METHODS = new Set([
+            'initialize',
+            'tools/list',
+            'ping',
+            'notifications/initialized',
+            'notifications/cancelled',
+        ]);
+        if (mcpMethod && UNAUTHENTICATED_MCP_METHODS.has(mcpMethod)) {
+            return next();
+        }
         // SCENARIO 1: No Token provided. Kick off the OAuth flow.
         if (!token) {
             res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
