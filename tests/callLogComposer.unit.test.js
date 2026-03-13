@@ -934,7 +934,7 @@ describe('callLogComposer', () => {
                 addCallLogDuration: { value: true },
                 addCallLogResult: { value: true },
                 addCallLogRecording: { value: true },
-                addCallLogAINote: { value: true },
+                addCallLogAiNote: { value: true },
                 addCallLogTranscript: { value: true },
                 addCallSessionId: { value: true },
                 addCallLogContactNumber: { value: true }
