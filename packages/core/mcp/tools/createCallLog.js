@@ -12,7 +12,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 
 const toolDefinition = {
     name: 'createCallLog',
-    description: '⚠️ REQUIRES CRM CONNECTION. | Create only one call log in the CRM platform. Returns the created log ID if successful.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Create only one call log in the CRM platform. Returns the created log ID if successful. To use with `rcGetCallLogs`: pass a single item from the `records[]` array directly as `incomingData.logInfo`.',
     inputSchema: {
         type: 'object',
         properties: {
@@ -22,7 +22,7 @@ const toolDefinition = {
                 properties: {
                     logInfo: {
                         type: 'object',
-                        description: 'RingCentral call log information (follows RingCentral Call Log schema)',
+                        description: 'A single record from `rcGetCallLogs` — pass the object exactly as returned, with no changes.',
                         properties: {
                             id: {
                                 type: 'string',
@@ -149,9 +149,17 @@ const toolDefinition = {
                                 description: 'RingCentral extension ID of the assigned user'
                             }
                         }
+                    },
+                    contactName: {
+                        type: 'string',
+                        description: 'Contact name'
+                    },
+                    contactType: {
+                        type: 'string',
+                        description: 'Contact type'
                     }
                 },
-                required: ['logInfo']
+                required: ['logInfo', 'contactName']
             },
             contactId: {
                 type: 'string',
