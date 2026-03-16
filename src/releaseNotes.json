@@ -265,6 +265,18 @@
             }
         ]
     },
+    "1.6.24": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Issue of AI toggle missing"
+            },
+            {
+                "type": "Fix",
+                "description": "Issue of AI summary toggled OFF but content is still logged"
+            }
+        ]
+    },
     "1.6.23": {
         "global": [
             {

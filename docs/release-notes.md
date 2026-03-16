@@ -95,6 +95,11 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.24
+
+- Fix: Issue of AI toggle missing
+- Fix: Issue of AI summary toggled OFF but content is still logged 
+
 ## 1.6.23
 
 - Fix: Contact call pop issue
