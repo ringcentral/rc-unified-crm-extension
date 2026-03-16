@@ -100,6 +100,7 @@ Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 - Better: Server-side logging. Admin users can now use user mapping to map and test with their own account
 - Fix: Issue of AI toggle missing
 - Fix: Issue of AI summary toggled OFF but content is still logged 
+- Clio: Known issue - Closed matters cannot be fetched. This appears to be a Clio API issue — we are in contact with them to resolve it.
 
 ## 1.6.23
 
