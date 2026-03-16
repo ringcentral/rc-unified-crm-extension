@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+
+# Base document
+
+Always use README.md under packages/core/mcp to get the overall reference for the MCP project
+
+## Practices
+
+1. After updating UI components, always build client with a new version number

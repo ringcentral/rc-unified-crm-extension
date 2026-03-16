@@ -1,0 +1,27 @@
+---
+description: Keep packages/core/mcp/README.md in sync whenever MCP module files change
+globs: packages/core/mcp/**/*.js,packages/core/mcp/ui/App/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# MCP README Sync
+
+Whenever you modify any file under `packages/core/mcp/` (tools, handler, UI components, lib), you **must** also update `packages/core/mcp/README.md` to reflect the change before finishing.
+
+## What to update
+
+| Change made | README section to update |
+|-------------|--------------------------|
+| New or renamed file | Architecture tree (top of README) |
+| New MCP tool or changed tool parameters/behaviour | MCP Tools section |
+| Widget component added/modified | ChatGPT Widget UI → Components |
+| Widget communication pattern changed | ChatGPT Widget UI → Widget Communication |
+| Widget step/state machine changed | ChatGPT Widget UI → Widget Auth Flow |
+| New server endpoint | API Integration → Endpoints |
+| Auth or OAuth flow changed | Authentication Flow + Usage Example |
+
+## Rules
+
+- Update the README **in the same response** as the code change — never defer it.
+- Keep the Architecture file tree accurate: add new files, remove deleted ones.
+- The Usage Example at the bottom should always reflect the current end-to-end flow.

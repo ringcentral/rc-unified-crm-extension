@@ -17,12 +17,12 @@ describe('MCP Tool: findContactByName', () => {
     test('should have correct tool definition', () => {
       expect(findContactByName.definition).toBeDefined();
       expect(findContactByName.definition.name).toBe('findContactByName');
-      expect(findContactByName.definition.description).toContain('REQUIRES AUTHENTICATION');
+      expect(findContactByName.definition.description).toContain('REQUIRES CRM CONNECTION');
       expect(findContactByName.definition.inputSchema).toBeDefined();
     });
 
-    test('should require jwtToken and name parameters', () => {
-      expect(findContactByName.definition.inputSchema.required).toContain('jwtToken');
+    test('should require name parameter (jwtToken is server-injected)', () => {
+      expect(findContactByName.definition.inputSchema.required).not.toContain('jwtToken');
       expect(findContactByName.definition.inputSchema.required).toContain('name');
     });
   });

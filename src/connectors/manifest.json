@@ -502,7 +502,7 @@
               "description": "Track and record time spent communicating over SMS",
               "defaultValue": false
             },
-            { 
+            {
               "id": "smsTimeTrackingMinimumDuration",
               "type": "inputField",
               "name": "Minimum SMS billable duration",
@@ -517,7 +517,6 @@
               "description": "Show closed matters in the matter selection dropdown",
               "defaultValue": false
             }
-            
           ]
         }
       ],
@@ -537,15 +536,25 @@
               "contactDependent": false,
               "required": false,
               "description": "Set whether time entries relating to phone calls are billable or not by default",
-              "includeNoneOption":false,
+              "includeNoneOption": false,
               "options": [
-                { "const": "billable", "title": "Billable" },
-                { "const": "non-billable", "title": "Non-billable" }
+                {
+                  "const": "billable",
+                  "title": "Billable"
+                },
+                {
+                  "const": "non-billable",
+                  "title": "Non-billable"
+                }
               ],
               "defaultSettingId": "clioOptions",
               "defaultSettingValues": {
-                "inboundCall": { "settingId": "clioDefaultNonBillableTick" },
-                "outboundCall": { "settingId": "clioDefaultNonBillableTick" }
+                "inboundCall": {
+                  "settingId": "clioDefaultNonBillableTick"
+                },
+                "outboundCall": {
+                  "settingId": "clioDefaultNonBillableTick"
+                }
               }
             }
           ]
@@ -1858,5 +1867,5 @@
       ]
     }
   },
-  "version": "1.6.23"
+  "version": "1.6.24"
 }

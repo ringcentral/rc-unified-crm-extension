@@ -95,6 +95,12 @@
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
 
+## 1.6.24
+
+- Better: Server-side logging. Admin users can now use user mapping to map and test with their own account
+- Fix: Issue of AI toggle missing
+- Fix: Issue of AI summary toggled OFF but content is still logged 
+
 ## 1.6.23
 
 - Fix: Contact call pop issue

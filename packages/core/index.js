@@ -6,6 +6,7 @@ const dynamoose = require('dynamoose');
 const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
+const { LlmSessionModel } = require('./models/llmSessionModel');
 const { CallDownListModel } = require('./models/callDownListModel');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
@@ -65,6 +66,7 @@ async function initDB() {
     if (!process.env.DISABLE_SYNC_DB_TABLE) {
         logger.info('creating db tables if not exist...');
         await UserModel.sync();
+        await LlmSessionModel.sync();
         await CallLogModel.sync();
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
@@ -2113,22 +2115,30 @@ function createCoreRouter() {
         });
     });
 
-    router.use('/mcp', (req, res, next) => {// LOG EVERYTHING
-        console.log(`[${req.method}] /mcp`);
-        console.log("Headers:", JSON.stringify(req.headers['authorization'] ? "Auth Token Present" : "No Auth"));
-        console.log("Body:", JSON.stringify(req.body));
-        // return next();
-        // Capture the response finish to see the status code
-        res.on('finish', () => {
-            console.log(`[Response] Status: ${res.statusCode}`);
-            console.log(`[Response] data: ${JSON.stringify(res.data)}`);
-        });
+    router.use('/mcp', (req, res, next) => {
+        // Widget tool calls are unauthenticated — they come from the iframe
+        // which has no access to the RC bearer token.
+        if (req.path === '/widget-tool-call') {
+            return next();
+        }
 
         const authHeader = req.headers.authorization;
         const token = authHeader?.split(' ')[1]; // Remove "Bearer "
-        // Allow the initial connection (GET) and CORS checks (OPTIONS) to pass freely.
-        // We only want to block the actual commands (POST).
+        // Allow GET and OPTIONS (CORS preflight) to pass freely.
         if (req.method === 'GET' || req.method === 'OPTIONS') {
+            return next();
+        }
+        // Allow MCP discovery/handshake methods — these carry no user data and must be
+        // reachable without auth so the ChatGPT developer portal can scan tools.
+        const mcpMethod = req.body?.method;
+        const UNAUTHENTICATED_MCP_METHODS = new Set([
+            'initialize',
+            'tools/list',
+            'ping',
+            'notifications/initialized',
+            'notifications/cancelled',
+        ]);
+        if (mcpMethod && UNAUTHENTICATED_MCP_METHODS.has(mcpMethod)) {
             return next();
         }
         // SCENARIO 1: No Token provided. Kick off the OAuth flow.
@@ -2140,9 +2150,7 @@ function createCoreRouter() {
         // SCENARIO 2: Token provided. Verify it.
         try {
             next();
-        } catch (error) {
-            console.error("Token validation failed:", error.message);
-            // Token is invalid or expired
+        } catch {
             res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
             return res.status(401).send();
         }
@@ -2163,6 +2171,19 @@ function createCoreRouter() {
         res.setHeader('Content-Type', 'application/json');
 
         await mcpHandler.handleMcpRequest(req, res);
+    });
+
+    // Lightweight endpoint for widget tool calls (bypasses MCP protocol)
+    router.options('/mcp/widget-tool-call', (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.status(200).end();
+    });
+    router.post('/mcp/widget-tool-call', async (req, res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        await mcpHandler.handleWidgetToolCall(req, res);
     });
 
     return router;

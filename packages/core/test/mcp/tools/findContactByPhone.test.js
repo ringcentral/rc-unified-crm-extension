@@ -17,12 +17,12 @@ describe('MCP Tool: findContactByPhone', () => {
     test('should have correct tool definition', () => {
       expect(findContactByPhone.definition).toBeDefined();
       expect(findContactByPhone.definition.name).toBe('findContactByPhone');
-      expect(findContactByPhone.definition.description).toContain('REQUIRES AUTHENTICATION');
+      expect(findContactByPhone.definition.description).toContain('REQUIRES CRM CONNECTION');
       expect(findContactByPhone.definition.inputSchema).toBeDefined();
     });
 
-    test('should require jwtToken and phoneNumber parameters', () => {
-      expect(findContactByPhone.definition.inputSchema.required).toContain('jwtToken');
+    test('should require phoneNumber parameter (jwtToken is server-injected)', () => {
+      expect(findContactByPhone.definition.inputSchema.required).not.toContain('jwtToken');
       expect(findContactByPhone.definition.inputSchema.required).toContain('phoneNumber');
     });
 

@@ -12,14 +12,10 @@ const { CallLogModel } = require('../../models/callLogModel');
 
 const toolDefinition = {
     name: 'createCallLog',
-    description: '⚠️ REQUIRES AUTHENTICATION: User must first authenticate using the "auth" tool to obtain a JWT token before using this tool. | Create only one call log in the CRM platform. Returns the created log ID if successful.',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Create only one call log in the CRM platform. Returns the created log ID if successful.',
     inputSchema: {
         type: 'object',
         properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
-            },
             incomingData: {
                 type: 'object',
                 description: 'Call log data to create',
@@ -162,7 +158,7 @@ const toolDefinition = {
                 description: 'OPTIONAL: CRM contact ID to associate with the call.'
             }
         },
-        required: ['jwtToken', 'incomingData']
+        required: ['incomingData']
     },
     annotations: {
         readOnlyHint: false,
@@ -250,7 +246,7 @@ async function execute(args) {
                 userId,
                 phoneNumber: contactNumber,
                 overridingFormat: '',
-                isExtension: 'false'
+                isExtension: false
             });
             const filteredContact = contactInfo.contact?.filter(c => !c.isNewContact);
             if (contactInfo.successful && filteredContact?.length > 0) {

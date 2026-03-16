@@ -13,16 +13,11 @@ const toolDefinition = {
     description: 'Logout the user from the CRM platform.',
     inputSchema: {
         type: 'object',
-        properties: {
-            jwtToken: {
-                type: 'string',
-                description: 'JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.'
-            }
-        }
+        properties: {}
     },
     annotations: {
         readOnlyHint: false,
-        openWorldHint: false,
+        openWorldHint: true,
         destructiveHint: true
     }
 };
@@ -30,16 +25,16 @@ const toolDefinition = {
 /**
  * Execute the logout tool
  * @param {Object} args - The tool arguments
- * @param {string} args.jwtToken - JWT token containing userId and platform information. If user does not have this, direct them to use the "auth" tool first.
+ * @param {string} args.jwtToken - JWT token containing userId and platform information. Injected automatically by the server after CRM connection.
  * @returns {Object} Result object with logout information
  */
 async function execute(args) {
     try {
         const { jwtToken } = args;
         const { platform, id } = jwt.decodeJwt(jwtToken);
-        
+
         const userToLogout = await UserModel.findByPk(id);
-            if (!userToLogout) {
+        if (!userToLogout) {
             return {
                 success: false,
                 error: "User not found",

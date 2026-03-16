@@ -18,13 +18,13 @@ describe('MCP Tool: getGoogleFilePicker', () => {
     test('should have correct tool definition', () => {
       expect(getGoogleFilePicker.definition).toBeDefined();
       expect(getGoogleFilePicker.definition.name).toBe('getGoogleFilePicker');
-      expect(getGoogleFilePicker.definition.description).toContain('REQUIRES AUTHENTICATION');
+      expect(getGoogleFilePicker.definition.description).toContain('REQUIRES CRM CONNECTION');
       expect(getGoogleFilePicker.definition.description).toContain('Google Sheets file picker');
       expect(getGoogleFilePicker.definition.inputSchema).toBeDefined();
     });
 
-    test('should require jwtToken parameter', () => {
-      expect(getGoogleFilePicker.definition.inputSchema.required).toContain('jwtToken');
+    test('should not require jwtToken in schema (it is server-injected)', () => {
+      expect(getGoogleFilePicker.definition.inputSchema.required).not.toContain('jwtToken');
     });
 
     test('should have optional sheetName parameter', () => {
@@ -62,7 +62,7 @@ describe('MCP Tool: getGoogleFilePicker', () => {
       expect(result).toEqual({
         success: true,
         data: {
-          filePickerUrl: 'https://test-app-server.com/googleSheets/filePicker?token=mock-jwt-token}',
+          filePickerUrl: 'https://test-app-server.com/googleSheets/filePicker?token=mock-jwt-token',
           message: expect.stringContaining('Please open this URL')
         }
       });
@@ -149,7 +149,7 @@ describe('MCP Tool: getGoogleFilePicker', () => {
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'JWT token is required. Please authenticate with googleSheets platform first using the doAuth tool.'
+        error: 'JWT token is required. Please connect to the CRM first using getPublicConnectors.'
       });
     });
 
@@ -162,7 +162,7 @@ describe('MCP Tool: getGoogleFilePicker', () => {
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'JWT token is required. Please authenticate with googleSheets platform first using the doAuth tool.'
+        error: 'JWT token is required. Please connect to the CRM first using getPublicConnectors.'
       });
     });
 
@@ -217,7 +217,7 @@ describe('MCP Tool: getGoogleFilePicker', () => {
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'User not found. Please authenticate with googleSheets platform first.'
+        error: 'User not found. Please connect to the CRM first using getPublicConnectors.'
       });
       expect(UserModel.findByPk).toHaveBeenCalledWith('nonexistent-user');
     });

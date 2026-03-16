@@ -1,189 +1,59 @@
-const authCore = require('../../handlers/auth');
-const jwt = require('../../lib/jwt');
-const crypto = require('crypto');
 const { createAuthSession } = require('../../lib/authSession');
-const { isManifestValid } = require('../lib/validator');
+
 /**
- * MCP Tool: Do Authentication
- * 
- * This tool does the authentication.
+ * MCP Tool: Do Authentication (widget-only)
+ *
+ * Creates a server-side OAuth session for the given sessionId.
+ * The widget generates the sessionId and authUri client-side for instant display,
+ * then calls this endpoint in the background to register the session in the DB
+ * so the OAuth callback can resolve it.
  */
 
 const toolDefinition = {
     name: 'doAuth',
-    description: 'Auth flow step.4. Do the authentication. Next step is calling step.5 "checkAuthStatus" tool.',
+    description: 'Create a server-side OAuth session. Widget-only — not called by AI model.',
     inputSchema: {
         type: 'object',
         properties: {
-            connectorManifest: {
-                type: 'object',
-                description: 'connectorManifest variable from above conversation. Must be the full manifest object, not just serverUrl'
-            },
             connectorName: {
                 type: 'string',
-                description: 'connectorName variable from above conversation.'
+                description: 'Connector platform name'
             },
             hostname: {
                 type: 'string',
-                description: 'Hostname to authenticate to.'
-            },
-            apiKey: {
-                type: 'string',
-                description: 'API key to authenticate to.'
-            },
-            additionalInfo: {
-                type: 'object',
-                description: 'Additional information to authenticate to.',
-                properties: {
-                    username: {
-                        type: 'string',
-                        description: 'Username to authenticate to.'
-                    },
-                    password: {
-                        type: 'string',
-                        description: 'Password to authenticate to.'
-                    },
-                    apiUrl: {
-                        type: 'string',
-                        description: 'API URL to authenticate to.'
-                    }
-                }
-            },
-            callbackUri: {
-                type: 'string',
-                description: 'Callback URI to authenticate to.'
+                description: 'Resolved hostname for the CRM instance'
             }
         },
-        required: ['connectorManifest', 'connectorName', 'hostname']
+        required: ['connectorName']
     },
     annotations: {
         readOnlyHint: false,
-        openWorldHint: true,
-        destructiveHint: true
+        openWorldHint: false,
+        destructiveHint: false
     }
 };
 
-/**
- * Execute the doAuth tool
- * @param {Object} args - The tool arguments
- * @param {string} args.connectorManifest - Connector manifest from conversation or memory.
- * @param {string} args.connectorName - Connector name from conversation or memory.
- * @param {string} args.hostname - Hostname to authenticate to.
- * @param {string} args.apiKey - API key to authenticate to.
- * @param {Object} args.additionalInfo - Additional information to authenticate to.
- * @param {string} args.callbackUri - Callback URI to authenticate to.
- * @returns {Object} Result object with authentication information
- */
 async function execute(args) {
     try {
-        const { connectorManifest, connectorName, hostname, apiKey, additionalInfo, callbackUri } = args;
-        const { isValid, errors } = isManifestValid({ connectorManifest, connectorName });
-        if (!isValid) {
-            return {
-                success: false,
-                error: "Invalid connector manifest",
-                errorDetails: errors.join(', '),
-            }
+        const { sessionId, connectorName, hostname = '' } = args;
+
+        if (!sessionId || !connectorName) {
+            return { success: false, error: 'Missing required fields: sessionId, connectorName' };
         }
-        const platform = connectorManifest.platforms[connectorName];
-        switch (platform.auth.type) {
-            case 'apiKey':
-                const { userInfo } = await authCore.onApiKeyLogin({ platform: platform.name, hostname, apiKey, additionalInfo });
-                if (userInfo) {
-                    const jwtToken = jwt.generateJwt({
-                        id: userInfo.id.toString(),
-                        platform: platform.name
-                    });
-                    return {
-                        success: true,
-                        data: {
-                            jwtToken,
-                            message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
-                        }
-                    }
-                }
-                else {
-                    return {
-                        success: false,
-                        error: "Authentication failed",
-                        errorDetails: "User info not found",
-                    }
-                }
-            case 'oauth':
-                const hasValidCallbackUri = callbackUri && callbackUri.includes('code=') && callbackUri.includes('state=');
-                if (hasValidCallbackUri) {
-                    const query = Object.fromEntries(new URL(callbackUri).searchParams);
-                    query.hostname = hostname;
-                    const { userInfo } = await authCore.onOAuthCallback({ platform: platform.name, hostname, callbackUri, query });
-                    if (userInfo) {
-                        const jwtToken = jwt.generateJwt({
-                            id: userInfo.id.toString(),
-                            platform: platform.name
-                        });
-                        return {
-                            success: true,
-                            data: {
-                                jwtToken,
-                                message: "IMPORTANT: Authentication successful. Keep jwtToken in memory for future use. DO NOT directly show it to user.",
-                            }
-                        }
-                    }
-                    else {
-                        return {
-                            success: false,
-                            error: "Authentication failed",
-                            errorDetails: "User info not found",
-                        }
-                    }
-                }
-                else {
-                    // Generate unique session ID
-                    const sessionId = crypto.randomUUID();
-                    
-                    // Store session
-                    await createAuthSession(sessionId, {
-                        platform: platform.name,
-                        hostname,
-                    });
-                    
-                    const authUri = composeAuthUri({ platform, sessionId, hostname });
-                    return {
-                        success: true,
-                        data: {
-                            authUri,
-                            sessionId,
-                            message: "IMPORTANT: Show this uri as a clickable link for user to authorize. After user authorizes, use checkAuthStatus tool with this sessionId to get the jwtToken.",
-                        }
-                    }
-                }
-        }
-    }
-    catch (error) {
+
+        await createAuthSession(sessionId, {
+            platform: connectorName,
+            hostname,
+        });
+
+        return { success: true };
+    } catch (error) {
         return {
             success: false,
             error: error.message || 'Unknown error occurred',
-            errorDetails: error.stack
+            errorDetails: error.stack,
         };
     }
-}
-
-function composeAuthUri({ platform, sessionId, hostname }) {
-    // Build base state param
-    let stateParam = sessionId ? 
-        `sessionId=${sessionId}&platform=${platform.name}&hostname=${hostname}` : 
-        `platform=${platform.name}&hostname=${hostname}`;
-    
-    // Merge customState if provided
-    if (platform.auth.oauth.customState) {
-        stateParam += `&${platform.auth.oauth.customState}`;
-    }
-    
-    return `${platform.auth.oauth.authUrl}?` +
-        `response_type=code` +
-        `&client_id=${platform.auth.oauth.clientId}` +
-        `${!!platform.auth.oauth.scope && platform.auth.oauth.scope != '' ? `&${platform.auth.oauth.scope}` : ''}` +
-        `&state=${encodeURIComponent(stateParam)}` +
-        `&redirect_uri=${process.env.APP_SERVER}/oauth-callback`;
 }
 
 exports.definition = toolDefinition;

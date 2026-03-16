@@ -115,7 +115,7 @@ function composeCallLog(params) {
         body = upsertCallRecording({ body, recordingLink, logFormat });
     }
 
-    if (aiNote && (userSettings?.addCallLogAINote?.value ?? true)) {
+    if (aiNote && (userSettings?.addCallLogAiNote?.value ?? true)) {
         body = upsertAiNote({ body, aiNote, logFormat });
     }
 
