@@ -4,7 +4,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 
 const toolDefinition = {
     name: 'rcGetCallLogs',
-    description: '⚠️ REQUIRES CRM CONNECTION. | Get today\'s call logs from RingCentral',
+    description: '⚠️ REQUIRES CRM CONNECTION. | Get call logs from RingCentral. Returns a `records[]` array. Each item in `records` is a complete RingCentral call log object that can be passed DIRECTLY as `incomingData.logInfo` to the `createCallLog` tool — no field renaming or restructuring needed.',
     inputSchema: {
         type: 'object',
         properties: {

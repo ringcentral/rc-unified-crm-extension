@@ -159,8 +159,8 @@ Logs out user from the CRM platform.
 | `findContactByPhone` | `phoneNumber` (E.164) | Search contact by phone |
 | `findContactByName` | `name` | Search contact by name |
 | `createContact` | `phoneNumber`, `newContactName?` | Create new CRM contact |
-| `rcGetCallLogs` | `timeFrom`, `timeTo` (ISO 8601) | Fetch RingCentral call logs |
-| `createCallLog` | `incomingData?`, `contactId?`, `contactType?`, `note?` | Create call log in CRM |
+| `rcGetCallLogs` | `timeFrom`, `timeTo` (ISO 8601) | Fetch RingCentral call logs. Each `records[i]` item can be passed directly as `incomingData.logInfo` to `createCallLog`. |
+| `createCallLog` | `incomingData` (with `logInfo` = single `rcGetCallLogs` record), `contactId?`, `note?` | Create call log in CRM. Pass a `records[i]` item from `rcGetCallLogs` directly as `incomingData.logInfo`. |
 
 ### Widget-Only Tools (`widgetTools`)
 
