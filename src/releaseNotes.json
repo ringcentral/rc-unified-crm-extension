@@ -268,6 +268,10 @@
     "1.6.24": {
         "global": [
             {
+                "type": "Better",
+                "description": "Server-side logging. Admin users can now use user mapping to map and test with their own account"
+            },
+            {
                 "type": "Fix",
                 "description": "Issue of AI toggle missing"
             },
