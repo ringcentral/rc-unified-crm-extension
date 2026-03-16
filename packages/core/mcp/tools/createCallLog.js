@@ -149,6 +149,14 @@ const toolDefinition = {
                                 description: 'RingCentral extension ID of the assigned user'
                             }
                         }
+                    },
+                    contactName: {
+                        type: 'string',
+                        description: 'Contact name'
+                    },
+                    contactType: {
+                        type: 'string',
+                        description: 'Contact type'
                     }
                 },
                 required: ['logInfo']
