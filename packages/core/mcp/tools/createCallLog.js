@@ -159,7 +159,7 @@ const toolDefinition = {
                         description: 'Contact type'
                     }
                 },
-                required: ['logInfo']
+                required: ['logInfo', 'contactName']
             },
             contactId: {
                 type: 'string',
