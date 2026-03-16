@@ -1129,7 +1129,7 @@ async function getCalendarEntryById({ user, authHeader, appointmentId }) {
         {
             headers: { 'Authorization': authHeader },
             params: {
-                fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id'
+                fields: 'id,summary,description,start_at,end_at,attendees{id,name,type},external_properties,calendar_owner_id'
             }
         }
     );
@@ -1159,7 +1159,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
         {
             headers: { 'Authorization': authHeader },
             params: {
-                fields: 'id,summary,start_at,end_at,description,attendees'
+                fields: 'id,summary,start_at,end_at,description,attendees{id,name,type}'
             }
         }
     );
@@ -1174,9 +1174,10 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             : 0;
 
         const id = e?.id != null ? `${e.id}` : null;
-        const attendeeIds = (e?.attendees ?? [])
-            .map(a => (a?.id != null ? `${a.id}` : null))
+        const attendees = (e?.attendees ?? [])
+            .map(a => (a?.id != null ? {id: a?.id, name: a?.name, type: a?.type} : null))
             .filter(Boolean);
+        console.log({message:'attendees', attendees});
         return {
             thirdPartyAppointmentId: id,
             id,
@@ -1187,7 +1188,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             durationMinutes,
             status: 'scheduled',
             contactId: '',
-            attendeeIds
+            attendees
         };
     });
 
@@ -1198,7 +1199,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
 async function createAppointment({ user, authHeader, payload }) {
     const calendarId = await getWriteableUserCalendarId({ user, authHeader });
 
-    console.log({message:'createAppointment function called ', calendarId,payload});
+    console.log({message:'createAppointment function called ', calendarId,payload, contact: payload?.contacts});
     if (calendarId == null) {
         return {
             successful: false,
@@ -1214,26 +1215,32 @@ async function createAppointment({ user, authHeader, payload }) {
     const durationMinutes = Number(payload?.durationMinutes ?? 0);
     const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
 
-    // const attendees = payload?.contactId != null
-    //     ? [{ id: Number(payload.contactId), type: 'Contact' }]
-    //     : undefined;
-
-    const body = {
-        data: {
-            calendar_owner: { id: calendarId },
-            summary: payload?.title ?? payload?.summary ?? 'Appointment',
-            description: payload?.summary ?? '',
-            start_at: startAt,
-            end_at: endAt,
-            send_email_notification: false,
-            attendees: [
-                   {
-          id: payload?.contactId,
-          type: "Contact"
-                     }
-      ]
-        }
+    const toAttendee = (id) => {
+        const n = typeof id === 'number' ? id : Number(id);
+        if (!Number.isFinite(n)) return null;
+        return { id: n, type: 'Contact' };
     };
+
+    const attendees = (() => {
+        if (Array.isArray(payload?.contacts) && payload.contacts.length) {
+            return payload.contacts
+                .map(c => (c && typeof c === 'object' ? toAttendee(c.id) : toAttendee(c)))
+                .filter(Boolean);
+        }
+        return [];
+    })();
+
+    const data = {
+        calendar_owner: { id: calendarId },
+        summary: payload?.title ?? payload?.summary ?? 'Appointment',
+        description: payload?.summary ?? '',
+        start_at: startAt,
+        end_at: endAt,
+        send_email_notification: false,
+        ...(attendees.length ? { attendees } : {})
+    };
+
+    const body = { data };
 
     const createRes = await axios.post(
         `https://${user.hostname}/api/v4/calendar_entries.json`,
