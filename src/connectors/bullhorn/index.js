@@ -1082,7 +1082,12 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
-        if (additionalSubmission.adminAssignedUserToken) {
+        if (!assigneeId) {
+            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+            assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
+        }
+
+        if (!assigneeId && additionalSubmission.adminAssignedUserToken) {
             try {
                 const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
                 const assigneeUser = await UserModel.findByPk(unAuthData.id);
@@ -1093,11 +1098,6 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
             catch (e) {
                 logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
-        }
-
-        if (!assigneeId) {
-            const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig?.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
         }
     }
     const putBody = {
