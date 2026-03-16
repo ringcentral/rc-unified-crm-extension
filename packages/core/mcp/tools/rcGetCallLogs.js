@@ -17,7 +17,7 @@ const toolDefinition = {
                 description: 'MUST be ISO string. Default is now.'
             }
         },
-        required: ['timeFrom', 'timeTo']
+        required: []
     },
     annotations: {
         readOnlyHint: true,
