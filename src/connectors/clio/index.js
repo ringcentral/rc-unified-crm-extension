@@ -273,7 +273,6 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 }
 
 async function findContactWithName({ user, authHeader, name, appointment }) {
-    console.log({message:'findContactWithName function called', name, appointment});
     const matchedContactInfo = [];
     let extraDataTracking = {};
     /*
@@ -291,7 +290,6 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
     if (personInfo.data.data.length > 0) {
         // If appointment is true, only include contacts that have an email.
         for (const result of personInfo.data.data) {
-            console.log({message:'result', result});
             if (appointment && (!result.primary_email_address || result.primary_email_address.trim() === "")) {
                 continue;
             }
@@ -1098,7 +1096,6 @@ async function getWriteableUserCalendarId({ user, authHeader }) {
 }
 
 async function getCalendarEntryById({ user, authHeader, appointmentId }) {
-    console.log({message:'getCalendarEntryById function called'});
     const res = await axios.get(
         `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
         {
@@ -1128,7 +1125,6 @@ async function upsertCalendarEntryExternalProperty({ user, authHeader, appointme
 }
 
 async function listAppointments({ user, authHeader, range, mineOnly }) {
-    console.log({message:'listAppointments function called'});
     const listRes = await axios.get(
         `https://${user.hostname}/api/v4/calendar_entries.json`,
         {
@@ -1152,7 +1148,6 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
         const attendees = (e?.attendees ?? [])
             .map(a => (a?.id != null ? {id: a?.id, name: a?.name, type: a?.type} : null))
             .filter(Boolean);
-        console.log({message:'attendees', attendees});
         return {
             thirdPartyAppointmentId: id,
             id,
@@ -1166,15 +1161,11 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             attendees
         };
     });
-
-    console.log({message:'appointments', appointments});
     return { appointments };
 }
 
 async function createAppointment({ user, authHeader, payload }) {
     const calendarId = await getWriteableUserCalendarId({ user, authHeader });
-
-    console.log({message:'createAppointment function called ', calendarId,payload, contact: payload?.contacts});
     if (calendarId == null) {
         return {
             successful: false,
@@ -1229,7 +1220,6 @@ async function createAppointment({ user, authHeader, payload }) {
 }
 
 async function updateAppointment({ user, authHeader, appointmentId, patchBody }) {
-    console.log({message:'updateAppointment function called', appointmentId, patchBody});
     const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!existing) {
         return {
@@ -1264,7 +1254,6 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
 }
 
 async function refreshAppointment({ user, authHeader, appointmentId }) {
-    console.log({message:'refreshAppointment function called', authHeader});
     const calendarEntry = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!calendarEntry) {
         return {
@@ -1281,7 +1270,6 @@ async function refreshAppointment({ user, authHeader, appointmentId }) {
 
 
 async function cancelAppointment({ user, authHeader, appointmentId }) {
-    console.log({message:'cancelAppointment function called', appointmentId});
     const cancelResponseBody = await axios.delete(
         `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
         { headers: { 'Authorization': authHeader } }
