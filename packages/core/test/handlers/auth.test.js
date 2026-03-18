@@ -501,6 +501,7 @@ describe('Auth Handler', () => {
   describe('getLicenseStatus', () => {
     test('should return license status from platform module', async () => {
       // Arrange
+      const mockUser = global.testUtils.createMockUser({ id: 'user-123' });
       const mockLicenseStatus = {
         isValid: true,
         expiresAt: '2025-12-31',
@@ -513,6 +514,9 @@ describe('Auth Handler', () => {
 
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
+      const { UserModel } = require('../../models/userModel');
+      jest.spyOn(UserModel, 'findByPk').mockResolvedValue(mockUser);
+
       // Act
       const result = await authHandler.getLicenseStatus({
         userId: 'user-123',
@@ -523,7 +527,8 @@ describe('Auth Handler', () => {
       expect(result).toEqual(mockLicenseStatus);
       expect(mockConnector.getLicenseStatus).toHaveBeenCalledWith({
         userId: 'user-123',
-        platform: 'testCRM'
+        platform: 'testCRM',
+        user: mockUser
       });
     });
   });

@@ -206,8 +206,16 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
 }
 
 async function getLicenseStatus({ userId, platform }) {
+    const user = await UserModel.findByPk(userId);
+    if (!user) {
+        return {
+            successful: false,
+            status: 404,
+            failReason: 'App Connect. User not found in database'
+        }
+    }
     const platformModule = connectorRegistry.getConnector(platform);
-    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform });
+    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform , user });
     return licenseStatus;
 }
 
