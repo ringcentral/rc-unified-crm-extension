@@ -324,8 +324,8 @@ app.get('/plugin/licenseStatus', async function (req, res) {
             return;
         }
         const responseData = {
-            licenseStatus: true,
-            licenseStatusDescription: 'License is valid'
+            licenseStatus: false,
+            licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)'
         }
         res.status(200).send(responseData);
     }
