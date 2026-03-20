@@ -444,7 +444,7 @@ app.get('/googleDrive/checkAuth', async function (req, res) {
 
 app.post('/googleDrive/logout', async function (req, res) {
     try {
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.body.jwtToken;
         if (!jwtToken) {
             res.status(400).send('JWT token is required');
             return;

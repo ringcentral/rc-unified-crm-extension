@@ -143,6 +143,7 @@ nav:
   - 'Administration':
     - 'Becoming an admin': users/admin.md
     - 'Managed settings': users/managed-settings.md
+    - 'Plugins': users/plugins.md
     - 'Server-side call logging': users/server-side-logging.md
     - 'AI Conversation Expert (ACE) logging': users/ace.md
   - 'User settings':
@@ -196,6 +197,8 @@ nav:
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
       - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
+  - 'Plugins':
+    - 'Overview': developers/plugins.md
 
 - 'Support':
   - 'Troubleshooting': support.md

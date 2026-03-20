@@ -6,6 +6,9 @@ An connector's manifest file helps a developer to instruct the framework on how 
 
 Below you will find an explanation of the many properties found within a manifest file. 
 
+!!! info "Building a plugin instead?"
+    This page covers the manifest used by full CRM connectors. If you are building a logging extension rather than a CRM integration, see the [Plugins guide](plugins.md).
+
 ## Editing your manifest file
 
 The [App Connect Developer Console](https://appconnect.labs.ringcentral.com/console) provides a user interface for editing and managing your connector's manifest file. This is the recommended way to edit your manifest file as it will allow you to preview many of your changes in real time, and ensures the manifest created is valid. 

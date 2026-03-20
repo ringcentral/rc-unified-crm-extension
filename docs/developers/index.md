@@ -30,6 +30,8 @@ Each connector implements the following components:
 
 In this guide, you will learn how to build, package and distribute an connector for a CRM.
 
+If you want to extend logging behavior without building a full CRM integration, App Connect also supports [plugins](plugins.md). Plugins are lighter-weight extensions that run during call, SMS, or fax logging and can either transform log data inline or perform async post-log work.
+
 <div id="powered-by-embeddable" markdown>
 
 !!! info "Powered by RingCentral Embeddable"
