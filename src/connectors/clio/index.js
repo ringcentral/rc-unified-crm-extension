@@ -218,7 +218,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     {
                         headers: { 'Authorization': authHeader }
                     });
-                let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+                let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: `${m.status} - ${m.description}`, status: m.status } }) : null;
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     matters = matters?.filter(m => m.status !== 'Closed');
                 }
@@ -232,7 +232,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
                     ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
                 };
-                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
                 associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);

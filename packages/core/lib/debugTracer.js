@@ -40,7 +40,7 @@ class DebugTracer {
      */
     trace(methodName, data = {}, options = {}) {
         const { includeStack = true, level = 'info' } = options;
-        
+
         const traceEntry = {
             timestamp: new Date().toISOString(),
             elapsed: Date.now() - this.startTime,
@@ -85,7 +85,7 @@ class DebugTracer {
         }
 
         const sensitiveFields = [
-            'accessToken', 'refreshToken', 'apiKey', 'password', 
+            'accessToken', 'refreshToken', 'apiKey', 'password',
             'secret', 'token', 'authorization', 'auth', 'key',
             'credential', 'credentials', 'privateKey', 'clientSecret'
         ];
@@ -116,11 +116,29 @@ class DebugTracer {
     }
 
     /**
+     * Builds a compact summary of all recorded actions, one entry per trace.
+     * Each entry contains the method name, log level, and elapsed time at the
+     * point the trace was recorded, making it easy to skim what happened without
+     * reading the full trace list.
+     * @returns {string[]} Array of human-readable action summary strings
+     */
+    _buildActionSummary() {
+        return this.traces.map((t, i) => ({
+            index: i + 1,
+            timestamp: t.timestamp,
+            level: t.level.toUpperCase(),
+            method: t.methodName,
+            elapsedMs: t.elapsed
+        }));
+    }
+
+    /**
      * Gets the complete trace data for inclusion in response
      * @returns {Object} Trace data object
      */
     getTraceData() {
         return {
+            sum: this._buildActionSummary(),
             requestId: this.requestId,
             totalDuration: `${Date.now() - this.startTime}ms`,
             traceCount: this.traces.length,
