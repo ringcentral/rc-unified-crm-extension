@@ -123,7 +123,7 @@ nav:
     - 'Developers': 
       - 'Connector migration guide': 2.0/migration.md
       - 'Proxy connector (new)': developers/proxy-connector.md
-      - 'Plugins (new)': developers/plugins.md
+      - 'Plugins (new)': users/plugins.md
 
   - 'App Connect features': 
     - 'AI Assistant': users/ai.md
