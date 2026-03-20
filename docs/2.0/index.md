@@ -64,6 +64,14 @@ The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlist
 
     [Learn more &raquo;](../users/voicemail-drop.md)
 
+-   :material-extension:{ .lg .middle } __Plugins__
+
+    ---
+
+    Let admins install optional extensions for their account and give users a simple way to configure plugin-specific settings and OAuth connections.
+
+    [Learn more &raquo;](../users/plugins.md)
+
 -   :fontawesome-solid-mask:{ .lg .middle } __Enhanced phone number privacy__
 
     ---

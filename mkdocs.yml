@@ -123,6 +123,7 @@ nav:
     - 'Developers': 
       - 'Connector migration guide': 2.0/migration.md
       - 'Proxy connector (new)': developers/proxy-connector.md
+      - 'Plugins (new)': developers/plugins.md
 
   - 'App Connect features': 
     - 'AI Assistant': users/ai.md
@@ -197,7 +198,7 @@ nav:
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
       - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
-  - 'Plugins':
+  - 'Plugin':
     - 'Overview': developers/plugins.md
 
 - 'Support':
