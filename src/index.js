@@ -314,7 +314,7 @@ app.delete('/pipedrive-redirect', async function (req, res) {
     }
 });
 
-app.get('/plugin/licenseStatus', async function (req, res) {
+app.get('/plugin/licenseStatus/:pluginId', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         const { id: userId, platform } = jwt.decodeJwt(jwtToken);
@@ -323,11 +323,32 @@ app.get('/plugin/licenseStatus', async function (req, res) {
             res.status(400).send('User not found');
             return;
         }
-        const responseData = {
-            licenseStatus: false,
-            licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)'
+        const pluginId = req.params.pluginId;
+        switch (pluginId) {
+            case 'googleDrive':
+                const { isSuccessful } = await googleDrivePlugin.checkAuth({ userId });
+                const errorMessage = [
+                    'License is invalid'
+                ]
+                if (!isSuccessful) {
+                    errorMessage.push('Google Drive user is not authorized')
+                }
+                res.status(200).send({
+                    licenseStatus: false,
+                    errorMessage: errorMessage.join(' AND '),
+                    licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)'
+                });
+                break;
+            case 'allCap':
+                res.status(200).send({
+                    licenseStatus: true,
+                    licenseStatusDescription: 'License: Basic'
+                });
+                break;
+            default:
+                res.status(400).send('Unknown plugin');
+                return;
         }
-        res.status(200).send(responseData);
     }
     catch (e) {
         logger.error('Error getting plugin license status', { stack: e.stack });
