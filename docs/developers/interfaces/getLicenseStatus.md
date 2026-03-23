@@ -45,10 +45,18 @@ First, enable license checking by setting the `useLicense` property to `true` in
 
 Your connector must implement the `getLicenseStatus` interface to enable license checking. This function should validate the user's license status and return a standardized response.
 
+## Input parameters
+
+| Parameter | Type | Description |
+|----------|------|-------------|
+| `user` | object | An object describing the Chrome extension user associated with the action that triggered this interface. |
+| `userId` | string | The user ID (usually `user.id`). Provided for convenience/backward compatibility. |
+| `platform` | string | The connector platform name (e.g., `"netsuite"`). Provided by core when calling the connector interface. |
+
 #### Function signature
 
 ```javascript
-async function getLicenseStatus({ userId }) {
+async function getLicenseStatus({ user, userId, platform }) {
     // Implementation here
 }
 exports.getLicenseStatus = getLicenseStatus;
@@ -83,7 +91,7 @@ Before performing any CRM operations, you should verify the user's license statu
 ```javascript
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission }) {
     // Check license status first
-    const licenseStatus = await getLicenseStatus({ userId: user.id });
+    const licenseStatus = await getLicenseStatus({user, userId: user.id });
     
     if (!licenseStatus.isLicenseValid) {
         return {
