@@ -501,6 +501,7 @@ describe('Auth Handler', () => {
   describe('getLicenseStatus', () => {
     test('should return license status from platform module', async () => {
       // Arrange
+      const mockUser = global.testUtils.createMockUser({ id: 'user-123' });
       const mockLicenseStatus = {
         isValid: true,
         expiresAt: '2025-12-31',
@@ -513,6 +514,9 @@ describe('Auth Handler', () => {
 
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
+      const { UserModel } = require('../../models/userModel');
+      jest.spyOn(UserModel, 'findByPk').mockResolvedValue(mockUser);
+
       // Act
       const result = await authHandler.getLicenseStatus({
         userId: 'user-123',
@@ -523,8 +527,35 @@ describe('Auth Handler', () => {
       expect(result).toEqual(mockLicenseStatus);
       expect(mockConnector.getLicenseStatus).toHaveBeenCalledWith({
         userId: 'user-123',
+        platform: 'testCRM',
+        user: mockUser
+      });
+    });
+
+    test('should return invalid license status when user not found', async () => {
+      // Arrange
+      const mockConnector = global.testUtils.createMockConnector({
+        getLicenseStatus: jest.fn()
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const { UserModel } = require('../../models/userModel');
+      jest.spyOn(UserModel, 'findByPk').mockResolvedValue(null);
+
+      // Act
+      const result = await authHandler.getLicenseStatus({
+        userId: 'missing-user',
         platform: 'testCRM'
       });
+
+      // Assert
+      expect(result).toEqual({
+        isLicenseValid: false,
+        licenseStatus: 'Invalid (User not found)',
+        licenseStatusDescription: ''
+      });
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+      expect(mockConnector.getLicenseStatus).not.toHaveBeenCalled();
     });
   });
 

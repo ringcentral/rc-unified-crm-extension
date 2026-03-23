@@ -206,8 +206,16 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
 }
 
 async function getLicenseStatus({ userId, platform }) {
+    const user = await UserModel.findByPk(userId);
+    if (!user) {
+        return {
+            isLicenseValid: false,
+            licenseStatus: 'Invalid (User not found)',
+            licenseStatusDescription: ''
+        }
+    }
     const platformModule = connectorRegistry.getConnector(platform);
-    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform });
+    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform , user });
     return licenseStatus;
 }
 
