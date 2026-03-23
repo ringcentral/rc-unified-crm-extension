@@ -233,7 +233,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
                 };
                 let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
-                associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
+                if (!user.userSettings?.clioSeeClosedMatters?.value) {
+                    associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
+                }
                 let returnedMatters = [];
                 returnedMatters = returnedMatters.concat(matters ?? []);
                 returnedMatters = returnedMatters.concat(associatedMatters ?? []);
