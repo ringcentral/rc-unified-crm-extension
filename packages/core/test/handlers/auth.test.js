@@ -531,6 +531,32 @@ describe('Auth Handler', () => {
         user: mockUser
       });
     });
+
+    test('should return invalid license status when user not found', async () => {
+      // Arrange
+      const mockConnector = global.testUtils.createMockConnector({
+        getLicenseStatus: jest.fn()
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const { UserModel } = require('../../models/userModel');
+      jest.spyOn(UserModel, 'findByPk').mockResolvedValue(null);
+
+      // Act
+      const result = await authHandler.getLicenseStatus({
+        userId: 'missing-user',
+        platform: 'testCRM'
+      });
+
+      // Assert
+      expect(result).toEqual({
+        isLicenseValid: false,
+        licenseStatus: 'Invalid (User not found)',
+        licenseStatusDescription: ''
+      });
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+      expect(mockConnector.getLicenseStatus).not.toHaveBeenCalled();
+    });
   });
 
   describe('onRingcentralOAuthCallback', () => {
