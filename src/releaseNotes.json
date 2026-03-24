@@ -1,4 +1,22 @@
 {
+    "1.7.19": {
+        "global": [
+            {
+                "type": "Beta",
+                "description": "Plugin system infrastructure. No plugin available yet, but add soon. Take a quick look at its [overview](https://appconnect.labs.ringcentral.com/users/plugins)"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-dial with wider number match"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio users can't see closed associated matters"
+            }
+        ]
+    },
     "1.7.18": {
         "global": [
             {
@@ -262,6 +280,20 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.25": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Click-to-dial with wider number match"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio users can't see closed associated matters"
             }
         ]
     },

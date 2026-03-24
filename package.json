@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.7.18",
+  "version": "1.7.19",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -75,7 +75,7 @@
     "serverless-plugin-log-retention": "^2.1.0",
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
-    "sqlite3": "^5.1.5",
+    "sqlite3": "^5.1.7",
     "supertest": "^6.3.1"
   },
   "overrides": {

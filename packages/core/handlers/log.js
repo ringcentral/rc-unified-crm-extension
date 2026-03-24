@@ -2,6 +2,7 @@ const Op = require('sequelize').Op;
 const { CallLogModel } = require('../models/callLogModel');
 const { MessageLogModel } = require('../models/messageLogModel');
 const { UserModel } = require('../models/userModel');
+const { CacheModel } = require('../models/cacheModel');
 const oauth = require('../lib/oauth');
 const { composeCallLog } = require('../lib/callLogComposer');
 const { composeSharedSMSLog } = require('../lib/sharedSMSComposer');
@@ -11,11 +12,14 @@ const { NoteCache } = require('../models/dynamo/noteCacheSchema');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
+const axios = require('axios');
+const { getPluginsFromUserSettings } = require('../lib/util');
 const logger = require('../lib/logger');
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
+const { v4: uuidv4 } = require('uuid');
 const { AccountDataModel } = require('../models/accountDataModel');
 
-async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function createCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -55,6 +59,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
             };
         }
+
         const platformModule = connectorRegistry.getConnector(platform);
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
@@ -114,6 +119,63 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+
+
+        const pluginAsyncTaskIds = [];
+        // Plugins
+        const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
+        for (const pluginSetting of loggingPlugins) {
+            const pluginId = pluginSetting.id;
+            let pluginDataResponse = null;
+            switch (pluginSetting.value.access) {
+                case 'public':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                    break;
+                case 'private':
+                case 'shared':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                    break;
+                default:
+                    throw new Error('Invalid plugin access');
+            }
+            const pluginData = pluginDataResponse.data;
+            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
+            }
+            else {
+                // check if endpoint has query params already
+                if (pluginEndpointUrl.includes('?')) {
+                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
+            if (pluginSetting.value.isAsync) {
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                pluginAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(pluginEndpointUrl, {
+                    data: incomingData,
+                    asyncTaskId
+                });
+            }
+            else {
+                const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                    data: incomingData
+                });
+                // eslint-disable-next-line no-param-reassign
+                incomingData = processedResultResponse.data;
+            }
+        }
 
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
@@ -179,8 +241,8 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             catch (error) {
                 return handleDatabaseError(error, 'Error creating call log');
             }
+            return { successful: !!logId, logId, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
-        return { successful: !!logId, logId, returnMessage, extraDataTracking };
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
     }
@@ -285,7 +347,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -299,11 +361,11 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             return handleDatabaseError(error, 'Error finding existing call log');
         }
         if (existingCallLog) {
-            const platformModule = connectorRegistry.getConnector(platform);
             let user = await UserModel.findByPk(userId);
             if (!user || !user.accessToken) {
                 return { successful: false, message: `Contact not found` };
             }
+            const platformModule = connectorRegistry.getConnector(platform);
             const proxyId = user.platformAdditionalInfo?.proxyId;
             let proxyConfig = null;
             if (proxyId) {
@@ -332,6 +394,61 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
                     authHeader = `Basic ${basicAuth}`;
                     break;
+            }
+
+            const pluginAsyncTaskIds = [];
+            // Plugins
+            const plugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
+            for (const pluginSetting of plugins) {
+                const pluginId = pluginSetting.id;
+                let pluginDataResponse = null;
+                switch (pluginSetting.value.access) {
+                    case 'public':
+                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                        break;
+                    case 'private':
+                    case 'shared':
+                        pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                        break;
+                    default:
+                        throw new Error('Invalid plugin access');
+                }
+                const pluginData = pluginDataResponse.data;
+                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+                let pluginEndpointUrl = pluginManifest.endpointUrl;
+                if (!pluginEndpointUrl) {
+                    throw new Error('Plugin URL is not set');
+                }
+                else {
+                    if (pluginEndpointUrl.includes('?')) {
+                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
+                    }
+                    else {
+                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
+                    }
+                }
+                if (pluginSetting.value.isAsync) {
+                    const asyncTaskId = `${userId}-${uuidv4()}`;
+                    pluginAsyncTaskIds.push(asyncTaskId);
+                    await CacheModel.create({
+                        id: asyncTaskId,
+                        status: 'initialized',
+                        userId,
+                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                        expiry: moment().add(1, 'hour').toDate()
+                    });
+                    axios.post(pluginEndpointUrl, {
+                        data: { logInfo: incomingData },
+                        asyncTaskId
+                    });
+                }
+                else {
+                    const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                        data: incomingData
+                    });
+                    // eslint-disable-next-line no-param-reassign
+                    incomingData = processedResultResponse.data;
+                }
             }
 
             // Fetch existing call log details once to avoid duplicate API calls
@@ -416,12 +533,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
-            if (!extraDataTracking) {
-                extraDataTracking = {};
-            }
-            extraDataTracking.withSmartNoteLog = !!incomingData.aiNote;
-            extraDataTracking.withTranscript = !!incomingData.transcript;
-            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
+            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, pluginAsyncTaskIds };
         }
         return { successful: false };
     } catch (e) {
@@ -517,6 +629,65 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const assigneeName = incomingData.logInfo.assignee?.name;
         const ownerName = incomingData.logInfo.owner?.name;
         const isSharedSMS = !!ownerName;
+
+        const pluginAsyncTaskIds = [];
+        // Plugins
+        const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
+        const isFax = incomingData.logInfo.messages.some(m => m.type === 'Fax');
+        const smsPlugins = isSMS ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'sms' }) : [];
+        const faxPlugins = isFax ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'fax' }) : [];
+        const plugins = [...smsPlugins, ...faxPlugins];
+        for (const pluginSetting of plugins) {
+            const pluginId = pluginSetting.id;
+            let pluginDataResponse = null;
+            switch (pluginSetting.value.access) {
+                case 'public':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                    break;
+                case 'private':
+                case 'shared':
+                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                    break;
+                default:
+                    throw new Error('Invalid plugin access');
+            }
+            const pluginData = pluginDataResponse.data;
+            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
+            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            if (!pluginEndpointUrl) {
+                throw new Error('Plugin URL is not set');
+            }
+            else {
+                if (pluginEndpointUrl.includes('?')) {
+                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
+                }
+                else {
+                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
+                }
+            }
+            if (pluginSetting.value.isAsync) {
+                const asyncTaskId = `${userId}-${uuidv4()}`;
+                pluginAsyncTaskIds.push(asyncTaskId);
+                await CacheModel.create({
+                    id: asyncTaskId,
+                    status: 'initialized',
+                    userId,
+                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    expiry: moment().add(1, 'hour').toDate()
+                });
+                axios.post(pluginEndpointUrl, {
+                    data: { logInfo: incomingData },
+                    asyncTaskId
+                });
+            }
+            else {
+                const processedResultResponse = await axios.post(pluginEndpointUrl, {
+                    data: incomingData
+                });
+                // eslint-disable-next-line no-param-reassign
+                incomingData = processedResultResponse.data;
+            }
+        }
 
         let messageIds = [];
         const correspondents = [];

@@ -18,6 +18,9 @@ The customize tabs feature allows you to personalize which tabs and sections are
   <figcaption>Customize tabs settings allow you to control which interface elements are visible</figcaption>
 </figure>
 
+!!! info "HUD tab"
+    HUD tab is controlled in Service Web (https://service.ringcentral.com). Go to Users -> Roles -> Role and there should be a toggle for HUD to control the visibility for both App Connect and RingCentral App.
+
 ## Managing in-app messages and notifications
 
 Notification level settings help you control which types of notifications App Connect displays, allowing you to stay informed about important events while minimizing distractions from less critical alerts.

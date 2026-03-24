@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.19
+
+- Beta: Plugin system infrastructure. No plugin available yet, but add soon. Take a quick look at its [overview](https://appconnect.labs.ringcentral.com/users/plugins) 
+- Better: Click-to-dial with wider number match
+- Fix: Clio users can't see closed associated matters
+
 ## 1.7.18
 
 - New: Support for Group SMS logging
@@ -94,6 +100,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.25
+
+- Better: Click-to-dial with wider number match
+- Fix: Clio users can't see closed associated matters
 
 ## 1.6.24
 

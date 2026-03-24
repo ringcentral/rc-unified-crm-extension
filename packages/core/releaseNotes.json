@@ -1,4 +1,16 @@
 {
+    "1.7.19": {
+        "global": [
+            {
+                "type": "Beta",
+                "description": "Plugin system infrastructure. No plugin available yet, but add soon. Take a quick look at its [overview](https://appconnect.labs.ringcentral.com/users/plugins)"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-dial with wider number match"
+            }
+        ]
+    },
     "1.7.18": {
         "global": [
             {

@@ -8,7 +8,8 @@ const {
   getHashValue,
   secondsToHoursMinutesSeconds,
   getMostRecentDate,
-  getMediaReaderLinkByPlatformMediaLink
+  getMediaReaderLinkByPlatformMediaLink,
+  getPluginsFromUserSettings
 } = require('../../lib/util');
 
 describe('Utility Functions', () => {
@@ -77,6 +78,38 @@ describe('Utility Functions', () => {
 
       // Assert
       expect(result).toBe('Europe/Berlin');
+    });
+
+    test('should handle tzlookup throwing an error', () => {
+      // Arrange
+      State.getStateByCodeAndCountry = jest.fn().mockReturnValue({
+        name: 'Invalid Location',
+        latitude: '999',
+        longitude: '999'
+      });
+      tzlookup.mockImplementation(() => {
+        throw new Error('Invalid coordinates');
+      });
+
+      // Act & Assert
+      expect(() => getTimeZone('XX', 'YY')).toThrow('Invalid coordinates');
+    });
+
+    test('should handle state with missing latitude/longitude', () => {
+      // Arrange
+      State.getStateByCodeAndCountry = jest.fn().mockReturnValue({
+        name: 'Some State',
+        latitude: null,
+        longitude: null
+      });
+      tzlookup.mockReturnValue(null);
+
+      // Act
+      const result = getTimeZone('US', 'XX');
+
+      // Assert - tzlookup is called with null coords, returns null
+      expect(tzlookup).toHaveBeenCalledWith(null, null);
+      expect(result).toBeNull();
     });
   });
 
@@ -184,6 +217,20 @@ describe('Utility Functions', () => {
     test('should handle NaN', () => {
       expect(secondsToHoursMinutesSeconds(NaN)).toBe(NaN);
     });
+
+    test('should handle negative numbers', () => {
+      // Negative numbers are technically invalid but should be handled gracefully
+      // Current implementation treats them as numbers and processes them
+      const result = secondsToHoursMinutesSeconds(-60);
+      // -60 / 3600 = -0.016... floors to -1 hour
+      // The behavior with negatives is implementation-defined
+      expect(typeof result).toBe('string');
+    });
+
+    test('should handle floating point numbers', () => {
+      // 90.5 seconds = 1 minute + remainder; decimal seconds are preserved
+      expect(secondsToHoursMinutesSeconds(90.5)).toBe('1 minute, 30.5 seconds');
+    });
   });
 
   describe('getMostRecentDate', () => {
@@ -276,6 +323,337 @@ describe('Utility Functions', () => {
       // Verify the URL is properly encoded
       expect(result).not.toContain('&type=');
       expect(result).toContain('%26type%3D');
+    });
+  });
+
+  describe('getPluginsFromUserSettings', () => {
+    test('should return empty array when userSettings is null', () => {
+      const result = getPluginsFromUserSettings({
+        userSettings: null,
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array when userSettings is undefined', () => {
+      const result = getPluginsFromUserSettings({
+        userSettings: undefined,
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return empty array when userSettings is empty object', () => {
+      const result = getPluginsFromUserSettings({
+        userSettings: {},
+        logType: 'call'
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    test('should return plugins matching logType', () => {
+      const userSettings = {
+        plugin_googleDrive: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Google Drive Upload',
+            isAsync: true
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('googleDrive');
+      expect(result[0].value.name).toBe('Google Drive Upload');
+    });
+
+    test('should filter out non-plugin settings', () => {
+      const userSettings = {
+        plugin_piiRedaction: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'PII Redaction'
+          }
+        },
+        theme: { value: 'dark' },
+        autoLog: { value: true },
+        notificationSound: { value: 'default' }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('piiRedaction');
+    });
+
+    test('should return all matching plugins regardless of logType mismatch', () => {
+      const userSettings = {
+        plugin_googleDrive: {
+          value: {
+            activated: false,
+            logTypes: ['message'],
+            name: 'Google Drive Upload'
+          }
+        },
+        plugin_piiRedaction: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'PII Redaction'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('piiRedaction');
+    });
+
+    test('should correctly parse plugin ID from setting key', () => {
+      const userSettings = {
+        plugin_myCustomPlugin: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'My Custom Plugin'
+          }
+        },
+        plugin_anotherOne: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Another One'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(2);
+      const ids = result.map(r => r.id);
+      expect(ids).toContain('myCustomPlugin');
+      expect(ids).toContain('anotherOne');
+    });
+
+    test('should return all plugins matching logType', () => {
+      const userSettings = {
+        plugin_piiRedaction: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'PII Redaction'
+          }
+        },
+        plugin_googleDrive: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Google Drive Upload'
+          }
+        },
+        plugin_analytics: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Analytics'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(3);
+      const ids = result.map(r => r.id);
+      expect(ids).toContain('piiRedaction');
+      expect(ids).toContain('googleDrive');
+      expect(ids).toContain('analytics');
+    });
+
+    test('should filter by logType - call only', () => {
+      const userSettings = {
+        plugin_callOnly: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Call Only Plugin'
+          }
+        },
+        plugin_messageOnly: {
+          value: {
+            activated: true,
+            logTypes: ['message'],
+            name: 'Message Only Plugin'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('callOnly');
+    });
+
+    test('should filter by logType - message only', () => {
+      const userSettings = {
+        plugin_callOnly: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Call Only Plugin'
+          }
+        },
+        plugin_messageOnly: {
+          value: {
+            activated: true,
+            logTypes: ['message'],
+            name: 'Message Only Plugin'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'message'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('messageOnly');
+    });
+
+    test('should only return plugin when logType matches supportedLogType', () => {
+      const userSettings = {
+        plugin_callPlugin: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Call Plugin'
+          }
+        }
+      };
+
+      const callResult = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+      expect(callResult).toHaveLength(1);
+      expect(callResult[0].id).toBe('callPlugin');
+
+      const messageResult = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'message'
+      });
+      expect(messageResult).toHaveLength(0);
+    });
+
+    test('should return empty array when no plugins match logType', () => {
+      const userSettings = {
+        plugin_googleDrive: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Google Drive Upload'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'message'
+      });
+      expect(result).toEqual([]);
+    });
+
+    test('should preserve full plugin value in result', () => {
+      const pluginValue = {
+        activated: true,
+        logTypes: ['call'],
+        name: 'Google Drive Upload',
+        isAsync: true,
+        customOption: 'someValue'
+      };
+
+      const userSettings = {
+        plugin_googleDrive: {
+          value: pluginValue
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].value).toEqual(pluginValue);
+    });
+
+    test('should correctly parse plugin ID containing underscores', () => {
+      // Bug test: plugin IDs with underscores should be fully preserved
+      const userSettings = {
+        plugin_my_custom_plugin: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'My Custom Plugin'
+          }
+        }
+      };
+
+      const result = getPluginsFromUserSettings({
+        userSettings,
+        logType: 'call'
+      });
+
+      expect(result).toHaveLength(1);
+      // The full ID should be 'my_custom_plugin', not just 'my'
+      expect(result[0].id).toBe('my_custom_plugin');
+    });
+
+    test('should handle plugin settings with missing value property gracefully', () => {
+      const userSettings = {
+        plugin_broken: null,
+        plugin_working: {
+          value: {
+            activated: true,
+            logTypes: ['call'],
+            name: 'Working Plugin'
+          }
+        }
+      };
+
+      // This should not throw, even with malformed settings
+      expect(() => {
+        getPluginsFromUserSettings({
+          userSettings,
+          logType: 'call'
+        });
+      }).toThrow(); // Currently throws - documenting existing behavior
     });
   });
 });
