@@ -31,7 +31,7 @@ Gate6 specializes in connecting your business applications, platforms, and data 
 
 #### Connectors
 
-Gate6 offers an connector for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
+Gate6 offers a connector for ServiceNow, developed in partnership with RingCentral. Licenses start at $10/month/user. 
 
 <div class="grid cards" markdown>
 
@@ -62,3 +62,24 @@ Loyally supports a number of CRMs through App Connect. All connectors come with 
 </div>
 
 [Contact Loyally](https://loyally.eu/contact-us/){ .md-button }
+
+### RingClone
+
+![RingClone Logo](img/vendor-ringclone.png){ .mw-300 .float-right }
+
+Foo
+
+#### Connectors
+
+RingClone offers a connector for Zoho CRM, developed in partnership with RingCentral. Licenses start at $10/month/user. 
+
+<div class="grid cards" markdown>
+
+-    [![Zoho](img/crm-logo-zoho.png){ .mw-250 }](https://www.ringcentral.com/apps/gate6)
+
+- 
+
+</div>
+
+[Contact RingClone](https://www.ringclone.com/contact-us/){ .md-button }
+

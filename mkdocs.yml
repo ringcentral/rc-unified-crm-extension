@@ -116,6 +116,7 @@ nav:
     - "What's new": 2.0/index.md
     - 'Download': 2.0/download.md
     - 'New CRMs': 
+      - 'JobAdder': crm/jobadder.md
       - 'RecruiterPM': crm/recruiterpm.md
       - 'Service Titan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md

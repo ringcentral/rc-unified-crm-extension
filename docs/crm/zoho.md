@@ -24,7 +24,7 @@ Once the extension has been installed, follow these steps to configure Zoho in t
 
     ![Authorize Zoho](../img/ringclone-zoho-accept.png){ .mw-400 }
 
-When you login successfully, the browser extension will automatically update to show you are connected to Zoho. If you are connected, the button next to Bullhorn will say "logout".
+When you login successfully, the browser extension will automatically update to show you are connected to Zoho. If you are connected, the button next to Zoho will say "logout".
 
 ## Call logging activity
 
