@@ -23,6 +23,9 @@ There is an underlying assumption of the framework that there is a one-to-one ma
 | `ringSenseLink`     | The link to [ACE](../../users/ace.md) recording | 
 | `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
 
+!!! warning "AI artifacts are best-effort inputs"
+    `aiNote` / `transcript` / RingSense fields are **not guaranteed** to be present for every call log. App Connect does not currently backfill AI artifacts from desk phone (RingEX) calls; these fields are only populated when App Connect receives the artifacts at log time.
+
 ### Contact Info
 
 ```js

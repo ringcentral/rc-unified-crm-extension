@@ -51,4 +51,9 @@ When your phone call is complete, AI Assistant will process the phone call to ge
 
 App Connect has the ability to log all AI-generated artifacts in your CRM, making sure your system of record has a complete record of the phone call. 
 
+!!! warning "Desk phone (RingEX) calls are not backfilled"
+    Today, App Connect only logs AI artifacts when they are **provided as part of the App Connect call logging flow** (for example when the call is handled/logged via App Connect and AI Assistant / ACE artifacts are available to App Connect at log time).
+    
+    If a call is **answered on a desk phone** and the AI artifacts are visible in the RingEX app, App Connect **does not automatically fetch/backfill** those artifacts into your CRM (including NetSuite). In that scenario, the CRM call log may be created without AI notes/transcript unless you manually add them.
+
 
