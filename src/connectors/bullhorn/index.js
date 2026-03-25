@@ -1864,6 +1864,146 @@ async function sendMonthlyCsvReportByEmail() {
     }
 }
 
+async function generateMontlyCsvReportWithSalesforceData(){
+    const { UserModel } = require('@app-connect/core/models/userModel');
+    const { Op } = require('sequelize');
+    const users = await UserModel.findAll({
+        where: {
+            platform: 'bullhorn',
+            accessToken: {
+                [Op.and]: [
+                    { [Op.not]: null },
+                    { [Op.ne]: '' }
+                ]
+            }
+        }
+    });
+
+    console.log({message:'users are', users,D: users.dataValues});
+
+    const salesforceOAuthToken = await getSalesforceOAuthToken();
+    //console.log({message:'salesforceOAuthToken is', salesforceOAuthToken});
+
+    const userIds =`('68683467004','68683590004','68683545004','68683551004','68683592004','68683579004','68683553004','68683616004','355181990','355171990','68683626004','68683612004','68683620004','68683618004')`;
+
+    // Query Salesforce for Account records and collect RC_User_ID__c values in a list
+    const accountsSoql =
+        'SELECT Id,AH_Name__c,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
+        `FROM Account WHERE RC_User_ID__c IN ${userIds}`;
+    const accountsEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=${accountsSoql}`;
+
+    let salesforceData;
+    try {
+        const response = await axios.get(accountsEndpoint, {
+            headers: {
+                'Authorization': `Bearer ${salesforceOAuthToken.access_token}`,
+            }
+        });
+        salesforceData = response.data;
+    } catch (error) {
+        logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack });
+      //  await sendErrorReportEmail(error, 'generateMontlyCsvReportWithSalesforceData/salesforce-query');
+        return;
+    }
+    
+
+// The following code will generate the result list as instructed.
+
+// Extract Account records from Salesforce response
+const accounts = salesforceData.records || salesforceData.Accounts || [];
+
+// Create list of objects with required account fields
+const accountIdMap = {}; // Map to store account fields for AccountId lookup later
+const acc18List = [];
+
+accounts.forEach(acc => {
+    // Salesforce sometimes returns undefined/null -- sanitize
+    const obj = {
+        Accoutn18DigitID__c: acc.Accoutn18DigitID__c,
+        RC_Cancel_Date__c: acc.RC_Cancel_Date__c,
+        RC_User_ID__c: acc.RC_User_ID__c,
+        Partner_Account_Name__c: acc.Partner_Account_Name__c,
+    };
+    if (obj.Accoutn18DigitID__c) {
+        acc18List.push(`'${obj.Accoutn18DigitID__c}'`);
+        accountIdMap[obj.Accoutn18DigitID__c] = obj;
+    }
+});
+
+// Query contacts for these accounts
+const contactsQueryEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=` +
+    
+        "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
+        "Account_Number_of_DLs__c,Parent_Partner_Account__c,Product_Ecomm__c,Product__c " +
+        "FROM Contact WHERE AccountId IN (" + acc18List.join(',') + ")"
+    ;
+
+let contactsData;
+try {
+    const response = await axios.get(contactsQueryEndpoint, {
+        headers: {
+            'Authorization': `Bearer ${salesforceOAuthToken.access_token}`
+        }
+    });
+    contactsData = response.data;
+} catch (error) {
+    logger.error('Failed to fetch Salesforce Contact data:', { stack: error.stack });
+   // await sendErrorReportEmail(error, 'generateMontlyCsvReportWithSalesforceData/contacts-query');
+    return;
+}
+
+// Prepare the final list of objects as requested
+const results = [];
+
+const contacts = contactsData.records || contactsData.Contacts || [];
+
+// Merge fields for each contact, and supplement with RC_Cancel_Date__c and RC_User_ID__c from account
+contacts.forEach(contact => {
+    const account = accountIdMap[contact.AccountId] || {};
+    results.push({
+        'First Name (Primary Contact)': contact.FirstName,
+        'Last Name (Primary Contact)': contact.LastName,
+        'Email (Primary Contact)': contact.Email,
+        'Company': contact.Company__c,
+        'Partner Account Owner': contact.Parent_Partner_Account__c,
+        'Partner Account ID': contact.AccountId,
+        'Product': contact.Product_Ecomm__c,
+        'Seats': contact.Account_Number_of_DLs__c,
+        'Opp Status (Account Status)': contact.Account_Status__c,
+        'Cancel Date (If applicable)': account.RC_Cancel_Date__c,
+        'RC_User_ID__c': account.RC_User_ID__c,
+    });
+});
+
+//console.log({message:"CUmulative data", results});
+
+// The `results` array now contains the merged data with the desired fields.
+}
+async function getSalesforceOAuthToken() {
+    try {
+        const params = new URLSearchParams();
+        params.append('grant_type', 'client_credentials');
+        params.append('client_id', process.env.BULLHORN_SALESFORCE_CLIENT_ID);
+        params.append('client_secret', process.env.BULLHORN_SALESFORCE_CLIENT_SECRET);
+
+        const response = await axios.post(
+            `${process.env.BULLHORN_SALESFORCE_HOST}/services/oauth2/token`,
+            params,
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                // No need to send the provided cookies for this server-to-server request,
+                // and they generally should be omitted unless explicitly required.
+            }
+        );
+        return response.data;
+    } catch (error) {
+        logger.error('Failed to retrieve Salesforce OAuth token:', { stack: error.stack });
+        throw error;
+    }
+}
+
 // Add fallback logic to send an error report email if sending the main report fails
 async function sendErrorReportEmail(error, contextInfo = '') {
     try {
@@ -1920,4 +2060,5 @@ exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.sendMonthlyCsvReportByEmail = sendMonthlyCsvReportByEmail;
 exports.generateMonthlyCsvReport = generateMonthlyCsvReport;
+exports.generateMontlyCsvReportWithSalesforceData = generateMontlyCsvReportWithSalesforceData;
 exports.getLogFormatType = getLogFormatType;
