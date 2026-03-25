@@ -462,13 +462,6 @@
           "name": "Clio options",
           "items": [
             {
-              "id": "clioTimeEntriesEnabled",
-              "type": "boolean",
-              "name": "Phone Call Time entries",
-              "description": "Create and update Clio time entries when logging calls",
-              "defaultValue": true
-            },
-            {
               "id": "clioDefaultNonBillableTick",
               "type": "option",
               "name": "Default phone call billable status",
@@ -508,6 +501,13 @@
               "name": "SMS time tracking",
               "description": "Track and record time spent communicating over SMS",
               "defaultValue": false
+            },
+            {
+              "id": "clioTimeEntriesEnabled",
+              "type": "boolean",
+              "name": "Phone Call Time entries",
+              "description": "Create and update Clio time entries when logging calls",
+              "defaultValue": true
             },
             {
               "id": "smsTimeTrackingMinimumDuration",
