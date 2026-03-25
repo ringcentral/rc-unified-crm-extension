@@ -6,7 +6,6 @@ import { AuthSuccess } from './components/AuthSuccess'
 import { setServerUrl } from './lib/callTool'
 import { fetchConnectors, fetchManifest } from './lib/developerPortal'
 import { dbg } from './lib/debugLog'
-import { DebugPanel } from './components/DebugPanel'
 
 // Initial structuredContent from getPublicConnectors — serverUrl, rcAccountId, rcExtensionId, openaiSessionId
 interface ToolOutput {
@@ -267,10 +266,9 @@ export function App() {
   if (data.error) {
     return (
       <div className="p-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-red-700">{data.errorMessage || 'An error occurred'}</p>
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <p className="text-yellow-800">{data.errorMessage || 'An error occurred'}</p>
         </div>
-        <DebugPanel />
       </div>
     )
   }
@@ -353,7 +351,6 @@ export function App() {
           >
             &larr; Back to connector list
           </button>
-          <DebugPanel />
         </div>
       )}
     </div>

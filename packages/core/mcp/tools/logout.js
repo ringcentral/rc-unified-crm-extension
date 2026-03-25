@@ -1,5 +1,6 @@
 const jwt = require('../../lib/jwt');
 const { UserModel } = require('../../models/userModel');
+const { LlmSessionModel } = require('../../models/llmSessionModel');
 const connectorRegistry = require('../../connector/registry');
 
 /**
@@ -22,6 +23,13 @@ const toolDefinition = {
     }
 };
 
+function isMissingSessionTableError(error) {
+    const message = error?.message || '';
+    return message.includes('no such table: llmSessions')
+        || message.includes('relation "llmSessions" does not exist')
+        || message.includes("relation 'llmSessions' does not exist");
+}
+
 /**
  * Execute the logout tool
  * @param {Object} args - The tool arguments
@@ -31,8 +39,19 @@ const toolDefinition = {
 async function execute(args) {
     try {
         const { jwtToken } = args;
-        const { platform, id } = jwt.decodeJwt(jwtToken);
-
+        const session = jwt.decodeJwt(jwtToken);
+        if (!session?.platform || !session?.id) {
+            throw new Error('Invalid JWT token');
+        }
+        const { platform, id } = session;
+        try {
+            await LlmSessionModel.destroy({ where: { id } });
+        }
+        catch (error) {
+            if (!isMissingSessionTableError(error)) {
+                throw error;
+            }
+        }
         const userToLogout = await UserModel.findByPk(id);
         if (!userToLogout) {
             return {

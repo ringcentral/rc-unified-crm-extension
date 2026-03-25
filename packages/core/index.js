@@ -3,6 +3,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser');
 require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
+const Sequelize = require('sequelize');
 const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
@@ -40,7 +41,7 @@ try {
     packageJson = require('./package.json');
 }
 catch (e) {
-    logger.error('Error loading package.json', { stack: e.stack }); 
+    logger.error('Error loading package.json', { stack: e.stack });
     packageJson = require('../package.json');
 }
 
@@ -73,6 +74,20 @@ async function initDB() {
         await CacheModel.sync();
         await CallDownListModel.sync();
         await AccountDataModel.sync();
+
+        // if UserModel doesn't have hashedRcExtensionId column, add it
+        const queryInterface = UserModel.sequelize.getQueryInterface();
+        const userTableName = UserModel.getTableName();
+        const userTableSchema = await queryInterface.describeTable(userTableName);
+        if (!userTableSchema.hashedRcExtensionId) {
+            logger.info('adding hashedRcExtensionId column to users table...');
+            await queryInterface.addColumn(userTableName, 'hashedRcExtensionId', {
+                type: Sequelize.STRING,
+                allowNull: true,
+            });
+            await UserModel.sync();
+            logger.info('hashedRcExtensionId column added to users table');
+        }
     }
 }
 
@@ -870,6 +885,7 @@ function createCoreRouter() {
                 tokenUrl,
                 query: req.query,
                 proxyId: req.query.proxyId,
+                hashedRcExtensionId: hashedExtensionId,
                 isFromMCP
             });
             if (userInfo) {
@@ -956,7 +972,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing api key') : 'Missing api key');
                 return;
             }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId: query.rcAccountId, hashedRcExtensionId: hashedExtensionId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
@@ -1341,7 +1357,7 @@ function createCoreRouter() {
                     if (extraDataTracking) {
                         extraData = extraDataTracking;
                     }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage, pluginAsyncTaskIds }) : { successful, logId, returnMessage, pluginAsyncTaskIds });
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage, pluginAsyncTaskIds }) : { successful, logId, returnMessage, pluginAsyncTaskIds });
                     success = true;
                 }
             }

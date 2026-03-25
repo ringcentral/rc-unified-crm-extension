@@ -9,7 +9,7 @@ const { LlmSessionModel } = require('../../models/llmSessionModel');
 
 const toolDefinition = {
     name: 'checkAuthStatus',
-    description: 'Auth flow step.5. Check the status of an ongoing OAuth authentication session. Poll this after user clicks the auth link.',
+    description: 'Check the status of an ongoing OAuth authentication session. Poll this after user clicks the auth link.',
     inputSchema: {
         type: 'object',
         properties: {

@@ -1,4 +1,6 @@
 const axios = require('axios');
+const { UserModel } = require('../../models/userModel');
+const { getHashValue } = require('../../lib/util');
 
 /**
  * MCP Tool: Get Public Connectors
@@ -52,14 +54,30 @@ async function execute({ rcAccessToken, openaiSessionId } = {}) {
         }
     }
 
-    return {
-        structuredContent: {
-            serverUrl: process.env.APP_SERVER || 'https://localhost:6066',
-            rcExtensionId,
-            rcAccountId,
-            openaiSessionId: openaiSessionId ?? null,
+    // Check if user session already exists from Chrome extension
+    const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
+    const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
+    // Case: user exists, return user info in plain message
+    if (user?.accessToken) {
+        return {
+            structuredContent: {
+                error: true,
+                errorMessage: `You are already connected to ${user.platform}. It's controlled from App Connect Chrome extension.`
+            }
         }
-    };
+    }
+    else {
+        // Case: user doesn't exist, return structured content for widget
+        return {
+            structuredContent: {
+                serverUrl: process.env.APP_SERVER || 'https://localhost:6066',
+                rcExtensionId,
+                rcAccountId,
+                openaiSessionId: openaiSessionId ?? null,
+            }
+        };
+    }
+
 }
 
 exports.definition = toolDefinition;
