@@ -1,36 +1,54 @@
 ---
 title: "App Connect Developer Framework"
+hide:
+- path
 ---
-# Integrating with CRMs using the App Connect framework
+# App Connect Developer Guide
 
-{! docs/developers/beta_notice.inc !}
+### Jump right in
 
-Welcome to RingCentral's App Connect integration framework. Using this framework, developers can integrate RingCentral into their web-based CRM more easily. The framework comes with many features, but is principly designed around the following use cases:
-
-* **Embedded phone**. Injecting a phone into the CRM for a fully-integrated communications experience.
-* **Call pop**. Automatically opening up a contact record when a call is received.
-* **Logging calls**. Capturing and storing call notes in an activity record linked to an associated contact in the CRM.
-
-## Getting started
-
-Follow our simple getting started guide and **in less than 10 minutes** you will have created a dummy server that receives events from App Connect. From there you can begin customizing your adapter to connect to your desired CRM.
+Follow our simple getting started guide and **in less than 10 minutes** you will have created a dummy server that receives events from App Connect. From there you can begin customizing your connector to connect to your desired CRM.
 
 [Build your first connector](getting-started.md){ .md-button .md-button--primary }
 
-## Architectural overview
+## What can you build as a App Connect developer? 
 
-Each CRM supported by this framework is required to implement what is referred to as a "connector." Connectors help broker communications between the client application (the dialer and primary user interface) and the CRM being integrated with. 
+There are two ways developers can extend the App Connect framework. The first is through "connectors" which assists App Connect in connecting to a system of record like a CRM where users may wish to memorialize communication history and data. The second is through "plugins" which process payloads destined for a CRM. A plugin has the ability to modify a payload prior to it being delivered to a connector for memorialization. 
 
-![Connector architecture diagram](../img/architecture.png)
+<div class="grid cards" markdown>
 
-Each connector implements the following components:
+-   :material-connection:{ .lg .middle } __Connectors__
 
-* A configuration file, or manifest that defines basic metadata and provides a no-code interface for defining common user interactions. 
-* A server that implements a prescribed interface that is invoked by the front-end client to perform more complex interactions with the CRM. 
+    ---
 
-In this guide, you will learn how to build, package and distribute an connector for a CRM.
+    Connectors are used to memorialize communications in a CRM. They perform the valuable function of looking up contacts and logging activities. 
 
-If you want to extend logging behavior without building a full CRM integration, App Connect also supports [plugins](plugins.md). Plugins are lighter-weight extensions that run during call, SMS, or fax logging and can either transform log data inline or perform async post-log work.
+    [:octicons-arrow-right-24: Learn more](plugins.md)
+
+-   :material-power-plug-outline:{ .lg .middle } __Plugins__
+
+    ---
+
+    Plugins process data before they are memorialized in a CRM. Data passes through them, giving plugins an opportunity to transform data if they wish. 
+
+    [:octicons-arrow-right-24: Learn more](plugins.md)
+
+</div>
+
+Through the App Connect developer framework, developers works to help RingCentral customers track, record and archive their communications in their CRM of choice. 
+
+## App Connect architecture
+
+Each CRM supported by this framework is required to implement what is referred to as a "connector." Connectors help broker communications between the client application (the dialer and primary user interface) and the CRM being integrated with. Plugins sit between App Connect and the CRM, and allow services to modify a payload before it is stored permanently.
+
+![Connector architecture diagram](../img/architecture.png){ .mw-350 }
+
+Whether you are building a connector or a plugin, a developer will implement the following components:
+
+* A **manifest file**, or a configuration that defines basic metadata and provides a no-code interface for defining common user interactions. 
+* A **server** that implements a prescribed interface that is invoked by the front-end client to perform more complex interactions with the CRM. 
+
+In this guide, you will learn how to build, package and distribute a plugin and/or connector to a CRM.
 
 <div id="powered-by-embeddable" markdown>
 

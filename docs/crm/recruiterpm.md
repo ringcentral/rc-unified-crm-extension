@@ -1,6 +1,6 @@
 # Setting up App Connect for RecruiterPM
 
-!!! warning "The Smokeball integration is a work in progress and not yet available."
+!!! warning "The RecruiterPM integration is a work in progress and not yet available."
 
 RecruiterPM is an all-in-one Applicant Tracking System (ATS) and Customer Relationship Management (CRM) platform designed for recruitment teams, offering features for candidate sourcing, applicant tracking, interview scheduling, and project management. It uses AI for candidate sourcing, automates administrative tasks, provides analytics, and includes tools for team collaboration and marketing campaigns to help companies hire faster. 
 
@@ -12,4 +12,4 @@ If you have not already done so, begin by [installing App Connect](../getting-st
 
 ## Setup the extension
 
-TBD
+Coming soon...
