@@ -23,7 +23,7 @@ There are two ways developers can extend the App Connect framework. The first is
 
     Connectors are used to memorialize communications in a CRM. They perform the valuable function of looking up contacts and logging activities. 
 
-    [:octicons-arrow-right-24: Learn more](plugins/index.md)
+    [:octicons-arrow-right-24: Learn more](getting-started.md)
 
 -   :material-power-plug-outline:{ .lg .middle } __Plugins__
 
@@ -31,7 +31,7 @@ There are two ways developers can extend the App Connect framework. The first is
 
     Plugins process data before they are memorialized in a CRM. Data passes through them, giving plugins an opportunity to transform data if they wish. 
 
-    [:octicons-arrow-right-24: Learn more](plugins.md)
+    [:octicons-arrow-right-24: Learn more](plugins/index.md)
 
 </div>
 

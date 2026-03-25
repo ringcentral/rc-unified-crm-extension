@@ -7,7 +7,7 @@ An connector's manifest file helps a developer to instruct the framework on how 
 Below you will find an explanation of the many properties found within a manifest file. 
 
 !!! info "Building a plugin instead?"
-    This page covers the manifest used by full CRM connectors. If you are building a logging extension rather than a CRM integration, see the [Plugins guide](plugins.md).
+    This page covers the manifest used by full CRM connectors. If you are building a plugin to process logging payloads rather than a CRM integration, please refer to the [plugins guide](plugins/index.md).
 
 ## Editing your manifest file
 
