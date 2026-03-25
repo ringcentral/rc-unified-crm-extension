@@ -7,7 +7,7 @@ const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP = false }) {
+async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
     const apiUrl = query.apiUrl;
     const username = query.username;
@@ -54,6 +54,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP 
                 refreshToken,
                 tokenExpiry: isNaN(expires) ? null : expires,
                 rcAccountId: query?.rcAccountId,
+                hashedRcExtensionId,
                 proxyId
             });
         }
@@ -76,7 +77,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, isFromMCP 
     }
 }
 
-async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo }) {
+async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
     const basicAuth = platformModule.getBasicAuth({ apiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey, proxyId });
@@ -88,6 +89,8 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalIn
                 platform,
                 hostname,
                 proxyId,
+                hashedRcExtensionId,
+                rcAccountId,
                 accessToken: platformUserInfo.overridingApiKey ?? apiKey
             });
         }
@@ -110,7 +113,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalIn
     }
 }
 
-async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, proxyId }) {
+async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken, refreshToken, tokenExpiry, rcAccountId, hashedRcExtensionId, proxyId }) {
     const id = platformUserInfo.id;
     const name = platformUserInfo.name;
     const existingUser = await UserModel.findByPk(id);
@@ -130,6 +133,7 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
                     refreshToken,
                     tokenExpiry,
                     rcAccountId,
+                    hashedRcExtensionId,
                     platformAdditionalInfo: {
                         ...existingUser.platformAdditionalInfo, // keep existing platformAdditionalInfo
                         ...platformAdditionalInfo,
@@ -143,57 +147,20 @@ async function saveUserInfo({ platformUserInfo, platform, hostname, accessToken,
     }
     else {
         try {
-            // TEMP: replace user with old ID
-            if (id.endsWith(`-${platform}`)) {
-                const oldID = id.split('-');
-                const userWithOldID = await UserModel.findByPk(oldID[0]);
-                if (userWithOldID) {
-                    await UserModel.create({
-                        id,
-                        hostname,
-                        timezoneName,
-                        timezoneOffset,
-                        platform,
-                        accessToken,
-                        refreshToken,
-                        tokenExpiry,
-                        rcAccountId,
-                        platformAdditionalInfo,
-                        userSettings: userWithOldID.userSettings
-                    });
-                    await userWithOldID.destroy();
-                }
-                else {
-                    await UserModel.create({
-                        id,
-                        hostname,
-                        timezoneName,
-                        timezoneOffset,
-                        platform,
-                        accessToken,
-                        refreshToken,
-                        tokenExpiry,
-                        rcAccountId,
-                        platformAdditionalInfo,
-                        userSettings: {}
-                    });
-                }
-            }
-            else {
-                await UserModel.create({
-                    id,
-                    hostname,
-                    timezoneName,
-                    timezoneOffset,
-                    platform,
-                    accessToken,
-                    refreshToken,
-                    tokenExpiry,
-                    rcAccountId,
-                    platformAdditionalInfo,
-                    userSettings: {}
-                });
-            }
+            await UserModel.create({
+                id,
+                hostname,
+                timezoneName,
+                timezoneOffset,
+                platform,
+                accessToken,
+                refreshToken,
+                tokenExpiry,
+                rcAccountId,
+                hashedRcExtensionId,
+                platformAdditionalInfo,
+                userSettings: {}
+            });
         }
         catch (error) {
             return handleDatabaseError(error, 'Error saving user info');
@@ -215,7 +182,7 @@ async function getLicenseStatus({ userId, platform }) {
         }
     }
     const platformModule = connectorRegistry.getConnector(platform);
-    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform , user });
+    const licenseStatus = await platformModule.getLicenseStatus({ userId, platform, user });
     return licenseStatus;
 }
 

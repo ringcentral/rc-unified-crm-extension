@@ -36,6 +36,9 @@ exports.UserModel = sequelize.define('users', {
   platformAdditionalInfo: {
     type: Sequelize.JSON
   },
+  hashedRcExtensionId: {
+    type: Sequelize.STRING,
+  },
   userSettings: {
     type: Sequelize.JSON
   }

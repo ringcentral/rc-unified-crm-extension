@@ -10,6 +10,9 @@ const axios = require('axios');
 const tools = require('./tools');
 const { LlmSessionModel } = require('../models/llmSessionModel');
 const { CacheModel } = require('../models/cacheModel');
+const { UserModel } = require('../models/userModel');
+const { getHashValue } = require('../lib/util');
+const jwt = require('../lib/jwt');
 const logger = require('../lib/logger');
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +21,7 @@ const path = require('path');
  * Increment this to bust ChatGPT's widget resource cache after every UI build.
  * This is the single source of truth — injected into getPublicConnectors _meta at response time.
  */
-const WIDGET_VERSION = 6;
+const WIDGET_VERSION = 10;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
 
 const JSON_RPC_INTERNAL_ERROR = -32603;
@@ -206,8 +209,24 @@ async function handleMcpRequest(req, res) {
                                 await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken });
                                 llmSession = fallback;
                             }
+                            else {
+                                const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
+                                const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
+                                if (user) {
+                                    await LlmSessionModel.upsert({
+                                        id: rcExtensionId,
+                                        jwtToken: jwt.generateJwt({
+                                            id: user.id.toString(),
+                                            platform: user.platform
+                                        }),
+                                    });
+                                    llmSession = await LlmSessionModel.findByPk(rcExtensionId);
+                                }
+                            }
                         }
-                        if (llmSession?.jwtToken) toolArgs.jwtToken = llmSession.jwtToken;
+                        if (llmSession?.jwtToken) {
+                            toolArgs.jwtToken = llmSession.jwtToken;
+                        }
                     }
                 }
 

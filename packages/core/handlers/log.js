@@ -129,11 +129,11 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             let pluginDataResponse = null;
             switch (pluginSetting.value.access) {
                 case 'public':
-                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?type=plugin`);
+                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?type=plugin`);
                     break;
                 case 'private':
                 case 'shared':
-                    pluginDataResponse = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
+                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
                     break;
                 default:
                     throw new Error('Invalid plugin access');
@@ -174,6 +174,7 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 });
                 // eslint-disable-next-line no-param-reassign
                 incomingData = processedResultResponse.data;
+                note = incomingData.note;
             }
         }
 
