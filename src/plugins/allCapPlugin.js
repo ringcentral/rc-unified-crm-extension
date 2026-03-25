@@ -1,8 +1,8 @@
 function allCap({ user, data }) {
-    const ignoredLatters = user.userSettings['plugin_rc_labs-all_caps-EUS5gvEh'].value.config.ignoreLetters.value;
+    const ignoredLetters = user.userSettings['plugin_ringcentral_labs-app_caps-yKI8e20W'].value.config.ignoredLetters.value;
     let note = '';
     for (const letter of data.note) {
-        if (ignoredLatters.includes(letter)) {
+        if (ignoredLetters.includes(letter)) {
             note += letter;
         } else {
             note += letter.toUpperCase();
