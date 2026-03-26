@@ -202,7 +202,16 @@ nav:
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
       - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
-      
+
+- 'MCP':
+  - 'Available tools': mcp/index.md
+  - 'LLMs': 
+    - 'ChatGPT': mcp/chatgpt.md
+    - 'Claude': mcp/claude.md
+    - 'Codex': mcp/codex.md
+    - 'Cursor': mcp/cursor.md
+    - 'Gemini': mcp/gemini.md
+
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
