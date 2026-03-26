@@ -1893,7 +1893,7 @@ async function fetchMonthlySalesforceReportRows(){
 
     // Optionally, update the next code block to use filteredUsers instead of users if needed.
 
-    logger.info({
+    console.log({
         message: 'Bullhorn users fetched for Salesforce report',
         totalUsers: users.length,
         filteredUsers: filteredUsers.length
@@ -1901,6 +1901,44 @@ async function fetchMonthlySalesforceReportRows(){
 
     const salesforceOAuthToken = await getSalesforceOAuthToken();
     //console.log({message:'salesforceOAuthToken is', salesforceOAuthToken});
+
+    const chunkArray = (arr, chunkSize) => {
+        if (!Array.isArray(arr) || arr.length === 0) return [];
+        if (!Number.isFinite(chunkSize) || chunkSize <= 0) return [arr];
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += chunkSize) {
+            chunks.push(arr.slice(i, i + chunkSize));
+        }
+        console.log({m:"CHunks", chunks});
+        return chunks;
+    };
+
+    const fetchSalesforceQueryAllRecords = async (soql) => {
+        const host = process.env.BULLHORN_SALESFORCE_HOST;
+        const headers = { 'Authorization': `Bearer ${salesforceOAuthToken.access_token}` };
+
+        const records = [];
+        let nextUrl = `${host}/services/data/v60.0/query/?q=${soql}`;
+
+        // Loop through query + nextRecordsUrl pagination (if present)
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const response = await axios.get(nextUrl, { headers });
+            const data = response.data || {};
+            const pageRecords = data.records || data.Records || [];
+            if (Array.isArray(pageRecords) && pageRecords.length) {
+                records.push(...pageRecords);
+            }
+
+            if (data.nextRecordsUrl) {
+                nextUrl = `${host}${data.nextRecordsUrl}`;
+                continue;
+            }
+            break;
+        }
+
+        return records;
+    };
 
     const filteredUserRcAccountIdList = [
         ...new Set(
@@ -1915,29 +1953,32 @@ async function fetchMonthlySalesforceReportRows(){
         return [];
     }
 
+    console.log({message:'filteredUserRcAccountIdList are', filteredUserRcAccountIdList});
+
     // String format required by SOQL: ('123','1234','567')
-    const filteredUserRcAccountIds = `(${filteredUserRcAccountIdList
-        .map(id => `'${id.replace(/'/g, "\\'")}'`)
-        .join(',')})`;
-    console.log('filteredUserRcAccountIds are', filteredUserRcAccountIds);
-
-    // Query Salesforce for Account records and collect RC_User_ID__c values in a list
-    const accountsSoql =
-        'SELECT Id,AH_Name__c,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
-        `FROM Account WHERE RC_User_ID__c IN ${filteredUserRcAccountIds}`;
-    const accountsEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=${accountsSoql}`;
-
-    let salesforceData;
+    // Salesforce query is sent via GET `?q=...`, so a large IN-clause can trigger 414 (URI Too Long).
+    // Chunk the IN list to keep each request safely under URL limits.
+    const ACCOUNT_ID_CHUNK_SIZE = process.env.BULLHORN_REPORT_SALESFORCE_ACCOUNT_ID_CHUNK_SIZE || 700;
+    const rcIdChunks = chunkArray(filteredUserRcAccountIdList, ACCOUNT_ID_CHUNK_SIZE);
+    console.log({message:'rcIdChunks are', rcIdChunks});
+    const accountBySfId = new Map();
     try {
-        const response = await axios.get(accountsEndpoint, {
-            headers: {
-                'Authorization': `Bearer ${salesforceOAuthToken.access_token}`,
+        for (const chunk of rcIdChunks) {
+            const filteredUserRcAccountIds = `(${chunk.map(id => `'${String(id).replace(/'/g, "\\'")}'`).join(',')})`;
+
+            // Query Salesforce for Account records (one chunk at a time)
+            const accountsSoql =
+                'SELECT Id,AH_Name__c,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
+                `FROM Account WHERE RC_User_ID__c IN ${filteredUserRcAccountIds}`;
+
+            const chunkAccounts = await fetchSalesforceQueryAllRecords(accountsSoql);
+            for (const acc of chunkAccounts) {
+                if (acc && acc.Id) accountBySfId.set(acc.Id, acc);
             }
-        });
-        salesforceData = response.data;
+        }
     } catch (error) {
         logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack });
-    //  await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/salesforce-query');
+        //  await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/salesforce-query');
         return [];
     }
     
@@ -1945,7 +1986,7 @@ async function fetchMonthlySalesforceReportRows(){
 // The following code will generate the result list as instructed.
 
 // Extract Account records from Salesforce response
-const accounts = salesforceData.records || salesforceData.Accounts || [];
+const accounts = Array.from(accountBySfId.values());
 
 // Create list of objects with required account fields
 const accountIdMap = {}; // Map to store account fields for AccountId lookup later
@@ -1970,32 +2011,34 @@ if(acc18List.length === 0) {
     logger.warn('No accounts found for Bullhorn users; skipping Salesforce query');
     return [];
 }
-// Query contacts for these accounts
-const contactsQueryEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=` +
-    
-        "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
-        "Account_Number_of_DLs__c,Parent_Partner_Account__c,Product_Ecomm__c,Product__c " +
-        "FROM Contact WHERE AccountId IN (" + acc18List.join(',') + ")"
-    ;
+// Query contacts for these accounts (chunked to avoid 414 URI Too Long)
+const CONTACT_ACCOUNT_CHUNK_SIZE = process.env.BULLHORN_REPORT_SALESFORCE_ACCOUNT_ID_CHUNK_SIZE || 700;
+const acc18Chunks = chunkArray(acc18List, CONTACT_ACCOUNT_CHUNK_SIZE);
 
-let contactsData;
+let contacts = [];
 try {
-    const response = await axios.get(contactsQueryEndpoint, {
-        headers: {
-            'Authorization': `Bearer ${salesforceOAuthToken.access_token}`
+    const contactBySfId = new Map();
+    for (const chunk of acc18Chunks) {
+        const contactsSoql =
+            "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
+            "Account_Number_of_DLs__c,Parent_Partner_Account__c,Product_Ecomm__c,Product__c " +
+            "FROM Contact WHERE AccountId IN (" + chunk.join(',') + ")";
+
+        const chunkContacts = await fetchSalesforceQueryAllRecords(contactsSoql);
+        for (const c of chunkContacts) {
+            if (c && c.Id) contactBySfId.set(c.Id, c);
         }
-    });
-    contactsData = response.data;
+    }
+    contacts = Array.from(contactBySfId.values());
 } catch (error) {
-    logger.error('Failed to fetch Salesforce Contact data:', { stack: error.stack });
-// await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/contacts-query');
+    logger.error('Failed to fetch Salesforce Contact data:',{Stack:error.stack});
+    // await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/contacts-query');
     return [];
 }
 
 // Prepare the final list of objects as requested
 const results = [];
 
-const contacts = contactsData.records || contactsData.Contacts || [];
 logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
 
 // Merge fields for each contact, and supplement with RC_Cancel_Date__c and RC_User_ID__c from account
@@ -2135,8 +2178,7 @@ async function sendMonthlyCsvReportByEmailWithSalesforceData() {
             bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
             reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
             subject: prettySubject,
-            body: `<p>Please find attached to this email a Salesforce-enriched report for RingCentral customers using the Bullhorn integration powered by App Connect.</p>
-<p>Rows: ${rowCount}</p>
+            body: `<p>Please find attached to this email a report containing a list of all active RingCentral customers using the Bullhorn integration powered by App Connect.</p>
 <p>If you have questions, or need assistance, please reply directly to this email.</p>
 <p>Sincerely,<br/>RingCentral Labs</p>`,
             identifiers: {
