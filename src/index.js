@@ -463,7 +463,8 @@ app.post('/googleDrive/logout', async function (req, res) {
 app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
     try {
 
-        await bullhorn.generateMontlyCsvReportWithSalesforceData();
+        //await bullhorn.generateMontlyCsvReportWithSalesforceData();
+        await bullhorn.sendMonthlyCsvReportByEmailWithSalesforceData();
         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
         res.status(200).send({ ok: true });
     }

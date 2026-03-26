@@ -1864,7 +1864,7 @@ async function sendMonthlyCsvReportByEmail() {
     }
 }
 
-async function generateMontlyCsvReportWithSalesforceData(){
+async function fetchMonthlySalesforceReportRows(){
     const { UserModel } = require('@app-connect/core/models/userModel');
     const { Op } = require('sequelize');
     const users = await UserModel.findAll({
@@ -1879,17 +1879,52 @@ async function generateMontlyCsvReportWithSalesforceData(){
         }
     });
 
-    console.log({message:'users are', users,D: users.dataValues});
+    // Filter users to only those updated within the last month (up to the current date)
+    const oneMonthAgo = moment().subtract(1, 'months').toDate();
+    const filteredUsers = users.filter(u => {
+        // Use updatedAt if available from Sequelize model
+        if (u.updatedAt) {
+            return u.updatedAt > oneMonthAgo;
+        }
+        // Fallback to always include if no updatedAt field (for backward compatibility)
+        return true;
+    });
+
+
+    // Optionally, update the next code block to use filteredUsers instead of users if needed.
+
+    logger.info({
+        message: 'Bullhorn users fetched for Salesforce report',
+        totalUsers: users.length,
+        filteredUsers: filteredUsers.length
+    });
 
     const salesforceOAuthToken = await getSalesforceOAuthToken();
     //console.log({message:'salesforceOAuthToken is', salesforceOAuthToken});
 
-    const userIds =`('68683467004','68683590004','68683545004','68683551004','68683592004','68683579004','68683553004','68683616004','355181990','355171990','68683626004','68683612004','68683620004','68683618004')`;
+    const filteredUserRcAccountIdList = [
+        ...new Set(
+            filteredUsers
+                .map(u => (u && u.rcAccountId ? String(u.rcAccountId).trim() : ''))
+                .filter(Boolean)
+        )
+    ];
+
+    if (!filteredUserRcAccountIdList.length) {
+        logger.warn('No rcAccountId values found for Bullhorn users; skipping Salesforce query');
+        return [];
+    }
+
+    // String format required by SOQL: ('123','1234','567')
+    const filteredUserRcAccountIds = `(${filteredUserRcAccountIdList
+        .map(id => `'${id.replace(/'/g, "\\'")}'`)
+        .join(',')})`;
+    console.log('filteredUserRcAccountIds are', filteredUserRcAccountIds);
 
     // Query Salesforce for Account records and collect RC_User_ID__c values in a list
     const accountsSoql =
         'SELECT Id,AH_Name__c,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
-        `FROM Account WHERE RC_User_ID__c IN ${userIds}`;
+        `FROM Account WHERE RC_User_ID__c IN ${filteredUserRcAccountIds}`;
     const accountsEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=${accountsSoql}`;
 
     let salesforceData;
@@ -1902,8 +1937,8 @@ async function generateMontlyCsvReportWithSalesforceData(){
         salesforceData = response.data;
     } catch (error) {
         logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack });
-      //  await sendErrorReportEmail(error, 'generateMontlyCsvReportWithSalesforceData/salesforce-query');
-        return;
+    //  await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/salesforce-query');
+        return [];
     }
     
 
@@ -1930,6 +1965,11 @@ accounts.forEach(acc => {
     }
 });
 
+console.log('acc18List are', acc18List);
+if(acc18List.length === 0) {
+    logger.warn('No accounts found for Bullhorn users; skipping Salesforce query');
+    return [];
+}
 // Query contacts for these accounts
 const contactsQueryEndpoint = `${process.env.BULLHORN_SALESFORCE_HOST}/services/data/v60.0/query/?q=` +
     
@@ -1948,36 +1988,193 @@ try {
     contactsData = response.data;
 } catch (error) {
     logger.error('Failed to fetch Salesforce Contact data:', { stack: error.stack });
-   // await sendErrorReportEmail(error, 'generateMontlyCsvReportWithSalesforceData/contacts-query');
-    return;
+// await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/contacts-query');
+    return [];
 }
 
 // Prepare the final list of objects as requested
 const results = [];
 
 const contacts = contactsData.records || contactsData.Contacts || [];
+logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
 
 // Merge fields for each contact, and supplement with RC_Cancel_Date__c and RC_User_ID__c from account
 contacts.forEach(contact => {
     const account = accountIdMap[contact.AccountId] || {};
     results.push({
-        'First Name (Primary Contact)': contact.FirstName,
-        'Last Name (Primary Contact)': contact.LastName,
-        'Email (Primary Contact)': contact.Email,
+        'First Name': contact.FirstName,
+        'Last Name': contact.LastName,
+        'Email': contact.Email,
         'Company': contact.Company__c,
         'Partner Account Owner': contact.Parent_Partner_Account__c,
         'Partner Account ID': contact.AccountId,
         'Product': contact.Product_Ecomm__c,
         'Seats': contact.Account_Number_of_DLs__c,
-        'Opp Status (Account Status)': contact.Account_Status__c,
-        'Cancel Date (If applicable)': account.RC_Cancel_Date__c,
-        'RC_User_ID__c': account.RC_User_ID__c,
+        'Opp Status': contact.Account_Status__c,
+        'Cancel Date': account.RC_Cancel_Date__c,
+        'RC Account ID': account.RC_User_ID__c,
     });
 });
 
-//console.log({message:"CUmulative data", results});
+console.log({message:"CUmulative data", results});
 
 // The `results` array now contains the merged data with the desired fields.
+return results;
+}
+
+async function generateMonthlyCsvReportWithSalesforceData() {
+    const path = require('path');
+    const fs = require('fs');
+    const os = require('os');
+
+    let results = await fetchMonthlySalesforceReportRows();
+    if (!results || results.length === 0) {
+        logger.warn('No Salesforce data rows generated. Skipping CSV creation.');
+        results = [];
+    }
+
+    const header = [
+        'First Name',
+        'Last Name',
+        'Email',
+        'Company',
+        'Partner Account Owner',
+        'Partner Account ID',
+        'Product',
+        'Seats',
+        'Opp Status',
+        'Cancel Date',
+        'RC Account ID',
+    ];
+
+    const rows = [header];
+    for (const r of results) {
+        rows.push(header.map((h) => (r && r[h] !== undefined && r[h] !== null ? String(r[h]) : '')));
+    }
+
+    const csv = toCsv(rows);
+
+    const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+    const baseDir = isLambda ? os.tmpdir() : process.cwd();
+    const outDir = path.join(baseDir, 'reports');
+    if (!fs.existsSync(outDir)) {
+        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { logger.error('Error creating report directory', { stack: e.stack }); }
+    }
+
+    const filePath = path.join(outDir, `bullhorn_salesforce_report_${moment.utc().format('YYYY-MM-20')}.csv`);
+    fs.writeFileSync(filePath, csv, 'utf8');
+    return { csv, filePath, rowCount: results.length };
+}
+
+async function sendErrorReportEmailWithSalesforce(error, contextInfo = '') {
+    try {
+        const now = new Date();
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const year = String(now.getUTCFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const subject = `Bullhorn Monthly Salesforce Report FAILED ${dateString}`;
+        const body = `Bullhorn monthly Salesforce report failed to send.\n\nError: ${error && error.stack ? error.stack : error}\n\nContext: ${contextInfo}`;
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_ERROR_TO || process.env.BULLHORN_REPORT_MAIL_FROM,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            subject,
+            body,
+            identifiers: {
+                id: process.env.BULLHORN_REPORT_MAIL_FROM
+            }
+        };
+        await axios.post(
+            'https://api.customer.io/v1/send/email',
+            requestBody,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                }
+            }
+        );
+    } catch (err) {
+        logger.error('Failed to send Salesforce error report email:', { stack: err.stack });
+    }
+}
+
+async function sendMonthlyCsvReportByEmailWithSalesforceData() {
+    try {
+        const report = await generateMonthlyCsvReportWithSalesforceData();
+        if (!report) {
+            logger.error('Salesforce report generation failed. Skipping email.');
+            return;
+        }
+
+        const { filePath, rowCount } = report;
+        const fs = require('fs');
+
+        const reportB64 = fs.readFileSync(filePath, { encoding: 'base64' });
+
+        const currentDate = new Date();
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const year = String(currentDate.getFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const attachmentFileName = `BullhornSalesforceReport_${dateString}.csv`;
+
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+        ];
+        const d = new Date();
+        const monthName = months[d.getMonth()];
+        const dayNum = d.getDate();
+        const yearNum = d.getFullYear();
+        const prettySubject = `Bullhorn/Salesforce monthly report (${monthName} ${dayNum}, ${yearNum})`;
+
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_TO,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
+            reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
+            subject: prettySubject,
+            body: `<p>Please find attached to this email a Salesforce-enriched report for RingCentral customers using the Bullhorn integration powered by App Connect.</p>
+<p>Rows: ${rowCount}</p>
+<p>If you have questions, or need assistance, please reply directly to this email.</p>
+<p>Sincerely,<br/>RingCentral Labs</p>`,
+            identifiers: {
+                email: process.env.BULLHORN_REPORT_MAIL_FROM
+            },
+            attachments: {
+                [attachmentFileName]: reportB64
+            }
+        };
+
+        console.log({message:'requestBody is', requestBody});
+
+        try {
+            await axios.post(
+                'https://api.customer.io/v1/send/email',
+                requestBody,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                    }
+                }
+            );
+        } catch (error) {
+            logger.error('Failed to send Salesforce report email:', { stack: error.stack });
+            await sendErrorReportEmailWithSalesforce(error, 'sendMonthlyCsvReportByEmailWithSalesforceData');
+        }
+
+        try {
+            fs.unlinkSync(filePath);
+            logger.info(`File ${filePath} deleted successfully after sending Salesforce report email.`);
+        } catch (err) {
+            logger.error(`Failed to delete file ${filePath}:`, { stack: err.stack });
+        }
+    } catch (error) {
+        logger.error('Failed to generate Salesforce report and send email:', { stack: error.stack });
+        await sendErrorReportEmailWithSalesforce(error, 'sendMonthlyCsvReportByEmailWithSalesforceData');
+    }
 }
 async function getSalesforceOAuthToken() {
     try {
@@ -2060,5 +2257,7 @@ exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.sendMonthlyCsvReportByEmail = sendMonthlyCsvReportByEmail;
 exports.generateMonthlyCsvReport = generateMonthlyCsvReport;
-exports.generateMontlyCsvReportWithSalesforceData = generateMontlyCsvReportWithSalesforceData;
+exports.generateMonthlyCsvReportWithSalesforceData = generateMonthlyCsvReportWithSalesforceData;
+exports.sendMonthlyCsvReportByEmailWithSalesforceData = sendMonthlyCsvReportByEmailWithSalesforceData;
+exports.sendErrorReportEmailWithSalesforce = sendErrorReportEmailWithSalesforce;
 exports.getLogFormatType = getLogFormatType;
