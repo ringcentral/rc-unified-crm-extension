@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.20
+
+- Fix: Click-to-dial not detecting numbers in input fields
+- Fix: Warm transfer call logging issue
+
 ## 1.7.19
 
 - Beta: Plugin system infrastructure. No plugin available yet, but add soon. Take a quick look at its [overview](https://appconnect.labs.ringcentral.com/users/plugins) 
@@ -100,6 +105,11 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.26
+
+- Fix: Click-to-dial not detecting numbers in input fields
+- Fix: Warm transfer call logging issue
 
 ## 1.6.25
 

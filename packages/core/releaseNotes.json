@@ -1,4 +1,16 @@
 {
+    "1.7.20": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial not detecting numbers in input fields"
+            },
+            {
+                "type": "Fix",
+                "description": "Warm transfer call logging issue"
+            }
+        ]
+    },
     "1.7.19": {
         "global": [
             {
