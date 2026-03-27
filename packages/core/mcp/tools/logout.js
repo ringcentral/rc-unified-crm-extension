@@ -61,7 +61,12 @@ async function execute(args) {
             };
         }
         const platformModule = connectorRegistry.getConnector(platform);
-        await platformModule.unAuthorize({ user: userToLogout });
+        try {
+            await platformModule.unAuthorize({ user: userToLogout });
+        }
+        catch (error) {
+            console.log(error);
+        }
         return {
             success: true,
             data: {

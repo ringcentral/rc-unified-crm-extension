@@ -94,8 +94,9 @@ describe('MCP Tool: logout', () => {
       });
     });
 
-    test('should handle logout errors gracefully', async () => {
+    test('should treat CRM unAuthorize failure as non-fatal and still succeed', async () => {
       // Arrange
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       const mockUser = {
         id: 'test-user-id',
         platform: 'testCRM'
@@ -120,10 +121,12 @@ describe('MCP Tool: logout', () => {
         jwtToken: 'mock-jwt-token'
       });
 
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Logout API failed');
-      expect(result.errorDetails).toBeDefined();
+      // Assert — local session is cleared; CRM revoke errors are logged only
+      expect(result.success).toBe(true);
+      expect(result.data.message).toContain('IMPORTANT');
+      expect(mockConnector.unAuthorize).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
     test('should handle invalid JWT token', async () => {
@@ -140,8 +143,9 @@ describe('MCP Tool: logout', () => {
       expect(result.error).toBeDefined();
     });
 
-    test('should handle missing platform connector', async () => {
+    test('should succeed when platform connector is missing (unAuthorize skipped)', async () => {
       // Arrange
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
       const mockUser = {
         id: 'test-user-id',
         platform: 'unknownCRM'
@@ -160,9 +164,11 @@ describe('MCP Tool: logout', () => {
         jwtToken: 'mock-jwt-token'
       });
 
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // Assert — null connector throws on unAuthorize; error is caught, logout still succeeds locally
+      expect(result.success).toBe(true);
+      expect(result.data.message).toContain('IMPORTANT');
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
   });
 });

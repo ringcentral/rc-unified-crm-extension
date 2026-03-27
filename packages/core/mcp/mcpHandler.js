@@ -212,7 +212,7 @@ async function handleMcpRequest(req, res) {
                             else {
                                 const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
                                 const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
-                                if (user) {
+                                if (user?.accessToken) {
                                     await LlmSessionModel.upsert({
                                         id: rcExtensionId,
                                         jwtToken: jwt.generateJwt({
@@ -225,7 +225,13 @@ async function handleMcpRequest(req, res) {
                             }
                         }
                         if (llmSession?.jwtToken) {
-                            toolArgs.jwtToken = llmSession.jwtToken;
+                            const { id: userId } = jwt.decodeJwt(llmSession.jwtToken);
+                            if (userId) {
+                                const user = await UserModel.findByPk(userId);
+                                if (user?.accessToken) {
+                                    toolArgs.jwtToken = llmSession.jwtToken;
+                                }
+                            }
                         }
                     }
                 }

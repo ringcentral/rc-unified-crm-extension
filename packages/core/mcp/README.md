@@ -60,7 +60,7 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 - Defines `inputSchema` (JSON Schema) for every tool that takes parameters — required so ChatGPT forwards arguments
 - Injects `rcAccessToken`, `openaiSessionId`, and `rcExtensionId` into every `tools/call` request
 - Verifies the RC access token against the RC API and caches `rcExtensionId` in `CacheModel` keyed by `openaiSessionId` (24h TTL) — subsequent requests hit the cache instead of the RC API
-- Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback)
+- Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback), only when the linked `User` row still has a CRM `accessToken`
 - Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
 - Serves the widget HTML via `resources/read`
 - Exposes `handleWidgetToolCall` which searches both `tools.tools` and `tools.widgetTools`
@@ -116,7 +116,9 @@ Tools are split into two registries in `tools/index.js`:
 | `rcExtensionId` | RC API (`/extension/~`), verified once and cached in `sessionContext` | Cryptographically verified RC identity; used as `LlmSessionModel` key |
 | `jwtToken` | `LlmSessionModel.findByPk(rcExtensionId)` (fallback: `findByPk(openaiSessionId)`) | CRM auth token (after OAuth) |
 
-Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved from the session automatically. The `rcExtensionId` is verified via the RC API on the **first tool call** of each session and cached for all subsequent calls within the same conversation (0 additional API calls after that).
+Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved from the session automatically. The `rcExtensionId` is verified via the RC API on the **first tool call** of each session and cached for all subsequent calls within the same conversation (0 additional API calls after that). If the user has logged out or the CRM token was cleared, `jwtToken` is not injected even when a stale row exists in `LlmSessionModel`.
+
+New or refreshed LLM session JWTs are written only when the user record has an `accessToken`, so disconnected users are not issued a new tool JWT.
 
 Note: `widgetTools` are called via `POST /mcp/widget-tool-call` which bypasses the MCP session layer entirely. No server-side injection occurs for widget tool calls — all required values must be passed explicitly by the widget in the request body.
 
@@ -149,6 +151,7 @@ Logs out user from the CRM platform.
 | Destructive | Yes |
 | Parameters | `jwtToken` (optional — injected from session if not passed) |
 | Action | Clears user credentials |
+| Note | Local session cleanup always runs. Failures from the connector `unAuthorize` call are logged; the tool still returns success so the client can clear context. |
 
 #### Contact & Call Log Tools
 
