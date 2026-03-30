@@ -503,6 +503,13 @@
               "defaultValue": false
             },
             {
+              "id": "clioTimeEntriesEnabled",
+              "type": "boolean",
+              "name": "Phone Call Time entries",
+              "description": "Create and update Clio time entries when logging calls",
+              "defaultValue": true
+            },
+            {
               "id": "smsTimeTrackingMinimumDuration",
               "type": "inputField",
               "name": "Minimum SMS billable duration",

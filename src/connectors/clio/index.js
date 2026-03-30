@@ -19,6 +19,13 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
+function isClioTimeEntriesEnabled(user) {
+    const settingValue = user?.userSettings?.clioTimeEntriesEnabled?.value;
+    if (settingValue === undefined || settingValue === null) { return true; }
+    if (typeof settingValue === 'string') { return settingValue.toLowerCase() === 'true'; }
+    return Boolean(settingValue);
+}
+
 /**
  * Calculates SMS time tracking details including duration and billable status
  * @param {Object} message - The SMS message object
@@ -481,6 +488,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
+    if (!isClioTimeEntriesEnabled(user)) {
+        const extraDataTracking = {
+            ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
+            ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
+            ratelimitReset: addLogRes.headers['x-ratelimit-reset']
+        };
+        return {
+            logId: communicationId,
+            returnMessage: {
+                message: 'Call logged',
+                messageType: 'success',
+                ttl: 2000
+            },
+            extraDataTracking
+        };
+    }
     // const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
     // Determine billable status with clear precedence order
     let nonBillable;
@@ -560,7 +583,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, subject, start
     if (subject) { patchBody.data.subject = subject; }
     if (startTime) { patchBody.data.received_at = moment(startTime).toISOString(); }
     // duration - update Timer
-    if (duration) {
+    if (duration && isClioTimeEntriesEnabled(user)) {
         const logId = existingCallLogDetails?.id || getLogRes.data.data.id;
         const getTimerRes = await axios.get(
             `https://${user.hostname}/api/v4/activities?communication_id=${logId}&fields=quantity,id`,
