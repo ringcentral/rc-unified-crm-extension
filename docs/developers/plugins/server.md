@@ -99,31 +99,74 @@ The `licenseStatusDescription` can contain markdown for limited formating and ca
 
 ## Processing content
 
-Your plugin will be invoked often to process content in some way share or form. To process content you will need to implement the following endpoint.
+Your plugin will be invoked when App Connect needs your plugin to inspect or transform a call log payload before logging continues.
 
 ### `plugin/<pluginId>`
 
+App Connect sends a `POST` request to `plugin/my_plugin?jwtToken=...`.
+
 **Request**
 
-```http
-POST /plugin/my_plugin
-
+```json
 {
+  "data": {
+    "logInfo": {
+      "id": "15460387024",
+      "sessionId": "24585958020",
+      "startTime": "2026-03-31T08:00:00.000Z",
+      "duration": 183,
+      "direction": "Inbound",
+      "from": {
+        "phoneNumber": "+16505550100",
+        "name": "Jane Caller"
+      },
+      "to": {
+        "phoneNumber": "+16505550199",
+        "name": "Support Queue"
+      }
+    },
+    "contactId": "crm-contact-123",
+    "contactName": "Jane Caller",
+    "note": "Customer asked for a callback tomorrow.",
+    "additionalSubmission": {}
+  }
 }
 ```
 
 **Synchronous Response**
 
-```js
+```json
 {
-
+  "logInfo": {
+    "id": "15460387024",
+    "sessionId": "24585958020",
+    "startTime": "2026-03-31T08:00:00.000Z",
+    "duration": 183,
+    "direction": "Inbound",
+    "from": {
+      "phoneNumber": "+16505550100",
+      "name": "Jane Caller"
+    },
+    "to": {
+      "phoneNumber": "+16505550199",
+      "name": "Support Queue"
+    }
+  },
+  "contactId": "crm-contact-123",
+  "contactName": "Jane Caller",
+  "note": "Updated note text",
+  "additionalSubmission": {}
 }
 ```
+
+For synchronous plugins, return the processed payload directly. App Connect will continue using the returned object.
 
 **Asynchronous Response**
 
-```js
+```json
 {
-
+  "accepted": true
 }
 ```
+
+For asynchronous plugins, App Connect sends the same request body plus an `asyncTaskId`. Your server should start background work and return HTTP `200` quickly.
