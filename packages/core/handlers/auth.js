@@ -6,6 +6,7 @@ const { RingCentral } = require('../lib/ringcentral');
 const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
+const sharedAuthCore = require('./sharedAuth');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
@@ -77,10 +78,42 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     }
 }
 
-async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, hashedRcExtensionId, additionalInfo }) {
+async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    const basicAuth = platformModule.getBasicAuth({ apiKey });
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader: `Basic ${basicAuth}`, hostname, platform, additionalInfo, apiKey, proxyId });
+    const {
+        resolvedAdditionalInfo,
+        resolvedApiKey,
+        missingRequiredFieldConsts,
+        submittedSharedValues
+    } = await sharedAuthCore.resolveApiKeyLoginFields({
+        platform,
+        rcAccountId,
+        rcExtensionId,
+        connectorId,
+        isPrivate,
+        apiKey,
+        additionalInfo
+    });
+    if (missingRequiredFieldConsts.length > 0) {
+        return {
+            userInfo: null,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Missing required authentication fields.',
+                ttl: 3000,
+                missingRequiredFieldConsts
+            }
+        };
+    }
+    const basicAuth = platformModule.getBasicAuth({ apiKey: resolvedApiKey });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({
+        authHeader: `Basic ${basicAuth}`,
+        hostname,
+        platform,
+        additionalInfo: resolvedAdditionalInfo,
+        apiKey: resolvedApiKey,
+        proxyId
+    });
     if (successful) {
         let userInfo = null;
         try {
@@ -91,12 +124,19 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
                 proxyId,
                 hashedRcExtensionId,
                 rcAccountId,
-                accessToken: platformUserInfo.overridingApiKey ?? apiKey
+                accessToken: platformUserInfo.overridingApiKey ?? resolvedApiKey
             });
         }
         catch (error) {
             return handleDatabaseError(error, 'Error saving user info');
         }
+        await sharedAuthCore.persistSubmittedSharedValues({
+            platform,
+            rcAccountId,
+            rcExtensionId,
+            rcUserName: platformUserInfo?.name,
+            submittedSharedValues
+        });
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
         }

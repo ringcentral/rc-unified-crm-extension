@@ -96,3 +96,20 @@ The shared framework expects these methods most often:
 - `findContactWithName()`
 - `unAuthorize()`
 - optional methods such as `getUserList()`, `getLicenseStatus()`, `upsertCallDisposition()`, `getServerLoggingSettings()`, `updateServerLoggingSettings()`, and `onUpdateUserSettings()`
+
+## API-Key Shared Auth Fields
+
+`apiKey` connector manifests can now annotate auth fields in `platform.auth.apiKey.page.content[]` with:
+
+- `shared?: boolean`
+- `sharedScope?: 'org' | 'user'`
+- `confidential?: boolean`
+
+Behavior:
+
+- `shared: true` marks a field as eligible for admin-managed storage and server-side auto-fill
+- `sharedScope: 'org'` stores one encrypted value per RingCentral account
+- `sharedScope: 'user'` stores encrypted values per RingCentral extension inside that account
+- `confidential: true` keeps stored values masked in admin reads and hidden from end-user auth forms
+
+This does not change the connector runtime contract. `handlers/auth.onApiKeyLogin()` still resolves the manifest-driven auth payload and passes the final field map through `additionalInfo` into connector `getUserInfo()`. Existing connectors like Redtail that already read extra API-key fields from `additionalInfo` remain compatible.

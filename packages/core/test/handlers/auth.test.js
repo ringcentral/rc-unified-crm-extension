@@ -22,6 +22,8 @@ const oauth = require('../../lib/oauth');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { RingCentral } = require('../../lib/ringcentral');
 const adminCore = require('../../handlers/admin');
+const { AccountDataModel } = require('../../models/accountDataModel');
+const { encode } = require('../../lib/encode');
 
 describe('Auth Handler', () => {
   const originalEnv = process.env;
@@ -31,6 +33,7 @@ describe('Auth Handler', () => {
     jest.clearAllMocks();
     global.testUtils.resetConnectorRegistry();
     process.env = { ...originalEnv };
+    process.env.APP_SERVER_SECRET_KEY = 'test-app-server-secret-key-123456';
   });
 
   afterEach(() => {
@@ -38,6 +41,10 @@ describe('Auth Handler', () => {
   });
 
   describe('onApiKeyLogin', () => {
+    afterEach(async () => {
+      await AccountDataModel.destroy({ where: {} });
+    });
+
     test('should handle successful API key login', async () => {
       // Arrange
       const mockUserInfo = {
@@ -82,7 +89,7 @@ describe('Auth Handler', () => {
       expect(mockConnector.getUserInfo).toHaveBeenCalledWith({
         authHeader: 'Basic dGVzdC1hcGkta2V5Og==',
         hostname: 'test.example.com',
-        additionalInfo: {},
+        additionalInfo: { apiKey: 'test-api-key' },
         apiKey: 'test-api-key',
         platform: 'testCRM',
         proxyId: undefined
@@ -121,6 +128,125 @@ describe('Auth Handler', () => {
       // Assert
       expect(result.userInfo).toBeNull();
       expect(result.returnMessage).toEqual(mockUserInfo.returnMessage);
+    });
+
+    test('should merge stored org shared auth values into additionalInfo', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'apiKey', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'userToken', required: true }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-1',
+        platformName: 'testCRM',
+        dataKey: 'shared-auth-org',
+        data: {
+          fields: {
+            apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-api-key')) },
+            tenantId: { version: 1, encrypted: true, value: encode(JSON.stringify('tenant-1')) }
+          }
+        }
+      });
+
+      const mockUserInfo = {
+        successful: true,
+        platformUserInfo: {
+          id: 'test-user-id',
+          name: 'Test User',
+          platformAdditionalInfo: {}
+        },
+        returnMessage: { messageType: 'success', message: 'ok' }
+      };
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn().mockReturnValue('encoded-shared'),
+        getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-1',
+        additionalInfo: { userToken: 'user-token-1' }
+      });
+
+      expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'stored-api-key' });
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        additionalInfo: expect.objectContaining({
+          apiKey: 'stored-api-key',
+          tenantId: 'tenant-1',
+          userToken: 'user-token-1'
+        })
+      }));
+    });
+
+    test('should persist submitted shared auth values after successful login', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'companyId', required: true, shared: true, sharedScope: 'org', confidential: true },
+                    { const: 'userToken', required: true }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const mockUserInfo = {
+        successful: true,
+        platformUserInfo: {
+          id: 'test-user-id',
+          name: 'Test User',
+          platformAdditionalInfo: {}
+        },
+        returnMessage: { messageType: 'success', message: 'ok' }
+      };
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn().mockReturnValue('encoded'),
+        getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-2',
+        additionalInfo: {
+          companyId: 'company-123',
+          userToken: 'user-token-1'
+        }
+      });
+
+      const stored = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-2',
+          platformName: 'testCRM',
+          dataKey: 'shared-auth-org'
+        }
+      });
+      expect(stored).not.toBeNull();
+      expect(stored.data.fields.companyId.encrypted).toBe(true);
+      expect(stored.data.fields.companyId.value).not.toBe('company-123');
     });
 
     test('should throw error when connector not found', async () => {

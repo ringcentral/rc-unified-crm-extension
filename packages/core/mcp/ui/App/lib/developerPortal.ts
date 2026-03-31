@@ -90,7 +90,7 @@ export async function fetchManifest(
   dbg.info('fetchManifest: connectorId=', connectorId, 'isPrivate=', isPrivate)
 
   const url = isPrivate && rcAccountId
-    ? `${PORTAL_BASE}/connectors/${connectorId}/manifest?type=internal&accountId=${encodeURIComponent(rcAccountId)}`
+    ? `${PORTAL_BASE}/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${encodeURIComponent(rcAccountId)}`
     : `${PORTAL_BASE}/connectors/${connectorId}/manifest`
 
   dbg.info('fetchManifest: GET', url)

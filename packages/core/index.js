@@ -35,6 +35,7 @@ const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
+const sharedAuthCore = require('./handlers/sharedAuth');
 
 let packageJson = null;
 try {
@@ -336,6 +337,30 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.get('/apiKeySharedAuthState', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('apiKeySharedAuthState:start', { query: req.query });
+        try {
+            const platform = req.query.platform;
+            if (!platform) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
+                return;
+            }
+            const sharedAuthState = await sharedAuthCore.getSharedAuthState({
+                platform,
+                rcAccountId: req.query.rcAccountId,
+                rcExtensionId: req.query.rcExtensionId,
+                connectorId: req.query.connectorId,
+                isPrivate: req.query.isPrivate === 'true'
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse(sharedAuthState) : sharedAuthState);
+        }
+        catch (e) {
+            logger.error('Get API key shared auth state failed', { stack: e.stack });
+            tracer?.traceError('apiKeySharedAuthState:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
     // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
         const defaultCrmManifest = connectorRegistry.getManifest('default');
@@ -448,6 +473,86 @@ function createCoreRouter() {
             author,
             eventAddedVia
         });
+    });
+    router.get('/admin/sharedAuth', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getAdminSharedAuth:start', { query: req.query });
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                return;
+            }
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            const sharedAuthSettings = await sharedAuthCore.getSharedAuthAdminSettings({
+                platform: user.platform,
+                rcAccountId,
+                connectorId: req.query.connectorId,
+                isPrivate: req.query.isPrivate === 'true'
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse(sharedAuthSettings) : sharedAuthSettings);
+        }
+        catch (e) {
+            logger.error('Get shared auth settings failed', { stack: e.stack });
+            tracer?.traceError('getAdminSharedAuth:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.post('/admin/sharedAuth', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('setAdminSharedAuth:start', { body: { scope: req.body?.scope, rcExtensionId: req.body?.rcExtensionId } });
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                return;
+            }
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            if (req.body?.scope === 'user') {
+                await sharedAuthCore.upsertUserSharedAuthValues({
+                    rcAccountId,
+                    platform: user.platform,
+                    rcExtensionId: req.body?.rcExtensionId,
+                    rcUserName: req.body?.rcUserName,
+                    values: req.body?.values ?? {},
+                    fieldsToRemove: req.body?.fieldsToRemove ?? []
+                });
+            }
+            else {
+                await sharedAuthCore.upsertOrgSharedAuthValues({
+                    rcAccountId,
+                    platform: user.platform,
+                    values: req.body?.values ?? {},
+                    fieldsToRemove: req.body?.fieldsToRemove ?? []
+                });
+            }
+            res.status(200).send(tracer ? tracer.wrapResponse('Shared authentication updated') : 'Shared authentication updated');
+        }
+        catch (e) {
+            logger.error('Set shared auth settings failed', { stack: e.stack });
+            tracer?.traceError('setAdminSharedAuth:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
     });
     router.post('/admin/userMapping', async function (req, res) {
         const requestStartTime = new Date().getTime();
@@ -951,7 +1056,14 @@ function createCoreRouter() {
     router.post('/apiKeyLogin', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('apiKeyLogin:start', { body: req.body });
+        tracer?.trace('apiKeyLogin:start', {
+            body: {
+                platform: req.body?.platform,
+                hostname: req.body?.hostname,
+                proxyId: req.body?.proxyId,
+                hasAdditionalInfo: !!req.body?.additionalInfo
+            }
+        });
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
@@ -962,17 +1074,27 @@ function createCoreRouter() {
             const hostname = req.body.hostname;
             const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
+            const rcAccountId = req.body.rcAccountId;
+            const rcExtensionId = req.body.rcExtensionId;
+            const connectorId = req.body.connectorId;
+            const isPrivate = !!req.body.isPrivate;
             if (!platform) {
                 tracer?.trace('apiKeyLogin:missingPlatform', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            if (!apiKey) {
-                tracer?.trace('apiKeyLogin:missingApiKey', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing api key') : 'Missing api key');
-                return;
-            }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId: query.rcAccountId, hashedRcExtensionId: hashedExtensionId, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
+                platform,
+                hostname,
+                apiKey,
+                proxyId,
+                rcAccountId,
+                rcExtensionId,
+                connectorId,
+                isPrivate,
+                hashedRcExtensionId: hashedExtensionId,
+                additionalInfo
+            });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),

@@ -58,6 +58,12 @@ There are two storage styles in this package:
 - Sequelize models for relational/shared application state
 - Dynamoose models for selected operational state such as proxy connector definitions, distributed locks, and note cache entries
 
+`AccountDataModel` also stores encrypted shared API-key auth values. Shared auth intentionally stays separate from `AdminConfigModel.userMappings`:
+
+- `shared-auth-org` stores account-scoped encrypted auth field values
+- `shared-auth-user` stores per-extension encrypted auth field values
+- server-side logging user mapping continues to live in admin config and is not reused for shared auth
+
 ## Cross-Cutting Concerns
 
 Several concerns are applied in multiple modules:
@@ -76,7 +82,7 @@ Several concerns are applied in multiple modules:
 | `DATABASE_URL` | Sequelize connection string |
 | `DISABLE_SYNC_DB_TABLE` | Skips model sync in `initDB()` |
 | `MIXPANEL_TOKEN` | Enables analytics tracking |
-| `APP_SERVER_SECRET_KEY` | Signs and verifies JWTs |
+| `APP_SERVER_SECRET_KEY` | Signs and verifies JWTs and encrypts stored shared auth values |
 | `HASH_KEY` | Hashes RingCentral account and extension identifiers |
 | `DYNAMODB_LOCALHOST` | Points Dynamoose to a local endpoint |
 | `IS_PROD` | Enables local-only logging and mock routes when set to `'false'` |
