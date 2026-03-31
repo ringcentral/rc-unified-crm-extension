@@ -2,6 +2,8 @@
 
 Core package for RingCentral App Connect project providing modular APIs for CRM integration, authentication, contact management, and call logging.
 
+For maintainer-facing internal docs about the package internals, see [`docs/README.md`](./docs/README.md). That docs set covers the non-MCP code under `packages/core`.
+
 ## Features
 
 - **Modular API Design**: Flexible Express app setup with customizable middleware and routes
