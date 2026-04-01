@@ -37,11 +37,11 @@ Excluded:
 | --- | --- |
 | Package root | `index.js`, `package.json`, `README.md`, `releaseNotes.json`, `jest.config.js` |
 | Connectors | `connector/registry.js`, `connector/developerPortal.js`, `connector/mock.js`, `connector/proxy/index.js`, `connector/proxy/engine.js` |
-| Handlers | `handlers/admin.js`, `handlers/auth.js`, `handlers/calldown.js`, `handlers/contact.js`, `handlers/disposition.js`, `handlers/log.js`, `handlers/plugin.js`, `handlers/user.js` |
+| Handlers | `handlers/admin.js`, `handlers/auth.js`, `handlers/calldown.js`, `handlers/contact.js`, `handlers/disposition.js`, `handlers/log.js`, `handlers/plugin.js`, `handlers/sharedAuth.js`, `handlers/user.js` |
 | Sequelize models | `models/accountDataModel.js`, `models/adminConfigModel.js`, `models/cacheModel.js`, `models/callDownListModel.js`, `models/callLogModel.js`, `models/llmSessionModel.js`, `models/messageLogModel.js`, `models/sequelize.js`, `models/userModel.js` |
 | DynamoDB models | `models/dynamo/connectorSchema.js`, `models/dynamo/lockSchema.js`, `models/dynamo/noteCacheSchema.js` |
 | Libraries | `lib/analytics.js`, `lib/authSession.js`, `lib/callLogComposer.js`, `lib/constants.js`, `lib/debugTracer.js`, `lib/encode.js`, `lib/errorHandler.js`, `lib/generalErrorMessage.js`, `lib/jwt.js`, `lib/logger.js`, `lib/oauth.js`, `lib/ringcentral.js`, `lib/s3ErrorLogReport.js`, `lib/sharedSMSComposer.js`, `lib/util.js` |
-| Tests | `test/setup.js`, `test/connector/**`, `test/handlers/**`, `test/lib/**`, `test/models/**` excluding `test/mcp/**` |
+| Tests | `test/setup.js`, `test/connector/**`, `test/handlers/**`, `test/lib/**`, `test/models/**`, `test/routes/**` excluding `test/mcp/**` |
 
 ## Relationship To The Package README
 

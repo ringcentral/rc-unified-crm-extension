@@ -33,6 +33,7 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | `GET` | `/hostname` | Returns host-related info used during auth flows |
 | `GET` | `/oauth-callback` | Completes connector OAuth and persists the user |
 | `POST` | `/apiKeyLogin` | Handles API-key based login flows |
+| `GET` | `/apiKeySharedAuthState` | Returns required-field readiness for shared API-key auth |
 | `POST` | `/unAuthorize` | Logs the user out of the CRM |
 | `GET` | `/userInfoHash` | Returns a hash derived from user information |
 | `GET` | `/ringcentral/oauth/callback` | Completes the admin RingCentral OAuth callback |
@@ -47,6 +48,8 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | `POST` | `/admin/reinitializeUserMapping` | Rebuilds user mappings from scratch |
 | `GET` | `/admin/serverLoggingSettings` | Loads connector-specific server logging settings |
 | `POST` | `/admin/serverLoggingSettings` | Updates connector-specific server logging settings |
+| `GET` | `/admin/sharedAuth` | Returns admin-facing shared-auth field definitions and masked stored values |
+| `POST` | `/admin/sharedAuth` | Upserts org-level or extension-level shared auth values |
 | `GET` | `/ringcentral/admin/report` | Returns aggregated RingCentral call activity metrics |
 | `GET` | `/ringcentral/admin/userReport` | Returns per-extension call and SMS metrics |
 
