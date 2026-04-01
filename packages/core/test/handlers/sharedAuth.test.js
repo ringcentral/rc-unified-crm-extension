@@ -79,7 +79,7 @@ describe('Shared Auth Handler', () => {
     expect(state.visibleFieldConsts).toEqual([]);
   });
 
-  test('getSharedAuthAdminSettings masks confidential fields and keeps user records separate', async () => {
+  test('getSharedAuthAdminSettings returns configured field values and keeps user records separate', async () => {
     connectorRegistry.getManifest.mockReturnValue({
       platforms: {
         testCRM: {
@@ -117,8 +117,8 @@ describe('Shared Auth Handler', () => {
     });
 
     expect(settings.orgValues.tenantId.hasValue).toBe(true);
-    expect(settings.orgValues.tenantId.value).toBe('');
-    expect(settings.orgValues.tenantId.maskedValue).toBe('********');
+    expect(settings.orgValues.tenantId.value).toBe('tenant-secret');
+    expect(settings.orgValues.tenantId.confidential).toBe(false);
     expect(settings.userValues[0].rcExtensionId).toBe('102');
     expect(settings.userValues[0].fields.apiKey.value).toBe('user-key');
   });

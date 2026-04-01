@@ -5,7 +5,6 @@ const { encode, decoded } = require('../lib/encode');
 
 const SHARED_AUTH_ORG_DATA_KEY = 'shared-auth-org';
 const SHARED_AUTH_USER_DATA_KEY = 'shared-auth-user';
-const MASKED_VALUE = '********';
 
 function isFilled(value) {
     return value !== undefined && value !== null && value !== '';
@@ -189,22 +188,12 @@ function getMaskedFieldValue({ fieldDefinition, value }) {
         return {
             hasValue: false,
             value: '',
-            maskedValue: '',
             confidential: !!fieldDefinition?.confidential
-        };
-    }
-    if (fieldDefinition?.confidential) {
-        return {
-            hasValue: true,
-            value: '',
-            maskedValue: MASKED_VALUE,
-            confidential: true
         };
     }
     return {
         hasValue: true,
         value,
-        maskedValue: value,
         confidential: false
     };
 }
