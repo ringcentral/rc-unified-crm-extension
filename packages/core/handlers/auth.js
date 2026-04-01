@@ -83,8 +83,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
     const {
         resolvedAdditionalInfo,
         resolvedApiKey,
-        missingRequiredFieldConsts,
-        submittedSharedValues
+        missingRequiredFieldConsts
     } = await sharedAuthCore.resolveApiKeyLoginFields({
         platform,
         rcAccountId,
@@ -130,13 +129,6 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         catch (error) {
             return handleDatabaseError(error, 'Error saving user info');
         }
-        await sharedAuthCore.persistSubmittedSharedValues({
-            platform,
-            rcAccountId,
-            rcExtensionId,
-            rcUserName: platformUserInfo?.name,
-            submittedSharedValues
-        });
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo });
         }

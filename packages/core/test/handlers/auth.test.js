@@ -193,7 +193,7 @@ describe('Auth Handler', () => {
       }));
     });
 
-    test('should persist submitted shared auth values after successful login', async () => {
+    test('should not allow submitted shared fields to satisfy missing required shared auth values', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -203,6 +203,52 @@ describe('Auth Handler', () => {
                 page: {
                   content: [
                     { const: 'companyId', required: true, shared: true, sharedScope: 'org', confidential: true },
+                    { const: 'userToken', required: true }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn(),
+        getUserInfo: jest.fn()
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-2',
+        additionalInfo: {
+          companyId: 'company-123',
+          userToken: 'user-token-1'
+        }
+      });
+
+      expect(result.userInfo).toBeNull();
+      expect(result.returnMessage).toEqual({
+        messageType: 'warning',
+        message: 'Missing required authentication fields.',
+        ttl: 3000,
+        missingRequiredFieldConsts: ['companyId']
+      });
+      expect(mockConnector.getBasicAuth).not.toHaveBeenCalled();
+      expect(mockConnector.getUserInfo).not.toHaveBeenCalled();
+    });
+
+    test('should not persist submitted shared auth values from end users', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'companyId', required: false, shared: true, sharedScope: 'org', confidential: true },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -237,6 +283,12 @@ describe('Auth Handler', () => {
         }
       });
 
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        additionalInfo: expect.not.objectContaining({
+          companyId: 'company-123'
+        })
+      }));
+
       const stored = await AccountDataModel.findOne({
         where: {
           rcAccountId: 'rc-account-2',
@@ -244,9 +296,50 @@ describe('Auth Handler', () => {
           dataKey: 'shared-auth-org'
         }
       });
-      expect(stored).not.toBeNull();
-      expect(stored.data.fields.companyId.encrypted).toBe(true);
-      expect(stored.data.fields.companyId.value).not.toBe('company-123');
+      expect(stored).toBeNull();
+    });
+
+    test('should return warning when required auth fields are missing', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'userToken', required: true }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn(),
+        getUserInfo: jest.fn()
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-4',
+        additionalInfo: {}
+      });
+
+      expect(result.userInfo).toBeNull();
+      expect(result.returnMessage).toEqual({
+        messageType: 'warning',
+        message: 'Missing required authentication fields.',
+        ttl: 3000,
+        missingRequiredFieldConsts: ['tenantId', 'userToken']
+      });
+      expect(mockConnector.getBasicAuth).not.toHaveBeenCalled();
+      expect(mockConnector.getUserInfo).not.toHaveBeenCalled();
     });
 
     test('should throw error when connector not found', async () => {

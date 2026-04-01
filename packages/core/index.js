@@ -342,14 +342,20 @@ function createCoreRouter() {
         tracer?.trace('apiKeySharedAuthState:start', { query: req.query });
         try {
             const platform = req.query.platform;
+            const rcAccessToken = req.query.rcAccessToken;
             if (!platform) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
+            if (!rcAccessToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
+                return;
+            }
+            const { rcAccountId, rcExtensionId } = await adminCore.validateRcUserToken({ rcAccessToken });
             const sharedAuthState = await sharedAuthCore.getSharedAuthState({
                 platform,
-                rcAccountId: req.query.rcAccountId,
-                rcExtensionId: req.query.rcExtensionId,
+                rcAccountId,
+                rcExtensionId,
                 connectorId: req.query.connectorId,
                 isPrivate: req.query.isPrivate === 'true'
             });
@@ -1074,8 +1080,7 @@ function createCoreRouter() {
             const hostname = req.body.hostname;
             const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
-            const rcAccountId = req.body.rcAccountId;
-            const rcExtensionId = req.body.rcExtensionId;
+            const rcAccessToken = req.body.rcAccessToken;
             const connectorId = req.body.connectorId;
             const isPrivate = !!req.body.isPrivate;
             if (!platform) {
@@ -1083,6 +1088,12 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
+            if (!rcAccessToken) {
+                tracer?.trace('apiKeyLogin:missingRcAccessToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
+                return;
+            }
+            const { rcAccountId, rcExtensionId, rcUserName } = await adminCore.validateRcUserToken({ rcAccessToken });
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
                 hostname,
@@ -1090,6 +1101,7 @@ function createCoreRouter() {
                 proxyId,
                 rcAccountId,
                 rcExtensionId,
+                rcUserName,
                 connectorId,
                 isPrivate,
                 hashedRcExtensionId: hashedExtensionId,

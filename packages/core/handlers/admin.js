@@ -8,10 +8,33 @@ const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
+const RC_EXTENSION_ENDPOINT = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~';
+
+async function validateRcUserToken({ rcAccessToken }) {
+    if (!rcAccessToken) {
+        throw new Error('rcAccessToken is required');
+    }
+    const rcExtensionResponse = await axios.get(
+        RC_EXTENSION_ENDPOINT,
+        {
+            headers: {
+                Authorization: `Bearer ${rcAccessToken}`,
+            },
+        });
+    const extensionData = rcExtensionResponse.data ?? {};
+    const firstName = extensionData?.contact?.firstName ?? '';
+    const lastName = extensionData?.contact?.lastName ?? '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return {
+        rcAccountId: extensionData?.account?.id?.toString() ?? '',
+        rcExtensionId: extensionData?.id?.toString() ?? '',
+        rcUserName: fullName
+    };
+}
 
 async function validateAdminRole({ rcAccessToken }) {
     const rcExtensionResponse = await axios.get(
-        'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
+        RC_EXTENSION_ENDPOINT,
         {
             headers: {
                 Authorization: `Bearer ${rcAccessToken}`,
@@ -489,6 +512,7 @@ async function reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionLis
 }
 
 exports.validateAdminRole = validateAdminRole;
+exports.validateRcUserToken = validateRcUserToken;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
 exports.updateAdminRcTokens = updateAdminRcTokens;

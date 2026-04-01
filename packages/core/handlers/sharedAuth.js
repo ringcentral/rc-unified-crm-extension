@@ -253,12 +253,23 @@ async function getSharedAuthState({ platform, rcAccountId, rcExtensionId, connec
     const missingRequiredFieldConsts = [];
     let allRequiredFieldsSatisfied = true;
 
+    // Default behavior for connectors without shared auth: render full API key form.
+    if (sharedFieldDefinitions.length === 0) {
+        return {
+            hasSharedAuth: false,
+            allRequiredFieldsSatisfied: false,
+            visibleFieldConsts: null,
+            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const)
+        };
+    }
+
     fieldDefinitions.forEach(field => {
         const storedValue = field.shared
             ? (field.sharedScope === 'user' ? userValues[field.const] : orgValues[field.const])
             : undefined;
         const hasStoredValue = isFilled(storedValue);
-        if (!field.shared || !hasStoredValue) {
+        // Only show remaining required non-shared fields to end users.
+        if (field.required && !field.shared) {
             visibleFieldConsts.push(field.const);
         }
         if (field.required && !hasStoredValue) {
@@ -289,10 +300,6 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
 
     const orgValues = await getOrgSharedAuthValues({ rcAccountId, platform });
     const userValues = await getUserSharedAuthValues({ rcAccountId, platform, rcExtensionId });
-    const submittedSharedValues = {
-        org: {},
-        user: {}
-    };
     const missingRequiredFieldConsts = [];
 
     fieldDefinitions.forEach(field => {
@@ -303,19 +310,15 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
             return;
         }
 
-        const submittedValue = resolvedAdditionalInfo[field.const];
         const storedValue = field.sharedScope === 'user'
             ? userValues[field.const]
             : orgValues[field.const];
-
-        if (!isFilled(submittedValue) && isFilled(storedValue)) {
+        // Shared fields are admin-managed only; end-user input for shared fields is ignored.
+        if (isFilled(storedValue)) {
             resolvedAdditionalInfo[field.const] = storedValue;
         }
-
-        if (isFilled(submittedValue)) {
-            if (submittedSharedValues[field.sharedScope]) {
-                submittedSharedValues[field.sharedScope][field.const] = submittedValue;
-            }
+        else {
+            delete resolvedAdditionalInfo[field.const];
         }
 
         if (field.required && !isFilled(resolvedAdditionalInfo[field.const])) {
@@ -326,8 +329,7 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
     return {
         resolvedAdditionalInfo,
         resolvedApiKey: resolvedAdditionalInfo.apiKey ?? apiKey,
-        missingRequiredFieldConsts,
-        submittedSharedValues
+        missingRequiredFieldConsts
     };
 }
 

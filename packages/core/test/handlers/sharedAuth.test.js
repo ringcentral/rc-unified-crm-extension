@@ -158,4 +158,132 @@ describe('Shared Auth Handler', () => {
     expect(state.allRequiredFieldsSatisfied).toBe(true);
     expect(state.visibleFieldConsts).toEqual([]);
   });
+
+  test('getSharedAuthState surfaces missing required fields for unshared and missing shared values', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                  { const: 'userToken', required: true, shared: true, sharedScope: 'user' },
+                  { const: 'apiSecret', required: true }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    await sharedAuthHandler.upsertOrgSharedAuthValues({
+      rcAccountId: 'acc-4',
+      platform: 'testCRM',
+      values: { tenantId: 'tenant-4' }
+    });
+
+    const state = await sharedAuthHandler.getSharedAuthState({
+      platform: 'testCRM',
+      rcAccountId: 'acc-4',
+      rcExtensionId: '404'
+    });
+
+    expect(state.hasSharedAuth).toBe(true);
+    expect(state.allRequiredFieldsSatisfied).toBe(false);
+    expect(state.visibleFieldConsts).toEqual(['apiSecret']);
+    expect(state.missingRequiredFieldConsts).toEqual(['userToken', 'apiSecret']);
+  });
+
+  test('getSharedAuthState returns full-form behavior when connector has no shared fields', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'apiKey', required: true },
+                  { const: 'tenantId', required: true },
+                  { const: 'region', required: false }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const state = await sharedAuthHandler.getSharedAuthState({
+      platform: 'testCRM',
+      rcAccountId: 'acc-plain',
+      rcExtensionId: '100'
+    });
+
+    expect(state.hasSharedAuth).toBe(false);
+    expect(state.allRequiredFieldsSatisfied).toBe(false);
+    expect(state.visibleFieldConsts).toBeNull();
+    expect(state.missingRequiredFieldConsts).toEqual(['apiKey', 'tenantId']);
+  });
+
+  test('upsertUserSharedAuthValues throws when rcExtensionId is missing', async () => {
+    await expect(sharedAuthHandler.upsertUserSharedAuthValues({
+      rcAccountId: 'acc-5',
+      platform: 'testCRM',
+      values: { apiKey: 'x' }
+    })).rejects.toThrow('rcExtensionId is required for user shared auth values');
+  });
+
+  test('upsertOrgSharedAuthValues removes specified fields', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'tenantId', shared: true, sharedScope: 'org' },
+                  { const: 'region', shared: true, sharedScope: 'org' }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    await sharedAuthHandler.upsertOrgSharedAuthValues({
+      rcAccountId: 'acc-6',
+      platform: 'testCRM',
+      values: { tenantId: 'tenant-6', region: 'us' }
+    });
+
+    await sharedAuthHandler.upsertOrgSharedAuthValues({
+      rcAccountId: 'acc-6',
+      platform: 'testCRM',
+      values: {},
+      fieldsToRemove: ['tenantId']
+    });
+
+    const settings = await sharedAuthHandler.getSharedAuthAdminSettings({
+      platform: 'testCRM',
+      rcAccountId: 'acc-6'
+    });
+    expect(settings.orgValues.tenantId.hasValue).toBe(false);
+    expect(settings.orgValues.region.value).toBe('us');
+
+    const record = await AccountDataModel.findOne({
+      where: {
+        rcAccountId: 'acc-6',
+        platformName: 'testCRM',
+        dataKey: 'shared-auth-org'
+      }
+    });
+    expect(record.data.fields.tenantId).toBeUndefined();
+    expect(record.data.fields.region).toBeDefined();
+  });
 });

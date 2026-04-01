@@ -123,6 +123,40 @@ describe('Admin Handler', () => {
     });
   });
 
+  describe('validateRcUserToken', () => {
+    test('should return rc account and extension identity from valid token', async () => {
+      axios.get.mockResolvedValue({
+        data: {
+          account: { id: 'rc-account-789' },
+          id: 'extension-789',
+          contact: {
+            firstName: 'Alex',
+            lastName: 'Johnson'
+          }
+        }
+      });
+
+      const result = await adminHandler.validateRcUserToken({
+        rcAccessToken: 'valid-user-token'
+      });
+
+      expect(result).toEqual({
+        rcAccountId: 'rc-account-789',
+        rcExtensionId: 'extension-789',
+        rcUserName: 'Alex Johnson'
+      });
+      expect(axios.get).toHaveBeenCalledWith(
+        'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
+        { headers: { Authorization: 'Bearer valid-user-token' } }
+      );
+    });
+
+    test('should throw when rcAccessToken is missing', async () => {
+      await expect(adminHandler.validateRcUserToken({})).rejects.toThrow('rcAccessToken is required');
+      expect(axios.get).not.toHaveBeenCalled();
+    });
+  });
+
   describe('upsertAdminSettings', () => {
     test('should create new admin config when none exists', async () => {
       // Act
