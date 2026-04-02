@@ -5,8 +5,8 @@ jest.mock('../../handlers/admin', () => ({
   validateRcUserToken: jest.fn(),
   validateAdminRole: jest.fn(),
 }));
-jest.mock('../../handlers/sharedAuth', () => ({
-  getSharedAuthState: jest.fn(),
+jest.mock('../../handlers/managedAuth', () => ({
+  getManagedAuthState: jest.fn(),
 }));
 jest.mock('../../handlers/auth', () => ({
   onApiKeyLogin: jest.fn(),
@@ -17,11 +17,11 @@ jest.mock('../../lib/jwt', () => ({
 }));
 
 const adminCore = require('../../handlers/admin');
-const sharedAuthCore = require('../../handlers/sharedAuth');
+const managedAuthCore = require('../../handlers/managedAuth');
 const authCore = require('../../handlers/auth');
 const { createCoreRouter } = require('../../index');
 
-describe('Shared Auth Routes', () => {
+describe('Managed Auth Routes', () => {
   let app;
 
   beforeEach(() => {
@@ -31,16 +31,16 @@ describe('Shared Auth Routes', () => {
     app.use('/', createCoreRouter());
   });
 
-  describe('GET /apiKeySharedAuthState', () => {
+  describe('GET /apiKeyManagedAuthState', () => {
     test('should require rcAccessToken', async () => {
       const response = await request(app)
-        .get('/apiKeySharedAuthState')
+        .get('/apiKeyManagedAuthState')
         .query({ platform: 'testCRM' });
 
       expect(response.status).toBe(400);
       expect(response.text).toContain('Missing RingCentral access token');
       expect(adminCore.validateRcUserToken).not.toHaveBeenCalled();
-      expect(sharedAuthCore.getSharedAuthState).not.toHaveBeenCalled();
+      expect(managedAuthCore.getManagedAuthState).not.toHaveBeenCalled();
     });
 
     test('should validate rcAccessToken and use validated identity', async () => {
@@ -49,15 +49,15 @@ describe('Shared Auth Routes', () => {
         rcExtensionId: 'validated-extension-id',
         rcUserName: 'Validated User',
       });
-      sharedAuthCore.getSharedAuthState.mockResolvedValue({
-        hasSharedAuth: true,
+      managedAuthCore.getManagedAuthState.mockResolvedValue({
+        hasManagedAuth: true,
         allRequiredFieldsSatisfied: true,
         visibleFieldConsts: [],
         missingRequiredFieldConsts: [],
       });
 
       const response = await request(app)
-        .get('/apiKeySharedAuthState')
+        .get('/apiKeyManagedAuthState')
         .query({
           platform: 'testCRM',
           rcAccessToken: 'valid-rc-token',
@@ -67,7 +67,7 @@ describe('Shared Auth Routes', () => {
 
       expect(response.status).toBe(200);
       expect(adminCore.validateRcUserToken).toHaveBeenCalledWith({ rcAccessToken: 'valid-rc-token' });
-      expect(sharedAuthCore.getSharedAuthState).toHaveBeenCalledWith(expect.objectContaining({
+      expect(managedAuthCore.getManagedAuthState).toHaveBeenCalledWith(expect.objectContaining({
         platform: 'testCRM',
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',

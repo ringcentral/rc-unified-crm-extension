@@ -14,7 +14,7 @@ Handlers contain the shared business workflows behind the route layer.
 | `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
 | `handlers/plugin.js` | Async plugin task polling and cleanup | `getPluginAsyncTasks` |
-| `handlers/sharedAuth.js` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getSharedAuthAdminSettings`, `getSharedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgSharedAuthValues`, `upsertUserSharedAuthValues` |
+| `handlers/managedAuth.js` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getManagedAuthAdminSettings`, `getManagedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgManagedAuthValues`, `upsertUserManagedAuthValues` |
 
 ## Common Execution Pattern
 
@@ -34,7 +34,7 @@ Key behavior:
 
 - `onOAuthCallback()` completes the external OAuth code exchange, calls `getUserInfo()`, and persists the user through `saveUserInfo()`.
 - `onApiKeyLogin()` uses connector-provided basic-auth construction and the same user persistence path.
-- `onApiKeyLogin()` resolves shared API-key fields from `handlers/sharedAuth.js`, ignores end-user overrides for shared fields, and returns `missingRequiredFieldConsts` when required fields are missing.
+- `onApiKeyLogin()` resolves shared API-key fields from `handlers/managedAuth.js`, ignores end-user overrides for shared fields, and returns `missingRequiredFieldConsts` when required fields are missing.
 - `saveUserInfo()` updates or creates `UserModel`, preserving existing `platformAdditionalInfo` keys and adding `proxyId`.
 - `authValidation()` refreshes OAuth tokens when needed, then delegates session validation to the connector.
 - `getLicenseStatus()` is connector-defined and only wrapped here.
@@ -115,10 +115,10 @@ Rules implemented here:
 - returns cached async task status
 - deletes terminal task cache records after the client reads them
 
-`sharedAuth.js`:
+`managedAuth.js`:
 
 - reads API-key field definitions from either the developer portal manifest or the connector registry manifest
 - isolates shared field definitions with `shared: true` and `sharedScope` (`org` or `user`)
-- encrypts shared auth values before writing to `AccountDataModel`
-- provides admin views with masked values using `{ hasValue, value, confidential }`
+- encrypts managed auth values before writing to `AccountDataModel`
+- provides admin views with stored values using `{ hasValue, value }` while keeping database values encrypted at rest
 - resolves login fields by merging stored shared values and non-shared end-user inputs

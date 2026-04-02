@@ -6,7 +6,7 @@ const { RingCentral } = require('../lib/ringcentral');
 const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
-const sharedAuthCore = require('./sharedAuth');
+const managedAuthCore = require('./managedAuth');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
@@ -84,7 +84,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         resolvedAdditionalInfo,
         resolvedApiKey,
         missingRequiredFieldConsts
-    } = await sharedAuthCore.resolveApiKeyLoginFields({
+    } = await managedAuthCore.resolveApiKeyLoginFields({
         platform,
         rcAccountId,
         rcExtensionId,

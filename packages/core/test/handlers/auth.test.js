@@ -130,7 +130,7 @@ describe('Auth Handler', () => {
       expect(result.returnMessage).toEqual(mockUserInfo.returnMessage);
     });
 
-    test('should merge stored org shared auth values into additionalInfo', async () => {
+    test('should merge stored org managed auth values into additionalInfo', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -152,7 +152,7 @@ describe('Auth Handler', () => {
       await AccountDataModel.create({
         rcAccountId: 'rc-account-1',
         platformName: 'testCRM',
-        dataKey: 'shared-auth-org',
+        dataKey: 'managed-auth-org',
         data: {
           fields: {
             apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-api-key')) },
@@ -193,7 +193,7 @@ describe('Auth Handler', () => {
       }));
     });
 
-    test('should not allow submitted shared fields to satisfy missing required shared auth values', async () => {
+    test('should not allow submitted shared fields to satisfy missing required managed auth values', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -201,8 +201,8 @@ describe('Auth Handler', () => {
               type: 'apiKey',
               apiKey: {
                 page: {
-                  content: [
-                    { const: 'companyId', required: true, shared: true, sharedScope: 'org', confidential: true },
+                content: [
+                    { const: 'companyId', required: true, shared: true, sharedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -239,7 +239,7 @@ describe('Auth Handler', () => {
       expect(mockConnector.getUserInfo).not.toHaveBeenCalled();
     });
 
-    test('should not persist submitted shared auth values from end users', async () => {
+    test('should not persist submitted managed auth values from end users', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -247,8 +247,8 @@ describe('Auth Handler', () => {
               type: 'apiKey',
               apiKey: {
                 page: {
-                  content: [
-                    { const: 'companyId', required: false, shared: true, sharedScope: 'org', confidential: true },
+                content: [
+                    { const: 'companyId', required: false, shared: true, sharedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -293,7 +293,7 @@ describe('Auth Handler', () => {
         where: {
           rcAccountId: 'rc-account-2',
           platformName: 'testCRM',
-          dataKey: 'shared-auth-org'
+          dataKey: 'managed-auth-org'
         }
       });
       expect(stored).toBeNull();

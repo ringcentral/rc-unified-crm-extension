@@ -288,7 +288,7 @@ const logHandler = require('@app-connect/core/handlers/log');
 const adminHandler = require('@app-connect/core/handlers/admin');
 const userHandler = require('@app-connect/core/handlers/user');
 const dispositionHandler = require('@app-connect/core/handlers/disposition');
-const sharedAuthHandler = require('@app-connect/core/handlers/sharedAuth');
+const managedAuthHandler = require('@app-connect/core/handlers/managedAuth');
 
 // Available handlers:
 // authHandler      - Authentication operations
@@ -297,7 +297,7 @@ const sharedAuthHandler = require('@app-connect/core/handlers/sharedAuth');
 // adminHandler     - Admin operations
 // userHandler      - User management
 // dispositionHandler - Call disposition
-// sharedAuthHandler - Shared API-key auth field operations
+// managedAuthHandler - Shared API-key auth field operations
 ```
 
 #### Models
@@ -336,7 +336,7 @@ The core package provides the following API endpoints:
 - `GET /authValidation` - Validate user authentication
 - `GET /oauth-callback` - OAuth callback handler
 - `POST /apiKeyLogin` - API key authentication
-- `GET /apiKeySharedAuthState` - Get shared-auth required-field readiness for API-key logins
+- `GET /apiKeyManagedAuthState` - Get managed-auth required-field readiness for API-key logins
 - `POST /unAuthorize` - Logout user
 
 ### Contact Management
@@ -361,8 +361,8 @@ The core package provides the following API endpoints:
 - `POST /admin/settings` - Update admin settings
 - `GET /admin/serverLoggingSettings` - Get server logging settings
 - `POST /admin/serverLoggingSettings` - Update server logging settings
-- `GET /admin/sharedAuth` - Get shared-auth field definitions and masked stored values
-- `POST /admin/sharedAuth` - Update org-level or user-level shared auth field values
+- `GET /admin/managedAuth` - Get managed-auth field definitions and masked stored values
+- `POST /admin/managedAuth` - Update org-level or user-level managed auth field values
 
 ### System
 - `GET /releaseNotes` - Get release notes

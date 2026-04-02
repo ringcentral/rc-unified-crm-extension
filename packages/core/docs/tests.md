@@ -27,13 +27,13 @@ This page maps the non-MCP test suite under `packages/core/test`.
 | `test/handlers/contact.test.js` | Contact lookup and creation flows |
 | `test/handlers/log.test.js` | Call-log and message-log workflows |
 | `test/handlers/plugin.test.js` | Async plugin task polling and cleanup |
-| `test/handlers/sharedAuth.test.js` | Shared-auth field loading, encryption, masking, and login-time field resolution |
+| `test/handlers/managedAuth.test.js` | Shared-auth field loading, encryption, masking, and login-time field resolution |
 
 ## Route Tests
 
 | File | Coverage |
 | --- | --- |
-| `test/routes/sharedAuthRoutes.test.js` | Shared-auth API route behavior and validation paths |
+| `test/routes/managedAuthRoutes.test.js` | Shared-auth API route behavior and validation paths |
 
 ## Library Tests
 

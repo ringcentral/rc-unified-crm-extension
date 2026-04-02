@@ -35,7 +35,7 @@ const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
-const sharedAuthCore = require('./handlers/sharedAuth');
+const managedAuthCore = require('./handlers/managedAuth');
 
 let packageJson = null;
 try {
@@ -337,9 +337,9 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
-    router.get('/apiKeySharedAuthState', async function (req, res) {
+    router.get('/apiKeyManagedAuthState', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('apiKeySharedAuthState:start', { query: req.query });
+        tracer?.trace('apiKeyManagedAuthState:start', { query: req.query });
         try {
             const platform = req.query.platform;
             const rcAccessToken = req.query.rcAccessToken;
@@ -352,18 +352,18 @@ function createCoreRouter() {
                 return;
             }
             const { rcAccountId, rcExtensionId } = await adminCore.validateRcUserToken({ rcAccessToken });
-            const sharedAuthState = await sharedAuthCore.getSharedAuthState({
+            const managedAuthState = await managedAuthCore.getManagedAuthState({
                 platform,
                 rcAccountId,
                 rcExtensionId,
                 connectorId: req.query.connectorId,
                 isPrivate: req.query.isPrivate === 'true'
             });
-            res.status(200).send(tracer ? tracer.wrapResponse(sharedAuthState) : sharedAuthState);
+            res.status(200).send(tracer ? tracer.wrapResponse(managedAuthState) : managedAuthState);
         }
         catch (e) {
-            logger.error('Get API key shared auth state failed', { stack: e.stack });
-            tracer?.traceError('apiKeySharedAuthState:error', e);
+            logger.error('Get API key managed auth state failed', { stack: e.stack });
+            tracer?.traceError('apiKeyManagedAuthState:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
@@ -480,9 +480,9 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
-    router.get('/admin/sharedAuth', async function (req, res) {
+    router.get('/admin/managedAuth', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('getAdminSharedAuth:start', { query: req.query });
+        tracer?.trace('getAdminManagedAuth:start', { query: req.query });
         try {
             const jwtToken = req.query.jwtToken;
             if (!jwtToken) {
@@ -500,23 +500,23 @@ function createCoreRouter() {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
             }
-            const sharedAuthSettings = await sharedAuthCore.getSharedAuthAdminSettings({
+            const managedAuthSettings = await managedAuthCore.getManagedAuthAdminSettings({
                 platform: user.platform,
                 rcAccountId,
                 connectorId: req.query.connectorId,
                 isPrivate: req.query.isPrivate === 'true'
             });
-            res.status(200).send(tracer ? tracer.wrapResponse(sharedAuthSettings) : sharedAuthSettings);
+            res.status(200).send(tracer ? tracer.wrapResponse(managedAuthSettings) : managedAuthSettings);
         }
         catch (e) {
-            logger.error('Get shared auth settings failed', { stack: e.stack });
-            tracer?.traceError('getAdminSharedAuth:error', e);
+            logger.error('Get managed auth settings failed', { stack: e.stack });
+            tracer?.traceError('getAdminManagedAuth:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
-    router.post('/admin/sharedAuth', async function (req, res) {
+    router.post('/admin/managedAuth', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('setAdminSharedAuth:start', { body: { scope: req.body?.scope, rcExtensionId: req.body?.rcExtensionId } });
+        tracer?.trace('setAdminManagedAuth:start', { body: { scope: req.body?.scope, rcExtensionId: req.body?.rcExtensionId } });
         try {
             const jwtToken = req.query.jwtToken;
             if (!jwtToken) {
@@ -535,7 +535,7 @@ function createCoreRouter() {
                 return;
             }
             if (req.body?.scope === 'user') {
-                await sharedAuthCore.upsertUserSharedAuthValues({
+                await managedAuthCore.upsertUserManagedAuthValues({
                     rcAccountId,
                     platform: user.platform,
                     rcExtensionId: req.body?.rcExtensionId,
@@ -545,7 +545,7 @@ function createCoreRouter() {
                 });
             }
             else {
-                await sharedAuthCore.upsertOrgSharedAuthValues({
+                await managedAuthCore.upsertOrgManagedAuthValues({
                     rcAccountId,
                     platform: user.platform,
                     values: req.body?.values ?? {},
@@ -555,8 +555,8 @@ function createCoreRouter() {
             res.status(200).send(tracer ? tracer.wrapResponse('Shared authentication updated') : 'Shared authentication updated');
         }
         catch (e) {
-            logger.error('Set shared auth settings failed', { stack: e.stack });
-            tracer?.traceError('setAdminSharedAuth:error', e);
+            logger.error('Set managed auth settings failed', { stack: e.stack });
+            tracer?.traceError('setAdminManagedAuth:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
