@@ -45,8 +45,8 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
-                  { const: 'apiKey', required: true, shared: true, sharedScope: 'user' }
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
                 ]
               }
             }
@@ -88,8 +88,8 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', shared: true, sharedScope: 'org' },
-                  { const: 'apiKey', shared: true, sharedScope: 'user' }
+                  { const: 'tenantId', managed: true, managedScope: 'org' },
+                  { const: 'apiKey', managed: true, managedScope: 'user' }
                 ]
               }
             }
@@ -159,7 +159,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'orgToken', required: true, shared: true, sharedScope: 'org' }
+                  { const: 'orgToken', required: true, managed: true, managedScope: 'org' }
                 ]
               }
             }
@@ -195,8 +195,8 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
-                  { const: 'userToken', required: true, shared: true, sharedScope: 'user' },
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'userToken', required: true, managed: true, managedScope: 'user' },
                   { const: 'apiSecret', required: true }
                 ]
               }
@@ -220,7 +220,7 @@ describe('Managed Auth Handler', () => {
 
     expect(state.hasManagedAuth).toBe(true);
     expect(state.allRequiredFieldsSatisfied).toBe(false);
-    expect(state.visibleFieldConsts).toEqual(['apiSecret']);
+    expect(state.visibleFieldConsts).toEqual(['userToken', 'apiSecret']);
     expect(state.missingRequiredFieldConsts).toEqual(['userToken', 'apiSecret']);
   });
 
@@ -256,6 +256,45 @@ describe('Managed Auth Handler', () => {
     expect(state.missingRequiredFieldConsts).toEqual(['apiKey', 'tenantId']);
   });
 
+  test('resolveApiKeyLoginFields keeps submitted shared values when managed values are missing', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'companyId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'userToken', required: true, managed: true, managedScope: 'user' },
+                  { const: 'region', required: false, managed: true, managedScope: 'org' }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const result = await managedAuthHandler.resolveApiKeyLoginFields({
+      platform: 'testCRM',
+      rcAccountId: 'acc-shared-fallback',
+      rcExtensionId: '201',
+      additionalInfo: {
+        companyId: 'company-123',
+        userToken: 'user-token-123',
+        region: 'us'
+      }
+    });
+
+    expect(result.resolvedAdditionalInfo).toEqual({
+      companyId: 'company-123',
+      userToken: 'user-token-123',
+      region: 'us'
+    });
+    expect(result.missingRequiredFieldConsts).toEqual([]);
+  });
+
   test('upsertUserManagedAuthValues throws when rcExtensionId is missing', async () => {
     await expect(managedAuthHandler.upsertUserManagedAuthValues({
       rcAccountId: 'acc-5',
@@ -273,8 +312,8 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', shared: true, sharedScope: 'org' },
-                  { const: 'region', shared: true, sharedScope: 'org' }
+                  { const: 'tenantId', managed: true, managedScope: 'org' },
+                  { const: 'region', managed: true, managedScope: 'org' }
                 ]
               }
             }
@@ -314,3 +353,4 @@ describe('Managed Auth Handler', () => {
     expect(record.data.fields.region).toBeDefined();
   });
 });
+

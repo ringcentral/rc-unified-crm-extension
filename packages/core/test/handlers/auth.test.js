@@ -139,8 +139,8 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'apiKey', required: true, shared: true, sharedScope: 'org' },
-                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -193,7 +193,7 @@ describe('Auth Handler', () => {
       }));
     });
 
-    test('should not allow submitted shared fields to satisfy missing required managed auth values', async () => {
+    test('should allow submitted shared fields to satisfy missing required managed auth values', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -202,7 +202,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                 content: [
-                    { const: 'companyId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'companyId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -214,7 +214,15 @@ describe('Auth Handler', () => {
 
       const mockConnector = global.testUtils.createMockConnector({
         getBasicAuth: jest.fn(),
-        getUserInfo: jest.fn()
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: {
+            id: 'test-user-id',
+            name: 'Test User',
+            platformAdditionalInfo: {}
+          },
+          returnMessage: { messageType: 'success', message: 'ok' }
+        })
       });
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
@@ -228,15 +236,13 @@ describe('Auth Handler', () => {
         }
       });
 
-      expect(result.userInfo).toBeNull();
-      expect(result.returnMessage).toEqual({
-        messageType: 'warning',
-        message: 'Missing required authentication fields.',
-        ttl: 3000,
-        missingRequiredFieldConsts: ['companyId']
-      });
-      expect(mockConnector.getBasicAuth).not.toHaveBeenCalled();
-      expect(mockConnector.getUserInfo).not.toHaveBeenCalled();
+      expect(result.userInfo).not.toBeNull();
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        additionalInfo: expect.objectContaining({
+          companyId: 'company-123',
+          userToken: 'user-token-1'
+        })
+      }));
     });
 
     test('should not persist submitted managed auth values from end users', async () => {
@@ -248,7 +254,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                 content: [
-                    { const: 'companyId', required: false, shared: true, sharedScope: 'org' },
+                    { const: 'companyId', required: false, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -284,8 +290,9 @@ describe('Auth Handler', () => {
       });
 
       expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
-        additionalInfo: expect.not.objectContaining({
-          companyId: 'company-123'
+        additionalInfo: expect.objectContaining({
+          companyId: 'company-123',
+          userToken: 'user-token-1'
         })
       }));
 
@@ -308,7 +315,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -836,3 +843,4 @@ describe('Auth Handler', () => {
     });
   });
 }); 
+

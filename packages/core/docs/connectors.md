@@ -101,14 +101,15 @@ The shared framework expects these methods most often:
 
 `apiKey` connector manifests can now annotate auth fields in `platform.auth.apiKey.page.content[]` with:
 
-- `shared?: boolean`
-- `sharedScope?: 'org' | 'user'`
+- `managed?: boolean`
+- `managedScope?: 'org' | 'user'`
 
 Behavior:
 
-- `shared: true` marks a field as eligible for admin-managed storage and server-side auto-fill
-- `sharedScope: 'org'` stores one encrypted value per RingCentral account
-- `sharedScope: 'user'` stores encrypted values per RingCentral extension inside that account
+- `managed: true` marks a field as eligible for admin-managed storage and server-side auto-fill
+- `managedScope: 'org'` stores one encrypted value per RingCentral account
+- `managedScope: 'user'` stores encrypted values per RingCentral extension inside that account
 - stored managed auth values are encrypted at rest by default
 
 This does not change the connector runtime contract. `handlers/auth.onApiKeyLogin()` still resolves the manifest-driven auth payload and passes the final field map through `additionalInfo` into connector `getUserInfo()`. Existing connectors like Redtail that already read extra API-key fields from `additionalInfo` remain compatible.
+
