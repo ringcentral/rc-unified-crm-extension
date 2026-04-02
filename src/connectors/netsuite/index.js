@@ -2104,7 +2104,6 @@ async function listAppointments({ user, authHeader, range }) {
             });
         const body = res?.data ?? {};
         const data = Array.isArray(body?.data) ? body.data : [];
-        
         rows.push(...data);
         const appointments = rows.map(e => normalizeNetSuiteCalendarEventToAppointment({
             calendarEvent: e,
@@ -2263,8 +2262,25 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         // Set message
         body.message = patchBody.summary || '';
         body.title = patchBody.title;
+        let attendeeItems = [];
+           
+        const rawAttendees = Array.isArray(patchBody?.contacts)
+                    ? patchBody.contacts
+                     : [];
+        attendeeItems = rawAttendees
+                    .map((c) => {
+                        const id= c.id;
+                        console.log({message:'id', id});
+                        if (id == null || `${id}`.trim() === '') return null;
+                        return { attendee: { id: `${id}` } };
+                    })
+                    .filter(Boolean);
+            // Include empty items to support clearing attendees.
+            body.attendee = { items: attendeeItems };
         console.log({message:'body', body});
-        const res = await axios.patch(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`, body, {
+        const recordUrl = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`;
+        const patchUrl =  `${recordUrl}?replace=attendee`
+        const res = await axios.patch(patchUrl, body, {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
         });
         const event = res?.data?.data ?? res?.data ?? null;
@@ -2297,6 +2313,8 @@ async function refreshAppointment({ user, authHeader, appointmentId }) {
             headers: { 'Authorization': authHeader }
         });
         const event = res?.data?.data ?? res?.data ?? null;
+
+        console.log({message:'event', event});
         if (!event) {
             return {
                 successful: false,
