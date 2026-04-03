@@ -972,7 +972,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing api key') : 'Missing api key');
                 return;
             }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId: query.rcAccountId, hashedRcExtensionId: hashedExtensionId, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId: req.body.rcAccountId, hashedRcExtensionId: hashedExtensionId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
