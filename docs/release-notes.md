@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.21
+
+- New: Add new setting for Clio to enable/disable time entry
+- Fix: Refresh contact for deleted contact issue
+- Fix: Click-to-sms button issue
+
 ## 1.7.20
 
 - Fix: Click-to-dial not detecting numbers in input fields
@@ -105,6 +111,12 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.27
+
+- New: Add new setting for Clio to enable/disable time entry
+- Fix: Refresh contact for deleted contact issue
+- Fix: Click-to-sms button issue
 
 ## 1.6.26
 
