@@ -256,6 +256,57 @@ describe('Managed Auth Handler', () => {
     expect(state.missingRequiredFieldConsts).toEqual(['apiKey', 'tenantId']);
   });
 
+  test('getManagedAuthState falls back to the full auth form after managed auto-login fails', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
+                  { const: 'region', required: false }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    await managedAuthHandler.upsertOrgManagedAuthValues({
+      rcAccountId: 'acc-fallback',
+      platform: 'testCRM',
+      values: { tenantId: 'tenant-1' }
+    });
+    await managedAuthHandler.upsertUserManagedAuthValues({
+      rcAccountId: 'acc-fallback',
+      platform: 'testCRM',
+      rcExtensionId: '501',
+      rcUserName: 'Agent 501',
+      values: { apiKey: 'bad-key' }
+    });
+    await managedAuthHandler.markManagedAuthLoginFailure({
+      rcAccountId: 'acc-fallback',
+      platform: 'testCRM',
+      rcExtensionId: '501'
+    });
+
+    const state = await managedAuthHandler.getManagedAuthState({
+      platform: 'testCRM',
+      rcAccountId: 'acc-fallback',
+      rcExtensionId: '501'
+    });
+
+    expect(state.hasManagedAuth).toBe(true);
+    expect(state.allRequiredFieldsSatisfied).toBe(false);
+    expect(state.visibleFieldConsts).toBeNull();
+    expect(state.missingRequiredFieldConsts).toEqual(['tenantId', 'apiKey']);
+    expect(state.fallbackToManualAuth).toBe(true);
+  });
+
   test('resolveApiKeyLoginFields keeps submitted shared values when managed values are missing', async () => {
     connectorRegistry.getManifest.mockReturnValue({
       platforms: {
@@ -292,6 +343,57 @@ describe('Managed Auth Handler', () => {
       userToken: 'user-token-123',
       region: 'us'
     });
+    expect(result.missingRequiredFieldConsts).toEqual([]);
+  });
+
+  test('resolveApiKeyLoginFields prefers submitted managed values during manual fallback', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'companyId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    await managedAuthHandler.upsertOrgManagedAuthValues({
+      rcAccountId: 'acc-override',
+      platform: 'testCRM',
+      values: { companyId: 'stored-company' }
+    });
+    await managedAuthHandler.upsertUserManagedAuthValues({
+      rcAccountId: 'acc-override',
+      platform: 'testCRM',
+      rcExtensionId: '777',
+      rcUserName: 'Agent 777',
+      values: { apiKey: 'stored-key' }
+    });
+
+    const result = await managedAuthHandler.resolveApiKeyLoginFields({
+      platform: 'testCRM',
+      rcAccountId: 'acc-override',
+      rcExtensionId: '777',
+      additionalInfo: {
+        companyId: 'manual-company',
+        apiKey: 'manual-key'
+      },
+      preferSubmittedValuesForManagedFields: true
+    });
+
+    expect(result.resolvedAdditionalInfo).toEqual({
+      companyId: 'manual-company',
+      apiKey: 'manual-key'
+    });
+    expect(result.resolvedApiKey).toBe('manual-key');
     expect(result.missingRequiredFieldConsts).toEqual([]);
   });
 

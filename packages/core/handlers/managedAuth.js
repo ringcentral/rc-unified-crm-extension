@@ -6,9 +6,14 @@ const { encode, decoded } = require('../lib/encode');
 
 const MANAGED_AUTH_ORG_DATA_KEY = 'managed-auth-org';
 const MANAGED_AUTH_USER_DATA_KEY = 'managed-auth-user';
+const MANAGED_AUTH_LOGIN_FAILURE_DATA_KEY = 'managed-auth-login-failure';
 
 function getUserManagedAuthDataKey({ rcExtensionId }) {
     return `${MANAGED_AUTH_USER_DATA_KEY}:${rcExtensionId}`;
+}
+
+function getManagedAuthLoginFailureDataKey({ rcExtensionId }) {
+    return `${MANAGED_AUTH_LOGIN_FAILURE_DATA_KEY}:${rcExtensionId}`;
 }
 
 function isFilled(value) {
@@ -100,6 +105,56 @@ async function getUserManagedAuthValues({ rcAccountId, platform, rcExtensionId }
         decryptedFields[key] = decryptStoredValue(fields[key]);
     });
     return decryptedFields;
+}
+
+async function hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcExtensionId) {
+        return false;
+    }
+    const record = await getManagedAuthRecord({
+        rcAccountId,
+        platform,
+        dataKey: getManagedAuthLoginFailureDataKey({ rcExtensionId })
+    });
+    return !!record;
+}
+
+async function markManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcAccountId || !platform || !rcExtensionId) {
+        return;
+    }
+    const dataKey = getManagedAuthLoginFailureDataKey({ rcExtensionId });
+    const existingRecord = await getManagedAuthRecord({
+        rcAccountId,
+        platform,
+        dataKey
+    });
+    const data = {
+        failedAt: new Date().toISOString()
+    };
+    if (existingRecord) {
+        await existingRecord.update({ data });
+        return existingRecord;
+    }
+    return AccountDataModel.create({
+        rcAccountId,
+        platformName: platform,
+        dataKey,
+        data
+    });
+}
+
+async function clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcAccountId || !platform || !rcExtensionId) {
+        return 0;
+    }
+    return AccountDataModel.destroy({
+        where: {
+            rcAccountId,
+            platformName: platform,
+            dataKey: getManagedAuthLoginFailureDataKey({ rcExtensionId })
+        }
+    });
 }
 
 async function upsertOrgManagedAuthValues({ rcAccountId, platform, values = {}, fieldsToRemove = [] }) {
@@ -256,6 +311,7 @@ async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, conne
     const managedFieldDefinitions = fieldDefinitions.filter(field => field?.managed);
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
     const userValues = await getUserManagedAuthValues({ rcAccountId, platform, rcExtensionId });
+    const hasLoginFailureFallback = await hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
 
     const visibleFieldConsts = [];
     const missingRequiredFieldConsts = [];
@@ -267,7 +323,18 @@ async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, conne
             hasManagedAuth: false,
             allRequiredFieldsSatisfied: false,
             visibleFieldConsts: null,
-            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const)
+            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const),
+            fallbackToManualAuth: false
+        };
+    }
+
+    if (hasLoginFailureFallback) {
+        return {
+            hasManagedAuth: true,
+            allRequiredFieldsSatisfied: false,
+            visibleFieldConsts: null,
+            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const),
+            fallbackToManualAuth: true
         };
     }
 
@@ -294,11 +361,12 @@ async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, conne
         hasManagedAuth: managedFieldDefinitions.length > 0,
         allRequiredFieldsSatisfied,
         visibleFieldConsts,
-        missingRequiredFieldConsts
+        missingRequiredFieldConsts,
+        fallbackToManualAuth: false
     };
 }
 
-async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false, apiKey, additionalInfo = {} }) {
+async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false, apiKey, additionalInfo = {}, preferSubmittedValuesForManagedFields = false }) {
     const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
     const resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
@@ -324,7 +392,7 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
             : orgValues[field.const];
         // Prefer managed values when configured, but fall back to submitted
         // auth-page input so missing managed fields can still be supplied.
-        if (isFilled(storedValue)) {
+        if (isFilled(storedValue) && !(preferSubmittedValuesForManagedFields && isFilled(resolvedAdditionalInfo[field.const]))) {
             resolvedAdditionalInfo[field.const] = storedValue;
         }
 
@@ -368,6 +436,9 @@ exports.getApiKeyFieldDefinitions = getApiKeyFieldDefinitions;
 exports.getManagedFieldDefinitions = getManagedFieldDefinitions;
 exports.getManagedAuthAdminSettings = getManagedAuthAdminSettings;
 exports.getManagedAuthState = getManagedAuthState;
+exports.hasManagedAuthLoginFailure = hasManagedAuthLoginFailure;
+exports.markManagedAuthLoginFailure = markManagedAuthLoginFailure;
+exports.clearManagedAuthLoginFailure = clearManagedAuthLoginFailure;
 exports.resolveApiKeyLoginFields = resolveApiKeyLoginFields;
 exports.persistSubmittedManagedValues = persistSubmittedManagedValues;
 exports.upsertOrgManagedAuthValues = upsertOrgManagedAuthValues;

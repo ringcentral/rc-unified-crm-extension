@@ -1088,6 +1088,12 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
+            if (!rcAccessToken) {
+                tracer?.trace('apiKeyLogin:missingRcAccessToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
+                return;
+            }
+            const { rcAccountId, rcExtensionId, rcUserName } = await adminCore.validateRcUserToken({ rcAccessToken });
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
                 hostname,
