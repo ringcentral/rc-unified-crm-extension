@@ -1,4 +1,16 @@
 {
+    "1.7.21": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Refresh contact for deleted contact issue"
+            },
+            {
+                "type": "Fix",
+                "description": "Click-to-sms button issue"
+            }
+        ]
+    },
     "1.7.20": {
         "global": [
             {

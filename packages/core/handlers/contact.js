@@ -80,7 +80,8 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         const { successful, matchedContactInfo, returnMessage, extraDataTracking } = await platformModule.findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension, proxyConfig, tracer, isForceRefreshAccountData });
         tracer?.trace('handler.findContact:platformFindResult', { successful, matchedContactInfo });
 
-        if (matchedContactInfo != null && matchedContactInfo?.filter(c => !c.isNewContact)?.length > 0) {
+        const matchedNonNewContacts = matchedContactInfo?.filter(c => !c.isNewContact) ?? [];
+        if (matchedContactInfo != null && matchedNonNewContacts.length > 0) {
             tracer?.trace('handler.findContact:contactsFound', { count: matchedContactInfo.length });
             // save in org data
             // Danger: it does NOT support one RC account mapping to multiple CRM platforms, because contacts will be shared
@@ -104,6 +105,10 @@ async function findContact({ platform, userId, phoneNumber, overridingFormat, is
         }
         else {
             tracer?.trace('handler.findContact:noContactsMatched', { matchedContactInfo });
+            if (isForceRefreshAccountData && existingMatchedContactInfo) {
+                await existingMatchedContactInfo.destroy();
+                tracer?.trace('handler.findContact:staleCacheRemoved', { phoneNumber });
+            }
             if (returnMessage) {
                 return {
                     successful,
