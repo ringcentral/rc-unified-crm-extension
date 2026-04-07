@@ -436,6 +436,168 @@ describe('Contact Handler', () => {
       expect(cachedData.data).toEqual(updatedContact);
     });
 
+    test('should remove cached contact when force refresh returns null', async () => {
+      // Arrange
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+3333333333',
+        data: [{ id: 'stale-contact', name: 'Stale Contact' }]
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockResolvedValue({
+          successful: false,
+          matchedContactInfo: null
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      // Act
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+3333333333',
+        isForceRefreshAccountData: true
+      });
+
+      // Assert
+      expect(result.successful).toBe(false);
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+3333333333'
+        }
+      });
+      expect(cachedData).toBeNull();
+    });
+
+    test('should remove cached contact when force refresh returns empty array', async () => {
+      // Arrange
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+1212121212',
+        data: [{ id: 'stale-contact', name: 'Stale Contact' }]
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockResolvedValue({
+          successful: false,
+          matchedContactInfo: []
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      // Act
+      await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+1212121212',
+        isForceRefreshAccountData: true
+      });
+
+      // Assert
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+1212121212'
+        }
+      });
+      expect(cachedData).toBeNull();
+    });
+
+    test('should remove cached contact when force refresh returns only new contact placeholder', async () => {
+      // Arrange
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+3434343434',
+        data: [{ id: 'stale-contact', name: 'Stale Contact' }]
+      });
+
+      const placeholderContact = [
+        { id: 'new-contact', name: 'Create Contact', isNewContact: true }
+      ];
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockResolvedValue({
+          successful: false,
+          matchedContactInfo: placeholderContact
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      // Act
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+3434343434',
+        isForceRefreshAccountData: true
+      });
+
+      // Assert
+      expect(result.contact).toEqual(placeholderContact);
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+3434343434'
+        }
+      });
+      expect(cachedData).toBeNull();
+    });
+
+    test('should keep cached contact when force refresh connector call errors', async () => {
+      // Arrange
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'testCRM',
+        dataKey: 'contact-+5656565656',
+        data: [{ id: 'stale-contact', name: 'Stale Contact' }]
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        findContact: jest.fn().mockRejectedValue({
+          response: { status: 500 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      // Act
+      const result = await contactHandler.findContact({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        phoneNumber: '+5656565656',
+        isForceRefreshAccountData: true
+      });
+
+      // Assert
+      expect(result.successful).toBe(false);
+      const cachedData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'testCRM',
+          dataKey: 'contact-+5656565656'
+        }
+      });
+      expect(cachedData).not.toBeNull();
+      expect(cachedData.data).toEqual([{ id: 'stale-contact', name: 'Stale Contact' }]);
+    });
+
     test('should work with tracer when provided', async () => {
       // Arrange
       await UserModel.create(mockUser);

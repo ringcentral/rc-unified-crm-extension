@@ -967,11 +967,6 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            if (!apiKey) {
-                tracer?.trace('apiKeyLogin:missingApiKey', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing api key') : 'Missing api key');
-                return;
-            }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId: req.body.rcAccountId, hashedRcExtensionId: hashedExtensionId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
