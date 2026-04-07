@@ -1948,6 +1948,7 @@ async function fetchMonthlySalesforceReportRows(){
         )
     ];
 
+
     if (!filteredUserRcAccountIdList.length) {
         logger.warn('No rcAccountId values found for Bullhorn users; skipping Salesforce query');
         return [];
@@ -1968,7 +1969,7 @@ async function fetchMonthlySalesforceReportRows(){
 
             // Query Salesforce for Account records (one chunk at a time)
             const accountsSoql =
-                'SELECT Id,AH_Name__c,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
+                'SELECT Id,Name,RC_Cancel_Date__c,Accoutn18DigitID__c,Number_of_DL_s__c,Contact_Email__c,Contact_FName__c,Contact_LName__c,Contact_Phone__c,Contact_s_phone__c,RC_User_ID__c,Partner_Account_Name__c ' +
                 `FROM Account WHERE RC_User_ID__c IN ${filteredUserRcAccountIds}`;
 
             const chunkAccounts = await fetchSalesforceQueryAllRecords(accountsSoql);
@@ -1977,7 +1978,7 @@ async function fetchMonthlySalesforceReportRows(){
             }
         }
     } catch (error) {
-        logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack });
+        logger.error('Failed to fetch Salesforce Account data:', { stack: error.stack, error });
         //  await sendErrorReportEmail(error, 'fetchMonthlySalesforceReportRows/salesforce-query');
         return [];
     }
@@ -2021,7 +2022,7 @@ try {
     for (const chunk of acc18Chunks) {
         const contactsSoql =
             "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
-            "Account_Number_of_DLs__c,Parent_Partner_Account__c,Product_Ecomm__c,Product__c " +
+            "Account_Number_of_DLs__c,CSM_Owner__c,Product_Ecomm__c,Product__c " +
             "FROM Contact WHERE AccountId IN (" + chunk.join(',') + ")";
 
         const chunkContacts = await fetchSalesforceQueryAllRecords(contactsSoql);
@@ -2049,7 +2050,7 @@ contacts.forEach(contact => {
         'Last Name': contact.LastName,
         'Email': contact.Email,
         'Company': contact.Company__c,
-        'Partner Account Owner': contact.Parent_Partner_Account__c,
+        'Partner Account Owner': contact.CSM_Owner__c,
         'Partner Account ID': contact.AccountId,
         'Product': contact.Product_Ecomm__c,
         'Seats': contact.Account_Number_of_DLs__c,
