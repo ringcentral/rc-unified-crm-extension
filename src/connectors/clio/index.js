@@ -299,9 +299,6 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
     if (personInfo.data.data.length > 0) {
         // If appointment is true, only include contacts that have an email.
         for (const result of personInfo.data.data) {
-            if (appointment && (!result.primary_email_address || result.primary_email_address.trim() === "")) {
-                continue;
-            }
             const matterInfo = await axios.get(
                 `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                 {
@@ -329,6 +326,7 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
                 name: result.name,
                 type: 'contact',
                 phone: result.primary_phone_number ?? "",
+                email: result.primary_email_address ?? "",
                 additionalInfo: returnedMatters.length > 0 ?
                     {
                         matters: returnedMatters,
@@ -1257,16 +1255,68 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         };
     }
 
+    const existingAttendees = existing?.attendees ?? [];
 
     const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
     const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
     const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
+
+    const toAttendee = (id) => {
+        const n = typeof id === 'number' ? id : Number(id);
+        if (!Number.isFinite(n)) return null;
+        return { id: n, type: 'Contact' };
+    };
+
+    const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+
+    const attendees = (() => {
+        if (!hasAttendeeUpdate) return [];
+
+        const desiredAttendeeSource = patchBody.contacts;
+
+        const desiredAttendeeRefs = Array.isArray(desiredAttendeeSource) && desiredAttendeeSource.length
+            ? desiredAttendeeSource
+                .map(c => {
+                    if (c && typeof c === 'object') {
+                        return toAttendee(c.id);
+                    }
+                    return toAttendee(c);
+                })
+                .filter(Boolean)
+            : [];
+
+        const desiredAttendeeIdSet = new Set(desiredAttendeeRefs.map(a => `${a.id}`));
+
+        const existingAttendeeRefs = (existingAttendees ?? [])
+            .map(a => {
+                if (a?.id == null) return null;
+                const n = typeof a.id === 'number' ? a.id : Number(a.id);
+                
+                return { id: n, type: 'Contact' };
+            })
+            .filter(Boolean);
+
+        // Only remove (destroy) those existing attendees that are NOT in the desired list.
+        const removedAttendeeRefs = existingAttendeeRefs
+            .filter(a => !desiredAttendeeIdSet.has(`${a.id}`))
+            .map(a => ({ id: a.id, type:'Contact', _destroy: true }));
+
+        const mergedAttendeeRefs = [...removedAttendeeRefs, ...desiredAttendeeRefs];
+        const seenKeys = new Set();
+        return mergedAttendeeRefs.filter(a => {
+            const key = `${a.id}:${a.type ?? 'Contact'}:${a._destroy ? '1' : '0'}`;
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+        });
+    })();
     const updateBody = {
         data: {
             summary: patchBody?.title ?? '',
             description: patchBody?.summary ?? '',
             start_at: startAt,
             end_at: endAt,
+            ...(hasAttendeeUpdate ? { attendees } : {})
         }
     };
 
