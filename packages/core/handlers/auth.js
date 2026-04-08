@@ -80,6 +80,9 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
 
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
+    const managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+    const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
+        && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
     const {
         resolvedAdditionalInfo,
         resolvedApiKey,
@@ -91,7 +94,8 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         connectorId,
         isPrivate,
         apiKey,
-        additionalInfo
+        additionalInfo,
+        preferSubmittedValuesForManagedFields: shouldFallbackToManualAuth
     });
     if (missingRequiredFieldConsts.length > 0) {
         return {
@@ -114,6 +118,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
         proxyId
     });
     if (successful) {
+        await managedAuthCore.clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         let userInfo = null;
         try {
             userInfo = await saveUserInfo({
@@ -137,11 +142,12 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
             returnMessage
         };
     }
-    else {
-        return {
-            userInfo: null,
-            returnMessage
-        }
+    if (managedFieldDefinitions.length > 0) {
+        await managedAuthCore.markManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
+    }
+    return {
+        userInfo: null,
+        returnMessage
     }
 }
 

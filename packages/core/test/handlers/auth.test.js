@@ -130,6 +130,81 @@ describe('Auth Handler', () => {
       expect(result.returnMessage).toEqual(mockUserInfo.returnMessage);
     });
 
+    test('should mark managed auth auto-login failure so the next attempt can fall back to manual auth', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-fail',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-org',
+        data: {
+          fields: {
+            tenantId: { version: 1, encrypted: true, value: encode(JSON.stringify('tenant-1')) }
+          }
+        }
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-fail',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-user:101',
+        data: {
+          rcExtensionId: '101',
+          rcUserName: 'Agent 101',
+          fields: {
+            apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('bad-stored-key')) }
+          }
+        }
+      });
+
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn().mockReturnValue('encoded-bad-key'),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: false,
+          platformUserInfo: null,
+          returnMessage: {
+            messageType: 'error',
+            message: 'Invalid API key',
+            ttl: 3000
+          }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-fail',
+        rcExtensionId: '101',
+        additionalInfo: {}
+      });
+
+      expect(result.userInfo).toBeNull();
+      const failureRecord = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-fail',
+          platformName: 'testCRM',
+          dataKey: 'managed-auth-login-failure:101'
+        }
+      });
+      expect(failureRecord).not.toBeNull();
+    });
+
     test('should merge stored org managed auth values into additionalInfo', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
@@ -139,8 +214,8 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'apiKey', required: true, shared: true, sharedScope: 'org' },
-                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -193,7 +268,7 @@ describe('Auth Handler', () => {
       }));
     });
 
-    test('should not allow submitted shared fields to satisfy missing required managed auth values', async () => {
+    test('should allow submitted shared fields to satisfy missing required managed auth values', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
           testCRM: {
@@ -202,7 +277,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                 content: [
-                    { const: 'companyId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'companyId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -214,7 +289,15 @@ describe('Auth Handler', () => {
 
       const mockConnector = global.testUtils.createMockConnector({
         getBasicAuth: jest.fn(),
-        getUserInfo: jest.fn()
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: {
+            id: 'test-user-id',
+            name: 'Test User',
+            platformAdditionalInfo: {}
+          },
+          returnMessage: { messageType: 'success', message: 'ok' }
+        })
       });
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
@@ -228,15 +311,13 @@ describe('Auth Handler', () => {
         }
       });
 
-      expect(result.userInfo).toBeNull();
-      expect(result.returnMessage).toEqual({
-        messageType: 'warning',
-        message: 'Missing required authentication fields.',
-        ttl: 3000,
-        missingRequiredFieldConsts: ['companyId']
-      });
-      expect(mockConnector.getBasicAuth).not.toHaveBeenCalled();
-      expect(mockConnector.getUserInfo).not.toHaveBeenCalled();
+      expect(result.userInfo).not.toBeNull();
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        additionalInfo: expect.objectContaining({
+          companyId: 'company-123',
+          userToken: 'user-token-1'
+        })
+      }));
     });
 
     test('should not persist submitted managed auth values from end users', async () => {
@@ -248,7 +329,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                 content: [
-                    { const: 'companyId', required: false, shared: true, sharedScope: 'org' },
+                    { const: 'companyId', required: false, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -284,8 +365,9 @@ describe('Auth Handler', () => {
       });
 
       expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
-        additionalInfo: expect.not.objectContaining({
-          companyId: 'company-123'
+        additionalInfo: expect.objectContaining({
+          companyId: 'company-123',
+          userToken: 'user-token-1'
         })
       }));
 
@@ -299,6 +381,100 @@ describe('Auth Handler', () => {
       expect(stored).toBeNull();
     });
 
+    test('should allow manual fallback values to override stored managed credentials and clear failure state after success', async () => {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-recover',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-org',
+        data: {
+          fields: {
+            tenantId: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-tenant')) }
+          }
+        }
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-recover',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-user:202',
+        data: {
+          rcExtensionId: '202',
+          rcUserName: 'Agent 202',
+          fields: {
+            apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-bad-key')) }
+          }
+        }
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-recover',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-login-failure:202',
+        data: {
+          failedAt: '2026-04-07T00:00:00.000Z'
+        }
+      });
+
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn().mockReturnValue('encoded-manual-key'),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: {
+            id: 'test-user-id',
+            name: 'Recovered User',
+            platformAdditionalInfo: {}
+          },
+          returnMessage: { messageType: 'success', message: 'ok' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-recover',
+        rcExtensionId: '202',
+        additionalInfo: {
+          apiKey: 'manual-good-key',
+          tenantId: 'manual-tenant'
+        }
+      });
+
+      expect(result.userInfo).not.toBeNull();
+      expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'manual-good-key' });
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        additionalInfo: {
+          apiKey: 'manual-good-key',
+          tenantId: 'manual-tenant'
+        }
+      }));
+
+      const failureRecord = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-recover',
+          platformName: 'testCRM',
+          dataKey: 'managed-auth-login-failure:202'
+        }
+      });
+      expect(failureRecord).toBeNull();
+    });
+
     test('should return warning when required auth fields are missing', async () => {
       connectorRegistry.getManifest.mockReturnValue({
         platforms: {
@@ -308,7 +484,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'tenantId', required: true, shared: true, sharedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -836,3 +1012,4 @@ describe('Auth Handler', () => {
     });
   });
 }); 
+

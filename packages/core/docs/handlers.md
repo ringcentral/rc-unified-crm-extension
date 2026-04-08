@@ -118,7 +118,8 @@ Rules implemented here:
 `managedAuth.js`:
 
 - reads API-key field definitions from either the developer portal manifest or the connector registry manifest
-- isolates shared field definitions with `shared: true` and `sharedScope` (`org` or `user`)
+- isolates managed field definitions with `managed: true` and `managedScope` (`org` or `user`)
 - encrypts managed auth values before writing to `AccountDataModel`
 - provides admin views with stored values using `{ hasValue, value }` while keeping database values encrypted at rest
-- resolves login fields by merging stored shared values and non-shared end-user inputs
+- resolves login fields by merging stored managed values and non-managed end-user inputs
+

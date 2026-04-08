@@ -4,11 +4,16 @@ const { AccountDataModel } = require('../models/accountDataModel');
 const { Op } = require('sequelize');
 const { encode, decoded } = require('../lib/encode');
 
-const SHARED_AUTH_ORG_DATA_KEY = 'managed-auth-org';
-const SHARED_AUTH_USER_DATA_KEY = 'managed-auth-user';
+const MANAGED_AUTH_ORG_DATA_KEY = 'managed-auth-org';
+const MANAGED_AUTH_USER_DATA_KEY = 'managed-auth-user';
+const MANAGED_AUTH_LOGIN_FAILURE_DATA_KEY = 'managed-auth-login-failure';
 
 function getUserManagedAuthDataKey({ rcExtensionId }) {
-    return `${SHARED_AUTH_USER_DATA_KEY}:${rcExtensionId}`;
+    return `${MANAGED_AUTH_USER_DATA_KEY}:${rcExtensionId}`;
+}
+
+function getManagedAuthLoginFailureDataKey({ rcExtensionId }) {
+    return `${MANAGED_AUTH_LOGIN_FAILURE_DATA_KEY}:${rcExtensionId}`;
 }
 
 function isFilled(value) {
@@ -34,9 +39,9 @@ async function getApiKeyFieldDefinitions({ platform, connectorId, isPrivate = fa
     }
 }
 
-async function getSharedFieldDefinitions({ platform, connectorId, isPrivate = false }) {
+async function getManagedFieldDefinitions({ platform, connectorId, isPrivate = false }) {
     const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
-    return fieldDefinitions.filter(field => field?.shared);
+    return fieldDefinitions.filter(field => field?.managed);
 }
 
 function encryptStoredValue(value) {
@@ -74,7 +79,7 @@ async function getOrgManagedAuthValues({ rcAccountId, platform }) {
     const record = await getManagedAuthRecord({
         rcAccountId,
         platform,
-        dataKey: SHARED_AUTH_ORG_DATA_KEY
+        dataKey: MANAGED_AUTH_ORG_DATA_KEY
     });
     const fields = record?.data?.fields ?? {};
     const decryptedFields = {};
@@ -102,11 +107,61 @@ async function getUserManagedAuthValues({ rcAccountId, platform, rcExtensionId }
     return decryptedFields;
 }
 
+async function hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcExtensionId) {
+        return false;
+    }
+    const record = await getManagedAuthRecord({
+        rcAccountId,
+        platform,
+        dataKey: getManagedAuthLoginFailureDataKey({ rcExtensionId })
+    });
+    return !!record;
+}
+
+async function markManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcAccountId || !platform || !rcExtensionId) {
+        return;
+    }
+    const dataKey = getManagedAuthLoginFailureDataKey({ rcExtensionId });
+    const existingRecord = await getManagedAuthRecord({
+        rcAccountId,
+        platform,
+        dataKey
+    });
+    const data = {
+        failedAt: new Date().toISOString()
+    };
+    if (existingRecord) {
+        await existingRecord.update({ data });
+        return existingRecord;
+    }
+    return AccountDataModel.create({
+        rcAccountId,
+        platformName: platform,
+        dataKey,
+        data
+    });
+}
+
+async function clearManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId }) {
+    if (!rcAccountId || !platform || !rcExtensionId) {
+        return 0;
+    }
+    return AccountDataModel.destroy({
+        where: {
+            rcAccountId,
+            platformName: platform,
+            dataKey: getManagedAuthLoginFailureDataKey({ rcExtensionId })
+        }
+    });
+}
+
 async function upsertOrgManagedAuthValues({ rcAccountId, platform, values = {}, fieldsToRemove = [] }) {
     const existingRecord = await getManagedAuthRecord({
         rcAccountId,
         platform,
-        dataKey: SHARED_AUTH_ORG_DATA_KEY
+        dataKey: MANAGED_AUTH_ORG_DATA_KEY
     });
     const nextFields = {
         ...(existingRecord?.data?.fields ?? {})
@@ -132,7 +187,7 @@ async function upsertOrgManagedAuthValues({ rcAccountId, platform, values = {}, 
     return AccountDataModel.create({
         rcAccountId,
         platformName: platform,
-        dataKey: SHARED_AUTH_ORG_DATA_KEY,
+        dataKey: MANAGED_AUTH_ORG_DATA_KEY,
         data: nextData
     });
 }
@@ -192,22 +247,22 @@ function getStoredFieldValue({ value }) {
 }
 
 async function getManagedAuthAdminSettings({ platform, rcAccountId, connectorId, isPrivate = false }) {
-    const fieldDefinitions = await getSharedFieldDefinitions({ platform, connectorId, isPrivate });
-    const orgFieldDefinitions = fieldDefinitions.filter(field => field.sharedScope === 'org');
-    const userFieldDefinitions = fieldDefinitions.filter(field => field.sharedScope === 'user');
+    const fieldDefinitions = await getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+    const orgFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'org');
+    const userFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'user');
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
     const userRecords = await AccountDataModel.findAll({
         where: {
             rcAccountId,
             platformName: platform,
             dataKey: {
-                [Op.like]: `${SHARED_AUTH_USER_DATA_KEY}:%`
+                [Op.like]: `${MANAGED_AUTH_USER_DATA_KEY}:%`
             }
         }
     });
     const userEntries = userRecords
         .map(record => {
-            const extensionIdFromDataKey = record.dataKey?.split(`${SHARED_AUTH_USER_DATA_KEY}:`)?.[1];
+            const extensionIdFromDataKey = record.dataKey?.split(`${MANAGED_AUTH_USER_DATA_KEY}:`)?.[1];
             const rcExtensionId = record?.data?.rcExtensionId ?? extensionIdFromDataKey;
             if (!rcExtensionId) {
                 return null;
@@ -253,51 +308,65 @@ async function getManagedAuthAdminSettings({ platform, rcAccountId, connectorId,
 
 async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false }) {
     const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
-    const sharedFieldDefinitions = fieldDefinitions.filter(field => field?.shared);
+    const managedFieldDefinitions = fieldDefinitions.filter(field => field?.managed);
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
     const userValues = await getUserManagedAuthValues({ rcAccountId, platform, rcExtensionId });
+    const hasLoginFailureFallback = await hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
 
     const visibleFieldConsts = [];
     const missingRequiredFieldConsts = [];
     let allRequiredFieldsSatisfied = true;
 
     // Default behavior for connectors without managed auth: render full API key form.
-    if (sharedFieldDefinitions.length === 0) {
+    if (managedFieldDefinitions.length === 0) {
         return {
             hasManagedAuth: false,
             allRequiredFieldsSatisfied: false,
             visibleFieldConsts: null,
-            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const)
+            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const),
+            fallbackToManualAuth: false
+        };
+    }
+
+    if (hasLoginFailureFallback) {
+        return {
+            hasManagedAuth: true,
+            allRequiredFieldsSatisfied: false,
+            visibleFieldConsts: null,
+            missingRequiredFieldConsts: fieldDefinitions.filter(field => field.required).map(field => field.const),
+            fallbackToManualAuth: true
         };
     }
 
     fieldDefinitions.forEach(field => {
-        const storedValue = field.shared
-            ? (field.sharedScope === 'user' ? userValues[field.const] : orgValues[field.const])
+        const storedValue = field.managed
+            ? (field.managedScope === 'user' ? userValues[field.const] : orgValues[field.const])
             : undefined;
         const hasStoredValue = isFilled(storedValue);
-        // Only show remaining required non-shared fields to end users.
-        if (field.required && !field.shared) {
+        // Show any required field the user still needs to provide, including
+        // managed fields that have not been configured yet.
+        if (field.required && (!field.managed || !hasStoredValue)) {
             visibleFieldConsts.push(field.const);
         }
         if (field.required && !hasStoredValue) {
             missingRequiredFieldConsts.push(field.const);
             allRequiredFieldsSatisfied = false;
         }
-        if (field.required && !field.shared) {
+        if (field.required && !field.managed) {
             allRequiredFieldsSatisfied = false;
         }
     });
 
     return {
-        hasManagedAuth: sharedFieldDefinitions.length > 0,
+        hasManagedAuth: managedFieldDefinitions.length > 0,
         allRequiredFieldsSatisfied,
         visibleFieldConsts,
-        missingRequiredFieldConsts
+        missingRequiredFieldConsts,
+        fallbackToManualAuth: false
     };
 }
 
-async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false, apiKey, additionalInfo = {} }) {
+async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false, apiKey, additionalInfo = {}, preferSubmittedValuesForManagedFields = false }) {
     const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
     const resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
@@ -311,22 +380,20 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
     const missingRequiredFieldConsts = [];
 
     fieldDefinitions.forEach(field => {
-        if (!field?.shared) {
+        if (!field?.managed) {
             if (field.required && !isFilled(resolvedAdditionalInfo[field.const])) {
                 missingRequiredFieldConsts.push(field.const);
             }
             return;
         }
 
-        const storedValue = field.sharedScope === 'user'
+        const storedValue = field.managedScope === 'user'
             ? userValues[field.const]
             : orgValues[field.const];
-        // Shared fields are admin-managed only; end-user input for shared fields is ignored.
-        if (isFilled(storedValue)) {
+        // Prefer managed values when configured, but fall back to submitted
+        // auth-page input so missing managed fields can still be supplied.
+        if (isFilled(storedValue) && !(preferSubmittedValuesForManagedFields && isFilled(resolvedAdditionalInfo[field.const]))) {
             resolvedAdditionalInfo[field.const] = storedValue;
-        }
-        else {
-            delete resolvedAdditionalInfo[field.const];
         }
 
         if (field.required && !isFilled(resolvedAdditionalInfo[field.const])) {
@@ -341,35 +408,39 @@ async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, 
     };
 }
 
-async function persistSubmittedSharedValues({ platform, rcAccountId, rcExtensionId, rcUserName, submittedSharedValues = {} }) {
+async function persistSubmittedManagedValues({ platform, rcAccountId, rcExtensionId, rcUserName, submittedManagedValues = {} }) {
     if (!rcAccountId) {
         return;
     }
-    if (Object.keys(submittedSharedValues.org ?? {}).length > 0) {
+    if (Object.keys(submittedManagedValues.org ?? {}).length > 0) {
         await upsertOrgManagedAuthValues({
             rcAccountId,
             platform,
-            values: submittedSharedValues.org
+            values: submittedManagedValues.org
         });
     }
-    if (rcExtensionId && Object.keys(submittedSharedValues.user ?? {}).length > 0) {
+    if (rcExtensionId && Object.keys(submittedManagedValues.user ?? {}).length > 0) {
         await upsertUserManagedAuthValues({
             rcAccountId,
             platform,
             rcExtensionId,
             rcUserName,
-            values: submittedSharedValues.user
+            values: submittedManagedValues.user
         });
     }
 }
 
-exports.SHARED_AUTH_ORG_DATA_KEY = SHARED_AUTH_ORG_DATA_KEY;
-exports.SHARED_AUTH_USER_DATA_KEY = SHARED_AUTH_USER_DATA_KEY;
+exports.MANAGED_AUTH_ORG_DATA_KEY = MANAGED_AUTH_ORG_DATA_KEY;
+exports.MANAGED_AUTH_USER_DATA_KEY = MANAGED_AUTH_USER_DATA_KEY;
 exports.getApiKeyFieldDefinitions = getApiKeyFieldDefinitions;
-exports.getSharedFieldDefinitions = getSharedFieldDefinitions;
+exports.getManagedFieldDefinitions = getManagedFieldDefinitions;
 exports.getManagedAuthAdminSettings = getManagedAuthAdminSettings;
 exports.getManagedAuthState = getManagedAuthState;
+exports.hasManagedAuthLoginFailure = hasManagedAuthLoginFailure;
+exports.markManagedAuthLoginFailure = markManagedAuthLoginFailure;
+exports.clearManagedAuthLoginFailure = clearManagedAuthLoginFailure;
 exports.resolveApiKeyLoginFields = resolveApiKeyLoginFields;
-exports.persistSubmittedSharedValues = persistSubmittedSharedValues;
+exports.persistSubmittedManagedValues = persistSubmittedManagedValues;
 exports.upsertOrgManagedAuthValues = upsertOrgManagedAuthValues;
 exports.upsertUserManagedAuthValues = upsertUserManagedAuthValues;
+

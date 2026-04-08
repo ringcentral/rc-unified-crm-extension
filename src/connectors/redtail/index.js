@@ -50,7 +50,7 @@ async function getUserInfo({ additionalInfo }) {
             returnMessage: {
                 messageType: 'success',
                 message: 'Connected to Redtail.',
-                ttl: 1000
+                ttl: 3000
             }
         }
     }
