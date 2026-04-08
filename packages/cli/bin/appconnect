@@ -35,12 +35,9 @@ program
 program
   .command('add-plugin')
   .description('Add a plugin template to an existing RingCentral App Connect connector project')
-  .argument('<plugin-name>', 'Plugin package folder name under packages/')
+  .argument('<plugin-name>', 'Plugin folder name under src/plugin/')
   .option('-p, --path <connector-path>', 'Path to connector project root (default: current directory)')
   .option('-f, --force', 'Force overwrite if plugin folder exists')
-  .option('--no-install', 'Skip installing dependencies')
-  .option('--no-env', 'Skip copying .env.test to .env')
-  .option('-s, --start', 'Automatically start the dev server after add')
   .action(async (pluginName, options) => {
     try {
       await addPlugin(pluginName, options);

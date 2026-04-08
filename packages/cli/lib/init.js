@@ -103,7 +103,7 @@ async function downloadTemplate(projectName, options) {
       throw new Error(`Connector project not detected at ${connectorRoot}. Install the connector template first.`);
     }
     projectDir = path.relative(process.cwd(), connectorRoot) || '.';
-    fullPath = path.join(connectorRoot, 'packages', pluginFolderName);
+    fullPath = path.join(connectorRoot, 'src', 'plugin', pluginFolderName);
     cleanOnError = false;
 
     if (fs.existsSync(fullPath)) {
@@ -133,12 +133,12 @@ async function downloadTemplate(projectName, options) {
   const archiveUrl = `${TEMPLATE_REPO}/archive/refs/heads/${TEMPLATE_BRANCH}.tar.gz`;
   const tempArchivePath = path.join(fullPath, 'template.tar.gz');
 
-  console.log('Downloading template from GitHub...');
+  console.log('Step 1/3: Downloading template from GitHub...');
 
   try {
     await downloadFile(archiveUrl, tempArchivePath);
 
-    console.log('Extracting template files...');
+    console.log('Step 2/3: Extracting template files...');
     await extract({
       file: tempArchivePath,
       cwd: fullPath
@@ -147,6 +147,7 @@ async function downloadTemplate(projectName, options) {
     const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`, templatePath);
     const files = fs.readdirSync(extractedDir);
 
+    console.log('Step 3/3: Installing template files...');
     for (const file of files) {
       const sourcePath = path.join(extractedDir, file);
       const targetPath = path.join(fullPath, file);
@@ -196,8 +197,8 @@ async function downloadTemplate(projectName, options) {
       const connectorRoot = path.resolve(projectName || process.cwd());
       console.log(`  cd ${connectorRoot}`);
       console.log(`  # plugin template added at: ${fullPath}`);
-      console.log('  npm install');
-      console.log('  npm run dev');
+      console.log('  # import registerPluginRoutes from src/plugin/<plugin-name>/src/pluginApp.js');
+      console.log('  # restart your existing connector dev server');
     } else {
       console.log(`  cd ${projectDir}`);
       console.log('  npm install');
@@ -257,14 +258,14 @@ async function init(projectName, options) {
     const runInCwd = async (cmd, args) => run(cmd, args, { cwd: workDir });
     const manager = detectPackageManager(workDir);
 
-    if (options.install) {
+    if (templateName !== 'plugin' && options.install) {
       console.log(`\nInstalling dependencies using ${manager}...`);
       const { cmd, args } = buildInstallCommand(manager);
       await runInCwd(cmd, args);
       console.log('Dependencies installed');
     }
 
-    if (options.env) {
+    if (templateName !== 'plugin' && options.env) {
       const envSrc = path.join(workDir, '.env.test');
       const envDest = path.join(workDir, '.env');
       if (fs.existsSync(envSrc)) {
@@ -279,7 +280,7 @@ async function init(projectName, options) {
       }
     }
 
-    if (options.start) {
+    if (templateName !== 'plugin' && options.start) {
       console.log('\nStarting development server...');
       const { cmd, args } = buildDevCommand(manager);
       await runInCwd(cmd, args);
@@ -290,13 +291,14 @@ async function init(projectName, options) {
     if (templateName === 'plugin') {
       console.log(`  cd ${workDir}`);
       console.log(`  # plugin template added at: ${fullPath}`);
-      console.log('  # import registerPluginRoutes from packages/<plugin-name>/src/pluginApp.js');
+      console.log('  # import registerPluginRoutes from src/plugin/<plugin-name>/src/pluginApp.js');
+      console.log('  # restart your existing connector dev server');
     } else {
       console.log(`  cd ${projectDir}`);
+      if (!options.install) console.log('  npm install');
+      if (!options.env && templateName === 'default') console.log('  cp .env.test .env');
+      console.log('  npm run dev');
     }
-    if (!options.install) console.log('  npm install');
-    if (!options.env && templateName === 'default') console.log('  cp .env.test .env');
-    console.log('  npm run dev');
   } catch (error) {
     throw new Error(`Failed to initialize project: ${error.message}`);
   }
@@ -316,9 +318,9 @@ async function addPlugin(pluginName, options = {}) {
 
   const normalizedOptions = {
     force: !!derivedOptions.force,
-    install: derivedOptions.install !== false,
-    env: derivedOptions.env !== false,
-    start: !!derivedOptions.start,
+    install: false,
+    env: false,
+    start: false,
     template: derivedOptions.template,
     pluginName: derivedOptions.pluginName
   };
