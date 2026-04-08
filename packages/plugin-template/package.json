@@ -1,0 +1,25 @@
+{
+  "name": "@app-connect/plugin-template",
+  "version": "1.0.0",
+  "description": "Minimal plugin template for RingCentral App Connect",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "prod": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "@app-connect/core": "^1.7.21",
+    "dotenv": "^16.0.3",
+    "serverless-http": "^3.0.3"
+  },
+  "keywords": [
+    "ringcentral",
+    "app-connect",
+    "plugin",
+    "template"
+  ],
+  "author": "Developer name",
+  "license": "ISC"
+}
