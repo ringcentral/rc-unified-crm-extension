@@ -17,7 +17,7 @@ program
   .command('init')
   .description('Initialize a new RingCentral App Connect project')
   .argument('[project-name]', 'Name of the project directory')
-  .option('-t, --template <template>', 'Template to use (default: default)', 'default')
+  .option('-t, --template <template>', 'Template to use: default or plugin (default: default)', 'default')
   .option('-f, --force', 'Force overwrite if directory exists')
   .option('--no-install', 'Skip installing dependencies')
   .option('--no-env', 'Skip copying .env.test to .env')
