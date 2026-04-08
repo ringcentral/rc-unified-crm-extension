@@ -83,10 +83,14 @@ This command validates that a connector project already exists and installs plug
 
 `src/plugin/<plugin-name>`
 
-The template now provides `src/pluginApp.js` (no `server.js` or `lambda.js`) so you can mount plugin routes into your existing connector `src/app.js`.
+The template now provides `src/pluginApp.js` (no `server.js` or `lambda.js`).
+The CLI automatically:
+- adds plugin route registration lines to connector `src/app.js`
+- updates `src/.env` with `SYNC_PLUGIN_ID` and `ASYNC_PLUGIN_ID` using the provided plugin id
 
 **Options:**
 - `plugin-name` - Folder name to create under `src/plugin/`
+- `--plugin-id, -i` - Required plugin id from developer portal profile URL
 - `--path, -p` - Connector project root path (defaults to current directory)
 - `--force, -f` - Overwrite existing plugin folder
 
@@ -94,10 +98,10 @@ The template now provides `src/pluginApp.js` (no `server.js` or `lambda.js`) so 
 
 ```bash
 # From connector root
-npx @app-connect/cli add-plugin my-plugin
+npx @app-connect/cli add-plugin my-plugin --plugin-id yourPluginId
 
 # From anywhere, point to connector root explicitly
-npx @app-connect/cli add-plugin my-plugin --path ../my-crm-connector
+npx @app-connect/cli add-plugin my-plugin --plugin-id yourPluginId --path ../my-crm-connector
 ```
 
 ### Upgrade @app-connect/core in an existing project
@@ -147,6 +151,8 @@ appconnect start [port]
 For plugin template installation, use `add-plugin`.
 The CLI validates connector presence and installs into `src/plugin/<plugin-name>`.
 Since plugin template is an extension to the existing connector service, `add-plugin` does not run dependency install or start commands.
+If plugin id is missing, use this instruction:
+go to plugin profile on developer portal and the url will look like https://appconnect.labs.ringcentral.com/console#/app/plugins/{pluginId}. Use the pluginId to fill in existing .env file under src folder as SYNC_PLUGIN_ID and ASYNC_PLUGIN_ID
 
 ### After Initialization
 
