@@ -12,7 +12,7 @@ const TEMPLATE_PATHS = {
   default: 'packages/template',
   plugin: 'packages/plugin-template'
 };
-const PLUGIN_ID_HELP = 'go to plugin profile on developer portal and the url will look like https://appconnect.labs.ringcentral.com/console#/app/plugins/{pluginId}/overview. Use the pluginId to fill in existing .env file under src folder as SYNC_PLUGIN_ID and ASYNC_PLUGIN_ID';
+const PLUGIN_ID_HELP = 'go to plugin profile on developer portal and the url will look like https://appconnect.labs.ringcentral.com/console#/app/plugins/{pluginId}. Use the pluginId to fill in existing .env file under src folder as SYNC_PLUGIN_ID and ASYNC_PLUGIN_ID';
 
 function isConnectorProject(dirPath) {
   const packageJsonPath = path.join(dirPath, 'package.json');
@@ -147,12 +147,11 @@ function wirePluginRoutesInAppJs({ connectorRoot, pluginName }) {
 }
 
 function updatePluginIdsInEnv({ connectorRoot, pluginId }) {
-  const envPath = path.join(connectorRoot, '.env');
+  const envPath = path.join(connectorRoot, 'src', '.env');
   if (!fs.existsSync(envPath)) {
-    throw new Error(`Missing .env at ${envPath}. ${PLUGIN_ID_HELP}`);
+    throw new Error(`Missing src/.env at ${envPath}. ${PLUGIN_ID_HELP}`);
   }
   let envText = fs.readFileSync(envPath, 'utf8');
-  envText += '\n#plugin\n';
   envText = upsertEnvVar(envText, 'SYNC_PLUGIN_ID', pluginId);
   envText = upsertEnvVar(envText, 'ASYNC_PLUGIN_ID', pluginId);
   fs.writeFileSync(envPath, envText);
@@ -298,48 +297,29 @@ async function downloadTemplate(projectName, options) {
 async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
-    let settled = false;
-    const fail = (error) => {
-      if (settled) return;
-      settled = true;
-      try {
-        file.destroy();
-      } catch { }
-      reject(error);
-    };
-    const succeed = () => {
-      if (settled) return;
-      settled = true;
-      resolve();
-    };
 
     const makeRequest = (requestUrl) => {
       https.get(requestUrl, (response) => {
         if (response.statusCode === 301 || response.statusCode === 302) {
           const location = response.headers.location;
-          response.resume();
           if (location) {
             console.log(`Following redirect to: ${location}`);
             makeRequest(location);
             return;
           }
-          fail(new Error('Redirect response did not include a location header'));
-          return;
         }
 
         if (response.statusCode !== 200) {
-          response.resume();
-          fail(new Error(`Failed to download: ${response.statusCode} ${response.statusMessage}`));
+          reject(new Error(`Failed to download: ${response.statusCode} ${response.statusMessage}`));
           return;
         }
 
         pipeline(response, file)
-          .then(() => succeed())
-          .catch(fail);
-      }).on('error', fail);
+          .then(() => resolve())
+          .catch(reject);
+      }).on('error', reject);
     };
 
-    file.on('error', fail);
     makeRequest(url);
   });
 }

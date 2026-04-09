@@ -445,10 +445,7 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 }
                 else {
                     const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                        data: incomingData,
-                        identity: {
-                            rcExtensionId: 
-                        }
+                        data: incomingData
                     });
                     // eslint-disable-next-line no-param-reassign
                     incomingData = processedResultResponse.data;

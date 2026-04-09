@@ -1,10 +1,5 @@
 # Building your App Connect plugin server
 
-For most developers, plugin endpoints are added to an existing connector service (via plugin route registration in connector `src/app.js`), instead of running a separate standalone service.
-
-!!! note "Standalone plugin service"
-    A standalone plugin service is technically possible, but standalone setup documentation is not yet written.
-
 ## Authentication
 
 When your plugin is configured to "Support OAuth" (the `showAuthorizationButton` manifest field), App Connect will render either a "Connect" or "Logout: button depending upon the current user's login state. These buttons effectively delegate the actual auth flow to the following plugin endpoints.
