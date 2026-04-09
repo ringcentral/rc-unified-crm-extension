@@ -81,14 +81,17 @@ appconnect add-plugin <plugin-name>
 
 This command validates that a connector project already exists and installs plugin template files into:
 
-`src/plugin/<plugin-name>`
+`packages/<plugin-name>`
 
 The template now provides `src/pluginApp.js` (no `server.js` or `lambda.js`) so you can mount plugin routes into your existing connector `src/app.js`.
 
 **Options:**
-- `plugin-name` - Folder name to create under `src/plugin/`
+- `plugin-name` - Folder name to create under `packages/`
 - `--path, -p` - Connector project root path (defaults to current directory)
 - `--force, -f` - Overwrite existing plugin folder
+- `--no-install` - Skip dependency install
+- `--no-env` - Skip copying `.env.test` to `.env`
+- `--start, -s` - Start dev server after add
 
 **Examples:**
 
@@ -145,8 +148,7 @@ appconnect start [port]
 4. **Provides Next Steps**: Shows you what to do next to get started
 
 For plugin template installation, use `add-plugin`.
-The CLI validates connector presence and installs into `src/plugin/<plugin-name>`.
-Since plugin template is an extension to the existing connector service, `add-plugin` does not run dependency install or start commands.
+The CLI validates connector presence and installs into `packages/<plugin-name>`.
 
 ### After Initialization
 
