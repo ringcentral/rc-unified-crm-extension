@@ -43,7 +43,7 @@ appconnect init [project-name]
 **Options:**
 - `project-name` - Name of the project directory (optional, defaults to `my-app-connect-project`)
 - `--force, -f` - Force overwrite if directory exists
-- `--template, -t` - Template to use: `default` or `plugin`
+- `--template, -t` - Template to use (currently only supports `default`)
 - `--no-install` - Skip installing dependencies (installs by default)
 - `--no-env` - Skip copying `.env.test` to `.env` (copies by default if present)
 - `--start, -s` - Automatically run the dev server after init
@@ -62,9 +62,6 @@ npx @app-connect/cli init my-crm-connector --force
 
 # Auto-install deps and copy env (default behavior)
 npx @app-connect/cli init my-crm-connector
-
-# Create a new plugin project from the plugin template
-npx @app-connect/cli init my-plugin-project --template plugin
 
 # Do everything and start the dev server
 npx @app-connect/cli init my-crm-connector -s
@@ -107,9 +104,7 @@ appconnect start [port]
 
 ### What the CLI Does
 
-1. **Downloads Template**: Downloads the selected template from the RingCentral App Connect repository
-   - Connector template: `packages/template`
-   - Plugin template: `packages/plugin-template`
+1. **Downloads Template**: Downloads the latest template from the [RingCentral App Connect repository](https://github.com/ringcentral/rc-unified-crm-extension/tree/main/packages/template)
 2. **Creates Project Structure**: Sets up a new project directory with all necessary files
 3. **Updates Configuration**: Modifies `package.json` with your project name
 4. **Provides Next Steps**: Shows you what to do next to get started

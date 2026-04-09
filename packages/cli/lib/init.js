@@ -8,10 +8,7 @@ const { spawn } = require('child_process');
 
 const TEMPLATE_REPO = 'https://github.com/ringcentral/rc-unified-crm-extension';
 const TEMPLATE_BRANCH = 'main';
-const TEMPLATE_PATHS = {
-  default: 'packages/template',
-  plugin: 'packages/plugin-template'
-};
+const TEMPLATE_PATH = 'packages/template';
 
 function detectPackageManager(cwd) {
   const has = (file) => fs.existsSync(path.join(cwd, file));
@@ -61,20 +58,11 @@ function buildDevCommand(manager) {
   }
 }
 
-function getTemplatePath(templateName = 'default') {
-  const templatePath = TEMPLATE_PATHS[templateName];
-  if (!templatePath) {
-    throw new Error(`Unsupported template "${templateName}". Supported templates: ${Object.keys(TEMPLATE_PATHS).join(', ')}`);
-  }
-  return templatePath;
-}
-
 async function downloadTemplate(projectName, options) {
   const projectDir = projectName || 'my-app-connect-project';
   const fullPath = path.resolve(projectDir);
-  const templateName = options.template || 'default';
-  const templatePath = getTemplatePath(templateName);
-
+  
+  // Check if directory exists
   if (fs.existsSync(fullPath)) {
     if (!options.force) {
       throw new Error(`Directory ${projectDir} already exists. Use --force to overwrite.`);
@@ -84,73 +72,77 @@ async function downloadTemplate(projectName, options) {
   }
 
   console.log(`Creating new RingCentral App Connect project: ${projectDir}`);
-  console.log(`Using template: ${templateName}`);
-
+  
+  // Create project directory
   fs.mkdirSync(fullPath, { recursive: true });
-
+  
+  // Download template from GitHub
   const archiveUrl = `${TEMPLATE_REPO}/archive/refs/heads/${TEMPLATE_BRANCH}.tar.gz`;
   const tempArchivePath = path.join(fullPath, 'template.tar.gz');
-
+  
   console.log('Downloading template from GitHub...');
-
+  
   try {
+    // Download the archive
     await downloadFile(archiveUrl, tempArchivePath);
-
+    
+    // Extract the archive
     console.log('Extracting template files...');
     await extract({
       file: tempArchivePath,
       cwd: fullPath
     });
-
-    const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`, templatePath);
+    
+    // Move template files to project root
+    const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`, TEMPLATE_PATH);
     const files = fs.readdirSync(extractedDir);
-
+    
     for (const file of files) {
       const sourcePath = path.join(extractedDir, file);
       const targetPath = path.join(fullPath, file);
-
+      
       if (fs.statSync(sourcePath).isDirectory()) {
         fs.cpSync(sourcePath, targetPath, { recursive: true });
       } else {
         fs.copyFileSync(sourcePath, targetPath);
       }
     }
-
+    
+    // Clean up
     fs.rmSync(path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`), { recursive: true, force: true });
     fs.unlinkSync(tempArchivePath);
-
+    
+    // Update package.json with project name
     const packageJsonPath = path.join(fullPath, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      packageJson.name = (projectName || 'my-app-connect-project').replace(/\s+/g, '-');
+      packageJson.name = projectName || 'my-app-connect-project';
+      packageJson.name = packageJson.name.replace(/\s+/g, '-');
       packageJson.version = '0.0.1';
       packageJson.description = `RingCentral App Connect project: ${projectName || 'my-app-connect-project'}`;
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
-
+    
+    // Update template name with projectName in app.js when registering the connector
     const appJsPath = path.join(fullPath, 'src', 'app.js');
-    if (templateName === 'default' && fs.existsSync(appJsPath) && projectName) {
+    if (fs.existsSync(appJsPath) && projectName) {
       const appJs = fs.readFileSync(appJsPath, 'utf8');
       const updatedAppJs = appJs.replace('\'myCRM\'', `'${projectName}'`);
       fs.writeFileSync(appJsPath, updatedAppJs);
     }
 
-    console.log('\nProject created successfully!');
+    console.log('\n✅ Project created successfully!');
     console.log('\nNext steps:');
     console.log(`  cd ${projectDir}`);
     console.log('  npm install');
-    if (templateName === 'default') {
-      console.log('  cp .env.test .env  # Configure your environment');
-    }
+    console.log('  cp .env.test .env  # Configure your environment');
     console.log('  npm run dev        # Start development server');
+    console.log('\n📖 Documentation: https://ringcentral.github.io/rc-unified-crm-extension/developers/getting-started/');
 
-    const docsUrl = templateName === 'plugin'
-      ? 'https://ringcentral.github.io/rc-unified-crm-extension/developers/plugins/'
-      : 'https://ringcentral.github.io/rc-unified-crm-extension/developers/getting-started/';
-    console.log(`\nDocumentation: ${docsUrl}`);
-
-    return { fullPath, projectDir, templateName };
+    return { fullPath, projectDir };
+    
   } catch (error) {
+    // Clean up on error
     if (fs.existsSync(fullPath)) {
       fs.rmSync(fullPath, { recursive: true, force: true });
     }
@@ -161,9 +153,10 @@ async function downloadTemplate(projectName, options) {
 async function downloadFile(url, dest) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(dest);
-
+    
     const makeRequest = (requestUrl) => {
       https.get(requestUrl, (response) => {
+        // Handle redirects
         if (response.statusCode === 301 || response.statusCode === 302) {
           const location = response.headers.location;
           if (location) {
@@ -172,26 +165,27 @@ async function downloadFile(url, dest) {
             return;
           }
         }
-
+        
         if (response.statusCode !== 200) {
           reject(new Error(`Failed to download: ${response.statusCode} ${response.statusMessage}`));
           return;
         }
-
+        
         pipeline(response, file)
           .then(() => resolve())
           .catch(reject);
       }).on('error', reject);
     };
-
+    
     makeRequest(url);
   });
 }
 
 async function init(projectName, options) {
   try {
-    const { fullPath, projectDir, templateName } = await downloadTemplate(projectName, options);
+    const { fullPath, projectDir } = await downloadTemplate(projectName, options);
 
+    // Post-init automations
     const runInCwd = async (cmd, args) => run(cmd, args, { cwd: fullPath });
     const manager = detectPackageManager(fullPath);
 
@@ -199,7 +193,7 @@ async function init(projectName, options) {
       console.log(`\nInstalling dependencies using ${manager}...`);
       const { cmd, args } = buildInstallCommand(manager);
       await runInCwd(cmd, args);
-      console.log('Dependencies installed');
+      console.log('✅ Dependencies installed');
     }
 
     if (options.env) {
@@ -208,12 +202,12 @@ async function init(projectName, options) {
       if (fs.existsSync(envSrc)) {
         if (!fs.existsSync(envDest)) {
           fs.copyFileSync(envSrc, envDest);
-          console.log('Copied .env.test to .env');
+          console.log('✅ Copied .env.test to .env');
         } else {
-          console.log('.env already exists, skipping copy');
+          console.log('ℹ️  .env already exists, skipping copy');
         }
       } else {
-        console.log('.env.test not found, skipping env setup');
+        console.log('ℹ️  .env.test not found, skipping env setup');
       }
     }
 
@@ -221,17 +215,19 @@ async function init(projectName, options) {
       console.log('\nStarting development server...');
       const { cmd, args } = buildDevCommand(manager);
       await runInCwd(cmd, args);
-      return;
+      return; // keep process attached to dev server lifecycle
     }
 
-    console.log('\nDone. Next:');
+    // Final reminder if not starting automatically
+    console.log(`\nDone. Next:`);
     console.log(`  cd ${projectDir}`);
     if (!options.install) console.log('  npm install');
-    if (!options.env && templateName === 'default') console.log('  cp .env.test .env');
+    if (!options.env) console.log('  cp .env.test .env');
     console.log('  npm run dev');
+
   } catch (error) {
     throw new Error(`Failed to initialize project: ${error.message}`);
   }
 }
 
-module.exports = { init };
+module.exports = { init }; 
