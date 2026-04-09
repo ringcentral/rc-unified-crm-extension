@@ -17,7 +17,7 @@ function registerPluginRoutes(app) {
   // Example usage from your connector src/app.js:
   //
   // const { createCoreApp } = require('@app-connect/core');
-  // const { registerPluginRoutes } = require('./plugin/my-plugin/src/pluginApp');
+  // const { registerPluginRoutes } = require('../packages/my-plugin/src/pluginApp');
   // const app = createCoreApp();
   // registerPluginRoutes(app);
   //

@@ -12,7 +12,6 @@ const TEMPLATE_PATHS = {
   default: 'packages/template',
   plugin: 'packages/plugin-template'
 };
-const PLUGIN_ID_HELP = 'go to plugin profile on developer portal and the url will look like https://appconnect.labs.ringcentral.com/console#/app/plugins/{pluginId}. Use the pluginId to fill in existing .env file under src folder as SYNC_PLUGIN_ID and ASYNC_PLUGIN_ID';
 
 function isConnectorProject(dirPath) {
   const packageJsonPath = path.join(dirPath, 'package.json');
@@ -87,76 +86,6 @@ function getTemplatePath(templateName = 'default') {
   return templatePath;
 }
 
-function toIdentifier(name) {
-  const words = (name || '')
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (words.length === 0) {
-    return 'Plugin';
-  }
-  return words
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join('');
-}
-
-function upsertEnvVar(content, key, value) {
-  const line = `${key}=${value}`;
-  const re = new RegExp(`^${key}=.*$`, 'm');
-  if (re.test(content)) {
-    return content.replace(re, line);
-  }
-  const endsWithNewline = content.length === 0 || content.endsWith('\n');
-  return `${content}${endsWithNewline ? '' : '\n'}${line}\n`;
-}
-
-function wirePluginRoutesInAppJs({ connectorRoot, pluginName }) {
-  const appJsPath = path.join(connectorRoot, 'src', 'app.js');
-  if (!fs.existsSync(appJsPath)) {
-    throw new Error(`Connector src/app.js not found at ${appJsPath}`);
-  }
-
-  const pluginFn = `register${toIdentifier(pluginName)}PluginRoutes`;
-  const requireLine = `const { registerPluginRoutes: ${pluginFn} } = require('./plugin/${pluginName}/src/pluginApp');`;
-  const registerLine = `${pluginFn}(app);`;
-  let appJs = fs.readFileSync(appJsPath, 'utf8');
-
-  if (!appJs.includes(requireLine)) {
-    const createCoreAppMarker = 'const app = createCoreApp();';
-    const idx = appJs.indexOf(createCoreAppMarker);
-    if (idx >= 0) {
-      appJs = `${appJs.slice(0, idx)}${requireLine}\n${appJs.slice(idx)}`;
-    } else {
-      appJs = `${requireLine}\n${appJs}`;
-    }
-  }
-
-  if (!appJs.includes(registerLine)) {
-    const createCoreAppMarker = 'const app = createCoreApp();';
-    const idx = appJs.indexOf(createCoreAppMarker);
-    if (idx >= 0) {
-      const insertAt = idx + createCoreAppMarker.length;
-      appJs = `${appJs.slice(0, insertAt)}\n${registerLine}${appJs.slice(insertAt)}`;
-    } else {
-      appJs = `${appJs}\n${registerLine}\n`;
-    }
-  }
-
-  fs.writeFileSync(appJsPath, appJs);
-}
-
-function updatePluginIdsInEnv({ connectorRoot, pluginId }) {
-  const envPath = path.join(connectorRoot, 'src', '.env');
-  if (!fs.existsSync(envPath)) {
-    throw new Error(`Missing src/.env at ${envPath}. ${PLUGIN_ID_HELP}`);
-  }
-  let envText = fs.readFileSync(envPath, 'utf8');
-  envText = upsertEnvVar(envText, 'SYNC_PLUGIN_ID', pluginId);
-  envText = upsertEnvVar(envText, 'ASYNC_PLUGIN_ID', pluginId);
-  fs.writeFileSync(envPath, envText);
-}
-
 async function downloadTemplate(projectName, options) {
   const templateName = options.template || 'default';
   const templatePath = getTemplatePath(templateName);
@@ -166,9 +95,6 @@ async function downloadTemplate(projectName, options) {
 
   if (templateName === 'plugin') {
     const pluginFolderName = options.pluginName || 'plugin-template';
-    if (!options.pluginId) {
-      throw new Error(`Plugin id is required. ${PLUGIN_ID_HELP}`);
-    }
     const connectorRoot = path.resolve(projectName || process.cwd());
     if (!fs.existsSync(connectorRoot)) {
       throw new Error(`Connector project directory not found: ${connectorRoot}`);
@@ -207,12 +133,12 @@ async function downloadTemplate(projectName, options) {
   const archiveUrl = `${TEMPLATE_REPO}/archive/refs/heads/${TEMPLATE_BRANCH}.tar.gz`;
   const tempArchivePath = path.join(fullPath, 'template.tar.gz');
 
-  console.log('Step 1/5: Downloading template from GitHub...');
+  console.log('Step 1/3: Downloading template from GitHub...');
 
   try {
     await downloadFile(archiveUrl, tempArchivePath);
 
-    console.log('Step 2/5: Extracting template files...');
+    console.log('Step 2/3: Extracting template files...');
     await extract({
       file: tempArchivePath,
       cwd: fullPath
@@ -221,7 +147,7 @@ async function downloadTemplate(projectName, options) {
     const extractedDir = path.join(fullPath, `rc-unified-crm-extension-${TEMPLATE_BRANCH}`, templatePath);
     const files = fs.readdirSync(extractedDir);
 
-    console.log('Step 3/5: Installing template files...');
+    console.log('Step 3/3: Installing template files...');
     for (const file of files) {
       const sourcePath = path.join(extractedDir, file);
       const targetPath = path.join(fullPath, file);
@@ -245,19 +171,20 @@ async function downloadTemplate(projectName, options) {
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
     }
 
+    if (templateName === 'plugin' && fs.existsSync(packageJsonPath) && options.pluginName) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const normalizedPluginName = options.pluginName.replace(/\s+/g, '-');
+      packageJson.name = `@app-connect/${normalizedPluginName}`;
+      packageJson.version = '0.0.1';
+      packageJson.description = `RingCentral App Connect plugin template: ${normalizedPluginName}`;
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    }
+
     const appJsPath = path.join(fullPath, 'src', 'app.js');
     if (templateName === 'default' && fs.existsSync(appJsPath) && projectName) {
       const appJs = fs.readFileSync(appJsPath, 'utf8');
       const updatedAppJs = appJs.replace('\'myCRM\'', `'${projectName}'`);
       fs.writeFileSync(appJsPath, updatedAppJs);
-    }
-
-    if (templateName === 'plugin') {
-      const connectorRoot = path.resolve(projectName || process.cwd());
-      console.log('Step 4/5: Wiring plugin routes into connector src/app.js...');
-      wirePluginRoutesInAppJs({ connectorRoot, pluginName: options.pluginName });
-      console.log('Step 5/5: Updating src/.env plugin ids...');
-      updatePluginIdsInEnv({ connectorRoot, pluginId: options.pluginId });
     }
 
     if (templateName === 'plugin') {
@@ -270,8 +197,7 @@ async function downloadTemplate(projectName, options) {
       const connectorRoot = path.resolve(projectName || process.cwd());
       console.log(`  cd ${connectorRoot}`);
       console.log(`  # plugin template added at: ${fullPath}`);
-      console.log('  # registerPluginRoutes has been added to connector src/app.js');
-      console.log('  # SYNC_PLUGIN_ID and ASYNC_PLUGIN_ID have been set in src/.env');
+      console.log('  # import registerPluginRoutes from src/plugin/<plugin-name>/src/pluginApp.js');
       console.log('  # restart your existing connector dev server');
     } else {
       console.log(`  cd ${projectDir}`);
@@ -363,7 +289,9 @@ async function init(projectName, options) {
 
     console.log('\nDone. Next:');
     if (templateName === 'plugin') {
+      console.log(`  cd ${workDir}`);
       console.log(`  # plugin template added at: ${fullPath}`);
+      console.log('  # import registerPluginRoutes from src/plugin/<plugin-name>/src/pluginApp.js');
       console.log('  # restart your existing connector dev server');
     } else {
       console.log(`  cd ${projectDir}`);
@@ -380,9 +308,6 @@ async function addPlugin(pluginName, options = {}) {
   if (!pluginName) {
     throw new Error('Plugin name is required. Example: appconnect add-plugin my-plugin');
   }
-  if (!options.pluginId) {
-    throw new Error(`Plugin id is required. ${PLUGIN_ID_HELP}`);
-  }
 
   const connectorPath = options.path || process.cwd();
   const derivedOptions = {
@@ -397,8 +322,7 @@ async function addPlugin(pluginName, options = {}) {
     env: false,
     start: false,
     template: derivedOptions.template,
-    pluginName: derivedOptions.pluginName,
-    pluginId: derivedOptions.pluginId
+    pluginName: derivedOptions.pluginName
   };
 
   return init(connectorPath, normalizedOptions);
