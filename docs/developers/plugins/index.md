@@ -9,6 +9,32 @@ Plugins are a light-weight method for allow a service to process content and dat
 
 Use a plugin when you want to extend logging behavior.
 
+## Recommended setup path
+
+The recommended approach is to add plugin code into an existing connector project.
+
+Use the CLI command below from your connector root:
+
+```bash
+appconnect add-plugin <plugin-name> --plugin-id <pluginId>
+```
+
+What this does:
+
+1. Creates plugin template files under `src/plugin/<plugin-name>`.
+2. Updates `src/app.js` to register plugin routes with `registerPluginRoutes(app);`.
+3. Updates `src/.env` with `SYNC_PLUGIN_ID` and `ASYNC_PLUGIN_ID` using the `pluginId` you pass.
+
+How to find `pluginId`:
+
+Go to your plugin profile in Developer Portal. The URL looks like:
+`https://appconnect.labs.ringcentral.com/console#/app/plugins/{pluginId}`
+
+Use that `{pluginId}` value in the CLI command.
+
+!!! note "Standalone plugin service"
+    A standalone plugin service is technically possible, but standalone setup documentation is not yet written.
+
 ## Plugin development workflow
 
 Creating a plugin is a multi-step process:
