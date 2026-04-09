@@ -43,7 +43,7 @@ appconnect init [project-name]
 **Options:**
 - `project-name` - Name of the project directory (optional, defaults to `my-app-connect-project`)
 - `--force, -f` - Force overwrite if directory exists
-- `--template, -t` - Template to use (default: `default`)
+- `--template, -t` - Template to use: `default` or `plugin`
 - `--no-install` - Skip installing dependencies (installs by default)
 - `--no-env` - Skip copying `.env.test` to `.env` (copies by default if present)
 - `--start, -s` - Automatically run the dev server after init
@@ -63,44 +63,11 @@ npx @app-connect/cli init my-crm-connector --force
 # Auto-install deps and copy env (default behavior)
 npx @app-connect/cli init my-crm-connector
 
+# Create a new plugin project from the plugin template
+npx @app-connect/cli init my-plugin-project --template plugin
+
 # Do everything and start the dev server
 npx @app-connect/cli init my-crm-connector -s
-```
-
-### Add Plugin Template to Existing Connector
-
-**With npx (recommended):**
-```bash
-npx @app-connect/cli add-plugin <plugin-name>
-```
-
-**With global installation:**
-```bash
-appconnect add-plugin <plugin-name>
-```
-
-This command validates that a connector project already exists and installs plugin template files into:
-
-`packages/<plugin-name>`
-
-The template now provides `src/pluginApp.js` (no `server.js` or `lambda.js`) so you can mount plugin routes into your existing connector `src/app.js`.
-
-**Options:**
-- `plugin-name` - Folder name to create under `packages/`
-- `--path, -p` - Connector project root path (defaults to current directory)
-- `--force, -f` - Overwrite existing plugin folder
-- `--no-install` - Skip dependency install
-- `--no-env` - Skip copying `.env.test` to `.env`
-- `--start, -s` - Start dev server after add
-
-**Examples:**
-
-```bash
-# From connector root
-npx @app-connect/cli add-plugin my-plugin
-
-# From anywhere, point to connector root explicitly
-npx @app-connect/cli add-plugin my-plugin --path ../my-crm-connector
 ```
 
 ### Upgrade @app-connect/core in an existing project
@@ -146,9 +113,6 @@ appconnect start [port]
 2. **Creates Project Structure**: Sets up a new project directory with all necessary files
 3. **Updates Configuration**: Modifies `package.json` with your project name
 4. **Provides Next Steps**: Shows you what to do next to get started
-
-For plugin template installation, use `add-plugin`.
-The CLI validates connector presence and installs into `packages/<plugin-name>`.
 
 ### After Initialization
 
