@@ -45,7 +45,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                   { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
                 ]
               }
@@ -88,7 +88,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', managed: true, managedScope: 'org' },
+                  { const: 'tenantId', managed: true, managedScope: 'account' },
                   { const: 'apiKey', managed: true, managedScope: 'user' }
                 ]
               }
@@ -159,7 +159,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'orgToken', required: true, managed: true, managedScope: 'org' }
+                  { const: 'orgToken', required: true, managed: true, managedScope: 'account' }
                 ]
               }
             }
@@ -195,7 +195,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                   { const: 'userToken', required: true, managed: true, managedScope: 'user' },
                   { const: 'apiSecret', required: true }
                 ]
@@ -265,7 +265,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                   { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
                   { const: 'region', required: false }
                 ]
@@ -316,9 +316,9 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'companyId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'companyId', required: true, managed: true, managedScope: 'account' },
                   { const: 'userToken', required: true, managed: true, managedScope: 'user' },
-                  { const: 'region', required: false, managed: true, managedScope: 'org' }
+                  { const: 'region', required: false, managed: true, managedScope: 'account' }
                 ]
               }
             }
@@ -355,7 +355,7 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'companyId', required: true, managed: true, managedScope: 'org' },
+                  { const: 'companyId', required: true, managed: true, managedScope: 'account' },
                   { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
                 ]
               }
@@ -414,8 +414,8 @@ describe('Managed Auth Handler', () => {
             apiKey: {
               page: {
                 content: [
-                  { const: 'tenantId', managed: true, managedScope: 'org' },
-                  { const: 'region', managed: true, managedScope: 'org' }
+                  { const: 'tenantId', managed: true, managedScope: 'account' },
+                  { const: 'region', managed: true, managedScope: 'account' }
                 ]
               }
             }

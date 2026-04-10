@@ -248,7 +248,7 @@ function getStoredFieldValue({ value }) {
 
 async function getManagedAuthAdminSettings({ platform, rcAccountId, connectorId, isPrivate = false }) {
     const fieldDefinitions = await getManagedFieldDefinitions({ platform, connectorId, isPrivate });
-    const orgFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'org');
+    const orgFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'account');
     const userFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'user');
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
     const userRecords = await AccountDataModel.findAll({
