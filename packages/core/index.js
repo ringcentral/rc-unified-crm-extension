@@ -135,6 +135,8 @@ function normalizeJwtFromRequest(req, res, next) {
     if (!bearerToken && queryToken) {
         req.headers.authorization = `Bearer ${queryToken}`;
         bearerToken = queryToken;
+        // Don't refresh JWT because old version cannot update its local token storage to support refreshed token.
+        return next();
     }
 
     const token = bearerToken;
