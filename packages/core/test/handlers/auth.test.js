@@ -67,7 +67,7 @@ describe('Auth Handler', () => {
         getBasicAuth: jest.fn().mockReturnValue('dGVzdC1hcGkta2V5Og=='),
         getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
       });
-      
+
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       const requestData = {
@@ -112,7 +112,7 @@ describe('Auth Handler', () => {
         getBasicAuth: jest.fn().mockReturnValue('dGVzdC1hcGkta2V5Og=='),
         getUserInfo: jest.fn().mockResolvedValue(mockUserInfo)
       });
-      
+
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       const requestData = {
@@ -139,7 +139,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                     { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
                   ]
                 }
@@ -214,8 +214,8 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'apiKey', required: true, managed: true, managedScope: 'org' },
-                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'account' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -276,8 +276,8 @@ describe('Auth Handler', () => {
               type: 'apiKey',
               apiKey: {
                 page: {
-                content: [
-                    { const: 'companyId', required: true, managed: true, managedScope: 'org' },
+                  content: [
+                    { const: 'companyId', required: true, managed: true, managedScope: 'account' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -328,8 +328,8 @@ describe('Auth Handler', () => {
               type: 'apiKey',
               apiKey: {
                 page: {
-                content: [
-                    { const: 'companyId', required: false, managed: true, managedScope: 'org' },
+                  content: [
+                    { const: 'companyId', required: false, managed: true, managedScope: 'account' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -391,7 +391,7 @@ describe('Auth Handler', () => {
                 page: {
                   content: [
                     { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
-                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' }
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' }
                   ]
                 }
               }
@@ -484,7 +484,7 @@ describe('Auth Handler', () => {
               apiKey: {
                 page: {
                   content: [
-                    { const: 'tenantId', required: true, managed: true, managedScope: 'org' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
                     { const: 'userToken', required: true }
                   ]
                 }
@@ -555,7 +555,7 @@ describe('Auth Handler', () => {
         getOauthInfo: jest.fn().mockResolvedValue({}),
         authValidation: jest.fn().mockResolvedValue(mockValidationResponse)
       });
-      
+
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       // Mock UserModel.findOne to return a user
@@ -624,7 +624,7 @@ describe('Auth Handler', () => {
         getOauthInfo: jest.fn().mockResolvedValue({}),
         authValidation: jest.fn().mockResolvedValue(mockValidationResponse)
       });
-      
+
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
 
       // Mock UserModel.findOne to return a user
@@ -1011,5 +1011,5 @@ describe('Auth Handler', () => {
       expect(RingCentral).not.toHaveBeenCalled();
     });
   });
-}); 
+});
 

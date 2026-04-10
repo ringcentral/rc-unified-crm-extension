@@ -2,7 +2,7 @@ const { sign, verify } = require('jsonwebtoken');
 const logger = require('./logger');
 
 function generateJwt(data) {
-  return sign(data, process.env.APP_SERVER_SECRET_KEY, { expiresIn: '120y' })
+  return sign(data, process.env.APP_SERVER_SECRET_KEY, { expiresIn: '2w' })
 }
 
 function decodeJwt(token) {
