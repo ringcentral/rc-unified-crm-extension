@@ -211,6 +211,18 @@ describe('MCP Tool: findContactByPhone', () => {
       expect(result.error).toContain('Invalid JWT token');
     });
 
+    test('should return error when decodeJwt returns null', async () => {
+      jwt.decodeJwt.mockReturnValue(null);
+
+      const result = await findContactByPhone.execute({
+        jwtToken: 'invalid-token',
+        phoneNumber: '+1234567890'
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid JWT token');
+    });
+
     test('should return error when platform connector not found', async () => {
       // Arrange
       jwt.decodeJwt.mockReturnValue({
