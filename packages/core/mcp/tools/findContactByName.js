@@ -42,7 +42,11 @@ async function execute(args) {
             throw new Error('Not authenticated. Please connect to your CRM first.');
         }
         // Decode JWT to get userId and platform
-        const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken) {
+            throw new Error('Invalid JWT token');
+        }
+        const { id: userId, platform } = decodedToken;
         
         if (!userId) {
             throw new Error('Invalid JWT token: userId not found');

@@ -32,7 +32,11 @@ async function execute(args) {
         if (!rcAccessToken) {
             throw new Error('RingCentral access token not found');
         }
-        const { id: userId } = jwt.decodeJwt(jwtToken);
+        const decodedToken = jwt.decodeJwt(jwtToken);
+        if (!decodedToken) {
+            throw new Error('Invalid JWT token');
+        }
+        const { id: userId } = decodedToken;
         if (!userId) {
             throw new Error('Invalid JWT token: userId not found');
         }

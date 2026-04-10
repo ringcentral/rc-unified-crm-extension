@@ -108,9 +108,71 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     }
 }
 
+const JWT_REFRESH_THRESHOLD_SECONDS = 7 * 24 * 60 * 60; // 1 week
+const JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS = 365 * 24 * 60 * 60; // 1 year
+
+function getBearerTokenFromRequest(req) {
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    if (!authHeader || typeof authHeader !== 'string') {
+        return null;
+    }
+    const [scheme, token] = authHeader.split(' ');
+    if (!scheme || scheme.toLowerCase() !== 'bearer' || !token) {
+        return null;
+    }
+    return token;
+}
+
+function normalizeJwtFromRequest(req, res, next) {
+    if (req.path?.startsWith('/mcp')) {
+        return next();
+    }
+    const bearerToken = getBearerTokenFromRequest(req);
+    const queryToken = req.query?.jwtToken;
+    const token = bearerToken || queryToken;
+
+    if (!token) {
+        return next();
+    }
+
+    const decodedToken = jwt.decodeJwt(token);
+    if (!decodedToken?.id) {
+        req.invalidJwtToken = true;
+        if (req.query?.jwtToken) {
+            delete req.query.jwtToken;
+        }
+        return next();
+    }
+
+    req.jwtToken = token;
+    req.jwtAuth = decodedToken;
+    req.query.jwtToken = token; // keep legacy route handlers working
+
+    if (typeof decodedToken.exp === 'number') {
+        const now = Math.floor(Date.now() / 1000);
+        const timeLeft = decodedToken.exp - now;
+        const isBearerAuth = !!bearerToken;
+        const shouldRefreshNearExpiry = timeLeft <= JWT_REFRESH_THRESHOLD_SECONDS;
+        // Rotate legacy 120y tokens only for Bearer auth clients (they can persist refreshed headers).
+        const shouldRefreshLegacyLongLivedBearer = isBearerAuth && timeLeft > JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS;
+        if (shouldRefreshNearExpiry || shouldRefreshLegacyLongLivedBearer) {
+            const refreshedToken = jwt.generateJwt({
+                id: decodedToken.id.toString(),
+                platform: decodedToken.platform
+            });
+            res.setHeader('x-refreshed-jwt-token', refreshedToken);
+            req.jwtToken = refreshedToken;
+            req.query.jwtToken = refreshedToken;
+            req.jwtAuth = jwt.decodeJwt(refreshedToken) || decodedToken;
+        }
+    }
+    return next();
+}
+
 // Create a router with all core routes
 function createCoreRouter() {
     const router = express.Router();
+    router.use(normalizeJwtFromRequest);
 
     // Move all app.get, app.post, etc. to router.get, router.post, etc.
     router.get('/releaseNotes', async function (req, res) {
@@ -221,7 +283,14 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('licenseStatus:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    success = false;
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('licenseStatus:noUserId', {});
@@ -1455,7 +1524,13 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('upsertCallDisposition:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('upsertCallDisposition:invalidToken', {});
@@ -1772,7 +1847,14 @@ function createCoreRouter() {
         try {
             const jwtToken = req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('findContactWithName:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    success = false;
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
                 if (isRevokeUserSession) {
@@ -2214,7 +2296,8 @@ function createCoreMiddleware() {
             }
         }),
         cors({
-            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
+            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+            exposedHeaders: ['x-refreshed-jwt-token']
         })
     ];
 }
