@@ -561,7 +561,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('getAdminManagedAuth:start', { query: req.query });
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
@@ -595,7 +595,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('setAdminManagedAuth:start', { body: { scope: req.body?.scope, rcExtensionId: req.body?.rcExtensionId } });
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
