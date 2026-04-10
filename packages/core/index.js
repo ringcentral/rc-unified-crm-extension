@@ -127,9 +127,17 @@ function normalizeJwtFromRequest(req, res, next) {
     if (req.path?.startsWith('/mcp')) {
         return next();
     }
-    const bearerToken = getBearerTokenFromRequest(req);
+    const originalBearerToken = getBearerTokenFromRequest(req);
     const queryToken = req.query?.jwtToken;
-    const token = bearerToken || queryToken;
+    let bearerToken = originalBearerToken;
+
+    // Backward compatibility: promote query jwtToken to Authorization Bearer.
+    if (!bearerToken && queryToken) {
+        req.headers.authorization = `Bearer ${queryToken}`;
+        bearerToken = queryToken;
+    }
+
+    const token = bearerToken;
 
     if (!token) {
         return next();
@@ -146,12 +154,11 @@ function normalizeJwtFromRequest(req, res, next) {
 
     req.jwtToken = token;
     req.jwtAuth = decodedToken;
-    req.query.jwtToken = token; // keep legacy route handlers working
 
     if (typeof decodedToken.exp === 'number') {
         const now = Math.floor(Date.now() / 1000);
         const timeLeft = decodedToken.exp - now;
-        const isBearerAuth = !!bearerToken;
+        const isBearerAuth = !!originalBearerToken;
         const shouldRefreshNearExpiry = timeLeft <= JWT_REFRESH_THRESHOLD_SECONDS;
         // Rotate legacy 120y tokens only for Bearer auth clients (they can persist refreshed headers).
         const shouldRefreshLegacyLongLivedBearer = isBearerAuth && timeLeft > JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS;
@@ -162,7 +169,6 @@ function normalizeJwtFromRequest(req, res, next) {
             });
             res.setHeader('x-refreshed-jwt-token', refreshedToken);
             req.jwtToken = refreshedToken;
-            req.query.jwtToken = refreshedToken;
             req.jwtAuth = jwt.decodeJwt(refreshedToken) || decodedToken;
         }
     }
@@ -281,7 +287,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -355,7 +361,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -458,7 +464,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -526,7 +532,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -589,7 +595,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -650,7 +656,7 @@ function createCoreRouter() {
         tracer?.trace('getServerLoggingSettings:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('getServerLoggingSettings:noToken', {});
             res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -701,7 +707,7 @@ function createCoreRouter() {
         tracer?.trace('setServerLoggingSettings:start', { body: req.body });
         let platformName = null;
         let success = false;
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('setServerLoggingSettings:noToken', {});
             res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -782,7 +788,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -834,7 +840,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform;
@@ -883,7 +889,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('hostname:start', { query: req.query });
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 const user = await UserModel.findByPk(unAuthData?.id);
@@ -1079,7 +1085,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -1146,7 +1152,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 tracer?.trace('findContact:jwtDecoded', { decodedToken });
@@ -1224,7 +1230,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1287,7 +1293,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1338,7 +1344,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1402,7 +1408,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1465,7 +1471,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1522,7 +1528,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1597,7 +1603,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1661,7 +1667,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('scheduleCallDown:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1709,7 +1715,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('getCallDownList:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1750,7 +1756,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             const id = req.query.id;
             if (!jwtToken) {
                 tracer?.trace('deleteCallDownItem:noToken', {});
@@ -1798,7 +1804,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('markCallDownCalled:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1845,7 +1851,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1904,7 +1910,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
@@ -1950,7 +1956,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
@@ -1991,7 +1997,7 @@ function createCoreRouter() {
     router.get('/ringcentral/oauth/callback', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('onRingcentralOAuthCallback:start', { query: req.query });
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const { code } = req.query;
@@ -2015,7 +2021,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const uploadUrl = await s3ErrorLogReport.getUploadUrl({ userId: unAuthData?.id, platform: unAuthData?.platform });
