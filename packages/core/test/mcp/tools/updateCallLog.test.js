@@ -191,6 +191,20 @@ describe('MCP Tool: updateCallLog', () => {
       expect(result.error).toContain('Invalid JWT token');
     });
 
+    test('should return error when decodeJwt returns null', async () => {
+      jwt.decodeJwt.mockReturnValue(null);
+
+      const result = await updateCallLog.execute({
+        jwtToken: 'invalid-token',
+        incomingData: {
+          logData: { sessionId: 'session-123' }
+        }
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid JWT token');
+    });
+
     test('should return error when platform connector not found', async () => {
       // Arrange
       const mockIncomingData = {

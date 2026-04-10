@@ -427,6 +427,21 @@ describe('MCP Tool: createMessageLog', () => {
       expect(result.error).toContain('Invalid JWT token');
     });
 
+    test('should return error when decodeJwt returns null', async () => {
+      jwt.decodeJwt.mockReturnValue(null);
+
+      const result = await createMessageLog.execute({
+        jwtToken: 'invalid-token',
+        incomingData: {
+          sessionId: 'session-123',
+          messageInfo: { from: { phoneNumber: '+1234567890' }, to: [{ phoneNumber: '+1098765432' }] }
+        }
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid JWT token');
+    });
+
     test('should return error when platform connector not found', async () => {
       // Arrange
       const mockIncomingData = {

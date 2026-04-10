@@ -35,6 +35,21 @@ describe('JWT Utility', () => {
       // Assert
       expect(token1).not.toBe(token2);
     });
+
+    test('should generate token with about 2 weeks lifetime', () => {
+      // Arrange
+      const payload = { id: 'user-ttl', platform: 'testCRM' };
+
+      // Act
+      const token = jwt.generateJwt(payload);
+      const decoded = jwt.decodeJwt(token);
+      const lifetimeSeconds = decoded.exp - decoded.iat;
+
+      // Assert
+      // Keep a tiny tolerance to avoid timing flakiness.
+      expect(lifetimeSeconds).toBeGreaterThanOrEqual((14 * 24 * 60 * 60) - 2);
+      expect(lifetimeSeconds).toBeLessThanOrEqual((14 * 24 * 60 * 60) + 2);
+    });
   });
 
   describe('decodeJwt', () => {

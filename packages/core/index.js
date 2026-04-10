@@ -109,9 +109,79 @@ function getAnalyticsVariablesInReqHeaders({ headers }) {
     }
 }
 
+const JWT_REFRESH_THRESHOLD_SECONDS = 7 * 24 * 60 * 60; // 1 week
+const JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS = 365 * 24 * 60 * 60; // 1 year
+
+function getBearerTokenFromRequest(req) {
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    if (!authHeader || typeof authHeader !== 'string') {
+        return null;
+    }
+    const [scheme, token] = authHeader.split(' ');
+    if (!scheme || scheme.toLowerCase() !== 'bearer' || !token) {
+        return null;
+    }
+    return token;
+}
+
+function normalizeJwtFromRequest(req, res, next) {
+    if (req.path?.startsWith('/mcp')) {
+        return next();
+    }
+    const originalBearerToken = getBearerTokenFromRequest(req);
+    const queryToken = req.query?.jwtToken;
+    let bearerToken = originalBearerToken;
+
+    // Backward compatibility: promote query jwtToken to Authorization Bearer.
+    if (!bearerToken && queryToken) {
+        req.headers.authorization = `Bearer ${queryToken}`;
+        bearerToken = queryToken;
+        // Don't refresh JWT because old version cannot update its local token storage to support refreshed token.
+        return next();
+    }
+
+    const token = bearerToken;
+
+    if (!token) {
+        return next();
+    }
+
+    const decodedToken = jwt.decodeJwt(token);
+    if (!decodedToken?.id) {
+        req.invalidJwtToken = true;
+        if (req.query?.jwtToken) {
+            delete req.query.jwtToken;
+        }
+        return next();
+    }
+
+    req.jwtToken = token;
+    req.jwtAuth = decodedToken;
+
+    if (typeof decodedToken.exp === 'number') {
+        const now = Math.floor(Date.now() / 1000);
+        const timeLeft = decodedToken.exp - now;
+        const isBearerAuth = !!originalBearerToken;
+        const shouldRefreshNearExpiry = timeLeft <= JWT_REFRESH_THRESHOLD_SECONDS;
+        // Rotate legacy 120y tokens only for Bearer auth clients (they can persist refreshed headers).
+        const shouldRefreshLegacyLongLivedBearer = isBearerAuth && timeLeft > JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS;
+        if (shouldRefreshNearExpiry || shouldRefreshLegacyLongLivedBearer) {
+            const refreshedToken = jwt.generateJwt({
+                id: decodedToken.id.toString(),
+                platform: decodedToken.platform
+            });
+            res.setHeader('x-refreshed-jwt-token', refreshedToken);
+            req.jwtToken = refreshedToken;
+            req.jwtAuth = jwt.decodeJwt(refreshedToken) || decodedToken;
+        }
+    }
+    return next();
+}
+
 // Create a router with all core routes
 function createCoreRouter() {
     const router = express.Router();
+    router.use(normalizeJwtFromRequest);
 
     // Move all app.get, app.post, etc. to router.get, router.post, etc.
     router.get('/releaseNotes', async function (req, res) {
@@ -220,9 +290,16 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('licenseStatus:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    success = false;
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('licenseStatus:noUserId', {});
@@ -287,7 +364,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -420,7 +497,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -568,7 +645,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -631,7 +708,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -692,7 +769,7 @@ function createCoreRouter() {
         tracer?.trace('getServerLoggingSettings:start', { query: req.query });
         let platformName = null;
         let success = false;
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('getServerLoggingSettings:noToken', {});
             res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -743,7 +820,7 @@ function createCoreRouter() {
         tracer?.trace('setServerLoggingSettings:start', { body: req.body });
         let platformName = null;
         let success = false;
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (!jwtToken) {
             tracer?.trace('setServerLoggingSettings:noToken', {});
             res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -824,7 +901,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -876,7 +953,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform;
@@ -925,7 +1002,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('hostname:start', { query: req.query });
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 const user = await UserModel.findByPk(unAuthData?.id);
@@ -1149,7 +1226,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
@@ -1216,7 +1293,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 tracer?.trace('findContact:jwtDecoded', { decodedToken });
@@ -1294,7 +1371,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1357,7 +1434,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1408,7 +1485,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1472,7 +1549,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1535,7 +1612,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1592,9 +1669,15 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('upsertCallDisposition:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 if (!userId) {
                     tracer?.trace('upsertCallDisposition:invalidToken', {});
@@ -1661,7 +1744,7 @@ function createCoreRouter() {
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1725,7 +1808,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('scheduleCallDown:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1773,7 +1856,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('getCallDownList:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1814,7 +1897,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             const id = req.query.id;
             if (!jwtToken) {
                 tracer?.trace('deleteCallDownItem:noToken', {});
@@ -1862,7 +1945,7 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (!jwtToken) {
                 tracer?.trace('markCallDownCalled:noToken', {});
                 res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
@@ -1909,9 +1992,16 @@ function createCoreRouter() {
         let statusCode = 200;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
-                const { id: userId, platform } = jwt.decodeJwt(jwtToken);
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('findContactWithName:invalidJwtToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Invalid JWT token') : 'Invalid JWT token');
+                    success = false;
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
                 platformName = platform;
                 const { successful, returnMessage, contact, isRevokeUserSession } = await contactCore.findContactWithName({ platform, userId, name: req.query.name });
                 if (isRevokeUserSession) {
@@ -1961,7 +2051,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
@@ -2007,7 +2097,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
@@ -2048,7 +2138,7 @@ function createCoreRouter() {
     router.get('/ringcentral/oauth/callback', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('onRingcentralOAuthCallback:start', { query: req.query });
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const { code } = req.query;
@@ -2072,7 +2162,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.query.jwtToken;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         if (jwtToken) {
             const unAuthData = jwt.decodeJwt(jwtToken);
             const uploadUrl = await s3ErrorLogReport.getUploadUrl({ userId: unAuthData?.id, platform: unAuthData?.platform });
@@ -2353,7 +2443,8 @@ function createCoreMiddleware() {
             }
         }),
         cors({
-            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
+            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+            exposedHeaders: ['x-refreshed-jwt-token']
         })
     ];
 }
