@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.22
+
+- New: Managed auth fields for non-OAuth platforms
+- Fix: Click-to-dial problem on Bullhorn
+
 ## 1.7.21
 
 - New: Add new setting for Clio to enable/disable time entry
@@ -111,6 +116,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.28
+
+- Fix: Click-to-dial problem on Bullhorn
 
 ## 1.6.27
 

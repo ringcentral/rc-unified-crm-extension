@@ -1,4 +1,18 @@
 {
+    "1.7.22": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Managed auth fields for non-OAuth platforms"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial problem on Bullhorn"
+            }
+        ]
+    },
     "1.7.21": {
         "global": [
             {
@@ -310,6 +324,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.28": {
+        "bullhorn": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial problem on Bullhorn"
             }
         ]
     },

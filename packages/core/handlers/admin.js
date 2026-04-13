@@ -22,13 +22,9 @@ async function validateRcUserToken({ rcAccessToken }) {
             },
         });
     const extensionData = rcExtensionResponse.data ?? {};
-    const firstName = extensionData?.contact?.firstName ?? '';
-    const lastName = extensionData?.contact?.lastName ?? '';
-    const fullName = `${firstName} ${lastName}`.trim();
     return {
         rcAccountId: extensionData?.account?.id?.toString() ?? '',
-        rcExtensionId: extensionData?.id?.toString() ?? '',
-        rcUserName: fullName
+        rcExtensionId: extensionData?.id?.toString() ?? ''
     };
 }
 

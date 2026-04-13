@@ -80,33 +80,36 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
 
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    const managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
-    const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
-        && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
-    const {
-        resolvedAdditionalInfo,
-        resolvedApiKey,
-        missingRequiredFieldConsts
-    } = await managedAuthCore.resolveApiKeyLoginFields({
-        platform,
-        rcAccountId,
-        rcExtensionId,
-        connectorId,
-        isPrivate,
-        apiKey,
-        additionalInfo,
-        preferSubmittedValuesForManagedFields: shouldFallbackToManualAuth
-    });
-    if (missingRequiredFieldConsts.length > 0) {
-        return {
-            userInfo: null,
-            returnMessage: {
-                messageType: 'warning',
-                message: 'Missing required authentication fields.',
-                ttl: 3000,
-                missingRequiredFieldConsts
-            }
-        };
+    let resolvedAdditionalInfo = additionalInfo;
+    let resolvedApiKey = apiKey;
+    if (rcAccountId && rcExtensionId) {
+        const managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+        const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
+            && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
+        const managedAuthResult = await managedAuthCore.resolveApiKeyLoginFields({
+            platform,
+            rcAccountId,
+            rcExtensionId,
+            connectorId,
+            isPrivate,
+            apiKey,
+            additionalInfo,
+            preferSubmittedValuesForManagedFields: shouldFallbackToManualAuth
+        });
+        resolvedAdditionalInfo = managedAuthResult.resolvedAdditionalInfo;
+        resolvedApiKey = managedAuthResult.resolvedApiKey;
+        const missingRequiredFieldConsts = managedAuthResult.missingRequiredFieldConsts;
+        if (missingRequiredFieldConsts.length > 0) {
+            return {
+                userInfo: null,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Missing required authentication fields.',
+                    ttl: 3000,
+                    missingRequiredFieldConsts
+                }
+            };
+        }
     }
     const basicAuth = platformModule.getBasicAuth({ apiKey: resolvedApiKey });
     const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({
