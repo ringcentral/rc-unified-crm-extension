@@ -66,6 +66,9 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Transactions | Opportunity                          | Full                        |
 | Transactions | Find Transaction                     | View                        |
 
+!!! note "Employee and Employee Record permissions"
+    The Employee and Employee Record permissions are used for the [user mapping feature](../users/server-side-logging.md#activity-record-owner) used by server side call logging. If you have concerns about granting this permission, feel free to remove it and grant it only to the user who sets up server side call logging, typically an admin.
+
 ## Install the Chrome/Edge extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome web store. 
