@@ -80,10 +80,16 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
 
 async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId, rcExtensionId, connectorId, isPrivate, hashedRcExtensionId, additionalInfo }) {
     const platformModule = connectorRegistry.getConnector(platform);
-    let resolvedAdditionalInfo = additionalInfo;
+    let resolvedAdditionalInfo = {
+        ...(additionalInfo ?? {})
+    };
+    if (resolvedAdditionalInfo.apiKey === undefined && apiKey !== undefined) {
+        resolvedAdditionalInfo.apiKey = apiKey;
+    }
     let resolvedApiKey = apiKey;
-    if (rcAccountId && rcExtensionId) {
-        const managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+    let managedFieldDefinitions = [];
+    if (rcAccountId) {
+        managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
         const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
             && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         const managedAuthResult = await managedAuthCore.resolveApiKeyLoginFields({
@@ -93,7 +99,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
             connectorId,
             isPrivate,
             apiKey,
-            additionalInfo,
+            additionalInfo: resolvedAdditionalInfo,
             preferSubmittedValuesForManagedFields: shouldFallbackToManualAuth
         });
         resolvedAdditionalInfo = managedAuthResult.resolvedAdditionalInfo;
