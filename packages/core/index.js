@@ -1165,12 +1165,13 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            if (!rcAccessToken) {
-                tracer?.trace('apiKeyLogin:missingRcAccessToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
-                return;
+            let rcAccountId = null;
+            let rcExtensionId = null;
+            if (rcAccessToken) {
+                const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken });
+                rcAccountId = rcUserTokenResult.rcAccountId;
+                rcExtensionId = rcUserTokenResult.rcExtensionId;
             }
-            const { rcAccountId, rcExtensionId, rcUserName } = await adminCore.validateRcUserToken({ rcAccessToken });
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
                 hostname,
@@ -1178,7 +1179,6 @@ function createCoreRouter() {
                 proxyId,
                 rcAccountId,
                 rcExtensionId,
-                rcUserName,
                 connectorId,
                 isPrivate,
                 hashedRcExtensionId: hashedExtensionId,

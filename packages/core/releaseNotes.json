@@ -1,4 +1,12 @@
 {
+    "1.7.22": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Managed auth fields for non-OAuth platforms"
+            }
+        ]
+    },
     "1.7.21": {
         "global": [
             {
