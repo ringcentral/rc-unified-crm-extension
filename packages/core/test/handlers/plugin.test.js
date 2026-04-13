@@ -9,18 +9,25 @@ jest.mock('../../models/sequelize', () => {
     }),
   };
 });
+jest.mock('axios');
 
 const pluginHandler = require('../../handlers/plugin');
 const { CacheModel } = require('../../models/cacheModel');
+const { AdminConfigModel } = require('../../models/adminConfigModel');
+const { getHashValue } = require('../../lib/util');
+const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 
 describe('Plugin Handler', () => {
   beforeAll(async () => {
+    process.env.HASH_KEY = 'unit-test-hash-key';
     await CacheModel.sync({ force: true });
+    await AdminConfigModel.sync({ force: true });
   });
 
   afterEach(async () => {
     await CacheModel.destroy({ where: {} });
+    await AdminConfigModel.destroy({ where: {} });
     jest.clearAllMocks();
   });
 
@@ -281,6 +288,108 @@ describe('Plugin Handler', () => {
       // Verify task was NOT removed from cache
       const remainingTask = await CacheModel.findByPk('user-123-initialized-task');
       expect(remainingTask).not.toBeNull();
+    });
+  });
+
+  describe('registerPluginAccount', () => {
+    test('should register plugin account and persist plugin jwt token in admin settings', async () => {
+      const rcAccountId = '12345';
+      const pluginId = 'sync-all-caps';
+      const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        userSettings: {
+          [`plugin_${pluginId}`]: {
+            value: {
+              name: 'plugin.sample',
+              config: {}
+            },
+            customizable: true
+          }
+        }
+      });
+
+      axios.get.mockResolvedValue({
+        data: {
+          platforms: {
+            'plugin.sample': {
+              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`
+            }
+          }
+        }
+      });
+      axios.post.mockResolvedValue({
+        data: {
+          jwtToken: 'plugin-jwt-token'
+        }
+      });
+
+      const result = await pluginHandler.registerPluginAccount({
+        pluginId,
+        rcAccessToken: 'rc-access-token',
+        rcAccountId,
+        pluginAccess: 'public',
+        pluginName: 'plugin.sample'
+      });
+
+      expect(result.successful).toBe(true);
+      expect(axios.post).toHaveBeenCalledWith(
+        `https://plugins.example.com/plugin/${pluginId}/auth/register`,
+        {
+          rcAccessToken: 'rc-access-token',
+          rcAccountId
+        }
+      );
+      const updatedAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+      expect(updatedAdminConfig.userSettings[`plugin_${pluginId}`].value.jwtToken).toBe('plugin-jwt-token');
+    });
+
+    test('should throw when register API does not return jwt token', async () => {
+      const rcAccountId = '12345';
+      const pluginId = 'sync-all-caps';
+      const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        userSettings: {
+          [`plugin_${pluginId}`]: {
+            value: {
+              name: 'plugin.sample',
+              config: {}
+            },
+            customizable: true
+          }
+        }
+      });
+
+      axios.get.mockResolvedValue({
+        data: {
+          platforms: {
+            'plugin.sample': {
+              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`
+            }
+          }
+        }
+      });
+      axios.post.mockResolvedValue({ data: {} });
+
+      await expect(pluginHandler.registerPluginAccount({
+        pluginId,
+        rcAccessToken: 'rc-access-token',
+        rcAccountId,
+        pluginAccess: 'public',
+        pluginName: 'plugin.sample'
+      })).rejects.toThrow('Plugin register API did not return jwtToken');
+    });
+  });
+
+  describe('token header helper', () => {
+    test('should parse refreshed jwt token from response headers', () => {
+      const token = pluginHandler.getRefreshedJwtTokenFromHeaders({
+        headers: {
+          'x-refreshed-jwt-token': 'new-plugin-token'
+        }
+      });
+      expect(token).toBe('new-plugin-token');
     });
   });
 });

@@ -2197,7 +2197,7 @@ function createCoreRouter() {
         let platformName = null;
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const { jwtToken } = req.query;
+        const jwtToken = req.jwtToken || req.query.jwtToken;
         try {
             if (!jwtToken) {
                 tracer?.trace('pluginAsyncTask:noToken', {});
@@ -2228,6 +2228,64 @@ function createCoreRouter() {
             eventName: 'Plugin Async Task',
             interfaceName: 'pluginAsyncTask',
             connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
+    router.post('/plugin/register', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('pluginRegister:start', { body: req.body });
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const { pluginId, rcAccountId, pluginAccess, pluginName } = req.body || {};
+            const rcAccessToken = req.query?.rcAccessToken;
+            if (!pluginId || !rcAccountId) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
+                return;
+            }
+            if (!rcAccessToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Missing RingCentral access token' }) : { successful: false, returnMessage: 'Missing RingCentral access token' });
+                return;
+            }
+            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Admin validation failed' }) : { successful: false, returnMessage: 'Admin validation failed' });
+                return;
+            }
+            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
+                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'rcAccountId mismatch' }) : { successful: false, returnMessage: 'rcAccountId mismatch' });
+                return;
+            }
+
+            await pluginCore.registerPluginAccount({
+                pluginId,
+                rcAccessToken,
+                rcAccountId: rcAccountId?.toString(),
+                pluginAccess,
+                pluginName,
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+            success = true;
+        } catch (e) {
+            logger.error('Plugin register failed', { stack: e.stack });
+            res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: e.message || e }) : { successful: false, returnMessage: e.message || e });
+            tracer?.traceError('pluginRegister:error', e);
+            success = false;
+        }
+
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Plugin Register',
+            interfaceName: 'pluginRegister',
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,

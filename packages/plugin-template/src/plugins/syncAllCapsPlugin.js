@@ -1,21 +1,8 @@
-function getPluginConfig({ user }) {
-  // Recommended practice:
-  // read the plugin setting key from environment instead of hard-coding the
-  // developer-portal-generated key directly in source code.
-  const pluginSettingKey = process.env.PLUGIN_SETTING_KEY;
-  if (!pluginSettingKey) {
-    return {};
-  }
-
-  return user?.userSettings?.[pluginSettingKey]?.value?.config || {};
+function getIgnoredLetters() {
+  return process.env.PLUGIN_IGNORED_LETTERS || '';
 }
 
-function getIgnoredLetters({ user }) {
-  const config = getPluginConfig({ user });
-  return config?.ignoredLetters?.value || '';
-}
-
-function run({ user, data }) {
+function run({ identity, data }) {
   // This is an example plugin implementation, not framework-level structure.
   // It demonstrates the synchronous POST /plugin/:pluginId contract.
   //
@@ -31,7 +18,7 @@ function run({ user, data }) {
   // Required behavior:
   // return the same payload shape App Connect sent you. You may transform
   // fields like note or additionalSubmission, but do not remove required data.
-  const ignoredLetters = getIgnoredLetters({ user });
+  const ignoredLetters = getIgnoredLetters();
   const originalNote = data?.note || '';
 
   let note = '';
@@ -41,6 +28,7 @@ function run({ user, data }) {
 
   return {
     ...data,
+    pluginIdentity: identity,
     note
   };
 }

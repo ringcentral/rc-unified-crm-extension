@@ -1,26 +1,12 @@
 const { CacheModel } = require('@app-connect/core/models/cacheModel');
 
-function getPluginConfig({ user }) {
-  // Recommended practice:
-  // read the plugin setting key from environment instead of hard-coding the
-  // developer-portal-generated key directly in source code.
-  const pluginSettingKey = process.env.PLUGIN_SETTING_KEY;
-  if (!pluginSettingKey) {
-    return {};
-  }
-
-  return user?.userSettings?.[pluginSettingKey]?.value?.config || {};
-}
-
-function getDelayMs({ user }) {
-  const config = getPluginConfig({ user });
-  const rawValue = Number(config?.delayMs?.value);
+function getDelayMs() {
+  const rawValue = Number(process.env.PLUGIN_DELAY_MS || 500);
   return Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : 500;
 }
 
-function getIgnoredLetters({ user }) {
-  const config = getPluginConfig({ user });
-  return config?.ignoredLetters?.value || '';
+function getIgnoredLetters() {
+  return process.env.PLUGIN_IGNORED_LETTERS || '';
 }
 
 function sleep(ms) {
@@ -41,7 +27,7 @@ async function markTaskStatus({ asyncTaskId, status }) {
   await cache.save();
 }
 
-async function run({ user, data, asyncTaskId }) {
+async function run({ identity, data, asyncTaskId }) {
   // This is an example async plugin implementation, not framework-level structure.
   // It demonstrates the asynchronous POST /plugin/:pluginId contract.
   //
@@ -59,8 +45,8 @@ async function run({ user, data, asyncTaskId }) {
   try {
     await markTaskStatus({ asyncTaskId, status: 'processing' });
 
-    const delayMs = getDelayMs({ user });
-    const ignoredLetters = getIgnoredLetters({ user });
+    const delayMs = getDelayMs();
+    const ignoredLetters = getIgnoredLetters();
     const originalNote = data?.note || '';
 
     // This tiny side effect exists only to demonstrate async work.
@@ -79,7 +65,8 @@ async function run({ user, data, asyncTaskId }) {
     await markTaskStatus({ asyncTaskId, status: 'completed' });
     return {
       accepted: true,
-      asyncTaskId
+      asyncTaskId,
+      pluginIdentity: identity
     };
   } catch (error) {
     await markTaskStatus({ asyncTaskId, status: 'failed' });

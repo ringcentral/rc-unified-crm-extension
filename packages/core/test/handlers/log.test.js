@@ -24,6 +24,7 @@ jest.mock('../../models/dynamo/connectorSchema', () => ({
     getProxyConfig: jest.fn()
   }
 }));
+jest.mock('axios');
 
 const logHandler = require('../../handlers/log');
 const { CallLogModel } = require('../../models/callLogModel');
@@ -34,6 +35,7 @@ const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { composeCallLog } = require('../../lib/callLogComposer');
 const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
+const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 
 describe('Log Handler', () => {
@@ -61,6 +63,7 @@ describe('Log Handler', () => {
       id: 'test-user-id',
       platform: 'testCRM',
       accessToken: 'test-access-token',
+      rcAccountId: '12345',
       platformAdditionalInfo: {}
     };
 
@@ -215,6 +218,73 @@ describe('Log Handler', () => {
       const savedLog = await CallLogModel.findOne({ where: { sessionId: 'session-123' } });
       expect(savedLog).not.toBeNull();
       expect(savedLog.thirdPartyLogId).toBe('new-log-123');
+    });
+
+    test('should call plugin with Bearer auth and without query jwt token', async () => {
+      await UserModel.create({
+        ...mockUser,
+        userSettings: {
+          plugin_testPlugin: {
+            value: {
+              name: 'plugin.sample',
+              access: 'public',
+              logTypes: ['call'],
+              isAsync: false,
+              jwtToken: 'plugin-jwt-token'
+            }
+          }
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'new-log-123',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+
+      axios.get.mockResolvedValue({
+        data: {
+          platforms: {
+            'plugin.sample': {
+              endpointUrl: 'https://plugins.example.com/plugin/testPlugin'
+            }
+          }
+        }
+      });
+      axios.post.mockResolvedValue({
+        data: {
+          ...mockIncomingData,
+          note: 'updated by plugin'
+        },
+        headers: {
+          'x-refreshed-jwt-token': 'refreshed-plugin-jwt'
+        }
+      });
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: mockIncomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(true);
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://plugins.example.com/plugin/testPlugin',
+        { data: mockIncomingData },
+        {
+          headers: {
+            Authorization: 'Bearer plugin-jwt-token'
+          }
+        }
+      );
     });
 
     test('should successfully create call log with oauth auth', async () => {

@@ -18,8 +18,32 @@ const logger = require('../lib/logger');
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 const { AccountDataModel } = require('../models/accountDataModel');
+const pluginCore = require('./plugin');
 
-async function createCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+function mergePluginWarnings({ returnMessage, warningMessages }) {
+    if (!warningMessages.length) {
+        return returnMessage;
+    }
+    const warningMessage = warningMessages.join(' ');
+    if (!returnMessage) {
+        return {
+            message: warningMessage,
+            messageType: 'warning',
+            ttl: 5000,
+        };
+    }
+    return {
+        ...returnMessage,
+        message: `${returnMessage.message || ''} ${warningMessage}`.trim(),
+        messageType: returnMessage.messageType === 'error' ? 'error' : 'warning',
+    };
+}
+
+function getPluginWarningMessage({ pluginId }) {
+    return `Plugin ${pluginId} skipped: missing account-level plugin jwtToken. Reinstall or re-register plugin.`;
+}
+
+async function createCallLog({ jwtToken: _jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -122,36 +146,25 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
 
 
         const pluginAsyncTaskIds = [];
+        const pluginWarnings = [];
         // Plugins
         const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
         for (const pluginSetting of loggingPlugins) {
             const pluginId = pluginSetting.id;
-            let pluginDataResponse = null;
-            switch (pluginSetting.value.access) {
-                case 'public':
-                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                    break;
-                case 'private':
-                case 'shared':
-                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
-                    break;
-                default:
-                    throw new Error('Invalid plugin access');
+            const pluginJwtToken = pluginSetting.value.jwtToken;
+            if (!pluginJwtToken) {
+                pluginWarnings.push(getPluginWarningMessage({ pluginId }));
+                continue;
             }
-            const pluginData = pluginDataResponse.data;
-            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            const { pluginManifest } = await pluginCore.resolvePluginManifest({
+                pluginId,
+                pluginAccess: pluginSetting.value.access,
+                rcAccountId: user.rcAccountId,
+                pluginName: pluginSetting.value.name,
+            });
+            const pluginEndpointUrl = pluginManifest.endpointUrl;
             if (!pluginEndpointUrl) {
                 throw new Error('Plugin URL is not set');
-            }
-            else {
-                // check if endpoint has query params already
-                if (pluginEndpointUrl.includes('?')) {
-                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                }
-                else {
-                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                }
             }
             if (pluginSetting.value.isAsync) {
                 const asyncTaskId = `${userId}-${uuidv4()}`;
@@ -166,12 +179,43 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 axios.post(pluginEndpointUrl, {
                     data: incomingData,
                     asyncTaskId
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${pluginJwtToken}`,
+                    },
+                }).then((pluginResponse) => {
+                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                    if (refreshedPluginJwtToken) {
+                        pluginCore.persistPluginJwtTokenBestEffort({
+                            rcAccountId: user.rcAccountId,
+                            pluginId,
+                            jwtToken: refreshedPluginJwtToken,
+                        });
+                    }
+                }).catch((pluginRequestError) => {
+                    logger.error('Async plugin request failed', {
+                        pluginId,
+                        userId,
+                        stack: pluginRequestError.stack,
+                    });
                 });
             }
             else {
                 const processedResultResponse = await axios.post(pluginEndpointUrl, {
                     data: incomingData
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${pluginJwtToken}`,
+                    },
                 });
+                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
+                if (refreshedPluginJwtToken) {
+                    pluginCore.persistPluginJwtTokenBestEffort({
+                        rcAccountId: user.rcAccountId,
+                        pluginId,
+                        jwtToken: refreshedPluginJwtToken,
+                    });
+                }
                 // eslint-disable-next-line no-param-reassign
                 incomingData = processedResultResponse.data;
                 note = incomingData.note;
@@ -242,7 +286,13 @@ async function createCallLog({ jwtToken, platform, userId, incomingData, hashedA
             catch (error) {
                 return handleDatabaseError(error, 'Error creating call log');
             }
-            return { successful: !!logId, logId, returnMessage, extraDataTracking, pluginAsyncTaskIds };
+            return {
+                successful: !!logId,
+                logId,
+                returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
+                extraDataTracking,
+                pluginAsyncTaskIds
+            };
         }
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
@@ -348,7 +398,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ jwtToken: _jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -398,35 +448,25 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
             }
 
             const pluginAsyncTaskIds = [];
+            const pluginWarnings = [];
             // Plugins
             const plugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
             for (const pluginSetting of plugins) {
                 const pluginId = pluginSetting.id;
-                let pluginDataResponse = null;
-                switch (pluginSetting.value.access) {
-                    case 'public':
-                        pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                        break;
-                    case 'private':
-                    case 'shared':
-                        pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
-                        break;
-                    default:
-                        throw new Error('Invalid plugin access');
+                const pluginJwtToken = pluginSetting.value.jwtToken;
+                if (!pluginJwtToken) {
+                    pluginWarnings.push(getPluginWarningMessage({ pluginId }));
+                    continue;
                 }
-                const pluginData = pluginDataResponse.data;
-                const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-                let pluginEndpointUrl = pluginManifest.endpointUrl;
+                const { pluginManifest } = await pluginCore.resolvePluginManifest({
+                    pluginId,
+                    pluginAccess: pluginSetting.value.access,
+                    rcAccountId: user.rcAccountId,
+                    pluginName: pluginSetting.value.name,
+                });
+                const pluginEndpointUrl = pluginManifest.endpointUrl;
                 if (!pluginEndpointUrl) {
                     throw new Error('Plugin URL is not set');
-                }
-                else {
-                    if (pluginEndpointUrl.includes('?')) {
-                        pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                    }
-                    else {
-                        pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                    }
                 }
                 if (pluginSetting.value.isAsync) {
                     const asyncTaskId = `${userId}-${uuidv4()}`;
@@ -441,12 +481,43 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                     axios.post(pluginEndpointUrl, {
                         data: { logInfo: incomingData },
                         asyncTaskId
+                    }, {
+                        headers: {
+                            Authorization: `Bearer ${pluginJwtToken}`,
+                        },
+                    }).then((pluginResponse) => {
+                        const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                        if (refreshedPluginJwtToken) {
+                            pluginCore.persistPluginJwtTokenBestEffort({
+                                rcAccountId: user.rcAccountId,
+                                pluginId,
+                                jwtToken: refreshedPluginJwtToken,
+                            });
+                        }
+                    }).catch((pluginRequestError) => {
+                        logger.error('Async plugin request failed', {
+                            pluginId,
+                            userId,
+                            stack: pluginRequestError.stack,
+                        });
                     });
                 }
                 else {
                     const processedResultResponse = await axios.post(pluginEndpointUrl, {
                         data: incomingData
+                    }, {
+                        headers: {
+                            Authorization: `Bearer ${pluginJwtToken}`,
+                        },
                     });
+                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
+                    if (refreshedPluginJwtToken) {
+                        pluginCore.persistPluginJwtTokenBestEffort({
+                            rcAccountId: user.rcAccountId,
+                            pluginId,
+                            jwtToken: refreshedPluginJwtToken,
+                        });
+                    }
                     // eslint-disable-next-line no-param-reassign
                     incomingData = processedResultResponse.data;
                 }
@@ -534,7 +605,14 @@ async function updateCallLog({ jwtToken, platform, userId, incomingData, hashedA
                 isFromSSCL,
                 proxyConfig,
             });
-            return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking, pluginAsyncTaskIds };
+            return {
+                successful: true,
+                logId: existingCallLog.thirdPartyLogId,
+                updatedNote,
+                returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
+                extraDataTracking,
+                pluginAsyncTaskIds
+            };
         }
         return { successful: false };
     } catch (e) {
@@ -632,6 +710,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const isSharedSMS = !!ownerName;
 
         const pluginAsyncTaskIds = [];
+        const pluginWarnings = [];
         // Plugins
         const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
         const isFax = incomingData.logInfo.messages.some(m => m.type === 'Fax');
@@ -640,31 +719,20 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const plugins = [...smsPlugins, ...faxPlugins];
         for (const pluginSetting of plugins) {
             const pluginId = pluginSetting.id;
-            let pluginDataResponse = null;
-            switch (pluginSetting.value.access) {
-                case 'public':
-                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?type=plugin`);
-                    break;
-                case 'private':
-                case 'shared':
-                    pluginDataResponse = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${pluginId}/manifest?access=internal&type=connector&accountId=${user.rcAccountId}`);
-                    break;
-                default:
-                    throw new Error('Invalid plugin access');
+            const pluginJwtToken = pluginSetting.value.jwtToken;
+            if (!pluginJwtToken) {
+                pluginWarnings.push(getPluginWarningMessage({ pluginId }));
+                continue;
             }
-            const pluginData = pluginDataResponse.data;
-            const pluginManifest = pluginData.platforms[pluginSetting.value.name];
-            let pluginEndpointUrl = pluginManifest.endpointUrl;
+            const { pluginManifest } = await pluginCore.resolvePluginManifest({
+                pluginId,
+                pluginAccess: pluginSetting.value.access,
+                rcAccountId: user.rcAccountId,
+                pluginName: pluginSetting.value.name,
+            });
+            const pluginEndpointUrl = pluginManifest.endpointUrl;
             if (!pluginEndpointUrl) {
                 throw new Error('Plugin URL is not set');
-            }
-            else {
-                if (pluginEndpointUrl.includes('?')) {
-                    pluginEndpointUrl += `&jwtToken=${jwtToken}`;
-                }
-                else {
-                    pluginEndpointUrl += `?jwtToken=${jwtToken}`;
-                }
             }
             if (pluginSetting.value.isAsync) {
                 const asyncTaskId = `${userId}-${uuidv4()}`;
@@ -679,12 +747,43 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 axios.post(pluginEndpointUrl, {
                     data: { logInfo: incomingData },
                     asyncTaskId
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${pluginJwtToken}`,
+                    },
+                }).then((pluginResponse) => {
+                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                    if (refreshedPluginJwtToken) {
+                        pluginCore.persistPluginJwtTokenBestEffort({
+                            rcAccountId: user.rcAccountId,
+                            pluginId,
+                            jwtToken: refreshedPluginJwtToken,
+                        });
+                    }
+                }).catch((pluginRequestError) => {
+                    logger.error('Async plugin request failed', {
+                        pluginId,
+                        userId,
+                        stack: pluginRequestError.stack,
+                    });
                 });
             }
             else {
                 const processedResultResponse = await axios.post(pluginEndpointUrl, {
                     data: incomingData
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${pluginJwtToken}`,
+                    },
                 });
+                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
+                if (refreshedPluginJwtToken) {
+                    pluginCore.persistPluginJwtTokenBestEffort({
+                        rcAccountId: user.rcAccountId,
+                        pluginId,
+                        jwtToken: refreshedPluginJwtToken,
+                    });
+                }
                 // eslint-disable-next-line no-param-reassign
                 incomingData = processedResultResponse.data;
             }
@@ -841,7 +940,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
             }
         }
-        return { successful: true, logIds, returnMessage, extraDataTracking };
+        return {
+            successful: true,
+            logIds,
+            returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
+            extraDataTracking
+        };
     }
     catch (e) {
         return handleApiError(e, platform, 'createMessageLog', { userId });
