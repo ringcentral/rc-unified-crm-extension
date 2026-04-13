@@ -4,6 +4,7 @@
  */
 
 const { spawn } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -26,40 +27,25 @@ function parseJestSummary(output) {
     };
 }
 
-function runJest(cwd, npmArgs) {
+function runJest(cwd, npmArgs, jestArgs = [], summaryFilePath = null) {
     return new Promise((resolve, reject) => {
         const env = { ...process.env, NODE_ENV: 'test' };
         const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-        const usePipedOutput = process.platform !== 'win32';
+        const runArgs = [...npmArgs];
 
-        const child = spawn(npmExecutable, ['run', ...npmArgs], {
+        if (jestArgs.length > 0) {
+            runArgs.push('--', ...jestArgs);
+        }
+
+        const child = spawn(npmExecutable, ['run', ...runArgs], {
             cwd,
             env,
-            stdio: usePipedOutput ? ['inherit', 'pipe', 'pipe'] : 'inherit',
+            stdio: 'inherit',
             shell: true,
         });
 
-        let stdout = '';
-        let stderr = '';
-
-        if (child.stdout) {
-            child.stdout.on('data', (data) => {
-                const str = data.toString();
-                stdout += str;
-                process.stdout.write(str);
-            });
-        }
-
-        if (child.stderr) {
-            child.stderr.on('data', (data) => {
-                const str = data.toString();
-                stderr += str;
-                process.stderr.write(str);
-            });
-        }
-
         child.on('close', (code) => {
-            const summary = usePipedOutput ? parseJestSummary(stdout + stderr) : {
+            let summary = {
                 suitesPassed: 0,
                 suitesTotal: 0,
                 suitesFailed: 0,
@@ -67,6 +53,32 @@ function runJest(cwd, npmArgs) {
                 testsTotal: 0,
                 testsFailed: 0,
             };
+
+            if (summaryFilePath && fs.existsSync(summaryFilePath)) {
+                try {
+                    const jestJson = JSON.parse(fs.readFileSync(summaryFilePath, 'utf8'));
+                    summary = {
+                        suitesPassed: jestJson.numPassedTestSuites || 0,
+                        suitesTotal: jestJson.numTotalTestSuites || 0,
+                        suitesFailed: jestJson.numFailedTestSuites || 0,
+                        testsPassed: jestJson.numPassedTests || 0,
+                        testsTotal: jestJson.numTotalTests || 0,
+                        testsFailed: jestJson.numFailedTests || 0,
+                    };
+                } catch (err) {
+                    // Fallback to zeroed summary if JSON output cannot be parsed.
+                    summary = parseJestSummary('');
+                }
+            }
+
+            if (summaryFilePath) {
+                try {
+                    fs.unlinkSync(summaryFilePath);
+                } catch (err) {
+                    // Ignore temp file cleanup issues.
+                }
+            }
+
             resolve({ code, summary });
         });
 
@@ -75,11 +87,26 @@ function runJest(cwd, npmArgs) {
 }
 
 async function main() {
+    const summaryDir = path.join(ROOT_DIR, '.tmp-test-summaries');
+    fs.mkdirSync(summaryDir, { recursive: true });
+    const rootSummaryFile = path.join(summaryDir, 'root-jest-summary.json');
+    const coreSummaryFile = path.join(summaryDir, 'core-jest-summary.json');
+
     console.log('\n--- Root tests (server) ---\n');
-    const rootResult = await runJest(ROOT_DIR, ['test:root']);
+    const rootResult = await runJest(
+        ROOT_DIR,
+        ['test:root'],
+        ['--json', `--outputFile=${rootSummaryFile}`],
+        rootSummaryFile
+    );
 
     console.log('\n--- Core package tests (@app-connect/core) ---\n');
-    const coreResult = await runJest(ROOT_DIR, ['test', '--workspace=@app-connect/core', '--', '--runInBand']);
+    const coreResult = await runJest(
+        ROOT_DIR,
+        ['test', '--workspace=@app-connect/core'],
+        ['--runInBand', '--json', `--outputFile=${coreSummaryFile}`],
+        coreSummaryFile
+    );
 
     // Overall summary
     const totalSuitesPassed = rootResult.summary.suitesPassed + coreResult.summary.suitesPassed;
