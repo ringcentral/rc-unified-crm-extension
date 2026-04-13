@@ -26,10 +26,10 @@ async function getConnectorManifest({ connectorId, isPrivate = false }) {
     try {
         let response = null;
         if (isPrivate) {
-            response = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${process.env.RC_ACCOUNT_ID}`);
+            response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${process.env.RC_ACCOUNT_ID}`);
         }
         else {
-            response = await axios.get(`${process.env.DEV_PORTAL_URL}/public-api/connectors/${connectorId}/manifest`);
+            response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest`);
         }
         return response.data;
     } catch (error) {
