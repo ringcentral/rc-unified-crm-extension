@@ -142,8 +142,7 @@ describe('Admin Handler', () => {
 
       expect(result).toEqual({
         rcAccountId: 'rc-account-789',
-        rcExtensionId: 'extension-789',
-        rcUserName: 'Alex Johnson'
+        rcExtensionId: 'extension-789'
       });
       expect(axios.get).toHaveBeenCalledWith(
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',

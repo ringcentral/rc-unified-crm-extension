@@ -47,7 +47,6 @@ describe('Managed Auth Routes', () => {
       adminCore.validateRcUserToken.mockResolvedValue({
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
-        rcUserName: 'Validated User',
       });
       managedAuthCore.getManagedAuthState.mockResolvedValue({
         hasManagedAuth: true,
@@ -95,7 +94,6 @@ describe('Managed Auth Routes', () => {
       adminCore.validateRcUserToken.mockResolvedValue({
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
-        rcUserName: 'Validated User',
       });
       authCore.onApiKeyLogin.mockResolvedValue({
         userInfo: {
@@ -125,7 +123,6 @@ describe('Managed Auth Routes', () => {
         platform: 'testCRM',
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
-        rcUserName: 'Validated User',
       }));
     });
   });

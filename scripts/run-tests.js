@@ -29,31 +29,44 @@ function parseJestSummary(output) {
 function runJest(cwd, npmArgs) {
     return new Promise((resolve, reject) => {
         const env = { ...process.env, NODE_ENV: 'test' };
+        const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+        const usePipedOutput = process.platform !== 'win32';
 
-        const child = spawn('npm', ['run', ...npmArgs], {
+        const child = spawn(npmExecutable, ['run', ...npmArgs], {
             cwd,
             env,
-            stdio: ['inherit', 'pipe', 'pipe'],
-            shell: true, // Required on Windows to find npm
+            stdio: usePipedOutput ? ['inherit', 'pipe', 'pipe'] : 'inherit',
+            shell: true,
         });
 
         let stdout = '';
         let stderr = '';
 
-        child.stdout.on('data', (data) => {
-            const str = data.toString();
-            stdout += str;
-            process.stdout.write(str);
-        });
+        if (child.stdout) {
+            child.stdout.on('data', (data) => {
+                const str = data.toString();
+                stdout += str;
+                process.stdout.write(str);
+            });
+        }
 
-        child.stderr.on('data', (data) => {
-            const str = data.toString();
-            stderr += str;
-            process.stderr.write(str);
-        });
+        if (child.stderr) {
+            child.stderr.on('data', (data) => {
+                const str = data.toString();
+                stderr += str;
+                process.stderr.write(str);
+            });
+        }
 
         child.on('close', (code) => {
-            const summary = parseJestSummary(stdout + stderr);
+            const summary = usePipedOutput ? parseJestSummary(stdout + stderr) : {
+                suitesPassed: 0,
+                suitesTotal: 0,
+                suitesFailed: 0,
+                testsPassed: 0,
+                testsTotal: 0,
+                testsFailed: 0,
+            };
             resolve({ code, summary });
         });
 
@@ -66,7 +79,7 @@ async function main() {
     const rootResult = await runJest(ROOT_DIR, ['test:root']);
 
     console.log('\n--- Core package tests (@app-connect/core) ---\n');
-    const coreResult = await runJest(ROOT_DIR, ['test', '--workspace=@app-connect/core']);
+    const coreResult = await runJest(ROOT_DIR, ['test', '--workspace=@app-connect/core', '--', '--runInBand']);
 
     // Overall summary
     const totalSuitesPassed = rootResult.summary.suitesPassed + coreResult.summary.suitesPassed;
