@@ -2,7 +2,7 @@ function getIgnoredLetters() {
   return process.env.PLUGIN_IGNORED_LETTERS || '';
 }
 
-function run({ identity, data }) {
+function run({ identity, data, config }) {
   // This is an example plugin implementation, not framework-level structure.
   // It demonstrates the synchronous POST /plugin/:pluginId contract.
   //
@@ -18,12 +18,12 @@ function run({ identity, data }) {
   // Required behavior:
   // return the same payload shape App Connect sent you. You may transform
   // fields like note or additionalSubmission, but do not remove required data.
-  const ignoredLetters = getIgnoredLetters();
   const originalNote = data?.note || '';
+  const ignoreLetters = config.ignoreLetters || '';
 
   let note = '';
   for (const letter of originalNote) {
-    note += ignoredLetters.includes(letter) ? letter : letter.toUpperCase();
+    note += ignoreLetters.value.includes(letter) ? letter : letter.toUpperCase();
   }
 
   return {

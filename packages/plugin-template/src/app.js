@@ -43,7 +43,7 @@ app.get('/', (req, res) => {
   res.send('App Connect Plugin Template Server - OK');
 });
 
-app.post('/plugin/:pluginId/auth/register', async function pluginRegisterHandler(req, res) {
+app.post('/auth/register', async function pluginRegisterHandler(req, res) {
   try {
     const { rcAccessToken, rcAccountId } = req.body || {};
     const validatedIdentity = await validateRcIdentity({ rcAccessToken });
@@ -63,27 +63,11 @@ app.post('/plugin/:pluginId/auth/register', async function pluginRegisterHandler
   }
 });
 
-app.post('/plugin/:pluginId', validateAndRefreshPluginToken, async function pluginHandler(req, res) {
+app.post('/plugin/all_cap', validateAndRefreshPluginToken, async function pluginHandler(req, res) {
   try {
     const pluginIdentity = req.pluginAuth;
-    switch (req.params.pluginId) {
-      case SYNC_PLUGIN_ID: {
-        const result = syncAllCapsPlugin.run({ identity: pluginIdentity, data: req.body.data });
-        res.status(200).send(result);
-        return;
-      }
-      case ASYNC_PLUGIN_ID: {
-        const result = await asyncAllCapsPlugin.run({
-          identity: pluginIdentity,
-          data: req.body.data,
-          asyncTaskId: req.body.asyncTaskId
-        });
-        res.status(200).send(result);
-        return;
-      }
-      default:
-        res.status(400).send('Unknown plugin');
-    }
+    const result = syncAllCapsPlugin.run({ identity: pluginIdentity, data: req.body.data, config: req.body.config });
+    res.status(200).send(result);
   } catch (error) {
     console.error(error);
     res.status(500).send('Plugin request failed');
