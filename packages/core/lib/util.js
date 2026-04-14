@@ -60,26 +60,8 @@ function getMediaReaderLinkByPlatformMediaLink(platformMediaLink) {
     return `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodedPlatformMediaLink}`;
 }
 
-function getPluginsFromUserSettings({ userSettings, logType }) {
-    const result = [];
-    if (!userSettings) {
-        return result;
-    }
-    for (const userSettingKey in userSettings) {
-        if (!userSettingKey.startsWith('plugin_')) {
-            continue;
-        }
-        const pluginUserSetting = userSettings[userSettingKey];
-        if (pluginUserSetting.value.logTypes.includes(logType)) {
-            result.push({ id: userSettingKey.replace('plugin_', ''), value: pluginUserSetting.value });
-        }
-    }
-    return result;
-}
-
 exports.getTimeZone = getTimeZone;
 exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
 exports.getMostRecentDate = getMostRecentDate;
 exports.getMediaReaderLinkByPlatformMediaLink = getMediaReaderLinkByPlatformMediaLink;
-exports.getPluginsFromUserSettings = getPluginsFromUserSettings;

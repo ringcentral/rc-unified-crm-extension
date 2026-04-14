@@ -1,11 +1,35 @@
 const { CacheModel } = require('../models/cacheModel');
 const { Op } = require('sequelize');
 const axios = require('axios');
-const { AdminConfigModel } = require('../models/adminConfigModel');
-const { getHashValue } = require('../lib/util');
+const { AccountDataModel } = require('../models/accountDataModel');
 const logger = require('../lib/logger');
 
-const PUBLIC_MANIFEST_BASE = 'https://appconnect.labs.ringcentral.com/public-api/connectors';
+const PUBLIC_MANIFEST_BASE = 'http://localhost:6100/public-api/connectors';
+
+async function getPluginsFromRcAccountId({ rcAccountId }) {
+    const accountData = await AccountDataModel.findAll({
+        where: {
+            rcAccountId,
+            dataKey: 'pluginData',
+        },
+    });
+    const workingPlugins = accountData.map(data => ({
+        id: data.platformName,
+        data: data.data,
+    }));
+    return workingPlugins;
+}
+
+function getPluginConfigFromUserSettings({ userSettings, pluginId }) {
+    if (!userSettings) {
+        return null;
+    }
+    const targetPluginSettings = userSettings[`plugin_${pluginId}`];
+    if (!targetPluginSettings?.value?.config) {
+        return null;
+    }
+    return targetPluginSettings.value.config;
+}
 
 async function getPluginAsyncTasks({ asyncTaskIds }) {
     const caches = await CacheModel.findAll({
@@ -35,22 +59,6 @@ function getRefreshedJwtTokenFromHeaders({ headers }) {
         return null;
     }
     return headers['x-refreshed-jwt-token'] || headers['X-Refreshed-Jwt-Token'] || null;
-}
-
-function derivePluginRegisterUrl({ endpointUrl, pluginId }) {
-    const parsedUrl = new URL(endpointUrl);
-    const pluginPathSegment = `/plugin/${pluginId}`;
-    const existingIndex = parsedUrl.pathname.indexOf(pluginPathSegment);
-    let registerPathname = '';
-    if (existingIndex >= 0) {
-        registerPathname = `${parsedUrl.pathname.slice(0, existingIndex + pluginPathSegment.length)}/auth/register`;
-    } else {
-        registerPathname = `${parsedUrl.pathname.replace(/\/$/, '')}/auth/register`;
-    }
-    parsedUrl.search = '';
-    parsedUrl.hash = '';
-    parsedUrl.pathname = registerPathname;
-    return parsedUrl.toString();
 }
 
 async function resolvePluginManifest({ pluginId, pluginAccess, rcAccountId, pluginName }) {
@@ -92,28 +100,39 @@ async function resolvePluginManifest({ pluginId, pluginAccess, rcAccountId, plug
     };
 }
 
-async function persistPluginJwtToken({ rcAccountId, pluginId, jwtToken }) {
-    const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
-    const adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
-    if (!adminConfig) {
-        throw new Error('Admin settings not found');
+async function persistPluginData({ rcAccountId, pluginId, jwtToken, pluginData = {} }) {
+    try {
+        const accountData = await AccountDataModel.findOne({
+            where: {
+                rcAccountId,
+                platformName: pluginId
+            },
+        });
+        if (!accountData) {
+            await AccountDataModel.create({
+                rcAccountId,
+                platformName: pluginId,
+                dataKey: 'pluginData',
+                data: {
+                    jwtToken,
+                    ...pluginData,
+                },
+            });
+        } else {
+            await accountData.update({
+                data: {
+                    jwtToken,
+                    ...pluginData,
+                },
+            });
+        }
+    } catch (error) {
+        logger.error('Failed to persist plugin data', {
+            pluginId,
+            rcAccountId,
+            message: error.message,
+        });
     }
-
-    const userSettings = JSON.parse(JSON.stringify(adminConfig.userSettings || {}));
-    const pluginKey = `plugin_${pluginId}`;
-    const existingPluginSetting = userSettings[pluginKey];
-    if (!existingPluginSetting?.value) {
-        throw new Error(`Plugin ${pluginId} is not installed in admin settings`);
-    }
-
-    userSettings[pluginKey] = {
-        ...existingPluginSetting,
-        value: {
-            ...existingPluginSetting.value,
-            jwtToken,
-        },
-    };
-    await adminConfig.update({ userSettings });
 }
 
 async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, pluginAccess, pluginName }) {
@@ -122,7 +141,7 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
         throw new Error(`Plugin endpoint URL not found for ${pluginId}`);
     }
 
-    const registerUrl = derivePluginRegisterUrl({ endpointUrl: pluginManifest.endpointUrl, pluginId });
+    const registerUrl = pluginManifest.userRegisterEndpointUrl;
     const registerResponse = await axios.post(registerUrl, {
         rcAccessToken,
         rcAccountId: rcAccountId?.toString(),
@@ -132,10 +151,11 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
         throw new Error('Plugin register API did not return jwtToken');
     }
 
-    await persistPluginJwtToken({
+    await persistPluginData({
         rcAccountId: rcAccountId?.toString(),
         pluginId,
         jwtToken: pluginJwtToken,
+        pluginData: pluginManifest,
     });
 
     return {
@@ -145,24 +165,24 @@ async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, plu
     };
 }
 
-async function persistPluginJwtTokenBestEffort({ rcAccountId, pluginId, jwtToken }) {
-    try {
-        await persistPluginJwtToken({ rcAccountId, pluginId, jwtToken });
-        return true;
-    } catch (error) {
-        logger.warn('Failed to persist refreshed plugin JWT token', {
-            pluginId,
+async function unregisterPluginAccount({ pluginId, rcAccountId }) {
+    const accountData = await AccountDataModel.findOne({
+        where: {
             rcAccountId,
-            message: error.message,
-        });
-        return false;
+            platformName: pluginId,
+            dataKey: 'pluginData'
+        },
+    });
+    if (accountData) {
+        await accountData.destroy();
     }
 }
 
+exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;
+exports.getPluginConfigFromUserSettings = getPluginConfigFromUserSettings;
 exports.getPluginAsyncTasks = getPluginAsyncTasks;
 exports.getRefreshedJwtTokenFromHeaders = getRefreshedJwtTokenFromHeaders;
-exports.derivePluginRegisterUrl = derivePluginRegisterUrl;
 exports.resolvePluginManifest = resolvePluginManifest;
-exports.persistPluginJwtToken = persistPluginJwtToken;
-exports.persistPluginJwtTokenBestEffort = persistPluginJwtTokenBestEffort;
+exports.persistPluginData = persistPluginData;
 exports.registerPluginAccount = registerPluginAccount;
+exports.unregisterPluginAccount = unregisterPluginAccount;

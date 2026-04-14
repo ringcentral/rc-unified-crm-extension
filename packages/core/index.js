@@ -2297,6 +2297,61 @@ function createCoreRouter() {
         });
     });
 
+    router.delete('/plugin/unregister', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('pluginUnregister:start', { query: req.query });
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const { pluginId, rcAccountId, pluginName } = req.query || {};
+            const rcAccessToken = req.query?.rcAccessToken;
+            if (!pluginId || !rcAccountId) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
+                return;
+            }
+            if (!rcAccessToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Missing RingCentral access token' }) : { successful: false, returnMessage: 'Missing RingCentral access token' });
+                return;
+            }
+            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Admin validation failed' }) : { successful: false, returnMessage: 'Admin validation failed' });
+                return;
+            }
+            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
+                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'rcAccountId mismatch' }) : { successful: false, returnMessage: 'rcAccountId mismatch' });
+                return;
+            }
+
+            await pluginCore.unregisterPluginAccount({
+                pluginId,
+                rcAccountId: rcAccountId?.toString(),
+                pluginName,
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+            success = true;
+        } catch (e) {
+            logger.error('Plugin unregister failed', { stack: e.stack });
+            res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: e.message || e }) : { successful: false, returnMessage: e.message || e });
+            tracer?.traceError('pluginUnregister:error', e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Plugin Unregister',
+            interfaceName: 'pluginUnregister',
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
     if (process.env.IS_PROD === 'false') {
         router.post('/registerMockUser', async function (req, res) {
             const secretKey = req.query.secretKey;

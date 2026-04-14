@@ -43,7 +43,7 @@ function getPluginWarningMessage({ pluginId }) {
     return `Plugin ${pluginId} skipped: missing account-level plugin jwtToken. Reinstall or re-register plugin.`;
 }
 
-async function createCallLog({ jwtToken: _jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -148,61 +148,50 @@ async function createCallLog({ jwtToken: _jwtToken, platform, userId, incomingDa
         const pluginAsyncTaskIds = [];
         const pluginWarnings = [];
         // Plugins
-        const loggingPlugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
-        for (const pluginSetting of loggingPlugins) {
-            const pluginId = pluginSetting.id;
-            const pluginJwtToken = pluginSetting.value.jwtToken;
-            if (!pluginJwtToken) {
-                pluginWarnings.push(getPluginWarningMessage({ pluginId }));
-                continue;
-            }
-            const { pluginManifest } = await pluginCore.resolvePluginManifest({
-                pluginId,
-                pluginAccess: pluginSetting.value.access,
-                rcAccountId: user.rcAccountId,
-                pluginName: pluginSetting.value.name,
-            });
+        const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
+        const callPlugins = accountPlugins.filter(plugin => plugin.data.logTypes.includes('call'));
+        for (const plugin of callPlugins) {
+            const pluginId = plugin.id;
+            const pluginJwtToken = plugin.data.jwtToken;
+            const pluginManifest = plugin.data;
             const pluginEndpointUrl = pluginManifest.endpointUrl;
             if (!pluginEndpointUrl) {
                 throw new Error('Plugin URL is not set');
             }
-            if (pluginSetting.value.isAsync) {
+            const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+            if (plugin.data.isAsync) {
                 const asyncTaskId = `${userId}-${uuidv4()}`;
                 pluginAsyncTaskIds.push(asyncTaskId);
                 await CacheModel.create({
                     id: asyncTaskId,
                     status: 'initialized',
                     userId,
-                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    cacheKey: `pluginTask-${plugin.data.name}`,
                     expiry: moment().add(1, 'hour').toDate()
                 });
-                axios.post(pluginEndpointUrl, {
+                const pluginResponse = await axios.post(pluginEndpointUrl, {
                     data: incomingData,
+                    config: userConfig,
                     asyncTaskId
                 }, {
                     headers: {
                         Authorization: `Bearer ${pluginJwtToken}`,
                     },
-                }).then((pluginResponse) => {
-                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                    if (refreshedPluginJwtToken) {
-                        pluginCore.persistPluginJwtTokenBestEffort({
-                            rcAccountId: user.rcAccountId,
-                            pluginId,
-                            jwtToken: refreshedPluginJwtToken,
-                        });
-                    }
-                }).catch((pluginRequestError) => {
-                    logger.error('Async plugin request failed', {
-                        pluginId,
-                        userId,
-                        stack: pluginRequestError.stack,
-                    });
                 });
+                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                if (refreshedPluginJwtToken) {
+                    pluginCore.persistPluginData({
+                        rcAccountId: user.rcAccountId,
+                        platformName: platform,
+                        pluginId,
+                        jwtToken: refreshedPluginJwtToken,
+                    });
+                }
             }
             else {
                 const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                    data: incomingData
+                    data: incomingData,
+                    config: userConfig,
                 }, {
                     headers: {
                         Authorization: `Bearer ${pluginJwtToken}`,
@@ -210,8 +199,9 @@ async function createCallLog({ jwtToken: _jwtToken, platform, userId, incomingDa
                 });
                 const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
                 if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginJwtTokenBestEffort({
+                    pluginCore.persistPluginData({
                         rcAccountId: user.rcAccountId,
+                        platformName: platform,
                         pluginId,
                         jwtToken: refreshedPluginJwtToken,
                     });
@@ -398,7 +388,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
     }
 }
 
-async function updateCallLog({ jwtToken: _jwtToken, platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
+async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         let existingCallLog = null;
         try {
@@ -450,61 +440,50 @@ async function updateCallLog({ jwtToken: _jwtToken, platform, userId, incomingDa
             const pluginAsyncTaskIds = [];
             const pluginWarnings = [];
             // Plugins
-            const plugins = getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'call' });
-            for (const pluginSetting of plugins) {
-                const pluginId = pluginSetting.id;
-                const pluginJwtToken = pluginSetting.value.jwtToken;
-                if (!pluginJwtToken) {
-                    pluginWarnings.push(getPluginWarningMessage({ pluginId }));
-                    continue;
-                }
-                const { pluginManifest } = await pluginCore.resolvePluginManifest({
-                    pluginId,
-                    pluginAccess: pluginSetting.value.access,
-                    rcAccountId: user.rcAccountId,
-                    pluginName: pluginSetting.value.name,
-                });
+            const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
+            const callPlugins = accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('call'));
+            for (const plugin of callPlugins) {
+                const pluginId = plugin.id;
+                const pluginJwtToken = plugin.data.jwtToken;
+                const pluginManifest = plugin.data;
                 const pluginEndpointUrl = pluginManifest.endpointUrl;
                 if (!pluginEndpointUrl) {
                     throw new Error('Plugin URL is not set');
                 }
-                if (pluginSetting.value.isAsync) {
+                const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+                if (plugin.data.isAsync) {
                     const asyncTaskId = `${userId}-${uuidv4()}`;
                     pluginAsyncTaskIds.push(asyncTaskId);
                     await CacheModel.create({
                         id: asyncTaskId,
                         status: 'initialized',
                         userId,
-                        cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                        cacheKey: `pluginTask-${plugin.data.name}`,
                         expiry: moment().add(1, 'hour').toDate()
                     });
-                    axios.post(pluginEndpointUrl, {
+                    const pluginResponse = await axios.post(pluginEndpointUrl, {
                         data: { logInfo: incomingData },
+                        config: userConfig,
                         asyncTaskId
                     }, {
                         headers: {
                             Authorization: `Bearer ${pluginJwtToken}`,
                         },
-                    }).then((pluginResponse) => {
-                        const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                        if (refreshedPluginJwtToken) {
-                            pluginCore.persistPluginJwtTokenBestEffort({
-                                rcAccountId: user.rcAccountId,
-                                pluginId,
-                                jwtToken: refreshedPluginJwtToken,
-                            });
-                        }
-                    }).catch((pluginRequestError) => {
-                        logger.error('Async plugin request failed', {
-                            pluginId,
-                            userId,
-                            stack: pluginRequestError.stack,
-                        });
                     });
+                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                    if (refreshedPluginJwtToken) {
+                        pluginCore.persistPluginData({
+                            rcAccountId: user.rcAccountId,
+                            platformName: platform,
+                            pluginId,
+                            jwtToken: refreshedPluginJwtToken,
+                        });
+                    }
                 }
                 else {
                     const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                        data: incomingData
+                        data: incomingData,
+                        config: userConfig
                     }, {
                         headers: {
                             Authorization: `Bearer ${pluginJwtToken}`,
@@ -512,8 +491,9 @@ async function updateCallLog({ jwtToken: _jwtToken, platform, userId, incomingDa
                     });
                     const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
                     if (refreshedPluginJwtToken) {
-                        pluginCore.persistPluginJwtTokenBestEffort({
+                        pluginCore.persistPluginData({
                             rcAccountId: user.rcAccountId,
+                            platformName: platform,
                             pluginId,
                             jwtToken: refreshedPluginJwtToken,
                         });
@@ -714,63 +694,52 @@ async function createMessageLog({ platform, userId, incomingData }) {
         // Plugins
         const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
         const isFax = incomingData.logInfo.messages.some(m => m.type === 'Fax');
-        const smsPlugins = isSMS ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'sms' }) : [];
-        const faxPlugins = isFax ? getPluginsFromUserSettings({ userSettings: user.userSettings, logType: 'fax' }) : [];
+        const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
+        const smsPlugins = isSMS ? accountPlugins.filter(plugin => plugin.data.logTypes.includes('sms')) : [];
+        const faxPlugins = isFax ? accountPlugins.filter(plugin => plugin.data.logTypes.includes('fax')) : [];
         const plugins = [...smsPlugins, ...faxPlugins];
-        for (const pluginSetting of plugins) {
-            const pluginId = pluginSetting.id;
-            const pluginJwtToken = pluginSetting.value.jwtToken;
-            if (!pluginJwtToken) {
-                pluginWarnings.push(getPluginWarningMessage({ pluginId }));
-                continue;
-            }
-            const { pluginManifest } = await pluginCore.resolvePluginManifest({
-                pluginId,
-                pluginAccess: pluginSetting.value.access,
-                rcAccountId: user.rcAccountId,
-                pluginName: pluginSetting.value.name,
-            });
+        for (const plugin of plugins) {
+            const pluginId = plugin.id;
+            const pluginJwtToken = plugin.data.jwtToken;
+            const pluginManifest = plugin.data;
             const pluginEndpointUrl = pluginManifest.endpointUrl;
             if (!pluginEndpointUrl) {
                 throw new Error('Plugin URL is not set');
             }
-            if (pluginSetting.value.isAsync) {
+            const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+            if (plugin.data.isAsync) {
                 const asyncTaskId = `${userId}-${uuidv4()}`;
                 pluginAsyncTaskIds.push(asyncTaskId);
                 await CacheModel.create({
                     id: asyncTaskId,
                     status: 'initialized',
                     userId,
-                    cacheKey: `pluginTask-${pluginSetting.value.name}`,
+                    cacheKey: `pluginTask-${plugin.data.name}`,
                     expiry: moment().add(1, 'hour').toDate()
                 });
-                axios.post(pluginEndpointUrl, {
+                const pluginResponse = await axios.post(pluginEndpointUrl, {
                     data: { logInfo: incomingData },
+                    config: userConfig,
                     asyncTaskId
                 }, {
                     headers: {
                         Authorization: `Bearer ${pluginJwtToken}`,
                     },
-                }).then((pluginResponse) => {
-                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                    if (refreshedPluginJwtToken) {
-                        pluginCore.persistPluginJwtTokenBestEffort({
-                            rcAccountId: user.rcAccountId,
-                            pluginId,
-                            jwtToken: refreshedPluginJwtToken,
-                        });
-                    }
-                }).catch((pluginRequestError) => {
-                    logger.error('Async plugin request failed', {
-                        pluginId,
-                        userId,
-                        stack: pluginRequestError.stack,
-                    });
                 });
+                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
+                if (refreshedPluginJwtToken) {
+                    pluginCore.persistPluginData({
+                        rcAccountId: user.rcAccountId,
+                        platformName: platform,
+                        pluginId,
+                        jwtToken: refreshedPluginJwtToken,
+                    });
+                }
             }
             else {
                 const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                    data: incomingData
+                    data: incomingData,
+                    config: userConfig,
                 }, {
                     headers: {
                         Authorization: `Bearer ${pluginJwtToken}`,
@@ -778,8 +747,9 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 });
                 const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
                 if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginJwtTokenBestEffort({
+                    pluginCore.persistPluginData({
                         rcAccountId: user.rcAccountId,
+                        platformName: platform,
                         pluginId,
                         jwtToken: refreshedPluginJwtToken,
                     });
@@ -830,7 +800,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     conversationLogId: incomingData.logInfo.conversationLogId
                 }
             });
-            const entities = incomingData.logInfo.entities;
             const sharedSMSLogContent = composeSharedSMSLog({ logFormat: platformModule.getLogFormatType(platform, proxyConfig), conversation: incomingData.logInfo, contactName: contactInfo.name, timezoneOffset: user.timezoneOffset });
             if (existingMessageLog) {
                 const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog: existingMessageLog, authHeader, additionalSubmission, proxyConfig });
@@ -838,7 +807,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
             }
             else {
                 const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, additionalSubmission, proxyConfig });
-                const crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;
                 if (createMessageLogResult.logId) {
