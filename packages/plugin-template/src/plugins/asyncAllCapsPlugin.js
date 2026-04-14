@@ -1,5 +1,3 @@
-const { CacheModel } = require('@app-connect/core/models/cacheModel');
-
 function getDelayMs() {
   const rawValue = Number(process.env.PLUGIN_DELAY_MS || 500);
   return Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : 500;
@@ -11,20 +9,6 @@ function getIgnoredLetters() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function markTaskStatus({ asyncTaskId, status }) {
-  if (!asyncTaskId) {
-    return;
-  }
-
-  const cache = await CacheModel.findByPk(asyncTaskId);
-  if (!cache) {
-    return;
-  }
-
-  cache.status = status;
-  await cache.save();
 }
 
 async function run({ identity, data, asyncTaskId }) {
@@ -43,8 +27,6 @@ async function run({ identity, data, asyncTaskId }) {
   // Async plugins should return quickly, avoid blocking CRM logging, and
   // should not try to mutate the payload used by the main logging flow.
   try {
-    await markTaskStatus({ asyncTaskId, status: 'processing' });
-
     const delayMs = getDelayMs();
     const ignoredLetters = getIgnoredLetters();
     const originalNote = data?.note || '';
@@ -62,14 +44,12 @@ async function run({ identity, data, asyncTaskId }) {
       preview: transformedNote.slice(0, 50)
     });
 
-    await markTaskStatus({ asyncTaskId, status: 'completed' });
     return {
       accepted: true,
       asyncTaskId,
       pluginIdentity: identity
     };
   } catch (error) {
-    await markTaskStatus({ asyncTaskId, status: 'failed' });
     return {
       accepted: false,
       asyncTaskId,

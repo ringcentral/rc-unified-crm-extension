@@ -10,8 +10,10 @@
     "dev": "node src/server.js"
   },
   "dependencies": {
-    "@app-connect/core": "^1.7.21",
+    "cors": "^2.8.5",
     "dotenv": "^16.0.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
     "serverless-http": "^3.0.3"
   },
   "keywords": [

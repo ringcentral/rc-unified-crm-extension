@@ -1,93 +1,15 @@
-const { createCoreApp } = require('@app-connect/core');
-const { sign, verify } = require('jsonwebtoken');
+const express = require('express');
+const cors = require('cors');
 const syncAllCapsPlugin = require('./plugins/syncAllCapsPlugin');
 const asyncAllCapsPlugin = require('./plugins/asyncAllCapsPlugin');
+const { generatePluginJwtToken, validateAndRefreshPluginToken } = require('./lib/pluginToken');
 
 const {
   SYNC_PLUGIN_ID = 'sync-all-caps',
-  ASYNC_PLUGIN_ID = 'async-all-caps',
-  PLUGIN_SERVER_SECRET_KEY,
-  APP_SERVER_SECRET_KEY
+  ASYNC_PLUGIN_ID = 'async-all-caps'
 } = process.env;
 
 const RC_EXTENSION_ENDPOINT = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~';
-const JWT_REFRESH_THRESHOLD_SECONDS = 7 * 24 * 60 * 60; // 1 week
-const JWT_EXPIRES_IN = '2w';
-
-function getJwtSecret() {
-  return PLUGIN_SERVER_SECRET_KEY || APP_SERVER_SECRET_KEY;
-}
-
-function generatePluginJwtToken({ rcAccountId, pluginId }) {
-  const secret = getJwtSecret();
-  if (!secret) {
-    throw new Error('PLUGIN_SERVER_SECRET_KEY (or APP_SERVER_SECRET_KEY) is required');
-  }
-  return sign({
-    rcAccountId: rcAccountId?.toString(),
-    pluginId
-  }, secret, { expiresIn: JWT_EXPIRES_IN });
-}
-
-function decodePluginJwtToken(token) {
-  const secret = getJwtSecret();
-  if (!secret) {
-    return null;
-  }
-  try {
-    return verify(token, secret);
-  } catch (_e) {
-    return null;
-  }
-}
-
-function extractBearerToken(req) {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  if (!authHeader || typeof authHeader !== 'string') {
-    return null;
-  }
-  const [scheme, token] = authHeader.split(' ');
-  if (!scheme || scheme.toLowerCase() !== 'bearer' || !token) {
-    return null;
-  }
-  return token;
-}
-
-function validateAndRefreshPluginToken(req, res, next) {
-  const token = extractBearerToken(req);
-  if (!token) {
-    res.status(401).send('Bearer token is required');
-    return;
-  }
-
-  const decodedToken = decodePluginJwtToken(token);
-  if (!decodedToken) {
-    res.status(401).send('Invalid bearer token');
-    return;
-  }
-
-  if (decodedToken.pluginId !== req.params.pluginId) {
-    res.status(403).send('Token pluginId does not match route pluginId');
-    return;
-  }
-
-  req.pluginAuth = decodedToken;
-
-  if (typeof decodedToken.exp === 'number') {
-    const now = Math.floor(Date.now() / 1000);
-    const timeLeft = decodedToken.exp - now;
-    if (timeLeft <= JWT_REFRESH_THRESHOLD_SECONDS) {
-      const refreshedToken = generatePluginJwtToken({
-        rcAccountId: decodedToken.rcAccountId,
-        pluginId: decodedToken.pluginId
-      });
-      res.setHeader('x-refreshed-jwt-token', refreshedToken);
-      req.pluginAuth = decodePluginJwtToken(refreshedToken) || decodedToken;
-    }
-  }
-
-  next();
-}
 
 async function validateRcIdentity({ rcAccessToken }) {
   if (!rcAccessToken) {
@@ -112,7 +34,10 @@ async function validateRcIdentity({ rcAccessToken }) {
 // This package is a teaching template for plugin development.
 // The route wiring here is intentionally explicit so developers can see
 // where sync, async, OAuth, and license hooks fit into their own server.
-const app = createCoreApp();
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.send('App Connect Plugin Template Server - OK');
