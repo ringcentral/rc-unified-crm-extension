@@ -71,7 +71,7 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                                     config[k] = configFromadminSettings[k];
                                 }
                                 else {
-                                    config[k].customizable = configFromadminSettings[k].customizable;
+                                    config[k].customizable = configFromadminSettings[k]?.customizable ?? true;
                                 }
                             }
                             result[key].value.config = config;

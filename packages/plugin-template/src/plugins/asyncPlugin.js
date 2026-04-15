@@ -1,10 +1,13 @@
+// Summary:
+// This plugin waits for 5 seconds and then sends a message via webhook to the RingCentral App
+
 const axios = require('axios');
 
 // Setup RC webhook in RingCentrap App
 // 1. Open RingCentral App and go to any message conversation
 // 2. Top-right, more buttons -> Add apps -> scroll and find Incoming Webhook
 // 3. Copy the webhook URL and paste it here -> Finish
-const RC_WEBHOOK_ENDPOINT = 'https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQzOTE4MzAzMjMzIiwiaWQiOiIzNjk1NjgxNTYzIn0.kF49R_X_NPrJckU43fUqNcsRJAMZPzuO5Ryohoa91JU';
+const RC_WEBHOOK_ENDPOINT = '';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));

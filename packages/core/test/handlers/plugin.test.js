@@ -13,8 +13,7 @@ jest.mock('axios');
 
 const pluginHandler = require('../../handlers/plugin');
 const { CacheModel } = require('../../models/cacheModel');
-const { AdminConfigModel } = require('../../models/adminConfigModel');
-const { getHashValue } = require('../../lib/util');
+const { AccountDataModel } = require('../../models/accountDataModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 
@@ -22,12 +21,12 @@ describe('Plugin Handler', () => {
   beforeAll(async () => {
     process.env.HASH_KEY = 'unit-test-hash-key';
     await CacheModel.sync({ force: true });
-    await AdminConfigModel.sync({ force: true });
+    await AccountDataModel.sync({ force: true });
   });
 
   afterEach(async () => {
     await CacheModel.destroy({ where: {} });
-    await AdminConfigModel.destroy({ where: {} });
+    await AccountDataModel.destroy({ where: {} });
     jest.clearAllMocks();
   });
 
@@ -292,28 +291,16 @@ describe('Plugin Handler', () => {
   });
 
   describe('registerPluginAccount', () => {
-    test('should register plugin account and persist plugin jwt token in admin settings', async () => {
+    test('should register plugin account and persist plugin jwt token in account data', async () => {
       const rcAccountId = '12345';
       const pluginId = 'sync-all-caps';
-      const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
-      await AdminConfigModel.create({
-        id: hashedRcAccountId,
-        userSettings: {
-          [`plugin_${pluginId}`]: {
-            value: {
-              name: 'plugin.sample',
-              config: {}
-            },
-            customizable: true
-          }
-        }
-      });
 
       axios.get.mockResolvedValue({
         data: {
           platforms: {
             'plugin.sample': {
-              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`
+              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`,
+              userRegisterEndpointUrl: `https://plugins.example.com/plugin/${pluginId}/auth/register`
             }
           }
         }
@@ -340,32 +327,29 @@ describe('Plugin Handler', () => {
           rcAccountId
         }
       );
-      const updatedAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
-      expect(updatedAdminConfig.userSettings[`plugin_${pluginId}`].value.jwtToken).toBe('plugin-jwt-token');
+
+      const accountData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId,
+          platformName: pluginId,
+          dataKey: 'pluginData'
+        }
+      });
+      expect(accountData).not.toBeNull();
+      expect(accountData.data.jwtToken).toBe('plugin-jwt-token');
+      expect(accountData.data.endpointUrl).toBe(`https://plugins.example.com/plugin/${pluginId}`);
     });
 
     test('should throw when register API does not return jwt token', async () => {
       const rcAccountId = '12345';
       const pluginId = 'sync-all-caps';
-      const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
-      await AdminConfigModel.create({
-        id: hashedRcAccountId,
-        userSettings: {
-          [`plugin_${pluginId}`]: {
-            value: {
-              name: 'plugin.sample',
-              config: {}
-            },
-            customizable: true
-          }
-        }
-      });
 
       axios.get.mockResolvedValue({
         data: {
           platforms: {
             'plugin.sample': {
-              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`
+              endpointUrl: `https://plugins.example.com/plugin/${pluginId}`,
+              userRegisterEndpointUrl: `https://plugins.example.com/plugin/${pluginId}/auth/register`
             }
           }
         }

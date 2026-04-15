@@ -1,172 +1,189 @@
 # Building your App Connect plugin server
 
-## Authentication
+## Runtime contracts
 
-When your plugin is configured to "Support OAuth" (the `showAuthorizationButton` manifest field), App Connect will render either a "Connect" or "Logout: button depending upon the current user's login state. These buttons effectively delegate the actual auth flow to the following plugin endpoints.
+App Connect invokes plugin endpoints declared in your plugin manifest. In current runtime behavior:
 
-### `plugins/generateAuthUrl/:pluginId`
+* App Connect authenticates plugin endpoint calls with `Authorization: Bearer <pluginJwtToken>`.
+* App Connect can persist refreshed plugin tokens from `x-refreshed-jwt-token` response headers.
+* For async plugins, App Connect tracks and returns `pluginAsyncTaskIds` so clients can poll status.
 
-This endpoint should be a public server endpoint and should return a URL the user can click to initiate the authentication process. The URL will be placed behind the "Connect" button that will be displayed on the plugin config page.
+## Account-level registration lifecycle
 
-**Request**
+These are App Connect server endpoints (not plugin-server endpoints) used when an admin installs/uninstalls a plugin.
+
+### `POST /plugin/register?rcAccessToken=...`
+
+Request body:
+
+```json
+{
+  "pluginId": "my-plugin-id",
+  "rcAccountId": "1234567890",
+  "pluginAccess": "public",
+  "pluginName": "my.plugin"
+}
+```
+
+Behavior:
+
+* validates admin role using `rcAccessToken`
+* resolves plugin manifest
+* calls your plugin's `userRegisterEndpointUrl`
+* persists plugin account data + plugin JWT token
+
+### `DELETE /plugin/unregister?pluginId=...&rcAccountId=...&rcAccessToken=...`
+
+Behavior:
+
+* validates admin role using `rcAccessToken`
+* removes account-level plugin data
+
+## Endpoints your plugin server should implement
+
+### `userRegisterEndpointUrl`
+
+Called when plugin is installed to create an account-level plugin JWT token.
+
+Example:
 
 ```http
-GET /plugins/generateAuthUrl/my_plugin
-```
-	
-**Response**
+POST /admin/register
+Content-Type: application/json
 
-```js
 {
-   authUrl: "https://test.com/authUrl"
+  "rcAccessToken": "<ringcentral-access-token>",
+  "rcAccountId": "1234567890"
 }
 ```
 
-### `plugins/checkAuth/:pluginId`
+Expected response:
 
-This endpoint will be called to ensure that a user is authenticated to the service properly. This will help App Connect know whether to render a "Connect" button or a "Logout" button. 
-
-**Request**
-
-```http
-GET /plugins/checkAuth/my_plugin
-```
-
-**Response**
-
-```js
+```json
 {
-   successful: true
+  "jwtToken": "<plugin-jwt-token>"
 }
 ```
 
-### `plugins/logout/:pluginId`
+### `endpointUrl`
 
-This endpoint will be call when a user wishes to logout. The intention of course is for the plugin to properly destroy any active login session. 
-
-**Request**
-
-```http
-POST /plugins/logout/my_plugin
-
-{
-   jwtToken: 'xxxxxxxxxxxxxxxx.xxxxxxxxxxxx.xxxxxxxxxxxxxx'
-}
-```
-
-**Response**
-
-Return HTTP status code of 200
-
-## Monetization
-
-Developers may wish to monetize the plugin they have developed. If this is the case for the plugin you are building then you will be required to implement the following server endpoint. 
-
-### `plugins/licenseStatus/:pluginId`
-
-This endpoint will respond with the following properties:
-
-| Property                   | Type    | Description                                              |
-|----------------------------|---------|----------------------------------------------------------|
-| `licenseStatus`            | boolean | Return true if the user is permitted to use this plugin. |
-| `licenseStatusDescription` | string  | Return a message to display to the user.                 |
-| `errorMessage`             | string  | This message will appear in the plugin list page and will be used to signal to admins that their attention is required. |
-
-**Request**
-
-```http
-GET /plugins/licenseStatus/my_plugin`
-```
-
-**Responses**
-
-The `licenseStatusDescription` can contain markdown for limited formating and can include links if you wish to provide a link to a purchase page for example. 
-
-```js
-{
-   licenseStatus: true,
-   licenseStatusDescription: "License: Personal"
-}
-```
-
-```js
-{
-   licenseStatus: false,
-   licenseStatusDescription: "License missing. Please go to [our website](https://license.com/info) for more license package info.",
-   errorMessage: "This plugin is not working" // this will be shown in plugin list page, one step before plugin config page
-}
-```
-
-## Processing content
-
-Your plugin will be invoked when App Connect needs your plugin to inspect or transform a call log payload before logging continues.
-
-### `plugin/<pluginId>`
-
-App Connect sends a `POST` request to `plugin/my_plugin?jwtToken=...`.
-
-**Request**
+Main plugin processing endpoint. App Connect sends:
 
 ```json
 {
   "data": {
     "logInfo": {
       "id": "15460387024",
-      "sessionId": "24585958020",
-      "startTime": "2026-03-31T08:00:00.000Z",
-      "duration": 183,
-      "direction": "Inbound",
-      "from": {
-        "phoneNumber": "+16505550100",
-        "name": "Jane Caller"
-      },
-      "to": {
-        "phoneNumber": "+16505550199",
-        "name": "Support Queue"
-      }
+      "sessionId": "24585958020"
     },
     "contactId": "crm-contact-123",
     "contactName": "Jane Caller",
     "note": "Customer asked for a callback tomorrow.",
     "additionalSubmission": {}
+  },
+  "config": {
+    "exampleField": {
+      "value": "example"
+    }
   }
 }
 ```
 
-**Synchronous Response**
+For async plugin requests, App Connect includes:
 
 ```json
 {
-  "logInfo": {
-    "id": "15460387024",
-    "sessionId": "24585958020",
-    "startTime": "2026-03-31T08:00:00.000Z",
-    "duration": 183,
-    "direction": "Inbound",
-    "from": {
-      "phoneNumber": "+16505550100",
-      "name": "Jane Caller"
-    },
-    "to": {
-      "phoneNumber": "+16505550199",
-      "name": "Support Queue"
+  "asyncTaskId": "<userId>-<uuid>"
+}
+```
+
+#### Sync response
+
+Return the processed payload object directly (same shape as `data`, optionally transformed).
+
+#### Async response
+
+Return quickly (HTTP `200`) with a lightweight acknowledgement, for example:
+
+```json
+{
+  "accepted": true,
+  "asyncTaskId": "<userId>-<uuid>"
+}
+```
+
+### `tokenSyncUrl` (recommended for async plugins)
+
+App Connect may call this endpoint before async execution.
+
+* request uses `Authorization: Bearer <pluginJwtToken>`
+* return HTTP `200` if token is valid
+* optionally refresh token via response header `x-refreshed-jwt-token`
+
+### `licenseStatusUrl` (for monetized plugins)
+
+App Connect calls this endpoint with plugin Bearer token and expects:
+
+| Property                   | Type    | Description                                              |
+|----------------------------|---------|----------------------------------------------------------|
+| `licenseStatus`            | boolean | `true` if user/account is entitled.                      |
+| `licenseStatusDescription` | string  | Message shown to users/admins.                           |
+| `errorMessage`             | string  | Optional admin-facing issue text for plugin list screen. |
+
+Example response:
+
+```json
+{
+  "licenseStatus": true,
+  "licenseStatusDescription": "License: Personal"
+}
+```
+
+### OAuth endpoints (optional)
+
+If OAuth is enabled in plugin settings, configure endpoints for:
+
+* generate auth URL (Connect button)
+* check auth state (Connect vs Logout)
+* logout
+
+Typical payloads remain simple (`{ authUrl }`, `{ successful: true }`).
+
+## Async task status polling
+
+After App Connect returns `pluginAsyncTaskIds`, clients can poll App Connect:
+
+```http
+POST /pluginAsyncTask?jwtToken=<crm-jwt-token>
+Content-Type: application/json
+
+{
+  "asyncTaskIds": ["<userId>-<uuid>"]
+}
+```
+
+Response example:
+
+```json
+{
+  "tasks": [
+    {
+      "cacheKey": "pluginTask-myPlugin",
+      "status": "processing"
     }
-  },
-  "contactId": "crm-contact-123",
-  "contactName": "Jane Caller",
-  "note": "Updated note text",
-  "additionalSubmission": {}
+  ]
 }
 ```
 
-For synchronous plugins, return the processed payload directly. App Connect will continue using the returned object.
+Completed/failed tasks are removed from cache after retrieval.
 
-**Asynchronous Response**
+## Template reference
 
-```json
-{
-  "accepted": true
-}
-```
+The plugin template generated by `--template plugin` includes example routes for:
 
-For asynchronous plugins, App Connect sends the same request body plus an `asyncTaskId`. Your server should start background work and return HTTP `200` quickly.
+* `/admin/register`
+* `/plugin/sync`
+* `/plugin/async`
+* `/token/sync`
+* `/authUrl`, `/checkAuth`, `/logout`
+* `/license`

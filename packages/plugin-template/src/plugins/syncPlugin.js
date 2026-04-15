@@ -1,3 +1,7 @@
+// Summary:
+// This plugin converts agent notes to uppercase
+// Optional ignored letters can be configured in the plugin config
+
 function run({ identity, data, config }) {
   // Expected input:
   // {
@@ -15,7 +19,7 @@ function run({ identity, data, config }) {
 
   let note = '';
   for (const letter of originalNote) {
-    note += ignoreLetters.value.includes(letter) ? letter : letter.toUpperCase();
+    note += ignoreLetters?.value?.includes(letter) ? letter : letter.toUpperCase();
   }
 
   return {

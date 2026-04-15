@@ -1,0 +1,25 @@
+{
+    "requireLicense": true,
+    "documentationUrl": "",
+    "userRegisterEndpointUrl": "http://localhost:6067/admin/register",
+    "displayName": "Webhook notify",
+    "writeReviewUrl": "",
+    "isAsync": true,
+    "description": "This plugin waits for 5 seconds and then sends a message via webhook to the RingCentral Ap",
+    "supportedLogTypes": [
+        "call"
+    ],
+    "licenseStatusUrl": "http://localhost:6067/license",
+    "releaseNotesUrl": "",
+    "tokenSyncUrl": "http://localhost:6067/token/sync",
+    "version": "0.1.0",
+    "logoUrl": "",
+    "authStateUrl": "",
+    "authorizationUrl": "",
+    "endpointUrl": "http://localhost:6067/plugin/async",
+    "logoutUrl": "",
+    "name": "test.webhook_notify",
+    "showAuthorizationButton": false,
+    "pageContent": [],
+    "getSupportUrl": ""
+}

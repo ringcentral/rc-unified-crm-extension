@@ -2379,7 +2379,7 @@ function createCoreRouter() {
         }
         catch (e) {
             logger.error('Get plugin license status failed', { stack: e.stack });
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            res.status(200).send(tracer ? tracer.wrapResponse({ licenseStatus: false, licenseStatusDescription: e.message || e }) : { licenseStatus: false, licenseStatusDescription: e.message || e });
             tracer?.traceError('getPluginLicenseStatus:error', e);
         }
     });

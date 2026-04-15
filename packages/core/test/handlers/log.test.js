@@ -221,18 +221,17 @@ describe('Log Handler', () => {
     });
 
     test('should call plugin with Bearer auth and without query jwt token', async () => {
-      await UserModel.create({
-        ...mockUser,
-        userSettings: {
-          plugin_testPlugin: {
-            value: {
-              name: 'plugin.sample',
-              access: 'public',
-              logTypes: ['call'],
-              isAsync: false,
-              jwtToken: 'plugin-jwt-token'
-            }
-          }
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: mockUser.rcAccountId,
+        platformName: 'testPlugin',
+        dataKey: 'pluginData',
+        data: {
+          name: 'plugin.sample',
+          logTypes: ['call'],
+          isAsync: false,
+          endpointUrl: 'https://plugins.example.com/plugin/testPlugin',
+          jwtToken: 'plugin-jwt-token'
         }
       });
 
@@ -248,15 +247,6 @@ describe('Log Handler', () => {
       connectorRegistry.getConnector.mockReturnValue(mockConnector);
       composeCallLog.mockReturnValue('Composed log details');
 
-      axios.get.mockResolvedValue({
-        data: {
-          platforms: {
-            'plugin.sample': {
-              endpointUrl: 'https://plugins.example.com/plugin/testPlugin'
-            }
-          }
-        }
-      });
       axios.post.mockResolvedValue({
         data: {
           ...mockIncomingData,
@@ -278,7 +268,7 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(true);
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/plugin/testPlugin',
-        { data: mockIncomingData },
+        { data: mockIncomingData, config: null },
         {
           headers: {
             Authorization: 'Bearer plugin-jwt-token'

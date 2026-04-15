@@ -5,32 +5,64 @@ title: "App Connect Plugins"
 
 !!! info "Looking to connect your CRM to App Connect? Try a [connector](../getting-started.md) instead."
 
-Plugins are a light-weight method for allow a service to process content and data before being delivered to a connector for memorialization inside a CRM. A plugin focuses on activity logging workflows by intercepting log data to enrich it, or performing additional parallel actions.
+Plugins are a lightweight way to process activity data before (or alongside) CRM logging. A plugin focuses on call/SMS/fax logging workflows by intercepting log payloads, enriching them, and optionally performing extra side effects.
 
 Use a plugin when you want to extend logging behavior.
+
+## Start with the plugin template
+
+You can scaffold a plugin server directly from the CLI:
+
+```bash
+npx @app-connect/cli init my-plugin --template plugin
+```
+
+The generated project includes:
+
+* a minimal Express server
+* sample sync and async plugin handlers
+* sample OAuth and license handlers
+* plugin JWT validation/refresh middleware
 
 ## Plugin development workflow
 
 Creating a plugin is a multi-step process:
 
 1. A developer **registers a plugin** profile in the [Developer Console](https://appconnect.labs.ringcentral.com/console).
-2. An admin logs into App Connect and installs that plugin to their account.
-3. An admin, if the plugin supports the capability, can then customize and configure the plugin. 
-4. Going forward, for every payload that might be sent to a CRM, the payload is first sent to each installed plugin giving each an opportunity to perform some operation on the payload. 
+2. The plugin server is deployed and its manifest URLs are configured.
+3. An admin logs into App Connect and installs that plugin to their account.
+4. App Connect performs account-level plugin registration and stores a plugin JWT token.
+5. An admin, if the plugin supports it, can then customize and configure the plugin.
+6. During logging, App Connect invokes installed plugins that match the current log type.
 
-## Configuring your plugin
+## Required plugin manifest behavior
 
-To get started, login to the [Developer Console](https://appconnect.labs.ringcentral.com/console), click the "Plugins" tab, and then "Create new plugin." You will begin by configuring your plugin so that the App Connect framework knows how to interface with it. You are free to edit the configuration manually if you choose, but the Developer Console makes this much easier. 
+Your plugin manifest should point to server endpoints that support these runtime contracts:
+
+* `endpointUrl`: main processing endpoint for sync/async plugin execution
+* `userRegisterEndpointUrl`: endpoint App Connect calls at install time to receive a plugin JWT token
+* `logTypes`: list of supported modalities (`call`, `sms`, `fax`)
+* `isAsync`: whether processing is asynchronous
+
+If your plugin uses additional capabilities, also provide:
+
+* `tokenSyncUrl`: endpoint used to refresh plugin JWT token during async execution
+* `licenseStatusUrl`: endpoint used by App Connect to check plugin entitlement
+* OAuth endpoints (for Connect/Logout flow) when auth is required
+
+## Configuring your plugin in Developer Console
+
+To get started, login to the [Developer Console](https://appconnect.labs.ringcentral.com/console), click the "Plugins" tab, and then "Create new plugin." You are free to edit the configuration manually if you choose, but the Developer Console makes this much easier.
 
 ![Editing a plugin in the Developer Console](../../img/plugin-dev-console.png){ .mw-350 }
 
 ### Endpoint url
 
-You will need to deploy a server endpoint that will receive callbacks from the App Connect framework. Enter the URL of this endpoint into this field. 
+This is your plugin processing endpoint (`endpointUrl`) that receives plugin execution callbacks from App Connect.
 
 ### Supported log types
 
-Plugins can process payloads for one or more communication modalities. Use this field to identify which of these modalities your plugin will process. This is captured in the `supportedLogTypes` manifest property. You can choose between the following values:
+Plugins can process one or more communication modalities. Set these in `logTypes`:
 
 * `call`
 * `sms`
@@ -40,10 +72,10 @@ App Connect only invokes the plugin when the current activity matches one of tho
 
 ### Synchronous vs asynchronous plugins
 
-When developing a plugin you will choose between two ways of interfacing with App Connect - either synchronously or asynchronously. 
+When developing a plugin you will choose between two ways of interfacing with App Connect - either synchronously or asynchronously.
 
-* A **synchronous** plugin is what is used to modify payload before they are delivered to a connector for memorialization. They generally need to be highly performant because all logging is blocked while the plugin is processing the payload. 
-* An **asynchronous** plugin has no ability to modify the payload, but can process the data independently. This kind of plugin is useful when the service is simply intercepting the data and performing some other function on the data without modifying it. 
+* A **synchronous** plugin modifies payload before delivery to the connector. It should be performant because logging waits for it.
+* An **asynchronous** plugin runs in the background and should not mutate the main payload used for CRM logging.
 
 #### Synchronous processing
 
@@ -57,26 +89,26 @@ Use this mode when your plugin needs to transform the final payload that App Con
 
 Asynchronous plugins run as a background job. When a communication is being prepared for logging, App Connect creates an async task record, invokes the plugin, and continues normal logging without waiting for the plugin to finish.
 
-The client stores async task IDs locally and polls App Connect every five minutes to summarize task status back to the user.
+App Connect returns `pluginAsyncTaskIds` in create/update log responses. The client then polls `/pluginAsyncTask` to retrieve status updates.
 
 Use this mode when your plugin performs side effects that do not need to block the main CRM log save.
 
 ### Support OAuth
 
-Check this option if a user/admin is expected to login to a service in order to use and/or setup your plugin. 
+Enable this if users must sign in to a third-party service to use your plugin.
 
 ### Require License
 
-Check this option if you intend to monetize the plugin you build. Checking this box will result in App Connect periodically sending you a heartbeat to check the license status of a user. This empowers you to disable functionality if a user is not yet entitled to the functionality you provide. In addition, it provides you with a way of sending a message/link to the user to make the necessary purchase before using your plugin. 
+Enable this if your plugin requires entitlement checks. App Connect calls your `licenseStatusUrl` endpoint using the account-level plugin JWT token.
 
 ### Define custom configuration options
 
-Just as you can with connectors, you can define custom configuration properties for plugins. These properties can be set by users, or if an admin chooses, can be forcibly set by an admin. 
+Just as you can with connectors, you can define custom configuration properties for plugins. These properties can be set by users, or if an admin chooses, can be forcibly set by an admin.
 
 ![Custom config settings for a plugin](../../img/plugin-custom-config.png){ .mw-350 }
 
 ## Next: Implement your server
 
-Now that the plugin is configured and setup properly, you need to implement your server endpoints. This can be done without the need for the entire App Connect framework. 
+Now that the plugin is configured, implement the server endpoints used by App Connect.
 
 [Build your plugin server](server.md){ .md-button .md-button-primary }
