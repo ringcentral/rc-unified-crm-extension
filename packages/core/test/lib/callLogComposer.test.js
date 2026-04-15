@@ -136,7 +136,7 @@ describe('callLogComposer', () => {
       expect(result).toContain('Hello, this is a test transcript.');
     });
 
-    test('should add RingSense data when provided', async () => {
+    test('should add ACE data when provided', async () => {
       const result = await composeCallLog({
         ...baseParams,
         ringSenseTranscript: 'RS Transcript',
@@ -146,10 +146,10 @@ describe('callLogComposer', () => {
         ringSenseLink: 'https://ringsense.example.com/123'
       });
 
-      expect(result).toContain('RingSense transcript');
-      expect(result).toContain('RingSense summary');
+      expect(result).toContain('ACE transcript');
+      expect(result).toContain('ACE summary');
       expect(result).toContain('Call score: 85');
-      expect(result).toContain('RingSense recording link');
+      expect(result).toContain('ACE recording link');
     });
 
     test('should add call legs when provided', async () => {
@@ -1025,16 +1025,16 @@ describe('callLogComposer', () => {
     });
   });
 
-  describe('RingSense Functions', () => {
+  describe('ACE Functions', () => {
     describe('upsertRingSenseTranscript', () => {
-      test('should add RingSense transcript', () => {
+      test('should add ACE transcript', () => {
         const result = upsertRingSenseTranscript({
           body: '',
           transcript: 'RS transcript content',
           logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
         });
 
-        expect(result).toContain('RingSense transcript');
+        expect(result).toContain('ACE transcript');
         expect(result).toContain('RS transcript content');
       });
 
@@ -1045,7 +1045,7 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
         });
 
-        expect(result).toContain('<b>RingSense transcript</b>');
+        expect(result).toContain('<b>ACE transcript</b>');
       });
 
       test('should add in Markdown format', () => {
@@ -1055,20 +1055,20 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
         });
 
-        expect(result).toContain('### RingSense transcript');
+        expect(result).toContain('### ACE transcript');
         expect(result).toContain('RS transcript content');
       });
     });
 
     describe('upsertRingSenseSummary', () => {
-      test('should add RingSense summary', () => {
+      test('should add ACE summary', () => {
         const result = upsertRingSenseSummary({
           body: '',
           summary: 'RS summary content',
           logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
         });
 
-        expect(result).toContain('RingSense summary');
+        expect(result).toContain('ACE summary');
         expect(result).toContain('RS summary content');
       });
 
@@ -1079,7 +1079,7 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
         });
 
-        expect(result).toContain('<b>RingSense summary</b>');
+        expect(result).toContain('<b>ACE summary</b>');
       });
 
       test('should add in Markdown format', () => {
@@ -1089,13 +1089,13 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
         });
 
-        expect(result).toContain('### RingSense summary');
+        expect(result).toContain('### ACE summary');
         expect(result).toContain('RS summary content');
       });
     });
 
     describe('upsertRingSenseAIScore', () => {
-      test('should add RingSense AI score', () => {
+      test('should add ACE AI score', () => {
         const result = upsertRingSenseAIScore({
           body: '',
           score: '85',
@@ -1127,14 +1127,14 @@ describe('callLogComposer', () => {
     });
 
     describe('upsertRingSenseBulletedSummary', () => {
-      test('should add RingSense bulleted summary', () => {
+      test('should add ACE bulleted summary', () => {
         const result = upsertRingSenseBulletedSummary({
           body: '',
           summary: '- Point 1\n- Point 2',
           logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
         });
 
-        expect(result).toContain('RingSense bulleted summary');
+        expect(result).toContain('ACE bulleted summary');
         expect(result).toContain('- Point 1');
       });
 
@@ -1145,7 +1145,7 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
         });
 
-        expect(result).toContain('<b>RingSense bulleted summary</b>');
+        expect(result).toContain('<b>ACE bulleted summary</b>');
       });
 
       test('should add in Markdown format', () => {
@@ -1155,20 +1155,20 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
         });
 
-        expect(result).toContain('### RingSense bulleted summary');
+        expect(result).toContain('### ACE bulleted summary');
         expect(result).toContain('- Point 1');
       });
     });
 
     describe('upsertRingSenseLink', () => {
-      test('should add RingSense recording link', () => {
+      test('should add ACE recording link', () => {
         const result = upsertRingSenseLink({
           body: '',
           link: 'https://ringsense.example.com/123',
           logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
         });
 
-        expect(result).toContain('RingSense recording link: https://ringsense.example.com/123');
+        expect(result).toContain('ACE recording link: https://ringsense.example.com/123');
       });
 
       test('should add in HTML format with anchor', () => {
@@ -1188,7 +1188,7 @@ describe('callLogComposer', () => {
           logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
         });
 
-        expect(result).toContain('**RingSense recording link**: https://ringsense.example.com/123');
+        expect(result).toContain('**ACE recording link**: https://ringsense.example.com/123');
       });
     });
   });

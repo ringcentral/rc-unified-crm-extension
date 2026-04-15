@@ -84,7 +84,7 @@ The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlist
 
     ---
 
-    Log your RingCX calls to any App Connect-enabled CRM. RingSense license required. 
+    Log your RingCX calls to any App Connect-enabled CRM. ACE license required. 
 
     [Learn more &raquo;](../users/ringcx.md)
 

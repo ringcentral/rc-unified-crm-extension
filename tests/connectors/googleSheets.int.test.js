@@ -35,19 +35,19 @@ describe('Google Sheets Connector', () => {
     const authHeader = 'Bearer test-access-token';
     const spreadsheetId = 'test-spreadsheet-id';
     const googleSheetsUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
-    
+
     let mockUser;
 
     beforeEach(() => {
         nock.cleanAll();
         jest.clearAllMocks();
-        
+
         // Use the correct environment variable names from the connector
         process.env.GOOGLESHEET_CLIENT_ID = 'test-client-id';
         process.env.GOOGLESHEET_CLIENT_SECRET = 'test-client-secret';
         process.env.GOOGLESHEET_REDIRECT_URI = 'https://example.com/callback';
         process.env.GOOGLESHEET_TOKEN_URI = 'https://oauth2.googleapis.com/token';
-        
+
         mockUser = createMockUser({
             id: '12345-googleSheets',
             hostname,
@@ -107,8 +107,8 @@ describe('Google Sheets Connector', () => {
                     email: 'test@gmail.com'
                 });
 
-            const result = await googleSheets.getUserInfo({ 
-                authHeader, 
+            const result = await googleSheets.getUserInfo({
+                authHeader,
                 hostname,
                 query: { rcAccountId: 'test-rc-account' }
             });
@@ -123,8 +123,8 @@ describe('Google Sheets Connector', () => {
                 .get('/oauth2/v3/userinfo')
                 .reply(401, { error: 'Unauthorized' });
 
-            await expect(googleSheets.getUserInfo({ 
-                authHeader, 
+            await expect(googleSheets.getUserInfo({
+                authHeader,
                 hostname,
                 query: { rcAccountId: 'test-rc-account' }
             })).rejects.toThrow();
@@ -384,7 +384,7 @@ describe('Google Sheets Connector', () => {
                 .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
                 .reply(200, {
                     values: [
-                        ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Incoming Phone Number', 'Outgoing Phone Number', 'Transcript', 'Smart summary', 'RingSense Summary', 'RingSense Transcript', 'RingSense AI Score', 'RingSense Bulleted Summary', 'RingSense Link', 'Call Result', 'Call Recording']
+                        ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Incoming Phone Number', 'Outgoing Phone Number', 'Transcript', 'Smart summary', 'ACE Summary', 'ACE Transcript', 'ACE AI Score', 'ACE Bulleted Summary', 'ACE Link', 'Call Result', 'Call Recording']
                     ]
                 });
 
@@ -392,7 +392,7 @@ describe('Google Sheets Connector', () => {
             nock(sheetsApiUrl)
                 .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`)
                 .reply(200, {
-                    values: [['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Incoming Phone Number', 'Outgoing Phone Number', 'Transcript', 'Smart summary', 'RingSense Summary', 'RingSense Transcript', 'RingSense AI Score', 'RingSense Bulleted Summary', 'RingSense Link', 'Call Result', 'Call Recording']]
+                    values: [['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Incoming Phone Number', 'Outgoing Phone Number', 'Transcript', 'Smart summary', 'ACE Summary', 'ACE Transcript', 'ACE AI Score', 'ACE Bulleted Summary', 'ACE Link', 'Call Result', 'Call Recording']]
                 });
 
             // Append new row - URL encoded space
@@ -487,7 +487,7 @@ describe('Google Sheets Connector', () => {
                 .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
                 .reply(200, {
                     values: [
-                        ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Call Result', 'Call Recording', 'Transcript', 'Smart summary', 'RingSense Transcript', 'RingSense Summary', 'RingSense AI Score', 'RingSense Bulleted Summary', 'RingSense Link'],
+                        ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction', 'Call Result', 'Call Recording', 'Transcript', 'Smart summary', 'ACE Transcript', 'ACE Summary', 'ACE AI Score', 'ACE Bulleted Summary', 'ACE Link'],
                         ['1', 'sheet-123', 'Existing Call', 'Existing notes', 'John Doe', '+14155551234', '2024-01-15', '2024-01-15', '300', 'session-123', 'Outbound', 'Connected', '', '', '', '', '', '', '', '']
                     ]
                 });
@@ -740,8 +740,8 @@ describe('Google Sheets Connector', () => {
             // URL encoded space
             nock(sheetsApiUrl)
                 .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
-                .reply(200, { 
-                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']] 
+                .reply(200, {
+                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']]
                 });
 
             // URL encoded space
@@ -782,8 +782,8 @@ describe('Google Sheets Connector', () => {
             // URL encoded space
             nock(sheetsApiUrl)
                 .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
-                .reply(200, { 
-                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']] 
+                .reply(200, {
+                    values: [['ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction']]
                 });
 
             // URL encoded space

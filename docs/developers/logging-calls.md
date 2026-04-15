@@ -101,7 +101,7 @@ Some connectors may wish to download the media file to upload it, or archive it 
 
 ### Logging AI artifacts: call summaries and transcripts
 
-!!! info "A RingSense license is required for a user to automatically log AI data in a remote system"
+!!! info "A ACE license is required for a user to automatically log AI data in a remote system"
 "
 If a user is entitled to log AI artifacts in a CRM, then the AI data will be transmitted to the connector via the `updateCallLog` or `createCallLog` interfaces. Consequently, if these data elements are not present, then it is safe to assume that the user is not permitted to log this data. 
 

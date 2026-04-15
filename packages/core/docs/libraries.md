@@ -74,7 +74,7 @@ It supports:
 - session id, subject, duration, result, recording, and timestamp formatting
 - transcript and AI note insertion
 - leg journey formatting
-- RingSense transcript, summary, score, bullet summary, and deep link sections
+- ACE transcript, summary, score, bullet summary, and deep link sections
 
 ### `lib/sharedSMSComposer.js`
 

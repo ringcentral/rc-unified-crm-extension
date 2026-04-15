@@ -62,17 +62,17 @@ describe('Bullhorn Connector', () => {
     const bhRestToken = 'bh-rest-token-123';
     const hostname = 'rest-test.bullhornstaffing.com';
     const authHeader = 'Bearer test-access-token';
-    
+
     let mockUser;
 
     beforeEach(() => {
         nock.cleanAll();
         jest.clearAllMocks();
-        
+
         process.env.BULLHORN_CLIENT_ID = 'test-client-id';
         process.env.BULLHORN_CLIENT_SECRET = 'test-client-secret';
         process.env.BULLHORN_REDIRECT_URI = 'https://example.com/callback';
-        
+
         mockUser = createMockUser({
             id: '12345-bullhorn',
             hostname,
@@ -214,7 +214,7 @@ describe('Bullhorn Connector', () => {
     describe('authValidation', () => {
         it('should return valid when ping succeeds with valid session', async () => {
             const futureDate = new Date(Date.now() + 3600000).toISOString();
-            
+
             nock(restUrl.slice(0, -1))
                 .get('/ping')
                 .reply(200, {
@@ -229,7 +229,7 @@ describe('Bullhorn Connector', () => {
 
         it('should refresh session when session is expired', async () => {
             const pastDate = new Date(Date.now() - 3600000).toISOString();
-            
+
             // First ping returns expired session
             nock(restUrl.slice(0, -1))
                 .get('/ping')
@@ -1943,7 +1943,7 @@ describe('Bullhorn Connector', () => {
                 existingCallLogDetails,
                 hashedAccountId: 'hash-123',
                 isFromSSCL: true,
-                ringSenseTranscript: 'RingSense transcript',
+                ringSenseTranscript: 'ACE transcript',
                 ringSenseSummary: 'Summary',
                 ringSenseAIScore: 85,
                 ringSenseBulletedSummary: '• Point 1',
@@ -2512,8 +2512,8 @@ describe('Bullhorn Connector', () => {
                 }, mockBullhornRateLimitHeaders);
 
             nock(restUrl.slice(0, -1))
-                .put('/entity/Lead', body => 
-                    body.status === 'Hot' && 
+                .put('/entity/Lead', body =>
+                    body.status === 'Hot' &&
                     body.phone === '+14155551234' &&
                     body.firstName === 'Test'
                 )
@@ -2634,10 +2634,10 @@ describe('Bullhorn Connector', () => {
     });
 
     // ==================== Additional updateCallLog scenarios ====================
-    describe('updateCallLog with RingSense data', () => {
+    describe('updateCallLog with ACE data', () => {
         const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '501' });
 
-        it('should include RingSense fields in update', async () => {
+        it('should include ACE fields in update', async () => {
             const existingCallLogDetails = {
                 comments: 'Existing comments',
                 commentingPerson: { id: 123 }
@@ -2662,11 +2662,11 @@ describe('Bullhorn Connector', () => {
                 aiNote: 'AI generated note',
                 transcript: 'Full transcript here',
                 additionalSubmission: null,
-                composedLogDetails: 'Updated details with RingSense',
+                composedLogDetails: 'Updated details with ACE',
                 existingCallLogDetails,
                 hashedAccountId: 'hash-123',
-                ringSenseTranscript: 'RingSense transcript',
-                ringSenseSummary: 'RingSense summary',
+                ringSenseTranscript: 'ACE transcript',
+                ringSenseSummary: 'ACE summary',
                 ringSenseAIScore: 85,
                 ringSenseBulletedSummary: '• Point 1\n• Point 2',
                 ringSenseLink: 'https://ringsense.example.com/call/123'
@@ -3350,7 +3350,7 @@ describe('Bullhorn Connector', () => {
         it('should return true when session is valid and not near expiry', async () => {
             // Session expires in 1 hour
             const futureDate = new Date(Date.now() + 3600000).toISOString();
-            
+
             nock(restUrl.slice(0, -1))
                 .get('/ping')
                 .reply(200, {

@@ -57,7 +57,7 @@
 
 ## 1.7.10
 
-- New: RingCX RingSense call logging event support for Server-side logging
+- New: RingCX ACE call logging event support for Server-side logging
 - Fix: Upon completing warm transfer, it opens contact page for a second time
 
 ## 1.7.9

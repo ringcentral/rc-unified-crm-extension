@@ -368,7 +368,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         let columnIndexes = await getColumnIndexes(spreadsheetId, sheetName, authHeader);
 
         // Check if required phone number columns exist, if not add them
-        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number", "Transcript", "Smart summary", "RingSense Summary", "RingSense Transcript", "RingSense AI Score", "RingSense Bulleted Summary", "RingSense Link"];
+        const requiredColumns = ["Incoming Phone Number", "Outgoing Phone Number", "Transcript", "Smart summary", "ACE Summary", "ACE Transcript", "ACE AI Score", "ACE Bulleted Summary", "ACE Link"];
         const missingColumns = requiredColumns.filter(col => !(col in columnIndexes));
         console.log({ message: 'missingColumns', missingColumns });
         if (missingColumns.length > 0) {
@@ -449,23 +449,23 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             requestData["Call Recording"] = callLog?.recording?.link !== undefined ? callLog.recording.link : "";
         }
         if (ringSenseTranscript && (user?.userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true)) {
-            requestData["RingSense Transcript"] = ringSenseTranscript;
+            requestData["ACE Transcript"] = ringSenseTranscript;
         }
 
         if (ringSenseSummary && (user?.userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true)) {
-            requestData["RingSense Summary"] = ringSenseSummary;
+            requestData["ACE Summary"] = ringSenseSummary;
         }
 
         if (ringSenseAIScore && (user?.userSettings?.addCallLogRingSenseRecordingAIScore?.value ?? true)) {
-            requestData["RingSense AI Score"] = ringSenseAIScore;
+            requestData["ACE AI Score"] = ringSenseAIScore;
         }
 
         if (ringSenseBulletedSummary && (user?.userSettings?.addCallLogRingSenseRecordingBulletedSummary?.value ?? true)) {
-            requestData["RingSense Bulleted Summary"] = ringSenseBulletedSummary;
+            requestData["ACE Bulleted Summary"] = ringSenseBulletedSummary;
         }
 
         if (ringSenseLink && (user?.userSettings?.addCallLogRingSenseRecordingLink?.value ?? true)) {
-            requestData["RingSense Link"] = ringSenseLink;
+            requestData["ACE Link"] = ringSenseLink;
         }
 
         Object.entries(requestData).forEach(([key, value]) => {
@@ -599,11 +599,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             const columnRecordingIndex = headers.indexOf("Call Recording");
             const columnTranscriptIndex = headers.indexOf("Transcript");
             const columnAiNoteIndex = headers.indexOf("Smart summary");
-            const columnRingSenseTranscriptIndex = headers.indexOf("RingSense Transcript");
-            const columnRingSenseSummaryIndex = headers.indexOf("RingSense Summary");
-            const columnRingSenseAIScoreIndex = headers.indexOf("RingSense AI Score");
-            const columnRingSenseBulletedSummaryIndex = headers.indexOf("RingSense Bulleted Summary");
-            const columnRingSenseLinkIndex = headers.indexOf("RingSense Link");
+            const columnRingSenseTranscriptIndex = headers.indexOf("ACE Transcript");
+            const columnRingSenseSummaryIndex = headers.indexOf("ACE Summary");
+            const columnRingSenseAIScoreIndex = headers.indexOf("ACE AI Score");
+            const columnRingSenseBulletedSummaryIndex = headers.indexOf("ACE Bulleted Summary");
+            const columnRingSenseLinkIndex = headers.indexOf("ACE Link");
 
             if (columnCIndex === -1 || columnDIndex === -1) {
                 return {

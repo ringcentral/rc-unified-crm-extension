@@ -702,27 +702,27 @@ function upsertRingSenseTranscript({ body, transcript, logFormat }) {
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
             const formattedTranscript = clearedTranscript.replace(/(?:\r\n|\r|\n)/g, '<br>');
-            transcriptRegex = /<div><b>RingSense transcript<\/b><br>(.+?)<\/div>/;
+            transcriptRegex = /<div><b>ACE transcript<\/b><br>(.+?)<\/div>/;
             if (transcriptRegex.test(result)) {
-                result = result.replace(transcriptRegex, `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`);
+                result = result.replace(transcriptRegex, `<div><b>ACE transcript</b><br>${formattedTranscript}</div>`);
             } else {
-                result += `<div><b>RingSense transcript</b><br>${formattedTranscript}</div>`;
+                result += `<div><b>ACE transcript</b><br>${formattedTranscript}</div>`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            transcriptRegex = /### RingSense transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
+            transcriptRegex = /### ACE transcript\n([\s\S]*?)(?=\n### |\n$|$)/;
             if (transcriptRegex.test(result)) {
-                result = result.replace(transcriptRegex, `### RingSense transcript\n${clearedTranscript}\n`);
+                result = result.replace(transcriptRegex, `### ACE transcript\n${clearedTranscript}\n`);
             } else {
-                result += `### RingSense transcript\n${clearedTranscript}\n`;
+                result += `### ACE transcript\n${clearedTranscript}\n`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-            transcriptRegex = /- RingSense transcript:([\s\S]*?)--- END/;
+            transcriptRegex = /- ACE transcript:([\s\S]*?)--- END/;
             if (transcriptRegex.test(result)) {
-                result = result.replace(transcriptRegex, `- RingSense transcript:\n${clearedTranscript}\n--- END`);
+                result = result.replace(transcriptRegex, `- ACE transcript:\n${clearedTranscript}\n--- END`);
             } else {
-                result += `\n- RingSense transcript:\n${clearedTranscript}\n--- END\n`;
+                result += `\n- ACE transcript:\n${clearedTranscript}\n--- END\n`;
             }
             break;
     }
@@ -739,28 +739,28 @@ function upsertRingSenseSummary({ body, summary, logFormat }) {
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
-            summaryRegex = /<div><b>RingSense summary<\/b><br>(.+?)<\/div>/;
+            summaryRegex = /<div><b>ACE summary<\/b><br>(.+?)<\/div>/;
             const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `<div><b>RingSense summary</b><br>${formattedSummary}</div>`);
+                result = result.replace(summaryRegex, `<div><b>ACE summary</b><br>${formattedSummary}</div>`);
             } else {
-                result += `<div><b>RingSense summary</b><br>${formattedSummary}</div>`;
+                result += `<div><b>ACE summary</b><br>${formattedSummary}</div>`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            summaryRegex = /### RingSense summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+            summaryRegex = /### ACE summary\n([\s\S]*?)(?=\n### |\n$|$)/;
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `### RingSense summary\n${summary}\n`);
+                result = result.replace(summaryRegex, `### ACE summary\n${summary}\n`);
             } else {
-                result += `### RingSense summary\n${summary}\n`;
+                result += `### ACE summary\n${summary}\n`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-            summaryRegex = /- RingSense summary:([\s\S]*?)--- END/;
+            summaryRegex = /- ACE summary:([\s\S]*?)--- END/;
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `- RingSense summary:\n${summary}\n--- END`);
+                result = result.replace(summaryRegex, `- ACE summary:\n${summary}\n--- END`);
             } else {
-                result += `\n- RingSense summary:\n${summary}\n--- END\n`;
+                result += `\n- ACE summary:\n${summary}\n--- END\n`;
             }
             break;
     }
@@ -811,28 +811,28 @@ function upsertRingSenseBulletedSummary({ body, summary, logFormat }) {
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
-            summaryRegex = /<div><b>RingSense bulleted summary<\/b><br>(.+?)<\/div>/;
+            summaryRegex = /<div><b>ACE bulleted summary<\/b><br>(.+?)<\/div>/;
             const formattedSummary = clearedSummary.replace(/(?:\r\n|\r|\n)/g, '<br>');
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`);
+                result = result.replace(summaryRegex, `<div><b>ACE bulleted summary</b><br>${formattedSummary}</div>`);
             } else {
-                result += `<div><b>RingSense bulleted summary</b><br>${formattedSummary}</div>`;
+                result += `<div><b>ACE bulleted summary</b><br>${formattedSummary}</div>`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            summaryRegex = /### RingSense bulleted summary\n([\s\S]*?)(?=\n### |\n$|$)/;
+            summaryRegex = /### ACE bulleted summary\n([\s\S]*?)(?=\n### |\n$|$)/;
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `### RingSense bulleted summary\n${summary}\n`);
+                result = result.replace(summaryRegex, `### ACE bulleted summary\n${summary}\n`);
             } else {
-                result += `### RingSense bulleted summary\n${summary}\n`;
+                result += `### ACE bulleted summary\n${summary}\n`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-            summaryRegex = /- RingSense bulleted summary:\s*([^<\n]+)(?=\n|$)/i;
+            summaryRegex = /- ACE bulleted summary:\s*([^<\n]+)(?=\n|$)/i;
             if (summaryRegex.test(result)) {
-                result = result.replace(summaryRegex, `- RingSense bulleted summary:\n${summary}\n--- END`);
+                result = result.replace(summaryRegex, `- ACE bulleted summary:\n${summary}\n--- END`);
             } else {
-                result += `\n- RingSense bulleted summary:\n${summary}\n--- END\n`;
+                result += `\n- ACE bulleted summary:\n${summary}\n--- END\n`;
             }
             break;
     }
@@ -847,27 +847,27 @@ function upsertRingSenseLink({ body, link, logFormat }) {
 
     switch (logFormat) {
         case LOG_DETAILS_FORMAT_TYPE.HTML:
-            linkRegex = /(?:<li>)?<b>RingSense recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
+            linkRegex = /(?:<li>)?<b>ACE recording link<\/b>:\s*(?:<a[^>]*>[^<]*<\/a>|[^<]+)(?:<\/li>|(?=<|$))/i;
             if (linkRegex.test(result)) {
-                result = result.replace(linkRegex, `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`);
+                result = result.replace(linkRegex, `<li><b>ACE recording link</b>: <a target="_blank" href="${link}">open</a></li>`);
             } else {
-                result += `<li><b>RingSense recording link</b>: <a target="_blank" href="${link}">open</a></li>`;
+                result += `<li><b>ACE recording link</b>: <a target="_blank" href="${link}">open</a></li>`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.MARKDOWN:
-            linkRegex = /\*\*RingSense recording link\*\*:\s*([^<\n]+)(?=\n|$)/i;
+            linkRegex = /\*\*ACE recording link\*\*:\s*([^<\n]+)(?=\n|$)/i;
             if (linkRegex.test(result)) {
-                result = result.replace(linkRegex, `**RingSense recording link**: ${link}\n`);
+                result = result.replace(linkRegex, `**ACE recording link**: ${link}\n`);
             } else {
-                result += `**RingSense recording link**: ${link}\n`;
+                result += `**ACE recording link**: ${link}\n`;
             }
             break;
         case LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT:
-            linkRegex = /- RingSense recording link:\s*([^<\n]+)(?=\n|$)/i;
+            linkRegex = /- ACE recording link:\s*([^<\n]+)(?=\n|$)/i;
             if (linkRegex.test(result)) {
-                result = result.replace(linkRegex, `- RingSense recording link: ${link}`);
+                result = result.replace(linkRegex, `- ACE recording link: ${link}`);
             } else {
-                result += `- RingSense recording link: ${link}\n`;
+                result += `- ACE recording link: ${link}\n`;
             }
             break;
     }
