@@ -1187,6 +1187,18 @@
               "type": "boolean",
               "name": "Allow custom note action",
               "defaultValue": false
+            },
+            {
+              "id": "bullhornInboundCallCopyToContactComments",
+              "type": "boolean",
+              "name": "Copy to contact comments for inbound calls",
+              "defaultValue": false
+            },
+            {
+              "id": "bullhornOutboundCallCopyToContactComments",
+              "type": "boolean",
+              "name": "Copy to contact comments for outbound calls",
+              "defaultValue": false
             }
           ]
         }
@@ -1218,6 +1230,22 @@
                 },
                 "outboundCall": {
                   "settingId": "bullhornOutboundCallNoteAction"
+                }
+              }
+            },
+            {
+              "const": "copyToContactComments",
+              "title": "Copy to contact comments",
+              "type": "checkbox",
+              "defaultValue": false,
+              "allowCustomValue": true,
+              "defaultSettingId": "bullhornDefaultNoteAction",
+              "defaultSettingValues": {
+                "inboundCall": {
+                  "settingId": "bullhornInboundCallCopyToContactComments"
+                },
+                "outboundCall": {
+                  "settingId": "bullhornOutboundCallCopyToContactComments"
                 }
               }
             }

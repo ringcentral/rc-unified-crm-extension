@@ -1078,7 +1078,7 @@ async function getUserList({ user }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
@@ -1132,6 +1132,20 @@ async function createCallLog({ user, contactInfo, callLog, additionalSubmission,
         extraDataTracking.ratelimitRemaining = addLogRes.headers['ratelimit-remaining'];
         extraDataTracking.ratelimitAmount = addLogRes.headers['ratelimit-limit'];
         extraDataTracking.ratelimitReset = addLogRes.headers['ratelimit-reset'];
+        if (additionalSubmission?.copyToContactComments) {
+            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactInfo.type}/${contactInfo.id}`,
+                {
+                    comments: note
+                },
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            extraDataTracking.ratelimitRemaining = contactCommentResponse.headers['ratelimit-remaining'];
+            extraDataTracking.ratelimitAmount = contactCommentResponse.headers['ratelimit-limit'];
+            extraDataTracking.ratelimitReset = contactCommentResponse.headers['ratelimit-reset'];
+        }
     }
     catch (e) {
         if (isAuthError(e.response.status)) {
@@ -1257,6 +1271,38 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             ratelimitRemaining: patchLogRes.headers['ratelimit-remaining'],
             ratelimitAmount: patchLogRes.headers['ratelimit-limit'],
             ratelimitReset: patchLogRes.headers['ratelimit-reset']
+        }
+        if (additionalSubmission?.copyToContactComments) {
+            const possbileContactTypes = ['clientContacts', 'candidates', 'leads'];
+            let contactType = null;
+            for (const ct of possbileContactTypes) {
+                if (getLogRes.data.data[ct]?.data?.length > 0) {
+                    switch (ct) {
+                        case 'clientContacts':
+                            contactType = 'Contact';
+                            break;
+                        case 'candidates':
+                            contactType = 'Candidate';
+                            break;
+                    }
+                }
+            }
+            if (!contactType) {
+                contactType = 'Lead';
+            }
+            const contactId = existingCallLog.contactId;
+            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactType}/${contactId}`,
+                {
+                    comments: note
+                },
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            extraDataTracking.ratelimitRemaining = contactCommentResponse.headers['ratelimit-remaining'];
+            extraDataTracking.ratelimitAmount = contactCommentResponse.headers['ratelimit-limit'];
+            extraDataTracking.ratelimitReset = contactCommentResponse.headers['ratelimit-reset'];
         }
     }
     catch (e) {
