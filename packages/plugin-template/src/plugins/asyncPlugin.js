@@ -1,0 +1,51 @@
+const axios = require('axios');
+
+// Setup RC webhook in RingCentrap App
+// 1. Open RingCentral App and go to any message conversation
+// 2. Top-right, more buttons -> Add apps -> scroll and find Incoming Webhook
+// 3. Copy the webhook URL and paste it here -> Finish
+const RC_WEBHOOK_ENDPOINT = 'https://hooks.ringcentral.com/webhook/v2/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvdCI6ImMiLCJvaSI6IjQzOTE4MzAzMjMzIiwiaWQiOiIzNjk1NjgxNTYzIn0.kF49R_X_NPrJckU43fUqNcsRJAMZPzuO5Ryohoa91JU';
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function run({ identity, data, config, asyncTaskId }) {
+  // Expected input:
+  // {
+  //   data: {
+  //     logInfo: { ... }
+  //   },
+  //   config: { ... },
+  //   asyncTaskId: 'userId-uuid'
+  // }
+  //
+  // Async plugins should return quickly, avoid blocking CRM logging, and
+  // should not try to mutate the payload used by the main logging flow.
+  try {
+    const delayMs = 5000; // 5s
+    // This tiny side effect exists only to demonstrate async work.
+    // A real async plugin could upload a file, call an API, or persist data.
+    console.log('Async plugin start wait for 5 seconds');
+    await sleep(delayMs);
+    console.log('Async plugin wait completed');
+    await axios.post(RC_WEBHOOK_ENDPOINT, {
+      text: 'Async plugin completed'
+    });
+    console.log('Async plugin webhook completed');
+
+    return {
+      accepted: true,
+      asyncTaskId,
+      pluginIdentity: identity
+    };
+  } catch (error) {
+    return {
+      accepted: false,
+      asyncTaskId,
+      message: 'Async plugin processing failed'
+    };
+  }
+}
+
+exports.run = run;

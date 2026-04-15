@@ -2352,6 +2352,38 @@ function createCoreRouter() {
         });
     });
 
+    router.get('/plugin/licenseStatus', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getPluginLicenseStatus:start', { query: req.query });
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (!jwtToken) {
+                tracer?.trace('getPluginLicenseStatus:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                tracer?.trace('getPluginLicenseStatus:userNotFound', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                return;
+            }
+            const { rcAccountId, pluginId } = req.query;
+            if (!rcAccountId || !pluginId) {
+                res.status(400).send(tracer ? tracer.wrapResponse('rcAccountId and pluginId are required') : 'rcAccountId and pluginId are required');
+                return;
+            }
+            const licenseStatus = await pluginCore.getPluginLicenseStatus({ rcAccountId, pluginId });
+            res.status(200).send(tracer ? tracer.wrapResponse(licenseStatus) : licenseStatus);
+        }
+        catch (e) {
+            logger.error('Get plugin license status failed', { stack: e.stack });
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            tracer?.traceError('getPluginLicenseStatus:error', e);
+        }
+    });
+
     if (process.env.IS_PROD === 'false') {
         router.post('/registerMockUser', async function (req, res) {
             const secretKey = req.query.secretKey;

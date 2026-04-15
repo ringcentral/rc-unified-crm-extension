@@ -169,23 +169,35 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     cacheKey: `pluginTask-${plugin.data.name}`,
                     expiry: moment().add(1, 'hour').toDate()
                 });
-                const pluginResponse = await axios.post(pluginEndpointUrl, {
-                    data: incomingData,
-                    config: userConfig,
-                    asyncTaskId
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${pluginJwtToken}`,
-                    },
-                });
-                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginData({
-                        rcAccountId: user.rcAccountId,
-                        platformName: platform,
-                        pluginId,
-                        jwtToken: refreshedPluginJwtToken,
+                try {
+                    const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${pluginJwtToken}`,
+                            }
+                        }
+                    )
+                    const syncedPluginJwtToken = syncPluginTokenResponse?.data?.jwtToken ?? pluginJwtToken;
+                    axios.post(pluginEndpointUrl, {
+                        data: incomingData,
+                        config: userConfig,
+                        asyncTaskId
+                    }, {
+                        headers: {
+                            Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
+                        },
                     });
+                    if (syncedPluginJwtToken) {
+                        pluginCore.persistPluginData({
+                            rcAccountId: user.rcAccountId,
+                            platformName: platform,
+                            pluginId,
+                            jwtToken: syncedPluginJwtToken,
+                        });
+                    }
+                }
+                catch (error) {
+                    logger.error('Error syncing plugin JWT token', { stack: error.stack });
                 }
             }
             else {
@@ -461,23 +473,35 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                         cacheKey: `pluginTask-${plugin.data.name}`,
                         expiry: moment().add(1, 'hour').toDate()
                     });
-                    const pluginResponse = await axios.post(pluginEndpointUrl, {
-                        data: { logInfo: incomingData },
-                        config: userConfig,
-                        asyncTaskId
-                    }, {
-                        headers: {
-                            Authorization: `Bearer ${pluginJwtToken}`,
-                        },
-                    });
-                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                    if (refreshedPluginJwtToken) {
-                        pluginCore.persistPluginData({
-                            rcAccountId: user.rcAccountId,
-                            platformName: platform,
-                            pluginId,
-                            jwtToken: refreshedPluginJwtToken,
+                    try {
+                        const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
+                            {
+                                headers: {
+                                    Authorization: `Bearer ${pluginJwtToken}`,
+                                },
+                            }
+                        );
+                        const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
+                        axios.post(pluginEndpointUrl, {
+                            data: { logInfo: incomingData },
+                            config: userConfig,
+                            asyncTaskId
+                        }, {
+                            headers: {
+                                Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
+                            },
                         });
+                        if (syncedPluginJwtToken) {
+                            pluginCore.persistPluginData({
+                                rcAccountId: user.rcAccountId,
+                                platformName: platform,
+                                pluginId,
+                                jwtToken: syncedPluginJwtToken,
+                            });
+                        }
+                    }
+                    catch (error) {
+                        logger.error('Error syncing plugin JWT token', { stack: error.stack });
                     }
                 }
                 else {
@@ -717,23 +741,35 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     cacheKey: `pluginTask-${plugin.data.name}`,
                     expiry: moment().add(1, 'hour').toDate()
                 });
-                const pluginResponse = await axios.post(pluginEndpointUrl, {
-                    data: { logInfo: incomingData },
-                    config: userConfig,
-                    asyncTaskId
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${pluginJwtToken}`,
-                    },
-                });
-                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: pluginResponse.headers });
-                if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginData({
-                        rcAccountId: user.rcAccountId,
-                        platformName: platform,
-                        pluginId,
-                        jwtToken: refreshedPluginJwtToken,
+                try {
+                    const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${pluginJwtToken}`,
+                            },
+                        }
+                    );
+                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
+                    axios.post(pluginEndpointUrl, {
+                        data: { logInfo: incomingData },
+                        config: userConfig,
+                        asyncTaskId
+                    }, {
+                        headers: {
+                            Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
+                        },
                     });
+                    if (syncedPluginJwtToken) {
+                        pluginCore.persistPluginData({
+                            rcAccountId: user.rcAccountId,
+                            platformName: platform,
+                            pluginId,
+                            jwtToken: syncedPluginJwtToken,
+                        });
+                    }
+                }
+                catch (error) {
+                    logger.error('Error syncing plugin JWT token', { stack: error.stack });
                 }
             }
             else {

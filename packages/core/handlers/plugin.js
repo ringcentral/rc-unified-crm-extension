@@ -31,6 +31,26 @@ function getPluginConfigFromUserSettings({ userSettings, pluginId }) {
     return targetPluginSettings.value.config;
 }
 
+async function getPluginLicenseStatus({ rcAccountId, pluginId }) {
+    const accountData = await AccountDataModel.findOne({
+        where: {
+            rcAccountId,
+            platformName: pluginId,
+            dataKey: 'pluginData',
+        },
+    });
+    if (!accountData) {
+        return null;
+    }
+    const licenseStatusUrl = accountData.data.licenseStatusUrl;
+    const licenseStatusResponse = await axios.get(licenseStatusUrl, {
+        headers: {
+            'Authorization': `Bearer ${accountData.data.jwtToken}`
+        }
+    });
+    return licenseStatusResponse.data;
+}
+
 async function getPluginAsyncTasks({ asyncTaskIds }) {
     const caches = await CacheModel.findAll({
         where: {
@@ -180,6 +200,7 @@ async function unregisterPluginAccount({ pluginId, rcAccountId }) {
 
 exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;
 exports.getPluginConfigFromUserSettings = getPluginConfigFromUserSettings;
+exports.getPluginLicenseStatus = getPluginLicenseStatus;
 exports.getPluginAsyncTasks = getPluginAsyncTasks;
 exports.getRefreshedJwtTokenFromHeaders = getRefreshedJwtTokenFromHeaders;
 exports.resolvePluginManifest = resolvePluginManifest;

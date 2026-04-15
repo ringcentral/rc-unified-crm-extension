@@ -1,23 +1,6 @@
-function getIgnoredLetters() {
-  return process.env.PLUGIN_IGNORED_LETTERS || '';
-}
-
+// return the same payload shape App Connect sent you. You may transform
+// fields like note or additionalSubmission, but do not remove required data.
 function run({ identity, data, config }) {
-  // This is an example plugin implementation, not framework-level structure.
-  // It demonstrates the synchronous POST /plugin/:pluginId contract.
-  //
-  // Expected input:
-  // {
-  //   data: {
-  //     logInfo: { ... },
-  //     note: 'some text',
-  //     additionalSubmission: { ... }
-  //   }
-  // }
-  //
-  // Required behavior:
-  // return the same payload shape App Connect sent you. You may transform
-  // fields like note or additionalSubmission, but do not remove required data.
   const originalNote = data?.note || '';
   const ignoreLetters = config.ignoreLetters || '';
 
@@ -26,6 +9,14 @@ function run({ identity, data, config }) {
     note += ignoreLetters.value.includes(letter) ? letter : letter.toUpperCase();
   }
 
+  // Expected input:
+  // {
+  //   data: {
+  //     logInfo: { ... },
+  //     note: 'some text',
+  //     additionalSubmission: { ... }
+  //   }
+  // }
   return {
     ...data,
     pluginIdentity: identity,
@@ -57,7 +48,7 @@ function run({ identity, data, config }) {
 
 // Optional license hook for a sync plugin:
 //
-// async function getLicenseStatus({ userId }) {
+// async function getLicenseStatus() {
 //   const licenseTier = process.env.PLUGIN_LICENSE_TIER || 'Basic';
 //   return {
 //     licenseStatus: true,
