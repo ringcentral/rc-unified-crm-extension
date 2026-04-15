@@ -1865,9 +1865,19 @@ async function sendMonthlyCsvReportByEmail() {
 }
 
 async function fetchMonthlySalesforceReportRows(){
+    const users = [];
+    let filteredUsers = [];
+
+    // Map email -> Bullhorn master user id(s) (strip `-bullhorn`)
+    // Note: one email may map to multiple Bullhorn users.
+    const bullhornMasterUserIdsByEmail = new Map();
+
+    // Bullhorn user id looks like `${masterUserId}-bullhorn`. Strip suffix and fetch email from Bullhorn.
+    // (Requested: use id to fetch emailId/email from Bullhorn)
+    let bullhornEmailList = [];
     const { UserModel } = require('@app-connect/core/models/userModel');
     const { Op } = require('sequelize');
-    const users = await UserModel.findAll({
+    users.push(...(await UserModel.findAll({
         where: {
             platform: 'bullhorn',
             accessToken: {
@@ -1877,18 +1887,52 @@ async function fetchMonthlySalesforceReportRows(){
                 ]
             }
         }
-    });
+    })));
 
     // Filter users to only those updated within the last month (up to the current date)
     const oneMonthAgo = moment().subtract(1, 'months').toDate();
-    const filteredUsers = users.filter(u => {
-        // Use updatedAt if available from Sequelize model
+    filteredUsers = users.filter(u => {
         if (u.updatedAt) {
             return u.updatedAt > oneMonthAgo;
         }
-        // Fallback to always include if no updatedAt field (for backward compatibility)
         return true;
     });
+
+    try {
+        const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
+        const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const emailSet = new Set();
+        for (let startIndex = 0; startIndex < filteredUsers.length; startIndex += batchConcurrency) {
+            const currentBatch = filteredUsers.slice(startIndex, startIndex + batchConcurrency);
+            const batchResults = await Promise.allSettled(
+                currentBatch.map(async (currentUser) => {
+                    const profile = await fetchBullhornUserProfile({ user: currentUser });
+                    return { profile, currentUser };
+                })
+            );
+            for (const r of batchResults) {
+                const email = r?.value?.profile?.email;
+                if (email && typeof email === 'string') {
+                    const normalized = email.trim().toLowerCase();
+                    if (normalized) {
+                        emailSet.add(normalized);
+                        const masterUserId = String(r?.value?.currentUser?.id || '').replace(/-bullhorn$/, '');
+                        if (masterUserId) {
+                            const existing = bullhornMasterUserIdsByEmail.get(normalized);
+                            if (existing) existing.add(masterUserId);
+                            else bullhornMasterUserIdsByEmail.set(normalized, new Set([masterUserId]));
+                        }
+                    }
+                }
+            }
+            if (batchDelayMs) await delay(batchDelayMs);
+        }
+        bullhornEmailList = Array.from(emailSet.values());
+        logger.info({ message: 'Bullhorn emails fetched for Salesforce report', count: emailSet.size });
+    } catch (error) {
+        logger.error('Failed to fetch Bullhorn emails for Salesforce report', { stack: error.stack });
+    }
 
 
     // Optionally, update the next code block to use filteredUsers instead of users if needed.
@@ -1954,14 +1998,14 @@ async function fetchMonthlySalesforceReportRows(){
         return [];
     }
 
-    console.log({message:'filteredUserRcAccountIdList are', filteredUserRcAccountIdList});
+    
 
     // String format required by SOQL: ('123','1234','567')
     // Salesforce query is sent via GET `?q=...`, so a large IN-clause can trigger 414 (URI Too Long).
     // Chunk the IN list to keep each request safely under URL limits.
     const ACCOUNT_ID_CHUNK_SIZE = process.env.BULLHORN_REPORT_SALESFORCE_ACCOUNT_ID_CHUNK_SIZE || 700;
     const rcIdChunks = chunkArray(filteredUserRcAccountIdList, ACCOUNT_ID_CHUNK_SIZE);
-    console.log({message:'rcIdChunks are', rcIdChunks});
+   // console.log({message:'rcIdChunks are', rcIdChunks});
     const accountBySfId = new Map();
     try {
         for (const chunk of rcIdChunks) {
@@ -2007,7 +2051,7 @@ accounts.forEach(acc => {
     }
 });
 
-console.log('acc18List are', acc18List);
+console.log({m:'acc18List are',Length: acc18List.length});
 if(acc18List.length === 0) {
     logger.warn('No accounts found for Bullhorn users; skipping Salesforce query');
     return [];
@@ -2019,15 +2063,28 @@ const acc18Chunks = chunkArray(acc18List, CONTACT_ACCOUNT_CHUNK_SIZE);
 let contacts = [];
 try {
     const contactBySfId = new Map();
-    for (const chunk of acc18Chunks) {
-        const contactsSoql =
-            "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
-            "Account_Number_of_DLs__c,CSM_Owner__c,Product_Ecomm__c,Product__c " +
-            "FROM Contact WHERE AccountId IN (" + chunk.join(',') + ")";
+    const emailInList = (bullhornEmailList || [])
+        .map((e) => (e ? String(e).trim().toLowerCase() : ''))
+        .filter(Boolean)
+        .map((e) => `'${e.replace(/'/g, "\\'")}'`);
 
-        const chunkContacts = await fetchSalesforceQueryAllRecords(contactsSoql);
-        for (const c of chunkContacts) {
-            if (c && c.Id) contactBySfId.set(c.Id, c);
+    // If the email list is very large, chunk it to avoid 414 URI Too Long.
+    const CONTACT_EMAIL_CHUNK_SIZE = Number(process.env.BULLHORN_REPORT_SALESFORCE_EMAIL_CHUNK_SIZE) || 200;
+    const emailChunks = emailInList.length ? chunkArray(emailInList, CONTACT_EMAIL_CHUNK_SIZE) : [[]];
+
+    for (const chunk of acc18Chunks) {
+        for (const emailChunk of emailChunks) {
+            const emailClause = emailChunk.length ? ` AND Email IN (${emailChunk.join(',')})` : '';
+            console.log({m:'emailClause is', emailClause});
+            const contactsSoql =
+                "SELECT Id,FirstName,LastName,AccountId,Account_Partner_Status__c,Account_Status__c,Company__c,Email," +
+                "Account_Number_of_DLs__c,CSM_Owner__c,Product_Ecomm__c,Product__c " +
+                `FROM Contact WHERE AccountId IN (${chunk.join(',')})${emailClause}`;
+
+            const chunkContacts = await fetchSalesforceQueryAllRecords(contactsSoql);
+            for (const c of chunkContacts) {
+                if (c && c.Id) contactBySfId.set(c.Id, c);
+            }
         }
     }
     contacts = Array.from(contactBySfId.values());
@@ -2046,6 +2103,13 @@ logger.info({ message: 'Salesforce contacts fetched', count: contacts.length });
 contacts.forEach(contact => {
     const account = accountIdMap[contact.AccountId] || {};
     results.push({
+        'Bullhorn Master User ID': (() => {
+            const email = String(contact.Email || '').trim().toLowerCase();
+            if (!email) return '';
+            const set = bullhornMasterUserIdsByEmail.get(email);
+            if (!set || !set.size) return '';
+            return Array.from(set.values()).join(',');
+        })(),
         'First Name': contact.FirstName,
         'Last Name': contact.LastName,
         'Email': contact.Email,
@@ -2060,7 +2124,7 @@ contacts.forEach(contact => {
     });
 });
 
-console.log({message:"CUmulative data", results});
+console.log({message:"CUmulative data", Length:results.length});
 
 // The `results` array now contains the merged data with the desired fields.
 return results;
@@ -2078,6 +2142,7 @@ async function generateMonthlyCsvReportWithSalesforceData() {
     }
 
     const header = [
+        'Bullhorn Master User ID',
         'First Name',
         'Last Name',
         'Email',
@@ -2204,7 +2269,7 @@ async function sendMonthlyCsvReportByEmailWithSalesforceData() {
                 }
             );
         } catch (error) {
-            logger.error('Failed to send Salesforce report email:', { stack: error.stack });
+            logger.error('Failed to send Salesforce report email:', { stack: error.stack, error});
             await sendErrorReportEmailWithSalesforce(error, 'sendMonthlyCsvReportByEmailWithSalesforceData');
         }
 
