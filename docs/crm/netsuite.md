@@ -58,6 +58,8 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Lists        | Subsidiaries                         | View  (OneWorld users only) |
 | Lists        | Notes Tab                            | Full                        |
 | Lists        | Documents and Files                  | Full                        |
+| Lists        | Employees                            | View                        |
+| Lists        | Employee Record                      | View                        |
 | Reports      | SuiteAnalytics Workbook              | Edit                        |
 | Setup        | Log in using OAuth 2.0 Access Tokens | Full                        |
 | Setup        | REST Web Services                    | Full                        |
@@ -65,6 +67,9 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Transactions | Sales Order                          | Full                        |
 | Transactions | Opportunity                          | Full                        |
 | Transactions | Find Transaction                     | View                        |
+
+!!! note "Employees and Employee Record permissions"
+    The Employees and Employee Record permissions are used for the [user mapping feature](../users/server-side-logging.md#activity-record-owner) used by server side call logging. If you have concerns about granting this permission, feel free to remove it and grant it only to the user who sets up server side call logging, typically an admin.
 
 ## Install the Chrome/Edge extension
 
