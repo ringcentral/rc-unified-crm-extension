@@ -164,8 +164,7 @@ nav:
   - 'Developer Console': https://appconnect.labs.ringcentral.com/console
   - 'Is your CRM compatible?': developers/proprietary-crm.md
   - 'Plugins':
-    - 'Configuration': developers/plugins/index.md
-    - 'Server': developers/plugins/server.md
+    - 'Getting started': developers/plugins/index.md
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
     - 'Authorization': developers/auth.md
