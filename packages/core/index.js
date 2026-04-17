@@ -76,18 +76,17 @@ async function initDB() {
         await CallDownListModel.sync();
         await AccountDataModel.sync();
 
-        // if UserModel doesn't have hashedRcExtensionId column, add it
-        const queryInterface = UserModel.sequelize.getQueryInterface();
-        const userTableName = UserModel.getTableName();
-        const userTableSchema = await queryInterface.describeTable(userTableName);
-        if (!userTableSchema.hashedRcExtensionId) {
-            logger.info('adding hashedRcExtensionId column to users table...');
-            await queryInterface.addColumn(userTableName, 'hashedRcExtensionId', {
-                type: Sequelize.STRING,
-                allowNull: true,
+        // if AdminConfigModel doesn't have adminUserIds column, add it
+        const queryInterface = AdminConfigModel.sequelize.getQueryInterface();
+        const adminConfigTableName = AdminConfigModel.getTableName();
+        const adminConfigTableSchema = await queryInterface.describeTable(adminConfigTableName);
+        if (!adminConfigTableSchema.adminUserIds) {
+            logger.info('adding adminUserIds column to adminConfigs table...');
+            await queryInterface.addColumn(adminConfigTableName, 'adminUserIds', {
+                type: Sequelize.STRING(1024)
             });
-            await UserModel.sync();
-            logger.info('hashedRcExtensionId column added to users table');
+            await AdminConfigModel.sync();
+            logger.info('adminUserIds column added to adminConfigs table');
         }
     }
 }
@@ -420,15 +419,17 @@ function createCoreRouter() {
         try {
             const platform = req.query.platform;
             const rcAccessToken = req.query.rcAccessToken;
+            const interopCode = req.query.interopCode;
             if (!platform) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            if (!rcAccessToken) {
+            // rcAccessToken: deprecated
+            if (!rcAccessToken && !interopCode) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
                 return;
             }
-            const { rcAccountId, rcExtensionId } = await adminCore.validateRcUserToken({ rcAccessToken });
+            const { rcAccountId, rcExtensionId } = await adminCore.validateRcUserToken({ rcAccessToken, interopCode });
             const managedAuthState = await managedAuthCore.getManagedAuthState({
                 platform,
                 rcAccountId,
@@ -456,7 +457,14 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const userId = unAuthData?.id;
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId, hashedAccountId });
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
             if (isValidated) {
                 await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
@@ -507,7 +515,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: unAuthData?.id, hashedAccountId });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
@@ -572,7 +580,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: unAuthData?.id, hashedAccountId });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -606,7 +614,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: unAuthData?.id, hashedAccountId });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -655,7 +663,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: unAuthData?.id, hashedAccountId });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
@@ -718,7 +726,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: unAuthData?.id, hashedAccountId });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
@@ -1157,7 +1165,9 @@ function createCoreRouter() {
             const hostname = req.body.hostname;
             const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
+            // rcAccessToken: deprecated
             const rcAccessToken = req.body.rcAccessToken;
+            const interopCode = req.body.interopCode;
             const connectorId = req.body.connectorId;
             const isPrivate = !!req.body.isPrivate;
             if (!platform) {
@@ -1165,11 +1175,12 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            if (!rcAccessToken) {
+            // rcAccessToken: deprecated
+            if (!rcAccessToken && !interopCode) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
                 return;
             }
-            const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken });
+            const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken, interopCode });
             const rcAccountId = rcUserTokenResult.rcAccountId;
             const rcExtensionId = rcUserTokenResult.rcExtensionId;
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
@@ -1815,7 +1826,7 @@ function createCoreRouter() {
                 return;
             }
             try {
-                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
+                const { id } = await calldown.schedule({ jwtToken, body: req.body });
                 success = true;
                 res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
             }
@@ -2148,7 +2159,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId });
+            await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId, userId: user.id });
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
             return;
         }
@@ -2246,30 +2257,27 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { pluginId, rcAccountId, pluginAccess, pluginName } = req.body || {};
+            const { pluginId, pluginAccess, pluginName } = req.body || {};
+            // rcAccessToken: deprecated
             const rcAccessToken = req.query?.rcAccessToken;
-            if (!pluginId || !rcAccountId) {
-                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
-            if (!rcAccessToken) {
-                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Missing RingCentral access token' }) : { successful: false, returnMessage: 'Missing RingCentral access token' });
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            if (!pluginId) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId is required' }) : { successful: false, returnMessage: 'pluginId is required' });
                 return;
             }
-            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken, userId: unAuthData?.id, hashedAccountId });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Admin validation failed' }) : { successful: false, returnMessage: 'Admin validation failed' });
                 return;
             }
-            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
-                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'rcAccountId mismatch' }) : { successful: false, returnMessage: 'rcAccountId mismatch' });
-                return;
-            }
-
             await pluginCore.registerPluginAccount({
                 pluginId,
-                rcAccessToken,
-                rcAccountId: rcAccountId?.toString(),
+                rcAccountId: validatedRcAccountId?.toString(),
                 pluginAccess,
                 pluginName,
             });
@@ -2304,29 +2312,28 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { pluginId, rcAccountId, pluginName } = req.query || {};
+            const { pluginId, pluginName } = req.query || {};
+            // rcAccessToken: deprecated
             const rcAccessToken = req.query?.rcAccessToken;
-            if (!pluginId || !rcAccountId) {
-                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                 return;
             }
-            if (!rcAccessToken) {
-                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Missing RingCentral access token' }) : { successful: false, returnMessage: 'Missing RingCentral access token' });
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            if (!pluginId) {
+                res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId is required' }) : { successful: false, returnMessage: 'pluginId is required' });
                 return;
             }
-            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken });
+            const { isValidated, rcAccountId: validatedRcAccountId } = await adminCore.validateAdminRole({ rcAccessToken, userId: unAuthData?.id, hashedAccountId });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'Admin validation failed' }) : { successful: false, returnMessage: 'Admin validation failed' });
-                return;
-            }
-            if (validatedRcAccountId?.toString() !== rcAccountId?.toString()) {
-                res.status(403).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'rcAccountId mismatch' }) : { successful: false, returnMessage: 'rcAccountId mismatch' });
                 return;
             }
 
             await pluginCore.unregisterPluginAccount({
                 pluginId,
-                rcAccountId: rcAccountId?.toString(),
+                rcAccountId: validatedRcAccountId?.toString(),
                 pluginName,
             });
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });

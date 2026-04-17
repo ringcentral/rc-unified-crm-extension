@@ -7,6 +7,7 @@ const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 const managedAuthCore = require('./managedAuth');
+const util = require('../lib/util');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
@@ -268,7 +269,19 @@ async function authValidation({ platform, userId }) {
 }
 
 // Ringcentral
-async function onRingcentralOAuthCallback({ code, rcAccountId }) {
+async function onRingcentralOAuthCallback({ code, rcAccountId, userId }) {
+    const { access_token, refresh_token, expire_time } = await getTokensFromInteropCode({ code });
+    const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+    await adminCore.updateAdminRcTokens({
+        hashedRcAccountId,
+        adminAccessToken: access_token,
+        adminRefreshToken: refresh_token,
+        adminTokenExpiry: expire_time,
+        userId
+    });
+}
+
+async function getTokensFromInteropCode({ code }) {
     if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
         return;
     }
@@ -279,12 +292,11 @@ async function onRingcentralOAuthCallback({ code, rcAccountId }) {
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
     });
     const { access_token, refresh_token, expire_time } = await rcSDK.generateToken({ code });
-    await adminCore.updateAdminRcTokens({
-        hashedRcAccountId: rcAccountId,
-        adminAccessToken: access_token,
-        adminRefreshToken: refresh_token,
-        adminTokenExpiry: expire_time
-    });
+    return {
+        access_token,
+        refresh_token,
+        expire_time
+    }
 }
 
 exports.onOAuthCallback = onOAuthCallback;
@@ -292,3 +304,4 @@ exports.onApiKeyLogin = onApiKeyLogin;
 exports.authValidation = authValidation;
 exports.getLicenseStatus = getLicenseStatus;
 exports.onRingcentralOAuthCallback = onRingcentralOAuthCallback;
+exports.getTokensFromInteropCode = getTokensFromInteropCode;

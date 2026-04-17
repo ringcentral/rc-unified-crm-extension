@@ -268,6 +268,71 @@ describe('Admin Handler', () => {
     });
   });
 
+  describe('getAdminRcAccessToken', () => {
+    test('should return current token when not close to expiry', async () => {
+      // Arrange
+      const originalHashKey = process.env.HASH_KEY;
+      process.env.HASH_KEY = 'test-hash-key';
+      const hashedRcAccountId = 'hashed-account-token';
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        adminAccessToken: 'active-access-token',
+        adminRefreshToken: 'active-refresh-token',
+        adminTokenExpiry: new Date(Date.now() + 30 * 60 * 1000),
+      });
+
+      // Act
+      const token = await adminHandler.getAdminRcAccessToken({ hashedRcAccountId });
+
+      // Assert
+      expect(token).toBe('active-access-token');
+      expect(RingCentral).not.toHaveBeenCalled();
+
+      // Cleanup
+      process.env.HASH_KEY = originalHashKey;
+    });
+
+    test('should refresh token when close to expiry', async () => {
+      // Arrange
+      const originalServer = process.env.RINGCENTRAL_SERVER;
+      const originalClientId = process.env.RINGCENTRAL_CLIENT_ID;
+      const originalClientSecret = process.env.RINGCENTRAL_CLIENT_SECRET;
+      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
+      process.env.RINGCENTRAL_CLIENT_ID = 'test-client-id';
+      process.env.RINGCENTRAL_CLIENT_SECRET = 'test-client-secret';
+      const hashedRcAccountId = 'hashed-account-token-refresh';
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        adminAccessToken: 'stale-access-token',
+        adminRefreshToken: 'stale-refresh-token',
+        adminTokenExpiry: new Date(Date.now() + 30 * 1000),
+      });
+      const mockRefreshToken = jest.fn().mockResolvedValue({
+        access_token: 'refreshed-access-token',
+        refresh_token: 'refreshed-refresh-token',
+        expire_time: Date.now() + 3600 * 1000,
+      });
+      RingCentral.mockImplementation(() => ({
+        refreshToken: mockRefreshToken,
+      }));
+
+      // Act
+      const token = await adminHandler.getAdminRcAccessToken({ hashedRcAccountId });
+
+      // Assert
+      expect(token).toBe('refreshed-access-token');
+      expect(mockRefreshToken).toHaveBeenCalled();
+      const saved = await AdminConfigModel.findByPk(hashedRcAccountId);
+      expect(saved.adminAccessToken).toBe('refreshed-access-token');
+      expect(saved.adminRefreshToken).toBe('refreshed-refresh-token');
+
+      // Cleanup
+      process.env.RINGCENTRAL_SERVER = originalServer;
+      process.env.RINGCENTRAL_CLIENT_ID = originalClientId;
+      process.env.RINGCENTRAL_CLIENT_SECRET = originalClientSecret;
+    });
+  });
+
   describe('getServerLoggingSettings', () => {
     test('should return settings from platform module when available', async () => {
       // Arrange

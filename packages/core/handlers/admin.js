@@ -6,29 +6,61 @@ const { RingCentral } = require('../lib/ringcentral');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
+const authCore = require('./auth');
+const util = require('../lib/util');
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
 const RC_EXTENSION_ENDPOINT = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~';
+const RC_ACCESS_TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 
-async function validateRcUserToken({ rcAccessToken }) {
-    if (!rcAccessToken) {
-        throw new Error('rcAccessToken is required');
+// rcAccessToken -> deprecated
+async function validateRcUserToken({ rcAccessToken, interopCode }) {
+    if (interopCode) {
+        const { access_token } = await authCore.getTokensFromInteropCode({ code: interopCode });
+        const rcExtensionResponse = await axios.get(
+            RC_EXTENSION_ENDPOINT,
+            {
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                },
+            });
+        const extensionData = rcExtensionResponse.data ?? {};
+        return {
+            rcAccountId: extensionData?.account?.id?.toString() ?? '',
+            rcExtensionId: extensionData?.id?.toString() ?? ''
+        };
     }
-    const rcExtensionResponse = await axios.get(
-        RC_EXTENSION_ENDPOINT,
-        {
-            headers: {
-                Authorization: `Bearer ${rcAccessToken}`,
-            },
-        });
-    const extensionData = rcExtensionResponse.data ?? {};
-    return {
-        rcAccountId: extensionData?.account?.id?.toString() ?? '',
-        rcExtensionId: extensionData?.id?.toString() ?? ''
-    };
+    else {
+
+        if (!rcAccessToken) {
+            throw new Error('rcAccessToken is required');
+        }
+        const rcExtensionResponse = await axios.get(
+            RC_EXTENSION_ENDPOINT,
+            {
+                headers: {
+                    Authorization: `Bearer ${rcAccessToken}`,
+                },
+            });
+        const extensionData = rcExtensionResponse.data ?? {};
+        return {
+            rcAccountId: extensionData?.account?.id?.toString() ?? '',
+            rcExtensionId: extensionData?.id?.toString() ?? ''
+        };
+    }
 }
 
-async function validateAdminRole({ rcAccessToken }) {
+// rcAccessToken -> deprecated
+async function validateAdminRole({ rcAccessToken, userId, hashedAccountId }) {
+    if (userId && hashedAccountId) {
+        const existingAdminConfig = await AdminConfigModel.findByPk(hashedAccountId);
+        if (existingAdminConfig) {
+            return {
+                isValidated: existingAdminConfig.adminUserIds?.split(',')?.includes?.(userId.toString()),
+                rcAccountId: existingAdminConfig.rcAccountId
+            };
+        }
+    }
     const rcExtensionResponse = await axios.get(
         RC_EXTENSION_ENDPOINT,
         {
@@ -42,15 +74,18 @@ async function validateAdminRole({ rcAccessToken }) {
     };
 }
 
-async function upsertAdminSettings({ hashedRcAccountId, adminSettings }) {
+async function upsertAdminSettings({ hashedRcAccountId, adminSettings, userId }) {
     let existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     if (existingAdminConfig) {
+        const updatedUserIds = existingAdminConfig.adminUserIds ? existingAdminConfig.adminUserIds.concat(`,${userId}`) : userId;
         await existingAdminConfig.update({
+            adminUserIds: updatedUserIds,
             ...adminSettings
         });
     } else {
         await AdminConfigModel.create({
             id: hashedRcAccountId,
+            adminUserIds: userId,
             ...adminSettings
         });
     }
@@ -61,19 +96,90 @@ async function getAdminSettings({ hashedRcAccountId }) {
     return existingAdminConfig;
 }
 
-async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminRefreshToken, adminTokenExpiry }) {
+async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminRefreshToken, adminTokenExpiry, userId }) {
     const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     if (existingAdminConfig) {
-        await existingAdminConfig.update({ adminAccessToken, adminRefreshToken, adminTokenExpiry });
+        const updatedUserIds = existingAdminConfig.adminUserIds ? existingAdminConfig.adminUserIds.concat(`,${userId}`) : userId;
+        await existingAdminConfig.update({
+            adminAccessToken,
+            adminRefreshToken,
+            adminTokenExpiry,
+            adminUserIds: updatedUserIds
+        });
     }
     else {
         await AdminConfigModel.create({
             id: hashedRcAccountId,
             adminAccessToken,
             adminRefreshToken,
-            adminTokenExpiry
+            adminTokenExpiry,
+            adminUserIds: userId
         });
     }
+}
+
+function parseExpiryMs(adminTokenExpiry) {
+    if (!adminTokenExpiry) {
+        return null;
+    }
+    const parsed = new Date(adminTokenExpiry).getTime();
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function findAdminConfigByAccount({ rcAccountId, hashedRcAccountId }) {
+    if (hashedRcAccountId) {
+        return AdminConfigModel.findByPk(hashedRcAccountId);
+    }
+    if (!rcAccountId) {
+        return null;
+    }
+    // Primary lookup path uses hashed RC account ID as model PK.
+    if (process.env.HASH_KEY) {
+        const derivedHashedAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+        const hashedConfig = await AdminConfigModel.findByPk(derivedHashedAccountId);
+        if (hashedConfig) {
+            return hashedConfig;
+        }
+    }
+    // Backward-compatibility for legacy/non-hashed records.
+    return AdminConfigModel.findByPk(rcAccountId);
+}
+
+async function getAdminRcAccessToken({ rcAccountId, hashedRcAccountId, refreshBeforeExpiryMs = RC_ACCESS_TOKEN_REFRESH_WINDOW_MS }) {
+    const adminConfig = await findAdminConfigByAccount({ rcAccountId, hashedRcAccountId });
+    if (!adminConfig) {
+        throw new Error('Admin account config not found');
+    }
+    if (!adminConfig.adminAccessToken || !adminConfig.adminRefreshToken) {
+        throw new Error('Admin RC tokens are missing');
+    }
+    const expiryMs = parseExpiryMs(adminConfig.adminTokenExpiry);
+    const shouldRefresh = !expiryMs || (expiryMs - refreshBeforeExpiryMs) <= Date.now();
+    if (!shouldRefresh) {
+        return adminConfig.adminAccessToken;
+    }
+    if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        throw new Error('RingCentral OAuth env vars are not configured');
+    }
+    const ttlSeconds = expiryMs ? Math.max(1, Math.floor((expiryMs - Date.now()) / 1000)) : 3600;
+    const rcSDK = new RingCentral({
+        server: process.env.RINGCENTRAL_SERVER,
+        clientId: process.env.RINGCENTRAL_CLIENT_ID,
+        clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+        redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+    });
+    const refreshedToken = await rcSDK.refreshToken({
+        refresh_token: adminConfig.adminRefreshToken,
+        expires_in: ttlSeconds,
+        refresh_token_expires_in: ttlSeconds
+    });
+    const refreshedExpiry = refreshedToken.expire_time ? new Date(refreshedToken.expire_time) : new Date(Date.now() + ttlSeconds * 1000);
+    await adminConfig.update({
+        adminAccessToken: refreshedToken.access_token,
+        adminRefreshToken: refreshedToken.refresh_token,
+        adminTokenExpiry: refreshedExpiry
+    });
+    return refreshedToken.access_token;
 }
 
 async function getServerLoggingSettings({ user }) {
@@ -518,3 +624,4 @@ exports.getAdminReport = getAdminReport;
 exports.getUserReport = getUserReport;
 exports.getUserMapping = getUserMapping;
 exports.reinitializeUserMapping = reinitializeUserMapping;
+exports.getAdminRcAccessToken = getAdminRcAccessToken;

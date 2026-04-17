@@ -19,6 +19,7 @@ const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 const { AccountDataModel } = require('../models/accountDataModel');
 const pluginCore = require('./plugin');
+const adminCore = require('./admin');
 
 function mergePluginWarnings({ returnMessage, warningMessages }) {
     if (!warningMessages.length) {
@@ -143,6 +144,12 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             type: incomingData.contactType ?? "",
             name: incomingData.contactName ?? ""
         };
+
+        // if having call recording, generate download link
+        if (incomingData.logInfo.recording) {
+            const rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
+            incomingData.logInfo.recording.downloadUrl = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+        }
 
 
         const pluginAsyncTaskIds = [];
@@ -447,6 +454,12 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
                     authHeader = `Basic ${basicAuth}`;
                     break;
+            }
+
+            // if having call recording, generate download link
+            if (incomingData.logInfo.recording) {
+                const rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
+                incomingData.logInfo.recording.downloadUrl = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
             }
 
             const pluginAsyncTaskIds = [];
@@ -867,6 +880,23 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 // eslint-disable-next-line no-param-reassign
                 incomingData.logInfo.conversationId = incomingData.logInfo.conversationId + `-${incomingData.contactId}`;
             }
+            const hasMediaAttachmentRequiringRcToken = incomingData.logInfo.messages.some(message => (
+                (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument'))
+                || (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType && a.contentType.startsWith('image/')))
+            ));
+            let rcMediaAccessToken = null;
+            if (hasMediaAttachmentRequiringRcToken) {
+                try {
+                    rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
+                }
+                catch (error) {
+                    logger.warn('Unable to resolve admin RC access token for message media download links', {
+                        userId,
+                        rcAccountId: user.rcAccountId,
+                        error: error?.message || error
+                    });
+                }
+            }
             // reverse the order of messages to log the oldest message first
             const reversedMessages = incomingData.logInfo.messages.reverse();
             for (const message of reversedMessages) {
@@ -882,18 +912,18 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 }
                 let faxDocLink = null;
                 let faxDownloadLink = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && incomingData.logInfo.rcAccessToken) {
+                if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument') && rcMediaAccessToken) {
                     faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
-                    faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
+                    faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${rcMediaAccessToken}`
                 }
                 let imageLink = null;
                 let imageDownloadLink = null;
                 let imageContentType = null;
-                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && incomingData.logInfo.rcAccessToken) {
+                if (message.attachments && message.attachments.some(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/')) && rcMediaAccessToken) {
                     const imageAttachment = message.attachments.find(a => a.type === 'MmsAttachment' && a.contentType.startsWith('image/'));
                     if (imageAttachment) {
                         imageLink = getMediaReaderLinkByPlatformMediaLink(imageAttachment?.uri);
-                        imageDownloadLink = imageAttachment?.uri + `?access_token=${incomingData.logInfo.rcAccessToken}`;
+                        imageDownloadLink = imageAttachment?.uri + `?access_token=${rcMediaAccessToken}`;
                         imageContentType = imageAttachment?.contentType;
                     }
                 }

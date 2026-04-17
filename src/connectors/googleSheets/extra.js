@@ -18,7 +18,7 @@ async function renderPickerFile({ user }) {
     return fileContent;
 }
 
-async function renderAdminPickerFile({ user, rcAccessToken }) {
+async function renderAdminPickerFile({ user, hashedRcAccountId }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const filePath = path.join(__dirname, 'AdminPickerImp.html');
@@ -28,7 +28,7 @@ async function renderAdminPickerFile({ user, rcAccessToken }) {
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
     fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    fileContent = fileContent.replace('{rcAccessToken}', rcAccessToken);
+    fileContent = fileContent.replace('{hashedAccountId}', hashedRcAccountId);
     return fileContent;
 }
 async function createNewSheet({ user, data }) {

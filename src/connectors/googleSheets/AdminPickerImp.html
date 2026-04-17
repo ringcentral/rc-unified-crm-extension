@@ -24,14 +24,14 @@
             Powered by <a href="https://www.ringcentral.com/" target="_blank">RingCentral</a>
         </div>
     </div> -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script type="text/javascript">
         // Replace with your actual API key and OAuth token
-        
+
         const key = '{key}';
         const ACCESS_TOKEN = '{accessToken}';
         const project_id = '{projectId}';
-        const RC_ACCESS_TOKEN = '{rcAccessToken}';
+        const hashedAccountId = '{hashedAccountId}';
 
         let pickerApiLoaded = false;
 
@@ -66,17 +66,18 @@
             }
         }
 
-       async function pickerCallback(data) {    
+        async function pickerCallback(data) {
             if (data.action === google.picker.Action.PICKED) {
                 const field = data.docs[0].id;
-                await axios.post('{serverUrl}/admin/googleSheets/selectedSheet?rcAccessToken=' + RC_ACCESS_TOKEN, {
+                await axios.post('{serverUrl}/admin/googleSheets/selectedSheet', {
+                    hashedAccountId,
                     accessToken: ACCESS_TOKEN,
                     sheetData: data.docs[0],
                     customizable: false // Default to non-customizable, admin can change this in UI
                 });
             }
             alert('You have successfully configured Google Sheets for your organization.\nFile Name: ' + data.docs[0].name + ' \nPlease return to Admin Settings to configure user permissions.');
-           window.close();
+            window.close();
         }
     </script>
 

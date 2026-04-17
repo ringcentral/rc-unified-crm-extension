@@ -13,6 +13,9 @@ jest.mock('../../models/sequelize', () => {
 jest.mock('../../connector/registry');
 jest.mock('../../lib/oauth');
 jest.mock('../../lib/callLogComposer');
+jest.mock('../../handlers/admin', () => ({
+  getAdminRcAccessToken: jest.fn(),
+}));
 jest.mock('../../models/dynamo/noteCacheSchema', () => ({
   NoteCache: {
     get: jest.fn(),
@@ -35,6 +38,7 @@ const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { composeCallLog } = require('../../lib/callLogComposer');
 const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
+const adminCore = require('../../handlers/admin');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 
@@ -1026,6 +1030,66 @@ describe('Log Handler', () => {
       expect(savedLog).not.toBeNull();
       expect(savedLog.conversationLogId).toBe('conv-log-original-contact-999');
       expect(savedLog.conversationId).toBe('conv-original-contact-999');
+    });
+
+    test('should resolve RC media token from admin config for MMS attachments', async () => {
+      // Arrange
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+      adminCore.getAdminRcAccessToken.mockResolvedValue('server-side-rc-token');
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-media-token',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const incomingData = {
+        logInfo: {
+          messages: [{
+            id: 'msg-media-token',
+            subject: 'Image MMS',
+            direction: 'Outbound',
+            creationTime: new Date(),
+            attachments: [{
+              type: 'MmsAttachment',
+              contentType: 'image/png',
+              uri: 'https://media.ringcentral.com/restapi/v1.0/account/~/extension/~/message-store/1/content/1'
+            }]
+          }],
+          correspondents: [{ phoneNumber: '+1234567890' }],
+          conversationId: 'conv-media-token',
+          conversationLogId: 'conv-log-media-token'
+        },
+        contactId: 'contact-123',
+        contactType: 'Contact',
+        contactName: 'Media Contact',
+        additionalSubmission: {}
+      };
+
+      // Act
+      await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData
+      });
+
+      // Assert
+      expect(adminCore.getAdminRcAccessToken).toHaveBeenCalledWith({ rcAccountId: 'rc-account-123' });
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imageDownloadLink: expect.stringContaining('access_token=server-side-rc-token')
+        })
+      );
     });
   });
 

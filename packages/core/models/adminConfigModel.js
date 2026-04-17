@@ -24,7 +24,10 @@ exports.AdminConfigModel = sequelize.define('adminConfigs', {
   adminTokenExpiry: {
     type: Sequelize.DATE
   },
-    // Array of:
+  adminUserIds: {
+    type: Sequelize.STRING(1024),
+  },
+  // Array of:
   // {
   //   crmUserId: string,
   //   rcExtensionId: array of strings

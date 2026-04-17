@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const axios = require('axios');
 const { AccountDataModel } = require('../models/accountDataModel');
 const logger = require('../lib/logger');
+const adminCore = require('./admin');
 
 const PUBLIC_MANIFEST_BASE = 'http://localhost:6100/public-api/connectors';
 
@@ -155,11 +156,14 @@ async function persistPluginData({ rcAccountId, pluginId, jwtToken, pluginData =
     }
 }
 
-async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, pluginAccess, pluginName }) {
+async function registerPluginAccount({ pluginId, rcAccountId, pluginAccess, pluginName }) {
     const { pluginManifest } = await resolvePluginManifest({ pluginId, pluginAccess, rcAccountId, pluginName });
     if (!pluginManifest?.endpointUrl) {
         throw new Error(`Plugin endpoint URL not found for ${pluginId}`);
     }
+
+    const adminConfig = await adminCore.getAdminConfig({ rcAccountId });
+    const rcAccessToken = adminConfig.rcAccessToken;
 
     const registerUrl = pluginManifest.userRegisterEndpointUrl;
     const registerResponse = await axios.post(registerUrl, {
