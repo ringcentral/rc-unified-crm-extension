@@ -1734,8 +1734,8 @@ async function generateMonthlyCsvReport() {
     const rows = [header];
     // Bounded parallelism to avoid Lambda timeout and rate limits
     const boundedUsers = users;
-    const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
-    const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+    const batchConcurrency = 10;
+    const batchDelayMs = 100;
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     logger.info({
         message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
@@ -1821,7 +1821,7 @@ async function sendMonthlyCsvReportByEmail() {
         // Prepare the request body
         const requestBody = {
             to: process.env.BULLHORN_REPORT_MAIL_TO,
-            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            from: "noreply@devemail.ringcentral.com",
             bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
             reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
             subject: prettySubject,
@@ -1829,7 +1829,7 @@ async function sendMonthlyCsvReportByEmail() {
 <p>If you have questions, or need assistance, please reply directly to this email.</p>
 <p>Sincerely,<br/>RingCentral Labs</p>`,
             identifiers: {
-                email: process.env.BULLHORN_REPORT_MAIL_FROM
+                email: "noreply@devemail.ringcentral.com"
             },
             attachments: {
                 [attachmentFileName]: bullhornReport
@@ -1899,8 +1899,8 @@ async function fetchMonthlySalesforceReportRows(){
     });
 
     try {
-        const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
-        const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+        const batchConcurrency = 10;
+        const batchDelayMs = 100;
         const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const emailSet = new Set();
         for (let startIndex = 0; startIndex < filteredUsers.length; startIndex += batchConcurrency) {
@@ -2003,7 +2003,7 @@ async function fetchMonthlySalesforceReportRows(){
     // String format required by SOQL: ('123','1234','567')
     // Salesforce query is sent via GET `?q=...`, so a large IN-clause can trigger 414 (URI Too Long).
     // Chunk the IN list to keep each request safely under URL limits.
-    const ACCOUNT_ID_CHUNK_SIZE = process.env.BULLHORN_REPORT_SALESFORCE_ACCOUNT_ID_CHUNK_SIZE || 700;
+    const ACCOUNT_ID_CHUNK_SIZE = 700;
     const rcIdChunks = chunkArray(filteredUserRcAccountIdList, ACCOUNT_ID_CHUNK_SIZE);
    // console.log({message:'rcIdChunks are', rcIdChunks});
     const accountBySfId = new Map();
@@ -2057,7 +2057,7 @@ if(acc18List.length === 0) {
     return [];
 }
 // Query contacts for these accounts (chunked to avoid 414 URI Too Long)
-const CONTACT_ACCOUNT_CHUNK_SIZE = process.env.BULLHORN_REPORT_SALESFORCE_ACCOUNT_ID_CHUNK_SIZE || 700;
+const CONTACT_ACCOUNT_CHUNK_SIZE = 700;
 const acc18Chunks = chunkArray(acc18List, CONTACT_ACCOUNT_CHUNK_SIZE);
 
 let contacts = [];
@@ -2069,7 +2069,7 @@ try {
         .map((e) => `'${e.replace(/'/g, "\\'")}'`);
 
     // If the email list is very large, chunk it to avoid 414 URI Too Long.
-    const CONTACT_EMAIL_CHUNK_SIZE = Number(process.env.BULLHORN_REPORT_SALESFORCE_EMAIL_CHUNK_SIZE) || 200;
+    const CONTACT_EMAIL_CHUNK_SIZE = 200;
     const emailChunks = emailInList.length ? chunkArray(emailInList, CONTACT_EMAIL_CHUNK_SIZE) : [[]];
 
     for (const chunk of acc18Chunks) {
@@ -2185,12 +2185,12 @@ async function sendErrorReportEmailWithSalesforce(error, contextInfo = '') {
         const subject = `Bullhorn Monthly Salesforce Report FAILED ${dateString}`;
         const body = `Bullhorn monthly Salesforce report failed to send.\n\nError: ${error && error.stack ? error.stack : error}\n\nContext: ${contextInfo}`;
         const requestBody = {
-            to: process.env.BULLHORN_REPORT_MAIL_ERROR_TO || process.env.BULLHORN_REPORT_MAIL_FROM,
-            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            to: "sushil.mall@ringcentral.com,da.kong@ringcentral.com",
+            from: "noreply@devemail.ringcentral.com",
             subject,
             body,
             identifiers: {
-                id: process.env.BULLHORN_REPORT_MAIL_FROM
+                id: "noreply@devemail.ringcentral.com"
             }
         };
         await axios.post(
@@ -2240,7 +2240,7 @@ async function sendMonthlyCsvReportByEmailWithSalesforceData() {
 
         const requestBody = {
             to: process.env.BULLHORN_REPORT_MAIL_TO,
-            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            from: "noreply@devemail.ringcentral.com",
             bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
             reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
             subject: prettySubject,
@@ -2248,7 +2248,7 @@ async function sendMonthlyCsvReportByEmailWithSalesforceData() {
 <p>If you have questions, or need assistance, please reply directly to this email.</p>
 <p>Sincerely,<br/>RingCentral Labs</p>`,
             identifiers: {
-                email: process.env.BULLHORN_REPORT_MAIL_FROM
+                email: "noreply@devemail.ringcentral.com"
             },
             attachments: {
                 [attachmentFileName]: reportB64
@@ -2320,12 +2320,12 @@ async function sendErrorReportEmail(error, contextInfo = '') {
         const subject = `Bullhorn Monthly Report FAILED ${dateString}`;
         const body = `Bullhorn monthly report failed to send.\n\nError: ${error && error.stack ? error.stack : error}\n\nContext: ${contextInfo}`;
         const requestBody = {
-            to: process.env.BULLHORN_REPORT_MAIL_ERROR_TO || process.env.BULLHORN_REPORT_MAIL_FROM,
-            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            to: "sushil.mall@ringcentral.com,da.kong@ringcentral.com" ,
+            from: "noreply@devemail.ringcentral.com",
             subject,
             body,
             identifiers: {
-                id: process.env.BULLHORN_REPORT_MAIL_FROM
+                id: "noreply@devemail.ringcentral.com"
             }
         };
         await axios.post(
