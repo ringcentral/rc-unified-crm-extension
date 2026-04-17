@@ -1958,7 +1958,7 @@ async function fetchMonthlySalesforceReportRows(){
     };
 
     const fetchSalesforceQueryAllRecords = async (soql) => {
-        const host = process.env.BULLHORN_SALESFORCE_HOST;
+        const host = "https://rc.my.salesforce.com";
         const headers = { 'Authorization': `Bearer ${salesforceOAuthToken.access_token}` };
 
         const records = [];
@@ -2292,7 +2292,7 @@ async function getSalesforceOAuthToken() {
         params.append('client_secret', process.env.BULLHORN_SALESFORCE_CLIENT_SECRET);
 
         const response = await axios.post(
-            `${process.env.BULLHORN_SALESFORCE_HOST}/services/oauth2/token`,
+            `https://rc.my.salesforce.com/services/oauth2/token`,
             params,
             {
                 headers: {
