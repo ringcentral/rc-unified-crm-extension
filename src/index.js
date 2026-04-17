@@ -459,20 +459,20 @@ app.post('/googleDrive/logout', async function (req, res) {
     }
 });
 
-// Internal-only: manually trigger Bullhorn monthly report w/ Salesforce data
-app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
-    try {
+// // Internal-only: manually trigger Bullhorn monthly report w/ Salesforce data
+// app.get('/internal/bullhorn/monthly-salesforce-report', async function (req, res) {
+//     try {
 
-        //await bullhorn.generateMontlyCsvReportWithSalesforceData();
-        await bullhorn.sendMonthlyCsvReportByEmailWithSalesforceData();
-        console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
-        res.status(200).send({ ok: true });
-    }
-    catch (e) {
-        logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
-        res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
-    }
-});
+//         //await bullhorn.generateMontlyCsvReportWithSalesforceData();
+//         await bullhorn.sendMonthlyCsvReportByEmailWithSalesforceData();
+//         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
+//         res.status(200).send({ ok: true });
+//     }
+//     catch (e) {
+//         logger.error('Failed to generate Bullhorn Salesforce monthly report', { stack: e.stack });
+//         res.status(500).send({ ok: false, error: e && e.message ? e.message : 'Unknown error' });
+//     }
+// });
 
 exports.getServer = function getServer() {
     return app;
