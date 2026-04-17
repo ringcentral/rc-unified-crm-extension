@@ -228,7 +228,7 @@ describe('Log Handler', () => {
         dataKey: 'pluginData',
         data: {
           name: 'plugin.sample',
-          logTypes: ['call'],
+          supportedLogTypes: ['call'],
           isAsync: false,
           endpointUrl: 'https://plugins.example.com/plugin/testPlugin',
           jwtToken: 'plugin-jwt-token'
