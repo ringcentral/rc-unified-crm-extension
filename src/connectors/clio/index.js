@@ -384,6 +384,19 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
         //     })
         // }
     }
+    // Reorder matchedContactInfo: contacts with email first, rest last
+    if (matchedContactInfo && Array.isArray(matchedContactInfo)) {
+        matchedContactInfo.sort((a, b) => {
+            // If a has email and b does not, a comes first (-1)
+            // If b has email and a does not, b comes first (1)
+            // If both have email or neither, order doesn't change (0)
+            const aHasEmail = (a.email && a.email.trim() !== '');
+            const bHasEmail = (b.email  && b.email.trim() !== '');
+            if (aHasEmail && !bHasEmail) return -1;
+            if (!aHasEmail && bHasEmail) return 1;
+            return 0;
+        });
+    }
 
     return {
         successful: true,
