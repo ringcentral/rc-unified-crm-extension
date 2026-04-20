@@ -1,4 +1,18 @@
 {
+    "1.7.23": {
+        "global": [
+            {
+                "type": "Rename",
+                "description": "Rename RingSense to ACE"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "New",
+                "description": "Add copy to contact for Bullhorn logging"
+            }
+        ]
+    },
     "1.7.22": {
         "global": [
             {
@@ -324,6 +338,20 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.29": {
+        "global": [
+            {
+                "type": "Rename",
+                "description": "Rename RingSense to ACE"
+            }
+        ],
+        "bullhorn": [
+            {
+                "type": "New",
+                "description": "Add copy to contact for Bullhorn logging"
             }
         ]
     },

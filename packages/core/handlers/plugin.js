@@ -5,7 +5,7 @@ const { AccountDataModel } = require('../models/accountDataModel');
 const logger = require('../lib/logger');
 const adminCore = require('./admin');
 
-const PUBLIC_MANIFEST_BASE = 'http://localhost:6100/public-api/connectors';
+const PUBLIC_MANIFEST_BASE = 'https://appconnect.labs.ringcentral.com/public-api/connectors';
 
 async function getPluginsFromRcAccountId({ rcAccountId }) {
     const accountData = await AccountDataModel.findAll({
