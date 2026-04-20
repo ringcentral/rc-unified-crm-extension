@@ -18,7 +18,7 @@ async function renderPickerFile({ user }) {
     return fileContent;
 }
 
-async function renderAdminPickerFile({ user, hashedRcAccountId }) {
+async function renderAdminPickerFile({ user, hashedRcAccountId, hashedAccountId, rcAccessToken }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
     const filePath = path.join(__dirname, 'AdminPickerImp.html');
@@ -28,7 +28,10 @@ async function renderAdminPickerFile({ user, hashedRcAccountId }) {
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
     fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
-    fileContent = fileContent.replace('{hashedAccountId}', hashedRcAccountId);
+    // Keep compatibility with both new and legacy call signatures/placeholders.
+    const resolvedHashedAccountId = hashedAccountId || hashedRcAccountId || '';
+    fileContent = fileContent.replace('{hashedAccountId}', resolvedHashedAccountId);
+    fileContent = fileContent.replace('{rcAccessToken}', rcAccessToken || '');
     return fileContent;
 }
 async function createNewSheet({ user, data }) {

@@ -270,7 +270,11 @@ async function authValidation({ platform, userId }) {
 
 // Ringcentral
 async function onRingcentralOAuthCallback({ code, rcAccountId, userId }) {
-    const { access_token, refresh_token, expire_time } = await getTokensFromInteropCode({ code });
+    const tokenData = await getTokensFromInteropCode({ code });
+    if (!tokenData) {
+        return;
+    }
+    const { access_token, refresh_token, expire_time } = tokenData;
     const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
     await adminCore.updateAdminRcTokens({
         hashedRcAccountId,

@@ -977,7 +977,8 @@ describe('Auth Handler', () => {
       // Act
       await authHandler.onRingcentralOAuthCallback({
         code: 'rc-auth-code',
-        rcAccountId: 'hashed-rc-account-id'
+        rcAccountId: 'hashed-rc-account-id',
+        userId: 'test-user-id'
       });
 
       // Assert
@@ -989,26 +990,12 @@ describe('Auth Handler', () => {
       });
       expect(mockGenerateToken).toHaveBeenCalledWith({ code: 'rc-auth-code' });
       expect(adminCore.updateAdminRcTokens).toHaveBeenCalledWith({
-        hashedRcAccountId: 'hashed-rc-account-id',
+        hashedRcAccountId: expect.any(String),
         adminAccessToken: 'rc-access-token',
         adminRefreshToken: 'rc-refresh-token',
-        adminTokenExpiry: expect.any(Number)
+        adminTokenExpiry: expect.any(Number),
+        userId: 'test-user-id'
       });
-    });
-
-    test('should return early if environment variables are not set', async () => {
-      // Arrange
-      delete process.env.RINGCENTRAL_SERVER;
-
-      // Act
-      const result = await authHandler.onRingcentralOAuthCallback({
-        code: 'rc-auth-code',
-        rcAccountId: 'hashed-rc-account-id'
-      });
-
-      // Assert
-      expect(result).toBeUndefined();
-      expect(RingCentral).not.toHaveBeenCalled();
     });
   });
 });

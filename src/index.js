@@ -165,7 +165,7 @@ app.get('/admin/googleSheets/filePicker', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-            const { hashedAccountId } = getHashedAccountIdInReqHeaders(req.headers);
+            const { hashedAccountId } = getHashedAccountIdInReqHeaders({ headers: req.headers });
             const fileContent = await googleSheetsExtra.renderAdminPickerFile({ user, hashedAccountId });
             res.send(fileContent);
         } else {
@@ -181,7 +181,7 @@ app.post('/admin/googleSheets/sheet', async function (req, res) {
     try {
         const jwtToken = req.query.jwtToken;
         if (jwtToken) {
-            const { hashedAccountId } = getHashedAccountIdInReqHeaders(req.headers);
+            const { hashedAccountId } = getHashedAccountIdInReqHeaders({ headers: req.headers });
             const unAuthData = jwt.decodeJwt(jwtToken);
             const user = await UserModel.findByPk(unAuthData?.id);
             if (!user) {
@@ -264,7 +264,7 @@ app.get('/admin/googleSheets/config', async function (req, res) {
                 res.status(400).send('User not found');
                 return;
             }
-            const { hashedAccountId } = getHashedAccountIdInReqHeaders(req.headers);
+            const { hashedAccountId } = getHashedAccountIdInReqHeaders({ headers: req.headers });
             const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken, userId: user.id, hashedAccountId });
             if (isValidated) {
                 const config = await googleSheetsExtra.getAdminGoogleSheetsConfig({ rcAccountId });
