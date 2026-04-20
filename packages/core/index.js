@@ -2280,6 +2280,7 @@ function createCoreRouter() {
                 rcAccountId: validatedRcAccountId?.toString(),
                 pluginAccess,
                 pluginName,
+                hashedRcAccountId: hashedAccountId,
             });
             res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
             success = true;

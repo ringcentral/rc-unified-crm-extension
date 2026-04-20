@@ -14,6 +14,7 @@ jest.mock('axios');
 const pluginHandler = require('../../handlers/plugin');
 const { CacheModel } = require('../../models/cacheModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
+const { AdminConfigModel } = require('../../models/adminConfigModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 
@@ -22,11 +23,13 @@ describe('Plugin Handler', () => {
     process.env.HASH_KEY = 'unit-test-hash-key';
     await CacheModel.sync({ force: true });
     await AccountDataModel.sync({ force: true });
+    await AdminConfigModel.sync({ force: true });
   });
 
   afterEach(async () => {
     await CacheModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
+    await AdminConfigModel.destroy({ where: {} });
     jest.clearAllMocks();
   });
 
@@ -294,6 +297,12 @@ describe('Plugin Handler', () => {
     test('should register plugin account and persist plugin jwt token in account data', async () => {
       const rcAccountId = '12345';
       const pluginId = 'sync-all-caps';
+      const hashedRcAccountId = 'hashed-12345';
+
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        adminAccessToken: 'rc-access-token'
+      });
 
       axios.get.mockResolvedValue({
         data: {
@@ -313,10 +322,10 @@ describe('Plugin Handler', () => {
 
       const result = await pluginHandler.registerPluginAccount({
         pluginId,
-        rcAccessToken: 'rc-access-token',
         rcAccountId,
         pluginAccess: 'public',
-        pluginName: 'plugin.sample'
+        pluginName: 'plugin.sample',
+        hashedRcAccountId
       });
 
       expect(result.successful).toBe(true);
@@ -343,6 +352,12 @@ describe('Plugin Handler', () => {
     test('should throw when register API does not return jwt token', async () => {
       const rcAccountId = '12345';
       const pluginId = 'sync-all-caps';
+      const hashedRcAccountId = 'hashed-12345';
+
+      await AdminConfigModel.create({
+        id: hashedRcAccountId,
+        adminAccessToken: 'rc-access-token'
+      });
 
       axios.get.mockResolvedValue({
         data: {
@@ -358,10 +373,10 @@ describe('Plugin Handler', () => {
 
       await expect(pluginHandler.registerPluginAccount({
         pluginId,
-        rcAccessToken: 'rc-access-token',
         rcAccountId,
         pluginAccess: 'public',
-        pluginName: 'plugin.sample'
+        pluginName: 'plugin.sample',
+        hashedRcAccountId
       })).rejects.toThrow('Plugin register API did not return jwtToken');
     });
   });

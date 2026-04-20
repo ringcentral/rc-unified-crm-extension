@@ -8,6 +8,7 @@ const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
 const authCore = require('./auth');
 const util = require('../lib/util');
+const { UserModel } = require('../models/userModel');
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
 const RC_EXTENSION_ENDPOINT = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~';
@@ -52,12 +53,13 @@ async function validateRcUserToken({ rcAccessToken, interopCode }) {
 
 // rcAccessToken -> deprecated
 async function validateAdminRole({ rcAccessToken, userId, hashedAccountId }) {
-    if (userId && hashedAccountId) {
+    const userModel = await UserModel.findByPk(userId);
+    if (userId && hashedAccountId && userModel?.rcAccountId) {
         const existingAdminConfig = await AdminConfigModel.findByPk(hashedAccountId);
         if (existingAdminConfig) {
             return {
                 isValidated: existingAdminConfig.adminUserIds?.split(',')?.includes?.(userId.toString()),
-                rcAccountId: existingAdminConfig.rcAccountId
+                rcAccountId: userModel.rcAccountId
             };
         }
     }
@@ -90,6 +92,7 @@ async function upsertAdminSettings({ hashedRcAccountId, adminSettings, userId })
         });
     }
 }
+
 
 async function getAdminSettings({ hashedRcAccountId }) {
     const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
