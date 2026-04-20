@@ -1133,7 +1133,7 @@ async function createCallLog({ user, contactInfo, callLog, note, additionalSubmi
         extraDataTracking.ratelimitAmount = addLogRes.headers['ratelimit-limit'];
         extraDataTracking.ratelimitReset = addLogRes.headers['ratelimit-reset'];
         if (additionalSubmission?.copyToContactComments) {
-            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactInfo.type}/${contactInfo.id}`,
+            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactInfo.type == 'Contact' ? 'ClientContact' : contactInfo.type}/${contactInfo.id}`,
                 {
                     comments: note
                 },
@@ -1291,7 +1291,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 contactType = 'Lead';
             }
             const contactId = existingCallLog.contactId;
-            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactType}/${contactId}`,
+            const contactCommentResponse = await axios.post(`${user.platformAdditionalInfo.restUrl}entity/${contactType == 'Contact' ? 'ClientContact' : contactType}/${contactId}`,
                 {
                     comments: note
                 },
