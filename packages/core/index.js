@@ -882,11 +882,18 @@ function createCoreRouter() {
     router.get('/user/preloadSettings', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('getUserSettingsByAdmin:start', { query: req.query });
+        const { hashedAccountId } = getHashedAccountIdInReqHeaders({ headers: req.headers });
         try {
-            const rcAccessToken = req.query.rcAccessToken;
-            const rcAccountId = req.query.rcAccountId;
-            if (rcAccessToken || rcAccountId) {
-                const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    tracer?.trace('getUserSettingsByAdmin:userNotFound', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
+                    return;
+                }
+                const userSettings = await userCore.getUserSettingsByAdmin({ hashedRcAccountId: hashedAccountId });
                 res.status(200).send(tracer ? tracer.wrapResponse(userSettings) : userSettings);
             }
             else {
@@ -912,20 +919,15 @@ function createCoreRouter() {
             const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
-                platformName = unAuthData?.platform ?? 'Unknown';
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getUserSettings:userNotFound', {});
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                else {
-                    const rcAccessToken = req.query.rcAccessToken;
-                    const rcAccountId = req.query.rcAccountId;
-                    const userSettings = await userCore.getUserSettings({ user, rcAccessToken, rcAccountId });
-                    success = true;
-                    res.status(200).send(tracer ? tracer.wrapResponse(userSettings) : userSettings);
-                }
+                const userSettings = await userCore.getUserSettings({ user, hashedRcAccountId: hashedAccountId });
+                success = true;
+                res.status(200).send(tracer ? tracer.wrapResponse(userSettings) : userSettings);
             }
             else {
                 success = false;
@@ -2377,11 +2379,12 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            const { rcAccountId, pluginId } = req.query;
-            if (!rcAccountId || !pluginId) {
+            const { pluginId } = req.query;
+            if (!pluginId) {
                 res.status(400).send(tracer ? tracer.wrapResponse('rcAccountId and pluginId are required') : 'rcAccountId and pluginId are required');
                 return;
             }
+            const rcAccountId = user.rcAccountId;
             const licenseStatus = await pluginCore.getPluginLicenseStatus({ rcAccountId, pluginId });
             res.status(200).send(tracer ? tracer.wrapResponse(licenseStatus) : licenseStatus);
         }

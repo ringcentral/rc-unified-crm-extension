@@ -32,7 +32,6 @@ async function validateRcUserToken({ rcAccessToken, interopCode }) {
         };
     }
     else {
-
         if (!rcAccessToken) {
             throw new Error('rcAccessToken is required');
         }

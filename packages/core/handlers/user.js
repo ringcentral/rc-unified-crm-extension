@@ -1,24 +1,11 @@
-const axios = require('axios');
 const { AdminConfigModel } = require('../models/adminConfigModel');
-const { getHashValue } = require('../lib/util');
 const connectorRegistry = require('../connector/registry');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
-    let hashedRcAccountId = null;
-    if (rcAccountId) {
-        hashedRcAccountId = rcAccountId;
-    }
-    else {
-        const rcExtensionResponse = await axios.get(
-            'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
-            {
-                headers: {
-                    Authorization: `Bearer ${rcAccessToken}`,
-                },
-            });
-        hashedRcAccountId = getHashValue(rcExtensionResponse.data.account.id, process.env.HASH_KEY);
+async function getUserSettingsByAdmin({ hashedRcAccountId }) {
+    if (!hashedRcAccountId) {
+        return null;
     }
     const adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     return {
@@ -26,11 +13,11 @@ async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     };
 }
 
-async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
+async function getUserSettings({ user, hashedRcAccountId }) {
     let userSettingsByAdmin = [];
-    if (rcAccessToken || rcAccountId) {
+    if (hashedRcAccountId) {
         try {
-            userSettingsByAdmin = await getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
+            userSettingsByAdmin = await getUserSettingsByAdmin({ hashedRcAccountId });
         }
         catch (e) {
             logger.error('Error getting user settings by admin', { stack: e.stack });

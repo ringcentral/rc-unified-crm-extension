@@ -459,7 +459,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             // if having call recording, generate download link
             if (incomingData?.logInfo?.recording) {
                 const rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
-                incomingData.logInfo.recording.downloadUrl = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+                incomingData.recordingDownloadLink = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
             }
 
             const pluginAsyncTaskIds = [];
