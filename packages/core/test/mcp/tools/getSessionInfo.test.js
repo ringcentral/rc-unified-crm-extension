@@ -1,13 +1,18 @@
 const getSessionInfo = require('../../../mcp/tools/getSessionInfo');
 const jwt = require('../../../lib/jwt');
 const { UserModel } = require('../../../models/userModel');
+const { RingCentral } = require('../../../lib/ringcentral');
 
 jest.mock('../../../lib/jwt');
 jest.mock('../../../models/userModel');
+jest.mock('../../../lib/ringcentral');
 
 describe('MCP Tool: getSessionInfo', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    RingCentral.mockImplementation(() => ({
+      getExtensionInfo: jest.fn().mockResolvedValue({ name: 'Demo Extension' })
+    }));
   });
 
   describe('tool definition', () => {
@@ -32,16 +37,17 @@ describe('MCP Tool: getSessionInfo', () => {
         success: true,
         data: {
           openaiSessionId: 'session-123',
-          rcExtensionId: 'ext-456',
-          hasRcAccessToken: true,
-          isCrmAuthenticated: false,
-          crm: {
-            userId: null,
-            platform: null,
-            hostname: null,
-            tokenExpiry: null,
-            timezoneName: null,
-            timezoneOffset: null,
+          dataToShow: {
+            isCrmAuthenticated: false,
+            ringcentral: {
+              extensionId: 'ext-456',
+              name: 'Demo Extension',
+            },
+            crm: {
+              userId: null,
+              platform: null,
+              hostname: null
+            }
           }
         }
       });
@@ -50,8 +56,6 @@ describe('MCP Tool: getSessionInfo', () => {
     });
 
     test('should return connected CRM session info when jwtToken resolves to a saved user', async () => {
-      const tokenExpiry = new Date('2026-04-21T12:00:00.000Z');
-
       jwt.decodeJwt.mockReturnValue({
         id: 'crm-user-1',
         platform: 'clio'
@@ -61,9 +65,6 @@ describe('MCP Tool: getSessionInfo', () => {
         platform: 'clio',
         hostname: 'app.clio.com',
         accessToken: 'crm-access-token',
-        tokenExpiry,
-        timezoneName: 'America/Los_Angeles',
-        timezoneOffset: '-07:00'
       });
 
       const result = await getSessionInfo.execute({
@@ -79,22 +80,23 @@ describe('MCP Tool: getSessionInfo', () => {
         success: true,
         data: {
           openaiSessionId: 'session-123',
-          rcExtensionId: 'ext-456',
-          hasRcAccessToken: true,
-          isCrmAuthenticated: true,
-          crm: {
-            userId: 'crm-user-1',
-            platform: 'clio',
-            hostname: 'app.clio.com',
-            tokenExpiry,
-            timezoneName: 'America/Los_Angeles',
-            timezoneOffset: '-07:00',
+          dataToShow: {
+            isCrmAuthenticated: true,
+            ringcentral: {
+              extensionId: 'ext-456',
+              name: 'Demo Extension',
+            },
+            crm: {
+              userId: 'crm-user-1',
+              platform: 'clio',
+              hostname: 'app.clio.com'
+            }
           }
         }
       });
     });
 
-    test('should report not authenticated when jwtToken is invalid or user is missing', async () => {
+    test('should report not authenticated when jwtToken is invalid', async () => {
       jwt.decodeJwt.mockReturnValue(null);
 
       const result = await getSessionInfo.execute({
@@ -105,16 +107,17 @@ describe('MCP Tool: getSessionInfo', () => {
         success: true,
         data: {
           openaiSessionId: null,
-          rcExtensionId: null,
-          hasRcAccessToken: false,
-          isCrmAuthenticated: false,
-          crm: {
-            userId: null,
-            platform: null,
-            hostname: null,
-            tokenExpiry: null,
-            timezoneName: null,
-            timezoneOffset: null,
+          dataToShow: {
+            isCrmAuthenticated: false,
+            ringcentral: {
+              extensionId: null,
+              name: null,
+            },
+            crm: {
+              userId: null,
+              platform: null,
+              hostname: null
+            }
           }
         }
       });

@@ -65,7 +65,7 @@ async function execute(args = {}) {
                 dataToShow: {
                     isCrmAuthenticated: Boolean(decodedToken && user?.accessToken),
                     ringcentral: {
-                        extensionId: rcExtensionId?.id ?? null,
+                        extensionId: rcExtensionId ?? null,
                         name: rcExtensionInfo?.name ?? null,
                     },
                     crm: {
