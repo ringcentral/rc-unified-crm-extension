@@ -8,6 +8,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const jwt = require('@app-connect/core/lib/jwt');
 const axios = require('axios');
 const bullhorn = require('./connectors/bullhorn');
+const bullhornReport = require('./connectors/bullhorn/report');
 const clio = require('./connectors/clio');
 const googleSheets = require('./connectors/googleSheets');
 const insightly = require('./connectors/insightly');
@@ -464,7 +465,7 @@ app.post('/googleDrive/logout', async function (req, res) {
 //     try {
 
 //         //await bullhorn.generateMontlyCsvReportWithSalesforceData();
-//         await bullhorn.sendMonthlyCsvReportByEmailWithSalesforceData();
+//         await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
 //         console.log({message:'Bullhorn Salesforce monthly report generated successfully'});
 //         res.status(200).send({ ok: true });
 //     }
