@@ -7,6 +7,7 @@
  */
 
 const axios = require('axios');
+const { Op } = require('sequelize');
 const tools = require('./tools');
 const { LlmSessionModel } = require('../models/llmSessionModel');
 const { CacheModel } = require('../models/cacheModel');
@@ -219,7 +220,16 @@ async function handleMcpRequest(req, res) {
                             }
                             if (!llmSession?.jwtToken) {
                                 const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
-                                const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
+                                const user = await UserModel.findOne({
+                                    where: {
+                                        hashedRcExtensionId,
+                                        [Op.and]: [
+                                            { accessToken: { [Op.not]: null } },
+                                            { accessToken: { [Op.ne]: '' } },
+                                        ],
+                                    },
+                                    order: [['updatedAt', 'DESC']],
+                                });
                                 if (user?.accessToken) {
                                     await LlmSessionModel.upsert({
                                         id: rcExtensionId,
