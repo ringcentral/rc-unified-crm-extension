@@ -7,6 +7,7 @@
  */
 
 const axios = require('axios');
+const { Op } = require('sequelize');
 const tools = require('./tools');
 const { LlmSessionModel } = require('../models/llmSessionModel');
 const { CacheModel } = require('../models/cacheModel');
@@ -23,6 +24,8 @@ const path = require('path');
  */
 const WIDGET_VERSION = 10;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
+const RC_EXTENSION_CACHE_KEY = 'rcExtensionId';
+const RC_EXTENSION_CACHE_STATUS = 'resolved';
 
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_METHOD_NOT_FOUND = -32601;
@@ -104,7 +107,7 @@ async function resolveSessionContext(rcAccessToken, openaiSessionId) {
 
     if (openaiSessionId) {
         try {
-            const cached = await CacheModel.findByPk(`${openaiSessionId}-rcExtensionId`);
+            const cached = await CacheModel.findByPk(`${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}`);
             if (cached?.data?.rcExtensionId && (!cached.expiry || cached.expiry > new Date())) {
                 return { rcExtensionId: cached.data.rcExtensionId };
             }
@@ -118,11 +121,11 @@ async function resolveSessionContext(rcAccessToken, openaiSessionId) {
         rcExtensionId = await resolveRcExtensionId(rcAccessToken);
         if (openaiSessionId && rcExtensionId) {
             await CacheModel.upsert({
-                id: `${openaiSessionId}-rcExtensionId`,
+                id: `${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}`,
                 userId: openaiSessionId,
-                cacheKey: 'rcExtensionId',
+                cacheKey: RC_EXTENSION_CACHE_KEY,
                 data: { rcExtensionId },
-                status: 'active',
+                status: RC_EXTENSION_CACHE_STATUS,
                 expiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h TTL
             });
         }
@@ -206,12 +209,27 @@ async function handleMcpRequest(req, res) {
                         if (!llmSession?.jwtToken && openaiSessionId) {
                             const fallback = await LlmSessionModel.findByPk(openaiSessionId);
                             if (fallback?.jwtToken) {
-                                await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken });
-                                llmSession = fallback;
+                                const { id: fallbackUserId } = jwt.decodeJwt(fallback.jwtToken);
+                                const fallbackUser = fallbackUserId
+                                    ? await UserModel.findByPk(fallbackUserId)
+                                    : null;
+                                if (fallbackUser?.accessToken) {
+                                    await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken });
+                                    llmSession = fallback;
+                                }
                             }
-                            else {
+                            if (!llmSession?.jwtToken) {
                                 const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
-                                const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
+                                const user = await UserModel.findOne({
+                                    where: {
+                                        hashedRcExtensionId,
+                                        [Op.and]: [
+                                            { accessToken: { [Op.not]: null } },
+                                            { accessToken: { [Op.ne]: '' } },
+                                        ],
+                                    },
+                                    order: [['updatedAt', 'DESC']],
+                                });
                                 if (user?.accessToken) {
                                     await LlmSessionModel.upsert({
                                         id: rcExtensionId,

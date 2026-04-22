@@ -1,7 +1,10 @@
 const jwt = require('../../lib/jwt');
 const { UserModel } = require('../../models/userModel');
 const { LlmSessionModel } = require('../../models/llmSessionModel');
+const { CacheModel } = require('../../models/cacheModel');
 const connectorRegistry = require('../../connector/registry');
+
+const RC_EXTENSION_CACHE_KEY = 'rcExtensionId';
 
 /**
  * MCP Tool: Logout
@@ -38,7 +41,7 @@ function isMissingSessionTableError(error) {
  */
 async function execute(args) {
     try {
-        const { jwtToken } = args;
+        const { jwtToken, rcExtensionId, openaiSessionId } = args;
         const session = jwt.decodeJwt(jwtToken);
         if (!session?.platform || !session?.id) {
             throw new Error('Invalid JWT token');
@@ -46,6 +49,12 @@ async function execute(args) {
         const { platform, id } = session;
         try {
             await LlmSessionModel.destroy({ where: { id } });
+            if (rcExtensionId && rcExtensionId !== id) {
+                await LlmSessionModel.destroy({ where: { id: rcExtensionId } });
+            }
+            if (openaiSessionId) {
+                await CacheModel.destroy({ where: { id: `${openaiSessionId}-${RC_EXTENSION_CACHE_KEY}` } });
+            }
         }
         catch (error) {
             if (!isMissingSessionTableError(error)) {
