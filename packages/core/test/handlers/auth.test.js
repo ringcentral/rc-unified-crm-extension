@@ -15,7 +15,7 @@ jest.mock('../../lib/ringcentral', () => ({
   }))
 }));
 jest.mock('../../handlers/admin', () => ({
-  updateAdminRcTokens: jest.fn()
+  upsertAdminRcTokens: jest.fn()
 }));
 
 const oauth = require('../../lib/oauth');
@@ -956,7 +956,6 @@ describe('Auth Handler', () => {
 
   describe('onRingcentralOAuthCallback', () => {
     beforeEach(() => {
-      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
       process.env.RINGCENTRAL_CLIENT_ID = 'rc-client-id';
       process.env.RINGCENTRAL_CLIENT_SECRET = 'rc-client-secret';
       process.env.APP_SERVER = 'https://app.example.com';
@@ -989,7 +988,7 @@ describe('Auth Handler', () => {
         redirectUri: 'https://app.example.com/ringcentral/oauth/callback'
       });
       expect(mockGenerateToken).toHaveBeenCalledWith({ code: 'rc-auth-code' });
-      expect(adminCore.updateAdminRcTokens).toHaveBeenCalledWith({
+      expect(adminCore.upsertAdminRcTokens).toHaveBeenCalledWith({
         hashedRcAccountId: expect.any(String),
         adminAccessToken: 'rc-access-token',
         adminRefreshToken: 'rc-refresh-token',

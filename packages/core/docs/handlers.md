@@ -9,7 +9,7 @@ Handlers contain the shared business workflows behind the route layer.
 | `handlers/auth.js` | Connector login, OAuth callback handling, user persistence, and auth validation | `onOAuthCallback`, `onApiKeyLogin`, `authValidation`, `getLicenseStatus`, `onRingcentralOAuthCallback` |
 | `handlers/contact.js` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
 | `handlers/log.js` | Call logging, message logging, plugin execution, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache` |
-| `handlers/admin.js` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
+| `handlers/admin.js` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `upsertAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
 | `handlers/user.js` | User setting reads, admin/user setting merge, and updates | `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
 | `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |

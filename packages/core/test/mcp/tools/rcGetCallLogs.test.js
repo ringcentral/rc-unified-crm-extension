@@ -10,7 +10,6 @@ jest.mock('../../../lib/ringcentral', () => ({
 describe('MCP Tool: rcGetCallLogs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
     process.env.RINGCENTRAL_CLIENT_ID = 'client-id';
     process.env.RINGCENTRAL_CLIENT_SECRET = 'client-secret';
     process.env.APP_SERVER = 'https://app.example.com';

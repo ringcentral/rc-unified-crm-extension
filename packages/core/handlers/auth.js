@@ -1,5 +1,6 @@
 const oauth = require('../lib/oauth');
 const { UserModel } = require('../models/userModel');
+const { AdminConfigModel } = require('../models/adminConfigModel');
 const connectorRegistry = require('../connector/registry');
 const Op = require('sequelize').Op;
 const { RingCentral } = require('../lib/ringcentral');
@@ -270,13 +271,30 @@ async function authValidation({ platform, userId }) {
 
 // Ringcentral
 async function onRingcentralOAuthCallback({ code, rcAccountId, userId }) {
+    const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+    try {
+        const refreshResult = await refreshRcTokens({ hashedRcAccountId });
+        if (refreshResult) {
+            await adminCore.upsertAdminRcTokens({
+                hashedRcAccountId,
+                adminAccessToken: refreshResult.access_token,
+                adminRefreshToken: refreshResult.refresh_token,
+                adminTokenExpiry: refreshResult.expire_time,
+                userId
+            });
+            return;
+        }
+    }
+    catch (error) {
+        console.error('Error refreshing RingCentral tokens', error);
+    }
+
     const tokenData = await getTokensFromInteropCode({ code });
     if (!tokenData) {
         return;
     }
     const { access_token, refresh_token, expire_time } = tokenData;
-    const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
-    await adminCore.updateAdminRcTokens({
+    await adminCore.upsertAdminRcTokens({
         hashedRcAccountId,
         adminAccessToken: access_token,
         adminRefreshToken: refresh_token,
@@ -286,11 +304,11 @@ async function onRingcentralOAuthCallback({ code, rcAccountId, userId }) {
 }
 
 async function getTokensFromInteropCode({ code }) {
-    if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+    if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
         return;
     }
     const rcSDK = new RingCentral({
-        server: process.env.RINGCENTRAL_SERVER,
+        server: 'https://platform.ringcentral.com',
         clientId: process.env.RINGCENTRAL_CLIENT_ID,
         clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
@@ -300,6 +318,40 @@ async function getTokensFromInteropCode({ code }) {
         access_token,
         refresh_token,
         expire_time
+    }
+}
+
+async function refreshRcTokens({ hashedRcAccountId }) {
+    if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        return;
+    }
+    try {
+        const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+        if (existingAdminConfig?.adminAccessToken && existingAdminConfig?.adminRefreshToken && existingAdminConfig?.adminTokenExpiry > new Date()) {
+            const rcSDK = new RingCentral({
+                server: 'https://platform.ringcentral.com',
+                clientId: process.env.RINGCENTRAL_CLIENT_ID,
+                clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
+                redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
+            });
+            const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
+                refresh_token: adminConfig.adminRefreshToken,
+                expires_in: adminConfig.adminTokenExpiry,
+                refresh_token_expires_in: adminConfig.adminTokenExpiry
+            });
+            return {
+                access_token,
+                refresh_token,
+                expire_time
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    catch (error) {
+        console.error('Error refreshing RingCentral tokens', error);
+        return null;
     }
 }
 

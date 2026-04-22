@@ -88,6 +88,5 @@ Several concerns are applied in multiple modules:
 | `IS_PROD` | Enables local-only logging and mock routes when set to `'false'` |
 | `OVERRIDE_APP_SERVER` | Overrides manifest server URL in `GET /crmManifest` |
 | `OVERRIDE_SERVER_SIDE_LOGGING_SERVER` | Overrides manifest server-side logging URL in `GET /crmManifest` |
-| `RINGCENTRAL_SERVER` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_ID` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_SECRET` | Used by RingCentral OAuth and reporting helpers |

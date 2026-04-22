@@ -148,7 +148,9 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         // if having call recording, generate download link
         if (incomingData.logInfo.recording) {
             const rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
-            incomingData.logInfo.recording.downloadUrl = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+            if (rcMediaAccessToken) {
+                incomingData.logInfo.recording.downloadUrl = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+            }
         }
 
 
@@ -457,9 +459,11 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             }
 
             // if having call recording, generate download link
-            if (incomingData?.logInfo?.recording) {
+            if (incomingData?.recordingLink) {
                 const rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
-                incomingData.recordingDownloadLink = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+                if (rcMediaAccessToken) {
+                    incomingData.recordingDownloadLink = `${incomingData.logInfo.recording.contentUri}?accessToken=${rcMediaAccessToken}`;
+                }
             }
 
             const pluginAsyncTaskIds = [];
@@ -886,16 +890,7 @@ async function createMessageLog({ platform, userId, incomingData }) {
             ));
             let rcMediaAccessToken = null;
             if (hasMediaAttachmentRequiringRcToken) {
-                try {
-                    rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
-                }
-                catch (error) {
-                    logger.warn('Unable to resolve admin RC access token for message media download links', {
-                        userId,
-                        rcAccountId: user.rcAccountId,
-                        error: error?.message || error
-                    });
-                }
+                rcMediaAccessToken = await adminCore.getAdminRcAccessToken({ rcAccountId: user.rcAccountId });
             }
             // reverse the order of messages to log the oldest message first
             const reversedMessages = incomingData.logInfo.messages.reverse();

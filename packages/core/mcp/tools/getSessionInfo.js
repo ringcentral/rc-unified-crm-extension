@@ -48,7 +48,7 @@ async function execute(args = {}) {
         let rcExtensionInfo = null;
         if (rcExtensionId && rcAccessToken) {
             const rcSDK = new RingCentral({
-                server: process.env.RINGCENTRAL_SERVER,
+                server: 'https://platform.ringcentral.com',
                 clientId: process.env.RINGCENTRAL_CLIENT_ID,
                 clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
                 redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`

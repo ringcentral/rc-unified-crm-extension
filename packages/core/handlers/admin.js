@@ -98,7 +98,7 @@ async function getAdminSettings({ hashedRcAccountId }) {
     return existingAdminConfig;
 }
 
-async function updateAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminRefreshToken, adminTokenExpiry, userId }) {
+async function upsertAdminRcTokens({ hashedRcAccountId, adminAccessToken, adminRefreshToken, adminTokenExpiry, userId }) {
     const existingAdminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
     if (existingAdminConfig) {
         const updatedUserIds = existingAdminConfig.adminUserIds ? existingAdminConfig.adminUserIds.concat(`,${userId}`) : userId;
@@ -150,22 +150,22 @@ async function findAdminConfigByAccount({ rcAccountId, hashedRcAccountId }) {
 async function getAdminRcAccessToken({ rcAccountId, hashedRcAccountId, refreshBeforeExpiryMs = RC_ACCESS_TOKEN_REFRESH_WINDOW_MS }) {
     const adminConfig = await findAdminConfigByAccount({ rcAccountId, hashedRcAccountId });
     if (!adminConfig) {
-        throw new Error('Admin account config not found');
+        return null;
     }
     if (!adminConfig.adminAccessToken || !adminConfig.adminRefreshToken) {
-        throw new Error('Admin RC tokens are missing');
+        return null;
     }
     const expiryMs = parseExpiryMs(adminConfig.adminTokenExpiry);
     const shouldRefresh = !expiryMs || (expiryMs - refreshBeforeExpiryMs) <= Date.now();
     if (!shouldRefresh) {
         return adminConfig.adminAccessToken;
     }
-    if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
-        throw new Error('RingCentral OAuth env vars are not configured');
+    if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        return null;
     }
     const ttlSeconds = expiryMs ? Math.max(1, Math.floor((expiryMs - Date.now()) / 1000)) : 3600;
     const rcSDK = new RingCentral({
-        server: process.env.RINGCENTRAL_SERVER,
+        server: 'https://platform.ringcentral.com',
         clientId: process.env.RINGCENTRAL_CLIENT_ID,
         clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
@@ -205,18 +205,21 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
 
 async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy }) {
     try {
-        if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
             return {
                 callLogStats: {}
             };
         }
         const rcSDK = new RingCentral({
-            server: process.env.RINGCENTRAL_SERVER,
+            server: 'https://platform.ringcentral.com',
             clientId: process.env.RINGCENTRAL_CLIENT_ID,
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
         let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        if (!adminConfig.adminAccessToken) {
+            return null;
+        }
         const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
         if (isTokenExpired) {
             const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
@@ -266,26 +269,27 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
         };
     } catch (error) {
         logger.error('Error getting admin report', { error });
-        return {
-            callLogStats: {}
-        };
+        return null;
     }
 }
 
 async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, timeTo }) {
     try {
-        if (!process.env.RINGCENTRAL_SERVER || !process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
+        if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
             return {
                 callLogStats: {}
             };
         }
         const rcSDK = new RingCentral({
-            server: process.env.RINGCENTRAL_SERVER,
+            server: 'https://platform.ringcentral.com',
             clientId: process.env.RINGCENTRAL_CLIENT_ID,
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
         let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        if (!adminConfig.adminAccessToken) {
+            return null;
+        }
         const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
         if (isTokenExpired) {
             const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
@@ -619,7 +623,7 @@ exports.validateAdminRole = validateAdminRole;
 exports.validateRcUserToken = validateRcUserToken;
 exports.upsertAdminSettings = upsertAdminSettings;
 exports.getAdminSettings = getAdminSettings;
-exports.updateAdminRcTokens = updateAdminRcTokens;
+exports.upsertAdminRcTokens = upsertAdminRcTokens;
 exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.getAdminReport = getAdminReport;

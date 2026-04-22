@@ -2075,6 +2075,23 @@ function createCoreRouter() {
                     return;
                 }
                 const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo, groupBy: req.query.groupBy });
+                if (!report) {
+                    tracer?.trace('getAdminReport:noReport', {});
+                    res.status(500).send(tracer ? tracer.wrapResponse({
+                        returnMessage: {
+                            message: 'Error fetching admin report',
+                            messageType: 'error',
+                            ttl: 5000
+                        }
+                    }) : {
+                        returnMessage: {
+                            message: 'Error fetching admin report',
+                            messageType: 'error',
+                            ttl: 5000
+                        }
+                    });
+                    return;
+                }
                 res.status(200).send(tracer ? tracer.wrapResponse(report) : report);
                 success = true;
                 return;
@@ -2121,6 +2138,11 @@ function createCoreRouter() {
                     return;
                 }
                 const report = await adminCore.getUserReport({ rcAccountId: user.rcAccountId, rcExtensionId: req.query.rcExtensionId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                if (!report) {
+                    tracer?.trace('getUserReport:noReport', {});
+                    res.status(500).send(tracer ? tracer.wrapResponse('Error fetching user report') : 'Error fetching user report');
+                    return;
+                }
                 res.status(200).send(tracer ? tracer.wrapResponse(report) : report);
                 return;
             }
@@ -2475,7 +2497,7 @@ function createCoreRouter() {
             authorization_endpoint: `${process.env.APP_SERVER}/oauth/authorize_shim`,
 
             // Keep the token endpoint pointing to RingCentral (that usually works fine)
-            token_endpoint: `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/token`,
+            token_endpoint: `https://platform.ringcentral.com/restapi/oauth/token`,
             token_endpoint_auth_methods_supported: ["client_secret_basic"],
             response_types_supported: ["code"]
         });
@@ -2496,7 +2518,7 @@ function createCoreRouter() {
         });
 
         // 3. Redirect the user's browser to the REAL RingCentral URL
-        const rcUrl = `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/authorize?${params.toString()}`;
+        const rcUrl = `https://platform.ringcentral.com/restapi/oauth/authorize?${params.toString()}`;
 
         console.log("Proxying OAuth request to:", rcUrl); // Helpful for debugging
         res.redirect(rcUrl);

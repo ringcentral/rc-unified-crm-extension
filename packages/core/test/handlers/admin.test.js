@@ -222,7 +222,7 @@ describe('Admin Handler', () => {
     });
   });
 
-  describe('updateAdminRcTokens', () => {
+  describe('upsertAdminRcTokens', () => {
     test('should update tokens for existing config', async () => {
       // Arrange
       await AdminConfigModel.create({
@@ -235,7 +235,7 @@ describe('Admin Handler', () => {
       const newExpiry = new Date('2024-12-31');
 
       // Act
-      await adminHandler.updateAdminRcTokens({
+      await adminHandler.upsertAdminRcTokens({
         hashedRcAccountId: 'hashed-token-test',
         adminAccessToken: 'new-access',
         adminRefreshToken: 'new-refresh',
@@ -253,7 +253,7 @@ describe('Admin Handler', () => {
       const expiry = new Date('2024-12-31');
 
       // Act
-      await adminHandler.updateAdminRcTokens({
+      await adminHandler.upsertAdminRcTokens({
         hashedRcAccountId: 'hashed-new-token',
         adminAccessToken: 'new-access-token',
         adminRefreshToken: 'new-refresh-token',
@@ -294,10 +294,8 @@ describe('Admin Handler', () => {
 
     test('should refresh token when close to expiry', async () => {
       // Arrange
-      const originalServer = process.env.RINGCENTRAL_SERVER;
       const originalClientId = process.env.RINGCENTRAL_CLIENT_ID;
       const originalClientSecret = process.env.RINGCENTRAL_CLIENT_SECRET;
-      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
       process.env.RINGCENTRAL_CLIENT_ID = 'test-client-id';
       process.env.RINGCENTRAL_CLIENT_SECRET = 'test-client-secret';
       const hashedRcAccountId = 'hashed-account-token-refresh';
@@ -327,7 +325,6 @@ describe('Admin Handler', () => {
       expect(saved.adminRefreshToken).toBe('refreshed-refresh-token');
 
       // Cleanup
-      process.env.RINGCENTRAL_SERVER = originalServer;
       process.env.RINGCENTRAL_CLIENT_ID = originalClientId;
       process.env.RINGCENTRAL_CLIENT_SECRET = originalClientSecret;
     });
@@ -422,9 +419,8 @@ describe('Admin Handler', () => {
   describe('getAdminReport', () => {
     test('should return empty stats when RC credentials are not configured', async () => {
       // Arrange
-      const originalServer = process.env.RINGCENTRAL_SERVER;
-      delete process.env.RINGCENTRAL_SERVER;
-
+      delete process.env.RINGCENTRAL_CLIENT_ID;
+      delete process.env.RINGCENTRAL_CLIENT_SECRET;
       // Act
       const result = await adminHandler.getAdminReport({
         rcAccountId: 'account-123',
@@ -436,23 +432,12 @@ describe('Admin Handler', () => {
 
       // Assert
       expect(result).toEqual({ callLogStats: {} });
-
-      // Cleanup
-      if (originalServer) {
-        process.env.RINGCENTRAL_SERVER = originalServer;
-      }
     });
 
     test('should handle errors and return empty stats', async () => {
       // Arrange
-      const originalServer = process.env.RINGCENTRAL_SERVER;
-      const originalClientId = process.env.RINGCENTRAL_CLIENT_ID;
-      const originalClientSecret = process.env.RINGCENTRAL_CLIENT_SECRET;
-
-      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
-      process.env.RINGCENTRAL_CLIENT_ID = 'test-client-id';
-      process.env.RINGCENTRAL_CLIENT_SECRET = 'test-client-secret';
-
+      delete process.env.RINGCENTRAL_CLIENT_ID;
+      delete process.env.RINGCENTRAL_CLIENT_SECRET;
       // Mock AdminConfigModel.findByPk to throw error
       jest.spyOn(AdminConfigModel, 'findByPk').mockRejectedValueOnce(new Error('Database error'));
 
@@ -467,19 +452,14 @@ describe('Admin Handler', () => {
 
       // Assert
       expect(result).toEqual({ callLogStats: {} });
-
-      // Cleanup
-      process.env.RINGCENTRAL_SERVER = originalServer;
-      process.env.RINGCENTRAL_CLIENT_ID = originalClientId;
-      process.env.RINGCENTRAL_CLIENT_SECRET = originalClientSecret;
     });
   });
 
   describe('getUserReport', () => {
     test('should return empty stats when RC credentials are not configured', async () => {
       // Arrange
-      const originalServer = process.env.RINGCENTRAL_SERVER;
-      delete process.env.RINGCENTRAL_SERVER;
+      delete process.env.RINGCENTRAL_CLIENT_ID;
+      delete process.env.RINGCENTRAL_CLIENT_SECRET;
 
       // Act
       const result = await adminHandler.getUserReport({
@@ -492,23 +472,12 @@ describe('Admin Handler', () => {
 
       // Assert
       expect(result).toEqual({ callLogStats: {} });
-
-      // Cleanup
-      if (originalServer) {
-        process.env.RINGCENTRAL_SERVER = originalServer;
-      }
     });
 
     test('should handle errors and return null', async () => {
       // Arrange
-      const originalServer = process.env.RINGCENTRAL_SERVER;
-      const originalClientId = process.env.RINGCENTRAL_CLIENT_ID;
-      const originalClientSecret = process.env.RINGCENTRAL_CLIENT_SECRET;
-
-      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
-      process.env.RINGCENTRAL_CLIENT_ID = 'test-client-id';
-      process.env.RINGCENTRAL_CLIENT_SECRET = 'test-client-secret';
-
+      delete process.env.RINGCENTRAL_CLIENT_ID;
+      delete process.env.RINGCENTRAL_CLIENT_SECRET;
       // Mock AdminConfigModel.findByPk to throw error
       jest.spyOn(AdminConfigModel, 'findByPk').mockRejectedValueOnce(new Error('Database error'));
 
@@ -523,11 +492,6 @@ describe('Admin Handler', () => {
 
       // Assert
       expect(result).toBeNull();
-
-      // Cleanup
-      process.env.RINGCENTRAL_SERVER = originalServer;
-      process.env.RINGCENTRAL_CLIENT_ID = originalClientId;
-      process.env.RINGCENTRAL_CLIENT_SECRET = originalClientSecret;
     });
   });
 
