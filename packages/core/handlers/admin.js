@@ -276,9 +276,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
 async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, timeTo }) {
     try {
         if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
-            return {
-                callLogStats: {}
-            };
+            return null;
         }
         const rcSDK = new RingCentral({
             server: 'https://platform.ringcentral.com',
