@@ -431,7 +431,7 @@ describe('Admin Handler', () => {
       });
 
       // Assert
-      expect(result).toEqual({ callLogStats: {} });
+      expect(result).toBeNull();
     });
 
     test('should handle errors and return empty stats', async () => {
@@ -451,7 +451,7 @@ describe('Admin Handler', () => {
       });
 
       // Assert
-      expect(result).toEqual({ callLogStats: {} });
+      expect(result).toBeNull();
     });
   });
 
@@ -471,7 +471,7 @@ describe('Admin Handler', () => {
       });
 
       // Assert
-      expect(result).toEqual({ callLogStats: {} });
+      expect(result).toBeNull();
     });
 
     test('should handle errors and return null', async () => {

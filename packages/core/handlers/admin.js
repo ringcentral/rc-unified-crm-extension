@@ -206,9 +206,7 @@ async function updateServerLoggingSettings({ user, additionalFieldValues }) {
 async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy }) {
     try {
         if (!process.env.RINGCENTRAL_CLIENT_ID || !process.env.RINGCENTRAL_CLIENT_SECRET) {
-            return {
-                callLogStats: {}
-            };
+            return null;
         }
         const rcSDK = new RingCentral({
             server: 'https://platform.ringcentral.com',
