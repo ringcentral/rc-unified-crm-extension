@@ -4,7 +4,7 @@
             {
                 "type": "New",
                 "description": "Click-to-dial number matcher selection in User Setting -> General"
-            },
+            },  
             {
                 "type": "Fix",
                 "description": "Error report upload"
