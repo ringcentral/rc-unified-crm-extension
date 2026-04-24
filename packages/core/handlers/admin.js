@@ -6,6 +6,7 @@ const { RingCentral } = require('../lib/ringcentral');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
+const { getHashValue } = require('../lib/util');
 
 const CALL_AGGREGATION_GROUPS = ["Company", "CompanyNumbers", "Users", "Queues", "IVRs", "IVAs", "SharedLines", "UserGroups", "Sites", "Departments"]
 const RC_EXTENSION_ENDPOINT = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~';
@@ -108,7 +109,8 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
-        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        let adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
         const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
         if (isTokenExpired) {
             const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
@@ -116,7 +118,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
                 expires_in: adminConfig.adminTokenExpiry,
                 refresh_token_expires_in: adminConfig.adminTokenExpiry
             });
-            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: hashedRcAccountId } });
         }
         const callsAggregationData = await rcSDK.getCallsAggregationData({
             token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
@@ -177,7 +179,8 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
-        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        let adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
         const isTokenExpired = adminConfig.adminTokenExpiry < new Date();
         if (isTokenExpired) {
             const { access_token, refresh_token, expire_time } = await rcSDK.refreshToken({
@@ -185,7 +188,7 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
                 expires_in: adminConfig.adminTokenExpiry,
                 refresh_token_expires_in: adminConfig.adminTokenExpiry
             });
-            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: hashedRcAccountId } });
         }
         const callLogData = await rcSDK.getCallLogData({
             extensionId: rcExtensionId,
