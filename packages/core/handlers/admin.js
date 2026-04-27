@@ -7,6 +7,7 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
 const authCore = require('./auth');
+const { getHashValue } = require('../lib/util');
 const util = require('../lib/util');
 const { UserModel } = require('../models/userModel');
 
@@ -214,7 +215,8 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
-        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        let adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
         if (!adminConfig.adminAccessToken) {
             return null;
         }
@@ -225,7 +227,7 @@ async function getAdminReport({ rcAccountId, timezone, timeFrom, timeTo, groupBy
                 expires_in: adminConfig.adminTokenExpiry,
                 refresh_token_expires_in: adminConfig.adminTokenExpiry
             });
-            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: hashedRcAccountId } });
         }
         const callsAggregationData = await rcSDK.getCallsAggregationData({
             token: { access_token: adminConfig.adminAccessToken, token_type: 'Bearer' },
@@ -282,7 +284,8 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
             clientSecret: process.env.RINGCENTRAL_CLIENT_SECRET,
             redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
         });
-        let adminConfig = await AdminConfigModel.findByPk(rcAccountId);
+        const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
+        let adminConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
         if (!adminConfig.adminAccessToken) {
             return null;
         }
@@ -293,7 +296,7 @@ async function getUserReport({ rcAccountId, rcExtensionId, timezone, timeFrom, t
                 expires_in: adminConfig.adminTokenExpiry,
                 refresh_token_expires_in: adminConfig.adminTokenExpiry
             });
-            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: rcAccountId } });
+            adminConfig = await AdminConfigModel.update({ adminAccessToken: access_token, adminRefreshToken: refresh_token, adminTokenExpiry: expire_time }, { where: { id: hashedRcAccountId } });
         }
         const callLogData = await rcSDK.getCallLogData({
             extensionId: rcExtensionId,

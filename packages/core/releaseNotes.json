@@ -1,4 +1,16 @@
 {
+    "1.7.24": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Click-to-dial number matcher selection in User Setting -> General"
+            },  
+            {
+                "type": "Fix",
+                "description": "Error report upload"
+            }
+        ]
+    },
     "1.7.23": {
         "global": [
             {
