@@ -206,6 +206,10 @@ async function handleMcpRequest(req, res) {
                     toolArgs.rcExtensionId = rcExtensionId;
                     if (!toolArgs.jwtToken) {
                         let llmSession = await LlmSessionModel.findByPk(rcExtensionId);
+                        if (llmSession?.expiry && llmSession.expiry < new Date()) {
+                            await LlmSessionModel.destroy({ where: { id: rcExtensionId } });
+                            llmSession = null;
+                        }
                         if (!llmSession?.jwtToken && openaiSessionId) {
                             const fallback = await LlmSessionModel.findByPk(openaiSessionId);
                             if (fallback?.jwtToken) {
@@ -214,7 +218,7 @@ async function handleMcpRequest(req, res) {
                                     ? await UserModel.findByPk(fallbackUserId)
                                     : null;
                                 if (fallbackUser?.accessToken) {
-                                    await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken });
+                                    await LlmSessionModel.upsert({ id: rcExtensionId, jwtToken: fallback.jwtToken, expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
                                     llmSession = fallback;
                                 }
                             }
@@ -237,6 +241,7 @@ async function handleMcpRequest(req, res) {
                                             id: user.id.toString(),
                                             platform: user.platform
                                         }),
+                                        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                                     });
                                     llmSession = await LlmSessionModel.findByPk(rcExtensionId);
                                 }

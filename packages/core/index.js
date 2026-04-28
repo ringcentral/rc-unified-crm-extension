@@ -89,6 +89,19 @@ async function initDB() {
             await UserModel.sync();
             logger.info('hashedRcExtensionId column added to users table');
         }
+
+        // if LlmSessionModel doesn't have expiry column, add it
+        const llmSessionTableName = LlmSessionModel.getTableName();
+        const llmSessionTableSchema = await queryInterface.describeTable(llmSessionTableName);
+        if (!llmSessionTableSchema.expiry) {
+            logger.info('adding expiry column to llmSessions table...');
+            await queryInterface.addColumn(llmSessionTableName, 'expiry', {
+                type: Sequelize.DATE,
+                allowNull: true,
+            });
+            await LlmSessionModel.sync();
+            logger.info('expiry column added to llmSessions table');
+        }
     }
 }
 

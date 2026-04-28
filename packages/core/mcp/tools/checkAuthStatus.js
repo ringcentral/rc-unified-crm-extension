@@ -56,7 +56,8 @@ async function execute(args) {
             case 'completed':
                 await LlmSessionModel.upsert({
                     id: rcExtensionId,
-                    jwtToken: session.jwtToken
+                    jwtToken: session.jwtToken,
+                    expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                 });
                 return {
                     data: {
