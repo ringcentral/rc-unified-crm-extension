@@ -89,7 +89,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
     }
     let resolvedApiKey = apiKey;
     let managedFieldDefinitions = [];
-    if (rcAccountId && rcExtensionId) {
+    if (rcAccountId) {
         managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
         const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
             && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });

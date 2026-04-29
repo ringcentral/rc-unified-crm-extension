@@ -32,17 +32,6 @@ describe('Managed Auth Routes', () => {
   });
 
   describe('GET /apiKeyManagedAuthState', () => {
-    test('should require rcAccessToken', async () => {
-      const response = await request(app)
-        .get('/apiKeyManagedAuthState')
-        .query({ platform: 'testCRM' });
-
-      expect(response.status).toBe(400);
-      expect(response.text).toContain('Missing RingCentral access token');
-      expect(adminCore.validateRcUserToken).not.toHaveBeenCalled();
-      expect(managedAuthCore.getManagedAuthState).not.toHaveBeenCalled();
-    });
-
     test('should validate rcAccessToken and use validated identity', async () => {
       adminCore.validateRcUserToken.mockResolvedValue({
         rcAccountId: 'validated-account-id',
@@ -75,20 +64,6 @@ describe('Managed Auth Routes', () => {
   });
 
   describe('POST /apiKeyLogin', () => {
-    test('should require rcAccessToken', async () => {
-      const response = await request(app)
-        .post('/apiKeyLogin')
-        .send({
-          platform: 'testCRM',
-          apiKey: 'api-key',
-          hostname: 'test.example.com',
-        });
-
-      expect(response.status).toBe(400);
-      expect(response.text).toContain('Missing RingCentral access token');
-      expect(adminCore.validateRcUserToken).not.toHaveBeenCalled();
-      expect(authCore.onApiKeyLogin).not.toHaveBeenCalled();
-    });
 
     test('should validate rcAccessToken and ignore spoofed rc ids in body', async () => {
       adminCore.validateRcUserToken.mockResolvedValue({

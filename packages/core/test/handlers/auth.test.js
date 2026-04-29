@@ -24,6 +24,7 @@ const { RingCentral } = require('../../lib/ringcentral');
 const adminCore = require('../../handlers/admin');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { encode } = require('../../lib/encode');
+const { getHashValue } = require('../../lib/util');
 
 describe('Auth Handler', () => {
   const originalEnv = process.env;
@@ -964,6 +965,8 @@ describe('Auth Handler', () => {
 
     test('should handle successful RingCentral OAuth callback', async () => {
       // Arrange
+      process.env.HASH_KEY = 'test-hash-key';
+      const rcAccountId = 'rc-account-id';
       const mockGenerateToken = jest.fn().mockResolvedValue({
         access_token: 'rc-access-token',
         refresh_token: 'rc-refresh-token',
@@ -977,7 +980,7 @@ describe('Auth Handler', () => {
       // Act
       await authHandler.onRingcentralOAuthCallback({
         code: 'rc-auth-code',
-        rcAccountId: 'hashed-rc-account-id'
+        rcAccountId
       });
 
       // Assert
@@ -989,7 +992,7 @@ describe('Auth Handler', () => {
       });
       expect(mockGenerateToken).toHaveBeenCalledWith({ code: 'rc-auth-code' });
       expect(adminCore.updateAdminRcTokens).toHaveBeenCalledWith({
-        hashedRcAccountId: 'hashed-rc-account-id',
+        hashedRcAccountId: getHashValue(rcAccountId, 'test-hash-key'),
         adminAccessToken: 'rc-access-token',
         adminRefreshToken: 'rc-refresh-token',
         adminTokenExpiry: expect.any(Number)
