@@ -503,7 +503,33 @@ describe('callLogComposer', () => {
                     timezoneOffset: '+05:30',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
                 });
-                expect(result).toMatch(/<li><b>Date\/time<\/b>: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [AP]M<\/li>/);
+                expect(result).toBe(
+                    '<li><b>Date/time</b>: 2023-01-01 05:30:00 PM</li>'
+                );
+            });
+
+            test('should add datetime with numeric timezone offset', () => {
+                const result = upsertCallDateTime({
+                    body: '',
+                    startTime: testDate,
+                    timezoneOffset: 330,
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                });
+                expect(result).toBe(
+                    '<li><b>Date/time</b>: 2023-01-01 05:30:00 PM</li>'
+                );
+            });
+
+            test('should add datetime with different format timezone offset', () => {
+                const result = upsertCallDateTime({
+                    body: '',
+                    startTime: testDate,
+                    timezoneOffset: '-4',
+                    logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+                });
+                expect(result).toBe(
+                    '<li><b>Date/time</b>: 2023-01-01 08:00:00 AM</li>'
+                );
             });
 
             test('should replace existing datetime', () => {

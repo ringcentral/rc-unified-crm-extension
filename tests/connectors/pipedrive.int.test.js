@@ -34,6 +34,16 @@ describe('Pipedrive Connector', () => {
     
     let mockUser;
 
+    function mockActivityTypes() {
+        return nock(`https://${hostname}`)
+            .get('/v1/activityTypes')
+            .reply(200, {
+                data: [
+                    { name: 'Call', key_string: 'call', active_flag: true }
+                ]
+            }, mockRateLimitHeaders);
+    }
+
     beforeEach(() => {
         nock.cleanAll();
         jest.clearAllMocks();
@@ -429,6 +439,8 @@ describe('Pipedrive Connector', () => {
             nock(`https://${hostname}`)
                 .get('/api/v2/persons/101')
                 .reply(200, { data: { org_id: 201 } }, mockRateLimitHeaders);
+
+            mockActivityTypes();
         });
 
         it('should create a call log with all fields', async () => {
@@ -1048,6 +1060,8 @@ describe('Pipedrive Connector', () => {
         });
 
         it('should handle 500 server errors', async () => {
+            mockActivityTypes();
+
             nock(`https://${hostname}`)
                 .post('/api/v2/activities')
                 .reply(500, { error: 'Internal server error' });
@@ -1091,6 +1105,10 @@ describe('Pipedrive Connector', () => {
 
     // ==================== Duration Formatting ====================
     describe('Duration Formatting', () => {
+        beforeEach(() => {
+            mockActivityTypes();
+        });
+
         it('should format duration correctly for various values', async () => {
             nock(`https://${hostname}`)
                 .get('/api/v2/persons/101')

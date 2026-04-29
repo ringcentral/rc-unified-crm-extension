@@ -88,6 +88,19 @@ async function initDB() {
             await AdminConfigModel.sync();
             logger.info('adminUserIds column added to adminConfigs table');
         }
+
+        // if LlmSessionModel doesn't have expiry column, add it
+        const llmSessionTableName = LlmSessionModel.getTableName();
+        const llmSessionTableSchema = await queryInterface.describeTable(llmSessionTableName);
+        if (!llmSessionTableSchema.expiry) {
+            logger.info('adding expiry column to llmSessions table...');
+            await queryInterface.addColumn(llmSessionTableName, 'expiry', {
+                type: Sequelize.DATE,
+                allowNull: true,
+            });
+            await LlmSessionModel.sync();
+            logger.info('expiry column added to llmSessions table');
+        }
     }
 }
 
@@ -1177,14 +1190,13 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
             }
-            // rcAccessToken: deprecated
-            if (!rcAccessToken && !interopCode) {
-                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
-                return;
-            }
+            let rcAccountId = null;
+            let rcExtensionId = null;
+            if (rcAccessToken) {
             const rcUserTokenResult = await adminCore.validateRcUserToken({ rcAccessToken, interopCode });
-            const rcAccountId = rcUserTokenResult.rcAccountId;
-            const rcExtensionId = rcUserTokenResult.rcExtensionId;
+                rcAccountId = rcUserTokenResult.rcAccountId;
+                rcExtensionId = rcUserTokenResult.rcExtensionId;
+            }
             const { userInfo, returnMessage } = await authCore.onApiKeyLogin({
                 platform,
                 hostname,

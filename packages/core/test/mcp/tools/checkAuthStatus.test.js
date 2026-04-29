@@ -41,7 +41,8 @@ describe('MCP Tool: checkAuthStatus', () => {
 
     expect(LlmSessionModel.upsert).toHaveBeenCalledWith({
       id: 'rc-ext-1',
-      jwtToken: 'jwt-token'
+      jwtToken: 'jwt-token',
+      expiry: expect.any(Date)
     });
     expect(result).toEqual({
       data: {

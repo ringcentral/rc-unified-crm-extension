@@ -737,10 +737,10 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                         messageSubject = `[Message]: ${messageSubject ?? 'N/A'}\n[Link - failed to upload]: ${imageDownloadLink}`;
                     }
                 }
-                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
+                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
                 logBody =
                     '\nConversation summary\n' +
-                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                    `${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('dddd, MMMM DD, YYYY')}\n` +
                     'Participants\n' +
                     `    ${userName}\n` +
                     `    ${contactInfo.name}\n` +
@@ -748,14 +748,14 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                     '\nConversation(1 messages)\n' +
                     'BEGIN\n' +
                     '------------\n' +
-                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}\n` +
                     `${messageSubject}\n` +
                     '------------\n' +
                     'END\n\n' +
                     '--- Created via RingCentral App Connect';
                 break;
             case 'Voicemail':
-                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
+                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')}`;
                 logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
                 break;
             case 'Fax':
@@ -766,7 +766,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                 }
                 catch (e) {
                     logger.error('Error uploading fax document', { stack: e.stack });
-                    logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('YY/MM/DD')}`;
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
                 }
                 break;
@@ -805,7 +805,7 @@ async function createMessageLog({ user, contactInfo, correspondents = [], shared
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
                     communication: {
                         id: addLogRes.data.data.id
                     },
@@ -890,7 +890,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         const originalNote = logBody.split('BEGIN\n------------\n')[1];
         const endMarker = '------------\nEND';
         const newMessageLog =
-            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('hh:mm A')}\n` +
             `${messageSubject}\n\n`;
         logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
@@ -918,7 +918,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
                     type: "TimeEntry",
                     date: moment(message.creationTime).format('YYYY-MM-DD'),
                     quantity: billableTimeSeconds,
-                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('MM/DD/YYYY')} at ${moment(message.creationTime).utcOffset(Number(user.timezoneOffset)).format('HH:mm:ss')}`,
                     communication: {
                         id: existingClioLogId
                     },

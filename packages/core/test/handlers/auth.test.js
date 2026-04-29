@@ -15,7 +15,7 @@ jest.mock('../../lib/ringcentral', () => ({
   }))
 }));
 jest.mock('../../handlers/admin', () => ({
-  upsertAdminRcTokens: jest.fn()
+  updateAdminRcTokens: jest.fn()
 }));
 
 const oauth = require('../../lib/oauth');
@@ -24,6 +24,7 @@ const { RingCentral } = require('../../lib/ringcentral');
 const adminCore = require('../../handlers/admin');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { encode } = require('../../lib/encode');
+const { getHashValue } = require('../../lib/util');
 
 describe('Auth Handler', () => {
   const originalEnv = process.env;
@@ -956,6 +957,7 @@ describe('Auth Handler', () => {
 
   describe('onRingcentralOAuthCallback', () => {
     beforeEach(() => {
+      process.env.RINGCENTRAL_SERVER = 'https://platform.ringcentral.com';
       process.env.RINGCENTRAL_CLIENT_ID = 'rc-client-id';
       process.env.RINGCENTRAL_CLIENT_SECRET = 'rc-client-secret';
       process.env.APP_SERVER = 'https://app.example.com';
@@ -963,6 +965,8 @@ describe('Auth Handler', () => {
 
     test('should handle successful RingCentral OAuth callback', async () => {
       // Arrange
+      process.env.HASH_KEY = 'test-hash-key';
+      const rcAccountId = 'rc-account-id';
       const mockGenerateToken = jest.fn().mockResolvedValue({
         access_token: 'rc-access-token',
         refresh_token: 'rc-refresh-token',
@@ -976,8 +980,7 @@ describe('Auth Handler', () => {
       // Act
       await authHandler.onRingcentralOAuthCallback({
         code: 'rc-auth-code',
-        rcAccountId: 'hashed-rc-account-id',
-        userId: 'test-user-id'
+        rcAccountId
       });
 
       // Assert
@@ -988,13 +991,27 @@ describe('Auth Handler', () => {
         redirectUri: 'https://app.example.com/ringcentral/oauth/callback'
       });
       expect(mockGenerateToken).toHaveBeenCalledWith({ code: 'rc-auth-code' });
-      expect(adminCore.upsertAdminRcTokens).toHaveBeenCalledWith({
-        hashedRcAccountId: expect.any(String),
+      expect(adminCore.updateAdminRcTokens).toHaveBeenCalledWith({
+        hashedRcAccountId: getHashValue(rcAccountId, 'test-hash-key'),
         adminAccessToken: 'rc-access-token',
         adminRefreshToken: 'rc-refresh-token',
-        adminTokenExpiry: expect.any(Number),
-        userId: 'test-user-id'
+        adminTokenExpiry: expect.any(Number)
       });
+    });
+
+    test('should return early if environment variables are not set', async () => {
+      // Arrange
+      delete process.env.RINGCENTRAL_SERVER;
+
+      // Act
+      const result = await authHandler.onRingcentralOAuthCallback({
+        code: 'rc-auth-code',
+        rcAccountId: 'hashed-rc-account-id'
+      });
+
+      // Assert
+      expect(result).toBeUndefined();
+      expect(RingCentral).not.toHaveBeenCalled();
     });
   });
 });
