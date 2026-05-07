@@ -180,7 +180,7 @@ describe('Managed Auth Handler', () => {
       rcAccountId: 'acc-3'
     });
 
-    expect(developerPortal.getConnectorManifest).toHaveBeenCalledWith({ connectorId: 'connector-123', isPrivate: false });
+    expect(developerPortal.getConnectorManifest).toHaveBeenCalledWith({ rcAccountId: 'acc-3', connectorId: 'connector-123', isPrivate: false });
     expect(state.hasManagedAuth).toBe(true);
     expect(state.allRequiredFieldsSatisfied).toBe(true);
     expect(state.visibleFieldConsts).toEqual([]);

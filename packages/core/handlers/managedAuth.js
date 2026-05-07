@@ -20,12 +20,12 @@ function isFilled(value) {
     return value !== undefined && value !== null && value !== '';
 }
 
-async function getApiKeyFieldDefinitions({ platform, connectorId, isPrivate = false }) {
+async function getApiKeyFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate = false }) {
     if (!platform) {
         return [];
     }
     if (connectorId) {
-        const manifest = await developerPortal.getConnectorManifest({ connectorId, isPrivate });
+        const manifest = await developerPortal.getConnectorManifest({ rcAccountId, connectorId, isPrivate });
         if (manifest?.platforms?.[platform]?.auth?.apiKey?.page?.content) {
             return manifest.platforms[platform].auth.apiKey.page.content;
         }
@@ -39,8 +39,8 @@ async function getApiKeyFieldDefinitions({ platform, connectorId, isPrivate = fa
     }
 }
 
-async function getManagedFieldDefinitions({ platform, connectorId, isPrivate = false }) {
-    const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
+async function getManagedFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate = false }) {
+    const fieldDefinitions = await getApiKeyFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
     return fieldDefinitions.filter(field => field?.managed);
 }
 
@@ -247,7 +247,7 @@ function getStoredFieldValue({ value }) {
 }
 
 async function getManagedAuthAdminSettings({ platform, rcAccountId, connectorId, isPrivate = false }) {
-    const fieldDefinitions = await getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+    const fieldDefinitions = await getManagedFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
     const orgFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'account');
     const userFieldDefinitions = fieldDefinitions.filter(field => field.managedScope === 'user');
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
@@ -307,7 +307,7 @@ async function getManagedAuthAdminSettings({ platform, rcAccountId, connectorId,
 }
 
 async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false }) {
-    const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
+    const fieldDefinitions = await getApiKeyFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
     const managedFieldDefinitions = fieldDefinitions.filter(field => field?.managed);
     const orgValues = await getOrgManagedAuthValues({ rcAccountId, platform });
     const userValues = await getUserManagedAuthValues({ rcAccountId, platform, rcExtensionId });
@@ -367,7 +367,7 @@ async function getManagedAuthState({ platform, rcAccountId, rcExtensionId, conne
 }
 
 async function resolveApiKeyLoginFields({ platform, rcAccountId, rcExtensionId, connectorId, isPrivate = false, apiKey, additionalInfo = {}, preferSubmittedValuesForManagedFields = false }) {
-    const fieldDefinitions = await getApiKeyFieldDefinitions({ platform, connectorId, isPrivate });
+    const fieldDefinitions = await getApiKeyFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
     const resolvedAdditionalInfo = {
         ...(additionalInfo ?? {})
     };

@@ -12,21 +12,11 @@ async function getPublicConnectorList() {
     }
 }
 
-async function getPrivateConnectorList() {
-    try {
-        const response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/internal?accountId=${process.env.RC_ACCOUNT_ID}`);
-        return response.data;
-    } catch (error) {
-        logger.error('Error getting private connector list:', error);
-        return null;
-    }
-}
-
-async function getConnectorManifest({ connectorId, isPrivate = false }) {
+async function getConnectorManifest({ rcAccountId, connectorId, isPrivate = false }) {
     try {
         let response = null;
         if (isPrivate) {
-            response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${process.env.RC_ACCOUNT_ID}`);
+            response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${rcAccountId}`);
         }
         else {
             response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest`);
@@ -39,5 +29,4 @@ async function getConnectorManifest({ connectorId, isPrivate = false }) {
 }
 
 exports.getPublicConnectorList = getPublicConnectorList;
-exports.getPrivateConnectorList = getPrivateConnectorList;
 exports.getConnectorManifest = getConnectorManifest;
