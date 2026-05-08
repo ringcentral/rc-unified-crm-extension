@@ -45,7 +45,7 @@ functions:
   clearExpiredCache:
     handler: lambda.clearExpiredCache
     events:
-      - schedule: rate(1 hour)
+      - schedule: rate(1 day)
 
 resources:
   Resources:
