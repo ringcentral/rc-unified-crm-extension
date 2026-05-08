@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.7.25
+
+- Fix: Click-to-dial render issue
+
 ## 1.7.24
 
 - New: Click-to-dial number matcher selection in User Setting -> General
@@ -126,6 +130,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.31
+
+- Fix: Click-to-dial render issue
 
 ## 1.6.30
 
