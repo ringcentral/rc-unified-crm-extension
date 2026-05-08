@@ -1,4 +1,12 @@
 {
+    "1.7.25": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial render issue"
+            }
+        ]
+    },
     "1.7.24": {
         "global": [
             {
@@ -350,6 +358,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.31": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Click-to-dial render issue"
             }
         ]
     },
