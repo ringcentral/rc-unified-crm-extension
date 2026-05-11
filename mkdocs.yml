@@ -13,13 +13,14 @@ theme:
   logo: img/RingCentral_logo_color.png
   custom_dir: overrides
   font:
-    code: Roboto Mono
     text: Inter Tight
+    code: Roboto Mono
   features:
       - navigation.path
       - navigation.sections
       - navigation.expand
       - navigation.tabs
+      - navigation.tabs.sticky
       - search.sharing
       - search.highlight
   palette:
@@ -35,13 +36,11 @@ theme:
       toggle:
         icon: material/toggle-switch-off-outline
         name: Switch to light mode
-  font:
-    text: Roboto
-    code: Roboto Mono
 
 plugins:
 #  - pdf-export:
 #      combined: true
+  - ringcentral
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
 #  - badges
@@ -80,7 +79,7 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
-       emoji_index: !!python/name:material.extensions.emoji.twemoji 
+       emoji_index: !!python/name:material.extensions.emoji.twemoji
        emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 copyright: "2023-2026 RingCentral, Inc. All rights reserved."
@@ -111,22 +110,22 @@ nav:
 - 'Documentation':
   - 'Introduction': users/access.md
   - 'Installation': getting-started.md
-  
+
   - 'App Connect 2.0 Beta':
     - "What's new": 2.0/index.md
     - 'Download': 2.0/download.md
-    - 'New CRMs': 
+    - 'New CRMs':
 #      - 'JobAdder': crm/jobadder.md
       - 'RecruiterPM': crm/recruiterpm.md
       - 'Service Titan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md
       - 'Zoho': crm/zoho.md
-    - 'Developers': 
+    - 'Developers':
       - 'Connector migration guide': 2.0/migration.md
       - 'Proxy connector (new)': developers/proxy-connector.md
       - 'Plugins (new)': users/plugins.md
 
-  - 'App Connect features': 
+  - 'App Connect features':
     - 'AI Assistant': users/ai.md
     - 'Call-down lists (2.0)': users/calldown-lists.md
     - 'Call monitoring (2.0)': users/hud.md
@@ -166,7 +165,7 @@ nav:
   - 'Plugins':
     - 'Configuration': developers/plugins/index.md
     - 'Server': developers/plugins/server.md
-  - 'Connectors': 
+  - 'Connectors':
     - 'Getting started': developers/getting-started.md
     - 'Authorization': developers/auth.md
     - 'Manifest':
@@ -175,7 +174,7 @@ nav:
       - 'Custom settings': developers/custom-settings.md
       - 'Regional services': developers/regional-services.md
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
-    - 'Server': 
+    - 'Server':
       - 'Build and deployment': developers/deploy.md
       - 'Contact matching': developers/contact-matching.md
       - 'Logging phone calls': developers/logging-calls.md
@@ -205,7 +204,7 @@ nav:
 
 - 'MCP':
   - 'Available tools': mcp/index.md
-  - 'LLMs': 
+  - 'LLMs':
     - 'ChatGPT': mcp/chatgpt.md
     - 'Claude': mcp/claude.md
     - 'Codex': mcp/codex.md
