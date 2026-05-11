@@ -79,9 +79,10 @@ function buildHeaders({ config, operation, authHeader, context }) {
 async function performRequest({ config, opName, inputs, user, authHeader }) {
   const op = config.operations?.[opName];
   if (!op) return null;
+  const accessToken = user?.accessToken ?? inputs?.apiKey ?? '';
   const context = Object.assign({}, inputs, {
     user: user ? {
-      accessToken: user.accessToken,
+      accessToken,
       id: user.id?.split('-')[0],
       hostname: user.hostname,
       timezoneName: user.timezoneName,
@@ -91,10 +92,10 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
       refreshToken: user.refreshToken,
       tokenExpiry: user.tokenExpiry,
     } : {
-      accessToken: '',
+      accessToken,
     },
     authHeader,
-    apiKey: user?.accessToken,
+    apiKey: accessToken,
     secretKey: config.secretKey,
   });
   const url = joinUrl(config.requestDefaults?.baseUrl, renderTemplateString(op.url, context));

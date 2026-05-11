@@ -61,7 +61,6 @@ The proxy connector makes integrations configurable through stored connector met
 Exports:
 
 - `getPublicConnectorList()`
-- `getPrivateConnectorList()`
 - `getConnectorManifest()`
 
 These functions are small fetch helpers and return `null` on failure after logging.

@@ -10,5 +10,8 @@ exports.LlmSessionModel = sequelize.define('llmSessions', {
     },
     jwtToken: {
         type: Sequelize.STRING,
+    },
+    expiry: {
+        type: Sequelize.DATE
     }
 });

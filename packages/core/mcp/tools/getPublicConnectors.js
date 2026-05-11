@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { Op } = require('sequelize');
 const { UserModel } = require('../../models/userModel');
 const { getHashValue } = require('../../lib/util');
 
@@ -56,7 +57,16 @@ async function execute({ rcAccessToken, openaiSessionId } = {}) {
 
     // Check if user session already exists from Chrome extension
     const hashedRcExtensionId = getHashValue(rcExtensionId, process.env.HASH_KEY);
-    const user = await UserModel.findOne({ where: { hashedRcExtensionId } });
+    const user = await UserModel.findOne({
+        where: {
+            hashedRcExtensionId,
+            [Op.and]: [
+                { accessToken: { [Op.not]: null } },
+                { accessToken: { [Op.ne]: '' } },
+            ],
+        },
+        order: [['updatedAt', 'DESC']],
+    });
     // Case: user exists, return user info in plain message
     if (user?.accessToken) {
         return {

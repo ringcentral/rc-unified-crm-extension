@@ -3,7 +3,7 @@ const { LlmSessionModel } = require('../../models/llmSessionModel');
 
 /**
  * MCP Tool: Check Auth Status
- * 
+ *
  * Polls the status of an ongoing OAuth authentication session
  */
 
@@ -37,7 +37,7 @@ const toolDefinition = {
 async function execute(args) {
     try {
         // rcExtensionId is injected by mcpHandler after verifying the RC access
-        // token.  Using it as the DB key binds the CRM credential to a verified
+        // token. Using it as the DB key binds the CRM credential to a verified
         // RC identity.
         const { sessionId, rcExtensionId } = args;
         if (!rcExtensionId) {
@@ -53,16 +53,12 @@ async function execute(args) {
         }
 
         switch (session.status) {
-            case 'completed': {
-                // Guard against duplicate DB writes if polled concurrently
-                try {
-                    await LlmSessionModel.create({
-                        id: rcExtensionId,
-                        jwtToken: session.jwtToken
-                    });
-                } catch {
-                    // Record already exists from a prior poll — safe to ignore
-                }
+            case 'completed':
+                await LlmSessionModel.upsert({
+                    id: rcExtensionId,
+                    jwtToken: session.jwtToken,
+                    expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                });
                 return {
                     data: {
                         status: 'completed',
@@ -71,7 +67,14 @@ async function execute(args) {
                         message: 'IMPORTANT: Authentication successful! Keep jwtToken in memory for future use. DO NOT directly show it to user.'
                     }
                 };
-            }
+
+            case 'expired':
+                return {
+                    data: {
+                        status: 'expired',
+                        errorMessage: 'Authentication session expired. Ask the user to start the auth flow again.'
+                    }
+                };
 
             case 'failed':
                 return {
@@ -100,4 +103,3 @@ async function execute(args) {
 
 exports.definition = toolDefinition;
 exports.execute = execute;
-

@@ -8,6 +8,7 @@
 
 const getHelp = require('./getHelp');
 const getPublicConnectors = require('./getPublicConnectors');
+const getSessionInfo = require('./getSessionInfo');
 const doAuth = require('./doAuth');
 const checkAuthStatus = require('./checkAuthStatus');
 const logout = require('./logout');
@@ -15,13 +16,14 @@ const findContact = require('./findContactByPhone');
 const findContactWithName = require('./findContactByName');
 const createCallLog = require('./createCallLog');
 const rcGetCallLogs = require('./rcGetCallLogs');
-const getGoogleFilePicker = require('./getGoogleFilePicker');
+// const getGoogleFilePicker = require('./getGoogleFilePicker');
 const createContact = require('./createContact');
 
 // AI-visible MCP tools — registered in the MCP server
 module.exports.tools = [
     getHelp,
     getPublicConnectors,
+    getSessionInfo,
     logout,
     findContact,
     findContactWithName,

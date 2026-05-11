@@ -88,6 +88,39 @@ describe('proxy engine utilities', () => {
     // Basic base64('token-123')
     expect(args.headers.Authorization).toMatch(/^Basic /);
   });
+
+  test('performRequest uses submitted apiKey during first login before user is saved', async () => {
+    axios.mockResolvedValue({ data: { ok: true } });
+    const config = {
+      auth: {
+        type: 'apiKey',
+        scheme: 'Basic',
+        credentialTemplate: '{{apiKey}}',
+        encode: 'base64',
+        headerName: 'Authorization'
+      },
+      requestDefaults: {
+        baseUrl: 'https://api.example.com'
+      },
+      operations: {
+        getUserInfo: {
+          method: 'GET',
+          url: '/authentication'
+        }
+      }
+    };
+
+    await performRequest({
+      config,
+      opName: 'getUserInfo',
+      inputs: { apiKey: 'login-key' },
+      user: {},
+      authHeader: undefined
+    });
+
+    const args = axios.mock.calls[0][0];
+    expect(args.headers.Authorization).toBe(`Basic ${Buffer.from('login-key').toString('base64')}`);
+  });
 });
 
 

@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.7.25
+
+- Fix: Click-to-dial render issue
+
+## 1.7.24
+
+- New: Click-to-dial number matcher selection in User Setting -> General
+- Fix: Error report upload
+
+## 1.7.23
+
+- New: Add copy to contact for Bullhorn logging
+- Rename: RingSense to ACE
+
 ## 1.7.22
 
 - New: Managed auth fields for non-OAuth platforms
@@ -116,6 +130,19 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.31
+
+- Fix: Click-to-dial render issue
+
+## 1.6.30
+
+- New: Click-to-dial number matcher selection in User Setting -> General
+
+## 1.6.29
+
+- New: Add copy to contact for Bullhorn logging
+- Rename: RingSense to ACE
 
 ## 1.6.28
 

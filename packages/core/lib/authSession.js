@@ -7,7 +7,20 @@
 const { CacheModel } = require('../models/cacheModel');
 
 const AUTH_SESSION_PREFIX = 'auth-session';
-const SESSION_EXPIRY_MINUTES = 5;
+const PENDING_SESSION_EXPIRY_MINUTES = 5;
+const SETTLED_SESSION_EXPIRY_MINUTES = 15;
+
+function getSessionRecordId(sessionId) {
+    return `${AUTH_SESSION_PREFIX}-${sessionId}`;
+}
+
+function getExpiry(minutes) {
+    return new Date(Date.now() + minutes * 60 * 1000);
+}
+
+function isExpired(record) {
+    return Boolean(record?.expiry && record.expiry <= new Date());
+}
 
 /**
  * Create (or reset) an auth session.
@@ -16,9 +29,13 @@ const SESSION_EXPIRY_MINUTES = 5;
  * correctly for the new attempt.
  */
 async function createAuthSession(sessionId, data) {
-    const id = `${AUTH_SESSION_PREFIX}-${sessionId}`;
-    const expiry = new Date(Date.now() + SESSION_EXPIRY_MINUTES * 60 * 1000);
-    const sessionData = { ...data, createdAt: new Date().toISOString() };
+    const id = getSessionRecordId(sessionId);
+    const expiry = getExpiry(PENDING_SESSION_EXPIRY_MINUTES);
+    const sessionData = {
+        platform: data.platform,
+        hostname: data.hostname || '',
+        createdAt: new Date().toISOString(),
+    };
 
     const existing = await CacheModel.findByPk(id);
     if (existing) {
@@ -39,10 +56,21 @@ async function createAuthSession(sessionId, data) {
  * Get an auth session by ID
  */
 async function getAuthSession(sessionId) {
-    const record = await CacheModel.findByPk(`${AUTH_SESSION_PREFIX}-${sessionId}`);
-    
+    const record = await CacheModel.findByPk(getSessionRecordId(sessionId));
+
     if (!record) return null;
-    
+
+    if (isExpired(record)) {
+        if (record.status !== 'expired') {
+            await record.update({ status: 'expired' });
+        }
+        return {
+            sessionId: record.userId,
+            status: 'expired',
+            ...record.data
+        };
+    }
+
     return {
         sessionId: record.userId,
         status: record.status,
@@ -54,18 +82,22 @@ async function getAuthSession(sessionId) {
  * Update an auth session
  */
 async function updateAuthSession(sessionId, data) {
-    const record = await CacheModel.findByPk(`${AUTH_SESSION_PREFIX}-${sessionId}`);
-    
+    const record = await CacheModel.findByPk(getSessionRecordId(sessionId));
+
     if (!record) return;
-    
+
     const existingData = record.data || {};
+    const nextStatus = data.status || record.status;
     await record.update({
-        status: data.status || record.status,
+        status: nextStatus,
         data: {
             ...existingData,
             ...data,
             updatedAt: new Date().toISOString()
-        }
+        },
+        expiry: nextStatus === 'pending'
+            ? getExpiry(PENDING_SESSION_EXPIRY_MINUTES)
+            : getExpiry(SETTLED_SESSION_EXPIRY_MINUTES)
     });
 }
 

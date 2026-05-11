@@ -7,6 +7,7 @@ const adminCore = require('./admin');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 const managedAuthCore = require('./managedAuth');
+const { getHashValue } = require('../lib/util');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
     const callbackUri = query.callbackUri;
@@ -89,7 +90,7 @@ async function onApiKeyLogin({ platform, hostname, apiKey, proxyId, rcAccountId,
     let resolvedApiKey = apiKey;
     let managedFieldDefinitions = [];
     if (rcAccountId) {
-        managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ platform, connectorId, isPrivate });
+        managedFieldDefinitions = await managedAuthCore.getManagedFieldDefinitions({ rcAccountId, platform, connectorId, isPrivate });
         const shouldFallbackToManualAuth = managedFieldDefinitions.length > 0
             && await managedAuthCore.hasManagedAuthLoginFailure({ rcAccountId, platform, rcExtensionId });
         const managedAuthResult = await managedAuthCore.resolveApiKeyLoginFields({
@@ -279,8 +280,9 @@ async function onRingcentralOAuthCallback({ code, rcAccountId }) {
         redirectUri: `${process.env.APP_SERVER}/ringcentral/oauth/callback`
     });
     const { access_token, refresh_token, expire_time } = await rcSDK.generateToken({ code });
+    const hashedRcAccountId = getHashValue(rcAccountId, process.env.HASH_KEY);
     await adminCore.updateAdminRcTokens({
-        hashedRcAccountId: rcAccountId,
+        hashedRcAccountId,
         adminAccessToken: access_token,
         adminRefreshToken: refresh_token,
         adminTokenExpiry: expire_time
