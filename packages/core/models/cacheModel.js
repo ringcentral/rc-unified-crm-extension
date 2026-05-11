@@ -23,4 +23,8 @@ exports.CacheModel = sequelize.define('cache', {
     expiry: {
         type: Sequelize.DATE
     }
+}, {
+    indexes: [
+        { fields: ['expiry'] }
+    ]
 });

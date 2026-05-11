@@ -25,3 +25,11 @@ exports.bullhornScheduledReport = async () => {
     return { statusCode: 200, body: 'ok' };
 };
 
+exports.clearExpiredCache = async () => {
+    const { clearExpiredCache } = require('@app-connect/core/lib/cacheCleanup');
+    const deletedCount = await clearExpiredCache();
+    return {
+        statusCode: 200,
+        body: JSON.stringify({ deletedCount }),
+    };
+};
