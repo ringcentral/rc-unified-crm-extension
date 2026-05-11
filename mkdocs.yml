@@ -38,9 +38,7 @@ theme:
         name: Switch to light mode
 
 plugins:
-#  - pdf-export:
-#      combined: true
-  - ringcentral
+  - material-ringcentral
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
 #  - badges
@@ -48,6 +46,9 @@ plugins:
       regex:
         - '^\.#.*'
         - '.*\.\#.*$'
+      glob:
+        - crm/jobadder.md
+        - solutions/solutions-footer.md
   - print-site
 
 hooks:
@@ -165,7 +166,7 @@ nav:
   - 'Plugins':
     - 'Getting started': developers/plugins/index.md
     - 'Configuration': developers/plugins/index.md
-    - 'Server': developers/plugins/server.md
+
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md
     - 'Authorization': developers/auth.md

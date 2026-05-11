@@ -1,7 +1,6 @@
 ---
 title: "App Connect Developer Framework"
 hide:
-- path
 ---
 # App Connect Developer Guide
 
