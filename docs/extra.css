@@ -101,7 +101,8 @@ body:not(:has(.ac-home)) {
   background: #ffffff;
 }
 body:not(:has(.ac-home)) .md-container,
-body:not(:has(.ac-home)) .md-main { background: transparent !important; }
+body:not(:has(.ac-home)) .md-main,
+body:not(:has(.ac-home)) .md-content { background: transparent !important; }
 body:not(:has(.ac-home)) .md-main__inner {
   background:
     linear-gradient(180deg, #FFF4EF 0%, #F9F0F9 55%, #EFF3FA 100%)
@@ -269,16 +270,16 @@ body:not(:has(.ac-home))::before { content: none !important; display: none !impo
   --md-default-fg-color--light: #A0AABF;
   --md-code-bg-color:           #1B2235;
 }
-[data-md-color-scheme="slate"] body:not(:has(.ac-home)) {
+body[data-md-color-scheme="slate"]:not(:has(.ac-home)) {
   background: #0F1320;
 }
-[data-md-color-scheme="slate"] body:not(:has(.ac-home)) .md-main__inner {
+body[data-md-color-scheme="slate"]:not(:has(.ac-home)) .md-main__inner {
   background:
     linear-gradient(180deg, #1A1015 0%, #171424 30%, #131928 65%, #0F1117 100%)
     left top / 240px 100% no-repeat,
     #0F1320 !important;
 }
-[data-md-color-scheme="slate"] body:not(:has(.ac-home)) .md-main__inner::after {
+body[data-md-color-scheme="slate"]:not(:has(.ac-home)) .md-main__inner::after {
   background: rgba(255,255,255,0.06);
 }
 [data-md-color-scheme="slate"] .md-sidebar--primary { background: transparent !important; }
@@ -292,12 +293,12 @@ body:not(:has(.ac-home))::before { content: none !important; display: none !impo
 [data-md-color-scheme="slate"] .md-sidebar--secondary .md-nav__title { color: #4A3A48; }
 [data-md-color-scheme="slate"] .md-sidebar--secondary .md-nav__link  { color: #5A5060; }
 [data-md-color-scheme="slate"] .md-sidebar--secondary .md-nav__link--active { color: #FF8800 !important; }
-[data-md-color-scheme="slate"] body:not(:has(.ac-home)) .md-content__inner > h1:first-child {
+body[data-md-color-scheme="slate"]:not(:has(.ac-home)) .md-content__inner > h1:first-child {
   background: none !important;
   border-bottom: none !important;
   color: #F1F5F9;
 }
-[data-md-color-scheme="slate"] body:not(:has(.ac-home)) .md-typeset h2 { color: #F1F5F9; }
+body[data-md-color-scheme="slate"]:not(:has(.ac-home)) .md-typeset h2 { color: #F1F5F9; }
 [data-md-color-scheme="slate"] .md-typeset .admonition,
 [data-md-color-scheme="slate"] .md-typeset details { background: #181D2A; }
 [data-md-color-scheme="slate"] .md-typeset .note > .admonition-title,
