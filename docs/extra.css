@@ -237,6 +237,125 @@
     --md-primary-fg-color: #002755;
 }
 
+/* ─── Hero widget — AI panel additions ──────────────────────────── */
+.ac-v5-widget__ai {
+    background: rgba(255, 122, 0, 0.1);
+    border: 1px solid rgba(255, 122, 0, 0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0;
+}
+.ac-v5-widget__ai-hd {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #FF7A00;
+    margin-bottom: 7px;
+}
+.ac-v5-widget__ai-spark {
+    width: 7px;
+    height: 7px;
+    background: #FF7A00;
+    border-radius: 50%;
+    animation: aiSparkPulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+}
+@keyframes aiSparkPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+}
+.ac-v5-widget__ai-summary {
+    font-size: 11px;
+    color: rgba(255,255,255,0.82);
+    line-height: 1.55;
+    margin: 0 0 8px;
+}
+.ac-v5-widget__ai-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.ac-v5-widget__ai-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.72);
+    line-height: 1.4;
+}
+.ac-v5-widget__ai-check {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(255,122,0,0.55);
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ─── Button design system — Style D (Pill) ─────────────────────
+   Single source of truth for all button contexts on the site.
+   Overrides Material's .md-button, the crm-mkt callout buttons,
+   and the vendor page bld-cta__btn.
+   ──────────────────────────────────────────────────────────────── */
+
+/* Base pill shape and transition shared by all button types */
+.md-typeset .md-button,
+.crm-mkt__callout-btn,
+.bld-cta__btn {
+    border-radius: 999px !important;
+    transition: opacity .15s, transform .15s !important;
+}
+.md-typeset .md-button:hover,
+.crm-mkt__callout-btn:hover,
+.bld-cta__btn:hover {
+    transform: translateY(-1px) !important;
+    opacity: .9 !important;
+}
+
+/* Material .md-button — secondary/outline (default) */
+.md-typeset .md-button {
+    border: 2px solid #FF7A00 !important;
+    color: #FF7A00 !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    padding: .45rem 1.4rem !important;
+    letter-spacing: .01em !important;
+}
+/* Material .md-button--primary — solid orange */
+.md-typeset .md-button--primary {
+    background: #FF7A00 !important;
+    color: #fff !important;
+    border-color: #FF7A00 !important;
+}
+/* Dark mode — outline button becomes white outline */
+[data-md-color-scheme="slate"] .md-typeset .md-button:not(.md-button--primary) {
+    border-color: rgba(255,255,255,.5) !important;
+    color: rgba(255,255,255,.85) !important;
+}
+
+/* crm-mkt callout buttons — primary: orange solid, secondary: orange outline */
+.crm-mkt__callout-btn--primary {
+    background: #FF7A00 !important;
+    color: #fff !important;
+    border: none !important;
+}
+.crm-mkt__callout-btn--secondary {
+    background: transparent !important;
+    color: #FF7A00 !important;
+    border: 2px solid #FF7A00 !important;
+}
+[data-md-color-scheme="slate"] .crm-mkt__callout-btn--secondary {
+    color: rgba(255,255,255,.85) !important;
+    border-color: rgba(255,255,255,.4) !important;
+}
+
+/* bld-cta__btn — already orange solid, just needs pill radius (set above) */
+
 /* ─── Build a Connector — Vendor Pages ──────────────────────────── */
 .bld-hero {
     display: flex;
