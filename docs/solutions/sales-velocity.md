@@ -43,4 +43,4 @@ Whether you are running a high-volume SDR shop or a focused Account Executive po
 3.  **Log:** Every call, outcome, and note is synced back to your CRM automatically.
 4.  **Analyze:** Use 2.0 Dashboards to see exactly how your velocity is impacting your pipeline.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

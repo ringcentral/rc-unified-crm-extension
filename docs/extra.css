@@ -236,3 +236,84 @@
 :root {
     --md-primary-fg-color: #002755;
 }
+
+/* ─── Build a Connector — Vendor Pages ──────────────────────────── */
+.bld-hero {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.75rem 2.5rem;
+    background: linear-gradient(135deg, #fff4ef 0%, #f9f0f9 100%);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid #ede0ea;
+}
+.bld-hero__logo img {
+    max-height: 72px;
+    max-width: 220px;
+    object-fit: contain;
+    display: block;
+}
+.bld-hero__category {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #FF7A00;
+    margin-bottom: 0.4rem;
+}
+.bld-hero__tagline {
+    font-size: 0.9rem;
+    color: #4A5568;
+    margin: 0;
+    line-height: 1.6;
+}
+.bld-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.75rem 2.5rem;
+    background: #002755;
+    border-radius: 12px;
+    margin-top: 2.5rem;
+}
+.bld-cta__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 0.3rem;
+}
+.bld-cta__desc {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.7);
+    margin: 0;
+    line-height: 1.55;
+}
+.bld-cta__btn {
+    display: inline-block;
+    padding: 0.65rem 1.5rem;
+    background: #FF7A00;
+    color: #fff !important;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    text-decoration: none !important;
+    flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.15s;
+}
+.bld-cta__btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+@media (max-width: 640px) {
+    .bld-hero { flex-direction: column; align-items: flex-start; }
+    .bld-cta  { flex-direction: column; }
+}
+[data-md-color-scheme="slate"] .bld-hero {
+    background: linear-gradient(135deg, #1A1015 0%, #171424 100%);
+    border-color: rgba(255,255,255,0.08);
+}
+[data-md-color-scheme="slate"] .bld-hero__tagline { color: #94A3B8; }
+[data-md-color-scheme="slate"] .bld-cta { background: #0F1320; border: 1px solid rgba(255,255,255,0.08); }

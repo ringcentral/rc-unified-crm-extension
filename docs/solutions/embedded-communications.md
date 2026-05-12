@@ -47,4 +47,4 @@ You don't need a heavy IT project to get embedded communications.
 2.  **Authenticate:** Log in with your RingCentral credentials.
 3.  **Go:** Navigate to your CRM, and watch your phone appear exactly where you need it.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

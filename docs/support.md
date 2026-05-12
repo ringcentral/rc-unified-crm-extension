@@ -1,6 +1,6 @@
 # Getting help with App Connect
 
-<div class="grid cards" markdown>
+<div class="grid cards rc-bar" markdown>
 
 -    **[:material-forum: Search the Community](https://community.ringcentral.com/groups/app-connect-22)**
      

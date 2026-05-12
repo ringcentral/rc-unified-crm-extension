@@ -40,4 +40,4 @@ Supervision shouldn't feel like "Big Brother"—it should feel like a support sy
 3.  **Optimize:** Use the 2.0 Analytics dashboard to adjust your strategy based on hard data.
 4.  **Scale:** Standardize excellence by identifying and replicating the workflows of your top 10%.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

@@ -61,7 +61,7 @@ To auth a user via an API key, you need to present them with a form in which the
 === "manifest.json"
 
     ```js
-    {!> src/connectors/manifest.json [ln:199-231] !}
+    --8<-- "src/connectors/manifest.json:199:231"
     ```
 
 === "Rendered page"

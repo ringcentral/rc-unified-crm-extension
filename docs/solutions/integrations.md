@@ -41,4 +41,4 @@ Empower your technical team to deliver a seamless experience for your users.
 3. Test: Refresh your target web application and see the RingCentral dialer appear.
 4. Deploy: Roll out the custom integration to your entire team with a single click.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

@@ -49,6 +49,7 @@ plugins:
       glob:
         - crm/jobadder.md
         - solutions/solutions-footer.md
+        - build.md
   - print-site
 
 hooks:
@@ -69,8 +70,9 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - admonition
-  - mdx_include
   - footnotes
+  - pymdownx.snippets:
+      base_path: ['.']
   - pymdownx.superfences
   - pymdownx.superfences:
       custom_fences:
@@ -216,6 +218,11 @@ nav:
 - 'Support':
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
-  - 'Build a CRM connector': build.md
+  - 'Build a CRM connector':
+    - 'Overview': build/index.md
+    - 'Gate6': build/gate6.md
+    - 'Loyally': build/loyally.md
+    - 'RingCentral': build/professional-services.md
+    - 'RingClone': build/ringclone.md
   - 'Data sharing': data-sharing.md
   - 'Release notes': release-notes.md

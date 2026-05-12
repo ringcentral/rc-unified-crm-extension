@@ -15,7 +15,7 @@ If the CRM being integrated with utilizes static auth credentials, the API Key a
 === "Insightly connector"
 
     ```js
-    {!> src/connectors/manifest.json [ln:199-231] !}
+    --8<-- "src/connectors/manifest.json:199:231"
     ```
 
     ![Auth page](../img/insightly-auth-page.png)

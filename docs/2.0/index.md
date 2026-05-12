@@ -114,9 +114,6 @@ We have commitments from developers to build adapters to the following CRMs usin
 
 <div class="grid cards crm-list" markdown>
 
--    [![JobAdder Logo](../img/crm-logo-jobadder.png){.crm-logo}](../crm/jobadder.md)
-     [JobAdder by JobAdder](../crm/jobadder.md)
-
 -    [![RecruiterPM Logo](../img/crm-logo-recruiterpm.png){.crm-logo}](../crm/recruiterpm.md)
      [RecruiterPM by RecruiterPM](../crm/recruiterpm.md)
 

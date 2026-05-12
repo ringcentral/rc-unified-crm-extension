@@ -17,12 +17,12 @@ This function is to add following messages on the same day to the same contact. 
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/updateMessageLog.js !}
+    --8<-- "packages/template/src/connectors/interfaces/updateMessageLog.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:611-660] !}
+    --8<-- "src/connectors/pipedrive/index.js:611:660"
 	```
 

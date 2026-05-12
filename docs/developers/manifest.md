@@ -1,6 +1,6 @@
 # Configuring your connector's manifest
 
-{! docs/developers/beta_notice.inc !}
+--8<-- "docs/developers/beta_notice.inc"
 
 An connector's manifest file helps a developer to instruct the framework on how to interface with your connector. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
 
