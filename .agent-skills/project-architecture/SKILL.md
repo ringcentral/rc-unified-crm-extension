@@ -1,6 +1,6 @@
 ---
 name: project-architecture
-description: Use this skill to understand the RingCentral App Connect project structure, including the monorepo layout, core package APIs, handlers, models, and how components interact.
+description: "Navigates the RingCentral App Connect monorepo to locate files, trace request flows through Express routes to handlers and models, explain package dependencies, and scaffold new CRM connectors. Use when asking about project structure, where code lives, how packages connect, or how to add new connectors, routes, or models."
 ---
 
 # Project Architecture
@@ -45,38 +45,9 @@ connectorRegistry.registerConnector('myCRM', myCRMConnector, manifest);
 const app = createCoreApp();
 ```
 
-### Handlers (packages/core/handlers/)
+Key directories: `handlers/` (auth, contact, log, admin, user, disposition, calldown, plugin), `models/` (user, callLog, messageLog, adminConfig, cache, accountData, callDownList, llmSession), `lib/` (jwt, analytics, logger, constants, callLogComposer, errorHandler, oauth, ringcentral, util).
 
-| Handler | File | Purpose |
-|---------|------|---------|
-| Auth | `auth.js` | OAuth flow, token refresh, API key auth |
-| Contact | `contact.js` | Contact search, matching, creation |
-| Log | `log.js` | Call/message logging, updates |
-| Admin | `admin.js` | Admin settings, user mappings |
-| User | `user.js` | User settings, preferences |
-| Disposition | `disposition.js` | Call dispositions |
-
-### Models (packages/core/models/)
-
-| Model | File | Purpose |
-|-------|------|---------|
-| UserModel | `userModel.js` | User auth, tokens, settings |
-| CallLogModel | `callLogModel.js` | Call log records |
-| MessageLogModel | `messageLogModel.js` | SMS/message logs |
-| AdminConfigModel | `adminConfigModel.js` | Admin configurations |
-| CacheModel | `cacheModel.js` | Caching layer |
-
-### Key Libraries (packages/core/lib/)
-
-| Library | File | Purpose |
-|---------|------|---------|
-| JWT | `jwt.js` | Token encoding/decoding |
-| Analytics | `analytics.js` | Usage tracking |
-| Logger | `logger.js` | Structured logging |
-| Constants | `constants.js` | Shared constants (LOG_DETAILS_FORMAT_TYPE, etc.) |
-| CallLogComposer | `callLogComposer.js` | Compose call log details |
-| ErrorHandler | `errorHandler.js` | Standardized error handling |
-| Util | `util.js` | General utilities |
+See [REFERENCE.md](REFERENCE.md) for full handler, model, and library tables.
 
 ## Connector Registry
 
@@ -95,57 +66,45 @@ connectorRegistry.registerConnectorInterface('platformName', 'createCallLog', cu
 const connector = connectorRegistry.getConnector('platformName');
 ```
 
+## Request Flow
+
+Incoming requests follow this path:
+
+1. **Express route** (`src/server.js` or core routes) receives the HTTP request
+2. **Handler** (`packages/core/handlers/`) validates input and executes business logic
+3. **Connector** (`src/connectors/<crm>/`) calls the external CRM API
+4. **Model** (`packages/core/models/`) persists results to the database
+5. **Response** returns through the handler back to the caller
+
+**Example — tracing `POST /callLog`:**
+`POST /callLog` → `packages/core/handlers/log.js:createCallLog()` → composes log via `lib/callLogComposer.js` → calls `connector.createCallLog()` in `src/connectors/<crm>/` → persists via `CallLogModel` → returns response.
+
 ## API Routes
 
-Core routes provided by `@app-connect/core`:
+Core route groups: **Auth** (`/authValidation`, `/oauth-callback`, `/apiKeyLogin`, `/unAuthorize`), **Contacts** (`/contact`, `/custom/contact/search`), **Logging** (`/callLog`, `/callDisposition`, `/messageLog`), **Settings** (`/user/settings`, `/admin/settings`).
 
-### Authentication
-- `GET /authValidation` - Validate auth
-- `GET /oauth-callback` - OAuth callback
-- `POST /apiKeyLogin` - API key login
-- `POST /unAuthorize` - Logout
+See [REFERENCE.md](REFERENCE.md) for full route listing with methods.
 
-### Contacts
-- `GET /contact` - Find by phone
-- `POST /contact` - Create contact
-- `GET /custom/contact/search` - Search by name
+## Adding a New CRM Connector
 
-### Logging
-- `GET /callLog` - Get call log
-- `POST /callLog` - Create call log
-- `PATCH /callLog` - Update call log
-- `PUT /callDisposition` - Set disposition
-- `POST /messageLog` - Create message log
+1. Copy an existing connector directory (e.g. `src/connectors/pipedrive/`) to `src/connectors/<new-crm>/`
+2. Implement the required interface methods (see `packages/template/src/connectors/myCRM.js`):
+   `getAuthType`, `getBasicAuth` or `getOauthInfo`, `getUserInfo`, `unAuthorize`, `findContact`, `findContactWithName`, `createContact`, `createCallLog`, `getCallLog`, `updateCallLog`, `createMessageLog`, `updateMessageLog`, `upsertCallDisposition`, `getUserList`
+3. Register the connector in `src/index.js`:
+   ```javascript
+   connectorRegistry.registerConnector('newCrm', require('./connectors/newCrm'), manifest);
+   ```
+4. Add CRM-specific environment variables to your `.env`
+5. Run `npm test` to verify the interface contract is satisfied
+6. Run `npm run server` → test the OAuth flow via `GET /authValidation`
 
-### Settings
-- `GET /user/settings` - User settings
-- `POST /user/settings` - Update user settings
-- `GET /admin/settings` - Admin settings
-- `POST /admin/settings` - Update admin settings
+Existing connectors for reference: `bullhorn`, `clio`, `googleSheets`, `insightly`, `netsuite`, `pipedrive`, `redtail`.
 
 ## Environment Variables
 
-Key environment variables:
+Key groups: `DATABASE_URL`, `APP_SERVER_SECRET_KEY`, `HASH_KEY`, `IS_PROD`, `DYNAMODB_LOCALHOST`, plus CRM-specific credentials (e.g. `PIPEDRIVE_CLIENT_ID`).
 
-```bash
-# Database
-DATABASE_URL=postgres://...
-DISABLE_SYNC_DB_TABLE=false
-
-# Server
-APP_SERVER_SECRET_KEY=secret
-HASH_KEY=hash-key
-IS_PROD=false
-
-# DynamoDB (local dev)
-DYNAMODB_LOCALHOST=http://localhost:8000
-
-# CRM-specific (example for Pipedrive)
-PIPEDRIVE_CLIENT_ID=...
-PIPEDRIVE_CLIENT_SECRET=...
-PIPEDRIVE_ACCESS_TOKEN_URI=...
-PIPEDRIVE_REDIRECT_URI=...
-```
+See [REFERENCE.md](REFERENCE.md) for full variable listing.
 
 ## Development Workflow
 
