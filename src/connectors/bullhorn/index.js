@@ -2069,7 +2069,7 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
                 existingLinks.push({ attendeeId, linkId });
             }
         } catch (e) {
-            console.log({ message: 'Error fetching existing Bullhorn appointment attendees', details: e?.response?.data });
+            console.log({ message: 'Error fetching existing Bullhorn appointment attendees'});
         }
 
         // Remove attendees that are no longer desired
@@ -2082,7 +2082,7 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
                     config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
                 });
             } catch (e) {
-                console.log({ message: 'Error removing attendee from Bullhorn appointment', attendeeId, linkId, details: e?.response?.data });
+                console.log({ message: 'Error removing attendee from Bullhorn appointment' });
             }
         }
 
@@ -2101,7 +2101,7 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
                     config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
                 });
             } catch (e) {
-                console.log({ message: 'Error adding attendee to Bullhorn appointment', attendeeId, details: e?.response?.data });
+                console.log({ message: 'Error adding attendee to Bullhorn appointment' });
             }
         }
     }
@@ -2117,7 +2117,7 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
     const appointment = normalizeBullhornAppointmentToAppointment(refreshRes?.data?.data);
     return { appointment };
 } catch (error) {
-    console.log({message:"Bullhorn Update Error is", error, details:error.response?.data});
+    console.log({message:"Bullhorn Update Error is"});
     return {
         successful: false,
         returnMessage: {
