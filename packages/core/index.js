@@ -114,6 +114,36 @@ async function initDB() {
                     allowNull: false,
                 }, { transaction });
 
+                // Postgres already has a PK on (id, sessionId); addConstraint would try to add a second PK and fail.
+                if (dialect === 'postgres') {
+                    const relname = CallLogModel.tableName;
+                    const pkRows = await sequelizeInstance.query(
+                        `
+                        SELECT c.conname AS name
+                        FROM pg_constraint c
+                        INNER JOIN pg_class rel ON c.conrelid = rel.oid
+                        INNER JOIN pg_namespace nsp ON rel.relnamespace = nsp.oid
+                        WHERE c.contype = 'p'
+                          AND nsp.nspname = current_schema()
+                          AND rel.relname = :relname
+                        `,
+                        {
+                            replacements: { relname },
+                            transaction,
+                            type: Sequelize.QueryTypes.SELECT,
+                        },
+                    );
+                    const pkName = pkRows[0]?.name;
+                    if (pkName) {
+                        const qTable = queryInterface.queryGenerator.quoteTable(CallLogModel.tableName);
+                        const qName = queryInterface.queryGenerator.quoteIdentifier(pkName);
+                        await sequelizeInstance.query(
+                            `ALTER TABLE ${qTable} DROP CONSTRAINT ${qName}`,
+                            { transaction },
+                        );
+                    }
+                }
+
                 await queryInterface.addConstraint('callLogs', {
                     fields: ['id', 'sessionId', 'extensionNumber'],
                     type: 'primary key',
@@ -3060,8 +3090,31 @@ async function initializeCore(options = {}) {
 
 // Create a complete app with core functionality
 function createCoreApp(options = {}) {
-    initializeCore(options);
+    const coreInit = initializeCore(options).catch((err) => {
+        logger.error('initializeCore failed (database init or analytics)', {
+            message: err?.message,
+            stack: err?.stack,
+        });
+        throw err;
+    });
     const app = express();
+
+    // Block routing until DB sync/migrations finish so traffic never hits a half-ready DB,
+    // and ensure init failures are logged instead of only as unhandled rejections.
+    app.use(async (req, res, next) => {
+        try {
+            await coreInit;
+            next();
+        } catch (e) {
+            logger.error('Request rejected: core initialization failed', {
+                message: e?.message,
+                stack: e?.stack,
+            });
+            res.status(503)
+                .set('Retry-After', '5')
+                .json({ error: 'Service unavailable', detail: e?.message });
+        }
+    });
 
     // Allow bigger POST body size
     app.use(express.json({ limit: '50mb' }));
