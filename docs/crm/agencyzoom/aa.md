@@ -6,7 +6,7 @@ title: AgencyZoom by Accelerated Automation — App Connect
 
 <div class="bld-hero">
   <div class="bld-hero__logo">
-    <img src="../../img/acceleratedautomation.svg" alt="Accelerated Automation">
+    <img src="../../../img/acceleratedautomation.svg" alt="Accelerated Automation">
   </div>
   <div>
     <div class="bld-hero__category">Insurance Technology Partner</div>
@@ -47,4 +47,4 @@ Contact Accelerated Automation to get started. Their onboarding team provides ha
 
 ---
 
-← [Back to AgencyZoom integrations](agencyzoom.md)
+← [Back to AgencyZoom integrations](index.md)

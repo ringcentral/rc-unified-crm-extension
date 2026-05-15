@@ -9,8 +9,8 @@ edit_uri: https://github.com/ringcentral/rc-unified-crm-extension/tree/master/do
 docs_dir: docs
 
 not_in_nav: |
-  crm/agencyzoom-gate6.md
-  crm/agencyzoom-aa.md
+  crm/agencyzoom/gate6.md
+  crm/agencyzoom/aa.md
 
 theme:
   name: material
@@ -95,7 +95,7 @@ nav:
 - 'Home': index.md
 - 'Integrations':
   - 'Overview': crm/index.md
-  - 'AgencyZoom': crm/agencyzoom.md
+  - 'AgencyZoom': crm/agencyzoom/index.md
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
   - 'Freshdesk': crm/freshdesk.md
