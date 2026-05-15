@@ -20,7 +20,7 @@ Appointments are currently available for the following CRM integrations:
 
 | CRM | List | Create | Update | Confirm | Cancel |
 |-----|------|--------|--------|---------|--------|
-| **Bullhorn** | :white_check_mark: | :white_check_mark: | :white_check_mark: | | |
+| **Bullhorn** | :white_check_mark: | :white_check_mark: | :white_check_mark: | | :white_check_mark:|
 | **Clio** | :white_check_mark: | :white_check_mark: | :white_check_mark: | | :white_check_mark: |
 | **NetSuite** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
 
