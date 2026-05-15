@@ -42,8 +42,11 @@
     display: inline-block;
     border-radius: 20px;
     padding: 3px 10px;
-    background: white;
+    background: #FF7A00;
     margin-left: 10px;
+}
+.md-banner .upgrade-button a {
+    color: #ffffff !important;
 }
 .md-banner .md-typeset a {
     color: rgb(122, 36, 0);

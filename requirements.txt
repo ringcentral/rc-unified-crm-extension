@@ -4,7 +4,7 @@ markdown~=3.2
 mkdocs~=1.5,>=1.5.3
 mkdocs-material
 mkdocs-material-extensions~=1.3
-mkdocs-material-ringcentral
+mkdocs-material-ringcentral>=1.1
 markdown_fenced_code_tabs>=1.0.3
 mkdocs-markdown-filter>=0.1.1
 pygments~=2.16
