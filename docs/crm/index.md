@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">11+</span>
+      <span class="crm-mkt__stat-num">12+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -32,6 +32,19 @@ hide:
      CARD GRID
      ═══════════════════════════════════════════════════════════ -->
 <div class="crm-mkt__grid">
+
+  <a href="agencyzoom/" class="crm-mkt__card crm-mkt__card--partner">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-agencyzoom.png" alt="AgencyZoom"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Insurance Agency Management</div>
+      <div class="crm-mkt__name">AgencyZoom</div>
+      <p class="crm-mkt__desc">Log RingEX calls and SMS to AgencyZoom client records. Two certified partner integrations available.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--multi">Multiple vendors</span>
+      <span class="crm-mkt__cta">Select →</span>
+    </div>
+  </a>
 
   <a href="bullhorn/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-bullhorn.png" alt="Bullhorn"></div>

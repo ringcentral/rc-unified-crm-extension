@@ -12,8 +12,8 @@ hide:
 <div class="ac-v5-hero">
 <div class="ac-v5-hero__copy">
 <p class="ac-v5-hero__eyebrow">RingCentral Labs</p>
-<h1 class="ac-v5-hero__title">More CRMs. One framework.<br>Zero missed calls.</h1>
-<p class="ac-v5-hero__sub">App Connect is the most comprehensive CRM integration for RingEX — logging every call, text, and transcript, across more CRMs than any other solution. Built by a team working directly with customers to shape the future of communication.</p>
+<h1 class="ac-v5-hero__title">Your CRM should know<br>about every call. Now it does.</h1>
+<p class="ac-v5-hero__sub">App Connect automatically logs every call, text, and transcript into your CRM — so your team always has full context, your AI always has clean data, and nothing falls through the cracks.</p>
 <div class="ac-v5-hero__cta">
 <a href="https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh" class="ac-v5-btn ac-v5-btn--navy">Install for Chrome</a>
 <a href="https://microsoftedge.microsoft.com/addons/detail/ringcentral-app-connect/fkoakbdjghpdcjlhelgeiahggkghnkfl" class="ac-v5-btn ac-v5-btn--glass">Install for Edge</a>
@@ -51,16 +51,16 @@ Logging to your CRM in real time
      ═══════════════════════════════════════════════════════════ -->
 <div class="ac-v5-pillars">
 <div class="ac-v5-pillar">
-<p class="ac-v5-pillar__num">01 — Robust features</p>
-<p class="ac-v5-pillar__text">Call logging, click-to-dial, screen pop, voicemail drop, shared SMS, admin tools — the complete CRM calling stack.</p>
+<p class="ac-v5-pillar__num">01 — Zero manual logging</p>
+<p class="ac-v5-pillar__text">Every call logged automatically — inbound, outbound, missed. Nothing requires human effort to record.</p>
 </div>
 <div class="ac-v5-pillar ac-v5-pillar--mid">
-<p class="ac-v5-pillar__num">02 — AI-ready transcripts</p>
-<p class="ac-v5-pillar__text">Every call transcribed and logged — giving your AI tools, coaching systems, and reporting workflows the data they need.</p>
+<p class="ac-v5-pillar__num">02 — Full context, every time</p>
+<p class="ac-v5-pillar__text">Screen pop brings the full CRM record up the moment a call arrives. Your reps are never caught off guard.</p>
 </div>
 <div class="ac-v5-pillar">
-<p class="ac-v5-pillar__num">03 — Growing ecosystem</p>
-<p class="ac-v5-pillar__text">More CRMs every quarter, open-source framework, the widest coverage in the industry — and growing fast.</p>
+<p class="ac-v5-pillar__num">03 — AI has what it needs</p>
+<p class="ac-v5-pillar__text">Complete, structured call history in your CRM — the ground truth your AI tools and LLMs need to work from.</p>
 </div>
 </div>
 
@@ -71,6 +71,7 @@ Logging to your CRM in real time
 <p class="ac-v5-ticker-label">15+ supported integrations and growing</p>
 <div class="ac-v5-ticker-overflow">
 <div class="ac-v5-ticker-track">
+<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/bullhorn/"><img src="img/crm-logo-bullhorn.png" alt="Bullhorn"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/clio/"><img src="img/crm-logo-clio.png" alt="Clio"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/freshdesk/"><img src="img/crm-logo-freshdesk.png" alt="Freshdesk"></a></div>
@@ -82,7 +83,9 @@ Logging to your CRM in real time
 <div class="ac-v5-ticker-pill"><a href="crm/zoho/"><img src="img/crm-logo-zoho.png" alt="Zoho CRM"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/insightly/"><img src="img/crm-logo-insightly.png" alt="Insightly"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/redtail/"><img src="img/crm-logo-redtail.png" alt="Redtail"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom-aa/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
 <!-- duplicate set for seamless loop -->
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/agencyzoom/" tabindex="-1"><img src="img/crm-logo-agencyzoom.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/bullhorn/" tabindex="-1"><img src="img/crm-logo-bullhorn.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/clio/" tabindex="-1"><img src="img/crm-logo-clio.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/freshdesk/" tabindex="-1"><img src="img/crm-logo-freshdesk.png" alt=""></a></div>
@@ -94,6 +97,23 @@ Logging to your CRM in real time
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/zoho/" tabindex="-1"><img src="img/crm-logo-zoho.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/insightly/" tabindex="-1"><img src="img/crm-logo-insightly.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/redtail/" tabindex="-1"><img src="img/crm-logo-redtail.png" alt=""></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom-aa/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     VIDEO — side-by-side, copy left, player right
+     ═══════════════════════════════════════════════════════════ -->
+<div class="ac-v5-video">
+<div class="ac-v5-video__copy">
+<p class="ac-v5-video__eyebrow">See it in action</p>
+<p class="ac-v5-video__title">Everything you need. Watch it work.</p>
+<p class="ac-v5-video__desc">See how App Connect turns every RingEX call into a logged, transcribed, AI-ready record — automatically, inside the CRMs your team already uses.</p>
+</div>
+<div class="ac-v5-video__player">
+<div class="ac-v5-video__wrap">
+<iframe src="https://player.vimeo.com/video/1071910735?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" title="App Connect demo"></iframe>
 </div>
 </div>
 </div>

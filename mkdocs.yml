@@ -8,6 +8,10 @@ site_url: https://appconnect.labs.ringcentral.com
 edit_uri: https://github.com/ringcentral/rc-unified-crm-extension/tree/master/docs
 docs_dir: docs
 
+not_in_nav: |
+  crm/agencyzoom-gate6.md
+  crm/agencyzoom-aa.md
+
 theme:
   name: material
   logo: img/RingCentral_logo_color.png
@@ -91,6 +95,7 @@ nav:
 - 'Home': index.md
 - 'Integrations':
   - 'Overview': crm/index.md
+  - 'AgencyZoom': crm/agencyzoom.md
   - 'Bullhorn': crm/bullhorn.md
   - 'Clio': crm/clio.md
   - 'Freshdesk': crm/freshdesk.md
