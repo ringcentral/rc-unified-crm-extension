@@ -36,6 +36,10 @@ const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
+const {
+    migrateCallLogsExtensionNumberSqlite,
+    sqliteCallLogsPkIncludesExtension,
+} = require('./lib/migrateCallLogsSchema');
 const managedAuthCore = require('./handlers/managedAuth');
 
 let packageJson = null;
@@ -77,31 +81,51 @@ async function initDB() {
         await CallDownListModel.sync();
         await AccountDataModel.sync();
 
-        // if UserModel doesn't have hashedRcExtensionId column, add it
-        const queryInterface = UserModel.sequelize.getQueryInterface();
-        const userTableName = UserModel.getTableName();
-        const userTableSchema = await queryInterface.describeTable(userTableName);
-        if (!userTableSchema.hashedRcExtensionId) {
-            logger.info('adding hashedRcExtensionId column to users table...');
-            await queryInterface.addColumn(userTableName, 'hashedRcExtensionId', {
-                type: Sequelize.STRING,
-                allowNull: true,
-            });
-            await UserModel.sync();
-            logger.info('hashedRcExtensionId column added to users table');
-        }
+        const queryInterface = CallLogModel.sequelize.getQueryInterface();
+        const sequelizeInstance = CallLogModel.sequelize;
+        const dialect = sequelizeInstance.getDialect();
+        const callLogsColumns = await queryInterface.describeTable('callLogs');
+        const hasExtensionNumber = Object.keys(callLogsColumns).some(
+            (col) => col.toLowerCase() === 'extensionnumber',
+        );
+        // Sequelize's SQLite addConstraint appends PRIMARY KEY instead of replacing it.
+        const needsSqliteCallLogsRebuild =
+            dialect === 'sqlite' &&
+            (!hasExtensionNumber || !(await sqliteCallLogsPkIncludesExtension(sequelizeInstance)));
 
-        // if LlmSessionModel doesn't have expiry column, add it
-        const llmSessionTableName = LlmSessionModel.getTableName();
-        const llmSessionTableSchema = await queryInterface.describeTable(llmSessionTableName);
-        if (!llmSessionTableSchema.expiry) {
-            logger.info('adding expiry column to llmSessions table...');
-            await queryInterface.addColumn(llmSessionTableName, 'expiry', {
-                type: Sequelize.DATE,
-                allowNull: true,
-            });
-            await LlmSessionModel.sync();
-            logger.info('expiry column added to llmSessions table');
+        if (needsSqliteCallLogsRebuild) {
+            const transaction = await sequelizeInstance.transaction();
+
+            try {
+                await migrateCallLogsExtensionNumberSqlite(sequelizeInstance, transaction);
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+                throw err;
+            }
+        } else if (!hasExtensionNumber) {
+            // sync() fills new Postgres DBs; legacy installs need alter + new PK constraint.
+            const transaction = await sequelizeInstance.transaction();
+
+            try {
+                await queryInterface.addColumn('callLogs', 'extensionNumber', {
+                    type: Sequelize.STRING,
+                    defaultValue: '',
+                    allowNull: false,
+                }, { transaction });
+
+                await queryInterface.addConstraint('callLogs', {
+                    fields: ['id', 'sessionId', 'extensionNumber'],
+                    type: 'primary key',
+                    name: 'callLogs_pkey',
+                    transaction,
+                });
+
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+                throw err;
+            }
         }
     }
 }
@@ -1912,7 +1936,13 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
+                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({
+                    userId,
+                    sessionIds: req.query.sessionIds,
+                    extensionNumber: req.query.extensionNumber,
+                    platform,
+                    requireDetails: req.query.requireDetails === 'true'
+                });
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;
@@ -2105,6 +2135,7 @@ function createCoreRouter() {
                     platform,
                     userId,
                     sessionId: req.body.sessionId,
+                    extensionNumber: req.body.extensionNumber,
                     dispositions: req.body.dispositions,
                     additionalSubmission: req.body.additionalSubmission
                 });
@@ -2825,7 +2856,7 @@ function createCoreRouter() {
         router.get('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds });
+                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds, extensionNumber: req.query.extensionNumber });
                 res.status(200).send(callLogs);
             }
             else {
@@ -2835,7 +2866,7 @@ function createCoreRouter() {
         router.post('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                await mock.createCallLog({ sessionId: req.body.sessionId });
+                await mock.createCallLog({ sessionId: req.body.sessionId, extensionNumber: req.body.extensionNumber });
                 res.status(200).send('Mock call log created');
             }
             else {

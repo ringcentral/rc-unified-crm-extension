@@ -12,6 +12,12 @@ exports.CallLogModel = sequelize.define('callLogs', {
     type: Sequelize.STRING,
     primaryKey: true,
   },
+  extensionNumber: {
+    type: Sequelize.STRING,
+    primaryKey: true,
+    allowNull: false,
+    defaultValue: '',
+  },
   platform: {
     type: Sequelize.STRING,
   },

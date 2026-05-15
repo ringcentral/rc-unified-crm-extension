@@ -114,6 +114,59 @@ describe('Log Handler', () => {
       expect(result.returnMessage.message).toContain('Existing log for session');
     });
 
+    test('should allow same session when extensionNumber is different', async () => {
+      // Arrange
+      await UserModel.create(mockUser);
+      await CallLogModel.create({
+        id: 'tel-session-123',
+        sessionId: 'session-123',
+        extensionNumber: '101',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-101',
+        userId: 'test-user-id'
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'new-log-102',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+
+      const incomingData = {
+        ...mockIncomingData,
+        logInfo: {
+          ...mockIncomingData.logInfo,
+          extensionNumber: '102'
+        }
+      };
+
+      // Act
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      const savedLog = await CallLogModel.findOne({
+        where: {
+          sessionId: 'session-123',
+          extensionNumber: '102'
+        }
+      });
+      expect(savedLog).not.toBeNull();
+      expect(savedLog.thirdPartyLogId).toBe('new-log-102');
+    });
+
     test('should return warning when user not found', async () => {
       // Act
       const result = await logHandler.createCallLog({
@@ -430,6 +483,91 @@ describe('Log Handler', () => {
         sessionId: 'session-2',
         matched: false
       });
+    });
+
+    test('should filter matched logs by extensionNumber when provided', async () => {
+      // Arrange
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token'
+      });
+
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '101',
+        platform: 'testCRM',
+        thirdPartyLogId: 'log-101',
+        userId: 'test-user-id'
+      });
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '102',
+        platform: 'testCRM',
+        thirdPartyLogId: 'log-102',
+        userId: 'test-user-id'
+      });
+
+      // Act
+      const result = await logHandler.getCallLog({
+        userId: 'test-user-id',
+        sessionIds: 'session-1',
+        extensionNumber: '102',
+        platform: 'testCRM',
+        requireDetails: false
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      expect(result.logs).toEqual([{
+        sessionId: 'session-1',
+        matched: true,
+        logId: 'log-102'
+      }]);
+    });
+
+    test('should keep session-only lookup backward compatible when extensionNumber is empty', async () => {
+      // Arrange
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token'
+      });
+
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '',
+        platform: 'testCRM',
+        thirdPartyLogId: 'legacy-log',
+        userId: 'test-user-id'
+      });
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '102',
+        platform: 'testCRM',
+        thirdPartyLogId: 'extension-log',
+        userId: 'test-user-id'
+      });
+
+      // Act
+      const result = await logHandler.getCallLog({
+        userId: 'test-user-id',
+        sessionIds: 'session-1',
+        platform: 'testCRM',
+        requireDetails: false
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      expect(result.logs).toEqual([{
+        sessionId: 'session-1',
+        matched: true,
+        logId: 'legacy-log'
+      }]);
     });
 
     test('should return matched logs with details when requireDetails is true', async () => {

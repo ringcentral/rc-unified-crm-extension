@@ -3,7 +3,10 @@
 const { UserModel } = require("../models/userModel");
 const { CallLogModel } = require("../models/callLogModel");
 const shortid = require("shortid");
-const Op = require('sequelize').Op;
+const {
+    buildCallLogSessionWhere,
+    findMatchingCallLog,
+} = require('../lib/callLogLookup');
 
 async function createUser() {
     let mockUser = await UserModel.findByPk('mockUser');
@@ -24,18 +27,19 @@ async function deleteUser() {
     return false;
 }
 
-async function getCallLog({ sessionIds }) {
+async function getCallLog({ sessionIds, extensionNumber }) {
     const sessionIdsArray = sessionIds.split(',');
+    const extensionNumberValue = extensionNumber?.toString() ?? '';
     const callLogs = await CallLogModel.findAll({
-        where: {
-            sessionId: {
-                [Op.in]: sessionIdsArray
-            }
-        }
+        where: buildCallLogSessionWhere({
+            sessionIds: sessionIdsArray,
+            extensionNumber: extensionNumberValue,
+        }),
+        order: [['extensionNumber', 'ASC']]
     });
     const logs = [];
     for (const sId of sessionIdsArray) {
-        const callLog = callLogs.find(c => c.sessionId === sId);
+        const callLog = findMatchingCallLog(callLogs, sId, extensionNumberValue);
         if (!callLog) {
             logs.push({ sessionId: sId, matched: false });
         }
@@ -47,16 +51,19 @@ async function getCallLog({ sessionIds }) {
     return logs;
 }
 
-async function createCallLog({ sessionId }) {
+async function createCallLog({ sessionId, extensionNumber }) {
+    const extensionNumberValue = extensionNumber?.toString() ?? '';
     let callLog = await CallLogModel.findOne({
-        where: {
-            sessionId
-        }
+        where: buildCallLogSessionWhere({
+            sessionId,
+            extensionNumber: extensionNumberValue,
+        })
     });
     if (!callLog) {
         callLog = await CallLogModel.create({
             id: shortid.generate(),
             sessionId,
+            extensionNumber: extensionNumberValue,
             userId: 'mockUser'
         });
     }

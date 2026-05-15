@@ -27,6 +27,10 @@ const toolDefinition = {
                         type: 'string',
                         description: 'Session ID of the call log to update'
                     },
+                    extensionNumber: {
+                        type: 'string',
+                        description: 'RingCentral extension number for the call log to update'
+                    },
                     note: {
                         type: 'string',
                         description: 'Updated call note/description'
