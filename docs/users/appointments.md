@@ -65,8 +65,6 @@ Appointments in Bullhorn are stored as native **Appointment** records in the Bul
 
 - App Connect fetches appointments within a rolling window: from **1 month in the past** to **3 months in the future**
 - Each appointment can be associated with a single primary contact (Candidate, ClientContact, or Lead)
-- Attendees are fetched from the `AppointmentAttendee` join table in Bullhorn
-- Appointment status is derived from the `isDeleted` flag — deleted appointments appear as `cancelled`
 
 **Notes for Bullhorn administrators:**
 
@@ -83,19 +81,17 @@ Appointments in Clio are mapped to **Calendar Entries** in the Clio API. App Con
 
 - Calendar entries are fetched from the user's primary writable calendar in Clio
 - Attendees correspond to Clio contacts associated with the calendar entry
-- Additional metadata — such as the linked contact ID, contact type, and appointment status — is stored using Clio's **external properties** system so that App Connect can roundtrip this data reliably
-- Cancelling an appointment in App Connect will delete the corresponding calendar entry in Clio
 
 **Notes for Clio administrators:**
 
 - The Clio user must have calendar access and permission to read and write calendar entries
-- App Connect writes appointments to the first writable calendar found for the authenticated user. Ensure users have at least one non-read-only calendar configured in Clio
+- App Connect writes Events to the first writable calendar found for the authenticated user. Ensure users have at least one non-read-only calendar configured in Clio
 
 ---
 
 ### NetSuite
 
-Appointments in NetSuite are stored as **Calendar Events** using NetSuite's REST Record API. NetSuite provides the richest appointment lifecycle support, including native confirm and cancel status transitions.
+Events in NetSuite are stored as **Calendar Events** using NetSuite's REST Record API. NetSuite provides the richest appointment lifecycle support, including native confirm and cancel status transitions.
 
 **What is synced:**
 
@@ -119,8 +115,8 @@ Once the Event tab is enabled, click **Event** in the App Connect navigation bar
 
 ### Creating an appointment
 
-1. Navigate to a contact's record in App Connect
-2. Click **New Appointment**
+1. Navigate to Event or Appointment tab in App Connect
+2. Click **New Appointment** or Plus button
 3. Fill in the title, start time, duration, and any additional details
 4. Select attendees from your CRM contacts
 5. Click **Save** — the appointment is created in your CRM and appears immediately
