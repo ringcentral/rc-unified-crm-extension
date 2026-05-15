@@ -409,9 +409,17 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, additiona
     }
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const callType = activityTypesResponse.data.data.find(t => t.name.toLowerCase().includes('call') && t.active_flag);
-    if (callType) {
-        postBody.type = callType.key_string;
+    if (!callType?.key_string) {
+        return {
+            logId: null,
+            returnMessage: {
+                message: 'Call logging requires there is an active type containing the word "call" (case insensitive).',
+                messageType: 'error',
+                ttl: 2000
+            }
+        }
     }
+    postBody.type = callType.key_string;
     const addLogRes = await axios.post(
         `https://${user.hostname}/api/v2/activities`,
         postBody,
@@ -534,6 +542,16 @@ async function createMessageLog({ user, contactInfo, correspondents, sharedSMSLo
     const dateUtc = sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).utcOffset(0).format('YYYY-MM-DD') : moment(message.creationTime).utcOffset(0).format('YYYY-MM-DD');
     const activityTypesResponse = await axios.get(`https://${user.hostname}/v1/activityTypes`, { headers: { 'Authorization': authHeader } });
     const smsType = activityTypesResponse.data.data.find(t => t.name.toLowerCase().includes('sms') && t.active_flag);
+    if (!smsType?.key_string) {
+        return {
+            logId: null,
+            returnMessage: {
+                message: 'Message logging requires there is an active type containing the word "sms" (case insensitive).',
+                messageType: 'error',
+                ttl: 2000
+            }
+        }
+    }
 
     // Case: shared SMS
     if (sharedSMSLogContent?.body && sharedSMSLogContent?.subject) {

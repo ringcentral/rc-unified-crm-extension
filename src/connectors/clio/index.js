@@ -281,14 +281,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     };
 }
 
-async function findContactWithName({ user, authHeader, name }) {
+async function findContactWithName({ user, authHeader, name, appointment }) {
     const matchedContactInfo = [];
     let extraDataTracking = {};
     /*
     Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
     It handles all variations without requiring the query to be split
     */
-    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_phone_number`, {
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_email_address,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
     extraDataTracking = {
@@ -297,6 +297,7 @@ async function findContactWithName({ user, authHeader, name }) {
         ratelimitReset: personInfo.headers['x-ratelimit-reset']
     };
     if (personInfo.data.data.length > 0) {
+        // If appointment is true, only include contacts that have an email.
         for (const result of personInfo.data.data) {
             const matterInfo = await axios.get(
                 `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
@@ -325,6 +326,7 @@ async function findContactWithName({ user, authHeader, name }) {
                 name: result.name,
                 type: 'contact',
                 phone: result.primary_phone_number ?? "",
+                email: result.primary_email_address ?? "",
                 additionalInfo: returnedMatters.length > 0 ?
                     {
                         matters: returnedMatters,
@@ -339,6 +341,61 @@ async function findContactWithName({ user, authHeader, name }) {
                     }
             })
         }
+        // for (const result of personInfo.data.data) {
+        //     const matterInfo = await axios.get(
+        //         `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
+        //         {
+        //             headers: { 'Authorization': authHeader }
+        //         });
+        //     let matters = matterInfo.data.data.length > 0 ? matterInfo.data.data.map(m => { return { const: m.id, title: m.display_number, description: m.description, status: m.status } }) : null;
+        //     matters = matters?.filter(m => m.status !== 'Closed');
+        //     let associatedMatterInfo = await axios.get(
+        //         `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
+        //         {
+        //             headers: { 'Authorization': authHeader }
+        //         });
+        //     extraDataTracking = {
+        //         ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
+        //         ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
+        //         ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
+        //     };
+        //     let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: m.matter.description, status: m.matter.status } }) : null;
+        //     associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
+        //     let returnedMatters = [];
+        //     returnedMatters = returnedMatters.concat(matters ?? []);
+        //     returnedMatters = returnedMatters.concat(associatedMatters ?? []);
+        //     matchedContactInfo.push({
+        //         id: result.id,
+        //         name: result.name,
+        //         type: 'contact',
+        //         phone: result.primary_phone_number ?? "",
+        //         additionalInfo: returnedMatters.length > 0 ?
+        //             {
+        //                 matters: returnedMatters,
+        //                 logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+        //                 billableStatus: [
+        //                     { "const": "billable", "title": "Billable" },
+        //                     { "const": "non-billable", "title": "Non-billable" }
+        //                 ]
+        //             } :
+        //             {
+        //                 logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+        //             }
+        //     })
+        // }
+    }
+    // Reorder matchedContactInfo: contacts with email first, rest last
+    if (matchedContactInfo && Array.isArray(matchedContactInfo)) {
+        matchedContactInfo.sort((a, b) => {
+            // If a has email and b does not, a comes first (-1)
+            // If b has email and a does not, b comes first (1)
+            // If both have email or neither, order doesn't change (0)
+            const aHasEmail = (a.email && a.email.trim() !== '');
+            const bHasEmail = (b.email  && b.email.trim() !== '');
+            if (aHasEmail && !bHasEmail) return -1;
+            if (!aHasEmail && bHasEmail) return 1;
+            return 0;
+        });
     }
 
     return {
@@ -993,6 +1050,321 @@ async function getCallLog({ user, callLogId, authHeader }) {
     }
 }
 
+const APPOINTMENT_EXTERNAL_PROPERTIES = {
+    source: 'rcAppointmentSource',
+    participantName: 'rcAppointmentParticipantName',
+    contactId: 'rcAppointmentContactId',
+    contactType: 'rcAppointmentContactType',
+    status: 'rcAppointmentStatus',
+    title: 'rcAppointmentTitle'
+};
+
+function buildExternalPropertiesMap(externalProperties) {
+    const map = {};
+    for (const p of (externalProperties ?? [])) {
+        if (!p?.name) continue;
+        map[p.name] = p;
+    }
+    return map;
+}
+
+function normalizeCalendarEntryToAppointment(calendarEntry) {
+    const props = buildExternalPropertiesMap(calendarEntry?.external_properties);
+    const startAt = calendarEntry?.start_at;
+    const endAt = calendarEntry?.end_at;
+    const durationMinutes = (startAt && endAt) ? Math.max(0, Math.round(moment(endAt).diff(moment(startAt), 'minutes', true))) : null;
+
+    const attendee = (calendarEntry?.attendees ?? [])[0] ?? null;
+    const attendeeIds = (calendarEntry?.attendees ?? [])
+        .map(a => (a?.id != null ? `${a.id}` : null))
+        .filter(Boolean);
+    const contactId = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactId]?.value ?? (attendee?.id != null ? `${attendee.id}` : null);
+    const contactType = props[APPOINTMENT_EXTERNAL_PROPERTIES.contactType]?.value ?? (attendee?.type ?? null);
+
+    return {
+        id: calendarEntry?.id != null ? `${calendarEntry.id}` : null,
+        participantName: props[APPOINTMENT_EXTERNAL_PROPERTIES.participantName]?.value ?? attendee?.name ?? null,
+        contactId,
+        contactType,
+        attendeeIds,
+        title: props[APPOINTMENT_EXTERNAL_PROPERTIES.title]?.value ?? calendarEntry?.summary ?? null,
+        summary: calendarEntry?.description ?? null,
+        startTimeUtc: startAt ?? null,
+        durationMinutes,
+        status: props[APPOINTMENT_EXTERNAL_PROPERTIES.status]?.value ?? 'tentative'
+    };
+}
+
+async function getWriteableUserCalendarId({ user, authHeader }) {
+    const res = await axios.get(
+        `https://${user.hostname}/api/v4/calendars.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                owner: true,
+                writeable: true,
+                visible: true,
+                type: 'UserCalendar',
+                order: 'id(desc)',
+                limit: 1,
+                fields: 'id,type,permission,visible'
+            }
+        }
+    );
+    const calendarId = res?.data?.data?.[0]?.id;
+    if (calendarId == null) {
+        const fallbackRes = await axios.get(
+            `https://${user.hostname}/api/v4/calendars.json`,
+            {
+                headers: { 'Authorization': authHeader },
+                params: {
+                    writeable: true,
+                    visible: true,
+                    order: 'id(desc)',
+                    limit: 1,
+                    fields: 'id,type,permission,visible'
+                }
+            }
+        );
+        return fallbackRes?.data?.data?.[0]?.id ?? null;
+    }
+    return calendarId;
+}
+
+async function getCalendarEntryById({ user, authHeader, appointmentId }) {
+    const res = await axios.get(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                fields: 'id,summary,description,start_at,end_at,attendees{id,name,type},external_properties,calendar_owner_id'
+            }
+        }
+    );
+    return res?.data?.data ?? null;
+}
+
+async function upsertCalendarEntryExternalProperty({ user, authHeader, appointmentId, name, value }) {
+    const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
+    const props = buildExternalPropertiesMap(existing?.external_properties);
+    const existingProp = props[name];
+
+    const externalPropertyPayload = existingProp?.id != null
+        ? [{ id: existingProp.id, name, value: `${value}` }]
+        : [{ name, value: `${value}` }];
+
+    await axios.patch(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        { data: { external_properties: externalPropertyPayload } },
+        { headers: { 'Authorization': authHeader } }
+    );
+}
+
+async function listAppointments({ user, authHeader, range, mineOnly }) {
+    const listRes = await axios.get(
+        `https://${user.hostname}/api/v4/calendar_entries.json`,
+        {
+            headers: { 'Authorization': authHeader },
+            params: {
+                fields: 'id,summary,start_at,end_at,description,attendees{id,name,type}'
+            }
+        }
+    );
+
+    const entries = listRes?.data?.data ?? [];
+
+    const appointments = entries.map(e => {
+        const startUtc = e?.start_at ? moment.parseZone(e.start_at).utc() : null;
+        const endUtc = e?.end_at ? moment.parseZone(e.end_at).utc() : null;
+        const durationMinutes = (startUtc && endUtc)
+            ? Math.max(0, Math.round(endUtc.diff(startUtc, 'minutes', true)))
+            : 0;
+
+        const id = e?.id != null ? `${e.id}` : null;
+        const attendees = (e?.attendees ?? [])
+            .map(a => (a?.id != null ? {id: a?.id, name: a?.name, type: a?.type} : null))
+            .filter(Boolean);
+        return {
+            thirdPartyAppointmentId: id,
+            id,
+            title: e?.summary ?? '',
+            description: e?.description ?? '',
+            participantName: '',
+            startTimeUtc: startUtc ? startUtc.toISOString() : null,
+            durationMinutes,
+            status: 'scheduled',
+            contactId: '',
+            attendees
+        };
+    });
+    return { appointments };
+}
+
+async function createAppointment({ user, authHeader, payload }) {
+    const calendarId = await getWriteableUserCalendarId({ user, authHeader });
+    if (calendarId == null) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'No writeable calendar found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+
+    const startAt = payload?.startTimeUtc ?? payload?.startTime ?? null;
+    const durationMinutes = Number(payload?.durationMinutes ?? 0);
+    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
+
+    const toAttendee = (id) => {
+        const n = typeof id === 'number' ? id : Number(id);
+        if (!Number.isFinite(n)) return null;
+        return { id: n, type: 'Contact' };
+    };
+
+    const attendees = (() => {
+        if (Array.isArray(payload?.contacts) && payload.contacts.length) {
+            return payload.contacts
+                .map(c => (c && typeof c === 'object' ? toAttendee(c.id) : toAttendee(c)))
+                .filter(Boolean);
+        }
+        return [];
+    })();
+
+    const data = {
+        calendar_owner: { id: calendarId },
+        summary: payload?.title ?? payload?.summary ?? 'Appointment',
+        description: payload?.summary ?? '',
+        start_at: startAt,
+        end_at: endAt,
+        send_email_notification: false,
+        ...(attendees.length ? { attendees } : {})
+    };
+
+    const body = { data };
+
+    const createRes = await axios.post(
+        `https://${user.hostname}/api/v4/calendar_entries.json`,
+        body,
+        { headers: { 'Authorization': authHeader }, params: { fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id' } }
+    );
+
+    const calendarEntry = createRes?.data?.data ?? null;
+    const appointment = normalizeCalendarEntryToAppointment(calendarEntry);
+    return { appointmentId: appointment.id, appointment };
+}
+
+async function updateAppointment({ user, authHeader, appointmentId, patchBody }) {
+    const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
+    if (!existing) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Appointment not found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+
+    const existingAttendees = existing?.attendees ?? [];
+
+    const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
+    const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
+    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
+
+    const toAttendee = (id) => {
+        const n = typeof id === 'number' ? id : Number(id);
+        if (!Number.isFinite(n)) return null;
+        return { id: n, type: 'Contact' };
+    };
+
+    const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+
+    const attendees = (() => {
+        if (!hasAttendeeUpdate) return [];
+
+        const desiredAttendeeSource = patchBody.contacts;
+
+        const desiredAttendeeRefs = Array.isArray(desiredAttendeeSource) && desiredAttendeeSource.length
+            ? desiredAttendeeSource
+                .map(c => {
+                    if (c && typeof c === 'object') {
+                        return toAttendee(c.id);
+                    }
+                    return toAttendee(c);
+                })
+                .filter(Boolean)
+            : [];
+
+        const desiredAttendeeIdSet = new Set(desiredAttendeeRefs.map(a => `${a.id}`));
+
+        const existingAttendeeRefs = (existingAttendees ?? [])
+            .map(a => {
+                if (a?.id == null) return null;
+                const n = typeof a.id === 'number' ? a.id : Number(a.id);
+                
+                return { id: n, type: 'Contact' };
+            })
+            .filter(Boolean);
+
+        // Only remove (destroy) those existing attendees that are NOT in the desired list.
+        const removedAttendeeRefs = existingAttendeeRefs
+            .filter(a => !desiredAttendeeIdSet.has(`${a.id}`))
+            .map(a => ({ id: a.id, type:'Contact', _destroy: true }));
+
+        const mergedAttendeeRefs = [...removedAttendeeRefs, ...desiredAttendeeRefs];
+        const seenKeys = new Set();
+        return mergedAttendeeRefs.filter(a => {
+            const key = `${a.id}:${a.type ?? 'Contact'}:${a._destroy ? '1' : '0'}`;
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+        });
+    })();
+    const updateBody = {
+        data: {
+            summary: patchBody?.title ?? '',
+            description: patchBody?.summary ?? '',
+            start_at: startAt,
+            end_at: endAt,
+            ...(hasAttendeeUpdate ? { attendees } : {})
+        }
+    };
+
+    const updateResponseBody = await axios.patch(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        updateBody,
+        { headers: { 'Authorization': authHeader }, params: { fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id' } }
+    );
+    return { appointment: normalizeCalendarEntryToAppointment(updateResponseBody?.data?.data) };
+}
+
+async function refreshAppointment({ user, authHeader, appointmentId }) {
+    const calendarEntry = await getCalendarEntryById({ user, authHeader, appointmentId });
+    if (!calendarEntry) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Appointment not found in Clio.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+    return { appointment: normalizeCalendarEntryToAppointment(calendarEntry) };
+}
+
+
+async function cancelAppointment({ user, authHeader, appointmentId }) {
+    const cancelResponseBody = await axios.delete(
+        `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
+        { headers: { 'Authorization': authHeader } }
+    );
+    return { appointment: normalizeCalendarEntryToAppointment(cancelResponseBody?.data?.data) };
+}
+
 async function uploadImageToClio({ user, authHeader, imageDownloadLink, imageContentType, message, contactInfo, additionalSubmission, messageSubject }) {
     // download media from server mediaLink (image/jpeg or image/png) - do this first because RC Access Token might expire during the process
     const mediaRes = await axios.get(imageDownloadLink, { responseType: 'arraybuffer' });
@@ -1126,3 +1498,8 @@ exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.findContactWithName = findContactWithName;
 exports.getLogFormatType = getLogFormatType;
+exports.listAppointments = listAppointments;
+exports.createAppointment = createAppointment;
+exports.updateAppointment = updateAppointment;
+exports.refreshAppointment = refreshAppointment;
+exports.cancelAppointment = cancelAppointment;

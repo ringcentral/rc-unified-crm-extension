@@ -1678,6 +1678,718 @@ function isAuthError(statusCode) {
 }
 
 
+function normalizeBullhornAppointmentToAppointment(bhAppointment) {
+    const id = bhAppointment?.id != null ? `${bhAppointment.id}` : null;
+    const dateBegin = bhAppointment?.dateBegin;
+    const dateEnd = bhAppointment?.dateEnd;
+    const startTimeUtc = Number.isFinite(dateBegin) ? moment.utc(dateBegin).toISOString() : null;
+    const durationMinutes = (Number.isFinite(dateBegin) && Number.isFinite(dateEnd))
+        ? Math.max(0, Math.round(moment.utc(dateEnd).diff(moment.utc(dateBegin), 'minutes', true)))
+        : null;
+
+    const contactFromAssoc = (() => {
+        const candId = bhAppointment?.candidateReference?.id;
+        if (candId != null) return { id: `${candId}`, type: 'Candidate' };
+        const ccId = bhAppointment?.clientContactReference?.id;
+        if (ccId != null) return { id: `${ccId}`, type: 'ClientContact' };
+        const leadId = bhAppointment?.lead?.id;
+        if (leadId != null) return { id: `${leadId}`, type: 'Lead' };
+        return { id: null, type: null };
+    })();
+
+    // The attendees field may be either an array of ids, or an association object with `data: [{id}]`
+    const attendeeIds = (() => {
+        const raw = bhAppointment?.attendees;
+        if (Array.isArray(raw)) return raw.map(a => (a?.id ?? a)).filter(v => v != null).map(v => `${v}`);
+        const assoc = raw?.data;
+        if (Array.isArray(assoc)) return assoc.map(a => a?.id).filter(v => v != null).map(v => `${v}`);
+        return [];
+    })();
+
+    return {
+        thirdPartyAppointmentId: id,
+        id,
+        title: bhAppointment?.subject ?? '',
+        description: bhAppointment?.description ?? '',
+        participantName: '',
+        startTimeUtc,
+        durationMinutes,
+        status: bhAppointment?.isDeleted ? 'cancelled' : 'scheduled',
+        contactId: contactFromAssoc.id ?? '',
+        contactType: contactFromAssoc.type ?? '',
+        attendeeIds
+    };
+}
+
+async function bullhornGetWithRefresh({ user, url, config }) {
+    try {
+        return await axios.get(url, config);
+    }
+    catch (e) {
+        const status = e?.response?.status;
+        if (status && isAuthError(status)) {
+            user = await refreshSessionToken(user);
+            return await axios.get(url, {
+                ...(config ?? {}),
+                headers: {
+                    ...((config ?? {}).headers ?? {}),
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        }
+        throw e;
+    }
+}
+
+async function bullhornPutWithRefresh({ user, url, body, config }) {
+    try {
+        return await axios.put(url, body, config);
+    }
+    catch (e) {
+        const status = e?.response?.status;
+        if (status && isAuthError(status)) {
+            user = await refreshSessionToken(user);
+            return await axios.put(url, body, {
+                ...(config ?? {}),
+                headers: {
+                    ...((config ?? {}).headers ?? {}),
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        }
+        throw e;
+    }
+}
+
+async function bullhornPostWithRefresh({ user, url, body, config }) {
+    try {
+        return await axios.post(url, body, config);
+    }
+    catch (e) {
+        const status = e?.response?.status;
+        if (status && isAuthError(status)) {
+            user = await refreshSessionToken(user);
+            return await axios.post(url, body, {
+                ...(config ?? {}),
+                headers: {
+                    ...((config ?? {}).headers ?? {}),
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        }
+        throw e;
+    }
+}
+
+async function bullhornDeleteWithRefresh({ user, url, config }) {
+    try {
+        return await axios.delete(url, config);
+    }
+    catch (e) {
+        const status = e?.response?.status;
+        if (status && isAuthError(status)) {
+            user = await refreshSessionToken(user);
+            return await axios.delete(url, {
+                ...(config ?? {}),
+                headers: {
+                    ...((config ?? {}).headers ?? {}),
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+        }
+        throw e;
+    }
+}
+
+async function listAppointments({ user, range }) {
+try{
+    const startDate = moment.utc().subtract(1, 'month').format('YYYY-MM-DD');
+    const endDate = moment.utc().add(3, 'month').format('YYYY-MM-DD');
+    const startMs = moment.utc(startDate, 'YYYY-MM-DD', true).startOf('day').valueOf();
+    const endMs = moment.utc(endDate, 'YYYY-MM-DD', true).endOf('day').valueOf();
+
+    const where = `isDeleted=false AND owner.id=${user.platformAdditionalInfo.id} AND dateBegin>=${startMs} AND dateBegin<=${endMs}`;
+    const fields = 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference,lead';
+
+    const pageSize = 20;
+    const resp = await bullhornGetWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}query/Appointment`,
+        config: {
+            headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+            params: { fields, where, start: 0, count: pageSize, orderBy: 'dateBegin' }
+        }
+    });
+
+    const rows = Array.isArray(resp?.data?.data) ? resp.data.data : [];
+    const apptIds = rows
+        .map(a => a?.id)
+        .filter(v => v != null)
+        .map(v => Number(v))
+        .filter(v => Number.isFinite(v));
+    const {attendeesByApptId } = await (async () => {
+        const attendeeIdsByApptId = new Map();
+        const attendeesByApptId = new Map();
+        const uniqIds = Array.from(new Set(apptIds));
+        if (!uniqIds.length) return { attendeeIdsByApptId, attendeesByApptId };
+
+        const attendeeWhere = `appointment.id IN (${uniqIds.join(',')})`;
+        // Bullhorn query fields are picky; keep this close to their documented examples.
+        const attendeeFields = 'id,appointment(id),attendee(id),acceptanceStatus';
+
+        const attResp = await bullhornGetWithRefresh({
+            user,
+            url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
+            config: {
+                headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+                params: { fields: attendeeFields, where: attendeeWhere, start: 0, count: 2000 }
+            }
+        });
+        const attData = Array.isArray(attResp?.data?.data) ? attResp.data.data : [];
+        for (const row of attData) {
+            const apptId = row?.appointment?.id;
+            const att = row?.attendee ?? null;
+            const attendeeId = att?.id;
+            if (apptId == null || attendeeId == null) continue;
+            const key = `${apptId}`;
+
+            const idStr = `${attendeeId}`;
+
+            const ids = attendeeIdsByApptId.get(key) ?? [];
+            ids.push(idStr);
+            attendeeIdsByApptId.set(key, ids);
+
+            const firstName = att?.firstName ?? '';
+            const lastName = att?.lastName ?? '';
+            const name = `${firstName} ${lastName}`.trim();
+            const type = att?._subtype ?? att?.type ?? '';
+            const attendeeObj = {
+                id: idStr,
+                ...(name ? { name } : {}),
+                ...(type ? { type } : {}),
+                ...(row?.acceptanceStatus != null ? { status: row.acceptanceStatus } : {})
+            };
+            const attendees = attendeesByApptId.get(key) ?? [];
+            attendees.push(attendeeObj);
+            attendeesByApptId.set(key, attendees);
+        }
+
+        for (const [k, v] of attendeeIdsByApptId.entries()) {
+            attendeeIdsByApptId.set(k, Array.from(new Set(v)));
+        }
+
+        for (const [k, v] of attendeesByApptId.entries()) {
+            const seen = new Set();
+            const deduped = [];
+            for (const a of v) {
+                const key = a?.id;
+                if (!key || seen.has(key)) continue;
+                seen.add(key);
+                deduped.push(a);
+            }
+            attendeesByApptId.set(k, deduped);
+        }
+
+        return { attendeeIdsByApptId, attendeesByApptId };
+    })();
+    const appointments = rows
+        .map((row) => {
+            const appt = normalizeBullhornAppointmentToAppointment(row);
+            if (appt?.id) {
+                appt.attendees = attendeesByApptId.get(appt.id) ?? [];
+            }
+            return appt;
+        })
+        .filter(a => a?.id != null);
+    return { appointments };
+} catch (error) {
+    return {
+        successful: false,
+        returnMessage: {
+            messageType: 'warning',
+            message: 'Error listing appointments',
+            ttl: 5000
+        }
+    }
+}
+}
+
+function extractPrimaryBullhornAppointmentContact(payload) {
+    if (!payload) return { id: null, type: null };
+    if (Array.isArray(payload.contacts) && payload.contacts.length) {
+        const c0 = payload.contacts[0];
+        if (c0 && typeof c0 === 'object') return { id: c0.id != null ? `${c0.id}` : null, type: c0.type ?? c0.contactType ?? null };
+        return { id: `${c0}`, type: null };
+    }
+    return { id: null, type: null };
+}
+
+async function createAppointment({ user, payload }) {
+    const startAt = payload?.startTimeUtc??null;
+    const durationMinutes = Number(payload?.durationMinutes ?? 0);
+    const startMs = startAt ? moment.utc(startAt).valueOf() : null;
+    const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
+    const primaryContact = extractPrimaryBullhornAppointmentContact(payload);
+
+    const putBody = {
+        dateBegin: startMs ?? Date.now(),
+        dateEnd: endMs ?? (Date.now() + 15 * 60 * 1000),
+        description: payload?.description ?? payload?.summary ?? '',
+        isPrivate: false,
+        subject: payload?.title ?? 'Appointment',
+        isDeleted: false,
+    };
+    if (primaryContact?.id) {
+        const type = (primaryContact.type ?? '').toLowerCase();
+        if (type === 'candidate') {
+            putBody.candidateReference = { id: Number(primaryContact.id) };
+        }
+        else if (type === 'contact' || type === 'clientcontact') {
+            putBody.clientContactReference = { id: Number(primaryContact.id) };
+        }
+        else if (type === 'lead') {
+            putBody.lead = { id: Number(primaryContact.id) };
+        }
+    }
+
+    const createRes = await bullhornPutWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment`,
+        body: putBody,
+        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+    });
+
+    const appointmentId = createRes?.data?.changedEntityId != null ? `${createRes.data.changedEntityId}` : null;
+    if (!appointmentId) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Could not create appointment in Bullhorn.',
+                ttl: 5000
+            }
+        };
+    }
+
+    // Add all contacts as attendee for the created appointment in Bullhorn
+    if (Array.isArray(payload?.contacts) && payload.contacts.length > 0) {
+        const attendeesToAdd = payload.contacts.filter(id => !!id);
+        const axios = require('axios');
+        const restUrl = user.platformAdditionalInfo.restUrl;
+        const bhRestToken = user.platformAdditionalInfo.bhRestToken;
+        for (const attendee of attendeesToAdd) {
+            try {
+                await axios.put(
+                    `${restUrl}entity/AppointmentAttendee`,
+                    {
+                        appointment: { id: Number(appointmentId) },
+                        attendee: { id: Number(attendee?.id) }
+                    },
+                    {
+                        headers: { BhRestToken: bhRestToken }
+                    }
+                );
+            } catch (err) {
+                console.log({message:'error adding attendee to appointment'});
+            }
+        }
+    }
+    return { appointmentId };
+}
+
+async function updateAppointment({ user, appointmentId, patchBody }) {
+    try{
+    const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
+    const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
+    const startMs = startAt ? moment.utc(startAt).valueOf() : null;
+    const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
+
+    const postBody = {};
+    if (patchBody?.title != null) postBody.subject = patchBody.title;
+    postBody.description = patchBody?.summary ?? '';
+    if (startMs != null) postBody.dateBegin = startMs;
+    if (endMs != null) postBody.dateEnd = endMs;
+    if (patchBody?.location != null) postBody.location = patchBody.location;
+    if (patchBody?.communicationMethod != null) postBody.communicationMethod = patchBody.communicationMethod;
+    if (patchBody?.type != null) postBody.type = patchBody.type;
+    await bullhornPostWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+        body: postBody,
+        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+    });
+    const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+
+    const appointmentIdNum = Number(appointmentId);
+    if (hasAttendeeUpdate && Number.isFinite(appointmentIdNum)) {
+        const toId = (v) => {
+            const raw = (v && typeof v === 'object') ? (v.id) : v;
+            const n = typeof raw === 'number' ? raw : Number(raw);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        const desiredAttendeeSource = Array.isArray(patchBody?.contacts)
+            ? patchBody.contacts
+            :[];
+
+        const desiredAttendeeIds = Array.from(new Set(
+            (Array.isArray(desiredAttendeeSource) && desiredAttendeeSource.length
+                ? desiredAttendeeSource
+                : []
+            )
+                .map(v => {
+                    if (v && typeof v === 'object') return toId(v.id);
+                    return toId(v);
+                })
+                .filter(v => v != null)
+        ));
+
+        const desiredIdSet = new Set(desiredAttendeeIds);
+
+        const existingLinks = [];
+        try {
+            const existingAttendeesRes = await bullhornGetWithRefresh({
+                user,
+                url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
+                config: {
+                    headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+                    params: {
+                        fields: 'id,attendee(id),appointment(id)',
+                        where: `appointment.id=${appointmentIdNum}`,
+                        start: 0,
+                        count: 2000
+                    }
+                }
+            });
+            const rows = Array.isArray(existingAttendeesRes?.data?.data) ? existingAttendeesRes.data.data : [];
+            for (const row of rows) {
+                const attendeeId = toId(row?.attendee?.id);
+                const linkId = toId(row?.id);
+                if (attendeeId == null || linkId == null) continue;
+                existingLinks.push({ attendeeId, linkId });
+            }
+        } catch (e) {
+            console.log({ message: 'Error fetching existing Bullhorn appointment attendees'});
+        }
+
+        // Remove attendees that are no longer desired
+        for (const { attendeeId, linkId } of existingLinks) {
+            if (desiredIdSet.has(attendeeId)) continue;
+            try {
+                await bullhornDeleteWithRefresh({
+                    user,
+                    url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee/${linkId}`,
+                    config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+                });
+            } catch (e) {
+                console.log({ message: 'Error removing attendee from Bullhorn appointment' });
+            }
+        }
+
+        // Add new attendees that don't exist yet
+        const existingAttendeeIdSet = new Set(existingLinks.map(l => l.attendeeId));
+        for (const attendeeId of desiredAttendeeIds) {
+            if (existingAttendeeIdSet.has(attendeeId)) continue;
+            try {
+                await bullhornPutWithRefresh({
+                    user,
+                    url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee`,
+                    body: {
+                        appointment: { id: appointmentIdNum },
+                        attendee: { id: attendeeId }
+                    },
+                    config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+                });
+            } catch (e) {
+                console.log({ message: 'Error adding attendee to Bullhorn appointment' });
+            }
+        }
+    }
+
+    const refreshRes = await bullhornGetWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+        config: {
+            headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+            params: { fields: 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference' }
+        }
+    });
+    const appointment = normalizeBullhornAppointmentToAppointment(refreshRes?.data?.data);
+    return { appointment };
+} catch (error) {
+    console.log({message:"Bullhorn Update Error is"});
+    return {
+        successful: false,
+        returnMessage: {
+            messageType: 'warning',
+            message: 'Error updating appointment',
+            ttl: 5000
+        }
+    }
+}
+}
+
+async function refreshAppointment({ user, appointmentId }) {
+    const resp = await bullhornGetWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+        config: {
+            headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+            params: { fields: 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference,lead,attendees' }
+        }
+    });
+    const appointment = normalizeBullhornAppointmentToAppointment(resp?.data?.data);
+    if (!appointment?.id) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Appointment not found in Bullhorn.',
+                ttl: 5000
+            }
+        };
+    }
+    return { appointment };
+}
+
+async function cancelAppointment({ user, appointmentId }) {
+    await bullhornPostWithRefresh({
+        user,
+        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+        body: { isDeleted: true },
+        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+    });
+    return {
+        successful: true,
+        returnMessage: {
+            messageType: 'success',
+            message: 'Appointment cancelled successfully.',
+            ttl: 5000
+        }
+    };
+}
+
+// ===================== Monthly CSV Report Helpers =====================
+async function fetchBullhornUserProfile({ user }) {
+    try {
+        const oauthApp = oauth.getOAuthApp(await getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl }));
+        let currentUser = user;
+        if (checkAndRefreshAccessToken) {
+            currentUser = await checkAndRefreshAccessToken(oauthApp, currentUser, 20, true);
+        }
+        const masterUserId = currentUser.id.replace('-bullhorn', '');
+        const resp = await axios.get(
+            `${currentUser.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,name,email&where=masterUserID=${masterUserId}`,
+            { headers: { BhRestToken: currentUser.platformAdditionalInfo.bhRestToken } }
+        );
+        const data = resp?.data?.data?.[0] ?? {};
+        return { email: data.email || '', name: data.name || '' };
+    } catch (error) {
+        logger.error('Error fetching Bullhorn user profile', { stack: error.stack });
+        return { email: '', name: '' };
+    }
+}
+
+function toCsv(rows) {
+    const escape = (val) => {
+        const s = (val ?? '').toString();
+        if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+    };
+    return rows.map(r => r.map(escape).join(',')).join('\n');
+}
+
+async function generateMonthlyCsvReport() {
+    const { UserModel } = require('@app-connect/core/models/userModel');
+    const { Op } = require('sequelize');
+    const users = await UserModel.findAll({
+        where: {
+            platform: 'bullhorn',
+            accessToken: {
+                [Op.and]: [
+                    { [Op.not]: null },
+                    { [Op.ne]: '' }
+                ]
+            }
+        }
+    });
+    // Only include users who have connected (i.e., have been updated) in the last month, up to the 20th of the current month.
+    // This ensures we only report active/connected customers.
+    const moment = require('moment');
+    const path = require('path');
+    const fs = require('fs');
+
+    // Use filteredUsers for the report instead of all users
+    const header = ['Bullhorn Master User ID', 'Email', 'Bullhorn ID', 'Name', 'Bullhorn Corp Token'];
+    const rows = [header];
+    // Bounded parallelism to avoid Lambda timeout and rate limits
+    const boundedUsers = users;
+    const batchConcurrency = Number(process.env.BULLHORN_REPORT_CONCURRENCY) || 8;
+    const batchDelayMs = Number(process.env.BULLHORN_REPORT_BATCH_DELAY_MS) || 200;
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    logger.info({
+        message: 'Generating Bullhorn monthly CSV report for', Length: boundedUsers.length
+    }
+    );
+    for (let startIndex = 0; startIndex < boundedUsers.length; startIndex += batchConcurrency) {
+        const currentBatch = boundedUsers.slice(startIndex, startIndex + batchConcurrency);
+        const batchResults = await Promise.allSettled(
+            currentBatch.map(async (currentUser) => {
+                try {
+                    const profile = await fetchBullhornUserProfile({ user: currentUser });
+                    if (!profile?.email && !profile?.name) {
+                        logger.info({
+                            message: 'Skipping user because email and name are not found',
+                            userId: currentUser.id
+                        });
+                        return null;
+                    }
+                    const masterId = (currentUser.id || '').replace(/-bullhorn$/, '');
+                    const userEmail = profile.email;
+                    const bullhornId = currentUser.platformAdditionalInfo?.id || '';
+                    const userName = profile.name;
+                    const corpToken = (currentUser.platformAdditionalInfo?.restUrl || '').match(/rest-services\/([^/]+)/)?.[1] || '';
+                    return [masterId, userEmail, bullhornId, userName, corpToken];
+                } catch (error) {
+                    logger.error('Error fetching Bullhorn user profile', { stack: error.stack });
+                    return null;
+                }
+            })
+        );
+        for (const result of batchResults) {
+            if (result.status === 'fulfilled' && result.value) {
+                rows.push(result.value);
+            }
+        }
+        // small breathing room between batches
+        if (startIndex + batchConcurrency < boundedUsers.length && batchDelayMs > 0) {
+            await delay(batchDelayMs);
+        }
+    }
+    const csv = toCsv(rows);
+    const os = require('os');
+    const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+    const baseDir = isLambda ? os.tmpdir() : process.cwd();
+    const outDir = path.join(baseDir, 'reports');
+    if (!fs.existsSync(outDir)) {
+        try { fs.mkdirSync(outDir, { recursive: true }); } catch (e) { logger.error('Error creating report directory', { stack: e.stack }); }
+    }
+    const filePath = path.join(outDir, `bullhorn_report_${moment.utc().format('YYYY-MM-20')}.csv`);
+    fs.writeFileSync(filePath, csv, 'utf8');
+    return { csv, filePath };
+}
+async function sendMonthlyCsvReportByEmail() {
+    try {
+        const report = await generateMonthlyCsvReport();
+        if (!report) {
+            logger.error('Report generation failed. Skipping email.');
+            return;
+        }
+        const { filePath } = report;
+        const axios = require('axios');
+        const fs = require('fs');
+        // Read the CSV file and encode it as base64
+        const bullhornReport = fs.readFileSync(filePath, { encoding: 'base64' });
+
+        // Concatenate current date in ddmmyyyy format to the file name
+        const currentDate = new Date();
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const year = String(currentDate.getFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const attachmentFileName = `BullhornReport_${dateString}.csv`;
+        // Build pretty subject: "Bullhorn/RingCentral monthly user report (Mon D, YYYY)"
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'
+        ];
+        const d = new Date();
+        const monthName = months[d.getMonth()];
+        const dayNum = d.getDate();
+        const yearNum = d.getFullYear();
+        const prettySubject = `Bullhorn/RingCentral monthly user report (${monthName} ${dayNum}, ${yearNum})`;
+        // Prepare the request body
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_TO,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            bcc: process.env.BULLHORN_REPORT_MAIL_BCC,
+            reply_to: process.env.BULLHORN_REPORT_MAIL_REPLY_TO,
+            subject: prettySubject,
+            body: `<p>Please find attached to this email a report containing a list of all active RingCentral customers using the Bullhorn integration powered by App Connect.</p>
+<p>If you have questions, or need assistance, please reply directly to this email.</p>
+<p>Sincerely,<br/>RingCentral Labs</p>`,
+            identifiers: {
+                email: process.env.BULLHORN_REPORT_MAIL_FROM
+            },
+            attachments: {
+                [attachmentFileName]: bullhornReport
+            }
+        };
+
+        // Send the email via Customer.io API
+        try {
+            await axios.post(
+                'https://api.customer.io/v1/send/email',
+                requestBody,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                    }
+                }
+            );
+        } catch (error) {
+            logger.error('Failed to send email:', { stack: error.stack });
+            await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
+        }
+        try {
+            fs.unlinkSync(filePath);
+            logger.info(`File ${filePath} deleted successfully after sending email.`);
+        } catch (err) {
+            logger.error(`Failed to delete file ${filePath}:`, { stack: err.stack });
+        }
+    } catch (error) {
+        logger.error('Failed to Generate Report and send email:', { stack: error.stack });
+        await sendErrorReportEmail(error, 'sendMonthlyCsvReportByEmail');
+    }
+}
+
+// Add fallback logic to send an error report email if sending the main report fails
+async function sendErrorReportEmail(error, contextInfo = '') {
+    try {
+        const now = new Date();
+        const day = String(now.getUTCDate()).padStart(2, '0');
+        const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+        const year = String(now.getUTCFullYear());
+        const dateString = `${day}/${month}/${year}`;
+        const subject = `Bullhorn Monthly Report FAILED ${dateString}`;
+        const body = `Bullhorn monthly report failed to send.\n\nError: ${error && error.stack ? error.stack : error}\n\nContext: ${contextInfo}`;
+        const requestBody = {
+            to: process.env.BULLHORN_REPORT_MAIL_ERROR_TO || process.env.BULLHORN_REPORT_MAIL_FROM,
+            from: process.env.BULLHORN_REPORT_MAIL_FROM,
+            subject,
+            body,
+            identifiers: {
+                id: process.env.BULLHORN_REPORT_MAIL_FROM
+            }
+        };
+        await axios.post(
+            'https://api.customer.io/v1/send/email',
+            requestBody,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.BULLHORN_REPORT_MAIL_API_KEY}`
+                }
+            }
+        );
+    } catch (err) {
+        logger.error('Failed to send error report email:', { stack: err.stack });
+    }
+}
+
 exports.getAuthType = getAuthType;
 exports.authValidation = authValidation;
 exports.getOauthInfo = getOauthInfo;
@@ -1699,3 +2411,9 @@ exports.getServerLoggingSettings = getServerLoggingSettings;
 exports.updateServerLoggingSettings = updateServerLoggingSettings;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.getLogFormatType = getLogFormatType;
+exports.listAppointments = listAppointments;
+exports.createAppointment = createAppointment;
+exports.updateAppointment = updateAppointment;
+exports.refreshAppointment = refreshAppointment;
+//exports.confirmAppointment = confirmAppointment;
+exports.cancelAppointment = cancelAppointment;

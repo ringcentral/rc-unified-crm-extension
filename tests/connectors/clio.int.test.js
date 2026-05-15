@@ -338,12 +338,13 @@ describe('Clio Connector', () => {
         it('should find contacts by name', async () => {
             nock(apiUrl)
                 .get('/api/v4/contacts.json')
-                .query({ query: 'John Doe', fields: 'id,name,primary_phone_number' })
+                .query({ query: 'John Doe', fields: 'id,name,primary_email_address,primary_phone_number' })
                 .reply(200, {
                     data: [{
                         id: 101,
                         name: 'John Doe',
                         type: 'Person',
+                        primary_email_address: 'john.doe@example.com',
                         primary_phone_number: '+14155551234',
                         updated_at: '2024-01-15T10:00:00Z'
                     }]
@@ -373,7 +374,7 @@ describe('Clio Connector', () => {
         it('should return empty array when no contacts found', async () => {
             nock(apiUrl)
                 .get('/api/v4/contacts.json')
-                .query({ query: 'Nobody', fields: 'id,name,primary_phone_number' })
+                .query({ query: 'Nobody', fields: 'id,name,primary_email_address,primary_phone_number' })
                 .reply(200, { data: [] }, mockRateLimitHeaders);
 
             const result = await clio.findContactWithName({
@@ -1983,12 +1984,13 @@ describe('Clio Connector', () => {
         it('should include matters in contact info', async () => {
             nock(apiUrl)
                 .get('/api/v4/contacts.json')
-                .query({ query: 'John Doe', fields: 'id,name,primary_phone_number' })
+                .query({ query: 'John Doe', fields: 'id,name,primary_email_address,primary_phone_number' })
                 .reply(200, {
                     data: [{
                         id: 101,
                         name: 'John Doe',
                         type: 'Person',
+                        primary_email_address: 'john.doe@example.com',
                         primary_phone_number: '+14155551234'
                     }]
                 }, mockRateLimitHeaders);
@@ -2036,11 +2038,12 @@ describe('Clio Connector', () => {
 
             nock(apiUrl)
                 .get('/api/v4/contacts.json')
-                .query({ query: 'Jane', fields: 'id,name,primary_phone_number' })
+                .query({ query: 'Jane', fields: 'id,name,primary_email_address,primary_phone_number' })
                 .reply(200, {
                     data: [{
                         id: 102,
                         name: 'Jane Smith',
+                        primary_email_address: 'jane.smith@example.com',
                         primary_phone_number: '+14155555678'
                     }]
                 }, mockRateLimitHeaders);
