@@ -38,23 +38,6 @@ The Appointments tab is **hidden by default**. You must manually enable it from 
 3. Toggle **Show Appointment tab** to the **on** position
 4. Click **Save**
 
-<figure markdown>
-  ![Customize tabs with Show Appointment tab disabled](../img/appointments-event-tab-disabled.png){ .mw-400 }
-  <figcaption>By default, the Show Appointment tab toggle is off</figcaption>
-</figure>
-
-<figure markdown>
-  ![Customize tabs with Show Appointment tab enabled](../img/appointments-event-tab-enabled.png){ .mw-400 }
-  <figcaption>Enable the toggle and click Save to show the Event tab</figcaption>
-</figure>
-
-Once saved, an **Appointment** entry will appear in the App Connect navigation. On wider layouts it is accessible directly from the tab bar; on narrower layouts it is available under the **More** menu.
-
-<figure markdown>
-  ![Event tab visible in the More menu](../img/appointments-event-tab-nav.png){ .mw-400 }
-  <figcaption>The Appointment tab appears in the navigation once enabled</figcaption>
-</figure>
-
 ## CRM-specific setup and behavior
 
 ### Bullhorn
