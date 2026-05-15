@@ -22,6 +22,10 @@ const toolDefinition = {
                 type: 'string',
                 description: 'Session IDs to retrieve, seprated by commas'
             },
+            extensionNumber: {
+                type: 'string',
+                description: 'RingCentral extension number to match with each session ID'
+            },
             requireDetails: {
                 type: 'boolean',
                 description: 'Whether to require detailed log information. If true, will call CRM API. Otherwise will just query in our own database',
@@ -37,12 +41,13 @@ const toolDefinition = {
  * @param {Object} args - The tool arguments
  * @param {string} args.jwtToken - JWT token with user and platform info
  * @param {string} args.sessionIds - Session IDs to retrieve, seprated by commas
+ * @param {string} [args.extensionNumber] - RingCentral extension number used to scope the lookup.
  * @param {boolean} [args.requireDetails] - Whether to require detailed log information. If true, will call CRM API. Otherwise will just query in our own database.
  * @returns {Object} Result object with call log information
  */
 async function execute(args) {
     try {
-        const { jwtToken, sessionIds, requireDetails = false } = args;
+        const { jwtToken, sessionIds, extensionNumber, requireDetails = false } = args;
 
         // Decode JWT to get userId and platform
         const decodedToken = jwt.decodeJwt(jwtToken);
@@ -68,12 +73,16 @@ async function execute(args) {
         }
 
         // Call the getCallLog method
-        const { successful, logs, returnMessage } = await logCore.getCallLog({ 
+        const getCallLogParams = {
             userId, 
             sessionIds, 
             platform, 
             requireDetails 
-        });
+        };
+        if (extensionNumber) {
+            getCallLogParams.extensionNumber = extensionNumber;
+        }
+        const { successful, logs, returnMessage } = await logCore.getCallLog(getCallLogParams);
         
         if (successful) {
             return {

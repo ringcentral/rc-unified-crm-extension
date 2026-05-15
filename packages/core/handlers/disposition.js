@@ -4,13 +4,15 @@ const oauth = require('../lib/oauth');
 const connectorRegistry = require('../connector/registry');
 const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleApiError } = require('../lib/errorHandler');
+const { buildCallLogSessionWhere } = require('../lib/callLogLookup');
 
-async function upsertCallDisposition({ platform, userId, sessionId, dispositions }) {
+async function upsertCallDisposition({ platform, userId, sessionId, extensionNumber, dispositions }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId
-            }
+            where: buildCallLogSessionWhere({
+                sessionId,
+                extensionNumber,
+            })
         });
         if (!existingCallLog) {
             return {
@@ -73,7 +75,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, dispositions
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
     }
     catch (e) {
-        return handleApiError(e, platform, 'upsertCallDisposition', { userId, sessionId, dispositions });
+        return handleApiError(e, platform, 'upsertCallDisposition', { userId, sessionId, extensionNumber, dispositions });
     }
 }
 

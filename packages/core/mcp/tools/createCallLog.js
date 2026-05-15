@@ -4,6 +4,7 @@ const logCore = require('../../handlers/log');
 const contactCore = require('../../handlers/contact');
 const util = require('../../lib/util');
 const { CallLogModel } = require('../../models/callLogModel');
+const { buildCallLogSessionWhere, getCallLogExtensionNumber } = require('../../lib/callLogLookup');
 /**
  * MCP Tool: Create Call Log
  * 
@@ -31,6 +32,10 @@ const toolDefinition = {
                             sessionId: {
                                 type: 'string',
                                 description: 'Unique session identifier for the call'
+                            },
+                            extensionNumber: {
+                                type: 'string',
+                                description: 'RingCentral extension number for this call log'
                             },
                             telephonySessionId: {
                                 type: 'string',
@@ -157,6 +162,10 @@ const toolDefinition = {
                     contactType: {
                         type: 'string',
                         description: 'Contact type'
+                    },
+                    extensionNumber: {
+                        type: 'string',
+                        description: 'RingCentral extension number for this call log'
                     }
                 },
                 required: ['logInfo', 'contactName']
@@ -208,12 +217,14 @@ async function execute(args) {
         }
 
         const { logInfo } = incomingData;
+        const extensionNumber = getCallLogExtensionNumber(incomingData);
 
         // Check in DB if the call log already exists
         const existingCallLog = await CallLogModel.findOne({
-            where: {
-                sessionId: logInfo.sessionId
-            }
+            where: buildCallLogSessionWhere({
+                sessionId: logInfo.sessionId,
+                extensionNumber,
+            })
         });
         if (existingCallLog) {
             throw new Error(`Call log already exists for session ${logInfo.sessionId}`);

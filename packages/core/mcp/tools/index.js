@@ -18,6 +18,11 @@ const createCallLog = require('./createCallLog');
 const rcGetCallLogs = require('./rcGetCallLogs');
 // const getGoogleFilePicker = require('./getGoogleFilePicker');
 const createContact = require('./createContact');
+const createAppointment = require('./createAppointment');
+const updateAppointment = require('./updateAppointment');
+const confirmAppointment = require('./confirmAppointment');
+const cancelAppointment = require('./cancelAppointment');
+const listAppointments = require('./listAppointments');
 
 // AI-visible MCP tools — registered in the MCP server
 module.exports.tools = [
@@ -31,6 +36,11 @@ module.exports.tools = [
     rcGetCallLogs,
     // getGoogleFilePicker,
     createContact,
+    listAppointments,
+    createAppointment,
+    updateAppointment,
+    confirmAppointment,
+    cancelAppointment,
 ];
 
 // Widget-only tools — callable via /mcp/widget-tool-call, NOT registered as MCP tools

@@ -23,6 +23,11 @@ packages/core/mcp/
 │   ├── createContact.js   # Create new contact
 │   ├── createCallLog.js   # Create call log entry
 │   ├── rcGetCallLogs.js   # Fetch RingCentral call logs
+│   ├── listAppointments.js    # List appointments (upcoming/today/past/all/custom)
+│   ├── createAppointment.js   # Create a new appointment/event
+│   ├── updateAppointment.js   # Update/reschedule an appointment/event
+│   ├── confirmAppointment.js  # Confirm an appointment/event
+│   ├── cancelAppointment.js   # Cancel an appointment/event
 │   ├── getGoogleFilePicker.js # Google Sheets picker (disabled)
 │   ├── getCallLog.js      # Get call log (disabled)
 │   ├── updateCallLog.js   # Update call log (disabled)
@@ -164,6 +169,18 @@ Logs out user from the CRM platform.
 | `createContact` | `phoneNumber`, `newContactName?` | Create new CRM contact |
 | `rcGetCallLogs` | `timeFrom`, `timeTo` (ISO 8601) | Fetch RingCentral call logs. Each `records[i]` item can be passed directly as `incomingData.logInfo` to `createCallLog`. |
 | `createCallLog` | `incomingData` (with `logInfo` = single `rcGetCallLogs` record), `contactId?`, `note?` | Create call log in CRM. Pass a `records[i]` item from `rcGetCallLogs` directly as `incomingData.logInfo`. |
+
+#### Appointment / Event Tools
+
+`jwtToken` is injected automatically from the session — ChatGPT does not need to pass it:
+
+| Tool | Parameters | Description |
+|------|-----------|-------------|
+| `listAppointments` | `filter?` (`upcoming`/`today`/`past`/`all`/`custom`), `startDate?`, `endDate?` (YYYY-MM-DD), `mineOnly?` | List appointments from the CRM. Named filters auto-compute date windows (±90 days). Use `custom` with `startDate`/`endDate` for a specific range. |
+| `createAppointment` | `title`, `startTimeUtc` (ISO 8601), `durationMinutes`, `summary?`, `contacts?` | Create a new appointment or event in the CRM. `contacts` is an array of CRM contact IDs to invite as attendees. |
+| `updateAppointment` | `appointmentId`, `title?`, `summary?`, `startTimeUtc?`, `durationMinutes?`, `contacts?` | Update or reschedule an existing appointment. Only the supplied fields are changed. `contacts` replaces the entire attendee list when provided. |
+| `confirmAppointment` | `appointmentId` | Mark an existing appointment as confirmed. |
+| `cancelAppointment` | `appointmentId` | Cancel (delete) an existing appointment. Destructive — cannot be undone. |
 
 ### Widget-Only Tools (`widgetTools`)
 

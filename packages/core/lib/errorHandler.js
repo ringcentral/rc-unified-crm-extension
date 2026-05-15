@@ -99,6 +99,18 @@ function getOperationErrorMessage(operation, platform) {
       message: 'Error searching contacts',
       details: ['Please check if your account has permission to GET contacts.'],
     },
+    createAppointment: {
+      message: 'Error creating appointment',
+      details: ['Please check if your account has permission to CREATE appointments. or All attendees have email address.'],
+    },
+    updateAppointment: {
+      message: 'Error updating appointment',
+      details: [`Please check if the appointment entity still exists on ${platform} and your account has permission to EDIT appointments. or All attendees have email address.`],
+    },
+    getAppointment: {
+      message: 'Error getting appointment',
+      details: ['Please check if your account has permission to GET appointments.'],
+    },
   };
 
   const operationInfo = operationMessages[operation] || {
