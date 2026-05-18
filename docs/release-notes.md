@@ -2,7 +2,7 @@
 
 ## 1.7.26
 
-- New: [Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support
+- New: [Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support (Clio, Bullhorn, NetSuite only)
 - Fix: Issue of transferred call overriding first call log
 
 ## 1.7.25

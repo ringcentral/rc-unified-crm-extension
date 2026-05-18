@@ -3,7 +3,7 @@
         "global": [
             {
                 "type": "New",
-                "description": "[Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support"
+                "description": "[Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support (Clio, Bullhorn, NetSuite only)"
             },
             {
                 "type": "Fix",
