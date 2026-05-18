@@ -1,4 +1,16 @@
 {
+    "1.7.26": {
+        "global": [
+            {
+                "type": "New",
+                "description": "[Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support"
+            },
+            {
+                "type": "Fix",
+                "description": "Issue of transferred call overriding first call log"
+            }
+        ]
+    },
     "1.7.25": {
         "global": [
             {
@@ -358,6 +370,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.32": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Issue of transferred call overriding first call log"
             }
         ]
     },

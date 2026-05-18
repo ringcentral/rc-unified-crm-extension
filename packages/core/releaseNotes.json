@@ -1,4 +1,16 @@
 {
+    "1.7.26": {
+        "global": [
+            {
+                "type": "New",
+                "description": "[Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support"
+            },
+            {
+                "type": "Fix",
+                "description": "Issue of transferred call overriding first call log"
+            }
+        ]
+    },
     "1.7.25": {
         "global": [
             {
