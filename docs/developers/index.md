@@ -1,7 +1,6 @@
 ---
 title: "App Connect Developer Framework"
 hide:
-- path
 ---
 # App Connect Developer Guide
 
@@ -15,7 +14,7 @@ Follow our simple getting started guide and **in less than 10 minutes** you will
 
 There are two ways developers can extend the App Connect framework. The first is through "connectors" which assists App Connect in connecting to a system of record like a CRM where users may wish to memorialize communication history and data. The second is through "plugins" which process payloads destined for a CRM. A plugin has the ability to modify a payload prior to it being delivered to a connector for memorialization. 
 
-<div class="grid cards" markdown>
+<div class="grid cards rc-navy" markdown>
 
 -   :material-connection:{ .lg .middle } __Connectors__
 

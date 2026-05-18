@@ -56,13 +56,13 @@ This interface returns a single object. That object describes the contacts that 
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/findContactWithName.js !}
+    --8<-- "packages/template/src/connectors/interfaces/findContactWithName.js"
 	```
 
 
 === "Clio"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:204-261] !}
+    --8<-- "src/connectors/pipedrive/index.js:204:261"
 	```
 

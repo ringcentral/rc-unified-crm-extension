@@ -45,4 +45,4 @@ Unlocking conversation intelligence is a one-click process within the App Connec
 3. Review: Access the "Insights" tab immediately after a call to see summaries and tasks.
 4. Scale: Use aggregated AI data to identify winning patterns across your entire organization.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

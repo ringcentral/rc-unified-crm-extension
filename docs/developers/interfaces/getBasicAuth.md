@@ -31,12 +31,12 @@ Authorization: Basic eHh4LXh4eHgteHh4eHh4eHh4eHh4OnhdY2VyZGlhbQ==
 === "Insightly"
 
 	```js
-    {!> src/connectors/insightly/index.js [ln:19-22] !}
+    --8<-- "src/connectors/insightly/index.js:19:22"
 	```
 
 === "Redtail"
 
 	```js
-    {!> src/connectors/redtail/index.js [ln:17-19] !}
+    --8<-- "src/connectors/redtail/index.js:17:19"
 	```
     

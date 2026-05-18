@@ -26,6 +26,7 @@ jobs:
             mkdocs-material-
       - run: echo "Start"
       - run: pip install mkdocs-material 
+      - run: pip install mkdocs-material-ringcentral 
       - run: pip install mdx_include 
       - run: pip install mkdocs-badges
       - run: pip install mkdocs-exclude

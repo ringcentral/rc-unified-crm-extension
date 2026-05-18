@@ -1,6 +1,6 @@
 # Creating a placeholder contact
 
-{! docs/developers/beta_notice.inc !}
+--8<-- "docs/developers/beta_notice.inc"
 
 In the event that no contact could be found with an associated phone number, then the client application will prompt a user to create a placeholder contact.
 

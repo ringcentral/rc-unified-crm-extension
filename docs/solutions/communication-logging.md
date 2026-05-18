@@ -56,4 +56,4 @@ Automated logging doesn't just save time; it provides the high-quality data need
 3.  **Talk:** Carry out your conversations—the system handles the mapping.
 4.  **Report:** Run powerful CRM reports with total confidence in your activity volume.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"

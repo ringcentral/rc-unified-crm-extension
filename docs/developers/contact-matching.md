@@ -1,6 +1,6 @@
 # Loading a contact record
 
-{! docs/developers/beta_notice.inc !}
+--8<-- "docs/developers/beta_notice.inc"
 
 A critical function performed by the server is looking up a contact record in the target CRM given a phone number, and returning a list of matches for that phone number. In addition, the framework will transmit a list of alternative phone number formats to search for. 
 

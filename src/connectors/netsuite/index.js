@@ -2094,8 +2094,8 @@ async function listAppointments({ user, authHeader, range }) {
         const res = await axios.get(url, {
                 headers: { 'Authorization': authHeader ,'Content-Type': 'application/json'},
                 params: {
-                    script: 646,
-                    deploy: 7, //TODO need to remove this for actual deployment and scriptId 646
+                    script: "customscript_rcfetchcalendarevents",
+                    deploy: "customdeploy_rcfetchcalendarevents", //TODO need to remove this for actual deployment and scriptId 646
                     startDate,
                     endDate,
                     page,

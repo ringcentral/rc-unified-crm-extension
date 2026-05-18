@@ -64,12 +64,12 @@ This interface returns a single object. That object describes the contact that w
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/createContact.js !}
+    --8<-- "packages/template/src/connectors/interfaces/createContact.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:282-311] !}
+    --8<-- "src/connectors/pipedrive/index.js:282:311"
 	```
 

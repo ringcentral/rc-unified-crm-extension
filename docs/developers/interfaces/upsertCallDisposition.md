@@ -28,12 +28,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/upsertCallDisposition.js !}
+    --8<-- "packages/template/src/connectors/interfaces/upsertCallDisposition.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:482-514] !}
+    --8<-- "src/connectors/pipedrive/index.js:482:514"
 	```
 

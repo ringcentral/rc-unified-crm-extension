@@ -10,7 +10,7 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 
 ## Explore by Business Need
 
-<div class="grid cards" markdown>
+<div class="grid cards rc-gradient" markdown>
 
 -   :material-speedometer:{ .lg .middle } __Sales Velocity & Outbound Efficiency__
 
@@ -89,5 +89,5 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 2. Connect: Integrate with your existing CRM or web app in seconds.
 3. Optimize: Use real-time data and AI to refine your team's performance.
 
-{! docs/solutions/solutions-footer.md !}
+--8<-- "docs/solutions/solutions-footer.md"
 
