@@ -564,7 +564,7 @@ async function sendMonthlyCsvReportByEmailWithSalesforceData() {
         const monthName = months[d.getMonth()];
         const dayNum = d.getDate();
         const yearNum = d.getFullYear();
-        const prettySubject = `Bullhorn/Salesforce monthly report (${monthName} ${dayNum}, ${yearNum})`;
+        const prettySubject = `Bullhorn monthly report (${monthName} ${dayNum}, ${yearNum})`;
 
         const requestBody = {
             to: process.env.BULLHORN_REPORT_MAIL_TO,
