@@ -71,7 +71,10 @@ async function execute(args) {
         }
         const platformModule = connectorRegistry.getConnector(platform);
         try {
-            await platformModule.unAuthorize({ user: userToLogout });
+            const logoutResult = await platformModule.unAuthorize({ user: userToLogout });
+            if (!logoutResult.successful) {
+                throw new Error(logoutResult.returnMessage.message);
+            }
         }
         catch (error) {
             console.log(error);

@@ -184,7 +184,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                             }
                         }
                     )
-                    const syncedPluginJwtToken = syncPluginTokenResponse?.data?.jwtToken ?? pluginJwtToken;
+                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
                     axios.post(pluginEndpointUrl, {
                         data: incomingData,
                         config: userConfig,
