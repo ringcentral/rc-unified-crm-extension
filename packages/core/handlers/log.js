@@ -304,6 +304,12 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 pluginAsyncTaskIds
             };
         }
+        else {
+            return {
+                successful: false,
+                returnMessage
+            };
+        }
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
     }
