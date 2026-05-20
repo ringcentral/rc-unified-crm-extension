@@ -8,6 +8,12 @@ jest.mock('../../handlers/admin', () => ({
 jest.mock('../../handlers/managedAuth', () => ({
   getManagedAuthState: jest.fn(),
 }));
+jest.mock('../../handlers/managedOAuth', () => ({
+  getManagedOAuthState: jest.fn(),
+  upsertPendingManagedOAuth: jest.fn(),
+  clearPendingManagedOAuth: jest.fn(),
+  resetManagedOAuth: jest.fn(),
+}));
 jest.mock('../../handlers/auth', () => ({
   onApiKeyLogin: jest.fn(),
 }));
@@ -18,6 +24,7 @@ jest.mock('../../lib/jwt', () => ({
 
 const adminCore = require('../../handlers/admin');
 const managedAuthCore = require('../../handlers/managedAuth');
+const managedOAuthCore = require('../../handlers/managedOAuth');
 const authCore = require('../../handlers/auth');
 const { createCoreRouter } = require('../../index');
 
@@ -60,6 +67,130 @@ describe('Managed Auth Routes', () => {
         rcAccountId: 'validated-account-id',
         rcExtensionId: 'validated-extension-id',
       }));
+    });
+  });
+
+  describe('GET /oauthManagedAuthState', () => {
+    test('should validate rcAccessToken and return managed OAuth state for validated account', async () => {
+      adminCore.validateRcUserToken.mockResolvedValue({
+        rcAccountId: 'validated-account-id',
+        rcExtensionId: 'validated-extension-id',
+      });
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedOAuthCore.getManagedOAuthState.mockResolvedValue({
+        isAdmin: true,
+        hasAccountOAuth: false,
+        hasPendingOAuth: true,
+        pendingValues: {
+          clientId: 'client-id',
+          clientSecret: 'client-secret',
+        },
+      });
+
+      const response = await request(app)
+        .get('/oauthManagedAuthState')
+        .query({
+          platform: 'testCRM',
+          rcAccessToken: 'valid-rc-token',
+          rcAccountId: 'spoofed-account-id',
+        });
+
+      expect(response.status).toBe(200);
+      expect(adminCore.validateRcUserToken).toHaveBeenCalledWith({ rcAccessToken: 'valid-rc-token' });
+      expect(adminCore.validateAdminRole).toHaveBeenCalledWith({ rcAccessToken: 'valid-rc-token' });
+      expect(managedOAuthCore.getManagedOAuthState).toHaveBeenCalledWith({
+        platform: 'testCRM',
+        rcAccountId: 'validated-account-id',
+        isAdmin: true,
+      });
+      expect(response.body.pendingValues.clientSecret).toBe('client-secret');
+    });
+  });
+
+  describe('POST /admin/managedOAuth/cache', () => {
+    test('should require admin role and write pending managed OAuth values for validated account', async () => {
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedOAuthCore.upsertPendingManagedOAuth.mockResolvedValue({});
+
+      const values = {
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+      };
+
+      const response = await request(app)
+        .post('/admin/managedOAuth/cache')
+        .query({ rcAccessToken: 'valid-rc-token' })
+        .send({ values });
+
+      expect(response.status).toBe(200);
+      expect(managedOAuthCore.upsertPendingManagedOAuth).toHaveBeenCalledWith({
+        rcAccountId: 'validated-account-id',
+        values,
+      });
+    });
+
+    test('should reject non-admin users', async () => {
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: false,
+        rcAccountId: 'validated-account-id',
+      });
+
+      const response = await request(app)
+        .post('/admin/managedOAuth/cache')
+        .query({ rcAccessToken: 'valid-rc-token' })
+        .send({ values: { clientId: 'client-id' } });
+
+      expect(response.status).toBe(403);
+      expect(managedOAuthCore.upsertPendingManagedOAuth).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('DELETE /admin/managedOAuth/account', () => {
+    test('should require admin role and delete managed OAuth account for validated account', async () => {
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedOAuthCore.resetManagedOAuth.mockResolvedValue({
+        deletedAccountCount: 1,
+        deletedPendingCount: 1,
+      });
+
+      const response = await request(app)
+        .delete('/admin/managedOAuth/account')
+        .query({
+          rcAccessToken: 'valid-rc-token',
+          platform: 'testCRM',
+        });
+
+      expect(response.status).toBe(200);
+      expect(managedOAuthCore.resetManagedOAuth).toHaveBeenCalledWith({
+        rcAccountId: 'validated-account-id',
+        platform: 'testCRM',
+      });
+    });
+
+    test('should reject non-admin users', async () => {
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: false,
+        rcAccountId: 'validated-account-id',
+      });
+
+      const response = await request(app)
+        .delete('/admin/managedOAuth/account')
+        .query({
+          rcAccessToken: 'valid-rc-token',
+          platform: 'testCRM',
+        });
+
+      expect(response.status).toBe(403);
+      expect(managedOAuthCore.resetManagedOAuth).not.toHaveBeenCalled();
     });
   });
 

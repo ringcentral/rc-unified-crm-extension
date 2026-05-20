@@ -41,6 +41,7 @@ const {
     sqliteCallLogsPkIncludesExtension,
 } = require('./lib/migrateCallLogsSchema');
 const managedAuthCore = require('./handlers/managedAuth');
+const managedOAuthCore = require('./handlers/managedOAuth');
 
 let packageJson = null;
 try {
@@ -441,6 +442,35 @@ function createCoreRouter() {
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
+    router.get('/oauthManagedAuthState', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('oauthManagedAuthState:start', { query: req.query });
+        try {
+            const platform = req.query.platform;
+            const rcAccessToken = req.query.rcAccessToken;
+            if (!platform) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
+                return;
+            }
+            if (!rcAccessToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
+                return;
+            }
+            const { rcAccountId } = await adminCore.validateRcUserToken({ rcAccessToken });
+            const adminValidation = await adminCore.validateAdminRole({ rcAccessToken });
+            const state = await managedOAuthCore.getManagedOAuthState({
+                platform,
+                rcAccountId,
+                isAdmin: !!adminValidation.isValidated
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse(state) : state);
+        }
+        catch (e) {
+            logger.error('Get managed OAuth state failed', { stack: e.stack });
+            tracer?.traceError('oauthManagedAuthState:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
     // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
         const defaultCrmManifest = connectorRegistry.getManifest('default');
@@ -631,6 +661,75 @@ function createCoreRouter() {
         catch (e) {
             logger.error('Set managed auth settings failed', { stack: e.stack });
             tracer?.traceError('setAdminManagedAuth:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.post('/admin/managedOAuth/cache', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('setAdminManagedOAuthCache:start', {
+            body: {
+                hasValues: !!req.body?.values,
+                valueKeys: Object.keys(req.body?.values ?? {}).filter(key => key !== 'clientSecret')
+            }
+        });
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            await managedOAuthCore.upsertPendingManagedOAuth({
+                rcAccountId: rcAccountId?.toString(),
+                values: req.body?.values ?? {}
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Set managed OAuth pending cache failed', { stack: e.stack });
+            tracer?.traceError('setAdminManagedOAuthCache:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.delete('/admin/managedOAuth/cache', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('deleteAdminManagedOAuthCache:start', {});
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            await managedOAuthCore.clearPendingManagedOAuth({ rcAccountId: rcAccountId?.toString() });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Delete managed OAuth pending cache failed', { stack: e.stack });
+            tracer?.traceError('deleteAdminManagedOAuthCache:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.delete('/admin/managedOAuth/account', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('deleteAdminManagedOAuthAccount:start', { query: req.query });
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            if (!req.query.platform) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
+                return;
+            }
+            await managedOAuthCore.resetManagedOAuth({
+                rcAccountId: rcAccountId?.toString(),
+                platform: req.query.platform
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Delete managed OAuth account failed', { stack: e.stack });
+            tracer?.traceError('deleteAdminManagedOAuthAccount:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
