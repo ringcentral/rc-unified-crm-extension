@@ -125,7 +125,7 @@ nav:
     - 'New CRMs':
 #      - 'JobAdder': crm/jobadder.md
       - 'RecruiterPM': crm/recruiterpm.md
-      - 'Service Titan': crm/servicetitan.md
+      - 'ServiceTitan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md
       - 'Zoho': crm/zoho.md
     - 'Developers':
@@ -224,6 +224,7 @@ nav:
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector':
     - 'Overview': build/index.md
+    - 'Captivo Labs': build/captivolabs.md
     - 'Gate6': build/gate6.md
     - 'Loyally': build/loyally.md
     - 'RingCentral': build/professional-services.md
