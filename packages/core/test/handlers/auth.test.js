@@ -23,6 +23,7 @@ const { Connector } = require('../../models/dynamo/connectorSchema');
 const { RingCentral } = require('../../lib/ringcentral');
 const adminCore = require('../../handlers/admin');
 const { AccountDataModel } = require('../../models/accountDataModel');
+const { CacheModel } = require('../../models/cacheModel');
 const { encode } = require('../../lib/encode');
 const { getHashValue } = require('../../lib/util');
 
@@ -664,6 +665,11 @@ describe('Auth Handler', () => {
       oauth.getOAuthApp.mockReturnValue(mockOAuthApp);
     });
 
+    afterEach(async () => {
+      await AccountDataModel.destroy({ where: {} });
+      await CacheModel.destroy({ where: {} });
+    });
+
     test('should handle successful OAuth callback', async () => {
       // Arrange
       const mockUserInfo = {
@@ -891,6 +897,74 @@ describe('Auth Handler', () => {
         expect.any(String),
         overridingOption
       );
+    });
+
+    test('should use pending managed OAuth info and promote it after successful callback', async () => {
+      await CacheModel.create({
+        id: 'rc-managed-managed-oauth-account',
+        status: 'pending',
+        userId: 'rc-managed',
+        cacheKey: 'managed-oauth-account',
+        expiry: new Date(Date.now() + 60000),
+        data: {
+          fields: {
+            clientId: { version: 1, encrypted: true, value: encode(JSON.stringify('managed-client-id')) },
+            clientSecret: { version: 1, encrypted: true, value: encode(JSON.stringify('managed-client-secret')) },
+            accessTokenUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://managed.example.com/token')) },
+            authorizationUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://managed.example.com/authorize')) },
+            redirectUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://ringcentral.github.io/ringcentral-embeddable/redirect.html')) },
+            hostname: { version: 1, encrypted: true, value: encode(JSON.stringify('managed.example.com')) }
+          }
+        }
+      });
+
+      const mockConnector = global.testUtils.createMockConnector({
+        getOauthInfo: jest.fn(),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: { id: 'managed-oauth-user', name: 'Managed OAuth User' },
+          returnMessage: { messageType: 'success', message: 'OK' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      mockOAuthApp.code.getToken.mockResolvedValue({
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        expires: new Date()
+      });
+
+      const result = await authHandler.onOAuthCallback({
+        platform: 'testCRM',
+        hostname: 'old.example.com',
+        tokenUrl: '',
+        query: {
+          callbackUri: 'https://app.example.com/callback?code=code123',
+          rcAccountId: 'rc-managed'
+        }
+      });
+
+      expect(result.userInfo.id).toBe('managed-oauth-user');
+      expect(mockConnector.getOauthInfo).not.toHaveBeenCalled();
+      expect(oauth.getOAuthApp).toHaveBeenCalledWith(expect.objectContaining({
+        clientId: 'managed-client-id',
+        clientSecret: 'managed-client-secret',
+        accessTokenUri: 'https://managed.example.com/token',
+        authorizationUri: 'https://managed.example.com/authorize'
+      }));
+      expect(mockConnector.getUserInfo).toHaveBeenCalledWith(expect.objectContaining({
+        hostname: 'managed.example.com',
+        tokenUrl: 'https://managed.example.com/token'
+      }));
+      const promoted = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-managed',
+          platformName: 'testCRM',
+          dataKey: 'managed-oauth-account'
+        }
+      });
+      expect(promoted).not.toBeNull();
+      const pending = await CacheModel.findByPk('rc-managed-managed-oauth-account');
+      expect(pending).toBeNull();
     });
   });
 

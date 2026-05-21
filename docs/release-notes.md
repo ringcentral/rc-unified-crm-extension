@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.26
+
+- New: [Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support (Clio, Bullhorn, NetSuite only)
+- Fix: Issue of transferred call overriding first call log
+
 ## 1.7.25
 
 - Fix: Click-to-dial render issue
@@ -130,6 +135,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.32
+
+- Fix: Issue of transferred call overriding first call log
 
 ## 1.6.31
 

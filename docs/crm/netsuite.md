@@ -60,6 +60,7 @@ We recommend using the "RingCentral App Connect" role created for you when you i
 | Lists        | Documents and Files                  | Full                        |
 | Lists        | Employees                            | View                        |
 | Lists        | Employee Record                      | View                        |
+| Lists        | Events                               | Full  (required for Appointments feature) |
 | Reports      | SuiteAnalytics Workbook              | Edit                        |
 | Setup        | Log in using OAuth 2.0 Access Tokens | Full                        |
 | Setup        | REST Web Services                    | Full                        |

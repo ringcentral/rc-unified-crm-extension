@@ -135,6 +135,7 @@ nav:
 
   - 'App Connect features':
     - 'AI Assistant': users/ai.md
+    - 'Appointments (2.0)': users/appointments.md
     - 'Call-down lists (2.0)': users/calldown-lists.md
     - 'Call monitoring (2.0)': users/hud.md
     - 'Click-to-dial': users/making-calls.md

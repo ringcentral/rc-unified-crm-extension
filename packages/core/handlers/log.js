@@ -184,7 +184,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                             }
                         }
                     )
-                    const syncedPluginJwtToken = syncPluginTokenResponse?.data?.jwtToken ?? pluginJwtToken;
+                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
                     axios.post(pluginEndpointUrl, {
                         data: incomingData,
                         config: userConfig,
@@ -302,6 +302,12 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
                 extraDataTracking,
                 pluginAsyncTaskIds
+            };
+        }
+        else {
+            return {
+                successful: false,
+                returnMessage
             };
         }
     } catch (e) {
