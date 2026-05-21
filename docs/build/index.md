@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">5</span>
+      <span class="crm-mkt__stat-num">4</span>
       <span class="crm-mkt__stat-label">Partners</span>
     </div>
     <div class="crm-mkt__stat">
