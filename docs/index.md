@@ -83,7 +83,7 @@ Logging to your CRM in real time
 <div class="ac-v5-ticker-pill"><a href="crm/zoho/"><img src="img/crm-logo-zoho.png" alt="Zoho CRM"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/insightly/"><img src="img/crm-logo-insightly.png" alt="Insightly"></a></div>
 <div class="ac-v5-ticker-pill"><a href="crm/redtail/"><img src="img/crm-logo-redtail.png" alt="Redtail"></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom-aa/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
+<div class="ac-v5-ticker-pill"><a href="crm/smokeball/"><img src="img/crm-logo-smokeball.png" alt="Smokeball"></a></div>
 <!-- duplicate set for seamless loop -->
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/agencyzoom/" tabindex="-1"><img src="img/crm-logo-agencyzoom.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/bullhorn/" tabindex="-1"><img src="img/crm-logo-bullhorn.png" alt=""></a></div>
@@ -97,7 +97,7 @@ Logging to your CRM in real time
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/zoho/" tabindex="-1"><img src="img/crm-logo-zoho.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/insightly/" tabindex="-1"><img src="img/crm-logo-insightly.png" alt=""></a></div>
 <div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/redtail/" tabindex="-1"><img src="img/crm-logo-redtail.png" alt=""></a></div>
-<div class="ac-v5-ticker-pill"><a href="crm/agencyzoom-aa/"><img src="img/crm-logo-agencyzoom.png" alt="AgencyZoom"></a></div>
+<div class="ac-v5-ticker-pill" aria-hidden="true"><a href="crm/smokeball/" tabindex="-1"><img src="img/crm-logo-smokeball.png" alt=""></a></div>
 </div>
 </div>
 </div>
