@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">12+</span>
+      <span class="crm-mkt__stat-num">15+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -124,6 +124,19 @@ hide:
     </div>
   </a>
 
+  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-monday.png" alt="monday.com"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Work OS / Project Management</div>
+      <div class="crm-mkt__name">monday.com</div>
+      <p class="crm-mkt__desc">Bring RingEX call activity into monday.com boards — automatically creating items and logging communication history.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon · Gate6</span>
+
+    </div>
+  </div>
+
   <a href="netsuite/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-netsuite.png" alt="NetSuite"></div>
     <div class="crm-mkt__body">
@@ -175,6 +188,32 @@ hide:
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>
+
+  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Field Service Management</div>
+      <div class="crm-mkt__name">ServiceTitan</div>
+      <p class="crm-mkt__desc">Log RingEX calls and activity directly into ServiceTitan jobs and customer records for field service teams.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon · Gate6</span>
+
+    </div>
+  </div>
+
+  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-smokeball.png" alt="Smokeball"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Legal Practice Management</div>
+      <div class="crm-mkt__name">Smokeball</div>
+      <p class="crm-mkt__desc">Automatically log RingEX calls and communications against Smokeball matters and client records.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon · Captivo Labs</span>
+
+    </div>
+  </div>
 
   <a href="zoho/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-zoho.png" alt="Zoho CRM"></div>

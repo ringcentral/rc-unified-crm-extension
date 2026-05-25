@@ -33,6 +33,19 @@ hide:
      ═══════════════════════════════════════════════════════════ -->
 <div class="crm-mkt__grid">
 
+  <a href="captivolabs/" class="crm-mkt__card">
+    <div class="crm-mkt__logo"><img src="../../img/vendor-captivolabs.svg" alt="Captivo Labs"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">Integration Partner</div>
+      <div class="crm-mkt__name">Captivo Labs</div>
+      <p class="crm-mkt__desc">Connects UCaaS and CCaaS platforms to the business applications professional services teams rely on — every call logged automatically.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--partner">Certified Partner</span>
+      <span class="crm-mkt__cta">Learn more →</span>
+    </div>
+  </a>
+
   <a href="gate6/" class="crm-mkt__card">
     <div class="crm-mkt__logo"><img src="../../img/vendor-gate6.png" alt="Gate6"></div>
     <div class="crm-mkt__body">

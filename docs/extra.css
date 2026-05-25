@@ -441,6 +441,29 @@
 [data-md-color-scheme="slate"] .bld-cta { background: #0F1320; border: 1px solid rgba(255,255,255,0.08); }
 
 /* ─── CRM catalog — multi-vendor badge ──────────────────────── */
+.crm-mkt__by--coming-soon {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+[data-md-color-scheme="slate"] .crm-mkt__by--coming-soon {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+.crm-mkt__card--coming-soon {
+    opacity: 0.72;
+    pointer-events: none;
+    cursor: default;
+}
+.crm-mkt__card--coming-soon .crm-mkt__cta {
+    color: #94a3b8 !important;
+}
+
 .crm-mkt__by--multi {
     background: rgba(99, 91, 255, 0.1);
     color: #4a42c8;
