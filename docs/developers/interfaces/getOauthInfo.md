@@ -24,7 +24,7 @@ This method should return an associative array with the following keys and value
   'clientId': 'xxx-xxxx-xxxxxxxxxx-xxxx',
   'clientSecret': 'xxxxxxxx-xxxxxxxxxxxxxxxxxx',
   'accessTokenUri': 'https://auth.crm.com/token',
-  'redirectUri': 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html'
+  'redirectUri': 'https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html'
 }
 ```
 

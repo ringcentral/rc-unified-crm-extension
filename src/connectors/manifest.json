@@ -1,6 +1,6 @@
 {
   "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
-  "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+  "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html",
   "author": {
     "name": "RingCentral Labs",
     "websiteUrl": "https://github.com/ringcentral/rc-unified-crm-extension"
@@ -449,7 +449,7 @@
         "oauth": {
           "authUrl": "https://app.clio.com/oauth/authorize",
           "clientId": "JxK4GglGRoZnWoKA4sSLoXa5PHA2E6Mjisv3iIMY",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html"
         }
       },
       "canOpenLogPage": true,
@@ -1117,7 +1117,7 @@
         "oauth": {
           "authUrl": "https://auth.bullhornstaffing.com/oauth/authorize",
           "clientId": "5a1ff851-6b1c-454d-8501-826502e6fc76",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html"
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html"
         }
       },
       "canOpenLogPage": false,
@@ -1383,7 +1383,7 @@
         "oauth": {
           "authUrl": "https://system.netsuite.com/app/login/oauth2/authorize.nl",
           "clientId": "0bc4b1f329aefe9320d80ae080216faccd19c9cf11c19256d7440b25df6b1b5a",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html",
           "scope": "scope=restlets+rest_webservices",
           "customState": "fillerString,platform=netsuite"
         }
@@ -1640,7 +1640,7 @@
         "oauth": {
           "authUrl": "https://accounts.google.com/o/oauth2/auth",
           "clientId": "367818015386-1stdjqph9nibo5f2eqiiso12tikqtenp.apps.googleusercontent.com",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html",
           "scope": "access_type=offline&prompt=consent&scope=https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
           "customState": "platform=googleSheets"
         }
@@ -1756,7 +1756,7 @@
         "oauth": {
           "authUrl": "https://marketplace.leadconnectorhq.com/oauth/chooselocation",
           "clientId": "6853f0bbff0de297bfb03756-mc3adi25",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html",
           "customState": "",
           "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
         }
@@ -1853,7 +1853,7 @@
         "oauth": {
           "authUrl": "",
           "clientId": "",
-          "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+          "redirectUri": "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html",
           "customState": "",
           "scope": ""
         }
