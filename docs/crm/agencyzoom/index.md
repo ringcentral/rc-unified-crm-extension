@@ -14,6 +14,9 @@ title: AgencyZoom — App Connect Integration
   </div>
 </div>
 
+!!! info "Requires App Connect 2.0"
+    This integration is only available in [App Connect 2.0](../../2.0/index.md). Make sure you have the latest version installed before getting started.
+
 App Connect supports AgencyZoom through two certified partner integrations. Both log RingEX calls and SMS directly into AgencyZoom client records — choose the option that best fits your agency's size, workflow, and budget.
 
 ## Choose your integration
