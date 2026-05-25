@@ -106,6 +106,7 @@ nav:
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md
+  - 'Smokeball': crm/smokeball.md
   - 'Zoho': crm/zoho.md
 - 'Solutions':
   - 'Overview': solutions/index.md
@@ -124,7 +125,7 @@ nav:
     - 'Download': 2.0/download.md
     - 'New CRMs':
 #      - 'JobAdder': crm/jobadder.md
-      - 'RecruiterPM': crm/recruiterpm.md
+      - 'AgencyZoom': crm/agencyzoom/index.md
       - 'ServiceTitan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md
       - 'Zoho': crm/zoho.md

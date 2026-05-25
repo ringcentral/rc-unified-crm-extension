@@ -1,5 +1,8 @@
 # App Connect and Freshdesk
 
+!!! info "Requires App Connect 2.0"
+    This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
+
 Freshdesk, the online customer engagement solution from Freshworks, lets you streamline your company's customer support using the customer service software and helps you to efficiently manage your customers as you scale. 
 
 RingCentral supports Freshdesk via a trusted third-party vendor and Premium Partner [Loyally](https://loyally.eu/), whose experience with Freshdesk began with their popular custom-built [Freshdesk integration](https://www.ringcentral.com/apps/freshdesk-premium-cti). 
