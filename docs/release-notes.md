@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.7.27
+
+- New: Managed OAuth for platforms with dynamic OAuth configs for different accounts
+
 ## 1.7.26
 
 - New: [Appointments](https://appconnect.labs.ringcentral.com/users/appointments/) support (Clio, Bullhorn, NetSuite only)

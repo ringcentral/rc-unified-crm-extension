@@ -1,4 +1,12 @@
 {
+    "1.7.27": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Managed OAuth for platforms with dynamic OAuth configs for different accounts"
+            }
+        ]
+    },
     "1.7.26": {
         "global": [
             {
