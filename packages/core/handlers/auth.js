@@ -34,6 +34,8 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     if (!oauthInfo) {
         oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
     }
+    const resolvedHostname = oauthInfo?.hostname ?? hostname;
+    const resolvedTokenUrl = oauthInfo?.accessTokenUri ?? tokenUrl;
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,
@@ -53,7 +55,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl: resolvedTokenUrl, apiUrl, hostname: resolvedHostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
 
     if (successful) {
         let userInfo = null;
@@ -61,10 +63,10 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
             userInfo = await saveUserInfo({
                 platformUserInfo,
                 platform,
-                tokenUrl,
+                tokenUrl: resolvedTokenUrl,
                 apiUrl,
                 username,
-                hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
+                hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : resolvedHostname,
                 accessToken,
                 refreshToken,
                 tokenExpiry: isNaN(expires) ? null : expires,
