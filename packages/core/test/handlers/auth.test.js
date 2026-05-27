@@ -912,7 +912,7 @@ describe('Auth Handler', () => {
             clientSecret: { version: 1, encrypted: true, value: encode(JSON.stringify('managed-client-secret')) },
             accessTokenUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://managed.example.com/token')) },
             authorizationUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://managed.example.com/authorize')) },
-            redirectUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html')) },
+            redirectUri: { version: 1, encrypted: true, value: encode(JSON.stringify('https://ringcentral.github.io/ringcentral-embeddable/redirect.html')) },
             hostname: { version: 1, encrypted: true, value: encode(JSON.stringify('managed.example.com')) }
           }
         }

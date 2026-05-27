@@ -36,7 +36,7 @@ The framework will compose an OAuth compliant auth URL for you by appending to t
 
 App Connect's framework utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
 
-    https://ringcentral.github.io/ringcentral-embeddable/redirect.html
+    https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html
 
 It should suffice standard OAuth use cases. If there's any special case, please contact us.
 
