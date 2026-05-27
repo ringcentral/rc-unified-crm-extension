@@ -1,47 +1,110 @@
-# Accessing the phone dialer to make calls
+---
+title: App Connect — Documentation
+---
 
-App Connect makes available to users a fully-functional web phone for placing and receiving calls, as well as recording notes and call dispositions related to those calls -- not to mention numerous other features. The web phone can be accessed in one of two ways.
+# App Connect Documentation
 
-## Click the quick access badge
+App Connect is RingCentral's open framework for embedding a full RingEX phone directly into your CRM — and automatically logging every call, text, and voicemail against the right contact record without any manual entry.
 
-When logged into and viewing your CRM, an orange "R" handle/badge will appear in the lower-righthand corner of your browser window. Click the badge to open the dialer window and/or bring it to the foreground. 
+It runs as a browser extension for Google Chrome and Microsoft Edge. Admins deploy and configure it once; end users get a fully-featured CTI dialer inside whatever platform they already work in.
 
-<figure markdown>
-  ![Quick Access badge](../img/quick-access.png)
-  <figcaption>App Connect's quick access badge</figcaption>
-</figure>
+---
 
-!!! tip "If the orange badge obscures page content, or if you wish to hide it for other reasons, you may turn this off using an advanced configuration parameter."
+## Works across all your RingCentral devices
 
-## Disabling the quick access badge
+One of App Connect's most important — and most frequently asked about — capabilities is that it logs calls made from **any RingCentral device**, not just from the CTI itself. No matter where your team makes or receives calls, the activity shows up in your CRM.
 
-If you wish, you can disable the quick access badge from Settings > General > Enabled domains. From here you can control what web pages and URLs the badge will appear, or not appear. 
+<div class="grid cards" markdown>
 
-<figure markdown>
-  ![Quick Access badge settings](../img/badge-settings.png){ .mw-450 }
-  <figcaption>Controlling where the quick access badge will appear in Settings</figcaption>
-</figure>
+- :material-monitor: **RingCentral desktop app**
 
-By default, quick access badge and click-to-dial only work on your CRM pages, but you are free to set your own preference from the list below:
+    Calls made from the RingCentral desktop app are captured and logged automatically.
 
-* Disabled
-* Enable for connected CRM only
-* Block by default (then manage a list of sites to allow)
-* Allow by default (then manage a list of sites to block)
+- :material-cellphone: **RingCentral mobile app**
 
-If either "Block by default" or "Allow by default" are selected, users can then manage a list of URLs for which the badge will appear or be blocked respectively. 
+    Calls from iOS or Android are logged just like any other call — no action required from the user.
 
-## Pinning App Connect to your browser bar
+- :material-deskphone: **Desk phones**
 
-You can open App Connect's dialer by finding the extension in your list of installed extensions and clicking "RingCentral App Connect." For those who prefer this method over using the quick access badge that is rendered within the CRM, you can optionally pin App Connect from the extensions menu by clicking the pin icon. 
+    Physical desk phones on your RingEX account are fully supported. Every call is logged.
 
-<figure markdown>
-  ![Chrome extensions menu](../img/chrome-extension-menu.png)
-  <figcaption>App Connect's quick access badge</figcaption>
-</figure>
+- :material-web: **App Connect CTI**
 
-!!! tip "Pin the extension to your browser bar"
-    If you need to access the extension often, you can "pin" the extension to your location bar so that it is more readily available.
-	
-    ![Chrome location bar with pinned extension](../img/chrome-pinning-ext.png)
+    Calls placed directly through the embedded CTI dialer in your CRM are logged in real time.
 
+</div>
+
+---
+
+## Common documentation
+
+<div class="grid cards" markdown>
+
+- :material-phone-log: **[Call logging](logging.md)**
+
+    Understand how App Connect logs calls — automatically and manually — and how to configure logging behavior.
+
+- :material-card-account-phone: **[Screen pop](screen-pop.md)**
+
+    Surface the matching contact record the moment a call arrives, so your team always has context before they say hello.
+
+- :material-cursor-default-click: **[Click-to-dial](making-calls.md)**
+
+    Dial any phone number in your CRM with a single click — no copy-pasting, no manual dialing.
+
+- :material-text-box-check: **[Logging AI transcripts](ai.md)**
+
+    Capture AI-generated call summaries and transcripts alongside the call record in your CRM.
+
+</div>
+
+---
+
+## For administrators
+
+<div class="grid cards" markdown>
+
+- :material-server: **[Server-side call logging](server-side-logging.md)**
+
+    Configure App Connect to log calls server-side — ensuring activity is captured even when users aren't in their browser.
+
+- :material-tune: **[Managed settings](managed-settings.md)**
+
+    Push configuration to all users in your organisation from a central admin panel. Lock settings, enforce defaults, and manage rollout.
+
+- :material-chart-bar: **[Metrics and reports](user-report.md)**
+
+    Track call activity, logging rates, and team usage with built-in reporting tools.
+
+</div>
+
+---
+
+## End-user favorites
+
+<div class="grid cards" markdown>
+
+- :material-voicemail: **[Voicemail drop](voicemail-drop.md)**
+
+    Leave a pre-recorded voicemail instantly when a call goes unanswered — without waiting for the beep.
+
+- :material-format-list-checks: **[Call-down lists](calldown-lists.md)**
+
+    Work through a list of contacts with a single click per call — built for outreach, follow-up, and high-volume calling workflows.
+
+- :material-phone-outgoing: **[Click-to-dial](making-calls.md)**
+
+    Start calls from within your CRM without ever touching a dial pad.
+
+</div>
+
+---
+
+## Getting started
+
+New to App Connect? Start here.
+
+- [Install App Connect](../getting-started.md) — download from the Chrome or Edge web store
+- [Accessing the dialer](../getting-started.md#accessing-the-dialer) — open the CTI inside your CRM
+- [Connect to your CRM](../getting-started.md#connecting-to-your-crm) — link App Connect to your account
+- [Browse CRM integrations](../crm/index.md) — see all supported platforms

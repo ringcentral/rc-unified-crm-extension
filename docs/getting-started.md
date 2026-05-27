@@ -52,4 +52,26 @@ Each CRM may have a slightly different approach in order to install the extensio
 * [Connect and setup Redtail CRM](./crm/redtail.md)
 * [Connect and setup ServiceNow](./crm/servicenow.md)
 
+## Accessing the dialer
 
+Once installed, App Connect can be opened in two ways.
+
+### Click the quick access badge
+
+When logged into and viewing your CRM, an orange "R" badge will appear in the lower-right corner of your browser window. Click it to open the dialer and bring it to the foreground.
+
+<figure markdown>
+  ![Quick Access badge](img/quick-access.png)
+  <figcaption>App Connect's quick access badge</figcaption>
+</figure>
+
+!!! tip "If the badge obscures page content you can control which sites it appears on from Settings > General > Enabled domains."
+
+### Pin App Connect to your browser bar
+
+You can also open App Connect by clicking its icon in your browser's extension bar. Pin it for quicker access by opening the extensions menu and clicking the pin icon next to RingCentral App Connect.
+
+<figure markdown>
+  ![Chrome extensions menu](img/chrome-extension-menu.png)
+  <figcaption>Pin App Connect to your browser bar for quick access</figcaption>
+</figure>
