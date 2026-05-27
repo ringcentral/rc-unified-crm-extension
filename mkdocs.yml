@@ -117,7 +117,7 @@ nav:
   - 'AI-generated insights': solutions/artificial-intelligence.md
   - 'Universal connector': solutions/integrations.md
 - 'Documentation':
-  - 'Introduction': users/access.md
+  - 'Overview': users/access.md
   - 'Installation': getting-started.md
 
   - 'App Connect 2.0 Beta':
