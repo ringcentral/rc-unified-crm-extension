@@ -114,19 +114,16 @@ We have commitments from developers to build adapters to the following CRMs usin
 
 <div class="grid cards crm-list" markdown>
 
--    [![JobAdder Logo](../img/crm-logo-jobadder.png){.crm-logo}](../crm/jobadder.md)
-     [JobAdder by JobAdder](../crm/jobadder.md)
+-    [![AgencyZoom Logo](../img/crm-logo-agencyzoom.png){.crm-logo}](../crm/agencyzoom/index.md)
+     [AgencyZoom](../crm/agencyzoom/index.md)
 
--    [![RecruiterPM Logo](../img/crm-logo-recruiterpm.png){.crm-logo}](../crm/recruiterpm.md)
-     [RecruiterPM by RecruiterPM](../crm/recruiterpm.md)
-
--    [![Service Titan Logo](../img/crm-logo-servicetitan.png){.crm-logo}](../crm/servicetitan.md)
-     [Service Titan by Gate6](../crm/servicetitan.md)
+-    [![ServiceTitan Logo](../img/crm-logo-servicetitan.png){.crm-logo}](../crm/servicetitan.md)
+     [ServiceTitan by Gate6](../crm/servicetitan.md)
 
 -    [![Smokeball Logo](../img/crm-logo-smokeball.png){.crm-logo}](../crm/smokeball.md)
-     [Smokeball by ion8](../crm/smokeball.md)
+     [Smokeball by Captivo Labs](../crm/smokeball.md)
 
--    ![Zoho Logo](../img/crm-logo-zoho.png){.crm-logo}
+-    [![Zoho Logo](../img/crm-logo-zoho.png){.crm-logo}](../crm/zoho.md)
      [Zoho by RingClone](../crm/zoho.md)
 
 </div>

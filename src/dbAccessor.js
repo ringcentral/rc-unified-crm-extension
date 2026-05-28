@@ -1,19 +1,14 @@
-// require('dotenv').config();
+
 const { sequelize } = require('@app-connect/core/models/sequelize');
 const logger = require('@app-connect/core/lib/logger');
-const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
-const { getHashValue } = require('@app-connect/core/lib/util');
+const { UserModel } = require('@app-connect/core/models/userModel');
 const { Op } = require('sequelize');
-const { where, fn, col } = require('sequelize');
-
+const { where, json } = require('sequelize');
+// require('dotenv').config();
 async function executeQuery(input) {
     try {
-        if (input.dbQuery === 'migrate dry') {
-            await migration({ dryRun: true, threshold: 20 })
-            return;
-        }
-        else if (input.dbQuery === 'migrate') {
-            await migration({ dryRun: false, threshold: 20 })
+        if (input.dbQuery === 'migrate') {
+            await migration()
             return;
         }
         logger.info(input.dbQuery);
@@ -27,87 +22,57 @@ async function executeQuery(input) {
 
 async function migration(options) {
     try {
-        await migrateUnhashedData(options);
-        console.log(`Migration completed successfully${options.dryRun ? ' (dry run only)' : ''}.`);
+        const ausUsers = await UserModel.findAll({
+            where: {
+                platform: 'bullhorn',
+                [Op.and]: where(json('platformAdditionalInfo.tokenUrl'), {
+                    [Op.like]: 'https://auth-aus%'
+                })
+            }
+        });
+        logger.info(`Found ${ausUsers.length} bullhorn AUS users`);
+        logger.info(JSON.stringify(ausUsers.map(user => user.id), null, 2));
+        for (const user of ausUsers) {
+            const platformAdditionalInfo = {
+                ...user.platformAdditionalInfo,
+                tokenUrl: user.platformAdditionalInfo.tokenUrl.replace('-aus', '-syd'),
+                loginUrl: user.platformAdditionalInfo.loginUrl.replace('-aus', '-syd'),
+                restUrl: user.platformAdditionalInfo.restUrl.replace('-aus', '-syd'),
+            };
+            user.set('platformAdditionalInfo', platformAdditionalInfo);
+            user.changed('platformAdditionalInfo', true);
+            console.log(user.platformAdditionalInfo);
+            await user.save({ fields: ['platformAdditionalInfo'] });
+            logger.info(`Updated user ${user.id} with new token URL`);
+        }
+        // const singaporeUsers = await UserModel.findAll({
+        //     where: {
+        //         platform: 'bullhorn',
+        //         [Op.and]: where(json('platformAdditionalInfo.tokenUrl'), {
+        //             [Op.like]: 'https://auth-apac%'
+        //         })
+        //     }
+        // });
+        // logger.info(`Found ${singaporeUsers.length} bullhorn APAC users`);
+        // logger.info(JSON.stringify(singaporeUsers.map(user => user.id), null, 2));
+        // for (const user of singaporeUsers) {
+        //     const platformAdditionalInfo = {
+        //         ...user.platformAdditionalInfo,
+        //         tokenUrl: user.platformAdditionalInfo.tokenUrl.replace('-apac', '-syd'),
+        //         loginUrl: user.platformAdditionalInfo.loginUrl.replace('-apac', '-syd'),
+        //         restUrl: user.platformAdditionalInfo.restUrl.replace('-apac', '-syd'),
+        //     };
+        //     user.set('platformAdditionalInfo', platformAdditionalInfo);
+        //     user.changed('platformAdditionalInfo', true);
+        //     console.log(user.platformAdditionalInfo);
+        //     await user.save({ fields: ['platformAdditionalInfo'] });
+        //     logger.info(`Updated user ${user.id} with new token URL`);
+        // }
     } catch (error) {
         console.error('Migration failed:', error);
         process.exitCode = 1;
     }
 }
 
-function getIdLengthExpression() {
-    const dialect = sequelize.getDialect();
-    const lengthFnName = dialect === 'sqlite' ? 'length' : 'char_length';
-    return fn(lengthFnName, col('id'));
-}
-
-async function migrateUnhashedData({ dryRun, threshold }) {
-    if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL is required');
-    }
-    if (!process.env.HASH_KEY) {
-        throw new Error('HASH_KEY is required');
-    }
-
-    const unhashedItems = await AdminConfigModel.findAll({
-        where: where(getIdLengthExpression(), {
-            [Op.lt]: threshold,
-        }),
-        order: [['id', 'ASC']],
-    });
-
-    console.log(`Found ${unhashedItems.length} adminConfig record(s) with id length < ${threshold}.`);
-
-    for (const item of unhashedItems) {
-        const oldId = item.id;
-        const hashedId = getHashValue(oldId, process.env.HASH_KEY);
-
-        if (oldId === hashedId) {
-            console.log(`Skipping ${oldId}: id is already hashed.`);
-            continue;
-        }
-
-        const transaction = dryRun ? null : await sequelize.transaction();
-
-        try {
-            const existingRecord = await AdminConfigModel.findByPk(hashedId, { transaction });
-
-            if (existingRecord) {
-                if (dryRun) {
-                    console.log(`[dry-run] Would merge ${oldId} into existing record ${hashedId}`);
-                } else {
-                    await existingRecord.update({
-                        adminAccessToken: item.adminAccessToken,
-                        adminRefreshToken: item.adminRefreshToken,
-                        adminTokenExpiry: item.adminTokenExpiry,
-                    }, { transaction });
-                    await item.destroy({ transaction });
-                    await transaction.commit();
-                    console.log(`Merged ${oldId} into existing record ${hashedId} and deleted original.`);
-                }
-            } else {
-                const plainData = item.get({ plain: true });
-                const newData = {
-                    ...plainData,
-                    id: hashedId,
-                };
-
-                if (dryRun) {
-                    console.log(`[dry-run] Would create ${hashedId} from ${oldId} and delete original.`);
-                } else {
-                    await AdminConfigModel.create(newData, { transaction });
-                    await item.destroy({ transaction });
-                    await transaction.commit();
-                    console.log(`Created hashed record ${hashedId} from ${oldId} and deleted original.`);
-                }
-            }
-        } catch (error) {
-            if (transaction) {
-                await transaction.rollback();
-            }
-            throw new Error(`Failed to migrate adminConfig ${oldId}: ${error.message}`);
-        }
-    }
-}
 
 exports.app = executeQuery;

@@ -1,6 +1,6 @@
 # Configuring your connector's manifest
 
-{! docs/developers/beta_notice.inc !}
+--8<-- "docs/developers/beta_notice.inc"
 
 An connector's manifest file helps a developer to instruct the framework on how to interface with your connector. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
 
@@ -52,7 +52,7 @@ The platforms property is an associative array. Each key should be a unique iden
 | `page`           | object          | The rendering config for all pages. |
 |`requestConfig`| object| Contains http request config for client extension, including `timeout` (number in seconds)|
 
-The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html`
+The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`
 
 ## Authorization
 
@@ -70,7 +70,7 @@ The client-side authorization url that is opened by the extension will be: `{aut
 |-|-|-|
 | `authUrl`     | string | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
 | `clientId`    | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
-| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://ringcentral.github.io/ringcentral-embeddable/redirect.html`. |
+| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`. |
 | `customState` | string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `scope`       | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
 

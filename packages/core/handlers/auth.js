@@ -9,6 +9,7 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleDatabaseError } = require('../lib/errorHandler');
 const managedAuthCore = require('./managedAuth');
 const util = require('../lib/util');
+const managedOAuthCore = require('./managedOAuth');
 const { getHashValue } = require('../lib/util');
 
 async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcExtensionId, isFromMCP = false }) {
@@ -22,7 +23,21 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     if (proxyId) {
         proxyConfig = await Connector.getProxyConfig(proxyId);
     }
-    const oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
+    let managedOAuthSource = null;
+    let oauthInfo = null;
+    if (query.rcAccountId) {
+        const managedOAuthResult = await managedOAuthCore.resolveManagedOAuthInfo({
+            rcAccountId: query.rcAccountId,
+            platform
+        });
+        managedOAuthSource = managedOAuthResult.source;
+        oauthInfo = managedOAuthResult.oauthInfo;
+    }
+    if (!oauthInfo) {
+        oauthInfo = await platformModule.getOauthInfo({ tokenUrl, hostname, rcAccountId: query.rcAccountId, proxyId, proxyConfig, userEmail, isFromMCP });
+    }
+    const resolvedHostname = oauthInfo?.hostname ?? hostname;
+    const resolvedTokenUrl = oauthInfo?.accessTokenUri ?? tokenUrl;
     if (oauthInfo.failMessage) {
         return {
             userInfo: null,
@@ -42,7 +57,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
     const authHeader = `Bearer ${accessToken}`;
-    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl, apiUrl, hostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
+    const { successful, platformUserInfo, returnMessage } = await platformModule.getUserInfo({ authHeader, tokenUrl: resolvedTokenUrl, apiUrl, hostname: resolvedHostname, platform, username, callbackUri, query, proxyId, proxyConfig, userEmail, data });
 
     if (successful) {
         let userInfo = null;
@@ -50,10 +65,10 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
             userInfo = await saveUserInfo({
                 platformUserInfo,
                 platform,
-                tokenUrl,
+                tokenUrl: resolvedTokenUrl,
                 apiUrl,
                 username,
-                hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : hostname,
+                hostname: platformUserInfo?.overridingHostname ? platformUserInfo.overridingHostname : resolvedHostname,
                 accessToken,
                 refreshToken,
                 tokenExpiry: isNaN(expires) ? null : expires,
@@ -67,6 +82,12 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
         }
         if (platformModule.postSaveUserInfo) {
             userInfo = await platformModule.postSaveUserInfo({ userInfo, oauthApp });
+        }
+        if (managedOAuthSource === 'pending') {
+            await managedOAuthCore.migratePendingManagedOAuth({
+                rcAccountId: query.rcAccountId,
+                platform
+            });
         }
         return {
             userInfo,
@@ -251,7 +272,12 @@ async function authValidation({ platform, userId }) {
     if (existingUser) {
         const platformModule = connectorRegistry.getConnector(platform);
         const proxyId = existingUser?.platformAdditionalInfo?.proxyId;
-        const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname, proxyId })));
+        const managedOAuthResult = await managedOAuthCore.resolveManagedOAuthInfo({
+            rcAccountId: existingUser.rcAccountId,
+            platform
+        });
+        const oauthInfo = managedOAuthResult.oauthInfo ?? await platformModule.getOauthInfo({ tokenUrl: existingUser?.platformAdditionalInfo?.tokenUrl, hostname: existingUser?.hostname, proxyId });
+        const oauthApp = oauth.getOAuthApp(oauthInfo);
         existingUser = await oauth.checkAndRefreshAccessToken(oauthApp, existingUser);
         const { successful, returnMessage, status } = await platformModule.authValidation({ user: existingUser });
         return {

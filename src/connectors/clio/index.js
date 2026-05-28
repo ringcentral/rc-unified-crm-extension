@@ -262,7 +262,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             ]
                         } :
                         {
-                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+                            billableStatus: [
+                                { "const": "billable", "title": "Billable" },
+                                { "const": "non-billable", "title": "Non-billable" }
+                            ]
                         }
                 })
             }
@@ -391,7 +395,7 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
             // If b has email and a does not, b comes first (1)
             // If both have email or neither, order doesn't change (0)
             const aHasEmail = (a.email && a.email.trim() !== '');
-            const bHasEmail = (b.email  && b.email.trim() !== '');
+            const bHasEmail = (b.email && b.email.trim() !== '');
             if (aHasEmail && !bHasEmail) return -1;
             if (!aHasEmail && bHasEmail) return 1;
             return 0;
@@ -1182,7 +1186,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
 
         const id = e?.id != null ? `${e.id}` : null;
         const attendees = (e?.attendees ?? [])
-            .map(a => (a?.id != null ? {id: a?.id, name: a?.name, type: a?.type} : null))
+            .map(a => (a?.id != null ? { id: a?.id, name: a?.name, type: a?.type } : null))
             .filter(Boolean);
         return {
             thirdPartyAppointmentId: id,
@@ -1304,7 +1308,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
             .map(a => {
                 if (a?.id == null) return null;
                 const n = typeof a.id === 'number' ? a.id : Number(a.id);
-                
+
                 return { id: n, type: 'Contact' };
             })
             .filter(Boolean);
@@ -1312,7 +1316,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         // Only remove (destroy) those existing attendees that are NOT in the desired list.
         const removedAttendeeRefs = existingAttendeeRefs
             .filter(a => !desiredAttendeeIdSet.has(`${a.id}`))
-            .map(a => ({ id: a.id, type:'Contact', _destroy: true }));
+            .map(a => ({ id: a.id, type: 'Contact', _destroy: true }));
 
         const mergedAttendeeRefs = [...removedAttendeeRefs, ...desiredAttendeeRefs];
         const seenKeys = new Set();

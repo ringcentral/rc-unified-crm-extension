@@ -3,7 +3,6 @@ const cors = require('cors')
 const bodyParser = require('body-parser');
 require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
-const Sequelize = require('sequelize');
 const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
@@ -37,6 +36,7 @@ const pluginCore = require('./handlers/plugin');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = require('./handlers/managedAuth');
+const managedOAuthCore = require('./handlers/managedOAuth');
 
 let packageJson = null;
 try {
@@ -76,7 +76,6 @@ async function initDB() {
         await CacheModel.sync();
         await CallDownListModel.sync();
         await AccountDataModel.sync();
-
         // if AdminConfigModel doesn't have adminUserIds column, add it
         const queryInterface = AdminConfigModel.sequelize.getQueryInterface();
         const adminConfigTableName = AdminConfigModel.getTableName();
@@ -85,23 +84,8 @@ async function initDB() {
             logger.info('adding adminUserIds column to adminConfigs table...');
             await queryInterface.addColumn(adminConfigTableName, 'adminUserIds', {
                 type: Sequelize.STRING(1024)
-            });
             await AdminConfigModel.sync();
             logger.info('adminUserIds column added to adminConfigs table');
-        }
-
-        // if LlmSessionModel doesn't have expiry column, add it
-        const llmSessionTableName = LlmSessionModel.getTableName();
-        const llmSessionTableSchema = await queryInterface.describeTable(llmSessionTableName);
-        if (!llmSessionTableSchema.expiry) {
-            logger.info('adding expiry column to llmSessions table...');
-            await queryInterface.addColumn(llmSessionTableName, 'expiry', {
-                type: Sequelize.DATE,
-                allowNull: true,
-            });
-            await LlmSessionModel.sync();
-            logger.info('expiry column added to llmSessions table');
-        }
     }
 }
 
@@ -465,6 +449,35 @@ function createCoreRouter() {
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
+    router.get('/oauthManagedAuthState', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('oauthManagedAuthState:start', { query: req.query });
+        try {
+            const platform = req.query.platform;
+            const rcAccessToken = req.query.rcAccessToken;
+            if (!platform) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
+                return;
+            }
+            if (!rcAccessToken) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing RingCentral access token') : 'Missing RingCentral access token');
+                return;
+            }
+            const { rcAccountId } = await adminCore.validateRcUserToken({ rcAccessToken });
+            const adminValidation = await adminCore.validateAdminRole({ rcAccessToken });
+            const state = await managedOAuthCore.getManagedOAuthState({
+                platform,
+                rcAccountId,
+                isAdmin: !!adminValidation.isValidated
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse(state) : state);
+        }
+        catch (e) {
+            logger.error('Get managed OAuth state failed', { stack: e.stack });
+            tracer?.traceError('oauthManagedAuthState:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
     // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
         const defaultCrmManifest = connectorRegistry.getManifest('default');
@@ -662,6 +675,75 @@ function createCoreRouter() {
         catch (e) {
             logger.error('Set managed auth settings failed', { stack: e.stack });
             tracer?.traceError('setAdminManagedAuth:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.post('/admin/managedOAuth/cache', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('setAdminManagedOAuthCache:start', {
+            body: {
+                hasValues: !!req.body?.values,
+                valueKeys: Object.keys(req.body?.values ?? {}).filter(key => key !== 'clientSecret')
+            }
+        });
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            await managedOAuthCore.upsertPendingManagedOAuth({
+                rcAccountId: rcAccountId?.toString(),
+                values: req.body?.values ?? {}
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Set managed OAuth pending cache failed', { stack: e.stack });
+            tracer?.traceError('setAdminManagedOAuthCache:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.delete('/admin/managedOAuth/cache', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('deleteAdminManagedOAuthCache:start', {});
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            await managedOAuthCore.clearPendingManagedOAuth({ rcAccountId: rcAccountId?.toString() });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Delete managed OAuth pending cache failed', { stack: e.stack });
+            tracer?.traceError('deleteAdminManagedOAuthCache:error', e);
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+    });
+    router.delete('/admin/managedOAuth/account', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('deleteAdminManagedOAuthAccount:start', { query: req.query });
+        try {
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            if (!isValidated) {
+                res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
+                return;
+            }
+            if (!req.query.platform) {
+                res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
+                return;
+            }
+            await managedOAuthCore.resetManagedOAuth({
+                rcAccountId: rcAccountId?.toString(),
+                platform: req.query.platform
+            });
+            res.status(200).send(tracer ? tracer.wrapResponse({ successful: true }) : { successful: true });
+        }
+        catch (e) {
+            logger.error('Delete managed OAuth account failed', { stack: e.stack });
+            tracer?.traceError('deleteAdminManagedOAuthAccount:error', e);
             res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
         }
     });
@@ -1924,7 +2006,13 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({ userId, sessionIds: req.query.sessionIds, platform, requireDetails: req.query.requireDetails === 'true' });
+                const { successful, logs, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.getCallLog({
+                    userId,
+                    sessionIds: req.query.sessionIds,
+                    extensionNumber: req.query.extensionNumber,
+                    platform,
+                    requireDetails: req.query.requireDetails === 'true'
+                });
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;
@@ -2117,6 +2205,7 @@ function createCoreRouter() {
                     platform,
                     userId,
                     sessionId: req.body.sessionId,
+                    extensionNumber: req.body.extensionNumber,
                     dispositions: req.body.dispositions,
                     additionalSubmission: req.body.additionalSubmission
                 });
@@ -2857,7 +2946,7 @@ function createCoreRouter() {
         router.get('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds });
+                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds, extensionNumber: req.query.extensionNumber });
                 res.status(200).send(callLogs);
             }
             else {
@@ -2867,7 +2956,7 @@ function createCoreRouter() {
         router.post('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                await mock.createCallLog({ sessionId: req.body.sessionId });
+                await mock.createCallLog({ sessionId: req.body.sessionId, extensionNumber: req.body.extensionNumber });
                 res.status(200).send('Mock call log created');
             }
             else {
@@ -3061,8 +3150,31 @@ async function initializeCore(options = {}) {
 
 // Create a complete app with core functionality
 function createCoreApp(options = {}) {
-    initializeCore(options);
+    const coreInit = initializeCore(options).catch((err) => {
+        logger.error('initializeCore failed (database init or analytics)', {
+            message: err?.message,
+            stack: err?.stack,
+        });
+        throw err;
+    });
     const app = express();
+
+    // Block routing until DB sync/migrations finish so traffic never hits a half-ready DB,
+    // and ensure init failures are logged instead of only as unhandled rejections.
+    app.use(async (req, res, next) => {
+        try {
+            await coreInit;
+            next();
+        } catch (e) {
+            logger.error('Request rejected: core initialization failed', {
+                message: e?.message,
+                stack: e?.stack,
+            });
+            res.status(503)
+                .set('Retry-After', '5')
+                .json({ error: 'Service unavailable', detail: e?.message });
+        }
+    });
 
     // Allow bigger POST body size
     app.use(express.json({ limit: '50mb' }));

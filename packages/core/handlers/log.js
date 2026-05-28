@@ -20,6 +20,11 @@ const { v4: uuidv4 } = require('uuid');
 const { AccountDataModel } = require('../models/accountDataModel');
 const pluginCore = require('./plugin');
 const adminCore = require('./admin');
+const {
+    getCallLogExtensionNumber,
+    buildCallLogSessionWhere,
+    findMatchingCallLog,
+} = require('../lib/callLogLookup');
 
 function mergePluginWarnings({ returnMessage, warningMessages }) {
     if (!warningMessages.length) {
@@ -46,12 +51,14 @@ function getPluginWarningMessage({ pluginId }) {
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
+        const extensionNumber = getCallLogExtensionNumber(incomingData);
         let existingCallLog = null;
         try {
             existingCallLog = await CallLogModel.findOne({
-                where: {
-                    sessionId: incomingData.logInfo.sessionId
-                }
+                where: buildCallLogSessionWhere({
+                    sessionId: incomingData.logInfo.sessionId,
+                    extensionNumber,
+                })
             });
         }
         catch (error) {
@@ -186,7 +193,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                             }
                         }
                     )
-                    const syncedPluginJwtToken = syncPluginTokenResponse?.data?.jwtToken ?? pluginJwtToken;
+                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
                     axios.post(pluginEndpointUrl, {
                         data: incomingData,
                         config: userConfig,
@@ -288,6 +295,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 await CallLogModel.create({
                     id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
                     sessionId: incomingData.logInfo.sessionId,
+                    extensionNumber,
                     platform,
                     thirdPartyLogId: logId,
                     userId,
@@ -305,12 +313,18 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 pluginAsyncTaskIds
             };
         }
+        else {
+            return {
+                successful: false,
+                returnMessage
+            };
+        }
     } catch (e) {
         return handleApiError(e, platform, 'createCallLog', { userId });
     }
 }
 
-async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
+async function getCallLog({ userId, sessionIds, extensionNumber, platform, requireDetails }) {
     try {
         let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
@@ -329,6 +343,7 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         if (sessionIdsArray.length > 5) {
             sessionIdsArray = sessionIdsArray.slice(0, 5);
         }
+
         if (requireDetails) {
             const proxyId = user.platformAdditionalInfo?.proxyId;
             let proxyConfig = null;
@@ -361,18 +376,18 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
                     break;
             }
             const callLogs = await CallLogModel.findAll({
-                where: {
-                    sessionId: {
-                        [Op.in]: sessionIdsArray
-                    }
-                }
+                where: buildCallLogSessionWhere({
+                    sessionIds: sessionIdsArray,
+                    extensionNumber,
+                }),
+                order: [['extensionNumber', 'ASC']]
             });
             for (const sId of sessionIdsArray) {
                 if (sId == 0) {
                     logs.push({ sessionId: sId, matched: false });
                     continue;
                 }
-                const callLog = callLogs.find(c => c.sessionId === sId);
+                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });
                 }
@@ -386,14 +401,14 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         }
         else {
             const callLogs = await CallLogModel.findAll({
-                where: {
-                    sessionId: {
-                        [Op.in]: sessionIdsArray
-                    }
-                }
+                where: buildCallLogSessionWhere({
+                    sessionIds: sessionIdsArray,
+                    extensionNumber,
+                }),
+                order: [['extensionNumber', 'ASC']]
             });
             for (const sId of sessionIdsArray) {
-                const callLog = callLogs.find(c => c.sessionId === sId);
+                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });
                 }
@@ -405,18 +420,20 @@ async function getCallLog({ userId, sessionIds, platform, requireDetails }) {
         return { successful: true, logs, returnMessage, extraDataTracking };
     }
     catch (e) {
-        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails });
+        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails, extensionNumber });
     }
 }
 
 async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
+        const extensionNumber = getCallLogExtensionNumber(incomingData);
         let existingCallLog = null;
         try {
             existingCallLog = await CallLogModel.findOne({
-                where: {
-                    sessionId: incomingData.sessionId
-                }
+                where: buildCallLogSessionWhere({
+                    sessionId: incomingData.sessionId,
+                    extensionNumber,
+                })
             });
         }
         catch (error) {

@@ -20,7 +20,7 @@ Once you have obtained these values, you will need to set the following values i
 |----------------------------------|--------|-------------|
 | `platforms.{crmName}.auth.oauth.authUrl`    | string | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
 | `platforms.{crmName}.auth.oauth.clientId`   | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. | 
-| `platforms.{crmName}.auth.oauth.redirectUri`| string | You can use your own uri, but the default one `https://ringcentral.github.io/ringcentral-embeddable/redirect.html` should work in most cases. |
+| `platforms.{crmName}.auth.oauth.redirectUri`| string | You can use your own uri, but the default one `https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html` should work in most cases. |
 | `platforms.{crmName}.auth.oauth.scope`      | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
 | `platforms.{crmName}.auth.oauth.customState`| string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 
@@ -30,13 +30,13 @@ Once you have obtained these values, you will need to set the following values i
 The framework will compose an OAuth compliant auth URL for you by appending to the `authUrl` the following query string:
 
     {authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}
-		&redirect_uri=https://ringcentral.github.io/ringcentral-embeddable/redirect.html
+		&redirect_uri=https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html
 
 ### Setting the redirect URI
 
 App Connect's framework utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
 
-    https://ringcentral.github.io/ringcentral-embeddable/redirect.html
+    https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html
 
 It should suffice standard OAuth use cases. If there's any special case, please contact us.
 
@@ -61,7 +61,7 @@ To auth a user via an API key, you need to present them with a form in which the
 === "manifest.json"
 
     ```js
-    {!> src/connectors/manifest.json [ln:199-231] !}
+    --8<-- "src/connectors/manifest.json:199:231"
     ```
 
 === "Rendered page"

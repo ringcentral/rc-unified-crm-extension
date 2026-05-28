@@ -42,12 +42,12 @@ This interface returns an array of users in the connected CRM or application. Ea
 === "Example CRM"
 
   ```js
-    {!> packages/template/src/connectors/interfaces/getUserList.js !}
+    --8<-- "packages/template/src/connectors/interfaces/getUserList.js"
   ```
 
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/bullhorn/index.js [ln:328-340] !}
+    --8<-- "src/connectors/bullhorn/index.js:328:340"
 	```
 

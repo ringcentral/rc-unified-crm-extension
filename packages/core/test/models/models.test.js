@@ -179,6 +179,35 @@ describe('Core Models', () => {
       expect(log.contactId).toBe('contact-123');
     });
 
+    test('should use extensionNumber as part of call log primary key', async () => {
+      // Arrange & Act
+      await CallLogModel.create({
+        id: 'call-shared',
+        sessionId: 'session-shared',
+        extensionNumber: '101',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-101',
+        userId: 'user-1'
+      });
+      await CallLogModel.create({
+        id: 'call-shared',
+        sessionId: 'session-shared',
+        extensionNumber: '102',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-102',
+        userId: 'user-1'
+      });
+
+      // Assert
+      const logs = await CallLogModel.findAll({
+        where: {
+          id: 'call-shared',
+          sessionId: 'session-shared'
+        }
+      });
+      expect(logs).toHaveLength(2);
+    });
+
     test('should find call logs by session ID', async () => {
       // Arrange
       await CallLogModel.create({

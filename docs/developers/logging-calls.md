@@ -1,6 +1,6 @@
 # Working with call log records
 
-{! docs/developers/beta_notice.inc !}
+--8<-- "docs/developers/beta_notice.inc"
 
 One of the most used features across all of RingCentral's CRM integrations is the function of logging a phone call and recording a disposition associated with that phone call in the target CRM. There are three interfaces developers need to implement to support call logging through the entire call logging lifecycle (these interfaces are listed below). But first, let's take a closer look at the call logging sequence inside App Connect's system. 
 

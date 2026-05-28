@@ -1,5 +1,8 @@
 # App Connect and HighLevel
 
+!!! info "Requires App Connect 2.0"
+    This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
+
 HighLevel is the all-in-one sales & marketing platform that agencies can white-label and resell to their clients. RingCentral supports HighLevel via a trusted third-party vendor and Premium Partner [Loyally](https://loyally.eu/).
 
 !!! money "As a third-party integration, the HighLevel integration comes at an additional cost"

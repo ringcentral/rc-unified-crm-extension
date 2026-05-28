@@ -29,4 +29,4 @@ App Connect provides a hosted [Model Context Protocol (MCP)](https://modelcontex
 
 ## Setup
 
-While App Connect's MCP server has the ability to connect independently to the CRMs within the App Connect ecosystem, the experience is hit-or-miss. The more reliable way to connect to your CRM is to [download](../../getting-started.md) App Connect and connect to your CRM via the Chrome/Edge extension. Once connected, App Connect will use that connection to talk to your CRM rather than the session you might create by engaging the `getPublicConnectors` tool. 
+While App Connect's MCP server has the ability to connect independently to the CRMs within the App Connect ecosystem, the experience is hit-or-miss. The more reliable way to connect to your CRM is to [download](../getting-started.md) App Connect and connect to your CRM via the Chrome/Edge extension. Once connected, App Connect will use that connection to talk to your CRM rather than the session you might create by engaging the `getPublicConnectors` tool. 

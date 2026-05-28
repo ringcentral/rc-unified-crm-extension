@@ -131,12 +131,12 @@ The values returns are bound to the field via correlating the two `const` values
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/findContact.js !}
+    --8<-- "packages/template/src/connectors/interfaces/findContact.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:118-203] !}
+    --8<-- "src/connectors/pipedrive/index.js:118:203"
 	```
 

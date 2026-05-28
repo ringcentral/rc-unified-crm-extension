@@ -24,7 +24,7 @@ This method should return an associative array with the following keys and value
   'clientId': 'xxx-xxxx-xxxxxxxxxx-xxxx',
   'clientSecret': 'xxxxxxxx-xxxxxxxxxxxxxxxxxx',
   'accessTokenUri': 'https://auth.crm.com/token',
-  'redirectUri': 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html'
+  'redirectUri': 'https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html'
 }
 ```
 
@@ -33,12 +33,12 @@ This method should return an associative array with the following keys and value
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/getOauthInfo.js !}
+    --8<-- "packages/template/src/connectors/interfaces/getOauthInfo.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:19-26] !}
+    --8<-- "src/connectors/pipedrive/index.js:19:26"
 	```
 

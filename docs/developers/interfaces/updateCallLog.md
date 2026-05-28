@@ -73,12 +73,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> packages/template/src/connectors/interfaces/updateCallLog.js !}
+    --8<-- "packages/template/src/connectors/interfaces/updateCallLog.js"
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/connectors/pipedrive/index.js [ln:423-480] !}
+    --8<-- "src/connectors/pipedrive/index.js:423:480"
 	```
 

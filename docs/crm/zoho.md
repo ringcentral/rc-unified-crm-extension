@@ -1,5 +1,8 @@
 # Setting up App Connect for Zoho
 
+!!! info "Requires App Connect 2.0"
+    This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
+
 <!-- md:version 2.0 -->
 
 Zoho CRM is a cloud-based customer relationship management software that helps businesses manage sales, marketing, and customer support activities in a single platform. It allows companies to store customer information, track processes, automate tasks, and streamline communication across departments to improve customer engagement and drive sales. Zoho CRM offers a free edition for small teams and paid options with more features for businesses of all sizes.
