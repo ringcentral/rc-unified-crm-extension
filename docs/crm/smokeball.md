@@ -17,12 +17,11 @@ Smokeball is the leading legal practice management software that boosts your pro
 
 !!! tip "Please note, this integration only works with Australian Smokeball accounts. US and UK integrations are coming soon."
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
 ## Install the extension
 
 If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome/Edge web store. 
 
+<iframe width="825" height="464" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 ## Setup the extension
 
