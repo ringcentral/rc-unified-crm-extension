@@ -24,7 +24,7 @@ Their platform is purpose-built for industries where every call matters: legal, 
 
 <div class="crm-mkt__grid">
 
-  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+  <a href="../../crm/smokeball/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../../img/crm-logo-smokeball.png" alt="Smokeball"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Legal Practice Management</div>
@@ -32,9 +32,10 @@ Their platform is purpose-built for industries where every call matters: legal, 
       <p class="crm-mkt__desc">Automatically log RingEX calls and communications against Smokeball matters and client records — with screen pop, time tracking, and draft time entries.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon</span>
+      <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
+      <span class="crm-mkt__cta">View docs →</span>
     </div>
-  </div>
+  </a>
 
 </div>
 
