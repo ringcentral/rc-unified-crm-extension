@@ -1,4 +1,12 @@
 {
+    "1.7.29": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Conditional rendering of logging form fields by contact type"
+            }
+        ]
+    },
     "1.7.27": {
         "global": [
             {
