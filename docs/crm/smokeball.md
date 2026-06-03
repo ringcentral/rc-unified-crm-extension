@@ -19,7 +19,7 @@ Smokeball is the leading legal practice management software that boosts your pro
 
 ## Install the extension
 
-If you have not already done so, begin by [installing App Connect](../getting-started.md) from the Chrome/Edge web store. 
+If you have not already done so, begin by [installing App Connect](https://appconnect.labs.ringcentral.com/2.0/) from the Chrome Web Store. 
 
 <iframe width="825" height="464" src="https://www.youtube.com/embed/6mxT9D4chr0?si=EqiXQBOwacLlvZXX" title="Ring Central + Smokeball by Captivo Labs" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
