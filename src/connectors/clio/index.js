@@ -229,17 +229,26 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     matters = matters?.filter(m => m.status !== 'Closed');
                 }
-                let associatedMatterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                extraDataTracking = {
-                    ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
-                    ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
-                    ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
-                };
-                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
+                let associatedMatterUrl = `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`;
+                let associatedMatterInfoResponse;
+                let associatedMatterInfo = [];
+                do {
+                    if (!!associatedMatterInfoResponse?.data?.meta?.paging?.next) {
+                        associatedMatterUrl = associatedMatterInfoResponse.data.meta.paging.next;
+                    }
+                    associatedMatterInfoResponse = await axios.get(
+                        associatedMatterUrl,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    extraDataTracking = {
+                        ratelimitRemaining: associatedMatterInfoResponse.headers['x-ratelimit-remaining'],
+                        ratelimitAmount: associatedMatterInfoResponse.headers['x-ratelimit-limit'],
+                        ratelimitReset: associatedMatterInfoResponse.headers['x-ratelimit-reset']
+                    };
+                    associatedMatterInfo = associatedMatterInfo.concat(associatedMatterInfoResponse?.data?.data ?? []);
+                } while (!!associatedMatterInfoResponse?.data?.meta?.paging?.next);
+                let associatedMatters = associatedMatterInfo.length > 0 ? associatedMatterInfo.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
                 }
@@ -262,7 +271,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                             ]
                         } :
                         {
-                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
+                            logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
+                            billableStatus: [
+                                { "const": "billable", "title": "Billable" },
+                                { "const": "non-billable", "title": "Non-billable" }
+                            ]
                         }
                 })
             }
@@ -391,7 +404,7 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
             // If b has email and a does not, b comes first (1)
             // If both have email or neither, order doesn't change (0)
             const aHasEmail = (a.email && a.email.trim() !== '');
-            const bHasEmail = (b.email  && b.email.trim() !== '');
+            const bHasEmail = (b.email && b.email.trim() !== '');
             if (aHasEmail && !bHasEmail) return -1;
             if (!aHasEmail && bHasEmail) return 1;
             return 0;
@@ -1182,7 +1195,7 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
 
         const id = e?.id != null ? `${e.id}` : null;
         const attendees = (e?.attendees ?? [])
-            .map(a => (a?.id != null ? {id: a?.id, name: a?.name, type: a?.type} : null))
+            .map(a => (a?.id != null ? { id: a?.id, name: a?.name, type: a?.type } : null))
             .filter(Boolean);
         return {
             thirdPartyAppointmentId: id,
@@ -1304,7 +1317,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
             .map(a => {
                 if (a?.id == null) return null;
                 const n = typeof a.id === 'number' ? a.id : Number(a.id);
-                
+
                 return { id: n, type: 'Contact' };
             })
             .filter(Boolean);
@@ -1312,7 +1325,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         // Only remove (destroy) those existing attendees that are NOT in the desired list.
         const removedAttendeeRefs = existingAttendeeRefs
             .filter(a => !desiredAttendeeIdSet.has(`${a.id}`))
-            .map(a => ({ id: a.id, type:'Contact', _destroy: true }));
+            .map(a => ({ id: a.id, type: 'Contact', _destroy: true }));
 
         const mergedAttendeeRefs = [...removedAttendeeRefs, ...desiredAttendeeRefs];
         const seenKeys = new Set();

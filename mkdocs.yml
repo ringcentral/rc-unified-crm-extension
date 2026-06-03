@@ -117,7 +117,7 @@ nav:
   - 'AI-generated insights': solutions/artificial-intelligence.md
   - 'Universal connector': solutions/integrations.md
 - 'Documentation':
-  - 'Introduction': users/access.md
+  - 'Overview': users/access.md
   - 'Installation': getting-started.md
 
   - 'App Connect 2.0 Beta':
@@ -186,10 +186,12 @@ nav:
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server':
       - 'Build and deployment': developers/deploy.md
-      - 'Contact matching': developers/contact-matching.md
+      - 'Contact lookup':
+        - 'Contact matching': developers/contact-matching.md
+        - 'Placeholder contacts': developers/placeholder-contacts.md
+        - 'Lead creation': developers/lead-creation.md
       - 'Logging phone calls': developers/logging-calls.md
       - 'Logging SMS': developers/logging-sms.md
-      - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Returning errors': developers/errors.md
     - 'Interfaces':

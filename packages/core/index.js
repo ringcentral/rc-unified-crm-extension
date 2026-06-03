@@ -3,7 +3,6 @@ const cors = require('cors')
 const bodyParser = require('body-parser');
 require('body-parser-xml')(bodyParser);
 const dynamoose = require('dynamoose');
-const Sequelize = require('sequelize');
 const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
@@ -36,10 +35,6 @@ const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
-const {
-    migrateCallLogsExtensionNumberSqlite,
-    sqliteCallLogsPkIncludesExtension,
-} = require('./lib/migrateCallLogsSchema');
 const managedAuthCore = require('./handlers/managedAuth');
 const managedOAuthCore = require('./handlers/managedOAuth');
 
