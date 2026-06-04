@@ -63,4 +63,4 @@ Users can select from a number of settings options that will help log more calls
 * No contacts in the CRM are found
 * Multiple contacts in the CRM are found
 
-[Learn more &raquo;](logging-conflicts.md#resolving-conlicts-automatically)
+[Learn more &raquo;](logging-conflicts.md#resolving-conflicts-automatically)

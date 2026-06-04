@@ -46,7 +46,7 @@ The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlist
 
     Create custom rules to automatically log calls that previously failed, eliminating manual effort and capturing every interaction.
 
-    [Learn more &raquo;](../users/logging-conflicts.md#resolving-conlicts-automatically)
+    [Learn more &raquo;](../users/logging-conflicts.md#resolving-conflicts-automatically)
 
 -   :material-clipboard-list:{ .lg .middle } __Call-down lists__
 

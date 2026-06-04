@@ -1,9 +1,10 @@
 # Authorization and authenticating users with their CRM
 
-App Connect's framework currently supports two different authentication modalities:
+App Connect's framework currently supports three different authentication modalities:
 
-* [OAuth](#connecting-to-a-crm-via-oauth). This is the most common form of authentication and authorization supported by most CRMs. 
-* [API keys](#connecting-to-a-crm-using-an-api-key). This less common method typically requires a CRM user to retrieve an auth string, often called an "API key," and saving it within the framework. This key is then transmitted with each API request to the CRM. 
+* [OAuth](#connecting-to-a-crm-via-oauth). The most common form of authentication, supported by most CRMs.
+* [Admin-managed OAuth](#admin-managed-oauth). A variant of OAuth designed for CRMs that require each tenant to register their own application and supply their own credentials. The admin sets up credentials once; all users in the organisation share the connection.
+* [API keys](#connecting-to-a-crm-using-an-api-key). A less common method that requires a user to retrieve an API key from the CRM and save it within the framework.
 
 Start by editing the `platforms` object within your connector's [manifest](manifest.md), and setting the `type` property under `auth` to either:
 
@@ -47,6 +48,45 @@ Within your connector's `index.js` file, implement the following methods.
 * [`getAuthType`](interfaces/getAuthType.md)
 * [`getOauthInfo`](interfaces/getOauthInfo.md)
 * [`getUserInfo`](interfaces/getUserInfo.md)
+
+## Admin-managed OAuth
+
+Some CRMs require each customer to register their own application in the CRM's developer portal and obtain their own OAuth credentials — a client ID, client secret, and redirect URI unique to their tenant. Asking every end user to supply these values is impractical; they are technical, lengthy, and often only obtainable by an administrator.
+
+Admin-managed OAuth solves this. One administrator provides the credentials once, the framework stores them securely, and all subsequent users in the same organisation connect without ever seeing a credential input.
+
+### How it works
+
+**For the developer — connector registration**
+
+When registering your connector in the Developer Console, select **OAuth** as the auth type and then enable **Admin-managed OAuth credentials**. You will be given a text field where you can write instructions for the admin explaining exactly how to obtain the required credentials from the target CRM's developer portal. Be specific — include the exact steps, the name of each field, and any redirect URI the admin must register.
+
+![Auth page](../img/admin-managed-oauth.png)
+
+**For the admin — first-time setup**
+
+The first user in an organisation who attempts to connect to a service configured for admin-managed OAuth will be presented with a credentials form instead of being taken directly to the OAuth flow. This form typically collects:
+
+- Client ID
+- Client secret
+- Redirect URI
+
+These are the values obtained when the admin registered their application with the CRM. Once submitted, the framework validates the credentials and initiates the OAuth authorisation flow. After a successful authorisation, the credentials are stored at the tenant level.
+
+**For all subsequent users**
+
+Every other user in the same organisation will connect normally via the standard OAuth flow — no credential entry required. The admin-supplied credentials are reused transparently.
+
+### Updating credentials
+
+Admins can review and update their application credentials at any time under the **Admin** tab in App Connect. 
+
+!!! warning
+    Editing credentials after a successful connection will invalidate existing sessions for all users in the organisation. Only update these values if you are certain it is necessary — for example, if the CRM application was re-registered or the client secret was rotated.
+
+### Why this matters
+
+Many enterprise and vertical CRMs (particularly those in legal, insurance, and field service) do not offer a shared multi-tenant application model. Admin-managed OAuth allows App Connect to support these CRMs without burdening every user with cryptographic keys they have no way of knowing.
 
 ## Connecting to a CRM using an API key
 
