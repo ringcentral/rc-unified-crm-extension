@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.7.29
+
+- New: Conditional rendering of logging form fields by contact type
+
 ## 1.7.27
 
 - New: Managed OAuth for platforms with dynamic OAuth configs for different accounts

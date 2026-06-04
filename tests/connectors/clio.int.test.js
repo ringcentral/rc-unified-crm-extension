@@ -331,6 +331,75 @@ describe('Clio Connector', () => {
 
             expect(result.successful).toBe(true);
         });
+
+        it('should include associated matters from paged relationship results', async () => {
+            nock(apiUrl)
+                .get('/api/v4/contacts.json')
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 101,
+                        name: 'John Doe',
+                        type: 'Person',
+                        updated_at: '2024-01-15T10:00:00Z'
+                    }]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/matters.json')
+                .query(true)
+                .reply(200, {
+                    data: [
+                        { id: 201, display_number: 'MAT-001', description: 'Direct Matter', status: 'Open' }
+                    ]
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query({ contact_id: '101', fields: 'matter{id,display_number,description,status}' })
+                .reply(200, {
+                    data: [
+                        { matter: { id: 202, display_number: 'MAT-002', description: 'First Related Matter', status: 'Open' } }
+                    ],
+                    meta: {
+                        paging: {
+                            next: `${apiUrl}/api/v4/relationships.json?contact_id=101&fields=matter{id,display_number,description,status}&page_token=next`
+                        }
+                    }
+                }, mockRateLimitHeaders);
+
+            const nextRelationshipPage = nock(apiUrl)
+                .get('/api/v4/relationships.json')
+                .query({
+                    contact_id: '101',
+                    fields: 'matter{id,display_number,description,status}',
+                    page_token: 'next'
+                })
+                .reply(200, {
+                    data: [
+                        { matter: { id: 203, display_number: 'MAT-003', description: 'Second Related Matter', status: 'Open' } }
+                    ],
+                    meta: {
+                        paging: {}
+                    }
+                }, mockRateLimitHeaders);
+
+            const result = await clio.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+1 4155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.matters).toEqual([
+                { const: 201, title: 'MAT-001', description: 'Open - Direct Matter', status: 'Open' },
+                { const: 202, title: 'MAT-002', description: 'Open - First Related Matter', status: 'Open' },
+                { const: 203, title: 'MAT-003', description: 'Open - Second Related Matter', status: 'Open' }
+            ]);
+            expect(nextRelationshipPage.isDone()).toBe(true);
+        });
     });
 
     // ==================== findContactWithName ====================

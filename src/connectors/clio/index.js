@@ -229,17 +229,26 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     matters = matters?.filter(m => m.status !== 'Closed');
                 }
-                let associatedMatterInfo = await axios.get(
-                    `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`,
-                    {
-                        headers: { 'Authorization': authHeader }
-                    });
-                extraDataTracking = {
-                    ratelimitRemaining: associatedMatterInfo.headers['x-ratelimit-remaining'],
-                    ratelimitAmount: associatedMatterInfo.headers['x-ratelimit-limit'],
-                    ratelimitReset: associatedMatterInfo.headers['x-ratelimit-reset']
-                };
-                let associatedMatters = associatedMatterInfo.data.data.length > 0 ? associatedMatterInfo.data.data.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
+                let associatedMatterUrl = `https://${user.hostname}/api/v4/relationships.json?contact_id=${result.id}&fields=matter{id,display_number,description,status}`;
+                let associatedMatterInfoResponse;
+                let associatedMatterInfo = [];
+                do {
+                    if (!!associatedMatterInfoResponse?.data?.meta?.paging?.next) {
+                        associatedMatterUrl = associatedMatterInfoResponse.data.meta.paging.next;
+                    }
+                    associatedMatterInfoResponse = await axios.get(
+                        associatedMatterUrl,
+                        {
+                            headers: { 'Authorization': authHeader }
+                        });
+                    extraDataTracking = {
+                        ratelimitRemaining: associatedMatterInfoResponse.headers['x-ratelimit-remaining'],
+                        ratelimitAmount: associatedMatterInfoResponse.headers['x-ratelimit-limit'],
+                        ratelimitReset: associatedMatterInfoResponse.headers['x-ratelimit-reset']
+                    };
+                    associatedMatterInfo = associatedMatterInfo.concat(associatedMatterInfoResponse?.data?.data ?? []);
+                } while (!!associatedMatterInfoResponse?.data?.meta?.paging?.next);
+                let associatedMatters = associatedMatterInfo.length > 0 ? associatedMatterInfo.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');
                 }
