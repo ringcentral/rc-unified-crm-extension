@@ -1,137 +1,159 @@
-# Authorization and authenticating users with their CRM
+# Authorization
 
-App Connect's framework currently supports three different authentication modalities:
+App Connect supports OAuth, admin-managed OAuth, API-key auth, and admin-managed API-key fields. The manifest controls the client experience; connector interfaces supply secrets, validate credentials, and persist user identity.
 
-* [OAuth](#connecting-to-a-crm-via-oauth). The most common form of authentication, supported by most CRMs.
-* [Admin-managed OAuth](#admin-managed-oauth). A variant of OAuth designed for CRMs that require each tenant to register their own application and supply their own credentials. The admin sets up credentials once; all users in the organisation share the connection.
-* [API keys](#connecting-to-a-crm-using-an-api-key). A less common method that requires a user to retrieve an API key from the CRM and save it within the framework.
+## Auth Modes
 
-Start by editing the `platforms` object within your connector's [manifest](manifest.md), and setting the `type` property under `auth` to either:
+Set the platform auth type in the manifest:
 
-* `oauth`
-* `apiKey`
+```json
+{
+  "auth": {
+    "type": "oauth"
+  }
+}
+```
 
-## Connecting to a CRM via OAuth
+or:
 
-When implementing OAuth, you will need to login to the target CRM as a developer to retrieve a client ID and client secret. Every CRM is different, so please consult the CRM's API documentation to learn how to generate these two values to uniquely identify your application that will be calling the CRM's APIs. 
+```json
+{
+  "auth": {
+    "type": "apiKey"
+  }
+}
+```
 
-Once you have obtained these values, you will need to set the following values in your connector's manifest:
+Then implement [`getAuthType`](interfaces/getAuthType.md) to return the same mode at runtime.
 
-| Name                             | Type   | Description |
-|----------------------------------|--------|-------------|
-| `platforms.{crmName}.auth.oauth.authUrl`    | string | The auth URL to initiate the OAuth process with the CRM. Eg. https://app.clio.com/oauth/authorize |
-| `platforms.{crmName}.auth.oauth.clientId`   | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. | 
-| `platforms.{crmName}.auth.oauth.redirectUri`| string | You can use your own uri, but the default one `https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html` should work in most cases. |
-| `platforms.{crmName}.auth.oauth.scope`      | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
-| `platforms.{crmName}.auth.oauth.customState`| string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
+## OAuth
 
+OAuth connectors need two sets of data:
 
-### Generating an Auth URL
+| Source | Data |
+| --- | --- |
+| Manifest `auth.oauth` | Client-visible authorize URL, client ID, redirect URI, scopes, and state. |
+| [`getOauthInfo`](interfaces/getOauthInfo.md) | Server-side token exchange values, especially `clientSecret` and `accessTokenUri`. |
 
-The framework will compose an OAuth compliant auth URL for you by appending to the `authUrl` the following query string:
+Example manifest:
 
-    {authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}
-		&redirect_uri=https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html
+```json
+{
+  "auth": {
+    "type": "oauth",
+    "oauth": {
+      "authUrl": "https://app.example.com/oauth/authorize",
+      "clientId": "public-client-id",
+      "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+      "scope": "scope=contacts.read contacts.write",
+      "customState": "platform=myCRM"
+    }
+  }
+}
+```
 
-### Setting the redirect URI
+Required interfaces:
 
-App Connect's framework utilizes a a fixed redirect URI for OAuth. This redirect URI is: 
+- [`getAuthType`](interfaces/getAuthType.md)
+- [`getOauthInfo`](interfaces/getOauthInfo.md)
+- [`getUserInfo`](interfaces/getUserInfo.md)
 
-    https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html
+Optional OAuth hooks:
 
-It should suffice standard OAuth use cases. If there's any special case, please contact us.
+- `getOverridingOAuthOption({ code })`
+- `checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout)`
+- `authValidation({ user })`
+- [`unAuthorize`](interfaces/unAuthorize.md)
 
-### Implement server endpoints
+## Admin-Managed OAuth
 
-Within your connector's `index.js` file, implement the following methods.
+Use admin-managed OAuth when each customer must bring their own CRM OAuth app credentials.
 
-* [`getAuthType`](interfaces/getAuthType.md)
-* [`getOauthInfo`](interfaces/getOauthInfo.md)
-* [`getUserInfo`](interfaces/getUserInfo.md)
+The flow is:
 
-## Admin-managed OAuth
+1. Developer enables admin-managed OAuth in the Developer Console and writes admin setup instructions.
+2. The first admin user submits client ID, client secret, token URL, authorization URL, redirect URI, and hostname as required by the connector.
+3. Core stores those encrypted account-level values.
+4. Later users in the same RingCentral account connect through the normal OAuth flow without seeing the credentials.
+5. On successful callback, pending credentials are promoted to account-managed credentials.
 
-Some CRMs require each customer to register their own application in the CRM's developer portal and obtain their own OAuth credentials — a client ID, client secret, and redirect URI unique to their tenant. Asking every end user to supply these values is impractical; they are technical, lengthy, and often only obtainable by an administrator.
+Connector code usually does not need to know whether credentials came from `getOauthInfo()` or managed OAuth. Core resolves managed values before calling `getOauthInfo()`.
 
-Admin-managed OAuth solves this. One administrator provides the credentials once, the framework stores them securely, and all subsequent users in the same organisation connect without ever seeing a credential input.
+## API Key
 
-### How it works
+API-key connectors define a login form in `auth.apiKey.page.content[]`:
 
-**For the developer — connector registration**
+```json
+{
+  "auth": {
+    "type": "apiKey",
+    "apiKey": {
+      "page": {
+        "title": "My CRM",
+        "warning": "Paste your CRM API key.",
+        "content": [
+          {
+            "const": "apiKey",
+            "title": "API key",
+            "type": "string",
+            "required": true
+          },
+          {
+            "const": "tenantId",
+            "title": "Tenant ID",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
-When registering your connector in the Developer Console, select **OAuth** as the auth type and then enable **Admin-managed OAuth credentials**. You will be given a text field where you can write instructions for the admin explaining exactly how to obtain the required credentials from the target CRM's developer portal. Be specific — include the exact steps, the name of each field, and any redirect URI the admin must register.
+Required interfaces:
 
-![Auth page](../img/admin-managed-oauth.png)
+- [`getAuthType`](interfaces/getAuthType.md)
+- [`getBasicAuth`](interfaces/getBasicAuth.md)
+- [`getUserInfo`](interfaces/getUserInfo.md)
 
-**For the admin — first-time setup**
+Core passes the final resolved credential fields to `getUserInfo()` as `additionalInfo`. It also passes `apiKey` as the selected API-key value.
 
-The first user in an organisation who attempts to connect to a service configured for admin-managed OAuth will be presented with a credentials form instead of being taken directly to the OAuth flow. This form typically collects:
+## Admin-Managed API-Key Fields
 
-- Client ID
-- Client secret
-- Redirect URI
+API-key form fields can be marked as managed:
 
-These are the values obtained when the admin registered their application with the CRM. Once submitted, the framework validates the credentials and initiates the OAuth authorisation flow. After a successful authorisation, the credentials are stored at the tenant level.
+```json
+{
+  "const": "tenantId",
+  "title": "Tenant ID",
+  "type": "string",
+  "required": true,
+  "managed": true,
+  "managedScope": "account",
+  "hidden": true
+}
+```
 
-**For all subsequent users**
+| Field | Description |
+| --- | --- |
+| `managed` | Marks the field as admin-managed. |
+| `managedScope` | `account` stores one encrypted value per RingCentral account. `user` stores one encrypted value per RingCentral extension. |
+| `hidden` | Hides the field from normal users. |
 
-Every other user in the same organisation will connect normally via the standard OAuth flow — no credential entry required. The admin-supplied credentials are reused transparently.
+Core resolves managed values before `getUserInfo()` runs. If required managed values are missing, the login route returns a warning with `missingRequiredFieldConsts`. If a managed login fails, the next attempt can fall back to the full manual form.
 
-### Updating credentials
+## Logout
 
-Admins can review and update their application credentials at any time under the **Admin** tab in App Connect. 
+Implement [`unAuthorize`](interfaces/unAuthorize.md) when the CRM has token revocation or when you need custom cleanup. At minimum, clear `user.accessToken` and `user.refreshToken` or destroy the user record.
 
-!!! warning
-    Editing credentials after a successful connection will invalidate existing sessions for all users in the organisation. Only update these values if you are certain it is necessary — for example, if the CRM application was re-registered or the client secret was rotated.
+## Testing
 
-### Why this matters
+Use the extension against a local or tunneled server and verify:
 
-Many enterprise and vertical CRMs (particularly those in legal, insurance, and field service) do not offer a shared multi-tenant application model. Admin-managed OAuth allows App Connect to support these CRMs without burdening every user with cryptographic keys they have no way of knowing.
-
-## Connecting to a CRM using an API key
-
-Some CRMs provide developers access to their API via an API key. An API key is a slightly more cumbersome connection process for users, in that they must go into a technical part of the CRM to retrieve an obscure text string. But, the App Connect framework does what it can to make the process as easy as possible for users. 
-
-To auth a user via an API key, you need to present them with a form in which they will enter all needed credentials. The user will save those values and the framework will stash them a secure database for you. 
-
-### Setup the auth page in the extension
-
-**Insightly connector**
-
-=== "manifest.json"
-
-    ```js
-    --8<-- "src/connectors/manifest.json:199:231"
-    ```
-
-=== "Rendered page"
-
-    ![Auth page](../img/insightly-auth-page.png)
-
-### Implement server endpoints
-
-Within your connector's `index.js` file, implement the following methods.
-
-* [`getAuthType`](interfaces/getAuthType.md)
-* [`getOauthInfo`](interfaces/getOauthInfo.md)
-* [`getUserInfo`](interfaces/getUserInfo.md)
-
-## Deauthorizing users
-
-Just as one needs to log someone in, they need to log someone out. 
-
-### Implement server endpoints
-
-Within your connector's `index.js` file, implement the following methods.
-
-* [`unAuthorize`](interfaces/unAuthorize.md)
-
-## Testing your authorization implementation
-
-Now that the necessary server endpoints have been implemented, and the manifest updated, let's test authorization. 
-
-1. Go to the [Developer Options](../users/developer-options.md) and click "Clear platform info." This will clear within App Connect any link to an existing CRM. It is not quite a "factory reset" but it is close. 
-2. Refresh and reload the App Connect window. When complete, you should be prompted to select the CRM you wish to connect to.  
-3. Connect to the CRM you are testing.
-4. Finally, check to see if any user info was saved in the database (`CHECK.1`)
+1. The manifest auth page renders the expected fields.
+2. OAuth redirects back and saves a user record.
+3. API-key login calls `getBasicAuth()` and `getUserInfo()` with resolved `additionalInfo`.
+4. Managed auth fields are filled from admin storage when configured.
+5. Logout clears or revokes credentials.
 

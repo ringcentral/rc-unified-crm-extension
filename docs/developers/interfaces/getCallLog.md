@@ -1,55 +1,58 @@
 # getCallLog
 
-This interface retrieves a previously logged call log record in the target CRM. This information is used to render a form to allow an end user to view or edit that record within the App Connect client.
+Loads an existing CRM call activity so App Connect can show/edit it and compose safe updates.
 
-## Request parameters
-
-| Parameter    | Description                                                                             |
-|--------------|-----------------------------------------------------------------------------------------|
-| `user`       | TODO                                                                                    |
-| `callLogId`  | The ID of the activity or call log record within the CRM.                               |
-| `authHeader` | The HTTP Authorization header to be transmitted with the API request to the target CRM. |
-
-
-## Return value(s)
-
-This interface should return the associated call log record in a prescribed format. 
-
-| Parameter              | Description                                         |
-|------------------------|-----------------------------------------------------|
-| `callLogInfo`              | Contain `subject`, `note` and optionally `additionalSubmission` |
-| `returnMessage`|       `message`, `messageType` and `ttl`|
-
-**Example**
+## Signature
 
 ```js
-{
-  callLogInfo:{
-    subject: "A new call from John Doe",
-    note: "Delivery location changed.",
-    additionalSubmission: {
-      address: "12 Some Street, CA"
+async function getCallLog({
+  user,
+  telephonySessionId,
+  callLogId,
+  contactId,
+  authHeader,
+  proxyConfig
+}) {
+  return {
+    callLogInfo: {
+      subject: 'Inbound call',
+      note: 'Agent note',
+      fullBody: 'Full CRM activity body',
+      fullLogResponse: {}
     }
-  },
-  returnMessage:{
-    message: 'Log fetched',
-    messageType: 'success', // 'success', 'warning' or 'danger'
-    ttl: 30000 // in miliseconds
-  }
+  };
 }
 ```
 
+## Input
+
+| Field | Description |
+| --- | --- |
+| `user` | Connected CRM user. |
+| `telephonySessionId` | Local call-log ID used by App Connect. |
+| `callLogId` | CRM activity/log ID previously returned by `createCallLog`. |
+| `contactId` | CRM contact ID stored with the local call log. |
+| `authHeader` | Prepared CRM auth header. |
+| `proxyConfig` | Proxy configuration when applicable. |
+
+## Return
+
+| Field | Description |
+| --- | --- |
+| `callLogInfo.subject` | Current CRM subject/title. |
+| `callLogInfo.note` | Current editable note. |
+| `callLogInfo.fullBody` | Full body/description saved in the CRM. Used by core as the base for composed updates. |
+| `callLogInfo.fullLogResponse` | Full CRM response. Passed later to `updateCallLog` as `existingCallLogDetails`. |
+| `callLogInfo.contactName` | Optional contact display name. |
+| `callLogInfo.dispositions` | Optional current disposition values keyed by manifest field. |
+| `returnMessage` | Optional UI feedback. |
+| `extraDataTracking` | Optional analytics/tracing data. |
+
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/getCallLog.js"
-	```
-	
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/pipedrive/index.js:663:697"
-	```
+    ```
 

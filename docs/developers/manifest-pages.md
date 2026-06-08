@@ -1,130 +1,169 @@
-# Customizing pages within the client application
+# Manifest Pages
 
-There are a number of pages within the App Connect client application that often need to be customized in some way for the corresponding CRM. Those pages are:
+The `page` section of a platform manifest configures CRM-specific UI inside App Connect. Use it for API-key auth fields, call log fields, message log fields, contact search, and feedback collection.
 
-* CRM authentication page (ONLY for `apiKey` auth)
-* Call logging form
-* Message logging form
+## API-Key Auth Page
 
-The App Connect manifest is how these pages are customized to suit the need of the CRM you are integrating with. 
+API-key auth fields live under `auth.apiKey.page`, not under `page`:
 
-## Customizing apiKey auth page
+```json
+{
+  "auth": {
+    "type": "apiKey",
+    "apiKey": {
+      "page": {
+        "title": "My CRM",
+        "warning": "Paste your CRM credentials.",
+        "content": [
+          {
+            "const": "apiKey",
+            "title": "API key",
+            "type": "string",
+            "required": true
+          },
+          {
+            "const": "tenantId",
+            "title": "Tenant ID",
+            "type": "string",
+            "required": true,
+            "managed": true,
+            "managedScope": "account",
+            "hidden": true
+          }
+        ]
+      }
+    }
+  }
+}
+```
 
-If the CRM being integrated with utilizes static auth credentials, the API Key auth method is how you will collect those credentials for the user. Every CRM is different of course, so you may need to add multiple fields to the API key setup page.
+Values are passed to [`getUserInfo`](interfaces/getUserInfo.md) as `additionalInfo`. The `apiKey` field also becomes the stored `user.accessToken` unless `getUserInfo()` returns `platformUserInfo.overridingApiKey`.
 
-=== "Insightly connector"
+## Call And Message Log Fields
 
-    ```js
-    --8<-- "src/connectors/manifest.json:199:231"
-    ```
+Call-log fields:
 
-    ![Auth page](../img/insightly-auth-page.png)
-
-## Adding custom fields to logging forms
-
-CRMs almost always have a set of fields associated with logging an activity that are relatively unique. Consider for example Clio, a CRM used by legal professionals, in which users link calls to "matters" (e.g. a "legal matter"). Where CRMs like Insightly link calls to opportunities. To account for this, the framework makes it easy to add new custom form fields to two key forms users interact with frequently:
-
-* Call logging page
-* Create contact page
-
-For each page, you will define an array of `additionalFields`. Each additional field element consists of the properties below.
-
-| Name               | Type    | Description                                                                                                       |
-|--------------------|---------|-------------------------------------------------------------------------------------------------------------------|
-| `const`            | string  | A unique key identifying the field.                                                                               |
-| `title`            | string  | The display name of the field.                                                                                    |
-| `type`             | string  | The data type associated with the field.                                                                          |
-| `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static. |
-
-### Custom call log fields
-
-In the following example, a "Deals" pull-down menu with three options, and an "Address" text input is added to the call log form. 
-
-```js
-"page": {
+```json
+{
+  "page": {
     "callLog": {
       "additionalFields": [
         {
-          "const": "associatedDeal",
-          "title": "Deals",
+          "const": "matters",
+          "title": "Matter",
           "type": "selection",
-          "contactDependent": true
-        },
-        {
-          "const": "address",
-          "title": "Address",
-          "type": "inputField",
-          "contactDependent": false
+          "contactDependent": true,
+          "required": false
         }
       ]
     }
+  }
 }
 ```
 
-### Custom SMS log fields
+Message-log fields:
 
-Setup the same fields as above, but associated with the SMS logging page.
+```json
+{
+  "page": {
+    "messageLog": {
+      "additionalFields": [
+        {
+          "const": "caseId",
+          "title": "Case",
+          "type": "selection",
+          "contactDependent": true
+        }
+      ]
+    }
+  }
+}
+```
+
+Submitted values are passed to logging interfaces as `additionalSubmission`.
+
+## Additional Field Shape
+
+| Field | Description |
+| --- | --- |
+| `const` | Stable key used in `additionalSubmission` and contact `additionalInfo`. |
+| `title` | User-facing label. |
+| `type` | Common values are `selection`, `inputField`, `string`, and `warning`. |
+| `contactDependent` | When true, options come from the selected contact's `additionalInfo[const]`. |
+| `required` | Prevents submission until a value is selected or entered. |
+| `description` | Help text for the field. |
+| `includeNoneOption` | For `selection`, controls whether the client includes an empty option. |
+| `options` | Static options for `selection` fields. Each option uses `{ "const": "...", "title": "..." }`. |
+| `defaultSettingId` and `defaultSettingValues` | Pull default values from connector settings. Existing connectors use this for Clio billable status defaults. |
+
+## Contact-Dependent Options
+
+When a manifest field has `contactDependent: true`, the selected contact returned by [`findContact`](interfaces/findContact.md) or [`findContactWithName`](interfaces/findContactWithName.md) should include matching values:
 
 ```js
-"messageLog": {
-    "additionalFields": [
-        {
-            "const": "associatedDeal",
-            "title": "Deals",
-            "type": "selection",
-            "contactDependent": true
-        },
-        {
-            "const": "address",
-            "title": "Address",
-            "type": "inputField",
-            "contactDependent": false
-        }
-    ]
+return {
+  matchedContactInfo: [
+    {
+      id: '123',
+      name: 'Jane Smith',
+      additionalInfo: {
+        matters: [
+          {
+            const: 'matter-1',
+            title: 'Matter 1',
+            description: 'Open - Estate planning'
+          }
+        ]
+      }
+    }
+  ]
+};
+```
+
+The key `matters` matches the manifest field `const`.
+
+## Contact Search
+
+Set `page.useContactSearch` to true and implement [`findContactWithName`](interfaces/findContactWithName.md):
+
+```json
+{
+  "page": {
+    "useContactSearch": true
+  }
 }
 ```
 
-## Feedback page
+## Feedback Page
 
-A feedback page allows you to facilitate the collection of feedback from users. When defined a feedback link will appear in App Connect for users to click. When clicked, a form will be displayed to the user prompting them for feedback. The structure and input elements of the form are configurable.
+```json
+{
+  "page": {
+    "feedback": {
+      "url": "https://docs.google.com/forms/d/e/example/viewform?entry.1={score}&entry.2={crmName}",
+      "elements": [
+        {
+          "const": "score",
+          "title": "Score from 1 to 10",
+          "type": "selection",
+          "required": true,
+          "selections": [
+            { "const": "1", "title": "1" },
+            { "const": "10", "title": "10" }
+          ]
+        },
+        {
+          "const": "feedback",
+          "title": "Feedback",
+          "type": "inputField",
+          "placeholder": "Please share your feedback",
+          "required": true
+        }
+      ]
+    }
+  }
+}
+```
 
-To use feedback page, please create `feedback` object under `page`. The `feedback` object has the following properties:
-
-| Name       | Type    | Description |
-|------------|---------|-------------|
-| `url`      | string  | A URL that the feedback form will post data to. Query parameters can be setup. Please refer to [below](#page-elements-and-query-parameters) |
-| `elements` | array   | Page and input elements that will comprise the feedback form. Please refer to [below](#page-elements-and-query-parameters)  |
-
-### Page elements and query parameters
-
-Page elements are defined as similar to log page fields above:
-
-| Name    | Type   | Description                         |
-|---------|--------|-------------------------------------|
-| `const` | string | A unique key identifying the field. |
-| `title` | string | The display name of the field.      |
-| `type`  | string | The input type associated with the field. `string`, `inputField` and `selection` |
-| `bold`  | boolean | (Only applicable for `string`)  |
-| `selections`  | array   | Each element has only `const` and `title`|
-| `required`    | boolean | If true, the form cannot be submitted until a value has been entered. |
-| `placeholder` | string  | A placeholder value to be replaced by the user. Only applicable for `inputField`. |
-
-### Submitting feedback forms
-
-When a user submits the feedback form, the feedback will be submitted to the designated `url`. The URL supports a number of tokens so that you can encode user submitted form data into the URL being posted to. These tokens are as follows:
-
-| Name        | Is native | Description            |
-|-------------|-----------|------------------------|
-| `crmName`   | true      | Your crm platform name |
-| `userName`  | true      | RingCentral user name  |
-| `userEmail` | true      | RingCentral user email |
-| *Element const value* | false     | Any custom field that you define in your feedback page |
-
-!!! tip "Posting to a Google Form"
-    Posting feedback to a Google Form such that the user's input is pre-filled on the resulting Google Form page requires you to encode the Google Form URL with custom values. This is achieved through the use of tokens. For example, consider the need to construct the following URL:
-	
-	    https://docs.google.com/forms/d/e/:FORM_ID/viewform?
-	       usp=pp_url&entry.912199227={score}&entry.912199228={crmName}
-		
-	Prior to the form being posted to the URL, the `{score}` and `{crmName}` tokens will be replaced with their corresponding values, using user-provided data when present. 
+The URL can include built-in tokens such as `{crmName}`, `{userName}`, `{userEmail}`, and `{version}` plus any feedback element `const`.
 

@@ -1,129 +1,86 @@
-# Working with call log records
+# Logging Calls
 
---8<-- "docs/developers/beta_notice.inc"
+Call logging creates and updates CRM activity records for RingCentral calls. The runtime handles routing, auth refresh, plugin execution, local log linkage, and central log-body composition. The connector writes the final data to the CRM.
 
-One of the most used features across all of RingCentral's CRM integrations is the function of logging a phone call and recording a disposition associated with that phone call in the target CRM. There are three interfaces developers need to implement to support call logging through the entire call logging lifecycle (these interfaces are listed below). But first, let's take a closer look at the call logging sequence inside App Connect's system. 
+## Interfaces
 
-``` mermaid
-graph TD
-  A[**Call received** or **call placed**] --> B{Automatically<br>log call?}
-  B -->|Yes| OT{One-time log?}
-  OT -->|Yes| C1([Call is connected])
-  C1 --> C2([Call ends])
-  C2 --> C3([Call log data finalized])
-  C3 --> C4@{ shape: "lean-r", label: "createCallLog called" }
-  C4 --> Z
-  OT -->|No| C([Call is connected])
-  C --> D@{ shape: "lean-r", label: "createCallLog called" }
-  D --> E([Call ends])
-  E --> F@{ shape: "lean-r", label: "updateCallLog called" }
-  F --> G([Call recording becomes available])
-  G --> G2([Call log data finalized])
-  G2 --> G3@{ shape: "lean-r", label: "updateCallLog called" }
-  G3 --> Z@{ shape: "dbl-circ", label: "Call logged"}
-  
-  B -->|No| OT1{One-time log?}
-  OT1 -->|YES| J1([Call is connected])
-  J1 --> J2([Call ends])
-  J2 --> J3([Call recording becomes available])
-  J3 --> J4([Call log data finalized])
-  J4--> J5@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
-  J5 --> Z
-  OT1 -->|No| J([Call is connected])
-  J --> K([Call ends])
-  K--> P@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
-  P --> L([Call recording becomes available])
-  L --> O([Call log data finalized])
-  O--> O1@{ shape: "lean-r", label: "(optional)manually <br>create call log" }
-  O1 --> Z
+Implement:
 
-  Z --> Z1@{ shape: "lean-r", label: "user disposition call" }
+- [`createCallLog`](interfaces/createCallLog.md)
+- [`updateCallLog`](interfaces/updateCallLog.md)
+- [`getCallLog`](interfaces/getCallLog.md), recommended for edit/update flows
+- [`upsertCallDisposition`](interfaces/upsertCallDisposition.md), optional for disposition or related-entity fields
+- [`getLogFormatType`](interfaces/getLogFormatType.md), recommended so core can compose consistent log details
 
+## Flow
+
+```mermaid
+flowchart TD
+  A[Call appears in App Connect] --> B{User or auto-logging rule logs it?}
+  B -->|No| Z[No CRM activity is created]
+  B -->|Yes| C[Core loads user and refreshes auth]
+  C --> D[Core runs synchronous call plugins]
+  D --> E[Core composes call body when log format is supported]
+  E --> F[createCallLog]
+  F --> G[Core stores local mapping to CRM log ID]
+  G --> H{Later updates?}
+  H -->|User edits subject/note| I[getCallLog]
+  H -->|Recording/final call data/AI arrives| I
+  I --> J[Core recomposes body from existing CRM body]
+  J --> K[updateCallLog]
+  K --> L[Call log stays linked by session ID]
 ```
 
-## Implement server endpoints
+## Central Log Composition
 
-Ultimately, the key to logging calls successfully is in implementing the following interfaces within your connector's `index.js` file. The order in which they are called depends upon the user's settings with regards to [automatic call logging](../users/automatic-logging.md) and [server-side call logging](../users/server-side-logging.md). 
+If `getLogFormatType()` returns `text/plain`, `text/html`, or `text/markdown`, core builds `composedLogDetails` before calling `createCallLog` or `updateCallLog`.
 
-* [`createCallLog`](interfaces/createCallLog.md)
-* [`updateCallLog`](interfaces/updateCallLog.md)
-* [`getCallLog`](interfaces/getCallLog.md)
+The composed body can include:
 
-### Logging data to structued fields
+- agent notes
+- call session ID
+- RingCentral user name and number
+- subject
+- contact phone number
+- date/time using user settings
+- duration and result
+- recording link
+- Smart Notes/AI summary and transcript
+- ACE/RingSense transcript, summary, score, bulleted summary, and link
+- call legs
 
-When implementing these endpoints, it's crucial to map call data to the appropriate structured fields within the CRM. This ensures that information is organized, searchable, and aligns with the CRM's data schema.
+If your CRM needs a fully custom body, return another format value such as `custom` and build the body in the connector.
 
-**Key Considerations**
+## Recordings And Finalized Data
 
-* Field Mapping: Identify corresponding fields in the CRM for each piece of call data (e.g., call duration, caller ID, notes).
-* Data Validation: Ensure that the data conforms to the CRM's field requirements, such as data types and length constraints.
-* Error Handling: Implement robust error handling to manage scenarios where data fails validation or the CRM API returns errors.
+Recordings and finalized call data can arrive after the first log is created. Expect `updateCallLog` to be called more than once for the same call session.
 
-### Updating existing call log records
+Use `existingCallLog.thirdPartyLogId` as the CRM log ID. When core can fetch the existing CRM body through `getCallLog`, it passes the full response as `existingCallLogDetails` and the recomposed body as `composedLogDetails`.
 
-Special attention should be paid by developers to the process of updating an existing call log record, as it is possible that users may have manually edited the call log record within the CRM prior to the `updateCallLog` request being received by the connector. Consider the following scenario:
+## Avoid Overwriting CRM Edits
 
-1. A call is received, is recorded, and later ends. 
-2. App Connect sends a `createCallLog` request.
-3. The user sees the newly created log file and decides to manually edit the record in the CRM. 
-4. RingCentral makes available the recording of the call. 
-5. App Connect sends an `updateCallLog` request with the recording. 
+Users can edit the CRM activity directly before a later update arrives. Prefer targeted update logic:
 
-In the above scenario, if the developer is not careful, any edits the user may have made in step 3 might be overwritten by the connector. Therefore, it is advisable that the `updateCallLog` operation update the existing call log record using text substitution, rather than re-composing the call log content and replacing the existing call log record. 
+- read the current CRM body in `getCallLog`
+- let core compose from the existing body when using supported formats
+- update only fields your connector owns
+- avoid replacing unrelated CRM fields
 
-!!! tip "Tip: create placeholder text"
-    Given that you may receive multiple requests to update a call log record before the call log is finalized, the process of updating a record can be made easier by inserting placeholder text that can later easily by searched for and replaced. For example, when a call log is first created the call's duration may not yet be finalized. So initially you want to insert the following text:
-	     
-		 * Call duration: 4 min 30 sec (pending)
-	 
-	 Then in a subsequent call to `updateCallLog` you can do a regex replacement such as:
-	 
-	     s/\* Call duration: (.* (\(pending\))?)/Call duration: $final_duration/
-		 
-	 Similarly, for a call recording you can create an initial call log record with the following text:
-	 
-	     * Call recording: <recording being processed by RingCentral>
-		 
-	 And then replace the text like so:
-	 
-	     s/\* Call recording: .*/Call recording: $recording_link/
-	 
-### Logging call recordings
+## Server-Side Call Logging
 
-If a `recordingLink` data element is transmitted to the connector via the `updateCallLog` or `createCallLog` interfaces, then a recording exists for the associated phone call. The value of `recordingLink` is a URL that directs users to the `media.ringcentral.com` service where users can access and/or listen to or watch the associated media. RingCentral will enforce access controls to the associated file so that only those permitted to access the media do so. 
+When server-side call logging creates or updates a log, `isFromSSCL` is true. The note can come from the temporary note cache when `USE_CACHE` is enabled.
 
-!!! tip "Call recordings take time to process"
-    Be aware that it may take some time for RingCentral's servers to process and upload recordings. The delay can range from seconds to minutes, depending on the call's duration and server load. 
+If server-side logging should assign CRM owners, implement [`getUserList`](interfaces/getUserList.md) and configure `serverSideLogging.enableUserMapping` in the manifest.
 
-#### Downloading the call recording
+## Internal Extension Numbers
 
-Some connectors may wish to download the media file to upload it, or archive it elsewhere. To download a media file, use the `callLog.recording.downloadUrl` element to do so. The value of this element contains an access token needed to access the file. Compose an HTTP GET request to the URL to begin downloading the file in `audio/mpeg` or `audio/wav` formats. 
+Set `enableExtensionNumberLoggingSetting: true` in the platform manifest to show the user setting for extension-number logging. When enabled, `findContact` receives `isExtension` so your connector can search internal extensions differently from PSTN numbers.
 
-### Logging AI artifacts: call summaries and transcripts
+## Testing
 
-!!! info "A ACE license is required for a user to automatically log AI data in a remote system"
-"
-If a user is entitled to log AI artifacts in a CRM, then the AI data will be transmitted to the connector via the `updateCallLog` or `createCallLog` interfaces. Consequently, if these data elements are not present, then it is safe to assume that the user is not permitted to log this data. 
-
-AI artifacts can be found in the following properties:
-
-| Property     | Description                                                                                                                              |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| `aiNote`     | The call recap object. This is a structured data element which may optionally contain action items, a call summary, decisions made, etc. |
-| `transcript` | A diarized transcript of the call.                                                                                                       |
-
-Transcripts are time coded to help systems known when words/phrases were uttered. Connector developers may wish to encode transcripts in a more readable form when saving them to a CRM.
-
-## Test your connector
-
-1. Make a call to a known contact
-2. Click `+` button near a call record to log the call
-3. Check if call log is saved on CRM platform and database (`CHECK.4`)
-4. Click `Edit` button near the call record to update the log
-5. Check if call log's subject and note are pulled correctly (`CHECK.5`)
-6. Edit subject and note, then click `Update`
-7. Check if call log is updated on CRM platform (`CHECK.6`)
-
-### Internal call logging
-
-To enable internal call logging for extension numbers under your main number, please add `enableExtensionNumberLoggingSetting` under your manifest platform info. Users would need to turn on `Allow extension number logging` under `Contacts` settings. Then on server end, `isExtension` flag will be passed in as in `src/connectors/testCRM/index.js` - `findContact()`.
+1. Connect the CRM user.
+2. Confirm `/implementedInterfaces?platform=<name>` shows call logging methods.
+3. Match or create a test contact.
+4. Log a call and verify the CRM record and local `callLogs` row.
+5. Edit the call log from App Connect and verify `getCallLog` then `updateCallLog`.
+6. Test a recorded call and verify later recording updates.

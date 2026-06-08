@@ -1,39 +1,56 @@
 # upsertCallDisposition
 
+Saves additional disposition or related-entity data for an existing call log.
+
 !!! info "Optional interface"
-    If this interface is implemented, **additional disposition** action will be triggered in **log editting** process.
+    Implement this when the call log form includes CRM-specific disposition fields that must be saved after the log exists.
 
-Some platforms may have the ability to associate the log activity to other entities, which is independent from the logging call action itself. We provide another interface for dispositioning the call.
+## Signature
 
-## Input parameters
+```js
+async function upsertCallDisposition({
+  user,
+  existingCallLog,
+  authHeader,
+  dispositions,
+  proxyConfig
+}) {
+  return {
+    logId: existingCallLog.thirdPartyLogId,
+    returnMessage: {
+      message: 'Disposition updated.',
+      messageType: 'success',
+      ttl: 2000
+    }
+  };
+}
+```
 
-| Parameter              | Description                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
-| `existingCallLog`      | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
-| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
-| `callDisposition`      | Contain call disposition data in log form |
+## Input
 
-## Return value(s)
+| Field | Description |
+| --- | --- |
+| `user` | Connected CRM user. |
+| `existingCallLog` | Local App Connect linkage record. Use `existingCallLog.thirdPartyLogId` as the CRM log ID. |
+| `authHeader` | Prepared CRM auth header. |
+| `dispositions` | Submitted disposition object. Shape is connector-specific and usually mirrors manifest field `const` values. |
+| `proxyConfig` | Proxy configuration when applicable. |
 
+Older template code may name this argument `callDisposition`; the current runtime passes `dispositions`.
 
-An object with following properties:
+## Return
 
-| Parameter              | Description                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-|`logId`| existing log id |
+| Field | Required | Description |
+| --- | --- | --- |
+| `logId` | Yes | Existing CRM log ID. Core treats the operation as successful when this value is truthy. |
+| `returnMessage` | Optional | UI feedback. |
+| `extraDataTracking` | Optional | Analytics/tracing data. |
 
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/upsertCallDisposition.js"
-	```
-	
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/pipedrive/index.js:482:514"
-	```
+    ```
 

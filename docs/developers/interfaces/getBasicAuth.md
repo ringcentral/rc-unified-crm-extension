@@ -1,42 +1,40 @@
 # getBasicAuth
 
-This method, in most cases, should return a Base64-encoded Basic Authentication stringto satisfy CRMs authentication requirements for `apikey` and `username:password`.
+Builds the Basic auth credential used by API-key connectors.
 
-## Input parameters
-
-This method accepts an object with the following property:
-
-| Parameter | Type     | Description                                                    |
-|-----------|----------|----------------------------------------------------------------|
-| `apiKey`  | `string` | The API key provided by the CRM for authenticating API calls. |
-
-## Return value(s)
-
-This method returns a Base64-encoded string in the format required for HTTP Basic Authentication.
-
-**Example**
+## Signature
 
 ```js
-'eHh4LXh4eHgteHh4eHh4eHh4eHh4OnhdY2VyZGlhbQ=='
+function getBasicAuth({ apiKey }) {
+  return Buffer.from(`${apiKey}:`).toString('base64');
+}
 ```
 
-This encoded string can be used in the `Authorization` header as:
+## Runtime Behavior
 
+Core calls this after loading the stored API key from the user record. The return value must be only the credential portion. Core adds the `Basic ` prefix before passing `authHeader` to connector methods.
+
+For example, return:
+
+```text
+YWJjMTIzOg==
 ```
-Authorization: Basic eHh4LXh4eHgteHh4eHh4eHh4eHh4OnhdY2VyZGlhbQ==
+
+Do not return:
+
+```text
+Basic YWJjMTIzOg==
 ```
+
+## Return
+
+Return a string.
 
 ## Reference
 
-=== "Insightly"
+=== "Template"
 
-	```js
-    --8<-- "src/connectors/insightly/index.js:19:22"
-	```
+    ```js
+    --8<-- "packages/template/src/connectors/interfaces/getBasicAuth.js"
+    ```
 
-=== "Redtail"
-
-	```js
-    --8<-- "src/connectors/redtail/index.js:17:19"
-	```
-    

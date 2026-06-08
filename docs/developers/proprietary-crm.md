@@ -1,37 +1,51 @@
-# Is your CRM App Connect-ready? 
+# Is Your CRM App Connect-Ready?
 
-The App Connect framework from RingCentral can be used to build an integration with any CRM, even a home-grown or proprietary one. If you are seeking to build an connector for a commercial or home-grown CRM, here is a check list to see if the system you are integrating with is compatible with this framework. 
+App Connect can integrate with commercial, vertical, or proprietary CRMs when the CRM exposes enough API surface for contact lookup and communication logging.
 
-## Compatibility checklist for CRMs
+## Minimum API Surface
 
-**:fontawesome-solid-clipboard-check: OAuth 2.0 support**
+| Capability | Why App Connect needs it |
+| --- | --- |
+| Auth validation | `getUserInfo` must verify the user's credentials and return a stable CRM user ID/name. |
+| Contact lookup by phone | `findContact` powers call pop, call logging, message logging, and refresh. |
+| Activity or note creation | `createCallLog` and `createMessageLog` need somewhere to write communications. |
+| Activity update | `updateCallLog` and `updateMessageLog` add recordings, final call data, later messages, AI artifacts, and user edits. |
+| Activity retrieval | `getCallLog` lets App Connect edit existing CRM logs without overwriting user changes. |
+| Contact creation | `createContact` supports unknown-contact logging and placeholder-contact flows. |
+| Logout or token cleanup | `unAuthorize` lets users disconnect cleanly. |
 
-Ideally, your CRM supports the [OAuth 2.0 authorization protocol](https://oauth.net/2/). From the perspective of building the connector, this will by far be the easiest most turn-key way to connect the App Connect client application to your CRM. 
+## Strongly Recommended API Surface
 
-Technically, the framework can be made to work with alternative authentication mechanisms, like API keys and other tokenized methods. However, there is no guarantee such mechanisms will work out of the box. 
+| Capability | Enables |
+| --- | --- |
+| Contact search by name | Manual search through `findContactWithName`. |
+| User list with emails | Server-side logging user mapping through `getUserList`. |
+| Related entities | Contact-dependent fields such as matters, deals, opportunities, cases, or jobs. |
+| Disposition/category update | `upsertCallDisposition` after a call log exists. |
+| Media upload or durable links | Voicemail, fax, MMS, and call recording handling. |
+| Calendar/event APIs | Optional appointment support. |
 
-A similar API is needed to log a user out. This API would effectively invalidate an access key so that it cannot be used again. 
+## Auth Fit
 
-**:fontawesome-solid-clipboard-check: API to create a call log, note or activity record**
+OAuth is the cleanest option because core can refresh tokens and support admin-managed OAuth. API-key auth is also supported, including admin-managed API-key fields for credentials shared across a RingCentral account or assigned per user.
 
-Every CRM has its own unique vernacular, but at the end of the day the core function of an connector is to facilitate the process of recording communications in the CRM in question. To do that, the CRM needs an API that allows the connector to store in the CRM's database a record of a phone call or SMS message.
+If the CRM requires tenant-specific OAuth apps, use admin-managed OAuth instead of asking every user for client credentials.
 
-A similar API will be needed for fetching, and editing/updating call logs as well. 
+## Server Choice
 
-**:fontawesome-solid-clipboard-check: API to lookup associations with a phone number**
+Choose a connector mode based on CRM complexity:
 
-To execute a call pop, which describes the process of opening a web page or fetching information about the person or contact one is calling or receiving a call from, the CRM needs an API that can receive as input a phone number, and return information about the person corresponding to that phone number. 
+| Mode | Fit |
+| --- | --- |
+| Proxy connector | Simple REST APIs with one request per App Connect operation and predictable JSON mappings. |
+| Code connector | Multi-step CRM workflows, custom token refresh, CRM-specific caching, uploads, side effects, or database work. |
 
-Ideally, that API will take as input a phone number in [E.164 format](https://en.wikipedia.org/wiki/E.164) but search the CRM for phone numbers stored in any other format. The stricter the search syntax is for phone numbers, the less reliably contacts/associations will be found when a search is conducted. 
+## Compatibility Checklist
 
-**:fontawesome-solid-clipboard-check: API to create a contact**
-
-When a call is received for which no association or contact exists, users are given the opportunity to create a contact record to associate the activity record with. To facilitate this user flow, an API must exist that allows a contact to be created and associated with a given phone number. 
-
-**:fontawesome-solid-clipboard-check: API to fetch the name of the currently logged in user**
-
-Finally, in order to show users that they have connected to the CRM successfully, an API needs to exist that returns the current user's name, and validates that the access key or API key used to authenticate with the CRM is valid. 
-
-## Server recommendations
-
-Technically, an connector's server could be implemented in any language. However, the fastest and easiest way to implement an connector's server is using our pre-made Javascript [connector server framework](https://github.com/ringcentral/rc-unified-crm-extension).
+- Can users authenticate without sharing unsafe credentials?
+- Can the connector reliably map a phone number to zero, one, or many CRM records?
+- Can the CRM create exactly one activity per RingCentral call or message group?
+- Can later updates target that same activity by ID?
+- Can the connector avoid overwriting CRM-side edits?
+- Can user-facing CRM pages be opened with stable URL templates?
+- Are rate limits and permission failures understandable enough to return actionable `returnMessage` details?

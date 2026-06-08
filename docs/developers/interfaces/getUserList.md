@@ -1,53 +1,53 @@
 # getUserList
 
+Returns CRM users for server-side call logging user mapping.
+
 !!! info "Optional interface"
-    If this interface is implemented, "**User mapping**" feature would be provided on Server-side call logging page.
+    Implement this when admins should be able to map RingCentral extensions to CRM users for server-side logging ownership.
 
-The `getUserList` interface is used exclusively with the server-side call logging feature to assist in mapping RingCentral user identities to their corresponding identity within the connected CRM or application. This ensures that the notes created by the server-side call logging framework are assigned to the correct owner in the CRM so that attribution is accurate and that user can also edit the notes created on their behalf. 
-
-App Connect will call this endpoint when server-side call logging is enabled, and periodically after that to keep systems in sync. It will then systematically call the [`getUserInfo`](getUserInfo.md) interface to attempt to map it to a RingCentral user via their email address. 
-
-Any identity that is not successfully mapped using this method can be mapped manually by admins using the [user mapping](../../users/server-side-logging.md) feature. 
-
-## Request parameters
-
-| Key                      | Value                                                                                                       |
-|--------------------------|-------------------------------------------------------------------------------------------------------------|
-| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
-| `authHeader`                     | The HTTP Authorization header to be transmitted with the API request to the target CRM.   |
-
-## Return value(s)
-
-This interface returns an array of users in the connected CRM or application. Each user record should contain the user's ID, name and email address. 
-
-**Example**
+## Signature
 
 ```js
-[
-  { 
-     'id': '123',
-	 'name': 'Luke Skywalker',
-	 'email': 'luke@jedicouncil.org'
-  },
-  { 
-     'id': '456',
-	 'name': 'Han Solo',
-	 'email': 'han@rebelalliance.gov'
-  }
-]
+async function getUserList({
+  user,
+  authHeader,
+  proxyConfig
+}) {
+  return [
+    {
+      id: 'crm-user-id',
+      name: 'Jane Smith',
+      email: 'jane@example.com'
+    }
+  ];
+}
 ```
+
+## Input
+
+| Field | Description |
+| --- | --- |
+| `user` | Connected CRM user used to access the CRM user list. |
+| `authHeader` | Prepared CRM auth header. |
+| `proxyConfig` | Proxy configuration when applicable. |
+
+## Return
+
+Return an array of CRM user records:
+
+| Field | Description |
+| --- | --- |
+| `id` | CRM user ID used by your connector for ownership/assignment. |
+| `name` | CRM user display name. |
+| `email` | CRM user email. Core uses this for automatic mapping to RingCentral extensions. |
+
+Core auto-matches CRM users to RingCentral extensions by email or name. Admins can manually fix unmatched users.
 
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
-  ```js
+    ```js
     --8<-- "packages/template/src/connectors/interfaces/getUserList.js"
-  ```
-
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/bullhorn/index.js:328:340"
-	```
+    ```
 

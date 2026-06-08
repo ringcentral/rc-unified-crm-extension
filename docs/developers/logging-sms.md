@@ -1,34 +1,65 @@
-# Logging an SMS message or conversation
+# Logging SMS, MMS, Voicemail, Fax, And Shared SMS
 
---8<-- "docs/developers/beta_notice.inc"
+Message logging uses one route and two connector interfaces. The runtime decides whether to create a new CRM activity or update an existing one.
 
-App Connect allows users to log in their CRM all forms of communication with a customer, which includes SMS or text messages. This interface describes how to log an SMS conversation within the target CRM. 
+## Interfaces
 
-## Important note
+Implement:
 
-Message logging is slightly different from call logging. Message logs could become pretty messy. This framework applies an idea to group messages together, and here is how:
+- [`createMessageLog`](interfaces/createMessageLog.md)
+- [`updateMessageLog`](interfaces/updateMessageLog.md)
+- [`findContact`](interfaces/findContact.md), because messages must be associated with a contact
+- [`createContact`](interfaces/createContact.md), optional when users can create contacts for unknown numbers
+- [`getLogFormatType`](interfaces/getLogFormatType.md), recommended for shared SMS body composition
 
-Message logs are grouped per conversation per day, meaning there will be just one CRM activity for all messages that happen under the same conversation on the same day.
+## Normal Message Grouping
 
-Therefore, the first message during the day will be logged using `createMessageLog` to create a new CRM activity, while the following messages are added to the existing activity using `updateMessageLog`. And the framework already takes care of separating the 1st message and the rest.
+For normal SMS, MMS, voicemail, and fax:
 
-## Implement server endpoints
+1. Core checks unlogged message IDs.
+2. Messages are grouped by conversation/day.
+3. The first message in a group calls `createMessageLog`.
+4. Later messages in that same group call `updateMessageLog`.
+5. Core stores local `messageLogs` rows linked to the CRM log ID.
 
-Within your connector's `index.js` file, implement the following methods.
+Group SMS appends the selected contact ID to conversation/message IDs so the same RingCentral group conversation can be logged against different contacts.
 
-* [`createMessageLog`](interfaces/createMessageLog.md) 
-* [`updateMessageLog`](interfaces/updateMessageLog.md)
+## Shared SMS
 
-## Test
+Shared SMS uses `conversationLogId`. Core composes `sharedSMSLogContent` with subject/body and either:
 
-1. Send a SMS message to a known contact
-2. Click `+` button near a conversation record to log all unlogged messages under this conversation
-3. Check if message log is saved on CRM platform and database (`CHECK.7`)
-4. Send another SMS message to the same contact
-5. Click `+` button near a conversation record to log all unlogged messages under this conversation
-6. Check if message log is added to previously created log on CRM platform and as a new record in database (`CHECK.8`)
+- calls `createMessageLog` when no CRM activity exists for the shared thread, or
+- calls `updateMessageLog` when the shared thread was already logged.
 
-### Tips
+The shared SMS body can include participants, owner/call queue info, assignment hints, notes, and messages.
 
-The framework checks database to see if there's existing message log on the day. If you want to setup a scenario to test 1st message, you could delete all message log records in database.
+## Media Fields
+
+Depending on message type, `createMessageLog` or `updateMessageLog` may receive:
+
+| Field | Description |
+| --- | --- |
+| `recordingLink` | Voicemail audio link. |
+| `faxDocLink` | Fax view link. |
+| `faxDownloadLink` | Fax download link with RingCentral access token when available. |
+| `imageLink` | View link for MMS image attachments. |
+| `imageDownloadLink` | Download link for MMS image attachments. |
+| `imageContentType` | Image MIME type. |
+| `videoLink` | View link for MMS video attachments. |
+
+If your CRM requires uploading media instead of linking to it, download the media while the supplied link/token is still valid.
+
+## Custom Fields
+
+Manifest fields under `page.messageLog.additionalFields[]` are passed as `additionalSubmission`.
+
+For contact-dependent fields, return options from contact lookup in `contact.additionalInfo` using the same `const` key as the manifest field.
+
+## Testing
+
+1. Send an SMS to a known contact and log it.
+2. Send another SMS in the same conversation/day and verify `updateMessageLog`.
+3. Test voicemail, fax, and MMS if the connector supports them.
+4. Test shared SMS separately when enabled for the account.
+5. Check local `messageLogs` rows and the CRM activity body.
 

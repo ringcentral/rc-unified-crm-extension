@@ -1,48 +1,81 @@
-# Build and deploy a CRM connector
+# Build And Deploy A Connector Server
 
-Once you have developed your connector for a CRM, it is time to try it out. To do that, you will need to deploy your connector's server to a publicly accessible server
+Deploy the connector server anywhere that can run Node.js and expose HTTPS. The generated template and this repository both use Express plus `@app-connect/core`.
 
+## Local Development
 
-## Deploying server to AWS
+Run the template server locally:
 
-Technically your connector's server could be deployed anywhere. You could host it yourself, or deploy it to a third-party like Heroku or AWS. To assist developers, we have provided a [serverless config file](https://www.serverless.com/) for AWS deployment under the `serverless-deploy`. 
+```bash
+npm run dev
+```
 
-1. Customize your environment
-    
-    ```js
-	cd rc-unified-crm-extension/serverless-deploy
-	cp sample.env.yml env.yml
-	```
-	
-	Then edit `env.yml`.
+For this repository, run:
 
-2. Customize your serverless deploy config
-    
-	```js
-	cp sample.serverless.yml serverless.yml
-	```
-	
-	Then edit `serverless.yml`
+```bash
+npm run start
+```
 
-3. Build and deploy the server
+Use a public HTTPS tunnel during Developer Console testing.
 
-    ```js
-	npm run serverless-build
-	npm run serverless-deploy
-	```
-	
-!!! tip "Deploying to another platform" 
-    If you want to deploy it to other platform. Run `npm run build-local` and a build folder will be created for you in the `build` folder. You can then deploy this build folder to any other hosting provider.
+## AWS Serverless Deployment
 
-### Server environment variables
+The repository includes serverless deployment folders such as `serverless-deploy`.
 
-| Variable                    | Description                                                         |
-|-----------------------------|---------------------------------------------------------------------|
-| `APP_SERVER`                | URL for your backend server                                         |
-| `APP_SERVER_SECRET_KEY`     | Key to create secret toke between your server and client            |
-| `TEST_CRM_CLIENT_ID`        | If CRM uses OAuth, it should be the client ID for OAuth             |
-| `TEST_CRM_CLIENT_SECRET`    | If CRM uses OAuth, it should be the client secret for OAuth         |
-| `TEST_CRM_ACCESS_TOKEN_URI` | If CRM uses OAuth, it should access token url for OAuth             |
-| `TEST_CRM_REDIRECT_URI`     | You can use the default redirect URI, or change it to yours         |
-| `DATABASE_URL`              | URL for your database, the default one is for local sqlite database |
+Typical flow:
+
+```bash
+cd serverless-deploy
+cp sample.env.yml env.yml
+cp sample.serverless.yml serverless.yml
+```
+
+Edit both files, then build and deploy from the project root:
+
+```bash
+npm run build
+npm run deploy
+```
+
+Test/beta deployment variants are available through scripts such as `build-test`, `deploy-test`, `build-test-beta`, and `deploy-test-beta`.
+
+## Deploying Elsewhere
+
+If you deploy to another platform, build a local artifact:
+
+```bash
+npm run build-local
+```
+
+Deploy the generated build output according to your hosting provider.
+
+## Environment Variables
+
+Common variables:
+
+| Variable | Description |
+| --- | --- |
+| `APP_SERVER` | Public base URL for this connector server. |
+| `APP_HOST` | Local host bind value for development. |
+| `PORT` | Local server port. |
+| `APP_SERVER_SECRET_KEY` | Shared secret used by the app server. |
+| `DATABASE_URL` | Database URL. Local development commonly uses SQLite. |
+| `DISABLE_SYNC_DB_TABLE` | Set when table sync should be skipped. |
+| `DYNAMODB_LOCALHOST` | Local DynamoDB endpoint for local Dynamo-backed models. |
+| `DEVELOPER_DYNAMODB_TABLE_PREFIX` | Prefix for Developer Console connector/proxy DynamoDB tables. |
+| `DEVELOPER_APP_SERVER_SECRET_KEY` | Secret used to decrypt stored connector secrets. |
+| CRM OAuth variables | Connector-specific client IDs, client secrets, token URLs, and redirect URIs used by `getOauthInfo()`. |
+| `RINGCENTRAL_SERVER`, `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET` | Required for RingCentral admin OAuth and some reporting flows. |
+
+Keep CRM client secrets and app secrets in environment variables, not in the manifest.
+
+## Deployment Checklist
+
+- Public HTTPS server URL is configured in the Developer Console.
+- Server and manifest agree on the platform name.
+- Database and DynamoDB dependencies are reachable.
+- Required CRM OAuth/API-key environment variables are set.
+- `/isAlive` returns `OK`.
+- `/implementedInterfaces?platform=<name>` reports expected methods.
+- OAuth redirect URIs in the CRM developer app match the values returned by [`getOauthInfo`](interfaces/getOauthInfo.md).
 

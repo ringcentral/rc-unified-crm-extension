@@ -1,1235 +1,1223 @@
 {
-    "openapi": "3.1.0",
-    "x-stoplight": {
-        "id": "ax9bati9jfiia"
+  "openapi": "3.1.0",
+  "info": {
+    "title": "App Connect CRM Server",
+    "version": "1.7.30",
+    "description": "Route inventory for the current Express server. The runtime source of truth is packages/core/index.js plus app-specific routes in src/index.js."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:6066",
+      "description": "Local development server"
     },
-    "info": {
-        "title": "CRM Server",
-        "version": "1.0"
-    },
-    "servers": [
-        {
-            "url": "http://localhost:3000"
+    {
+      "url": "https://{host}",
+      "description": "Deployed connector server",
+      "variables": {
+        "host": {
+          "default": "example.com"
         }
-    ],
-    "paths": {
-        "/is-alive": {
-            "get": {
-                "summary": "Check alive",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                },
-                "operationId": "get-is-alive",
-                "x-stoplight": {
-                    "id": "wsrp3bw48gyo5"
-                },
-                "description": "Check if the service is alive"
-            }
-        },
-        "/apiKeyLogin": {
-            "post": {
-                "summary": "API Key login",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "jwtToken": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "10qqb5ehrljhk"
-                                            }
-                                        },
-                                        "name": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "4vq6f6mqq6zsa"
-                                            },
-                                            "description": "user name"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "post-apiKeyLogin",
-                "x-stoplight": {
-                    "id": "crildy7xiek3f"
-                },
-                "description": "Login with api key",
-                "parameters": [],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "platform",
-                                    "apiKey",
-                                    "rcUserNumber"
-                                ],
-                                "properties": {
-                                    "platform": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "n05gfacsxrdip"
-                                        }
-                                    },
-                                    "apiKey": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "i5wityc2cmuel"
-                                        }
-                                    },
-                                    "hostname": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "h1t2viitn4xj5"
-                                        }
-                                    },
-                                    "addiotionalInfo": {
-                                        "type": "object",
-                                        "x-stoplight": {
-                                            "id": "j0220db63h14m"
-                                        }
-                                    },
-                                    "rcUserNumber": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "oebn0qtnvkopd"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/oauth-callback": {
-            "get": {
-                "summary": "OAuth callback",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "jwtToken": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "5vxbz26z6l9oy"
-                                            }
-                                        },
-                                        "name": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "tfe69r2iqiwvx"
-                                            },
-                                            "description": "user name"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "get-oauth-callback",
-                "x-stoplight": {
-                    "id": "ehkb42r05v7e2"
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "callbackUri",
-                        "required": true
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "state",
-                        "description": "platform={platformName}",
-                        "required": true
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "hostname",
-                        "required": true
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "tokenUrl",
-                        "required": true
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "apiUrl"
-                    },
-                    {
-                        "name": "apiUrl"
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "rcUserNumber"
-                    }
-                ]
-            }
-        },
-        "/unAuthorize": {
-            "post": {
-                "summary": "Unauthorize",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "post-unAuthorize",
-                "x-stoplight": {
-                    "id": "nacapxxr3q4il"
-                },
-                "description": "Disconnect user from CRM platform and this server",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    }
-                ]
-            }
-        },
-        "/contact": {
-            "get": {
-                "summary": "Get contact by phone number",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "2f52v91xunc4i"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "exzrm4pbywter"
-                                            }
-                                        },
-                                        "contact": {
-                                            "type": "array",
-                                            "x-stoplight": {
-                                                "id": "r9cjdaan7yyh7"
-                                            },
-                                            "items": {
-                                                "$ref": "#/components/schemas/Contact",
-                                                "x-stoplight": {
-                                                    "id": "gy35197gthefq"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "get-contact",
-                "x-stoplight": {
-                    "id": "ys0wfqnv9umky"
-                },
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    },
-                    {
-                        "$ref": "#/components/parameters/phoneNumber"
-                    },
-                    {
-                        "$ref": "#/components/parameters/overridingFormat"
-                    }
-                ],
-                "description": "Get matched contact by phone number"
-            },
-            "post": {
-                "summary": "Create new contact",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "6fdsa8bl8bhbu"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "9u77teo9zp0cb"
-                                            }
-                                        },
-                                        "contact": {
-                                            "type": "object",
-                                            "x-stoplight": {
-                                                "id": "qxv3apix2otos"
-                                            },
-                                            "properties": {
-                                                "id": {
-                                                    "type": "string",
-                                                    "x-stoplight": {
-                                                        "id": "6cy9w8szm97xm"
-                                                    }
-                                                },
-                                                "name": {
-                                                    "type": "string",
-                                                    "x-stoplight": {
-                                                        "id": "ijrdza44ug58r"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "post-contact",
-                "x-stoplight": {
-                    "id": "r0q1du1ktryl3"
-                },
-                "description": "Create a new contact",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    },
-                    {
-                        "$ref": "#/components/parameters/phoneNumber"
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "newContactName",
-                        "required": true
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "newContactType"
-                    }
-                ]
-            }
-        },
-        "/callLog": {
-            "get": {
-                "summary": "Get call log",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "jct667j77gql5"
-                                            }
-                                        },
-                                        "logs": {
-                                            "type": "array",
-                                            "x-stoplight": {
-                                                "id": "dlzvgv9rz8xgf"
-                                            },
-                                            "items": {
-                                                "$ref": "#/components/schemas/CallLog",
-                                                "x-stoplight": {
-                                                    "id": "vohdhwnc0p8bx"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "get-callLog",
-                "x-stoplight": {
-                    "id": "woyocv23ekr6i"
-                },
-                "description": "Get a call log",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    },
-                    {
-                        "schema": {
-                            "type": "string"
-                        },
-                        "in": "query",
-                        "name": "sessionIds",
-                        "description": "rc call session ids, separated by ','"
-                    }
-                ]
-            },
-            "post": {
-                "summary": "Create call log",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "739cjrgtqqlr8"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "5m354yj9nehu9"
-                                            }
-                                        },
-                                        "logId": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "zguuos0ut9hsx"
-                                            },
-                                            "description": "crm log id"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "post-callLog",
-                "x-stoplight": {
-                    "id": "a8qukn395u0u2"
-                },
-                "description": "Create a call log",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "logInfo": {
-                                        "$ref": "#/components/schemas/LogInfo",
-                                        "x-stoplight": {
-                                            "id": "23wbzs8vvmh58"
-                                        }
-                                    },
-                                    "additionalSubmission": {
-                                        "type": "object",
-                                        "x-stoplight": {
-                                            "id": "ahhkqiplywoz6"
-                                        }
-                                    },
-                                    "note": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "oe8sm13mqvh1f"
-                                        }
-                                    },
-                                    "contactId": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "2xegvtrsxurpo"
-                                        }
-                                    },
-                                    "contactType": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "e01zhn6e7gk2k"
-                                        }
-                                    },
-                                    "contactName": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "6reewjsinuupk"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "summary": "Update call log",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "l6aholr3se9r6"
-                                            }
-                                        },
-                                        "logId": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "87oorc4x9q7x4"
-                                            },
-                                            "description": "CRM log id"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "patch-callLog",
-                "x-stoplight": {
-                    "id": "9nx2iv9vlwl4p"
-                },
-                "description": "Update an existing call log",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "sessionId": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "to6ajlgvdpn3w"
-                                        }
-                                    },
-                                    "recordingLink": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "oi0k450vd58e4"
-                                        }
-                                    },
-                                    "subject": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "4n2v45ot95zqh"
-                                        }
-                                    },
-                                    "note": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "7vmsmt3oc2bbk"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/messageLog": {
-            "post": {
-                "summary": "Create message log",
-                "tags": [],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "successful": {
-                                            "type": "boolean",
-                                            "x-stoplight": {
-                                                "id": "9k5zkbk6t9n36"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "x-stoplight": {
-                                                "id": "2zvj6yhjtfkqu"
-                                            }
-                                        },
-                                        "logs": {
-                                            "type": "array",
-                                            "x-stoplight": {
-                                                "id": "hetojdzchqx5p"
-                                            },
-                                            "items": {
-                                                "x-stoplight": {
-                                                    "id": "cwoiq3b9ig1hb"
-                                                },
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "operationId": "post-messageLog",
-                "x-stoplight": {
-                    "id": "x01j7m5l5zyo9"
-                },
-                "description": "Create message log for conversation grouped by day",
-                "parameters": [
-                    {
-                        "$ref": "#/components/parameters/jwtToken"
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "logInfo": {
-                                        "$ref": "#/components/schemas/MessageLogInfo",
-                                        "x-stoplight": {
-                                            "id": "h7cd988gldzy3"
-                                        }
-                                    },
-                                    "additionalSubmission": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "kqr92h2m6db7s"
-                                        }
-                                    },
-                                    "contactId": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "yjw1jt7u81c7o"
-                                        }
-                                    },
-                                    "contactName": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "gecaa62dam73k"
-                                        }
-                                    },
-                                    "contactType": {
-                                        "type": "string",
-                                        "x-stoplight": {
-                                            "id": "uk3pmbi4mqmr4"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "components": {
-        "schemas": {
-            "Contact": {
-                "title": "Contact",
-                "x-stoplight": {
-                    "id": "3ymdfye4pri44"
-                },
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "x-stoplight": {
-                            "id": "9560cbe1rf235"
-                        }
-                    },
-                    "name": {
-                        "type": "string",
-                        "x-stoplight": {
-                            "id": "0nv6pkgvnq4e3"
-                        }
-                    },
-                    "phone": {
-                        "type": "string",
-                        "x-stoplight": {
-                            "id": "p71pyljk4izb3"
-                        }
-                    },
-                    "additionalInfo": {
-                        "type": "object",
-                        "x-stoplight": {
-                            "id": "szzyct04i03rx"
-                        }
-                    }
-                }
-            },
-            "CallLog": {
-                "title": "CallLog",
-                "x-stoplight": {
-                    "id": "al5qijw6fx9kp"
-                },
-                "type": "object",
-                "properties": {
-                    "matched": {
-                        "type": "boolean",
-                        "x-stoplight": {
-                            "id": "aueuh8t7f01cc"
-                        }
-                    },
-                    "sessionId": {
-                        "type": "string",
-                        "x-stoplight": {
-                            "id": "djjfc32adp6vc"
-                        }
-                    },
-                    "logId": {
-                        "type": "string",
-                        "x-stoplight": {
-                            "id": "kvia31dbfp0h5"
-                        },
-                        "description": "crm log id"
-                    },
-                    "logData": {
-                        "type": "object",
-                        "x-stoplight": {
-                            "id": "l9tqlw40il91r"
-                        }
-                    }
-                }
-            },
-            "CallLogInfo": {
-                "type": "object",
-                "x-stoplight": {
-                    "id": "16d06b2d7dc24"
-                },
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "sessionId": {
-                        "type": "string"
-                    },
-                    "startTime": {
-                        "type": "integer"
-                    },
-                    "duration": {
-                        "type": "integer"
-                    },
-                    "durationMs": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "internalType": {
-                        "type": "string"
-                    },
-                    "direction": {
-                        "type": "string"
-                    },
-                    "action": {
-                        "type": "string"
-                    },
-                    "result": {
-                        "type": "string"
-                    },
-                    "to": {
-                        "type": "object",
-                        "properties": {
-                            "phoneNumber": {
-                                "type": "string"
-                            },
-                            "location": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "from": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "phoneNumber": {
-                                "type": "string"
-                            },
-                            "extensionId": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "extension": {
-                        "type": "object",
-                        "properties": {
-                            "uri": {
-                                "type": "string"
-                            },
-                            "id": {
-                                "type": "integer"
-                            }
-                        }
-                    },
-                    "delegationType": {
-                        "type": "string"
-                    },
-                    "telephonySessionId": {
-                        "type": "string"
-                    },
-                    "partyId": {
-                        "type": "string"
-                    },
-                    "fromName": {
-                        "type": "string"
-                    },
-                    "toName": {
-                        "type": "string"
-                    },
-                    "fromMatches": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {}
-                        }
-                    },
-                    "toMatches": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {
-                                    "type": "integer"
-                                },
-                                "type": {
-                                    "type": "string"
-                                },
-                                "name": {
-                                    "type": "string"
-                                },
-                                "phoneNumbers": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "phoneNumber": {
-                                                "type": "string"
-                                            },
-                                            "phoneType": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "entityType": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    },
-                    "activityMatches": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {}
-                        }
-                    }
-                },
-                "x-examples": {
-                    "Example 1": {
-                        "id": "LByZ2jyZk-cMzUA",
-                        "sessionId": "533278004020",
-                        "startTime": 1713752379489,
-                        "duration": 13,
-                        "durationMs": 12721,
-                        "type": "Voice",
-                        "internalType": "LongDistance",
-                        "direction": "Outbound",
-                        "action": "VoIP Call",
-                        "result": "Call connected",
-                        "to": {
-                            "phoneNumber": "+16508446672",
-                            "location": "San Mateo, CA"
-                        },
-                        "from": {
-                            "name": "Da Kong",
-                            "phoneNumber": "+18885287464",
-                            "extensionId": "4024345020"
-                        },
-                        "extension": {
-                            "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020",
-                            "id": 4024345020
-                        },
-                        "delegationType": "Unknown",
-                        "telephonySessionId": "s-a0d7aba0b6f6fz18f039a0f91z1b6725b0000",
-                        "partyId": "p-a0d7aba0b6f6fz18f039a0f91z1b6725b0000-2",
-                        "fromName": "Da Kong",
-                        "toName": "+16508446672",
-                        "fromMatches": [],
-                        "toMatches": [
-                            {
-                                "id": 2013707553,
-                                "type": "clio",
-                                "name": "Test 123",
-                                "phoneNumbers": [
-                                    {
-                                        "phoneNumber": "+16508446672",
-                                        "phoneType": "direct"
-                                    }
-                                ],
-                                "entityType": "clio"
-                            }
-                        ],
-                        "activityMatches": []
-                    }
-                }
-            },
-            "MessageLogInfo": {
-                "type": "object",
-                "properties": {
-                    "conversationLogId": {
-                        "type": "string"
-                    },
-                    "conversationId": {
-                        "type": "string"
-                    },
-                    "creationTime": {
-                        "type": "integer"
-                    },
-                    "date": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "messages": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {
-                                    "type": "integer"
-                                },
-                                "to": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "phoneNumber": {
-                                                "type": "string"
-                                            },
-                                            "location": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "from": {
-                                    "type": "object",
-                                    "properties": {
-                                        "phoneNumber": {
-                                            "type": "string"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        },
-                                        "location": {
-                                            "type": "string"
-                                        }
-                                    }
-                                },
-                                "type": {
-                                    "type": "string"
-                                },
-                                "creationTime": {
-                                    "type": "integer"
-                                },
-                                "readStatus": {
-                                    "type": "string"
-                                },
-                                "priority": {
-                                    "type": "string"
-                                },
-                                "attachments": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "id": {
-                                                "type": "integer"
-                                            },
-                                            "uri": {
-                                                "type": "string"
-                                            },
-                                            "type": {
-                                                "type": "string"
-                                            },
-                                            "contentType": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                },
-                                "direction": {
-                                    "type": "string"
-                                },
-                                "availability": {
-                                    "type": "string"
-                                },
-                                "subject": {
-                                    "type": "string"
-                                },
-                                "messageStatus": {
-                                    "type": "string"
-                                },
-                                "smsSendingAttemptsCount": {
-                                    "type": "integer"
-                                },
-                                "conversationId": {
-                                    "type": "string"
-                                },
-                                "lastModifiedTime": {
-                                    "type": "integer"
-                                }
-                            }
-                        }
-                    },
-                    "conversationLogMatches": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {}
-                        }
-                    },
-                    "self": {
-                        "type": "object",
-                        "properties": {
-                            "phoneNumber": {
-                                "type": "string"
-                            },
-                            "name": {
-                                "type": "string"
-                            },
-                            "location": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "correspondents": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "phoneNumber": {
-                                    "type": "string"
-                                },
-                                "location": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "x-examples": {
-                    "Example 1": {
-                        "conversationLogId": "2052636401630275685/4/17/2024",
-                        "conversationId": "2052636401630275685",
-                        "creationTime": 1713322040000,
-                        "date": "4/17/2024",
-                        "type": "SMS",
-                        "messages": [
-                            {
-                                "id": 2354773896020,
-                                "to": [
-                                    {
-                                        "phoneNumber": "+13133982125",
-                                        "location": "Detroit, MI"
-                                    }
-                                ],
-                                "from": {
-                                    "phoneNumber": "+17206789819",
-                                    "name": "Da Kong",
-                                    "location": "Denver, CO"
-                                },
-                                "type": "SMS",
-                                "creationTime": 1713322040000,
-                                "readStatus": "Read",
-                                "priority": "Normal",
-                                "attachments": [
-                                    {
-                                        "id": 2354773896020,
-                                        "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020/message-store/2354773896020/content/2354773896020",
-                                        "type": "Text",
-                                        "contentType": "text/plain"
-                                    }
-                                ],
-                                "direction": "Outbound",
-                                "availability": "Alive",
-                                "subject": "test 7",
-                                "messageStatus": "DeliveryFailed",
-                                "smsSendingAttemptsCount": 1,
-                                "conversationId": "2052636401630275685",
-                                "lastModifiedTime": 1713322042372
-                            },
-                            {
-                                "id": 2354773534020,
-                                "to": [
-                                    {
-                                        "phoneNumber": "+13133982125",
-                                        "location": "Detroit, MI"
-                                    }
-                                ],
-                                "from": {
-                                    "phoneNumber": "+17206789819",
-                                    "name": "Da Kong",
-                                    "location": "Denver, CO"
-                                },
-                                "type": "SMS",
-                                "creationTime": 1713319980000,
-                                "readStatus": "Read",
-                                "priority": "Normal",
-                                "attachments": [
-                                    {
-                                        "id": 2354773534020,
-                                        "uri": "https://platform.ringcentral.com/restapi/v1.0/account/37439510/extension/4024345020/message-store/2354773534020/content/2354773534020",
-                                        "type": "Text",
-                                        "contentType": "text/plain"
-                                    }
-                                ],
-                                "direction": "Outbound",
-                                "availability": "Alive",
-                                "subject": "test 6",
-                                "messageStatus": "DeliveryFailed",
-                                "smsSendingAttemptsCount": 1,
-                                "conversationId": "2052636401630275685",
-                                "lastModifiedTime": 1713319982724
-                            }
-                        ],
-                        "conversationLogMatches": [],
-                        "self": {
-                            "phoneNumber": "+17206789819",
-                            "name": "Da Kong",
-                            "location": "Denver, CO"
-                        },
-                        "correspondents": [
-                            {
-                                "phoneNumber": "+13133982125",
-                                "location": "Detroit, MI"
-                            }
-                        ]
-                    }
-                }
-            }
-        },
-        "parameters": {
-            "jwtToken": {
-                "name": "jwtToken",
-                "in": "query",
-                "required": true,
-                "schema": {
-                    "type": "string"
-                },
-                "description": "auth token between client and server"
-            },
-            "phoneNumber": {
-                "name": "phoneNumber",
-                "in": "query",
-                "required": true,
-                "schema": {
-                    "type": "string"
-                },
-                "description": "contact phone number, in E.164 format"
-            },
-            "overridingFormat": {
-                "name": "overridingFormat",
-                "in": "query",
-                "required": false,
-                "schema": {
-                    "type": "string"
-                },
-                "description": "Formatter to modify number format (eg. (***) ***-****. for +11234567890 -> (123) 456-7890) "
-            }
-        }
+      }
     }
+  ],
+  "tags": [
+    { "name": "Health" },
+    { "name": "Manifest" },
+    { "name": "Auth" },
+    { "name": "Admin" },
+    { "name": "User" },
+    { "name": "Contacts" },
+    { "name": "Appointments" },
+    { "name": "Call Logs" },
+    { "name": "Message Logs" },
+    { "name": "Call Down" },
+    { "name": "Plugins" },
+    { "name": "MCP" },
+    { "name": "RingCentral Reports" },
+    { "name": "Google Integrations" },
+    { "name": "Pipedrive" }
+  ],
+  "paths": {
+    "/isAlive": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "operationId": "getIsAlive",
+        "responses": {
+          "200": {
+            "description": "Returns OK as text/plain."
+          }
+        }
+      }
+    },
+    "/implementedInterfaces": {
+      "get": {
+        "tags": ["Manifest"],
+        "summary": "List implemented connector methods for a platform",
+        "operationId": "getImplementedInterfaces",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/crmManifest": {
+      "get": {
+        "tags": ["Manifest"],
+        "summary": "Return a platform manifest",
+        "description": "Kept for backward compatibility with older clients.",
+        "operationId": "getCrmManifest",
+        "parameters": [
+          {
+            "name": "platformName",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/releaseNotes": {
+      "get": {
+        "tags": ["Manifest"],
+        "summary": "Return merged global and connector release notes",
+        "operationId": "getReleaseNotes",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/serverVersionInfo": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Return server version metadata",
+        "operationId": "getServerVersionInfo",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/oauth-callback": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "CRM OAuth callback",
+        "operationId": "getOauthCallback",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "callbackUri",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "hostname",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "tokenUrl",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "apiUrl",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/apiKeyLogin": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "API-key login",
+        "operationId": "postApiKeyLogin",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/unAuthorize": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Disconnect a CRM user",
+        "operationId": "postUnAuthorize",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/licenseStatus": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get connector license status",
+        "operationId": "getLicenseStatus",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/authValidation": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Validate the current CRM authentication",
+        "operationId": "getAuthValidation",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/apiKeyManagedAuthState": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get admin-managed API-key auth state",
+        "operationId": "getApiKeyManagedAuthState",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/oauthManagedAuthState": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get admin-managed OAuth state",
+        "operationId": "getOauthManagedAuthState",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/hostname": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Resolve hostname metadata for a platform",
+        "operationId": "getHostname",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/userInfoHash": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Return a hash for the current user info",
+        "operationId": "getUserInfoHash",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/settings": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Read admin settings",
+        "operationId": "getAdminSettings",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Save admin settings",
+        "operationId": "postAdminSettings",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/managedAuth": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Read admin-managed API-key credentials",
+        "operationId": "getAdminManagedAuth",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Save admin-managed API-key credentials",
+        "operationId": "postAdminManagedAuth",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/managedOAuth/cache": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Cache admin-managed OAuth credentials",
+        "operationId": "postAdminManagedOauthCache",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Delete cached admin-managed OAuth credentials",
+        "operationId": "deleteAdminManagedOauthCache",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/managedOAuth/account": {
+      "delete": {
+        "tags": ["Admin"],
+        "summary": "Delete account-scoped admin-managed OAuth credentials",
+        "operationId": "deleteAdminManagedOauthAccount",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" },
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/userMapping": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Save admin user mapping",
+        "operationId": "postAdminUserMapping",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/reinitializeUserMapping": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Reinitialize admin user mapping",
+        "operationId": "postAdminReinitializeUserMapping",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/serverLoggingSettings": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Read server-side logging settings",
+        "operationId": "getAdminServerLoggingSettings",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Update server-side logging settings",
+        "operationId": "postAdminServerLoggingSettings",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/user/preloadSettings": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Preload user settings for a platform",
+        "operationId": "getUserPreloadSettings",
+        "parameters": [
+          { "$ref": "#/components/parameters/platform" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/user/settings": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Read user settings",
+        "operationId": "getUserSettings",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["User"],
+        "summary": "Update user settings",
+        "operationId": "postUserSettings",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/contact": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Find contacts by phone number",
+        "operationId": "getContact",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/phoneNumber" },
+          {
+            "name": "overridingFormat",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "isForceRefreshAccountData",
+            "in": "query",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Contacts"],
+        "summary": "Create a contact",
+        "operationId": "postContact",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/custom/contact/search": {
+      "get": {
+        "tags": ["Contacts"],
+        "summary": "Find contacts by name",
+        "operationId": "getCustomContactSearch",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/appointments": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "List appointments",
+        "operationId": "getAppointments",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Create an appointment",
+        "operationId": "postAppointments",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/appointments/{appointmentId}": {
+      "patch": {
+        "tags": ["Appointments"],
+        "summary": "Update an appointment",
+        "operationId": "patchAppointment",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/appointmentId" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/appointments/{appointmentId}/refresh": {
+      "get": {
+        "tags": ["Appointments"],
+        "summary": "Refresh an appointment",
+        "operationId": "getAppointmentRefresh",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/appointmentId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/appointments/{appointmentId}/confirm": {
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Confirm an appointment",
+        "operationId": "postAppointmentConfirm",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/appointmentId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/appointments/{appointmentId}/cancel": {
+      "post": {
+        "tags": ["Appointments"],
+        "summary": "Cancel an appointment",
+        "operationId": "postAppointmentCancel",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/appointmentId" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/callLog": {
+      "get": {
+        "tags": ["Call Logs"],
+        "summary": "Fetch existing call logs",
+        "operationId": "getCallLog",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Call Logs"],
+        "summary": "Create a call log",
+        "operationId": "postCallLog",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "patch": {
+        "tags": ["Call Logs"],
+        "summary": "Update a call log",
+        "operationId": "patchCallLog",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/callLog/cacheNote": {
+      "post": {
+        "tags": ["Call Logs"],
+        "summary": "Cache a call note before full logging",
+        "operationId": "postCallLogCacheNote",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/callDisposition": {
+      "put": {
+        "tags": ["Call Logs"],
+        "summary": "Upsert call dispositions",
+        "operationId": "putCallDisposition",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/messageLog": {
+      "post": {
+        "tags": ["Message Logs"],
+        "summary": "Create or update an SMS/fax/message log",
+        "operationId": "postMessageLog",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/calldown": {
+      "get": {
+        "tags": ["Call Down"],
+        "summary": "List call-down entries",
+        "operationId": "getCallDown",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "post": {
+        "tags": ["Call Down"],
+        "summary": "Create a call-down entry",
+        "operationId": "postCallDown",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/calldown/{id}": {
+      "patch": {
+        "tags": ["Call Down"],
+        "summary": "Update a call-down entry",
+        "operationId": "patchCallDown",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/id" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "delete": {
+        "tags": ["Call Down"],
+        "summary": "Delete a call-down entry",
+        "operationId": "deleteCallDown",
+        "security": [{ "userJwt": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/id" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/pluginAsyncTask": {
+      "post": {
+        "tags": ["Plugins"],
+        "summary": "Run an async plugin task",
+        "operationId": "postPluginAsyncTask",
+        "security": [{ "userJwt": [] }],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/plugin/register": {
+      "post": {
+        "tags": ["Plugins"],
+        "summary": "Register a plugin for an account",
+        "operationId": "postPluginRegister",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/plugin/unregister": {
+      "delete": {
+        "tags": ["Plugins"],
+        "summary": "Unregister a plugin for an account",
+        "operationId": "deletePluginUnregister",
+        "parameters": [
+          { "$ref": "#/components/parameters/rcAccessToken" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/plugin/licenseStatus": {
+      "get": {
+        "tags": ["Plugins"],
+        "summary": "Get plugin license status for a user",
+        "operationId": "getPluginLicenseStatus",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/ringcentral/admin/report": {
+      "get": {
+        "tags": ["RingCentral Reports"],
+        "summary": "Generate an admin report",
+        "operationId": "getRingCentralAdminReport",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/ringcentral/admin/userReport": {
+      "get": {
+        "tags": ["RingCentral Reports"],
+        "summary": "Generate an admin user report",
+        "operationId": "getRingCentralAdminUserReport",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/ringcentral/oauth/callback": {
+      "get": {
+        "tags": ["RingCentral Reports"],
+        "summary": "RingCentral admin OAuth callback",
+        "operationId": "getRingCentralOauthCallback",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/debug/report/url": {
+      "get": {
+        "tags": ["RingCentral Reports"],
+        "summary": "Generate a debug report URL",
+        "operationId": "getDebugReportUrl",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/.well-known/openai-apps-challenge": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "OpenAI app verification challenge",
+        "operationId": "getOpenAiAppsChallenge",
+        "responses": {
+          "200": {
+            "description": "Verification code as text/plain."
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "OAuth protected resource metadata",
+        "operationId": "getOauthProtectedResourceMetadata",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "OAuth authorization server metadata",
+        "operationId": "getOauthAuthorizationServerMetadata",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/oauth/authorize_shim": {
+      "get": {
+        "tags": ["MCP"],
+        "summary": "Redirect MCP OAuth authorization to RingCentral",
+        "operationId": "getOauthAuthorizeShim",
+        "responses": {
+          "302": {
+            "description": "Redirects to RingCentral OAuth authorization."
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "tags": ["MCP"],
+        "summary": "Return MCP dynamic client registration credentials",
+        "operationId": "postOauthRegister",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "tags": ["MCP"],
+        "summary": "Handle MCP JSON-RPC requests",
+        "operationId": "postMcp",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "401": {
+            "description": "Bearer challenge for protected MCP requests."
+          }
+        }
+      }
+    },
+    "/mcp/widget-tool-call": {
+      "post": {
+        "tags": ["MCP"],
+        "summary": "Handle unauthenticated widget tool calls",
+        "operationId": "postMcpWidgetToolCall",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" }
+        }
+      }
+    },
+    "/googleSheets/filePicker": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Open Google Sheets file picker",
+        "operationId": "getGoogleSheetsFilePicker",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleSheets/sheet": {
+      "post": {
+        "tags": ["Google Integrations"],
+        "summary": "Create or connect a Google Sheet",
+        "operationId": "postGoogleSheetsSheet",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      },
+      "delete": {
+        "tags": ["Google Integrations"],
+        "summary": "Disconnect a Google Sheet",
+        "operationId": "deleteGoogleSheetsSheet",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleSheets/selectedSheet": {
+      "post": {
+        "tags": ["Google Integrations"],
+        "summary": "Select a Google Sheet tab",
+        "operationId": "postGoogleSheetsSelectedSheet",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/googleSheets/filePicker": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Open admin Google Sheets file picker",
+        "operationId": "getAdminGoogleSheetsFilePicker",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/googleSheets/sheet": {
+      "post": {
+        "tags": ["Google Integrations"],
+        "summary": "Create or connect an admin Google Sheet",
+        "operationId": "postAdminGoogleSheetsSheet",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/googleSheets/selectedSheet": {
+      "post": {
+        "tags": ["Google Integrations"],
+        "summary": "Select an admin Google Sheet tab",
+        "operationId": "postAdminGoogleSheetsSelectedSheet",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/admin/googleSheets/config": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Read admin Google Sheets config",
+        "operationId": "getAdminGoogleSheetsConfig",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleDrive/oauthUrl": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Get Google Drive OAuth URL",
+        "operationId": "getGoogleDriveOauthUrl",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleDrive/oauthCallback": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Google Drive OAuth callback",
+        "operationId": "getGoogleDriveOauthCallback",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleDrive/checkAuth": {
+      "get": {
+        "tags": ["Google Integrations"],
+        "summary": "Check Google Drive auth state",
+        "operationId": "getGoogleDriveCheckAuth",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/googleDrive/logout": {
+      "post": {
+        "tags": ["Google Integrations"],
+        "summary": "Disconnect Google Drive",
+        "operationId": "postGoogleDriveLogout",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/pipedrive-redirect": {
+      "get": {
+        "tags": ["Pipedrive"],
+        "summary": "Handle Pipedrive redirect",
+        "operationId": "getPipedriveRedirect",
+        "responses": {
+          "302": {
+            "description": "Redirects to the final Pipedrive target."
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Pipedrive"],
+        "summary": "Clear Pipedrive redirect state",
+        "operationId": "deletePipedriveRedirect",
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/plugin/licenseStatus/{pluginId}": {
+      "get": {
+        "tags": ["Plugins"],
+        "summary": "Get app-specific plugin license status",
+        "operationId": "getPluginLicenseStatusByPluginId",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/plugin/{pluginId}": {
+      "post": {
+        "tags": ["Plugins"],
+        "summary": "Proxy an app-specific plugin request",
+        "operationId": "postPluginByPluginId",
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenericJson"
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "User session JWT. The server also accepts legacy jwtToken query parameters for backward compatibility."
+      }
+    },
+    "parameters": {
+      "platform": {
+        "name": "platform",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "rcAccessToken": {
+        "name": "rcAccessToken",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "RingCentral access token used for admin validation."
+      },
+      "phoneNumber": {
+        "name": "phoneNumber",
+        "in": "query",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "Phone number to search, normally E.164."
+      },
+      "appointmentId": {
+        "name": "appointmentId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "requestBodies": {
+      "GenericJson": {
+        "required": false,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "OkJson": {
+        "description": "Successful JSON response. Exact response shape depends on the route and connector interface.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Bad request or connector error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Admin validation failed."
+      }
+    }
+  }
 }

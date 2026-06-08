@@ -1,70 +1,89 @@
-# Regional Services
+# Regional Services And Manifest Overrides
 
-Many CRM platforms maintain separate regional deployments to meet data residency requirements, reduce latency, or comply with local regulations. For example, some CRMs maintain separate US and EU servers, each with different URLs and potentially different authentication endpoints.
+Some CRMs have separate regional hosts, OAuth endpoints, or API domains. App Connect supports this through setup-time `environment` selection and runtime manifest `override` rules.
 
-The App Connect framework provides built-in support for regional services through a flexible configuration system.
+## Prefer Environment Selection For Regions
 
-## Implementation with Manifest Override
-
-Regional services are supported through the `override` property in the manifest configuration. This powerful feature allows you to define conditions under which certain properties of your manifest should be replaced with alternative values.
-
-### Example: Clio Configuration
-
-Clio provides a great example of regional configuration. They maintain different servers for different regions, each with unique authentication endpoints:
+Use `environment.type: selectable` when the user should choose a region:
 
 ```json
-"override": [
-    {
-        "triggerType": "hostname",
-        "triggerValue": "au.app.clio.com",
-        "overrideObjects": [
-            {
-                "path": "auth.oauth.authUrl",
-                "value": "https://au.app.clio.com/oauth/authorize"
-            }
-        ]
-    }
-]
+{
+  "environment": {
+    "type": "selectable",
+    "selections": [
+      { "const": "https://app.example.com", "name": "US" },
+      { "const": "https://eu.app.example.com", "name": "EU" },
+      { "const": "https://au.app.example.com", "name": "AU" }
+    ]
+  }
+}
 ```
 
-In this example:
-- The `triggerType` is set to "hostname" 
-- When the hostname matches "au.app.clio.com" (Australian region)
-- The framework overrides specific configuration values:
-  - The OAuth authorization URL is set to the Australian server
+The selected hostname is later available to connector code as `hostname` during auth and `user.hostname` after login.
 
-## How It Works
+## Override Rules
 
-1. The client-side application monitors for trigger conditions (currently only hostname is supported as a trigger)
-2. When a trigger condition is met, the app locates the specified path in the manifest configuration
-3. It then replaces the default value with the region-specific value defined in the override
+Use `override[]` when parts of the manifest must change under specific conditions:
 
-This approach allows for seamless switching between regional deployments without requiring separate connectors or complex conditional logic in your code.
+```json
+{
+  "override": [
+    {
+      "triggerType": "hostname",
+      "triggerValue": "au.app.example.com",
+      "overrideObjects": [
+        {
+          "path": "auth.oauth.authUrl",
+          "value": "https://au.app.example.com/oauth/authorize"
+        }
+      ]
+    }
+  ]
+}
+```
 
-## Available Trigger Types
+Each override object has:
 
-Currently, the only supported trigger type is `hostname`. If you need additional trigger types to better support your regional implementation, please create a GitHub issue requesting the specific trigger you require.
+| Field | Description |
+| --- | --- |
+| `triggerType` | Condition type. Existing manifests use `hostname` and `meta`. |
+| `triggerValue` | Value to match for trigger types that require one. |
+| `overrideObjects[]` | List of path/value replacements. |
+| `overrideObjects[].path` | Dot path under the platform object or top-level manifest depending on trigger behavior. |
+| `overrideObjects[].value` | Replacement value. |
 
-## Implementing Regional Services in Your Connector
+Existing bundled connectors also use `triggerType: "meta"` to override deployment metadata such as `serverUrl` and `author`.
 
-When implementing support for regional services in your connector:
+## Connector Implementation
 
-1. **Store Regional Information**: Keep the regional API server URL in the user model in your database to maintain consistent connections with the correct region.
+The manifest only changes the client-side configuration. Your connector still needs to choose the correct CRM API and token URLs.
 
-2. **Authentication Handling**: Use environment variables and auth-related methods in your connector to determine which server configuration to use.
+Common implementation pattern:
 
-3. **API Endpoint Selection**: When making API calls, be mindful to use the correct regional server URLs if those are different.
+```js
+async function getOauthInfo({ hostname, isFromMCP }) {
+  if (hostname.startsWith('eu.')) {
+    return {
+      clientId: process.env.CRM_EU_CLIENT_ID,
+      clientSecret: process.env.CRM_EU_CLIENT_SECRET,
+      accessTokenUri: process.env.CRM_EU_TOKEN_URI,
+      redirectUri: isFromMCP ? process.env.CRM_REDIRECT_URI_MCP : process.env.CRM_REDIRECT_URI
+    };
+  }
 
-## Best Practices
+  return {
+    clientId: process.env.CRM_CLIENT_ID,
+    clientSecret: process.env.CRM_CLIENT_SECRET,
+    accessTokenUri: process.env.CRM_TOKEN_URI,
+    redirectUri: process.env.CRM_REDIRECT_URI
+  };
+}
+```
 
-1. **Comprehensive Testing**: Test your connector against all supported regional deployments to ensure consistent behavior.
+## Checklist
 
-2. **Clear Documentation**: Document which regions are supported and any region-specific behavior or limitations.
-
-3. **Default Region**: Always provide a sensible default region configuration for new users.
-
-4. **User Selection**: Consider providing UI elements that allow users to select their region if it cannot be automatically detected.
-
-5. **Error Handling**: Implement robust error handling that accounts for regional differences in API responses or rate limits.
-
-By following these guidelines, you can create a seamless experience for users regardless of which regional deployment of your CRM they are using.
+- Define selectable or dynamic environment config in the manifest.
+- Use overrides only for values that truly differ by host or deployment.
+- Keep region-specific client secrets in environment variables or managed OAuth, not in the manifest.
+- Save any region data you need in `platformAdditionalInfo` from [`getUserInfo`](interfaces/getUserInfo.md).
+- Test auth, contact lookup, and logging in every supported region.

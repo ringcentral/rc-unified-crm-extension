@@ -1,44 +1,60 @@
 # getOauthInfo
 
-This method returns a simple object containing all necessary OAuth values. This method provides developers with a safe and secure way to present to the framework values that are typically considered private, for example a client secret. These values are often stored in environment variables or in a vault. 
+Returns the private OAuth values core needs to exchange and refresh CRM tokens.
 
-## Input parameters
-
-None.
-
-## Return value(s)
-
-This method should return an associative array with the following keys and values:
-
-| Key              | Value                                                                                          |
-|------------------|------------------------------------------------------------------------------------------------|
-| `clientId`       | The client ID of the application registered with the CRM provider, used to call the CRM's API. |
-| `clientSecret`   | The client secret of the application registered with the CRM provider.                         |
-| `accessTokenUri` | The API endpoint used to retrieve the access token from the CRM provider.                      |
-| `redirectUri`    | The redirect URI registered with the CRM provider.                                             |
-
-**Example**
+## Signature
 
 ```js
-{
-  'clientId': 'xxx-xxxx-xxxxxxxxxx-xxxx',
-  'clientSecret': 'xxxxxxxx-xxxxxxxxxxxxxxxxxx',
-  'accessTokenUri': 'https://auth.crm.com/token',
-  'redirectUri': 'https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html'
+async function getOauthInfo({
+  tokenUrl,
+  hostname,
+  rcAccountId,
+  proxyId,
+  proxyConfig,
+  userEmail,
+  isFromMCP
+} = {}) {
+  return {
+    clientId: process.env.CRM_CLIENT_ID,
+    clientSecret: process.env.CRM_CLIENT_SECRET,
+    accessTokenUri: process.env.CRM_TOKEN_URI,
+    redirectUri: process.env.CRM_REDIRECT_URI
+  };
 }
 ```
 
+Connectors can ignore fields they do not need. Regional connectors commonly use `hostname`. MCP-enabled connectors may use `isFromMCP` to return a different redirect URI.
+
+## Input
+
+| Field | Description |
+| --- | --- |
+| `tokenUrl` | Token URL previously saved in `user.platformAdditionalInfo.tokenUrl`, or supplied during OAuth callback. |
+| `hostname` | CRM hostname selected or entered by the user. |
+| `rcAccountId` | RingCentral account ID when available. Used by managed OAuth resolution. |
+| `proxyId` | Proxy connector ID saved with the user. |
+| `proxyConfig` | Loaded proxy configuration for the connection. |
+| `userEmail` | User email from the auth flow, when available. |
+| `isFromMCP` | True when the OAuth flow was initiated by MCP. |
+
+## Return
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `clientId` | Yes | CRM OAuth application client ID. |
+| `clientSecret` | Yes | CRM OAuth application client secret. |
+| `accessTokenUri` | Yes | CRM token endpoint. |
+| `redirectUri` | Yes | Redirect URI registered with the CRM application. |
+| `authorizationUri` | Optional | Authorization URI if a custom OAuth helper needs it. |
+| `scopes` | Optional | Scopes used by `client-oauth2` when needed. |
+| `hostname` | Optional | Overrides the hostname saved with the connected user. |
+| `failMessage` | Optional | If present, core stops the flow and shows this message as an auth failure. |
+
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/getOauthInfo.js"
-	```
-	
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/pipedrive/index.js:19:26"
-	```
+    ```
 
