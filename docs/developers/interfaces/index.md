@@ -1,4 +1,4 @@
-# App Connect connector interfaces
+# Connector Interface Contract
 
 Each connector exposes an API that the App Connect server communicates with. Each endpoint or interface corresponds to a specific capability within App Connect, and is responsible for fulfilling that capability within the context of the CRM being connected to.
 
@@ -74,3 +74,39 @@ Lifecycle hooks allow connectors to intercept and customize key framework operat
 | [`getServerLoggingSettings`](getServerLoggingSettings.md)           | Retrieves the server-side logging configuration for the current user's organization.                |
 | [`updateServerLoggingSettings`](updateServerLoggingSettings.md)     | Persists updated server-side logging settings for the current user's organization.                  |
 | [`postSaveUserInfo`](postSaveUserInfo.md)                           | Called after a user authenticates; use it for CRM-specific post-login setup.                        |
+
+## Connector shapes
+
+App Connect supports three connector shapes:
+
+| Shape | Where it is defined | When to use it |
+| --- | --- | --- |
+| Code connector | A JavaScript module registered with `connectorRegistry.registerConnector()` | Use when the CRM needs custom logic, multiple API calls, database work, or connector-specific behavior. |
+| Interface-only connector | Individual functions registered with `connectorRegistry.registerConnectorInterface()` | Use when a platform is assembled from separately registered methods. Registered interface functions are composed over the base connector without mutating it. |
+| Proxy connector | Declarative `proxyConfig` stored in the Developer Console | Use when REST calls and response mappings are enough. If no platform connector is registered and the `proxy` connector exists, the registry falls back to proxy mode. |
+
+## Common runtime inputs
+
+Most interface methods receive one object argument. The exact fields vary by flow, but these are common across most interfaces:
+
+| Field | Meaning |
+| --- | --- |
+| `user` | Persisted App Connect user model for the connected CRM user. Includes `id`, `platform`, `hostname`, `accessToken`, `refreshToken`, `tokenExpiry`, `timezoneName`, `timezoneOffset`, `rcAccountId`, `platformAdditionalInfo`, and `userSettings` when available. |
+| `authHeader` | Authorization header already prepared by core. OAuth connectors receive `Bearer <accessToken>` after refresh. API-key connectors receive `Basic <value returned by getBasicAuth()>`. |
+| `proxyConfig` | Proxy connector configuration when the user connected through proxy mode. Code connectors can ignore it unless they deliberately support proxy-backed behavior. |
+
+## Return messages
+
+Most interfaces may return an optional `returnMessage` to surface feedback in the App Connect UI:
+
+```js
+return {
+  returnMessage: {
+    message: 'Call logged.',
+    messageType: 'success',
+    ttl: 3000
+  }
+};
+```
+
+Use `success`, `warning`, or `error` for `messageType`. Some older connectors use `danger`; prefer `error` for new connector code.

@@ -48,7 +48,7 @@ Declare server-side logging support in your manifest by adding a `serverSideLogg
 | `url`                       | string  | The base URL of your connector's server-side logging endpoint.                                     |
 | `useAdminAssignedUserToken` | boolean | When `true`, logging calls use the admin's own OAuth token. When `false`, the connector retrieves its own credentials via `getServerLoggingSettings`. |
 | `enableUserMapping`         | boolean | When `true`, the Admin settings UI shows a user-mapping table so admins can map RingCentral users to CRM users. Your connector must implement `getUserList` to populate this table. |
-| `additionalFields`          | array   | Configuration fields shown in the Admin settings UI. Values collected here are accessible via `getServerLoggingSettings`. Supports the same field properties as [`page.callLog.additionalFields`](manifest-pages.md#adding-custom-fields-to-logging-forms). |
+| `additionalFields`          | array   | Configuration fields shown in the Admin settings UI. Values collected here are accessible via `getServerLoggingSettings`. Supports the same field properties as [`page.callLog.additionalFields`](manifest-pages.md#additional-field-shape). |
 
 ## Interfaces to implement
 

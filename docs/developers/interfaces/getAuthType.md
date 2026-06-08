@@ -9,18 +9,24 @@ It is also called when the framework queries your connector's `/implementedInter
 - When a user attempts to connect to the CRM for the first time
 - When the framework checks which interfaces your connector implements
 
+### Signature
+
+```js
+function getAuthType({ proxyId, proxyConfig } = {}) {
+  return 'oauth'; // or 'apiKey'
+}
+```
+
+Existing connectors may define this with no parameters. The runtime can pass `proxyId` and `proxyConfig` when the connected user came from proxy mode.
+
 ## Input parameters
-
-None.
-
-## Return value(s)
 
 A string literal indicating the auth method:
 
 | Value      | Description                                                                                  |
 |------------|----------------------------------------------------------------------------------------------|
 | `"oauth"`  | The CRM uses OAuth 2.0. The framework will call [`getOauthInfo`](getOauthInfo.md) to retrieve credentials and will manage the OAuth redirect flow. |
-| `"apiKey"` | The CRM uses static credentials (API key, username/password, or similar). The framework will present the user with the credential form defined in [`platform.auth.apiKey.page`](../manifest-pages.md#customizing-apikey-auth-page) and will call [`getBasicAuth`](getBasicAuth.md) to build the Authorization header. |
+| `"apiKey"` | The CRM uses static credentials (API key, username/password, or similar). The framework will present the user with the credential form defined in [`platform.auth.apiKey.page`](../manifest-pages.md#api-key-auth-page) and will call [`getBasicAuth`](getBasicAuth.md) to build the Authorization header. |
 
 **Example**
 ```js
@@ -43,9 +49,28 @@ Returning `"apiKey"` means you must also implement:
 
 In both cases `getUserInfo` is required. The difference is only in which pre-auth interface the framework calls to set up the request.
 
+## Return
+
+Return one of:
+
+| Value | Runtime behavior |
+| --- | --- |
+| `oauth` | Core refreshes OAuth tokens when needed, builds `authHeader` as `Bearer <accessToken>`, and calls `getOauthInfo()` for token exchange details. |
+| `apiKey` | Core calls `getBasicAuth({ apiKey: user.accessToken })`, then builds `authHeader` as `Basic <returned value>`. |
+
+## Example
+
+```js
+function getAuthType() {
+  return 'apiKey';
+}
+
+module.exports = getAuthType;
+```
+
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/getAuthType.js"

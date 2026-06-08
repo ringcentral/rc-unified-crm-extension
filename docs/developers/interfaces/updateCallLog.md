@@ -1,84 +1,86 @@
 # updateCallLog
 
-This interface is called when a call log activity record needs to be updated. This interface is invoked in response to the following user actions:
+Updates an existing CRM call activity. Core calls this when the user edits the log, when finalized call data arrives, when a recording becomes available, or when AI artifacts are added later.
 
-* The user of App Connect's Chrome extension updates the subject or notes associated with a call log. 
-* When a recording has become available for a phone call.
-
-### Adding a recording to a call log entry
-
-Events are triggers the moment a phone call is completed so that it can be logged properly. However, recordings take additional time to process and encode to make available to users. Therefore, for any given call you will receive an event when the call ends, and a subsequent event when a record is made available (assuming a recording of the call was made). 
-
-It is the developer's responsibility to update the call log record contents as they see fit to make a call recording available. 
-
-## Input parameters
-
-| Parameter              | Description                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-| `user`                 | An object describing the Chrome extension user associated with the action that triggered this interface. | 
-| `existingCallLog`      | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
-| `authHeader`           | The HTTP Authorization header to be transmitted with the API request to the target CRM.                  | 
-| `recordingLink`        | If the call has a recording associated with it, then this field will contain a link to the voicemail.    |
-| `subject`              | The subject or summary of the call activity. The value may have been changes by the user.                |
-| `note`                 | The notes saved by the user. The value may change if the user has updated the notes they have taken.     |
-| `startTime`                 | Updated value of start date/time of this call. |
-| `duration`                 | Updated value of duration of this call.     |
-| `result`                 | Updated value of result of this call.     |
-| `aiNote`       |  AI summary of the phone call   | 
-| `transcript`       |  Transcript of the phone call   | 
-| `ringSenseTranscript`  | The transcript from [ACE](../../users/ace.md) | 
-| `ringSenseSummary`     | The summary from [ACE](../../users/ace.md) | 
-| `ringSenseBulletedSummary`     | The bulleted summary from [ACE](../../users/ace.md) |
-| `ringSenseAIScore`     | The AI score from [ACE](../../users/ace.md) | 
-| `ringSenseLink`     | The link to [ACE](../../users/ace.md) recording | 
-| `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
-| `existingCallLogDetails`       |  Formated log details that's stored in log entity  | 
-
-* Why need `startTime`, `duration` and `result`? Call info could be not as accurate right after the call. Our app uses call info from user local data until it's updated by RingCentral server. If users create call logs before RingCentral server updates the data, another API call will be triggered to call this `updateCallLog` function with true call data.
-
-### Contact Info
+## Signature
 
 ```js
-{ 
-  id: "<string">,
-  type: "<string>", 
-  phoneNumber: "<E.164 Phone Number>",
-  name: "<string>"
+async function updateCallLog({
+  user,
+  existingCallLog,
+  authHeader,
+  recordingLink,
+  recordingDownloadLink,
+  subject,
+  note,
+  startTime,
+  duration,
+  result,
+  aiNote,
+  transcript,
+  legs,
+  ringSenseTranscript,
+  ringSenseSummary,
+  ringSenseAIScore,
+  ringSenseBulletedSummary,
+  ringSenseLink,
+  additionalSubmission,
+  composedLogDetails,
+  existingCallLogDetails,
+  hashedAccountId,
+  isFromSSCL,
+  proxyConfig
+}) {
+  return {
+    updatedNote: note,
+    returnMessage: {
+      message: 'Call log updated.',
+      messageType: 'success',
+      ttl: 2000
+    }
+  };
 }
 ```
 
-## Return value(s)
+## Input
 
-An object with following properties:
+| Field | Description |
+| --- | --- |
+| `user` | Connected CRM user. |
+| `existingCallLog` | Local App Connect linkage record. Use `existingCallLog.thirdPartyLogId` as the CRM log ID. |
+| `authHeader` | Prepared CRM auth header. |
+| `recordingLink` | View/listen link for the recording when available. |
+| `recordingDownloadLink` | Download link when the caller supplied one. |
+| `subject`, `note` | Latest user-editable log fields. |
+| `startTime`, `duration`, `result`, `legs` | Finalized RingCentral call details. |
+| `aiNote`, `transcript` | Smart Notes/AI summary and transcript when available. |
+| `ringSenseTranscript`, `ringSenseSummary`, `ringSenseAIScore`, `ringSenseBulletedSummary`, `ringSenseLink` | ACE/RingSense artifacts when available. |
+| `additionalSubmission` | Values from manifest `page.callLog.additionalFields[]`. |
+| `composedLogDetails` | Updated body composed by core for plain text, HTML, or Markdown formats. |
+| `existingCallLogDetails` | Full CRM response returned by `getCallLog()` before the update, when core could fetch it. |
+| `hashedAccountId` | Hashed RingCentral account ID from request headers when available. |
+| `isFromSSCL` | True when invoked by server-side call logging. |
+| `proxyConfig` | Proxy configuration when applicable. |
 
-| Parameter              | Description                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-|`updatedNote`| updated note on CRM |
-|`returnMessage`|`message`, `messageType` and `ttl`|
+## Return
 
-**Example**
-```js
-  return {
-    updatedNote: "Some random notes",
-    returnMessage:{
-      message: 'Call logged',
-      messageType: 'success', // 'success', 'warning' or 'danger'
-      ttl: 30000 // in miliseconds
-    }
-  }
-```
+| Field | Description |
+| --- | --- |
+| `updatedNote` | Optional note/body value to send back to the client. |
+| `returnMessage` | Optional UI feedback. |
+| `extraDataTracking` | Optional analytics/tracing data. |
+
+Core already knows the CRM log ID from `existingCallLog.thirdPartyLogId`; you do not need to return it.
+
+## Avoid Overwriting User Edits
+
+Users may edit the CRM activity directly after `createCallLog` and before a later recording/final-data update. Prefer targeted replacement or the centrally composed `composedLogDetails` update strategy used by existing connectors instead of blindly replacing unrelated fields.
 
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/updateCallLog.js"
-	```
-	
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/pipedrive/index.js:423:480"
-	```
+    ```
 

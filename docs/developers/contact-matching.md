@@ -1,47 +1,81 @@
-# Loading a contact record
+# Contact Matching
 
---8<-- "docs/developers/beta_notice.inc"
+Contact matching maps RingCentral phone numbers to CRM records. It powers call pop, call logging, message logging, manual refresh, and contact creation flows.
 
-A critical function performed by the server is looking up a contact record in the target CRM given a phone number, and returning a list of matches for that phone number. In addition, the framework will transmit a list of alternative phone number formats to search for. 
+## Interfaces
 
-!!! tip "Alternative phone number formats"
-    Some CRMs expose a contact search API that is very strict with regards to phone number lookup. For example, if a CRM only supports an EXACT MATCH then searching for an E.164 phone number may not yield any results if the phone number is stored in any other format.
-	
-	As a workaround, the CRM framework allows users to specify additional phone number formats that they typically store phone numbers in. This list of phone numbers is transmitted to the connector's server, so that the associated connector can search for a contact using multiple phone number formats until one is found.
+Implement:
 
-## Searching for a contact by name
+- [`findContact`](interfaces/findContact.md)
+- [`findContactWithName`](interfaces/findContactWithName.md), optional manual search
+- [`createContact`](interfaces/createContact.md), optional contact creation
 
-When a contact cannot be found via a phone number, users are given the option to search for a contact manually - typically by name. 
+## Phone Lookup
 
-<figure markdown>
-  ![Search contacts in a CRM](../img/search-contacts.png)
-  <figcaption>Searching contacts in a CRM via App Connect</figcaption>
-</figure>
+Core calls `findContact` with the connected user, prepared auth header, phone number, optional overriding formats, and extension-number context.
 
-When a user elects to do this, the App Connect connector will be engaged to [search for a name](interfaces/findContactWithName.md) and return a list of possible matches. The user will then select the preferred user, and the call will then be logged against the selected user. 
+Return:
 
-As a last resort, users will also have the option to create a new contact record. 
+- one or more contacts when matches exist
+- an empty `matchedContactInfo` array when no match exists
+- a `createNewContact` pseudo-contact only when you want to show a create-contact option
 
-<figure markdown>
-  ![Create contact in a CRM](../img/create-contact.png)
-  <figcaption>Creating a contact in a CRM via App Connect</figcaption>
-</figure>
+Core caches non-new contact matches per RingCentral account/platform/phone number. A forced refresh bypasses the cache.
 
-When a user selects this option, they will be prompted for a name, and App Connect will engage the connector to create a contact with that name. The call will then be associated with this newly created contact.
+## Alternative Phone Formats
 
-## Implement server endpoints
+Users can configure overriding phone formats for CRMs that require exact matches. The connector is responsible for converting the E.164 number into those formats and searching them.
 
-Within your connector's `index.js` file, implement the following methods.
+Example:
 
-* [`createContact`](interfaces/createContact.md)
-* [`findContact`](interfaces/findContact.md)
-* [`findContactWithName`](interfaces/findContactWithName.md)
+```js
+const formats = overridingFormat ? overridingFormat.split(',') : [];
+```
 
-## Test
+See [phone number formats](../users/phone-number-formats.md) for the user-facing setting.
 
-1. Create a new contact on CRM platform and make a call to it
-2. In extension, near call record, click `Refresh contact` to check if console prints correct results (`CHECK.3`)
+## Contact-Dependent Form Options
 
-### Multiple contact types
+If the manifest defines a contact-dependent field:
 
-The framework supports multiple contact types at basic levels. Please refer to existing `bullhorn` or `insightly` code implementation and manifest for more details. 
+```json
+{
+  "const": "matters",
+  "title": "Matter",
+  "type": "selection",
+  "contactDependent": true
+}
+```
+
+Return matching options on each contact:
+
+```js
+{
+  id: '123',
+  name: 'Jane Smith',
+  additionalInfo: {
+    matters: [
+      { const: 'matter-1', title: 'Matter 1' }
+    ]
+  }
+}
+```
+
+## Name Search
+
+When phone lookup does not find the right contact, users can search by name if:
+
+- `page.useContactSearch` is true in the manifest
+- the connector implements [`findContactWithName`](interfaces/findContactWithName.md)
+
+## Contact Creation
+
+When users or auto-logging rules create a contact, core calls [`createContact`](interfaces/createContact.md). Keep contact creation out of `findContact` so lookup remains a read-only operation.
+
+## Testing
+
+1. Connect a CRM user.
+2. Search a phone number that exists in the CRM.
+3. Search a number that does not exist and confirm the no-match/create-contact flow.
+4. Test manual name search.
+5. Test contact-dependent fields in the call and message log forms.

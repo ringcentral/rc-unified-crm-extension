@@ -1,54 +1,124 @@
-# App Connect Connector developer quick start 
+# Connector Quick Start
 
-!!! tip "Make sure you are using App Connect 2.0"
-    The new App Connect developer experience requires App Connect 2.0 and is currently in beta. Before you proceed, be sure you have installed the correct version. 
-	
-	<a href="https://chrome.google.com/webstore/detail/ringcentral-crm-extension/bgpkbcidaabaeioilooghlffdcmlimgk"><img class="mw-450" src="../../img/chrome-web-store.png"></a>
+This guide creates a local connector server from the App Connect template, registers it in the Developer Console, and verifies that the extension can call the mock connector.
 
-Through this quick start, you will gain a **stronger understanding of the App Connect system's architecture** by registering a manifest and deploying a connector that talks to a mock CRM. This hands-on experience will illustrate **what events (or callbacks)** your application will need to respond to via a set of [interfaces](interfaces/index.md) you will implement when you connect to an actual service in the future. Let's get started!
+## Prerequisites
 
-### 1. Access the Developer Console
+- Node.js 16 or newer
+- npm or another JavaScript package manager
+- RingCentral account for the Developer Console and App Connect extension
+- A public tunnel for local testing, such as ngrok or `lite-http-tunnel`
 
-Go to the App Connect Developer Console and login with your RingCentral account and create your developer profile.
+## 1. Create A Connector Profile
 
-[Login to the Developer Console](https://appconnect.labs.ringcentral.com/console/){ .md-button .md-button--primary }
+Open the [Developer Console](https://appconnect.labs.ringcentral.com/console/) and create a connector.
 
-### 2. Register a new connector
+For a first test, provide:
 
-To create a connector, there are only a few mandatory fields you need to provide. In this quick start, our goal is to get you up and running as quickly as possible. You will be able to come back and edit your connector when you are ready to connect to a CRM. 
+| Field | Value |
+| --- | --- |
+| Connector name | Your CRM/platform name. |
+| Connector server URL | A temporary HTTPS URL. You can replace it after starting your local tunnel. |
+| CRM URL/environment | Any valid setup value for the connector profile. |
+| Auth type | API key is simplest for the template. |
 
-Click "Create new connector."
+The connector is private by default and visible to your organization.
 
-You will be presented with a rather hefty form, but you only need to provide values for the following fields:
+## 2. Scaffold A Connector Server
 
-* **Connector name**. Your connector name, normally it would be the name of the platform you want to connect to
-* **Connector server URL**. Enter any URL here. We will come back and edit this in a subsequent step.
-* **CRM URL**. Enter any value for this required field. 
+Use the CLI:
 
-That's it. All other fields are optional at this point. Scroll to the bottom and click "Create."
+```bash
+npx @app-connect/cli init my-crm-connector
+cd my-crm-connector
+```
 
-### 3. Setup your project
+The generated server includes:
 
-Upon creating the app profile, setup instrutions will be displayed in the Developer Console. These instructions will guide you through the process of installing the necessary App Connect libraries, initializing your project, and stubbing out your server's interfaces using a basic template. Follow these instructions.
+- `src/app.js`, which registers the connector and creates the core Express app
+- `src/connectors/myCRM.js`, which exports the connector interface functions
+- `src/connectors/interfaces/*.js`, starter implementations backed by mock JSON files
+- `.env.test`, a local environment example
 
-### 4. Build!
+If dependencies were not installed automatically:
 
-If you have successfully followed the instructions above, you should now have the following:
+```bash
+npm install
+```
 
-1. The App Connect Chrome extension installed
-1. A local server hosting your connector
-2. A web tunnel that exposes your server via a public url
+Copy and edit the environment file:
 
-Let's try and see it everything works:
+```bash
+cp .env.test .env
+```
 
-- Open the Chrome extension and login with your RingCentral account
-- Select the app profile you just created
-- Input an arbitrary API key 
-- Conduct a test call to your RingCentral phone number and log it. When you make the first call, it will appear just as a phone in your call history. Click `+` button to log it. Since it's not matched to any contact yet (you are running under a mock server), you'll have to create this number as a new contact.
-- After logging the call, next call from the same number will be recognized as the contact.
-- There are a lot more features. Please check out our user guide & developer guide to find out. Code implementation suggestions are commented inside template connector script as well.
+On Windows PowerShell:
 
-!!! note "Notes about the default mock server"
-    * **The default auth type is API key, which is effectively ignored.** Because this is just a mock server that doesn't actually connect to a CRM, you are free to use any arbitrary string as an API key. 
+```powershell
+Copy-Item .env.test .env
+```
 
+## 3. Start The Server
+
+Run:
+
+```bash
+npm run dev
+```
+
+The template server registers `myCRM` with `connectorRegistry.registerConnector('myCRM', myCRMConnector)` and serves the core App Connect routes.
+
+## 4. Expose The Server
+
+Expose the local server with an HTTPS tunnel and update the Developer Console connector server URL to that tunnel URL.
+
+The main repository includes scripts such as:
+
+```bash
+npm run tunnel
+```
+
+or:
+
+```bash
+npm run ngrok
+```
+
+Use whatever tunnel is available in your environment.
+
+## 5. Test In App Connect
+
+1. Install or open the App Connect extension.
+2. Sign in with the same RingCentral account.
+3. Select your private connector profile.
+4. Enter any API key for the template connector.
+5. Make or receive a test call.
+6. Refresh contact matching, create a contact if needed, and log the call.
+
+The template uses mock JSON files, so the first lookup may not find a contact. After creating a contact and logging a call, the mock data should show the created records.
+
+## 6. Replace The Mock Logic
+
+Update the connector interfaces under `src/connectors/interfaces/` or replace `src/connectors/myCRM.js` with your own implementation.
+
+Implement at least:
+
+- [`getAuthType`](interfaces/getAuthType.md)
+- [`getBasicAuth`](interfaces/getBasicAuth.md) or [`getOauthInfo`](interfaces/getOauthInfo.md)
+- [`getUserInfo`](interfaces/getUserInfo.md)
+- [`findContact`](interfaces/findContact.md)
+- [`createCallLog`](interfaces/createCallLog.md)
+- [`updateCallLog`](interfaces/updateCallLog.md)
+
+Then add optional features such as contact creation, message logging, user mapping, dispositions, licensing, or appointments as needed.
+
+## 7. Keep Manifest And Code In Sync
+
+The Developer Console manifest controls what the client shows. The server implementation controls what the backend can actually do.
+
+Before testing a feature, verify both sides:
+
+- Manifest advertises the fields or feature.
+- Connector exports the matching interface.
+- `/implementedInterfaces?platform=<name>` reports the method as implemented.
 

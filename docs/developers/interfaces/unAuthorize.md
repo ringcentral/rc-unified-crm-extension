@@ -1,42 +1,55 @@
 # unAuthorize
 
-It is to remove user data from our database when user chooses to log out. Some CRMs have token invalidation mechanism, if so, please implement that as well.
+Logs a user out of the CRM connector and clears or revokes stored credentials.
 
-## Request parameters
-
-| Parameter    | Description                                                                                              |             |
-|--------------|----------------------------------------------------------------------------------------------------------|-------------|
-| `user`       | An object describing the Chrome extension user associated with the action that triggered this interface. |             |
-
-## Return value(s)
-
-| Parameter              | Description                                         |
-|------------------------|-----------------------------------------------------|
-| `returnMessage`|       `message`, `messageType` and `ttl`|
-
-**Example**
+## Signature
 
 ```js
-{
-  returnMessage:{
-    message: 'Successfully unauthorized',
-    messageType: 'success', // 'success', 'warning' or 'danger'
-    ttl: 30000 // in miliseconds
-  }
+async function unAuthorize({ user }) {
+  user.accessToken = '';
+  user.refreshToken = '';
+  await user.save();
+
+  return {
+    successful: true,
+    returnMessage: {
+      messageType: 'success',
+      message: 'Logged out.',
+      ttl: 1000
+    }
+  };
 }
 ```
 
+## Input
+
+| Field | Description |
+| --- | --- |
+| `user` | Persisted App Connect user model for the connected CRM user. |
+
+## Behavior
+
+If the CRM supports token revocation, call the CRM revoke/deauthorize endpoint first. Then clear credentials from App Connect storage or destroy the user record.
+
+Common choices:
+
+| Choice | When to use it |
+| --- | --- |
+| Clear `accessToken` and `refreshToken`, then `user.save()` | Keeps user settings and connector preferences. |
+| `user.destroy()` | Removes the entire CRM user record, including settings tied to that record. |
+
+## Return
+
+| Field | Description |
+| --- | --- |
+| `successful` | Optional. Proxy mode returns it; route handlers mainly use `returnMessage`. |
+| `returnMessage` | Optional UI feedback. |
+
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
     --8<-- "packages/template/src/connectors/interfaces/unAuthorize.js"
-	```
-	
-=== "Pipedrive"
-
-	```js
-    --8<-- "src/connectors/pipedrive/index.js:84:116"
-	```
+    ```
 

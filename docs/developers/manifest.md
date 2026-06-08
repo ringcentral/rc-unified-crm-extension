@@ -1,88 +1,215 @@
-# Configuring your connector's manifest
+# Connector Manifest
 
---8<-- "docs/developers/beta_notice.inc"
+The manifest tells App Connect how to present a connector in the client, how users authenticate, which CRM pages can be opened, which custom fields appear in log forms, and which optional features are enabled.
 
-An connector's manifest file helps a developer to instruct the framework on how to interface with your connector. It enables developers to customize the user interface within certain boundaries, enables authentication and connectivity with the target CRM and more. 
+In App Connect 2.0, the Developer Console is the primary place to manage manifests. The local `src/connectors/manifest.json` file still matters for bundled connectors, local development, and backward compatibility with older clients.
 
-Below you will find an explanation of the many properties found within a manifest file. 
+## Top-Level Shape
 
-!!! info "Building a plugin instead?"
-    This page covers the manifest used by full CRM connectors. If you are building a plugin to process logging payloads rather than a CRM integration, please refer to the [plugins guide](plugins/index.md).
+```json
+{
+  "serverUrl": "https://connector.example.com",
+  "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+  "author": {
+    "name": "Developer Name",
+    "websiteUrl": "https://example.com"
+  },
+  "platforms": {
+    "myCRM": {
+      "name": "myCRM",
+      "displayName": "My CRM",
+      "auth": {
+        "type": "oauth"
+      }
+    }
+  },
+  "version": "1.7.30"
+}
+```
 
-## Editing your manifest file
+| Field | Description |
+| --- | --- |
+| `serverUrl` | Base URL for connector server HTTP calls. Omit the trailing slash. |
+| `redirectUri` | Default RingCentral Embeddable redirect page. Individual OAuth configs can override this. |
+| `author` | Developer metadata shown in the client. `author.name` is required by the legacy `/crmManifest` route. |
+| `platforms` | Object keyed by platform name. Each value is one connector profile. |
+| `version` | Manifest version displayed to users and used for compatibility checks. |
 
-The [App Connect Developer Console](https://appconnect.labs.ringcentral.com/console) provides a user interface for editing and managing your connector's manifest file. This is the recommended way to edit your manifest file as it will allow you to preview many of your changes in real time, and ensures the manifest created is valid. 
+## Platform Fields
 
-![Editing Bullhorn manifest](../img/bullhorn-manifest-console.png)
+| Field | Description |
+| --- | --- |
+| `name` | Platform key used by routes, JWT payloads, connector registration, and `platforms` lookup. |
+| `displayName` | User-facing CRM name. |
+| `developer` | Optional developer metadata for this platform. |
+| `environment` | Setup-time hostname/server selection. See [Environment](#environment). |
+| `urlIdentifier` | Legacy URL matcher for CRM pages. Wildcards are supported. |
+| `embedUrls` | CRM page URL patterns where the embedded experience can run. |
+| `logoUrl`, `documentationUrl`, `releaseNotesUrl`, `getSupportUrl`, `writeReviewUrl` | User-facing links and assets. |
+| `auth` | Auth configuration. See [Authorization](auth.md). |
+| `serverSideLogging` | Optional server-side logging config. |
+| `contactTypes` | Optional list of CRM entity types users can create/select. |
+| `contactPageUrl` | Template for opening a contact page. Supports `{hostname}`, `{contactId}`, and `{contactType}`. |
+| `logPageUrl` | Template for opening a log/activity page. Supports `{hostname}`, `{logId}`, `{contactId}`, and `{contactType}` where available. |
+| `canOpenLogPage` | When true, App Connect opens `logPageUrl` for logged activities. When false, it opens `contactPageUrl`. |
+| `settings` | Connector-specific user/admin settings. See [Custom settings](custom-settings.md). |
+| `page` | Auth, call log, message log, feedback, and contact-search UI config. See [Manifest pages](manifest-pages.md). |
+| `requestConfig` | Client HTTP config. `timeout` is in seconds. |
+| `enableExtensionNumberLoggingSetting` | Shows the user setting for internal extension-number contact lookup/logging. |
+| `trackSmsTypingDuration` | Sends SMS typing duration data for connectors that bill/track SMS time. |
+| `rcAdditionalSubmission` | Adds selected RingCentral cached data into logging submissions. |
+| `override` | Runtime manifest overrides. See [Regional services](regional-services.md). |
 
-### Editing your manifest directly
+## Environment
 
-Some developers may prefer to edit and manage their manifest file directly by editing its source. You can do this on your local filesystem, or via the App Connect developer console. 
+`environment` controls how the client determines the CRM hostname/server.
 
-![Editing manifest source](../img/manifest-source-editor.png)
+### Fixed
 
-## Basic properties
+```json
+{
+  "environment": {
+    "type": "fixed",
+    "url": "https://app.example.com"
+  }
+}
+```
 
-These basic properties 
+Use this when every customer uses the same CRM URL.
 
-| Name          | Type   | Description                                                                                                           |
-|---------------|--------|-----------------------------------------------------------------------------------------------------------------------|
-| `author`      | string | The author of the connector. This is displayed to end users within the Chrome extension.                                |
-| `platforms`   | ARRAY of object | An array of [platforms](#platform-configuration) being integrated with. Each element of this array defines a different CRM. |
-| `serverUrl`   | string | The base URL the Chrome extension will used when composing requests to your connector. The URL should utilize HTTPS and should omit the trailing slash (`/`). For example: `https://my-connector.myserver.com` |
-| `version`     | string | The version of your connector. This is displayed to end users within the Chrome extension. |
+### Dynamic
 
-### Platform configuration
+```json
+{
+  "environment": {
+    "type": "dynamic",
+    "urlIdentifier": "*.example.com",
+    "instructions": [
+      "Log in to your CRM",
+      "Copy the whole URL and paste it here"
+    ]
+  }
+}
+```
 
-Each manifest file contains an array of `platform` objects. This is helpful for developers who manage multiple CRM connectors from the same server. 
+Use this for tenant-specific subdomains.
 
-The platforms property is an associative array. Each key should be a unique identifier for the crm. The value of each element is an object with the following properties. 
+### Selectable
 
-| Name             | Type            | Description |
-|------------------|-----------------|-------------|
-| `name`           | string          | The name of the CRM. |
-| `displayName`           | string          | The display name of the CRM. |
-| `urlIdentifier`  | string          | The URL for which this CRM will be enabled. When the CRM is enabled for a domain, the extension's orange quick access button will appear. (`*` for wildcard match is supported) |
-| `auth`       | object          | Contains all info for authorization. [Details](#authorization) |
-| `canOpenLogPage` | boolean         | Set to `true` if the corresponding CRM supports permalinks for a given activity/log. When set to `true` users will have the option view/open the activity log in the CRM from the call history page. When set to `false`, users will open the contact page instead. |
-| `contactTypes`   | ARRAY of object | (Optional) CRMs often adopt unique vernaculars to describe contacts. Provide the enumerated list of contact types supported by the corresponding CRM. Each object has `display` and `value`. |
-| `contactPageUrl` | string          | A format string to open a CRM's contact page, e.g.`https://{hostname}/person/{contactId}`. Supported parameters: `{hostname}`, `{contactId}`, `{contactType}`|
-| `embeddedOnCrmPage` | object       | The rendering config for embedded page. |
-| `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
-| `page`           | object          | The rendering config for all pages. |
-|`requestConfig`| object| Contains http request config for client extension, including `timeout` (number in seconds)|
-| `embedUrls`      | array of string | (Optional) A list of URLs (or URL patterns) on which the App Connect panel will be embedded. When a user navigates to one of these URLs, the panel is automatically shown. Supports `*` wildcards. See [Embed URLs](#embed-urls). |
-| `serverSideLogging` | object | (Optional) Configuration for [server-side call logging](#server-side-logging). |
-| `developer`      | object  | (Optional) Identifies the connector author. Contains `name` (string) and `url` (string) linking to the developer's website. |
-| `documentationUrl` | string | (Optional) URL to the connector's end-user documentation. Shown in App Connect as a help link. |
-| `releaseNotesUrl` | string | (Optional) URL to the connector's release notes or changelog. |
-| `getSupportUrl`  | string  | (Optional) URL users are directed to when requesting support for this connector. |
-| `writeReviewUrl` | string  | (Optional) URL where users can leave a review for the connector. |
-| `rcAdditionalSubmission` | boolean | (Optional) When `true`, the framework sends additional RingCentral call metadata to the connector alongside the standard call log payload. |
-| `trackSmsTypingDuration` | boolean | (Optional) When `true`, the framework tracks and reports how long an agent spent composing an SMS message. |
-| `disableDisposition` | boolean | (Optional) When `true`, the call disposition selector is hidden from the call logging form regardless of user settings. |
+```json
+{
+  "environment": {
+    "type": "selectable",
+    "selections": [
+      { "const": "https://app.example.com", "name": "US" },
+      { "const": "https://eu.app.example.com", "name": "EU" }
+    ]
+  }
+}
+```
 
-The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`
+Use this for regional deployments with a known list of hosts.
 
 ## Authorization
 
-`platform` has `auth` object which has following parameters:
+At minimum, every platform needs:
 
-| Name             | Type            | Description |
-|------------------|-----------------|-------------|
-| `type`       | string          | The authorization mode utilized by the target CRM. Only two values are supported: `oauth` and `apiKey`. Setting up auth is covered in more detail in the [Authorization](auth.md) section. |
-| `oauth`        | object       | Only used with `type` equal to `oauth`. It contains `authUrl`, `clientId` and `redirectUri`. |
-| `apiKey`| object| Only used with `type` equal to `apiKey`. It contains [`page`](manifest-pages.md#customizing-apikey-auth-page) |
+```json
+{
+  "auth": {
+    "type": "oauth"
+  }
+}
+```
 
-### oauth parameters
+or:
 
-| Name          | Type   | Description |
-|-|-|-|
-| `authUrl`     | string | Only used with `authType` equal to `oauth`. The auth URL to initiate the OAuth process with the CRM. |
-| `clientId`    | string | Only used with `authType` equal to `oauth`. The client ID of the application registered with the CRM to access it's API. |
-| `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`. |
-| `customState` | string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
-| `scope`       | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+```json
+{
+  "auth": {
+    "type": "apiKey",
+    "apiKey": {
+      "page": {
+        "title": "My CRM",
+        "content": [
+          {
+            "const": "apiKey",
+            "title": "API key",
+            "type": "string",
+            "required": true
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+OAuth platforms usually include client-visible authorization fields:
+
+```json
+{
+  "auth": {
+    "type": "oauth",
+    "oauth": {
+      "authUrl": "https://app.example.com/oauth/authorize",
+      "clientId": "public-client-id",
+      "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+      "scope": "scope=contacts.read contacts.write",
+      "customState": "platform=myCRM"
+    }
+  }
+}
+```
+
+Keep client secrets out of the manifest. Return them from [`getOauthInfo`](interfaces/getOauthInfo.md), environment variables, managed OAuth, or proxy configuration.
+
+## Server-Side Logging
+
+```json
+{
+  "serverSideLogging": {
+    "url": "https://crm-logging.labs.ringcentral.com",
+    "useAdminAssignedUserToken": true,
+    "enableUserMapping": true
+  }
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `url` | Server-side logging service URL. |
+| `useAdminAssignedUserToken` | When true, logging can use the admin-assigned CRM user mapping. |
+| `enableUserMapping` | Enables admin mapping between CRM users and RingCentral users. Requires [`getUserList`](interfaces/getUserList.md). |
+
+## Pages And Settings
+
+Use:
+
+| Manifest area | Purpose |
+| --- | --- |
+| `auth.apiKey.page.content[]` | API-key login form fields, including managed-auth fields. |
+| `page.callLog.additionalFields[]` | Custom call log form fields. |
+| `page.messageLog.additionalFields[]` | Custom message log form fields. |
+| `page.feedback` | Feedback form and target URL. |
+| `page.useContactSearch` | Enables manual contact search by name when [`findContactWithName`](interfaces/findContactWithName.md) is implemented. |
+| `settings[]` | Connector-specific settings available under user/admin settings. |
+
+## Validation
+
+The current manifest validator checks for:
+
+- top-level `platforms`
+- matching platform key
+- `platform.auth.type`
+- OAuth `authUrl` and `clientId` when auth type is OAuth
+- `auth.apiKey` when auth type is API key
+- valid `environment.type` when environment is present
+- `environment.selections[]` for selectable environments
+- platform `name`
+- arrays for `settings`, `contactTypes`, and `override` when present
+
+The Developer Console performs additional validation and should be treated as the preferred authoring surface.
 
 ## Embed URLs
 
@@ -127,7 +254,7 @@ The `serverSideLogging` property configures App Connect's server-side call loggi
 | `url`                     | string          | The URL of the server-side logging endpoint on your connector. |
 | `useAdminAssignedUserToken` | boolean       | When `true`, the framework uses an admin-assigned token to make API calls on behalf of users rather than each user's individual OAuth token. |
 | `enableUserMapping`       | boolean         | When `true`, the Admin settings in App Connect show a user-mapping UI that allows admins to map RingCentral users to CRM users. |
-| `additionalFields`        | array of object | (Optional) Connector-specific configuration fields shown in the Admin settings UI. Each element has the same structure as [`page.callLog.additionalFields`](manifest-pages.md#adding-custom-fields-to-logging-forms). |
+| `additionalFields`        | array of object | (Optional) Connector-specific configuration fields shown in the Admin settings UI. Each element has the same structure as [`page.callLog.additionalFields`](manifest-pages.md#additional-field-shape). |
 
 ### additionalFields for server-side logging
 

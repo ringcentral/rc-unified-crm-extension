@@ -47,7 +47,24 @@ The resulting header sent to `getUserInfo` and all subsequent CRM API calls will
 Authorization: Basic <return value>
 ```
 
+Do not return the `Basic ` prefix as part of the string — the framework adds it automatically:
+
+```text
+// Wrong — do not return this
+Basic YWJjMTIzOg==
+```
+
+## Return
+
+Return a string.
+
 ## Reference
+
+=== "Template"
+
+    ```js
+    --8<-- "packages/template/src/connectors/interfaces/getBasicAuth.js"
+    ```
 
 === "Insightly"
 

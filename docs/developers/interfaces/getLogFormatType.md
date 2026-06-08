@@ -1,38 +1,36 @@
 # getLogFormatType
 
-This method returns either plain text, html or markdown.
+Tells core whether it should compose log body text before calling logging interfaces.
 
-## Request parameters
+## Signature
 
-None.
+```js
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 
-## Return value(s)
+function getLogFormatType(platform, proxyConfig) {
+  return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+}
+```
 
-For specific return values, please use values in `@app-connect/core/lib/constants`.
+## Return
+
+Return one of the constants from `@app-connect/core/lib/constants`:
+
+| Constant | Value | Behavior |
+| --- | --- | --- |
+| `LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT` | `text/plain` | Core builds plain-text `composedLogDetails`. |
+| `LOG_DETAILS_FORMAT_TYPE.HTML` | `text/html` | Core builds HTML `composedLogDetails`. |
+| `LOG_DETAILS_FORMAT_TYPE.MARKDOWN` | `text/markdown` | Core builds Markdown `composedLogDetails`. |
+
+If you return another value, such as `custom`, core does not compose the body and the connector is responsible for building CRM-specific content from the raw inputs.
+
+Proxy mode reads the format from `proxyConfig.meta.logFormat`; without that value it behaves as custom.
 
 ## Reference
 
-=== "Example CRM"
+=== "Template"
 
     ```js
-    const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
-    
-    function getLogFormatType() {
-        return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
-    }
-
-    exports.getLogFormatType = getLogFormatType;
-	```
-	
-=== "Pipedrive"
-
-	```js
-    const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
-    
-    function getLogFormatType() {
-        return LOG_DETAILS_FORMAT_TYPE.HTML;
-    }
-    
-    exports.getLogFormatType = getLogFormatType;
-	```
+    --8<-- "packages/template/src/connectors/interfaces/getLogFormatType.js"
+    ```
 
