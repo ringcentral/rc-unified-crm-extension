@@ -2,6 +2,7 @@
 
 ## 1.7.30
 
+- Fix: Shared SMS for sites
 - Fix: Conditional rendering of contact association fields
 - Fix: Clio associated matter paging
 
