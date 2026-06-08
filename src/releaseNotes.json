@@ -3,6 +3,10 @@
         "global": [
             {
                 "type": "Fix",
+                "description": "Shared SMS for sites"
+            },
+            {
+                "type": "Fix",
                 "description": "Conditional rendering of contact association fields"
             }
         ],
