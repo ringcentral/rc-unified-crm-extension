@@ -1,42 +1,62 @@
 # getBasicAuth
 
-This method, in most cases, should return a Base64-encoded Basic Authentication stringto satisfy CRMs authentication requirements for `apikey` and `username:password`.
+This interface is called immediately after a user submits their API key credentials. It converts the raw credentials into an HTTP Authorization header value that the framework then passes to [`getUserInfo`](getUserInfo.md) to verify the credentials and fetch the user's profile from the CRM.
+
+Implement this interface only when [`getAuthType`](getAuthType.md) returns `"apiKey"`.
+
+## When is this interface called?
+
+Once, synchronously, during the API key login flow. The sequence is:
+
+1. User submits credentials via the API key form
+2. Framework calls `getBasicAuth` with the submitted API key
+3. Framework calls `getUserInfo` with `authHeader` set to `"Basic " + <return value>`
 
 ## Input parameters
 
-This method accepts an object with the following property:
+| Parameter | Type   | Description                                                                                    |
+|-----------|--------|------------------------------------------------------------------------------------------------|
+| `apiKey`  | string | The primary credential submitted by the user — typically an API key or encoded username/password string. |
 
-| Parameter | Type     | Description                                                    |
-|-----------|----------|----------------------------------------------------------------|
-| `apiKey`  | `string` | The API key provided by the CRM for authenticating API calls. |
+!!! note "Multi-field credentials"
+    If your credential form collects multiple fields (e.g. a separate username and password), the additional fields arrive in `getUserInfo` as `additionalInfo`, not here. `getBasicAuth` only receives the primary `apiKey` field. Use `additionalInfo` in `getUserInfo` for secondary fields.
 
 ## Return value(s)
 
-This method returns a Base64-encoded string in the format required for HTTP Basic Authentication.
+A string used as the value of the `Authorization` HTTP header, **without** the `Basic ` prefix — the framework prepends that automatically. In most cases this is the Base64 encoding of the credential.
 
-**Example**
-
+**Example — API key passed directly**
 ```js
-'eHh4LXh4eHgteHh4eHh4eHh4eHh4OnhdY2VyZGlhbQ=='
+function getBasicAuth({ apiKey }) {
+  // Some CRMs accept the key as-is in Basic Auth: base64("apikey:{key}")
+  return Buffer.from(`apikey:${apiKey}`).toString('base64');
+}
 ```
 
-This encoded string can be used in the `Authorization` header as:
+**Example — pre-encoded key**
+```js
+function getBasicAuth({ apiKey }) {
+  // CRM expects the raw key as the Basic Auth value (already base64)
+  return apiKey;
+}
+```
+
+The resulting header sent to `getUserInfo` and all subsequent CRM API calls will be:
 
 ```
-Authorization: Basic eHh4LXh4eHgteHh4eHh4eHh4eHh4OnhdY2VyZGlhbQ==
+Authorization: Basic <return value>
 ```
 
 ## Reference
 
 === "Insightly"
 
-	```js
+    ```js
     --8<-- "src/connectors/insightly/index.js:19:22"
-	```
+    ```
 
 === "Redtail"
 
-	```js
+    ```js
     --8<-- "src/connectors/redtail/index.js:17:19"
-	```
-    
+    ```

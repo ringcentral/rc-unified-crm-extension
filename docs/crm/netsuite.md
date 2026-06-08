@@ -205,6 +205,27 @@ You can optimize entity search performance and results by configuring the search
 !!! warning "Search Scope Consideration"
     Remember that Customer entity searches will return Leads and Prospects as well. If you need to distinguish between these subtypes, consider the entity creation type when reviewing search results.
 
+## Appointments
+
+<!-- md:version 2.0 -->
+
+Appointments in NetSuite are stored as **Calendar Events** using NetSuite's REST Record API. NetSuite provides the richest appointment lifecycle of any supported CRM, including native confirm and cancel status transitions.
+
+Calendar events are retrieved using a custom RESTlet bundled with the [RingCentral SuiteApp](https://www.suiteapp.com/RingCentral-Unified-CRM-Extension). Attendees are stored as `attendee` sub-records on the calendar event. Appointment times are converted to and from the user's configured timezone offset in NetSuite to ensure accurate scheduling.
+
+| Action | NetSuite behavior |
+|--------|-------------------|
+| Confirm | Sets the calendar event status to `CONFIRMED` |
+| Cancel | Sets the calendar event status to `CANCELLED` — the record is preserved |
+
+**Prerequisites**
+
+- The [RingCentral SuiteApp](https://www.suiteapp.com/RingCentral-Unified-CRM-Extension) must be installed in your NetSuite account
+- The user's NetSuite role must have **REST Web Services** enabled and read/write permission to Calendar Event records
+- See [Setup roles and permissions](#setup-roles-and-permissions-in-netsuite) above for full permission requirements
+
+For general information on using the Appointments feature, see [Appointments](../users/appointments.md).
+
 ## Concurrency limits
 
 If you receive an error indicating, "concurrency limit exceeded," then you may need to purchase SuiteCloud Plus add-on module. This is what NetSuite support shared:

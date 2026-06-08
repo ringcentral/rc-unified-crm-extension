@@ -84,3 +84,20 @@ Without these permissions, the server-side logging functionality may be incomple
 !!! warning "Important: Password Changes"
     Note that Bullhorn may require users to update their passwords periodically for security purposes. If you change the password for your Bullhorn API user, you must also update the password in the App Connect extension settings.
 
+## Appointments
+
+<!-- md:version 2.0 -->
+
+Appointments in Bullhorn are stored as native **Appointment** records in the Bullhorn staffing platform and can be associated with Candidates, Client Contacts, or Leads.
+
+App Connect fetches appointments within a rolling window: from **1 month in the past** to **3 months in the future**. Each appointment can be associated with a single primary contact (Candidate, ClientContact, or Lead).
+
+**Required permissions**
+
+The Bullhorn user account used to authenticate with App Connect must have permission to read and write `Appointment` and `AppointmentAttendee` records in Bullhorn.
+
+!!! note
+    Bullhorn does not support a native "confirmed" status via App Connect. Use the Bullhorn web application if confirmation workflows are required.
+
+For general information on using the Appointments feature, see [Appointments](../users/appointments.md).
+

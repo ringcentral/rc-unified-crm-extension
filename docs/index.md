@@ -161,10 +161,10 @@ Logging to your CRM in real time
 </div>
 
 <div class="ac-v5-fc">
-<p class="ac-v5-fc__title">Call-down lists</p>
+<p class="ac-v5-fc__title">Call-back lists</p>
 <hr class="ac-v5-fc__sep">
 <p class="ac-v5-fc__desc">Personal outbound call lists keep reps focused and moving through outreach without losing their place.</p>
-<a href="users/calldown-lists/" class="ac-v5-fc__link">Learn about call lists →</a>
+<a href="users/callback-lists/" class="ac-v5-fc__link">Learn about call lists →</a>
 </div>
 
 <div class="ac-v5-fc">

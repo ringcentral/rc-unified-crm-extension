@@ -51,6 +51,16 @@ The platforms property is an associative array. Each key should be a unique iden
 | `logPageUrl`|string |  A format string to open CRM log page. Eg.`https://{hostname}/activity/{logId}`. Supported parameters: `{hostname}`, `{logId}`, `{contactType}`|
 | `page`           | object          | The rendering config for all pages. |
 |`requestConfig`| object| Contains http request config for client extension, including `timeout` (number in seconds)|
+| `embedUrls`      | array of string | (Optional) A list of URLs (or URL patterns) on which the App Connect panel will be embedded. When a user navigates to one of these URLs, the panel is automatically shown. Supports `*` wildcards. See [Embed URLs](#embed-urls). |
+| `serverSideLogging` | object | (Optional) Configuration for [server-side call logging](#server-side-logging). |
+| `developer`      | object  | (Optional) Identifies the connector author. Contains `name` (string) and `url` (string) linking to the developer's website. |
+| `documentationUrl` | string | (Optional) URL to the connector's end-user documentation. Shown in App Connect as a help link. |
+| `releaseNotesUrl` | string | (Optional) URL to the connector's release notes or changelog. |
+| `getSupportUrl`  | string  | (Optional) URL users are directed to when requesting support for this connector. |
+| `writeReviewUrl` | string  | (Optional) URL where users can leave a review for the connector. |
+| `rcAdditionalSubmission` | boolean | (Optional) When `true`, the framework sends additional RingCentral call metadata to the connector alongside the standard call log payload. |
+| `trackSmsTypingDuration` | boolean | (Optional) When `true`, the framework tracks and reports how long an agent spent composing an SMS message. |
+| `disableDisposition` | boolean | (Optional) When `true`, the call disposition selector is hidden from the call logging form regardless of user settings. |
 
 The client-side authorization url that is opened by the extension will be: `{authUrl}?responseType=code&client_id={clientId}&{scope}&state=platform={name}&redirect_uri=https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`
 
@@ -73,4 +83,94 @@ The client-side authorization url that is opened by the extension will be: `{aut
 | `redirectUri` | string | The Redirect URI used when logging into RingCentral (not the CRM). It's recommended to use the default value of `https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/redirect.html`. |
 | `customState` | string | (Optional) Only if you want to override state query string in OAuth url. The state query string will be `state={customState}` instead. |
 | `scope`       | string | (Optional) Only if you want to specify scopes in OAuth url. eg. "scope":"scopes=write,read" |
+
+## Embed URLs
+
+The `embedUrls` property lists the pages of the CRM's web application where App Connect should automatically appear. When a user navigates to a matching URL, the extension panel is opened without the user having to manually click the App Connect icon.
+
+This is distinct from `urlIdentifier`, which controls when the App Connect quick-access button is visible in the browser toolbar. `embedUrls` controls when the panel opens automatically.
+
+Values support `*` as a wildcard. Use it to match any subdomain or any path segment.
+
+```json
+"embedUrls": [
+  "https://*.pipedrive.com/*"
+]
+```
+
+All built-in connectors use a single wildcard pattern that matches the CRM's entire domain:
+
+| CRM          | embedUrls pattern                        |
+|--------------|------------------------------------------|
+| Pipedrive    | `https://*.pipedrive.com/*`              |
+| Insightly    | `https://*.insightly.com/*`              |
+| Clio         | `https://*.clio.com/*`                   |
+| Bullhorn     | `https://*.bullhornstaffing.com/*`       |
+| NetSuite     | `https://*.app.netsuite.com/*`           |
+| Google Sheets| `https://docs.google.com/*`              |
+
+You can supply multiple patterns if the CRM spans more than one domain, or if you want to restrict embedding to specific sections of the UI:
+
+```json
+"embedUrls": [
+  "https://app.example.com/contacts/*",
+  "https://app.example.com/deals/*"
+]
+```
+
+## Server-side logging
+
+The `serverSideLogging` property configures App Connect's server-side call logging service, which logs calls automatically on behalf of users without requiring them to interact with the extension.
+
+| Name                      | Type            | Description |
+|---------------------------|-----------------|-------------|
+| `url`                     | string          | The URL of the server-side logging endpoint on your connector. |
+| `useAdminAssignedUserToken` | boolean       | When `true`, the framework uses an admin-assigned token to make API calls on behalf of users rather than each user's individual OAuth token. |
+| `enableUserMapping`       | boolean         | When `true`, the Admin settings in App Connect show a user-mapping UI that allows admins to map RingCentral users to CRM users. |
+| `additionalFields`        | array of object | (Optional) Connector-specific configuration fields shown in the Admin settings UI. Each element has the same structure as [`page.callLog.additionalFields`](manifest-pages.md#adding-custom-fields-to-logging-forms). |
+
+### additionalFields for server-side logging
+
+The `additionalFields` array under `serverSideLogging` defines extra fields that an administrator must fill in once when configuring server-side logging. These values are then available to the [`getServerLoggingSettings`](interfaces/getServerLoggingSettings.md) and [`updateServerLoggingSettings`](interfaces/updateServerLoggingSettings.md) lifecycle hooks.
+
+Common uses include collecting CRM API credentials (username and password) that the server uses to log calls on behalf of all users.
+
+```json
+"serverSideLogging": {
+  "url": "https://my-connector.example.com",
+  "useAdminAssignedUserToken": false,
+  "enableUserMapping": true,
+  "additionalFields": [
+    {
+      "const": "apiUsername",
+      "title": "CRM API Username",
+      "type": "inputField"
+    },
+    {
+      "const": "apiPassword",
+      "title": "CRM API Password",
+      "type": "inputField"
+    }
+  ]
+}
+```
+
+## Manifest overrides
+
+The `override` property allows you to define conditions under which certain manifest values are replaced with alternative values at runtime. This is primarily used to support regional CRM deployments. See [Regional services](regional-services.md) for full documentation.
+
+```json
+"override": [
+  {
+    "triggerType": "hostname",
+    "triggerValue": "au.app.clio.com",
+    "overrideObjects": [
+      {
+        "path": "auth.oauth.authUrl",
+        "value": "https://au.app.clio.com/oauth/authorize"
+      }
+    ]
+  }
+]
+```
 

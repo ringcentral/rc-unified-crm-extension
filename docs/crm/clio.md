@@ -91,4 +91,21 @@ Ideally, phone numbers in Clio would all be stored using the E.164 format standa
     Zapier is a great automation tool that can help your organization [reformat phone numbers to E.164](https://zapier.com/apps/clio/integrations/formatter/1481647/format-numbers-for-new-clio-contacts-with-formatter-by-zapier) for all new contacts moving forward.
     ![Clio number formatter Zap](../img/clio-zapier.png)
 
-Finally, you can improve performance by going back to existing contacts and updating their phone numbers. This can be a laborious process, but will yield the best results in the long term. 
+Finally, you can improve performance by going back to existing contacts and updating their phone numbers. This can be a laborious process, but will yield the best results in the long term.
+
+## Appointments
+
+<!-- md:version 2.0 -->
+
+Appointments in Clio are mapped to **Calendar Entries** in the Clio API. App Connect uses Clio's calendar system to store and retrieve appointments, writing additional metadata back as external properties on each calendar entry.
+
+App Connect reads from the user's primary writable calendar in Clio. Attendees correspond to Clio contacts associated with the calendar entry.
+
+**Required permissions**
+
+The Clio user must have calendar access and permission to read and write calendar entries. App Connect writes appointments to the first writable calendar found for the authenticated user — ensure users have at least one non-read-only calendar configured in Clio.
+
+!!! note "Cancellation behavior"
+    When an appointment is cancelled from App Connect, the corresponding calendar entry is **permanently deleted** from Clio.
+
+For general information on using the Appointments feature, see [Appointments](../users/appointments.md).

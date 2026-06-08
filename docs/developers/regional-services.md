@@ -35,15 +35,55 @@ In this example:
 
 ## How It Works
 
-1. The client-side application monitors for trigger conditions (currently only hostname is supported as a trigger)
+1. The client-side application evaluates each override's trigger condition
 2. When a trigger condition is met, the app locates the specified path in the manifest configuration
-3. It then replaces the default value with the region-specific value defined in the override
+3. It then replaces the default value with the override value defined in the `overrideObjects` array
 
 This approach allows for seamless switching between regional deployments without requiring separate connectors or complex conditional logic in your code.
 
 ## Available Trigger Types
 
-Currently, the only supported trigger type is `hostname`. If you need additional trigger types to better support your regional implementation, please create a GitHub issue requesting the specific trigger you require.
+Two trigger types are supported:
+
+### `hostname`
+
+Triggers the override when the user's CRM hostname matches `triggerValue`. This is the most common trigger type, used to activate region-specific configuration (different auth URLs, API endpoints, etc.) based on which regional server the user is logged in to.
+
+```json
+{
+  "triggerType": "hostname",
+  "triggerValue": "au.app.clio.com",
+  "overrideObjects": [
+    {
+      "path": "auth.oauth.authUrl",
+      "value": "https://au.app.clio.com/oauth/authorize"
+    }
+  ]
+}
+```
+
+### `meta`
+
+Triggers the override unconditionally — it always applies regardless of the user's hostname or any other runtime condition. Use `meta` when you need to set connector-level defaults that should apply globally, such as overriding the connector's `serverUrl` or `author` to point to a specific deployment.
+
+```json
+{
+  "triggerType": "meta",
+  "triggerValue": "",
+  "overrideObjects": [
+    {
+      "path": "serverUrl",
+      "value": "https://custom-deployment.example.com"
+    },
+    {
+      "path": "author",
+      "value": "Acme Corp"
+    }
+  ]
+}
+```
+
+The `triggerValue` field is ignored for `meta` overrides and can be set to an empty string.
 
 ## Implementing Regional Services in Your Connector
 

@@ -29,12 +29,20 @@ CRMs almost always have a set of fields associated with logging an activity that
 
 For each page, you will define an array of `additionalFields`. Each additional field element consists of the properties below.
 
-| Name               | Type    | Description                                                                                                       |
-|--------------------|---------|-------------------------------------------------------------------------------------------------------------------|
-| `const`            | string  | A unique key identifying the field.                                                                               |
-| `title`            | string  | The display name of the field.                                                                                    |
-| `type`             | string  | The data type associated with the field.                                                                          |
-| `contactDependent` | boolean | Set to `true` if this field would change when the selected contact is changed, or `false` if the value is static. |
+| Name                    | Type    | Description                                                                                                       |
+|-------------------------|---------|-------------------------------------------------------------------------------------------------------------------|
+| `const`                 | string  | A unique key identifying the field.                                                                               |
+| `title`                 | string  | The display name of the field.                                                                                    |
+| `type`                  | string  | The input type. Supported values: `inputField`, `selection`, `checkbox`, `date`.                                  |
+| `contactDependent`      | boolean | Set to `true` if the field options depend on the selected contact (e.g. a list of matters for a specific client). |
+| `contactTypeDependent`  | boolean | (Optional) Set to `true` if the field options depend on the selected contact *type*. |
+| `required`              | boolean | (Optional) When `true`, the form cannot be submitted without a value in this field.                               |
+| `description`           | string  | (Optional) Help text shown beneath the field label to guide the user.                                             |
+| `includeNoneOption`     | boolean | (Optional) For `selection` fields. When `true`, a "None" option is prepended to the list. Default: `false`.      |
+| `defaultSettingId`      | string  | (Optional) The `const` key of another field whose value will be used as this field's default.                     |
+| `defaultSettingValues`  | object  | (Optional) A map from a parent field value to a default value for this field. Used for conditional defaults.       |
+| `allowCustomValue`      | boolean | (Optional) For `selection` fields. When `true`, the user can type a custom value not in the predefined list.      |
+| `dynamicOptions`        | boolean | (Optional) When `true`, the field's options are fetched dynamically from the connector at runtime rather than being defined statically in the manifest. |
 
 ### Custom call log fields
 
@@ -60,6 +68,36 @@ In the following example, a "Deals" pull-down menu with three options, and an "A
     }
 }
 ```
+
+### Custom new-contact fields
+
+The `page.newContact.additionalFields` array adds extra fields to the "Create contact" form shown to users when they log a call against an unknown phone number.
+
+Use this to collect CRM-specific data needed at contact creation time — for example, a contact type selector or a company name field.
+
+```js
+"page": {
+    "newContact": {
+        "additionalFields": [
+            {
+                "const": "contactType",
+                "title": "Contact Type",
+                "type": "selection",
+                "required": true,
+                "includeNoneOption": false
+            },
+            {
+                "const": "company",
+                "title": "Company",
+                "type": "inputField",
+                "required": false
+            }
+        ]
+    }
+}
+```
+
+The values collected here are passed to the [`createContact`](interfaces/createContact.md) interface as part of the `additionalSubmission` parameter.
 
 ### Custom SMS log fields
 

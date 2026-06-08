@@ -16,7 +16,7 @@ RingCentral App Connect isn't just a dialer; it is a high-performance integratio
 
     ---
 
-    Accelerate your outreach and eliminate the "between-call" friction that kills momentum. Use Call-Down lists and Voicemail Drop to transform your CRM into a high-speed sales engine.
+    Accelerate your outreach and eliminate the "between-call" friction that kills momentum. Use Call-Back lists and Voicemail Drop to transform your CRM into a high-speed sales engine.
 	
 	---
     [Learn about Sales Velocity](sales-velocity.md)

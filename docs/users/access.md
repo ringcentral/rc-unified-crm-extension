@@ -16,19 +16,19 @@ One of App Connect's most important — and most frequently asked about — capa
 
 <div class="grid cards" markdown>
 
-- :material-monitor: **RingCentral desktop app**
+- **RingCentral desktop app**
 
     Calls made from the RingCentral desktop app are captured and logged automatically.
 
-- :material-cellphone: **RingCentral mobile app**
+- **RingCentral mobile app**
 
     Calls from iOS or Android are logged just like any other call — no action required from the user.
 
-- :material-deskphone: **Desk phones**
+- **Desk phones**
 
     Physical desk phones on your RingEX account are fully supported. Every call is logged.
 
-- :material-web: **App Connect CTI**
+- **App Connect CTI**
 
     Calls placed directly through the embedded CTI dialer in your CRM are logged in real time.
 
@@ -40,19 +40,19 @@ One of App Connect's most important — and most frequently asked about — capa
 
 <div class="grid cards" markdown>
 
-- :material-phone-log: **[Call logging](logging.md)**
+- **[Call logging](logging.md)**
 
     Understand how App Connect logs calls — automatically and manually — and how to configure logging behavior.
 
-- :material-card-account-phone: **[Screen pop](screen-pop.md)**
+- **[Screen pop](screen-pop.md)**
 
     Surface the matching contact record the moment a call arrives, so your team always has context before they say hello.
 
-- :material-cursor-default-click: **[Click-to-dial](making-calls.md)**
+- **[Click-to-dial](making-calls.md)**
 
     Dial any phone number in your CRM with a single click — no copy-pasting, no manual dialing.
 
-- :material-text-box-check: **[Logging AI transcripts](ai.md)**
+- **[Logging AI transcripts](ai.md)**
 
     Capture AI-generated call summaries and transcripts alongside the call record in your CRM.
 
@@ -64,15 +64,15 @@ One of App Connect's most important — and most frequently asked about — capa
 
 <div class="grid cards" markdown>
 
-- :material-server: **[Server-side call logging](server-side-logging.md)**
+- **[Server-side call logging](server-side-logging.md)**
 
     Configure App Connect to log calls server-side — ensuring activity is captured even when users aren't in their browser.
 
-- :material-tune: **[Managed settings](managed-settings.md)**
+- **[Managed settings](managed-settings.md)**
 
     Push configuration to all users in your organisation from a central admin panel. Lock settings, enforce defaults, and manage rollout.
 
-- :material-chart-bar: **[Metrics and reports](user-report.md)**
+- **[Metrics and reports](user-report.md)**
 
     Track call activity, logging rates, and team usage with built-in reporting tools.
 
@@ -84,15 +84,15 @@ One of App Connect's most important — and most frequently asked about — capa
 
 <div class="grid cards" markdown>
 
-- :material-voicemail: **[Voicemail drop](voicemail-drop.md)**
+- **[Voicemail drop](voicemail-drop.md)**
 
     Leave a pre-recorded voicemail instantly when a call goes unanswered — without waiting for the beep.
 
-- :material-format-list-checks: **[Call-down lists](calldown-lists.md)**
+- **[Call-back lists](callback-lists.md)**
 
     Work through a list of contacts with a single click per call — built for outreach, follow-up, and high-volume calling workflows.
 
-- :material-phone-outgoing: **[Click-to-dial](making-calls.md)**
+- **[Click-to-dial](making-calls.md)**
 
     Start calls from within your CRM without ever touching a dial pad.
 

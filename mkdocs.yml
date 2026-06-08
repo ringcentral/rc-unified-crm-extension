@@ -11,6 +11,7 @@ docs_dir: docs
 not_in_nav: |
   crm/agencyzoom/gate6.md
   crm/agencyzoom/aa.md
+  users/calldown-lists.md
 
 theme:
   name: material
@@ -137,7 +138,7 @@ nav:
   - 'App Connect features':
     - 'AI Assistant': users/ai.md
     - 'Appointments (2.0)': users/appointments.md
-    - 'Call-down lists (2.0)': users/calldown-lists.md
+    - 'Call-back lists (2.0)': users/callback-lists.md
     - 'Call monitoring (2.0)': users/hud.md
     - 'Click-to-dial': users/making-calls.md
     - 'Metrics and reports': users/user-report.md
@@ -191,28 +192,48 @@ nav:
         - 'Placeholder contacts': developers/placeholder-contacts.md
         - 'Lead creation': developers/lead-creation.md
       - 'Logging phone calls': developers/logging-calls.md
+      - 'Associating calls with CRM records': developers/associating-records.md
       - 'Logging SMS': developers/logging-sms.md
+      - 'Server-side logging': developers/server-side-logging.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Returning errors': developers/errors.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
-      - 'createCallLog': developers/interfaces/createCallLog.md
-      - 'createMessageLog': developers/interfaces/createMessageLog.md
-      - 'createContact': developers/interfaces/createContact.md
-      - 'getAuthType': developers/interfaces/getAuthType.md
-      - 'getBasicAuth': developers/interfaces/getBasicAuth.md
-      - 'getCallLog': developers/interfaces/getCallLog.md
-      - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
-      - 'getLogFormatType': developers/interfaces/getLogFormatType.md
-      - 'getOauthInfo': developers/interfaces/getOauthInfo.md
-      - 'getUserInfo': developers/interfaces/getUserInfo.md
-      - 'getUserList': developers/interfaces/getUserList.md
-      - 'findContact (by phone)': developers/interfaces/findContact.md
-      - 'findContactWithName': developers/interfaces/findContactWithName.md
-      - 'unAuthorize': developers/interfaces/unAuthorize.md
-      - 'updateCallLog': developers/interfaces/updateCallLog.md
-      - 'updateMessageLog': developers/interfaces/updateMessageLog.md
-      - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
+      - 'Authentication':
+        - 'getAuthType': developers/interfaces/getAuthType.md
+        - 'getBasicAuth': developers/interfaces/getBasicAuth.md
+        - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+        - 'getUserInfo': developers/interfaces/getUserInfo.md
+        - 'unAuthorize': developers/interfaces/unAuthorize.md
+      - 'Call logging':
+        - 'findContact (by phone)': developers/interfaces/findContact.md
+        - 'findContactWithName': developers/interfaces/findContactWithName.md
+        - 'createContact': developers/interfaces/createContact.md
+        - 'createCallLog': developers/interfaces/createCallLog.md
+        - 'updateCallLog': developers/interfaces/updateCallLog.md
+        - 'getCallLog': developers/interfaces/getCallLog.md
+        - 'getLogFormatType': developers/interfaces/getLogFormatType.md
+        - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
+      - 'SMS logging':
+        - 'createMessageLog': developers/interfaces/createMessageLog.md
+        - 'updateMessageLog': developers/interfaces/updateMessageLog.md
+      - 'Server-side logging':
+        - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
+        - 'getUserList': developers/interfaces/getUserList.md
+      - 'Appointments':
+        - 'listAppointments': developers/interfaces/listAppointments.md
+        - 'createAppointment': developers/interfaces/createAppointment.md
+        - 'updateAppointment': developers/interfaces/updateAppointment.md
+        - 'refreshAppointment': developers/interfaces/refreshAppointment.md
+        - 'cancelAppointment': developers/interfaces/cancelAppointment.md
+        - 'confirmAppointment': developers/interfaces/confirmAppointment.md
+      - 'Lifecycle hooks':
+        - 'authValidation': developers/interfaces/authValidation.md
+        - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
+        - 'getOverridingOAuthOption': developers/interfaces/getOverridingOAuthOption.md
+        - 'getServerLoggingSettings': developers/interfaces/getServerLoggingSettings.md
+        - 'updateServerLoggingSettings': developers/interfaces/updateServerLoggingSettings.md
+        - 'postSaveUserInfo': developers/interfaces/postSaveUserInfo.md
 
 - 'MCP':
   - 'Available tools': mcp/index.md

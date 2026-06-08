@@ -90,7 +90,7 @@
 ## 1.7.9
 
 - Better: Contact match speed optimized
-- Better: Minor improvements on calldown list 
+- Better: Minor improvements on callback list 
 - New: Clio supports Company as new Contact type
 - Fix: Google Sheet and NetSuite warning notifications
 
@@ -98,7 +98,7 @@
 
 - New: Error report feature on support page
 - New: Google Sheets admin now can setup target sheet for all users
-- Better: Calldown list supports better edit feature
+- Better: Callback list supports better edit feature
 - Better: Connctor selection list can be opened back again
 - Fix: Call log record is shown with a wrong number after the call
 

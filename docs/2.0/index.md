@@ -48,13 +48,13 @@ The App Connect 2.0 beta is being distributed as "App Connect 1.7" via an unlist
 
     [Learn more &raquo;](../users/logging-conflicts.md#resolving-conflicts-automatically)
 
--   :material-clipboard-list:{ .lg .middle } __Call-down lists__
+-   :material-clipboard-list:{ .lg .middle } __Call-back lists__
 
     ---
 
     Create and prioritize lists of contacts to call later, viewing and executing your daily schedule with precision.
 
-    [Learn more &raquo;](../users/calldown-lists.md)
+    [Learn more &raquo;](../users/callback-lists.md)
 
 -   :material-voicemail:{ .lg .middle } __Voicemail drop__
 

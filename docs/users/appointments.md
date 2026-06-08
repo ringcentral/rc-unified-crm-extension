@@ -40,55 +40,11 @@ The Appointments tab is **hidden by default**. You must manually enable it from 
 
 ## CRM-specific setup and behavior
 
-### Bullhorn
+Each supported CRM has its own requirements, permissions, and behavioral nuances. Refer to the relevant setup guide for details:
 
-Appointments in Bullhorn are stored as native **Appointment** records in the Bullhorn staffing platform and can be associated with Candidates, Client Contacts, or Leads.
-
-**What is synced:**
-
-- App Connect fetches appointments within a rolling window: from **1 month in the past** to **3 months in the future**
-- Each appointment can be associated with a single primary contact (Candidate, ClientContact, or Lead)
-
-**Notes for Bullhorn administrators:**
-
-- The Bullhorn user account used to authenticate with App Connect must have permission to read and write `Appointment` and `AppointmentAttendee` records in Bullhorn
-- Bullhorn does not currently support a native "confirmed" status via App Connect; use the Bullhorn web application if confirmation workflows are required
-
----
-
-### Clio
-
-Appointments in Clio are mapped to **Calendar Entries** in the Clio API. App Connect uses Clio's calendar system to store and retrieve appointments, writing additional metadata back as external properties on each calendar entry.
-
-**What is synced:**
-
-- Calendar entries are fetched from the user's primary writable calendar in Clio
-- Attendees correspond to Clio contacts associated with the calendar entry
-
-**Notes for Clio administrators:**
-
-- The Clio user must have calendar access and permission to read and write calendar entries
-- App Connect writes Events to the first writable calendar found for the authenticated user. Ensure users have at least one non-read-only calendar configured in Clio
-
----
-
-### NetSuite
-
-Events in NetSuite are stored as **Calendar Events** using NetSuite's REST Record API. NetSuite provides the richest appointment lifecycle support, including native confirm and cancel status transitions.
-
-**What is synced:**
-
-- Calendar events are fetched using a custom RESTlet bundled with the [RingCentral SuiteApp](https://www.suiteapp.com/RingCentral-Unified-CRM-Extension)
-- Attendees are stored as `attendee` sub-records on the calendar event record
-- Appointment times are converted to and from the user's configured **timezone offset** in NetSuite to ensure accurate scheduling
-- Confirming an appointment sets the NetSuite status to `CONFIRMED`
-- Cancelling an appointment sets the NetSuite status to `CANCELLED`
-
-**Prerequisites for NetSuite:**
-
-- The [RingCentral SuiteApp](../crm/netsuite.md) must be installed in your NetSuite account
-- The user's NetSuite role must have **REST Web Services** enabled and read/write permission to Calendar Event records
-- See the [NetSuite setup guide](../crm/netsuite.md) for full role and permission requirements
+- [Bullhorn — Appointments](../crm/bullhorn.md#appointments)
+- [Clio — Appointments](../crm/clio.md#appointments)
+- [NetSuite — Appointments](../crm/netsuite.md#appointments)
 
 ## Using Appointments in App Connect
 
