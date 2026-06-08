@@ -1,4 +1,18 @@
 {
+    "1.7.30": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Conditional rendering of contact association fields"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio associated matter paging"
+            }
+        ]
+    },
     "1.7.29": {
         "global": [
             {

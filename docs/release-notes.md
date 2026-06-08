@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.7.30
+
+- Fix: Conditional rendering of contact association fields
+- Fix: Clio associated matter paging
+
 ## 1.7.29
 
 - New: Conditional rendering of logging form fields by contact type
