@@ -33,6 +33,22 @@ When you login successfully, the Chrome extension will automatically update to s
 
 And with that, you will be connected to Pipedrive and ready to begin using the integration. 
 
+## Enabling SMS logging
+
+SMS logging in Pipedrive requires a custom activity type named **"SMS"** to be created in your Pipedrive account. App Connect looks for an activity type containing the keyword "SMS" — if it doesn't exist, SMS messages will not be logged.
+
+!!! warning "SMS messages not logging?"
+    If you are not seeing SMS messages logged in Pipedrive, this is almost certainly the reason. Create the SMS activity type below and logging will begin immediately.
+
+To create the activity type, a Pipedrive admin should follow these steps:
+
+1. Go to **Settings**
+2. Click **Activities**
+3. Click **Add Activity**
+4. Name the activity **SMS** and select an icon
+
+Once saved, all inbound and outbound SMS messages handled by App Connect will be logged using this activity type.
+
 ## Tailoring your configuration
 
 Pipedrive's system exhibits a relatively uncommon behavior that is the result of a perfectly normal function of the frameworks used by their engineers. However, this behavior is unfortunate because it causes the dialer to be removed from the page after it has loaded. You may see it appear briefly, and then POOF! It is gone. 

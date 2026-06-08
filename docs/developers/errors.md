@@ -24,5 +24,5 @@ return {
 | Parameter     | Description                                                                                     |
 |---------------|-------------------------------------------------------------------------------------------------|
 | `message`     | The message to display.                                                                         |
-| `messageType` | There are 3 message types: `success`, `warning` and `danger`.                                   |
+| `messageType` | There are 3 message types: `success`, `warning` and `error`.                                   |
 | `ttl`         | The length of time to display the message (in milliseconds) before it disappears automatically. |

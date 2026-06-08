@@ -51,7 +51,7 @@ When multiple contacts are found, users are given an opportunity to disambiguate
   <figcaption>Disambiguating between contacts when multiple matches are found in the connected CRM</figcaption>
 </figure>
 
-## Resolving conlicts automatically
+## Resolving conflicts automatically
 
 <!-- md:version 2.0 -->
 
