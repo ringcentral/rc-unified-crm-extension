@@ -64,7 +64,7 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                     if (key.startsWith('plugin_')) {
                         const config = Object.keys(result[key].value.config)?.length === 0 ? null : result[key].value.config;
                         if (config) {
-                            const configFromadminSettings = userSettingsByAdmin.userSettings[key].value.config ?? {};
+                            const configFromadminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? {};
                             for (const k in config) {
                                 // use admin setting to replace, if not customizable
                                 if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
@@ -78,7 +78,7 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                         }
                         //Case: no config at all, use admin setting directly
                         else {
-                            result[key].value.config = userSettingsByAdmin.userSettings[key].value.config;
+                            result[key].value.config = userSettingsByAdmin.userSettings[key]?.value?.config;
                         }
                     }
                 }
