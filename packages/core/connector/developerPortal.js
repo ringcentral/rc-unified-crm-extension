@@ -12,11 +12,31 @@ async function getPublicConnectorList() {
     }
 }
 
+async function getPrivateConnectorList({ rcAccountId }) {
+    try {
+        const response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/internal?accountId=${rcAccountId}`);
+        return response.data;
+    } catch (error) {
+        logger.error('Error getting private connector list:', error);
+        return null;
+    }
+}
+
 async function getConnectorManifest({ rcAccountId, connectorId, isPrivate = false }) {
     try {
         let response = null;
         if (isPrivate) {
-            response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${rcAccountId}`);
+            const privateConnectorList = await getPrivateConnectorList({ rcAccountId });
+            if (privateConnectorList.privateConnectors.some(connector => connector.id === connectorId)) {
+                response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${rcAccountId}`);
+            }
+            else if (privateConnectorList.sharedConnectors.some(connector => connector.id === connectorId)) {
+                const targetConnector = privateConnectorList.sharedConnectors.find(connector => connector.id === connectorId);
+                response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest?access=internal&type=connector&accountId=${targetConnector.accountId}`);
+            }
+            else {
+                throw new Error('Connector not found');
+            }
         }
         else {
             response = await axios.get(`https://appconnect.labs.ringcentral.com/public-api/connectors/${connectorId}/manifest`);
