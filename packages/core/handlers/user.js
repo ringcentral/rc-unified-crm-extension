@@ -63,16 +63,16 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                     // Special case: plugins
                     if (key.startsWith('plugin_')) {
                         const config = Object.keys(result[key].value.config)?.length === 0 ? null : result[key].value.config;
+                        const configFromAdminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? null;
                         if (config) {
-                            const configFromadminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? {};
-                            if (configFromadminSettings) {
+                            if (configFromAdminSettings) {
                                 for (const k in config) {
                                     // use admin setting to replace, if not customizable
-                                    if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
-                                        config[k] = configFromadminSettings[k];
+                                    if (configFromAdminSettings[k] && !configFromAdminSettings[k].customizable || !config[k].value && configFromAdminSettings[k].value) {
+                                        config[k] = configFromAdminSettings[k];
                                     }
                                     else {
-                                        config[k].customizable = configFromadminSettings[k]?.customizable ?? true;
+                                        config[k].customizable = configFromAdminSettings[k]?.customizable ?? true;
                                     }
                                 }
                             }
@@ -80,7 +80,14 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                         }
                         //Case: no config at all, use admin setting directly
                         else {
-                            result[key].value.config = userSettingsByAdmin.userSettings[key]?.value?.config;
+                            if (configFromAdminSettings) {
+                                result[key].value.config = {
+                                    ...configFromAdminSettings
+                                };
+                            }
+                            else {
+                                delete result[key];
+                            }
                         }
                     }
                 }
