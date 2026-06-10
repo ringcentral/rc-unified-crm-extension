@@ -47,6 +47,22 @@
       "contactPageUrl": "https://{hostname}/person/{contactId}",
       "logPageUrl": "https://{hostname}/activities/{logId}",
       "settings": [],
+      "adminSettings": [
+        {
+          "id": "pipedriveCallActivityType",
+          "type": "option",
+          "name": "Activity type for call logs",
+          "accountDataKey": "activityTypes",
+          "defaultValue": ""
+        },
+        {
+          "id": "pipedriveSMSActivityType",
+          "type": "option",
+          "name": "Activity type for SMS logs",
+          "accountDataKey": "activityTypes",
+          "defaultValue": ""
+        }
+      ],
       "page": {
         "callLog": {
           "additionalFields": [

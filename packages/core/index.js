@@ -37,6 +37,7 @@ const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = require('./handlers/managedAuth');
 const managedOAuthCore = require('./handlers/managedOAuth');
+const accountDataCore = require('./handlers/accountData');
 
 let packageJson = null;
 try {
@@ -1453,6 +1454,76 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.get('/accountData', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('getAccountData:start', { query: req.query });
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('getAccountData:invalidToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const keys = (req.query.keys ?? '').split(',').map(k => k.trim()).filter(k => k !== '');
+                if (keys.length === 0) {
+                    res.status(400).send(tracer ? tracer.wrapResponse('Missing keys') : 'Missing keys');
+                    return;
+                }
+                const { successful, returnMessage, data, isBadRequest, isRevokeUserSession } = await accountDataCore.getAccountDataByKeys({
+                    platform,
+                    userId,
+                    keys,
+                    forceRefresh: req.query?.forceRefresh === 'true',
+                    tracer
+                });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
+                }
+                else if (isBadRequest) {
+                    res.status(400).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
+                }
+                else {
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage, data }) : { successful, returnMessage, data });
+                    success = successful;
+                }
+            }
+            else {
+                tracer?.trace('getAccountData:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Get account data failed', { platform: platformName, stack: e.stack });
+            tracer?.traceError('getAccountData:error', e, { platform: platformName });
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get account data',
+            interfaceName: 'getAccountData',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
     router.post('/contact', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
@@ -2249,7 +2320,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, returnMessage, logIds, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body });
+                const { successful, returnMessage, logIds, extraDataTracking, isRevokeUserSession } = await logCore.createMessageLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY) });
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;
@@ -3155,3 +3226,4 @@ exports.initializeCore = initializeCore;
 exports.connectorRegistry = connectorRegistry;
 exports.proxyConnector = proxyConnector;
 exports.DebugTracer = DebugTracer;
+exports.accountData = require('./lib/accountData');
