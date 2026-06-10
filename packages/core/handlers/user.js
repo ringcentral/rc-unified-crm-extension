@@ -65,13 +65,15 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                         const config = Object.keys(result[key].value.config)?.length === 0 ? null : result[key].value.config;
                         if (config) {
                             const configFromadminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? {};
-                            for (const k in config) {
-                                // use admin setting to replace, if not customizable
-                                if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
-                                    config[k] = configFromadminSettings[k];
-                                }
-                                else {
-                                    config[k].customizable = configFromadminSettings[k]?.customizable ?? true;
+                            if (configFromadminSettings) {
+                                for (const k in config) {
+                                    // use admin setting to replace, if not customizable
+                                    if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
+                                        config[k] = configFromadminSettings[k];
+                                    }
+                                    else {
+                                        config[k].customizable = configFromadminSettings[k]?.customizable ?? true;
+                                    }
                                 }
                             }
                             result[key].value.config = config;
