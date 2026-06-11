@@ -1,5 +1,5 @@
 {
-  "serverUrl": "https://unified-crm-extension.labs.ringcentral.com",
+  "serverUrl": "https://brakes-switched-unfortunately-continuity.trycloudflare.com",
   "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
   "author": {
     "name": "RingCentral Labs",
@@ -1535,6 +1535,173 @@
               "contactDependent": true
             }
           ]
+        },
+        "feedback": {
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
+          "elements": [
+            {
+              "const": "pageDescription",
+              "title": "RingCentral App Connect is currently in beta. We welcome any problem reports, feedback, ideas and feature requests you may have.",
+              "type": "string",
+              "bold": false
+            },
+            {
+              "const": "scoreDescription",
+              "title": "How likely are you to recommend the App Connect to a friend or colleague?",
+              "type": "string",
+              "bold": true
+            },
+            {
+              "const": "score",
+              "title": "Score from 1 to 10",
+              "type": "selection",
+              "selections": [
+                {
+                  "const": "1",
+                  "title": "1"
+                },
+                {
+                  "const": "2",
+                  "title": "2"
+                },
+                {
+                  "const": "3",
+                  "title": "3"
+                },
+                {
+                  "const": "4",
+                  "title": "4"
+                },
+                {
+                  "const": "5",
+                  "title": "5"
+                },
+                {
+                  "const": "6",
+                  "title": "6"
+                },
+                {
+                  "const": "7",
+                  "title": "7"
+                },
+                {
+                  "const": "8",
+                  "title": "8"
+                },
+                {
+                  "const": "9",
+                  "title": "9"
+                },
+                {
+                  "const": "10",
+                  "title": "10"
+                }
+              ],
+              "required": true
+            },
+            {
+              "const": "feedback",
+              "title": "Feedback",
+              "type": "inputField",
+              "placeholder": "Please share your feedback...",
+              "required": true
+            }
+          ]
+        },
+        "useContactSearch": true
+      }
+    },
+    "vinsolutions": {
+      "environment": {
+        "type": "fixed",
+        "url": "https://vinsolutions.app.coxautoinc.com/"
+      },
+      "developer": {
+        "name": "RingCentral Labs",
+        "url": "https://labs.ringcentral.com"
+      },
+      "urlIdentifier": "*.coxautoinc.com",
+      "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Netsuite_Logo.png",
+      "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension/crm/vinsolutions/",
+      "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+      "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
+      "name": "vinsolutions",
+      "displayName": "VinSolutions",
+      "embedUrls": [
+        "https://vinsolutions.app.coxautoinc.com/*",
+        "https://*.coxautoinc.com/*"
+      ],
+      "serverSideLogging": {
+        "url": "https://crm-logging.labs.ringcentral.com",
+        "useAdminAssignedUserToken": true,
+        "enableUserMapping": true
+      },
+      "auth": {
+        "type": "apiKey",
+        "apiKey": {
+          "page": {
+            "title": "VinSolutions",
+            "warning": "Obtain your Dealer ID and CRM User ID from your VinSolutions administrator.",
+            "content": [
+              {
+                "const": "description",
+                "description": "Enter the VinSolutions dealer and user context for this connection.",
+                "type": "string",
+                "uiSchema": {
+                  "ui:field": "typography",
+                  "ui:variant": "body2",
+                  "ui:align": "center"
+                }
+              },
+              {
+                "const": "dealerId",
+                "title": "Dealer ID",
+                "type": "string",
+                "required": true
+              },
+              {
+                "const": "crmUserId",
+                "title": "CRM User ID",
+                "type": "string",
+                "required": true
+              },
+              {
+                "const": "apiKey",
+                "title": "apiKey",
+                "type": "string",
+                "required": false,
+                "uiSchema": {
+                  "ui:widget": "hidden"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "canOpenLogPage": false,
+      "contactPageUrl": "https://vinsolutions.app.coxautoinc.com/",
+      "platform": "vinsolutions",
+      "contactTypes": [
+        {
+          "display": "Contact",
+          "value": "contact"
+        }
+      ],
+      "settings": [],
+      "page": {
+        "callLog": {
+          "additionalFields": [
+            {
+              "const": "leads",
+              "title": "Lead",
+              "type": "selection",
+              "contactDependent": true
+            }
+          ]
+        },
+        "messageLog": {
+          "additionalFields": []
         },
         "feedback": {
           "url": "https://docs.google.com/forms/d/e/1FAIpQLSd3vF5MVJ5RAo1Uldy0EwsibGR8ZVucPW4E3JUnyAkHz2_Zpw/viewform?usp=pp_url&entry.912199227={score}&entry.2052354973={crmName}&entry.844920872={feedback}&entry.1467064016={userName}&entry.1822789675={userEmail}&entry.800026675={version}",
