@@ -260,6 +260,7 @@ function createCoreRouter() {
                 result.getUserList = !!platformModule.getUserList;
                 result.getLicenseStatus = !!platformModule.getLicenseStatus;
                 result.getLogFormatType = !!platformModule.getLogFormatType;
+                result.refreshUserInfo = !!platformModule.refreshUserInfo;
                 result.cacheCallNote = !!process.env.USE_CACHE;
                 res.status(200).send(tracer ? tracer.wrapResponse(result) : result);
             }
@@ -984,6 +985,49 @@ function createCoreRouter() {
         }
     }
     );
+    router.post('/user/refreshInfo', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('refreshUserInfo:start', { body: req.body });
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                platformName = unAuthData?.platform ?? 'Unknown';
+                const userId = unAuthData?.id;
+                const { successful, returnMessage } = await userCore.refreshUserInfo({ platform: platformName, userId, tracer });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                success = true;
+            }
+            else {
+                tracer?.trace('refreshUserInfo:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Refresh user info failed', { platform: platformName, stack: e.stack });
+            tracer?.traceError('refreshUserInfo:error', e, { platform: platformName });
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Refresh user info',
+            interfaceName: 'refreshUserInfo',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    })
     router.get('/user/settings', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
