@@ -88,8 +88,6 @@ Use synchronous plugins for deterministic, fast payload transformations.
 
 ## Asynchronous Plugins
 
-An asynchronous plugin receives the payload and an `asyncTaskId`, then App Connect continues the main CRM logging flow without waiting for long work to finish.
-
 Request body:
 
 ```json
@@ -98,8 +96,7 @@ Request body:
     "note": "Call notes",
     "logInfo": {}
   },
-  "config": {},
-  "asyncTaskId": "userId-uuid"
+  "config": {}
 }
 ```
 
@@ -107,33 +104,9 @@ Return quickly:
 
 ```json
 {
-  "accepted": true,
-  "asyncTaskId": "userId-uuid"
+  "accepted": true
 }
 ```
-
-App Connect stores task state in cache records. The client checks status by calling the App Connect server route `POST /pluginAsyncTask` with:
-
-```json
-{
-  "asyncTaskIds": ["userId-uuid"]
-}
-```
-
-The response is:
-
-```json
-{
-  "tasks": [
-    {
-      "cacheKey": "userId-uuid",
-      "status": "completed"
-    }
-  ]
-}
-```
-
-Completed and failed task records are removed after they are returned.
 
 ## License Checks
 

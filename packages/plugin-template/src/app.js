@@ -62,7 +62,7 @@ app.post('/plugin/sync', validateAndRefreshPluginToken, async (req, res) => {
 app.post('/plugin/async', validateAndRefreshPluginToken, async (req, res) => {
   try {
     const pluginIdentity = req.pluginAuth;
-    const result = asyncPlugin.run({ identity: pluginIdentity, data: req.body.data, config: req.body.config, asyncTaskId: req.body.asyncTaskId });
+    const result = asyncPlugin.run({ identity: pluginIdentity, data: req.body.data, config: req.body.config });
     res.status(200).send(result);
   } catch (error) {
     console.error(error);

@@ -151,8 +151,6 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             name: incomingData.contactName ?? ""
         };
 
-
-        const pluginAsyncTaskIds = [];
         const pluginWarnings = [];
         // Plugins
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
@@ -167,15 +165,6 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             }
             const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
             if (plugin.data.isAsync) {
-                const asyncTaskId = `${userId}-${uuidv4()}`;
-                pluginAsyncTaskIds.push(asyncTaskId);
-                await CacheModel.create({
-                    id: asyncTaskId,
-                    status: 'initialized',
-                    userId,
-                    cacheKey: `pluginTask-${plugin.data.name}`,
-                    expiry: moment().add(1, 'hour').toDate()
-                });
                 try {
                     const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
                         {
@@ -187,8 +176,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
                     axios.post(pluginEndpointUrl, {
                         data: incomingData,
-                        config: userConfig,
-                        asyncTaskId
+                        config: userConfig
                     }, {
                         headers: {
                             Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
@@ -300,8 +288,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                 successful: !!logId,
                 logId,
                 returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
-                extraDataTracking,
-                pluginAsyncTaskIds
+                extraDataTracking
             };
         }
         else {
@@ -466,7 +453,6 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                     break;
             }
 
-            const pluginAsyncTaskIds = [];
             const pluginWarnings = [];
             // Plugins
             const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
@@ -481,15 +467,6 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 }
                 const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
                 if (plugin.data.isAsync) {
-                    const asyncTaskId = `${userId}-${uuidv4()}`;
-                    pluginAsyncTaskIds.push(asyncTaskId);
-                    await CacheModel.create({
-                        id: asyncTaskId,
-                        status: 'initialized',
-                        userId,
-                        cacheKey: `pluginTask-${plugin.data.name}`,
-                        expiry: moment().add(1, 'hour').toDate()
-                    });
                     try {
                         const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
                             {
@@ -502,7 +479,6 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                         axios.post(pluginEndpointUrl, {
                             data: { logInfo: incomingData },
                             config: userConfig,
-                            asyncTaskId
                         }, {
                             headers: {
                                 Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
@@ -632,7 +608,6 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 updatedNote,
                 returnMessage: mergePluginWarnings({ returnMessage, warningMessages: pluginWarnings }),
                 extraDataTracking,
-                pluginAsyncTaskIds
             };
         }
         return { successful: false };
@@ -730,7 +705,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
         const ownerName = incomingData.logInfo.owner?.name;
         const isSharedSMS = !!ownerName;
 
-        const pluginAsyncTaskIds = [];
         const pluginWarnings = [];
         // Plugins
         const isSMS = incomingData.logInfo.messages.some(m => m.type === 'SMS');
@@ -749,15 +723,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
             }
             const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
             if (plugin.data.isAsync) {
-                const asyncTaskId = `${userId}-${uuidv4()}`;
-                pluginAsyncTaskIds.push(asyncTaskId);
-                await CacheModel.create({
-                    id: asyncTaskId,
-                    status: 'initialized',
-                    userId,
-                    cacheKey: `pluginTask-${plugin.data.name}`,
-                    expiry: moment().add(1, 'hour').toDate()
-                });
                 try {
                     const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
                         {
@@ -770,7 +735,6 @@ async function createMessageLog({ platform, userId, incomingData }) {
                     axios.post(pluginEndpointUrl, {
                         data: { logInfo: incomingData },
                         config: userConfig,
-                        asyncTaskId
                     }, {
                         headers: {
                             Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,

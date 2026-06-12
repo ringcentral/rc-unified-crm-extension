@@ -13,14 +13,13 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function run({ identity, data, config, asyncTaskId }) {
+async function run({ identity, data, config }) {
   // Expected input:
   // {
   //   data: {
   //     logInfo: { ... }
   //   },
   //   config: { ... },
-  //   asyncTaskId: 'userId-uuid'
   // }
   //
   // Async plugins should return quickly, avoid blocking CRM logging, and
@@ -39,13 +38,11 @@ async function run({ identity, data, config, asyncTaskId }) {
 
     return {
       accepted: true,
-      asyncTaskId,
       pluginIdentity: identity
     };
   } catch (error) {
     return {
       accepted: false,
-      asyncTaskId,
       message: 'Async plugin processing failed'
     };
   }

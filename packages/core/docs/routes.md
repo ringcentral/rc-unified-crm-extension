@@ -95,7 +95,6 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/debug/report/url` | Returns a presigned URL for error log upload |
-| `POST` | `/pluginAsyncTask` | Returns async plugin task status and cleans up finished task cache entries |
 
 ## Development-Only Mock Routes
 

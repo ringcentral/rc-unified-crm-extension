@@ -13,7 +13,6 @@ Handlers contain the shared business workflows behind the route layer.
 | `handlers/user.js` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
 | `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
-| `handlers/plugin.js` | Async plugin task polling and cleanup | `getPluginAsyncTasks` |
 | `handlers/managedAuth.js` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getManagedAuthAdminSettings`, `getManagedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgManagedAuthValues`, `upsertUserManagedAuthValues` |
 
 ## Common Execution Pattern
