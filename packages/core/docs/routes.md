@@ -58,6 +58,7 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/user/preloadSettings` | Loads settings used to bootstrap client-side configuration |
+| `POST` | `/user/refreshInfo` | Refreshes connector-owned CRM user information for the current user |
 | `GET` | `/user/settings` | Returns merged user and admin settings |
 | `POST` | `/user/settings` | Updates per-user settings, with connector hooks when present |
 

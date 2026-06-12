@@ -429,6 +429,19 @@
         }
       }
     },
+    "/user/refreshInfo": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Refresh connector-owned CRM user information",
+        "description": "Resolves the current user from the App Connect JWT, refreshes OAuth credentials when needed, then calls the connector's refreshUserInfo interface.",
+        "operationId": "postUserRefreshInfo",
+        "security": [{ "userJwt": [] }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/OkJson" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
     "/user/settings": {
       "get": {
         "tags": ["User"],

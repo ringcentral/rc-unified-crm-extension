@@ -10,7 +10,7 @@ Handlers contain the shared business workflows behind the route layer.
 | `handlers/contact.js` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
 | `handlers/log.js` | Call logging, message logging, plugin execution, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache` |
 | `handlers/admin.js` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
-| `handlers/user.js` | User setting reads, admin/user setting merge, and updates | `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
+| `handlers/user.js` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
 | `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
 | `handlers/plugin.js` | Async plugin task polling and cleanup | `getPluginAsyncTasks` |
@@ -89,10 +89,11 @@ Key responsibilities:
 
 ## `user.js`
 
-This module is mainly about merging account-level policy with per-user preferences.
+This module handles user-owned workflows that do not belong to login, contact, or logging handlers.
 
 Rules implemented here:
 
+- `refreshUserInfo()` loads the current user, refreshes OAuth credentials when needed or builds API-key auth, then delegates to the connector's `refreshUserInfo({ user, authHeader, proxyConfig })`
 - if no admin settings exist, return user settings directly
 - admin settings can override or hide user settings
 - plugin settings merge at both the plugin level and nested config-field level
