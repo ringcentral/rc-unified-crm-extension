@@ -95,6 +95,10 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/debug/report/url` | Returns a presigned URL for error log upload |
+| `POST` | `/plugin/async-callback/:taskId` | Receives async plugin completion callbacks for call-log tasks |
+| `POST` | `/plugin/register` | Registers an account-level plugin and stores returned plugin auth data |
+| `DELETE` | `/plugin/unregister` | Removes account-level plugin auth and settings |
+| `GET` | `/plugin/licenseStatus` | Reads license status for an installed plugin |
 
 ## Development-Only Mock Routes
 

@@ -62,8 +62,35 @@ app.post('/plugin/sync', validateAndRefreshPluginToken, async (req, res) => {
 app.post('/plugin/async', validateAndRefreshPluginToken, async (req, res) => {
   try {
     const pluginIdentity = req.pluginAuth;
-    const result = asyncPlugin.run({ identity: pluginIdentity, data: req.body.data, config: req.body.config });
-    res.status(200).send(result);
+    const {
+      asyncTaskId,
+      callbackUrl,
+      data,
+      config
+    } = req.body || {};
+
+    if (!asyncTaskId || !callbackUrl) {
+      res.status(400).send({
+        accepted: false,
+        message: 'asyncTaskId and callbackUrl are required'
+      });
+      return;
+    }
+
+    asyncPlugin.run({
+      identity: pluginIdentity,
+      data,
+      config,
+      asyncTaskId,
+      callbackUrl
+    }).catch(error => {
+      console.error('Async plugin processing failed', error);
+    });
+
+    res.status(200).send({
+      accepted: true,
+      asyncTaskId
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send('Plugin request failed');

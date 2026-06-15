@@ -13,10 +13,9 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const moment = require('moment');
 const { getMediaReaderLinkByPlatformMediaLink } = require('../lib/util');
 const axios = require('axios');
-const { getPluginsFromUserSettings } = require('../lib/util');
 const logger = require('../lib/logger');
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const { AccountDataModel } = require('../models/accountDataModel');
 const pluginCore = require('./plugin');
 const {
@@ -24,6 +23,10 @@ const {
     buildCallLogSessionWhere,
     findMatchingCallLog,
 } = require('../lib/callLogLookup');
+
+const ASYNC_PLUGIN_CACHE_KEY = 'asyncPluginTask';
+const ASYNC_PLUGIN_CALLBACK_PATH = '/plugin/async-callback';
+const ASYNC_PLUGIN_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function mergePluginWarnings({ returnMessage, warningMessages }) {
     if (!warningMessages.length) {
@@ -44,8 +47,400 @@ function mergePluginWarnings({ returnMessage, warningMessages }) {
     };
 }
 
-function getPluginWarningMessage({ pluginId }) {
-    return `Plugin ${pluginId} skipped: missing account-level plugin jwtToken. Reinstall or re-register plugin.`;
+function getAsyncPluginCallbackUrl(taskId) {
+    const appServer = (process.env.APP_SERVER || process.env.OVERRIDE_APP_SERVER || '').replace(/\/+$/, '');
+    return `${appServer}${ASYNC_PLUGIN_CALLBACK_PATH}/${taskId}`;
+}
+
+function getAsyncPluginRequestData({ operation, incomingData }) {
+    if (operation === 'updateCallLog') {
+        return { logInfo: incomingData };
+    }
+    return incomingData;
+}
+
+function buildAsyncPluginTaskData({ taskId, callbackUrl, pluginId, platform, operation, user, incomingData, existingCallLog, hashedAccountId, isFromSSCL }) {
+    const logInfo = incomingData?.logInfo ?? incomingData ?? {};
+    return {
+        type: ASYNC_PLUGIN_CACHE_KEY,
+        asyncTaskId: taskId,
+        callbackUrl,
+        pluginId,
+        platform,
+        logType: 'call',
+        operation,
+        userId: user.id,
+        rcAccountId: user.rcAccountId,
+        sessionId: logInfo.sessionId ?? incomingData?.sessionId,
+        extensionNumber: getCallLogExtensionNumber(incomingData),
+        callLogId: existingCallLog?.id ?? logInfo.telephonySessionId ?? logInfo.id,
+        thirdPartyLogId: existingCallLog?.thirdPartyLogId,
+        contactId: existingCallLog?.contactId ?? incomingData?.contactId,
+        incomingData,
+        hashedAccountId,
+        isFromSSCL,
+    };
+}
+
+function splitCallPluginsByExecutionMode(callPlugins) {
+    return {
+        syncCallPlugins: callPlugins.filter(plugin => !plugin.data.isAsync),
+        asyncCallPlugins: callPlugins.filter(plugin => plugin.data.isAsync),
+    };
+}
+
+async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform }) {
+    let processedIncomingData = incomingData;
+    for (const plugin of syncCallPlugins) {
+        const pluginId = plugin.id;
+        const pluginJwtToken = plugin.data.jwtToken;
+        const pluginManifest = plugin.data;
+        const pluginEndpointUrl = pluginManifest.endpointUrl;
+        if (!pluginEndpointUrl) {
+            throw new Error('Plugin URL is not set');
+        }
+        const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
+        const processedResultResponse = await axios.post(pluginEndpointUrl, {
+            data: processedIncomingData,
+            config: userConfig,
+        }, {
+            headers: {
+                Authorization: `Bearer ${pluginJwtToken}`,
+            },
+        });
+        const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
+        if (refreshedPluginJwtToken) {
+            pluginCore.persistPluginData({
+                rcAccountId: user.rcAccountId,
+                pluginId,
+                jwtToken: refreshedPluginJwtToken,
+            });
+        }
+        processedIncomingData = processedResultResponse.data;
+    }
+    return processedIncomingData;
+}
+
+async function markAsyncPluginTaskFailed(cache, message) {
+    if (!cache) {
+        return;
+    }
+    await cache.update({
+        status: 'failed',
+        data: {
+            ...cache.data,
+            message,
+        },
+    });
+}
+
+async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL }) {
+    const pluginId = plugin.id;
+    const taskId = randomUUID();
+    const callbackUrl = getAsyncPluginCallbackUrl(taskId);
+    const taskData = buildAsyncPluginTaskData({
+        taskId,
+        callbackUrl,
+        pluginId,
+        platform,
+        operation,
+        user,
+        incomingData,
+        existingCallLog,
+        hashedAccountId,
+        isFromSSCL,
+    });
+    let taskCache = null;
+    try {
+        taskCache = await CacheModel.create({
+            id: taskId,
+            status: 'pending',
+            userId: user.id,
+            cacheKey: `${ASYNC_PLUGIN_CACHE_KEY}-${pluginId}`,
+            data: taskData,
+            expiry: new Date(Date.now() + ASYNC_PLUGIN_CACHE_TTL_MS),
+        });
+
+        const pluginJwtToken = plugin.data.jwtToken;
+        const pluginEndpointUrl = plugin.data.endpointUrl;
+        if (!pluginEndpointUrl) {
+            throw new Error('Plugin URL is not set');
+        }
+        if (!plugin.data.tokenSyncUrl) {
+            throw new Error('Plugin token sync URL is not set');
+        }
+        const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
+            {
+                headers: {
+                    Authorization: `Bearer ${pluginJwtToken}`,
+                },
+            }
+        );
+        const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
+        await axios.post(pluginEndpointUrl, {
+            data: getAsyncPluginRequestData({ operation, incomingData }),
+            config: pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId }),
+            asyncTaskId: taskId,
+            callbackUrl,
+        }, {
+            headers: {
+                Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
+            },
+        });
+        if (syncedPluginJwtToken) {
+            pluginCore.persistPluginData({
+                rcAccountId: user.rcAccountId,
+                pluginId,
+                jwtToken: syncedPluginJwtToken,
+            });
+        }
+    }
+    catch (error) {
+        logger.error('Error dispatching async plugin task', {
+            pluginId,
+            taskId,
+            stack: error.stack,
+        });
+        try {
+            await markAsyncPluginTaskFailed(taskCache, error.message || 'Async plugin dispatch failed');
+        }
+        catch (cacheError) {
+            logger.error('Error marking async plugin task failed', {
+                pluginId,
+                taskId,
+                stack: cacheError.stack,
+            });
+        }
+    }
+}
+
+async function dispatchAsyncCallPlugins({ asyncCallPlugins, incomingData, user, platform, operation, existingCallLog, hashedAccountId, isFromSSCL }) {
+    for (const plugin of asyncCallPlugins) {
+        await dispatchAsyncCallPlugin({
+            plugin,
+            incomingData,
+            user,
+            platform,
+            operation,
+            existingCallLog,
+            hashedAccountId,
+            isFromSSCL,
+        });
+    }
+}
+
+async function getAuthenticatedCallLogContext({ platform, userId }) {
+    let user = await UserModel.findByPk(userId);
+    if (!user || !user.accessToken) {
+        throw new Error('User not found');
+    }
+    const platformModule = connectorRegistry.getConnector(platform);
+    const proxyId = user.platformAdditionalInfo?.proxyId;
+    let proxyConfig = null;
+    if (proxyId) {
+        proxyConfig = await Connector.getProxyConfig(proxyId);
+    }
+    const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
+    let authHeader = '';
+    switch (authType) {
+        case 'oauth': {
+            const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
+            user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+            if (!user) {
+                throw new Error('User session expired. Please connect again.');
+            }
+            authHeader = `Bearer ${user.accessToken}`;
+            break;
+        }
+        case 'apiKey': {
+            const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+            authHeader = `Basic ${basicAuth}`;
+            break;
+        }
+    }
+    return { user, platformModule, authHeader, proxyConfig };
+}
+
+function appendCallbackNote(existingNote, callbackNote) {
+    return [existingNote, callbackNote].filter(note => !!note).join('\n\n');
+}
+
+function getCallbackUpdateData({ incomingData, existingCallLog, appendedNote }) {
+    const logInfo = incomingData?.logInfo ?? incomingData ?? {};
+    return {
+        recordingLink: incomingData?.recordingLink ?? logInfo.recording?.link,
+        recordingDownloadLink: incomingData?.recordingDownloadLink,
+        subject: incomingData?.subject ?? logInfo.customSubject,
+        note: appendedNote,
+        startTime: incomingData?.startTime ?? logInfo.startTime,
+        duration: incomingData?.duration ?? logInfo.duration,
+        result: incomingData?.result ?? logInfo.result,
+        aiNote: incomingData?.aiNote,
+        transcript: incomingData?.transcript,
+        legs: incomingData?.legs ?? logInfo.legs ?? [],
+        direction: incomingData?.direction ?? logInfo.direction,
+        from: incomingData?.from ?? logInfo.from,
+        to: incomingData?.to ?? logInfo.to,
+        ringSenseTranscript: incomingData?.ringSenseTranscript,
+        ringSenseSummary: incomingData?.ringSenseSummary,
+        ringSenseAIScore: incomingData?.ringSenseAIScore,
+        ringSenseBulletedSummary: incomingData?.ringSenseBulletedSummary,
+        ringSenseLink: incomingData?.ringSenseLink,
+        callLog: {
+            sessionId: existingCallLog.sessionId,
+            startTime: incomingData?.startTime ?? logInfo.startTime,
+            duration: incomingData?.duration ?? logInfo.duration,
+            result: incomingData?.result ?? logInfo.result,
+            direction: incomingData?.direction ?? logInfo.direction,
+            from: incomingData?.from ?? logInfo.from,
+            to: incomingData?.to ?? logInfo.to,
+            legs: incomingData?.legs ?? logInfo.legs ?? [],
+        },
+    };
+}
+
+async function appendAsyncPluginNoteToCallLog({ taskCache, note }) {
+    const taskData = taskCache.data || {};
+    const where = {
+        ...buildCallLogSessionWhere({
+            sessionId: taskData.sessionId,
+            extensionNumber: taskData.extensionNumber,
+        }),
+        platform: taskData.platform,
+        userId: taskData.userId,
+    };
+    const existingCallLog = await CallLogModel.findOne({ where });
+    if (!existingCallLog) {
+        throw new Error('Call log not found for async plugin task');
+    }
+
+    const {
+        user,
+        platformModule,
+        authHeader,
+        proxyConfig,
+    } = await getAuthenticatedCallLogContext({
+        platform: taskData.platform,
+        userId: taskData.userId,
+    });
+
+    const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(taskData.platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
+    const getLogResult = await platformModule.getCallLog({
+        user,
+        telephonySessionId: existingCallLog.id,
+        callLogId: existingCallLog.thirdPartyLogId,
+        contactId: existingCallLog.contactId,
+        authHeader,
+        proxyConfig,
+    });
+    const existingBody = getLogResult?.callLogInfo?.fullBody || getLogResult?.callLogInfo?.note || '';
+    const existingNote = getLogResult?.callLogInfo?.note || '';
+    const appendedNote = appendCallbackNote(existingNote, note);
+    const updateData = getCallbackUpdateData({
+        incomingData: taskData.incomingData,
+        existingCallLog,
+        appendedNote,
+    });
+    const composedLogDetails = composeCallLog({
+        logFormat,
+        existingBody,
+        callLog: updateData.callLog,
+        contactInfo: null,
+        user,
+        note: updateData.note,
+        aiNote: updateData.aiNote,
+        transcript: updateData.transcript,
+        recordingLink: updateData.recordingLink,
+        subject: updateData.subject,
+        startTime: updateData.startTime,
+        duration: updateData.duration,
+        result: updateData.result,
+        ringSenseTranscript: updateData.ringSenseTranscript,
+        ringSenseSummary: updateData.ringSenseSummary,
+        ringSenseAIScore: updateData.ringSenseAIScore,
+        ringSenseBulletedSummary: updateData.ringSenseBulletedSummary,
+        ringSenseLink: updateData.ringSenseLink,
+    });
+
+    await platformModule.updateCallLog({
+        user,
+        existingCallLog,
+        authHeader,
+        recordingLink: updateData.recordingLink,
+        recordingDownloadLink: updateData.recordingDownloadLink,
+        subject: updateData.subject,
+        note: updateData.note,
+        startTime: updateData.startTime,
+        duration: updateData.duration,
+        result: updateData.result,
+        aiNote: updateData.aiNote,
+        transcript: updateData.transcript,
+        legs: updateData.legs,
+        ringSenseTranscript: updateData.ringSenseTranscript,
+        ringSenseSummary: updateData.ringSenseSummary,
+        ringSenseAIScore: updateData.ringSenseAIScore,
+        ringSenseBulletedSummary: updateData.ringSenseBulletedSummary,
+        ringSenseLink: updateData.ringSenseLink,
+        composedLogDetails,
+        existingCallLogDetails: getLogResult?.callLogInfo?.fullLogResponse,
+        hashedAccountId: taskData.hashedAccountId,
+        isFromSSCL: taskData.isFromSSCL,
+        proxyConfig,
+    });
+}
+
+async function handleAsyncPluginCallback({ taskId, body }) {
+    if (typeof body?.successful !== 'boolean') {
+        return {
+            statusCode: 400,
+            body: { successful: false, message: 'successful is required' },
+        };
+    }
+    const taskCache = await CacheModel.findByPk(taskId);
+    if (!taskCache) {
+        return {
+            statusCode: 404,
+            body: { successful: false, message: 'Async task not found' },
+        };
+    }
+    if (taskCache.expiry && taskCache.expiry.getTime() <= Date.now()) {
+        await taskCache.destroy();
+        return {
+            statusCode: 404,
+            body: { successful: false, message: 'Async task not found' },
+        };
+    }
+
+    if (!body.successful) {
+        await markAsyncPluginTaskFailed(taskCache, body.message || 'Async plugin callback failed');
+        return {
+            statusCode: 200,
+            body: { successful: true },
+        };
+    }
+
+    try {
+        await appendAsyncPluginNoteToCallLog({
+            taskCache,
+            note: typeof body.note === 'string' ? body.note : '',
+        });
+        await taskCache.destroy();
+        return {
+            statusCode: 200,
+            body: { successful: true },
+        };
+    }
+    catch (error) {
+        logger.error('Async plugin callback failed to update call log', {
+            taskId,
+            stack: error.stack,
+        });
+        await markAsyncPluginTaskFailed(taskCache, error.message || body.message || 'Async plugin callback failed');
+        return {
+            statusCode: 500,
+            body: { successful: false, message: error.message || 'Async plugin callback failed' },
+        };
+    }
 }
 
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
@@ -155,69 +550,9 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         // Plugins
         const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
         const callPlugins = accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('call'));
-        for (const plugin of callPlugins) {
-            const pluginId = plugin.id;
-            const pluginJwtToken = plugin.data.jwtToken;
-            const pluginManifest = plugin.data;
-            const pluginEndpointUrl = pluginManifest.endpointUrl;
-            if (!pluginEndpointUrl) {
-                throw new Error('Plugin URL is not set');
-            }
-            const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
-            if (plugin.data.isAsync) {
-                try {
-                    const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
-                        {
-                            headers: {
-                                Authorization: `Bearer ${pluginJwtToken}`,
-                            }
-                        }
-                    )
-                    const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
-                    axios.post(pluginEndpointUrl, {
-                        data: incomingData,
-                        config: userConfig
-                    }, {
-                        headers: {
-                            Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
-                        },
-                    });
-                    if (syncedPluginJwtToken) {
-                        pluginCore.persistPluginData({
-                            rcAccountId: user.rcAccountId,
-                            platformName: platform,
-                            pluginId,
-                            jwtToken: syncedPluginJwtToken,
-                        });
-                    }
-                }
-                catch (error) {
-                    logger.error('Error syncing plugin JWT token', { stack: error.stack });
-                }
-            }
-            else {
-                const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                    data: incomingData,
-                    config: userConfig,
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${pluginJwtToken}`,
-                    },
-                });
-                const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
-                if (refreshedPluginJwtToken) {
-                    pluginCore.persistPluginData({
-                        rcAccountId: user.rcAccountId,
-                        platformName: platform,
-                        pluginId,
-                        jwtToken: refreshedPluginJwtToken,
-                    });
-                }
-                // eslint-disable-next-line no-param-reassign
-                incomingData = processedResultResponse.data;
-                note = incomingData.note;
-            }
-        }
+        const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
+        incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
+        note = incomingData.note;
 
         // Compose call log details centrally
         const logFormat = platformModule.getLogFormatType ? platformModule.getLogFormatType(platform, proxyConfig) : LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
@@ -271,7 +606,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         extraDataTracking.withTranscript = !!transcript;
         if (logId) {
             try {
-                await CallLogModel.create({
+                const createdCallLog = await CallLogModel.create({
                     id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
                     sessionId: incomingData.logInfo.sessionId,
                     extensionNumber,
@@ -280,6 +615,18 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     userId,
                     contactId
                 });
+                if (asyncCallPlugins.length) {
+                    await dispatchAsyncCallPlugins({
+                        asyncCallPlugins,
+                        incomingData,
+                        user,
+                        platform,
+                        operation: 'createCallLog',
+                        existingCallLog: createdCallLog,
+                        hashedAccountId,
+                        isFromSSCL,
+                    });
+                }
             }
             catch (error) {
                 return handleDatabaseError(error, 'Error creating call log');
@@ -457,68 +804,8 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
             // Plugins
             const accountPlugins = await pluginCore.getPluginsFromRcAccountId({ rcAccountId: user.rcAccountId });
             const callPlugins = accountPlugins.filter(plugin => plugin.data.supportedLogTypes.includes('call'));
-            for (const plugin of callPlugins) {
-                const pluginId = plugin.id;
-                const pluginJwtToken = plugin.data.jwtToken;
-                const pluginManifest = plugin.data;
-                const pluginEndpointUrl = pluginManifest.endpointUrl;
-                if (!pluginEndpointUrl) {
-                    throw new Error('Plugin URL is not set');
-                }
-                const userConfig = pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId });
-                if (plugin.data.isAsync) {
-                    try {
-                        const syncPluginTokenResponse = await axios.post(plugin.data.tokenSyncUrl, {},
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${pluginJwtToken}`,
-                                },
-                            }
-                        );
-                        const syncedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: syncPluginTokenResponse.headers });
-                        axios.post(pluginEndpointUrl, {
-                            data: { logInfo: incomingData },
-                            config: userConfig,
-                        }, {
-                            headers: {
-                                Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
-                            },
-                        });
-                        if (syncedPluginJwtToken) {
-                            pluginCore.persistPluginData({
-                                rcAccountId: user.rcAccountId,
-                                platformName: platform,
-                                pluginId,
-                                jwtToken: syncedPluginJwtToken,
-                            });
-                        }
-                    }
-                    catch (error) {
-                        logger.error('Error syncing plugin JWT token', { stack: error.stack });
-                    }
-                }
-                else {
-                    const processedResultResponse = await axios.post(pluginEndpointUrl, {
-                        data: incomingData,
-                        config: userConfig
-                    }, {
-                        headers: {
-                            Authorization: `Bearer ${pluginJwtToken}`,
-                        },
-                    });
-                    const refreshedPluginJwtToken = pluginCore.getRefreshedJwtTokenFromHeaders({ headers: processedResultResponse.headers });
-                    if (refreshedPluginJwtToken) {
-                        pluginCore.persistPluginData({
-                            rcAccountId: user.rcAccountId,
-                            platformName: platform,
-                            pluginId,
-                            jwtToken: refreshedPluginJwtToken,
-                        });
-                    }
-                    // eslint-disable-next-line no-param-reassign
-                    incomingData = processedResultResponse.data;
-                }
-            }
+            const { syncCallPlugins, asyncCallPlugins } = splitCallPluginsByExecutionMode(callPlugins);
+            incomingData = await runSyncCallPlugins({ syncCallPlugins, incomingData, user, platform });
 
             // Fetch existing call log details once to avoid duplicate API calls
             let existingCallLogDetails = null;    // Compose updated call log details centrally
@@ -602,6 +889,18 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 isFromSSCL,
                 proxyConfig,
             });
+            if (asyncCallPlugins.length) {
+                await dispatchAsyncCallPlugins({
+                    asyncCallPlugins,
+                    incomingData,
+                    user,
+                    platform,
+                    operation: 'updateCallLog',
+                    existingCallLog,
+                    hashedAccountId,
+                    isFromSSCL,
+                });
+            }
             return {
                 successful: true,
                 logId: existingCallLog.thirdPartyLogId,
@@ -952,3 +1251,4 @@ exports.updateCallLog = updateCallLog;
 exports.createMessageLog = createMessageLog;
 exports.getCallLog = getCallLog;
 exports.saveNoteCache = saveNoteCache;
+exports.handleAsyncPluginCallback = handleAsyncPluginCallback;

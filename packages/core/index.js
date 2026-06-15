@@ -2729,6 +2729,23 @@ function createCoreRouter() {
         });
     });
 
+    router.post('/plugin/async-callback/:taskId', async function (req, res) {
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('pluginAsyncCallback:start', { taskId: req.params.taskId, body: req.body });
+        try {
+            const result = await logCore.handleAsyncPluginCallback({
+                taskId: req.params.taskId,
+                body: req.body || {},
+            });
+            res.status(result.statusCode).send(tracer ? tracer.wrapResponse(result.body) : result.body);
+        }
+        catch (e) {
+            logger.error('Plugin async callback failed', { taskId: req.params.taskId, stack: e.stack });
+            tracer?.traceError('pluginAsyncCallback:error', e);
+            res.status(500).send(tracer ? tracer.wrapResponse({ successful: false, message: e.message || e }) : { successful: false, message: e.message || e });
+        }
+    });
+
     router.post('/plugin/register', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
