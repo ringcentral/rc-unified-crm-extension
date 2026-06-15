@@ -31,6 +31,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 const { MessageLogModel } = require('../../models/messageLogModel');
 const { UserModel } = require('../../models/userModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
+const { CacheModel } = require('../../models/cacheModel');
 const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { composeCallLog } = require('../../lib/callLogComposer');
@@ -44,6 +45,7 @@ describe('Log Handler', () => {
     await MessageLogModel.sync({ force: true });
     await UserModel.sync({ force: true });
     await AccountDataModel.sync({ force: true });
+    await CacheModel.sync({ force: true });
   });
 
   afterEach(async () => {
@@ -51,6 +53,7 @@ describe('Log Handler', () => {
     await MessageLogModel.destroy({ where: {} });
     await UserModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
+    await CacheModel.destroy({ where: {} });
     jest.clearAllMocks();
   });
 
@@ -328,6 +331,91 @@ describe('Log Handler', () => {
           }
         }
       );
+    });
+
+    test('should create async task cache and pass task details to async call plugin after log creation', async () => {
+      const originalAppServer = process.env.APP_SERVER;
+      process.env.APP_SERVER = 'https://app.example.com';
+      try {
+        await UserModel.create(mockUser);
+        await AccountDataModel.create({
+          rcAccountId: mockUser.rcAccountId,
+          platformName: 'asyncPlugin',
+          dataKey: 'pluginData',
+          data: {
+            name: 'plugin.async',
+            supportedLogTypes: ['call'],
+            isAsync: true,
+            endpointUrl: 'https://plugins.example.com/plugin/asyncPlugin',
+            tokenSyncUrl: 'https://plugins.example.com/plugin/asyncPlugin/token',
+            jwtToken: 'plugin-jwt-token'
+          }
+        });
+
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+          createCallLog: jest.fn().mockResolvedValue({
+            logId: 'new-log-async',
+            returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+          })
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+        composeCallLog.mockReturnValue('Composed log details');
+        axios.post.mockImplementation((url) => {
+          if (url === 'https://plugins.example.com/plugin/asyncPlugin/token') {
+            return Promise.resolve({
+              headers: {
+                'x-refreshed-jwt-token': 'synced-plugin-jwt'
+              }
+            });
+          }
+          return Promise.resolve({ data: { accepted: true }, headers: {} });
+        });
+
+        const result = await logHandler.createCallLog({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          incomingData: mockIncomingData,
+          hashedAccountId: 'hashed-123',
+          isFromSSCL: false
+        });
+
+        expect(result.successful).toBe(true);
+        const cache = await CacheModel.findOne({
+          where: {
+            cacheKey: 'asyncPluginTask-asyncPlugin'
+          }
+        });
+        expect(cache).not.toBeNull();
+        expect(cache.status).toBe('pending');
+        expect(cache.userId).toBe('test-user-id');
+        expect(cache.data.pluginId).toBe('asyncPlugin');
+        expect(cache.data.sessionId).toBe('session-123');
+        expect(cache.data.thirdPartyLogId).toBe('new-log-async');
+        expect(cache.expiry.getTime() - Date.now()).toBeGreaterThan(6 * 24 * 60 * 60 * 1000);
+
+        const pluginCall = axios.post.mock.calls.find(([url]) => url === 'https://plugins.example.com/plugin/asyncPlugin');
+        expect(pluginCall).toBeTruthy();
+        expect(pluginCall[1]).toEqual({
+          data: mockIncomingData,
+          config: null,
+          asyncTaskId: cache.id,
+          callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`
+        });
+        expect(pluginCall[2]).toEqual({
+          headers: {
+            Authorization: 'Bearer synced-plugin-jwt'
+          }
+        });
+      } finally {
+        if (originalAppServer) {
+          process.env.APP_SERVER = originalAppServer;
+        } else {
+          delete process.env.APP_SERVER;
+        }
+      }
     });
 
     test('should successfully create call log with oauth auth', async () => {
@@ -1198,6 +1286,143 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(false);
       expect(result.returnMessage.message).toBe('Error performing saveNoteCache');
       expect(result.returnMessage.messageType).toBe('warning');
+    });
+  });
+
+  describe('handleAsyncPluginCallback', () => {
+    test('should append callback note to call log and remove task cache on success', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        platformAdditionalInfo: {}
+      });
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '',
+        platform: 'testCRM',
+        thirdPartyLogId: 'log-1',
+        userId: 'test-user-id',
+        contactId: 'contact-1'
+      });
+      await CacheModel.create({
+        id: 'task-1',
+        status: 'pending',
+        userId: 'test-user-id',
+        cacheKey: 'asyncPluginTask-testPlugin',
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        data: {
+          pluginId: 'testPlugin',
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          sessionId: 'session-1',
+          extensionNumber: '',
+          incomingData: {
+            logInfo: {
+              sessionId: 'session-1',
+              startTime: '2026-06-12T10:00:00.000Z',
+              duration: 120,
+              result: 'Completed',
+              direction: 'Outbound',
+              from: { phoneNumber: '+1234567890' },
+              to: { phoneNumber: '+1987654321' }
+            },
+            note: 'Original note'
+          },
+          hashedAccountId: 'hashed-123',
+          isFromSSCL: false
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        getCallLog: jest.fn().mockResolvedValue({
+          callLogInfo: {
+            fullBody: '- Note: Existing note\n- Summary: Existing summary',
+            note: 'Existing note',
+            fullLogResponse: { id: 'log-1' }
+          }
+        }),
+        updateCallLog: jest.fn().mockResolvedValue({
+          updatedNote: 'Existing note\n\nCallback note'
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Updated composed log');
+
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-1',
+        body: {
+          successful: true,
+          message: 'Done',
+          note: 'Callback note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 200,
+        body: { successful: true }
+      });
+      expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        existingBody: '- Note: Existing note\n- Summary: Existing summary',
+        note: 'Existing note\n\nCallback note'
+      }));
+      expect(mockConnector.updateCallLog).toHaveBeenCalledWith(expect.objectContaining({
+        note: 'Existing note\n\nCallback note',
+        composedLogDetails: 'Updated composed log',
+        existingCallLogDetails: { id: 'log-1' }
+      }));
+      expect(await CacheModel.findByPk('task-1')).toBeNull();
+    });
+
+    test('should mark task cache failed when callback reports failure', async () => {
+      await CacheModel.create({
+        id: 'task-failed',
+        status: 'pending',
+        userId: 'test-user-id',
+        cacheKey: 'asyncPluginTask-testPlugin',
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        data: {
+          pluginId: 'testPlugin',
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          sessionId: 'session-1'
+        }
+      });
+
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-failed',
+        body: {
+          successful: false,
+          message: 'Plugin failed',
+          note: 'Ignored note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 200,
+        body: { successful: true }
+      });
+      const cache = await CacheModel.findByPk('task-failed');
+      expect(cache.status).toBe('failed');
+      expect(cache.data.message).toBe('Plugin failed');
+    });
+
+    test('should reject callback without successful boolean', async () => {
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-1',
+        body: {
+          message: 'Missing status'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 400,
+        body: { successful: false, message: 'successful is required' }
+      });
     });
   });
 

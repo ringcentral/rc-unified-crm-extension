@@ -96,6 +96,3 @@ Exports:
 - `secondsToHoursMinutesSeconds()`
 - `getMostRecentDate()`
 - `getMediaReaderLinkByPlatformMediaLink()`
-- `getPluginsFromUserSettings()`
-
-`getPluginsFromUserSettings()` is especially important because logging handlers use it to discover which plugins should run for call, SMS, or fax workflows.

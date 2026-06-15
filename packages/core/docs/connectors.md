@@ -94,7 +94,7 @@ The shared framework expects these methods most often:
 - `createContact()`
 - `findContactWithName()`
 - `unAuthorize()`
-- optional methods such as `getUserList()`, `getLicenseStatus()`, `upsertCallDisposition()`, `getServerLoggingSettings()`, `updateServerLoggingSettings()`, and `onUpdateUserSettings()`
+- optional methods such as `refreshUserInfo()`, `getUserList()`, `getLicenseStatus()`, `upsertCallDisposition()`, `getServerLoggingSettings()`, `updateServerLoggingSettings()`, and `onUpdateUserSettings()`
 
 ## API-Key Managed Auth Fields
 

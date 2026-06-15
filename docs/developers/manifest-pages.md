@@ -169,6 +169,18 @@ Set `page.useContactSearch` to true and implement [`findContactWithName`](interf
 }
 ```
 
+Set `page.disableContactCache` to true when phone-number contact lookups should refresh server-side account contact data on each online lookup:
+
+```json
+{
+  "page": {
+    "disableContactCache": true
+  }
+}
+```
+
+This does not disable the client's local matched-contact cache. If the client already has a local match and the lookup does not explicitly force a local refresh, it can still use that local match without making an online request.
+
 ## Feedback Page
 
 ```json

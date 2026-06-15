@@ -51,29 +51,6 @@ async function getPluginLicenseStatus({ rcAccountId, pluginId }) {
     return licenseStatusResponse.data;
 }
 
-async function getPluginAsyncTasks({ asyncTaskIds }) {
-    const caches = await CacheModel.findAll({
-        where: {
-            id: {
-                [Op.in]: asyncTaskIds
-            }
-        }
-    });
-    const result = caches.map(cache => ({
-        cacheKey: cache.cacheKey,
-        status: cache.status
-    }));
-    const toRemoveCaches = caches.filter(cache => cache.status === 'completed' || cache.status === 'failed');
-    await CacheModel.destroy({
-        where: {
-            id: {
-                [Op.in]: toRemoveCaches.map(cache => cache.id)
-            }
-        }
-    });
-    return result;
-}
-
 function getRefreshedJwtTokenFromHeaders({ headers }) {
     if (!headers) {
         return null;
@@ -201,7 +178,6 @@ async function unregisterPluginAccount({ pluginId, rcAccountId }) {
 exports.getPluginsFromRcAccountId = getPluginsFromRcAccountId;
 exports.getPluginConfigFromUserSettings = getPluginConfigFromUserSettings;
 exports.getPluginLicenseStatus = getPluginLicenseStatus;
-exports.getPluginAsyncTasks = getPluginAsyncTasks;
 exports.getRefreshedJwtTokenFromHeaders = getRefreshedJwtTokenFromHeaders;
 exports.resolvePluginManifest = resolvePluginManifest;
 exports.persistPluginData = persistPluginData;

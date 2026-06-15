@@ -58,11 +58,12 @@ Required interfaces:
 - [`getOauthInfo`](interfaces/getOauthInfo.md)
 - [`getUserInfo`](interfaces/getUserInfo.md)
 
-Optional OAuth hooks:
+Optional OAuth interfaces and hooks:
 
 - `getOverridingOAuthOption({ code })`
 - `checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout)`
 - `authValidation({ user })`
+- [`refreshUserInfo`](interfaces/refreshUserInfo.md)
 - [`unAuthorize`](interfaces/unAuthorize.md)
 
 ## Admin-Managed OAuth
@@ -118,6 +119,10 @@ Required interfaces:
 - [`getUserInfo`](interfaces/getUserInfo.md)
 
 Core passes the final resolved credential fields to `getUserInfo()` as `additionalInfo`. It also passes `apiKey` as the selected API-key value.
+
+Optional API-key interfaces:
+
+- [`refreshUserInfo`](interfaces/refreshUserInfo.md)
 
 ## Admin-Managed API-Key Fields
 

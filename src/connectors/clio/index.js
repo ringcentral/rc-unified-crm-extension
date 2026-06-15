@@ -11,6 +11,18 @@ const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
 const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
+async function refreshUserInfo({ user, authHeader, proxyConfig }) {
+    return {
+        successful: true,
+        returnMessage: {
+            messageType: 'success',
+            message: 'User info refreshed',
+            ttl: 1000
+        }
+    }
+}
+exports.refreshUserInfo = refreshUserInfo;
+
 function getAuthType() {
     return 'oauth';
 }

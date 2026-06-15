@@ -73,12 +73,12 @@ Stores temporary task state, mainly for async plugin work.
 
 | Field | Notes |
 | --- | --- |
-| `id` | Task id, commonly `{userId}-{uuid}` |
-| `status` | Task status such as `initialized`, `completed`, or `failed` |
+| `id` | Task id. Async plugin callback tasks use the UUID sent to the plugin as `asyncTaskId`. |
+| `status` | Task status such as `pending`, `initialized`, `completed`, or `failed` |
 | `userId` | Owning user |
-| `cacheKey` | Logical task family |
-| `data` | Optional task payload |
-| `expiry` | Cleanup cutoff |
+| `cacheKey` | Logical task family. Async plugin tasks use `asyncPluginTask-<pluginId>`. |
+| `data` | Optional task payload. Async plugin tasks keep callback URL, plugin id, call-log lookup fields, original plugin input, and failure `message` when a callback fails. |
+| `expiry` | Cleanup cutoff. Async plugin callback tasks expire after one week. |
 
 ### `models/accountDataModel.js`
 

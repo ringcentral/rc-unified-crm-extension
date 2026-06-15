@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.7.33
+
+- New: Developer Console manifest flag to disable Contact Cache
+- New: Interface refreshUserInfo, called when user opens extension
+- New: Async plugin callback
+- New: Developer Console manifest flag to hide plugin config fields
+- Fix: Mark outbound call on answer call pop option deprecated 
+
 ## 1.7.30
 
 - Fix: Shared SMS for sites

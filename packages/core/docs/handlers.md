@@ -8,12 +8,11 @@ Handlers contain the shared business workflows behind the route layer.
 | --- | --- | --- |
 | `handlers/auth.js` | Connector login, OAuth callback handling, user persistence, and auth validation | `onOAuthCallback`, `onApiKeyLogin`, `authValidation`, `getLicenseStatus`, `onRingcentralOAuthCallback` |
 | `handlers/contact.js` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
-| `handlers/log.js` | Call logging, message logging, plugin execution, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache` |
+| `handlers/log.js` | Call logging, message logging, plugin execution, async plugin callbacks, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache`, `handleAsyncPluginCallback` |
 | `handlers/admin.js` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
-| `handlers/user.js` | User setting reads, admin/user setting merge, and updates | `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
+| `handlers/user.js` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
 | `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
 | `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
-| `handlers/plugin.js` | Async plugin task polling and cleanup | `getPluginAsyncTasks` |
 | `handlers/managedAuth.js` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getManagedAuthAdminSettings`, `getManagedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgManagedAuthValues`, `upsertUserManagedAuthValues` |
 
 ## Common Execution Pattern
@@ -62,7 +61,9 @@ Key responsibilities:
 
 - prevents duplicate call-log creation by checking `CallLogModel` on `sessionId`
 - loads note cache from DynamoDB when `USE_CACHE` and server-side call logging are enabled
-- runs configured plugins before creating or updating logs
+- runs configured synchronous plugins before creating or updating logs
+- dispatches configured asynchronous call plugins after call-log create or update succeeds
+- handles async plugin callbacks by appending Agent notes on success or marking task cache as failed on failure
 - composes log body content with `composeCallLog()` or `composeSharedSMSLog()`
 - stores local mappings between telephony ids and CRM log ids
 - handles normal SMS, fax, group SMS, and shared SMS cases
@@ -72,7 +73,7 @@ Important persistence behavior:
 
 - `CallLogModel` stores the App Connect to CRM mapping for call logs
 - `MessageLogModel` stores the App Connect to CRM mapping for message logs
-- `CacheModel` stores async plugin task state
+- `CacheModel` stores async plugin callback tasks with a one-week expiry; successful callbacks delete the task and failed callbacks keep the task with status `failed`
 - `NoteCache` stores temporary notes keyed by session id
 
 ## `admin.js`
@@ -89,10 +90,11 @@ Key responsibilities:
 
 ## `user.js`
 
-This module is mainly about merging account-level policy with per-user preferences.
+This module handles user-owned workflows that do not belong to login, contact, or logging handlers.
 
 Rules implemented here:
 
+- `refreshUserInfo()` loads the current user, refreshes OAuth credentials when needed or builds API-key auth, then delegates to the connector's `refreshUserInfo({ user, authHeader, proxyConfig })`
 - if no admin settings exist, return user settings directly
 - admin settings can override or hide user settings
 - plugin settings merge at both the plugin level and nested config-field level
@@ -112,8 +114,9 @@ Rules implemented here:
 
 `plugin.js`:
 
-- returns cached async task status
-- deletes terminal task cache records after the client reads them
+- registers and unregisters account-level plugins
+- validates plugin registration against RingCentral account identity
+- reads plugin license status through the installed plugin profile
 
 `managedAuth.js`:
 

@@ -369,7 +369,7 @@ app.post('/plugin/:pluginId', async function (req, res) {
         let result;
         switch (req.params.pluginId) {
             case 'googleDrive':
-                result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data, taskId: req.body.asyncTaskId });
+                result = googleDrivePlugin.uploadToGoogleDrive({ user, data: req.body.data });
                 break;
             case 'all_cap':
                 result = allCapPlugin.allCap({ user, data: req.body.data });

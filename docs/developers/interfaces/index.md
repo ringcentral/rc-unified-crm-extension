@@ -14,6 +14,7 @@ These interfaces manage the connection lifecycle between App Connect and the tar
 | [`getOauthInfo`](getOauthInfo.md)   | Returns OAuth credentials and token endpoint details needed to initiate the OAuth flow. |
 | [`getBasicAuth`](getBasicAuth.md)   | Returns credentials for Basic Auth. Used only by connectors with `apiKey` auth type. |
 | [`getUserInfo`](getUserInfo.md)     | Fetches and returns the authenticated user's profile from the CRM after login.       |
+| [`refreshUserInfo`](refreshUserInfo.md) | Refreshes CRM-side information for an already connected user.                    |
 | [`unAuthorize`](unAuthorize.md)     | Logs a user out of the CRM, invalidates credentials, and cleans up any stored session data. |
 
 ## Call logging
