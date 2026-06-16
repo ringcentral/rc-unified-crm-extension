@@ -41,7 +41,7 @@ async function getOauthInfo() {
 }
 
 function getProviderName() {
-    return process.env.VINSOLUTIONS_PROVIDER_NAME || 'RingCentral App Connect';
+    return process.env.VINSOLUTIONS_PROVIDER_NAME || 'RingCentral';
 }
 
 function getLeadManagementApiKey() {
