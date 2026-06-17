@@ -294,15 +294,57 @@ describe('VinSolutions Connector', () => {
             expect(result.callLogInfo.dispositions.leads).toBe(9001);
         });
 
+        it('should extract only the Note value from composed log details', async () => {
+            nock(apiBase)
+                .get('/calldetails/id/4321')
+                .query({
+                    accountId: '2002',
+                    providerName: 'RingCentral'
+                })
+                .matchHeader('api_key', 'call-api-key')
+                .reply(200, {
+                    callDetailId: 4321,
+                    callDirection: 'OUTBOUND',
+                    transcriptShort: '- Note: Test With Sushil\n- Session Id: 546916939049\n- RingCentral user name: Sushil Mall\n- Summary: ',
+                    vinProperties: {
+                        contactId: 501
+                    }
+                });
+
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query(true)
+                .reply(200, [{
+                    ContactId: 501,
+                    ContactInformation: {
+                        FirstName: 'Jane',
+                        LastName: 'Buyer'
+                    }
+                }]);
+
+            const result = await vinsolutions.getCallLog({
+                user: mockUser,
+                callLogId: '4321',
+                contactId: 501,
+                authHeader
+            });
+
+            expect(result.callLogInfo.note).toBe('Test With Sushil');
+            expect(result.callLogInfo.fullBody).toContain('Session Id: 546916939049');
+        });
+
     });
 
     describe('updateCallLog', () => {
         it('should patch an existing call detail record', async () => {
             nock(apiBase)
-                .patch('/calldetails/id/4321')
-                .query({
-                    accountId: '2002',
-                    providerName: 'RingCentral'
+                .patch('/calldetails/id/4321', {
+                    providerName: 'RingCentral',
+                    transcriptFull: 'Updated notes',
+                    callDurationSeconds: 420,
+                    vinProperties: {
+                        dealerId: 2002
+                    }
                 })
                 .matchHeader('api_key', 'call-api-key')
                 .matchHeader('content-type', 'application/vnd.coxauto.v1+json')

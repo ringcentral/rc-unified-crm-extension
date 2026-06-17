@@ -269,6 +269,18 @@ function extractCallDetailId(headers) {
     return match ? match[1] : null;
 }
 
+function extractNoteFromComposedLog(body) {
+    if (!body) {
+        return '';
+    }
+    const noteRegex = /- (?:Note|Agent notes): ([\s\S]*?)(?=\n- [A-Z][a-zA-Z\s/]*:|\n$|$)/;
+    const match = body.match(noteRegex);
+    if (match?.[1] !== undefined) {
+        return match[1].trim();
+    }
+    return body;
+}
+
 async function getUserInfo({ additionalInfo }) {
     try {
         const dealerId = Number(additionalInfo.dealerId);
@@ -693,7 +705,8 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
     console.log('getLogRes call details', getLogRes.data);
 
     const callDetail = getLogRes.data || {};
-    const transcript = callDetail.transcriptShort || '';
+    const fullBody = callDetail.transcriptFull || callDetail.transcriptShort || '';
+    const note = extractNoteFromComposedLog(fullBody);
     let contactName = '';
     const resolvedContactId = callDetail.vinProperties?.contactId || contactId;
 
@@ -727,8 +740,8 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
     return {
         callLogInfo: {
             subject,
-            note: transcript,
-            fullBody: transcript,
+            note,
+            fullBody,
             fullLogResponse: callDetail,
             contactName,
             dispositions
@@ -764,7 +777,12 @@ async function updateCallLog({
             user
         });
 
-        const patchBody = {};
+        const patchBody = {
+            providerName: getProviderName(),
+            vinProperties: {
+                dealerId
+            }
+        };
         if (composedLogDetails) {
             patchBody.transcriptFull = composedLogDetails;
         }
@@ -772,14 +790,11 @@ async function updateCallLog({
             patchBody.callDurationSeconds = Number(duration);
         }
         if (additionalSubmission?.leads) {
-            patchBody.vinProperties = {
-                dealerId,
-                userId: Number(crmUserId),
-                leadId: Number(additionalSubmission.leads)
-            };
+            patchBody.vinProperties.userId = Number(crmUserId);
+            patchBody.vinProperties.leadId = Number(additionalSubmission.leads);
         }
 
-        if (Object.keys(patchBody).length === 0) {
+        if (!composedLogDetails && !duration && !additionalSubmission?.leads) {
             return {
                 updatedNote: composedLogDetails,
                 returnMessage: {
@@ -790,13 +805,7 @@ async function updateCallLog({
             };
         }
 
-        await axios.patch(`${API_BASE_URL}/calldetails/id/${callDetailId}`, patchBody, {
-            headers,
-            params: {
-                accountId: String(dealerId),
-                providerName: getProviderName()
-            }
-        });
+        await axios.patch(`${API_BASE_URL}/calldetails/id/${callDetailId}`, patchBody, { headers });
 
         return {
             updatedNote: composedLogDetails,
@@ -808,7 +817,7 @@ async function updateCallLog({
         };
     }
     catch (error) {
-        logger.error('VinSolutions updateCallLog failed', { stack: error.stack });
+        logger.error('VinSolutions updateCallLog failed', { error });
         return {
             returnMessage: {
                 message: 'Failed to update call log in VinSolutions.',
