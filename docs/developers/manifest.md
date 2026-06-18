@@ -50,6 +50,8 @@ In App Connect 2.0, the Developer Console is the primary place to manage manifes
 | `serverSideLogging` | Optional server-side logging config. |
 | `contactTypes` | Optional list of CRM entity types users can create/select. |
 | `contactPageUrl` | Template for opening a contact page. Supports `{hostname}`, `{contactId}`, and `{contactType}`. |
+| `enableFallbackContactPageUrl` | Enables the fallback contact page URL for call-pop when no existing contact is matched. Defaults to `false`. |
+| `fallbackContactPageUrl` | Optional fixed URL opened by call-pop when fallback is enabled and no existing contact is matched. Supports `{hostname}`. |
 | `logPageUrl` | Template for opening a log/activity page. Supports `{hostname}`, `{logId}`, `{contactId}`, and `{contactType}` where available. |
 | `canOpenLogPage` | When true, App Connect opens `logPageUrl` for logged activities. When false, it opens `contactPageUrl`. |
 | `settings` | Connector-specific user/admin settings. See [Custom settings](custom-settings.md). |
