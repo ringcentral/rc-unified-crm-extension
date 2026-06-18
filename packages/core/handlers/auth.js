@@ -50,7 +50,7 @@ async function onOAuthCallback({ platform, hostname, tokenUrl, query, hashedRcEx
     let overridingOAuthOption = null;
     if (platformModule.getOverridingOAuthOption != null) {
         const code = new URL(callbackUri).searchParams.get('code');
-        overridingOAuthOption = platformModule.getOverridingOAuthOption({ code });
+        overridingOAuthOption = platformModule.getOverridingOAuthOption({ code, oauthInfo });
     }
     const oauthApp = oauth.getOAuthApp(oauthInfo);
     const { accessToken, refreshToken, expires, data } = await oauthApp.code.getToken(callbackUri, overridingOAuthOption);
