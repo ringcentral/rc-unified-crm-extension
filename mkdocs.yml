@@ -104,6 +104,7 @@ nav:
   - 'Google Sheets': crm/google-sheets.md
   - 'Insightly': crm/insightly.md
   - 'NetSuite': crm/netsuite.md
+  - 'Odoo': crm/odoo.md
   - 'Pipedrive': crm/pipedrive.md
   - 'Redtail CRM': crm/redtail.md
   - 'ServiceNow': crm/servicenow.md

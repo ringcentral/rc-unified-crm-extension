@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">15+</span>
+      <span class="crm-mkt__stat-num">16+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -146,6 +146,19 @@ hide:
     </div>
     <div class="crm-mkt__footer">
       <span class="crm-mkt__by crm-mkt__by--rc">By RingCentral</span>
+      <span class="crm-mkt__cta">View docs →</span>
+    </div>
+  </a>
+
+  <a href="odoo/" class="crm-mkt__card">
+    <div class="crm-mkt__logo"><img src="../img/crm-logo-odoo.png" alt="Odoo"></div>
+    <div class="crm-mkt__body">
+      <div class="crm-mkt__industry">ERP / CRM</div>
+      <div class="crm-mkt__name">Odoo</div>
+      <p class="crm-mkt__desc">Log RingEX calls to Odoo contacts and CRM records across sales, support, and operations.</p>
+    </div>
+    <div class="crm-mkt__footer">
+      <span class="crm-mkt__by crm-mkt__by--partner">By Captivo Labs</span>
       <span class="crm-mkt__cta">View docs →</span>
     </div>
   </a>
