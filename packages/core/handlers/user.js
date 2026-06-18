@@ -4,6 +4,83 @@ const { getHashValue } = require('../lib/util');
 const connectorRegistry = require('../connector/registry');
 const logger = require('../lib/logger');
 const { handleDatabaseError } = require('../lib/errorHandler');
+const { UserModel } = require('../models/userModel');
+const { handleApiError } = require('../lib/errorHandler');
+const oauth = require('../lib/oauth');
+const { Connector } = require('../models/dynamo/connectorSchema');
+
+async function refreshUserInfo({ platform, userId, tracer }) {
+    tracer?.trace('refreshUserInfo:start', { platform, userId });
+    try {
+        let user = await UserModel.findOne({
+            where: {
+                id: userId,
+                platform
+            }
+        });
+        tracer?.trace('refreshUserInfo:userFound', { user });
+
+        if (!user || !user.accessToken) {
+            tracer?.trace('refreshUserInfo:noUser', { userId });
+            return {
+                successful: false,
+                returnMessage: {
+                    message: `User not found`,
+                    messageType: 'warning',
+                    ttl: 5000
+                }
+            };
+        }
+
+        const proxyId = user.platformAdditionalInfo?.proxyId;
+        let proxyConfig = null;
+        if (proxyId) {
+            proxyConfig = await Connector.getProxyConfig(proxyId);
+            tracer?.trace('refreshUserInfo:proxyConfig', { proxyConfig });
+        }
+
+        const platformModule = connectorRegistry.getConnector(platform);
+        const authType = await platformModule.getAuthType({ proxyId, proxyConfig });
+        tracer?.trace('refreshUserInfo:authType', { authType });
+
+        let authHeader = '';
+        switch (authType) {
+            case 'oauth':
+                const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname, proxyId, proxyConfig })));
+                user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
+                if (!user) {
+                    return {
+                        successful: false,
+                        returnMessage: {
+                            message: `User session expired. Please connect again.`,
+                            messageType: 'warning',
+                            ttl: 5000
+                        },
+                        isRevokeUserSession: true
+                    }
+                }
+                authHeader = `Bearer ${user.accessToken}`;
+                tracer?.trace('refreshUserInfo:oauthAuth', { authHeader });
+                break;
+            case 'apiKey':
+                const basicAuth = platformModule.getBasicAuth({ apiKey: user.accessToken });
+                authHeader = `Basic ${basicAuth}`;
+                tracer?.trace('refreshUserInfo:apiKeyAuth', {});
+                break;
+        }
+
+        const { successful, returnMessage } = await platformModule.refreshUserInfo({ user, authHeader, proxyConfig });
+        tracer?.trace('refreshUserInfo:platformRefreshResult', { successful, returnMessage });
+        return {
+            successful,
+            returnMessage
+        };
+    }
+    catch (e) {
+        tracer?.traceError('refreshUserInfo:error', e, { platform, userId });
+        return handleApiError(e, platform, 'refreshUserInfo', { userId });
+    }
+}
 
 async function getUserSettingsByAdmin({ rcAccessToken, rcAccountId }) {
     let hashedRcAccountId = null;
@@ -63,22 +140,31 @@ async function getUserSettings({ user, rcAccessToken, rcAccountId }) {
                     // Special case: plugins
                     if (key.startsWith('plugin_')) {
                         const config = Object.keys(result[key].value.config)?.length === 0 ? null : result[key].value.config;
+                        const configFromAdminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? null;
                         if (config) {
-                            const configFromadminSettings = userSettingsByAdmin.userSettings[key]?.value?.config ?? {};
-                            for (const k in config) {
-                                // use admin setting to replace, if not customizable
-                                if (configFromadminSettings[k] && !configFromadminSettings[k].customizable || !config[k].value && configFromadminSettings[k].value) {
-                                    config[k] = configFromadminSettings[k];
-                                }
-                                else {
-                                    config[k].customizable = configFromadminSettings[k]?.customizable ?? true;
+                            if (configFromAdminSettings) {
+                                for (const k in config) {
+                                    // use admin setting to replace, if not customizable
+                                    if (configFromAdminSettings[k] && !configFromAdminSettings[k].customizable || !config[k].value && configFromAdminSettings[k].value) {
+                                        config[k] = configFromAdminSettings[k];
+                                    }
+                                    else {
+                                        config[k].customizable = configFromAdminSettings[k]?.customizable ?? true;
+                                    }
                                 }
                             }
                             result[key].value.config = config;
                         }
                         //Case: no config at all, use admin setting directly
                         else {
-                            result[key].value.config = userSettingsByAdmin.userSettings[key]?.value?.config;
+                            if (configFromAdminSettings) {
+                                result[key].value.config = {
+                                    ...configFromAdminSettings
+                                };
+                            }
+                            else {
+                                delete result[key];
+                            }
                         }
                     }
                 }
@@ -138,6 +224,7 @@ async function updateUserSettings({ user, userSettings, settingKeysToRemove, pla
     };
 }
 
+exports.refreshUserInfo = refreshUserInfo;
 exports.getUserSettingsByAdmin = getUserSettingsByAdmin;
 exports.getUserSettings = getUserSettings;
 exports.updateUserSettings = updateUserSettings;
