@@ -62,11 +62,13 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 **Key Features:**
 - Defines `WIDGET_VERSION` — the **single source of truth** for the widget cache-busting URI
 - Handles `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, and `ping` methods
+- Defines `outputSchema` (JSON Schema) for AI-visible tools so clients can understand and validate structured results
 - Defines `inputSchema` (JSON Schema) for every tool that takes parameters — required so ChatGPT forwards arguments
 - Injects `rcAccessToken`, `openaiSessionId`, and `rcExtensionId` into every `tools/call` request
 - Verifies the RC access token against the RC API and caches `rcExtensionId` in `CacheModel` keyed by `openaiSessionId` (24h TTL) — subsequent requests hit the cache instead of the RC API
 - Automatically looks up and injects `jwtToken` from `LlmSessionModel` using `rcExtensionId` (or `openaiSessionId` as a fallback), only when the linked `User` row still has a CRM `accessToken`
 - Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
+- Returns `structuredContent` for schema-bearing tool calls and includes serialized JSON text content for backwards compatibility
 - Serves the widget HTML via `resources/read`
 - Exposes `handleWidgetToolCall` which searches both `tools.tools` and `tools.widgetTools`
 
@@ -126,6 +128,12 @@ Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved f
 New or refreshed LLM session JWTs are written only when the user record has an `accessToken`, so disconnected users are not issued a new tool JWT.
 
 Note: `widgetTools` are called via `POST /mcp/widget-tool-call` which bypasses the MCP session layer entirely. No server-side injection occurs for widget tool calls — all required values must be passed explicitly by the widget in the request body.
+
+### Output Handling
+
+`tools/list` includes an `outputSchema` for every AI-visible MCP tool. For `tools/call`, `mcpHandler.js` converts each tool's returned object into MCP `structuredContent` and also returns the same payload as serialized JSON in a text content block for clients that still read only `content`.
+
+Tools that return `{ success: false, ... }` are surfaced as regular MCP tool results with `isError: true`, so the model can see the error payload and self-correct.
 
 ### AI-Visible Tools (`tools`)
 

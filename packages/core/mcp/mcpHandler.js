@@ -85,6 +85,95 @@ const inputSchemas = {
     },
 };
 
+const standardToolResultOutputSchema = {
+    type: 'object',
+    properties: {
+        success: { type: 'boolean', description: 'Whether the tool operation completed successfully.' },
+        data: { description: 'Tool-specific successful result payload.' },
+        error: { type: 'string', description: 'Error message when the operation fails.' },
+        errorDetails: { type: 'string', description: 'Diagnostic details for troubleshooting.' },
+        message: { type: 'string', description: 'Human-readable status message.' },
+    },
+    required: ['success'],
+};
+
+/**
+ * JSON Schema definitions for each tool's structuredContent response.
+ * MCP clients use this from tools/list to understand and validate tool output.
+ */
+const outputSchemas = {
+    getHelp: {
+        type: 'object',
+        properties: {
+            success: { type: 'boolean' },
+            data: {
+                type: 'object',
+                properties: {
+                    overview: { type: 'string' },
+                    steps: {
+                        type: 'array',
+                        items: { type: 'string' },
+                    },
+                },
+                required: ['overview', 'steps'],
+            },
+        },
+        required: ['success', 'data'],
+    },
+    getPublicConnectors: {
+        type: 'object',
+        properties: {
+            serverUrl: { type: 'string', description: 'Base URL for widget-to-server tool calls.' },
+            rcExtensionId: { description: 'Resolved RingCentral extension ID, or null when unavailable.' },
+            rcAccountId: { description: 'Resolved RingCentral account ID, or null when unavailable.' },
+            openaiSessionId: { description: 'OpenAI conversation session ID, or null when unavailable.' },
+            error: { type: 'boolean', description: 'Whether connector selection is blocked.' },
+            errorMessage: { type: 'string', description: 'Reason connector selection is blocked.' },
+        },
+    },
+    getSessionInfo: {
+        type: 'object',
+        properties: {
+            success: { type: 'boolean' },
+            data: {
+                type: 'object',
+                properties: {
+                    openaiSessionId: { description: 'OpenAI conversation session ID, or null when unavailable.' },
+                    dataToShow: {
+                        type: 'object',
+                        description: 'Non-sensitive session status for the current RingCentral and CRM connection.',
+                    },
+                },
+            },
+            error: { type: 'string' },
+            errorDetails: { type: 'string' },
+        },
+        required: ['success'],
+    },
+    rcGetCallLogs: {
+        type: 'object',
+        properties: {
+            records: {
+                type: 'array',
+                description: 'RingCentral call log records.',
+                items: { type: 'object' },
+            },
+            success: { type: 'boolean', description: 'False when fetching call logs fails.' },
+            error: { type: 'string', description: 'Error message when fetching call logs fails.' },
+        },
+    },
+    logout: standardToolResultOutputSchema,
+    findContactByPhone: standardToolResultOutputSchema,
+    findContactByName: standardToolResultOutputSchema,
+    createContact: standardToolResultOutputSchema,
+    createCallLog: standardToolResultOutputSchema,
+    listAppointments: standardToolResultOutputSchema,
+    createAppointment: standardToolResultOutputSchema,
+    updateAppointment: standardToolResultOutputSchema,
+    confirmAppointment: standardToolResultOutputSchema,
+    cancelAppointment: standardToolResultOutputSchema,
+};
+
 /**
  * Verify an RC access token and return the caller's extension ID.
  * Throws if the token is invalid.
@@ -138,7 +227,7 @@ async function resolveSessionContext(rcAccessToken, openaiSessionId) {
 
 /**
  * Build the tools list to return in tools/list responses.
- * Injects inputSchema and stamps WIDGET_URI into getPublicConnectors _meta.
+ * Injects schema metadata and stamps WIDGET_URI into getPublicConnectors _meta.
  */
 function getToolsList() {
     return tools.tools.map(tool => {
@@ -149,8 +238,39 @@ function getToolsList() {
         if (inputSchemas[def.name]) {
             def.inputSchema = inputSchemas[def.name];
         }
+        if (outputSchemas[def.name]) {
+            def.outputSchema = outputSchemas[def.name];
+        }
         return def;
     });
+}
+
+function getStructuredContent(result) {
+    if (result?.structuredContent && typeof result.structuredContent === 'object' && !Array.isArray(result.structuredContent)) {
+        return result.structuredContent;
+    }
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+        return result;
+    }
+    return { result: result ?? null };
+}
+
+function buildToolResult(toolDefinition, result) {
+    const structuredContent = getStructuredContent(result);
+    const responseResult = {
+        content: Array.isArray(result?.content)
+            ? result.content
+            : [{ type: 'text', text: JSON.stringify(structuredContent, null, 2) }],
+    };
+
+    if (toolDefinition?.outputSchema || outputSchemas[toolDefinition?.name] || result?.structuredContent) {
+        responseResult.structuredContent = structuredContent;
+    }
+    if (structuredContent?.success === false) {
+        responseResult.isError = true;
+    }
+
+    return responseResult;
 }
 
 /**
@@ -265,26 +385,11 @@ async function handleMcpRequest(req, res) {
 
                     const result = await tool.execute(toolArgs);
 
-                    if (result?.structuredContent) {
-                        response = {
-                            jsonrpc: '2.0',
-                            id,
-                            result: {
-                                structuredContent: result.structuredContent,
-                                content: Array.isArray(result.content)
-                                    ? result.content
-                                    : [{ type: 'text', text: '[Interactive widget displayed above - no additional response needed]' }],
-                            },
-                        };
-                    } else {
-                        response = {
-                            jsonrpc: '2.0',
-                            id,
-                            result: {
-                                content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-                            },
-                        };
-                    }
+                    response = {
+                        jsonrpc: '2.0',
+                        id,
+                        result: buildToolResult(tool.definition, result),
+                    };
                 } catch (toolError) {
                     response = {
                         jsonrpc: '2.0',

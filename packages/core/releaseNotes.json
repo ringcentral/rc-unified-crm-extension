@@ -1,4 +1,28 @@
 {
+    "1.7.33": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Developer Console manifest flag to disable Contact Cache"
+            },
+            {
+                "type": "New",
+                "description": "Interface refreshUserInfo, called when user opens extension"
+            },
+            {
+                "type": "New",
+                "description": "Async plugin callback"
+            },
+            {
+                "type": "New",
+                "description": "Developer Console manifest flag to hide plugin config fields"
+            },
+            {
+                "type": "Fix",
+                "description": "Mark outbound call on answer call pop option deprecated"
+            }
+        ]
+    },
     "1.7.30": {
         "global": [
             {

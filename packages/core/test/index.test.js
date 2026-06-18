@@ -8,6 +8,9 @@ jest.mock('../lib/jwt', () => ({
 jest.mock('../handlers/auth', () => ({
   authValidation: jest.fn(),
 }));
+jest.mock('../handlers/log', () => ({
+  handleAsyncPluginCallback: jest.fn(),
+}));
 jest.mock('../lib/analytics', () => ({
   init: jest.fn(),
   track: jest.fn(),
@@ -15,6 +18,7 @@ jest.mock('../lib/analytics', () => ({
 
 const jwt = require('../lib/jwt');
 const authCore = require('../handlers/auth');
+const logCore = require('../handlers/log');
 const { createCoreRouter, createCoreMiddleware } = require('../index');
 
 function buildApp() {
@@ -100,6 +104,33 @@ describe('Core Router JWT normalization', () => {
 
     expect(response.status).toBe(404);
     expect(jwt.decodeJwt).not.toHaveBeenCalled();
+  });
+
+  test('should route plugin async callbacks by task id', async () => {
+    logCore.handleAsyncPluginCallback.mockResolvedValue({
+      statusCode: 200,
+      body: { successful: true },
+    });
+    const app = buildApp();
+
+    const response = await request(app)
+      .post('/plugin/async-callback/task-123')
+      .send({
+        successful: true,
+        message: 'Done',
+        note: 'Callback note',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ successful: true });
+    expect(logCore.handleAsyncPluginCallback).toHaveBeenCalledWith({
+      taskId: 'task-123',
+      body: {
+        successful: true,
+        message: 'Done',
+        note: 'Callback note',
+      },
+    });
   });
 });
 

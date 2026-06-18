@@ -260,6 +260,7 @@ function createCoreRouter() {
                 result.getUserList = !!platformModule.getUserList;
                 result.getLicenseStatus = !!platformModule.getLicenseStatus;
                 result.getLogFormatType = !!platformModule.getLogFormatType;
+                result.refreshUserInfo = !!platformModule.refreshUserInfo;
                 result.cacheCallNote = !!process.env.USE_CACHE;
                 res.status(200).send(tracer ? tracer.wrapResponse(result) : result);
             }
@@ -984,6 +985,49 @@ function createCoreRouter() {
         }
     }
     );
+    router.post('/user/refreshInfo', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('refreshUserInfo:start', { body: req.body });
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                platformName = unAuthData?.platform ?? 'Unknown';
+                const userId = unAuthData?.id;
+                const { successful, returnMessage } = await userCore.refreshUserInfo({ platform: platformName, userId, tracer });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                success = true;
+            }
+            else {
+                tracer?.trace('refreshUserInfo:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Refresh user info failed', { platform: platformName, stack: e.stack });
+            tracer?.traceError('refreshUserInfo:error', e, { platform: platformName });
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Refresh user info',
+            interfaceName: 'refreshUserInfo',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    })
     router.get('/user/settings', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
@@ -2053,7 +2097,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking, pluginAsyncTaskIds, isRevokeUserSession } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.createCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (isRevokeUserSession) {
                     res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
                     success = false;
@@ -2062,7 +2106,7 @@ function createCoreRouter() {
                     if (extraDataTracking) {
                         extraData = extraDataTracking;
                     }
-                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage, pluginAsyncTaskIds }) : { successful, logId, returnMessage, pluginAsyncTaskIds });
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, returnMessage }) : { successful, logId, returnMessage });
                     success = true;
                 }
             }
@@ -2116,11 +2160,11 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking, pluginAsyncTaskIds } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
-                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, updatedNote, returnMessage, pluginAsyncTaskIds }) : { successful, logId, updatedNote, returnMessage, pluginAsyncTaskIds });
+                res.status(200).send(tracer ? tracer.wrapResponse({ successful, logId, updatedNote, returnMessage }) : { successful, logId, updatedNote, returnMessage });
                 success = true;
             }
             else {
@@ -2685,53 +2729,21 @@ function createCoreRouter() {
         });
     });
 
-    router.post('/pluginAsyncTask', async function (req, res) {
-        const requestStartTime = new Date().getTime();
+    router.post('/plugin/async-callback/:taskId', async function (req, res) {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
-        tracer?.trace('pluginAsyncTask:start', { query: req.query });
-        let platformName = null;
-        let success = false;
-        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        const jwtToken = req.jwtToken || req.query.jwtToken;
+        tracer?.trace('pluginAsyncCallback:start', { taskId: req.params.taskId, body: req.body });
         try {
-            if (!jwtToken) {
-                tracer?.trace('pluginAsyncTask:noToken', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
-                return;
-            }
-            const unAuthData = jwt.decodeJwt(jwtToken);
-            const user = await UserModel.findByPk(unAuthData?.id);
-            if (!user) {
-                tracer?.trace('pluginAsyncTask:userNotFound', {});
-                res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
-                return;
-            }
-            const { asyncTaskIds } = req.body;
-            const filteredTasksIds = asyncTaskIds.filter(taskId => taskId.startsWith(user.id));
-            const tasks = await pluginCore.getPluginAsyncTasks({ asyncTaskIds: filteredTasksIds });
-            res.status(200).send(tracer ? tracer.wrapResponse({ tasks }) : { tasks });
-            success = true;
+            const result = await logCore.handleAsyncPluginCallback({
+                taskId: req.params.taskId,
+                body: req.body || {},
+            });
+            res.status(result.statusCode).send(tracer ? tracer.wrapResponse(result.body) : result.body);
         }
         catch (e) {
-            console.log(`platform: ${platformName} \n${e.stack}`);
-            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
-            tracer?.traceError('pluginAsyncTask:error', e, { platform: platformName });
-            success = false;
+            logger.error('Plugin async callback failed', { taskId: req.params.taskId, stack: e.stack });
+            tracer?.traceError('pluginAsyncCallback:error', e);
+            res.status(500).send(tracer ? tracer.wrapResponse({ successful: false, message: e.message || e }) : { successful: false, message: e.message || e });
         }
-        const requestEndTime = new Date().getTime();
-        analytics.track({
-            eventName: 'Plugin Async Task',
-            interfaceName: 'pluginAsyncTask',
-            connectorName: platformName,
-            accountId: hashedAccountId,
-            extensionId: hashedExtensionId,
-            success,
-            requestDuration: (requestEndTime - requestStartTime) / 1000,
-            userAgent,
-            ip,
-            author,
-            eventAddedVia
-        });
     });
 
     router.post('/plugin/register', async function (req, res) {
