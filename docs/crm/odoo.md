@@ -7,6 +7,8 @@
 
 [Captivo Labs](https://www.captivolabs.com) connects your RingCentral account to your Odoo account. When you receive a call, our system looks up the contact from your Odoo and displays it to you before answering the actual call. When a call ends, it's logged against the right contact, the right matter, the right account along with notes, AI transcription summaries, tasks, and call duration.
 
+!!! money "As a third-party integration, the Odoo integration comes at an additional cost"
+
 ## What it does
 
 - Surfaces the matching Odoo contact when a call comes in or goes out
