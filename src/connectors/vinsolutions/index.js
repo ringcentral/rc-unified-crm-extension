@@ -278,10 +278,11 @@ function extractNoteFromComposedLog(body) {
     if (match?.[1] !== undefined) {
         return match[1].trim();
     }
-    return body;
+    return "";
 }
 
 async function getUserInfo({ additionalInfo }) {
+    console.log('getUserInfo called', { additionalInfo });
     try {
         const dealerId = Number(additionalInfo.dealerId);
         const crmUserId = Number(additionalInfo.crmUserId);
@@ -433,15 +434,15 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
         const matchedContactInfo = [];
         for (const contact of contactsById.values()) {
-            const relatedLeads = await fetchActiveLeadsForContact({
-                user,
-                authHeader,
-                contactId: contact.ContactId
-            });
+            // const relatedLeads = await fetchActiveLeadsForContact({
+            //     user,
+            //     authHeader,
+            //     contactId: contact.ContactId
+            // });
             matchedContactInfo.push(formatContact({
                 contact,
-                phoneNumber: getPrimaryPhone(contact),
-                relatedLeads
+                phoneNumber: getPrimaryPhone(contact)
+                
             }));
         }
 
@@ -490,15 +491,14 @@ async function findContactWithName({ user, authHeader, name }) {
         });
         const matchedContactInfo = [];
         for (const contact of response.data || []) {
-            const relatedLeads = await fetchActiveLeadsForContact({
-                user,
-                authHeader,
-                contactId: contact.ContactId
-            });
+            // const relatedLeads = await fetchActiveLeadsForContact({
+            //     user,
+            //     authHeader,
+            //     contactId: contact.ContactId
+            // });
             matchedContactInfo.push(formatContact({
                 contact,
-                phoneNumber: getPrimaryPhone(contact),
-                relatedLeads
+                phoneNumber: getPrimaryPhone(contact)
             }));
         }
 
@@ -622,7 +622,7 @@ async function createCallLog({
     composedLogDetails,
     hashedAccountId
 }) {
-    console.log({  contactInfo, authHeader, callLog, additionalSubmission, transcript, composedLogDetails, hashedAccountId });
+    console.log({ m:"in create callLog", contactInfo, authHeader, callLog, additionalSubmission, transcript, composedLogDetails, hashedAccountId });
     try {
         const { dealerId } = getDealerContext(user);
         const crmUserId = await resolveAssignedCrmUserId({ user, additionalSubmission, hashedAccountId });
@@ -655,7 +655,7 @@ async function createCallLog({
             callDurationSeconds: durationSeconds,
             callResult: mapCallResult(callLog),
             recordingHref: callLog.recording?.link || callLog.recordingLink || '',
-            transcriptFull: transcript || composedLogDetails || '',
+            transcriptFull:  composedLogDetails || '',
             providerReferenceId: String(callLog.sessionId || callLog.id || ''),
             vinProperties: {
                 dealerId,
@@ -664,6 +664,8 @@ async function createCallLog({
                 ...(leadId ? { leadId } : {})
             }
         };
+
+        console.log('postBody is', postBody);
 
         const response = await axios.post(`${API_BASE_URL}/calldetails`, postBody, { headers });
         const logId = extractCallDetailId(response.headers);
