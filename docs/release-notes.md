@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.7.34
+
+- New: Call pop fallback url when no matched contact
+- Fix: Hostname page input debounce
+- Fix: RingCentral additional info submission during auth
+- Fix: Managed auth, admins can now see hidden fields
+
 ## 1.7.33
 
 - New: Developer Console manifest flag to disable Contact Cache
@@ -157,6 +164,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.33
+
+- Fix: Outboud call failure issue
 
 ## 1.6.32
 

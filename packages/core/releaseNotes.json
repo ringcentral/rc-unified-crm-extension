@@ -1,4 +1,24 @@
 {
+    "1.7.34": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Call pop fallback url when no matched contact"
+            },
+            {
+                "type": "Fix",
+                "description": "Hostname page input debounce"
+            },
+            {
+                "type": "Fix",
+                "description": "RingCentral additional info submission during auth"
+            },
+            {
+                "type": "Fix",
+                "description": "Managed auth, admins can now see hidden fields"
+            }
+        ]
+    },
     "1.7.33": {
         "global": [
             {
