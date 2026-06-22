@@ -16,6 +16,7 @@ not_in_nav: |
 theme:
   name: material
   logo: img/RingCentral_logo_color.png
+  favicon: img/favicon-32x32.png
   custom_dir: overrides
   font:
     text: Inter Tight
