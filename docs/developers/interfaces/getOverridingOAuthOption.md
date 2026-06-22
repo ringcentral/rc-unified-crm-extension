@@ -12,6 +12,7 @@ Use this hook when the target CRM's token endpoint requires non-standard paramet
 | Parameter | Description                                                             |
 |-----------|-------------------------------------------------------------------------|
 | `code`    | The authorization code returned from the CRM's OAuth authorization endpoint. |
+| `oauthInfo` | The resolved OAuth configuration from `getOauthInfo()` or admin-managed OAuth. |
 
 ## Return value(s)
 
@@ -31,9 +32,9 @@ return {
   query: {
     grant_type: 'authorization_code',
     code: code,
-    client_id: process.env.MY_CRM_CLIENT_ID,
-    client_secret: process.env.MY_CRM_CLIENT_SECRET,
-    redirect_uri: process.env.MY_CRM_REDIRECT_URI
+    client_id: oauthInfo.clientId,
+    client_secret: oauthInfo.clientSecret,
+    redirect_uri: oauthInfo.redirectUri
   }
 };
 ```

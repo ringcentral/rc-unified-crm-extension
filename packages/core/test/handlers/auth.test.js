@@ -863,8 +863,9 @@ describe('Auth Handler', () => {
     test('should use overriding OAuth option if provided', async () => {
       // Arrange
       const overridingOption = { redirect_uri: 'custom-redirect' };
+      const oauthInfo = { clientId: 'id', clientSecret: 'secret' };
       const mockConnector = global.testUtils.createMockConnector({
-        getOauthInfo: jest.fn().mockResolvedValue({ clientId: 'id', clientSecret: 'secret' }),
+        getOauthInfo: jest.fn().mockResolvedValue(oauthInfo),
         getOverridingOAuthOption: jest.fn().mockReturnValue(overridingOption),
         getUserInfo: jest.fn().mockResolvedValue({
           successful: true,
@@ -892,7 +893,7 @@ describe('Auth Handler', () => {
       await authHandler.onOAuthCallback(requestData);
 
       // Assert
-      expect(mockConnector.getOverridingOAuthOption).toHaveBeenCalledWith({ code: 'code123' });
+      expect(mockConnector.getOverridingOAuthOption).toHaveBeenCalledWith({ code: 'code123', oauthInfo });
       expect(mockOAuthApp.code.getToken).toHaveBeenCalledWith(
         expect.any(String),
         overridingOption
