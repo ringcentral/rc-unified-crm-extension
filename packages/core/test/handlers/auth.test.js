@@ -893,7 +893,10 @@ describe('Auth Handler', () => {
       await authHandler.onOAuthCallback(requestData);
 
       // Assert
-      expect(mockConnector.getOverridingOAuthOption).toHaveBeenCalledWith({ code: 'code123', oauthInfo });
+      expect(mockConnector.getOverridingOAuthOption).toHaveBeenCalledWith({
+        code: 'code123',
+        oauthInfo: { clientId: 'id', clientSecret: 'secret' }
+      });
       expect(mockOAuthApp.code.getToken).toHaveBeenCalledWith(
         expect.any(String),
         overridingOption

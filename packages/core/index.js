@@ -1040,6 +1040,11 @@ function createCoreRouter() {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
+                if(!unAuthData || !unAuthData?.id) {
+                    tracer?.trace('getUserSettings:noToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                    return;
+                }
                 const user = await UserModel.findByPk(unAuthData?.id);
                 if (!user) {
                     tracer?.trace('getUserSettings:userNotFound', {});
