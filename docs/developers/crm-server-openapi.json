@@ -1,9 +1,9 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.3",
   "info": {
     "title": "App Connect CRM Server",
-    "version": "1.7.30",
-    "description": "Route inventory for the current Express server. The runtime source of truth is packages/core/index.js plus app-specific routes in src/index.js."
+    "version": "1.7.34",
+    "description": "OpenAPI 3.0 specification for the App Connect Express server endpoints. Runtime source of truth is packages/core/index.js plus app-specific routes in src/index.js. RingCentral call and message entity schemas are modeled from the attached RingCentral platform OAS and trimmed to the fields this server consumes."
   },
   "servers": [
     {
@@ -772,22 +772,38 @@
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Comma-separated phone-number formats used by CRM-specific matching."
+          },
+          {
+            "$ref": "#/components/parameters/isExtension"
           },
           {
             "name": "isForceRefreshAccountData",
             "in": "query",
             "schema": {
-              "type": "boolean"
-            }
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Bypass and refresh cached contact search data."
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Matching CRM contacts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactSearchResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       },
@@ -803,14 +819,24 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CreateContact"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Created CRM contact information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactMutationResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -831,17 +857,29 @@
           {
             "name": "name",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "CRM contact name search text."
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Matching CRM contacts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactSearchResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -1016,12 +1054,34 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Call-log lookup result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallLogLookupResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/sessionIds"
+          },
+          {
+            "$ref": "#/components/parameters/extensionNumber"
+          },
+          {
+            "$ref": "#/components/parameters/requireDetails"
+          }
+        ],
+        "description": "Looks up local App Connect call-log linkage records by RingCentral session id. When requireDetails is true, also fetches the current CRM activity details through the connector getCallLog interface."
       },
       "post": {
         "tags": [
@@ -1035,16 +1095,27 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CreateCallLog"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Created call-log result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallLogMutationResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Creates one CRM activity/log for a RingCentral call and stores the local mapping for later updates. The logInfo object follows the RingCentral CallLogRecord shape, trimmed to fields consumed by App Connect."
       },
       "patch": {
         "tags": [
@@ -1058,16 +1129,24 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/UpdateCallLog"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Updated call-log result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallLogUpdateResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Updates an existing CRM call activity using the local mapping found by sessionId and optional extensionNumber."
       }
     },
     "/callLog/cacheNote": {
@@ -1083,11 +1162,18 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CallNoteCache"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Call note cache result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicMutationResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -1108,14 +1194,24 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CallDisposition"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Disposition upsert result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicMutationResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -1133,16 +1229,27 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/MessageLog"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Message-log creation or update result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageLogResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Creates or updates CRM activities for SMS, MMS, voicemail, fax, and shared SMS conversations. The server groups normal messages by conversation/day and shared SMS by conversationLogId."
       }
     },
     "/calldown": {
@@ -1334,20 +1441,41 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/AsyncPluginCallback"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Async plugin callback result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
           "404": {
-            "description": "Async plugin task was not found or expired."
+            "description": "Async plugin task was not found or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                }
+              }
+            }
           },
           "500": {
-            "description": "Callback was valid, but App Connect failed to update the CRM log."
+            "description": "Callback was valid, but App Connect failed to update the CRM log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsyncPluginCallbackResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1887,6 +2015,53 @@
           "type": "string"
         },
         "description": "Async plugin task id generated by App Connect."
+      },
+      "jwtToken": {
+        "name": "jwtToken",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Legacy user session JWT query parameter. Prefer Authorization: Bearer <token>."
+      },
+      "sessionIds": {
+        "name": "sessionIds",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Comma-separated RingCentral call session ids. The server processes at most five ids."
+      },
+      "extensionNumber": {
+        "name": "extensionNumber",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "RingCentral extension number used to disambiguate duplicated call session ids."
+      },
+      "requireDetails": {
+        "name": "requireDetails",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": "When true, the server calls the connector getCallLog interface and includes CRM log details."
+      },
+      "isExtension": {
+        "name": "isExtension",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": "Marks the lookup as an internal extension-number lookup."
       }
     },
     "requestBodies": {
@@ -1900,6 +2075,76 @@
             }
           }
         }
+      },
+      "CreateContact": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateContactRequest"
+            }
+          }
+        }
+      },
+      "CreateCallLog": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateCallLogRequest"
+            }
+          }
+        }
+      },
+      "UpdateCallLog": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/UpdateCallLogRequest"
+            }
+          }
+        }
+      },
+      "CallNoteCache": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CallNoteCacheRequest"
+            }
+          }
+        }
+      },
+      "CallDisposition": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CallDispositionRequest"
+            }
+          }
+        }
+      },
+      "MessageLog": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MessageLogRequest"
+            }
+          }
+        }
+      },
+      "AsyncPluginCallback": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AsyncPluginCallbackRequest"
+            }
+          }
+        }
       }
     },
     "responses": {
@@ -1908,32 +2153,1102 @@
         "content": {
           "application/json": {
             "schema": {
-              "type": "object",
-              "additionalProperties": true
+              "$ref": "#/components/schemas/GenericSuccessResponse"
             }
           }
         }
       },
       "BadRequest": {
-        "description": "Bad request or connector error.",
+        "description": "Bad request, missing authentication, or connector error.",
         "content": {
           "application/json": {
             "schema": {
-              "oneOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": true
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "$ref": "#/components/schemas/ErrorResponse"
             }
           }
         }
       },
       "Forbidden": {
         "description": "Admin validation failed."
+      },
+      "UnauthorizedSession": {
+        "description": "The user session is expired or revoked.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BasicMutationResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ReturnMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "messageType": {
+            "type": "string",
+            "enum": [
+              "success",
+              "warning",
+              "error",
+              "danger"
+            ]
+          },
+          "ttl": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "ErrorResponse": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "error": {},
+              "successful": {
+                "type": "boolean"
+              },
+              "returnMessage": {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            },
+            "additionalProperties": true
+          }
+        ]
+      },
+      "GenericSuccessResponse": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      },
+      "BasicMutationResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ContactInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "mostRecentActivityDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "additionalInfo": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "isNewContact": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ContactSearchResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          },
+          "contact": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactInfo"
+            }
+          }
+        }
+      },
+      "CreateContactRequest": {
+        "type": "object",
+        "required": [
+          "phoneNumber",
+          "newContactName"
+        ],
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          },
+          "newContactName": {
+            "type": "string"
+          },
+          "newContactType": {
+            "type": "string"
+          },
+          "additionalSubmission": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ContactMutationResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactInfo"
+          }
+        }
+      },
+      "RcParty": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          },
+          "extensionNumber": {
+            "type": "string"
+          },
+          "extensionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "RcCallRecording": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Automatic",
+              "OnDemand"
+            ]
+          },
+          "contentUri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "additionalProperties": true
+      },
+      "RcCallLogLeg": {
+        "type": "object",
+        "properties": {
+          "legType": {
+            "type": "string"
+          },
+          "master": {
+            "type": "boolean"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "Inbound",
+              "Outbound"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "$ref": "#/components/schemas/RcParty"
+          },
+          "to": {
+            "$ref": "#/components/schemas/RcParty"
+          }
+        },
+        "additionalProperties": true
+      },
+      "RcCallLogRecord": {
+        "type": "object",
+        "required": [
+          "sessionId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "telephonySessionId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "Inbound",
+              "Outbound"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Voice",
+              "Fax"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "$ref": "#/components/schemas/RcParty"
+          },
+          "to": {
+            "$ref": "#/components/schemas/RcParty"
+          },
+          "recording": {
+            "$ref": "#/components/schemas/RcCallRecording"
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RcCallLogLeg"
+            }
+          },
+          "customSubject": {
+            "type": "string"
+          },
+          "lastModifiedTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AdditionalSubmission": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+      },
+      "CreateCallLogRequest": {
+        "type": "object",
+        "required": [
+          "logInfo",
+          "contactId"
+        ],
+        "properties": {
+          "logInfo": {
+            "$ref": "#/components/schemas/RcCallLogRecord"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "contactType": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "additionalSubmission": {
+            "$ref": "#/components/schemas/AdditionalSubmission"
+          },
+          "aiNote": {
+            "type": "string"
+          },
+          "transcript": {
+            "type": "string"
+          },
+          "ringSenseTranscript": {
+            "type": "string"
+          },
+          "ringSenseSummary": {
+            "type": "string"
+          },
+          "ringSenseAIScore": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "ringSenseBulletedSummary": {
+            "type": "string"
+          },
+          "ringSenseLink": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "example": {
+          "logInfo": {
+            "id": "123456789",
+            "sessionId": "987654321",
+            "telephonySessionId": "s-a1b2c3",
+            "direction": "Inbound",
+            "from": {
+              "phoneNumber": "+14155550100",
+              "name": "Jane Smith"
+            },
+            "to": {
+              "phoneNumber": "+16505550199",
+              "extensionNumber": "101"
+            },
+            "startTime": "2026-06-24T02:30:00.000Z",
+            "duration": 125,
+            "result": "Accepted",
+            "recording": {
+              "link": "https://example.com/recording/123"
+            }
+          },
+          "contactId": "crm-contact-123",
+          "contactName": "Jane Smith",
+          "contactType": "Contact",
+          "note": "Discussed renewal options."
+        }
+      },
+      "UpdateCallLogRequest": {
+        "type": "object",
+        "required": [
+          "sessionId"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "extensionNumber": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "recordingLink": {
+            "type": "string",
+            "format": "uri"
+          },
+          "recordingDownloadLink": {
+            "type": "string",
+            "format": "uri"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "Inbound",
+              "Outbound"
+            ]
+          },
+          "from": {
+            "$ref": "#/components/schemas/RcParty"
+          },
+          "to": {
+            "$ref": "#/components/schemas/RcParty"
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RcCallLogLeg"
+            }
+          },
+          "aiNote": {
+            "type": "string"
+          },
+          "transcript": {
+            "type": "string"
+          },
+          "additionalSubmission": {
+            "$ref": "#/components/schemas/AdditionalSubmission"
+          },
+          "ringSenseTranscript": {
+            "type": "string"
+          },
+          "ringSenseSummary": {
+            "type": "string"
+          },
+          "ringSenseAIScore": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "ringSenseBulletedSummary": {
+            "type": "string"
+          },
+          "ringSenseLink": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "CallLogInfo": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "fullBody": {
+            "type": "string"
+          },
+          "fullLogResponse": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "dispositions": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "CallLogLookupItem": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "matched"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "matched": {
+            "type": "boolean"
+          },
+          "logId": {
+            "type": "string"
+          },
+          "logData": {
+            "$ref": "#/components/schemas/CallLogInfo"
+          }
+        }
+      },
+      "CallLogLookupResponse": {
+        "type": "object",
+        "required": [
+          "successful",
+          "logs"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CallLogLookupItem"
+            }
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        }
+      },
+      "CallLogMutationResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "logId": {
+            "type": "string"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        }
+      },
+      "CallLogUpdateResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "logId": {
+            "type": "string"
+          },
+          "updatedNote": {
+            "type": "string"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        }
+      },
+      "CallNoteCacheRequest": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "note"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "CallDispositionRequest": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "dispositions"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "extensionNumber": {
+            "type": "string"
+          },
+          "dispositions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "additionalSubmission": {
+            "$ref": "#/components/schemas/AdditionalSubmission"
+          }
+        }
+      },
+      "MessageAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AudioRecording",
+              "AudioTranscription",
+              "Text",
+              "SourceDocument",
+              "RenderedDocument",
+              "MmsAttachment"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "vmDuration": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": true
+      },
+      "MessageParty": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          },
+          "extensionNumber": {
+            "type": "string"
+          },
+          "extensionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "recipientId": {
+            "type": "string"
+          },
+          "target": {
+            "type": "boolean"
+          },
+          "messageStatus": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "RcMessage": {
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "extensionId": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageAttachment"
+            }
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "Alive",
+              "Deleted",
+              "Purged"
+            ]
+          },
+          "conversationId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "conversation": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "creationTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastModifiedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "Inbound",
+              "Outbound"
+            ]
+          },
+          "from": {
+            "$ref": "#/components/schemas/MessageParty"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageParty"
+            }
+          },
+          "messageStatus": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "Normal",
+              "High"
+            ]
+          },
+          "readStatus": {
+            "type": "string",
+            "enum": [
+              "Read",
+              "Unread"
+            ]
+          },
+          "smsDeliveryTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "smsSendingAttemptsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Fax",
+              "SMS",
+              "MMS",
+              "VoiceMail",
+              "Pager",
+              "Text"
+            ]
+          },
+          "faxPageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "faxResolution": {
+            "type": "string"
+          },
+          "deliveryErrorCode": {
+            "type": "string"
+          },
+          "segmentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vmTranscriptionStatus": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      },
+      "MessageCorrespondent": {
+        "type": "object",
+        "required": [
+          "phoneNumber"
+        ],
+        "properties": {
+          "phoneNumber": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "MessageConversationLog": {
+        "type": "object",
+        "required": [
+          "messages",
+          "correspondents"
+        ],
+        "properties": {
+          "conversationId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "format": "int64"
+              }
+            ]
+          },
+          "conversationLogId": {
+            "type": "string"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RcMessage"
+            }
+          },
+          "correspondents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageCorrespondent"
+            }
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "assignee": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "rcAccessToken": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "MessageLogRequest": {
+        "type": "object",
+        "required": [
+          "logInfo",
+          "contactId"
+        ],
+        "properties": {
+          "logInfo": {
+            "$ref": "#/components/schemas/MessageConversationLog"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "contactType": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "additionalSubmission": {
+            "$ref": "#/components/schemas/AdditionalSubmission"
+          }
+        },
+        "example": {
+          "contactId": "crm-contact-123",
+          "contactName": "Jane Smith",
+          "contactType": "Contact",
+          "logInfo": {
+            "conversationId": 555100,
+            "conversationLogId": "555100-2026-06-24",
+            "correspondents": [
+              {
+                "phoneNumber": "+14155550100",
+                "name": "Jane Smith"
+              }
+            ],
+            "messages": [
+              {
+                "id": 1724099032020,
+                "type": "SMS",
+                "direction": "Inbound",
+                "subject": "Can we talk later today?",
+                "from": {
+                  "phoneNumber": "+14155550100",
+                  "name": "Jane Smith"
+                },
+                "to": [
+                  {
+                    "phoneNumber": "+16505550199",
+                    "extensionNumber": "101"
+                  }
+                ],
+                "creationTime": "2026-06-24T03:15:00.000Z"
+              }
+            ]
+          }
+        }
+      },
+      "MessageLogResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          },
+          "logIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AsyncPluginCallbackRequest": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "AsyncPluginCallbackResponse": {
+        "type": "object",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
       }
     }
   }
