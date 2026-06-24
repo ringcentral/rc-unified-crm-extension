@@ -118,13 +118,12 @@ function normalizeJwtFromRequest(req, res, next) {
     const originalBearerToken = getBearerTokenFromRequest(req);
     const queryToken = req.query?.jwtToken;
     let bearerToken = originalBearerToken;
+    const isQueryAuth = !originalBearerToken && !!queryToken;
 
     // Backward compatibility: promote query jwtToken to Authorization Bearer.
-    if (!bearerToken && queryToken) {
+    if (isQueryAuth) {
         req.headers.authorization = `Bearer ${queryToken}`;
         bearerToken = queryToken;
-        // Don't refresh JWT because old version cannot update its local token storage to support refreshed token.
-        return next();
     }
 
     const token = bearerToken;
@@ -136,7 +135,7 @@ function normalizeJwtFromRequest(req, res, next) {
     const decodedToken = jwt.decodeJwt(token);
     if (!decodedToken?.id) {
         req.invalidJwtToken = true;
-        if (req.query?.jwtToken) {
+        if (originalBearerToken && req.query?.jwtToken) {
             delete req.query.jwtToken;
         }
         return next();
@@ -148,16 +147,17 @@ function normalizeJwtFromRequest(req, res, next) {
     if (typeof decodedToken.exp === 'number') {
         const now = Math.floor(Date.now() / 1000);
         const timeLeft = decodedToken.exp - now;
-        const isBearerAuth = !!originalBearerToken;
         const shouldRefreshNearExpiry = timeLeft <= JWT_REFRESH_THRESHOLD_SECONDS;
-        // Rotate legacy 120y tokens only for Bearer auth clients (they can persist refreshed headers).
-        const shouldRefreshLegacyLongLivedBearer = isBearerAuth && timeLeft > JWT_LEGACY_LONG_LIVED_THRESHOLD_SECONDS;
-        if (shouldRefreshNearExpiry || shouldRefreshLegacyLongLivedBearer) {
+        if (shouldRefreshNearExpiry) {
             const refreshedToken = jwt.generateJwt({
                 id: decodedToken.id.toString(),
                 platform: decodedToken.platform
             });
             res.setHeader('x-refreshed-jwt-token', refreshedToken);
+            req.headers.authorization = `Bearer ${refreshedToken}`;
+            if (isQueryAuth && req.query?.jwtToken) {
+                req.query.jwtToken = refreshedToken;
+            }
             req.jwtToken = refreshedToken;
             req.jwtAuth = jwt.decodeJwt(refreshedToken) || decodedToken;
         }

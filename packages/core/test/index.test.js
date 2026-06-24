@@ -33,7 +33,7 @@ describe('Core Router JWT normalization', () => {
     jest.clearAllMocks();
   });
 
-  test('should accept query jwtToken without refreshing it', async () => {
+  test('should accept query jwtToken without exp without refreshing it', async () => {
     jwt.decodeJwt.mockReturnValue({ id: 'user-1', platform: 'testCRM' });
     authCore.authValidation.mockResolvedValue({
       successful: true,
@@ -52,6 +52,69 @@ describe('Core Router JWT normalization', () => {
       userId: 'user-1',
     });
     expect(jwt.generateJwt).not.toHaveBeenCalled();
+  });
+
+  test('should refresh near-expiry query jwtToken and expose header', async () => {
+    const nowMs = 1700000000000;
+    const nowSeconds = Math.floor(nowMs / 1000);
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(nowMs);
+    jwt.decodeJwt.mockImplementation((token) => {
+      if (token === 'query-token') {
+        return { id: 'user-1', platform: 'testCRM', exp: nowSeconds + 60 };
+      }
+      if (token === 'new-token') {
+        return { id: 'user-1', platform: 'testCRM', exp: nowSeconds + (14 * 24 * 60 * 60) };
+      }
+      return null;
+    });
+    jwt.generateJwt.mockReturnValue('new-token');
+    authCore.authValidation.mockResolvedValue({
+      successful: true,
+      returnMessage: { message: 'ok' },
+      failReason: null,
+      status: 200,
+    });
+    const app = buildApp();
+
+    const response = await request(app)
+      .get('/authValidation?jwtToken=query-token')
+      .set('Origin', 'https://example.com');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['x-refreshed-jwt-token']).toBe('new-token');
+    expect(response.headers['access-control-expose-headers']).toContain('x-refreshed-jwt-token');
+    expect(jwt.generateJwt).toHaveBeenCalledWith({ id: 'user-1', platform: 'testCRM' });
+    expect(authCore.authValidation).toHaveBeenCalledWith({
+      platform: 'testCRM',
+      userId: 'user-1',
+    });
+    expect(jwt.decodeJwt).toHaveBeenCalledWith('new-token');
+    nowSpy.mockRestore();
+  });
+
+  test('should not rotate long-lived query jwtToken', async () => {
+    const nowMs = 1700000000000;
+    const nowSeconds = Math.floor(nowMs / 1000);
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(nowMs);
+    jwt.decodeJwt.mockReturnValue({
+      id: 'user-1',
+      platform: 'testCRM',
+      exp: nowSeconds + (120 * 365 * 24 * 60 * 60),
+    });
+    authCore.authValidation.mockResolvedValue({
+      successful: true,
+      returnMessage: { message: 'ok' },
+      failReason: null,
+      status: 200,
+    });
+    const app = buildApp();
+
+    const response = await request(app).get('/authValidation?jwtToken=query-token');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['x-refreshed-jwt-token']).toBeUndefined();
+    expect(jwt.generateJwt).not.toHaveBeenCalled();
+    nowSpy.mockRestore();
   });
 
   test('should refresh near-expiry bearer token and expose header', async () => {
