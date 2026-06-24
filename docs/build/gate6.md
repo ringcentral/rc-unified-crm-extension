@@ -22,7 +22,7 @@ Gate6 developed their App Connect connector for ServiceNow in direct partnership
 
 ## Connectors
 
-Gate6 currently offers one live App Connect connector, with two more coming soon. [Contact Gate6](#contact-gate6) to discuss your integration requirements.
+Gate6 offers App Connect connectors for ServiceNow, AgencyZoom, ServiceTitan, and monday.com. [Contact Gate6](#contact-gate6) to discuss licensing or your integration requirements.
 
 <div class="crm-mkt__grid">
 
@@ -52,7 +52,7 @@ Gate6 currently offers one live App Connect connector, with two more coming soon
     </div>
   </a>
 
-  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+  <a href="../../crm/servicetitan/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Field Service Management</div>
@@ -60,12 +60,12 @@ Gate6 currently offers one live App Connect connector, with two more coming soon
       <p class="crm-mkt__desc">Log RingEX calls and activity directly into ServiceTitan jobs and customer records for field service teams.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon</span>
-      <span class="crm-mkt__cta">Stay tuned →</span>
+      <span class="crm-mkt__by crm-mkt__by--partner">From $15 / user / month</span>
+      <span class="crm-mkt__cta">View docs →</span>
     </div>
-  </div>
+  </a>
 
-  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+  <a href="../../crm/monday/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../../img/crm-logo-monday.png" alt="monday.com"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Work OS / Project Management</div>
@@ -73,21 +73,21 @@ Gate6 currently offers one live App Connect connector, with two more coming soon
       <p class="crm-mkt__desc">Bring RingEX call activity into monday.com boards — automatically creating items and logging communication history.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon</span>
-      <span class="crm-mkt__cta">Stay tuned →</span>
+      <span class="crm-mkt__by crm-mkt__by--partner">From $15 / user / month</span>
+      <span class="crm-mkt__cta">View docs →</span>
     </div>
-  </div>
+  </a>
 
 </div>
 
 ## Contact Gate6
 
-Ready to get started with ServiceNow, or want to be notified when monday.com or ServiceTitan connectors launch? Gate6's team is ready to help.
+Ready to get started with any of Gate6's App Connect connectors? Their team is ready to help with licensing, demos, and configuration.
 
 <div class="bld-cta">
   <div>
     <div class="bld-cta__title">Talk to Gate6</div>
-    <p class="bld-cta__desc">Reach out to discuss your integration requirements, get a quote, ask about connector licensing, or register interest in an upcoming connector.</p>
+    <p class="bld-cta__desc">Reach out to discuss your integration requirements, get a quote, or ask about connector licensing.</p>
   </div>
   <a href="https://www.gate6.com/contact-us/" class="bld-cta__btn" target="_blank" rel="noopener">Contact Gate6 →</a>
 </div>
