@@ -57,12 +57,12 @@ describe('VinSolutions Connector', () => {
             platformAdditionalInfo: {
                 dealerId: 2002,
                 crmUserId: 1001,
-                leadManagementApiKey: 'lead-api-key',
-                callTrackingApiKey: 'call-api-key',
-                leadManagementAccessToken: accessToken,
-                leadManagementTokenExpiry: new Date(Date.now() + 3600000).toISOString(),
-                callTrackingAccessToken: 'call-tracking-token',
-                callTrackingTokenExpiry: new Date(Date.now() + 3600000).toISOString()
+                vinsLeadManagementApiKey: 'lead-api-key',
+                vinsCallTrackingApiKey: 'call-api-key',
+                vinsLeadManagementAccessToken: accessToken,
+                vinsLeadManagementTokenExpiry: new Date(Date.now() + 3600000).toISOString(),
+                vinsCallTrackingAccessToken: 'call-tracking-token',
+                vinsCallTrackingTokenExpiry: new Date(Date.now() + 3600000).toISOString()
             }
         });
     });
@@ -97,10 +97,10 @@ describe('VinSolutions Connector', () => {
 
     function mockBothTokenRequests({
         leadAccessToken = accessToken,
-        callTrackingAccessToken = 'call-tracking-token'
+        vinsCallTrackingAccessToken = 'call-tracking-token'
     } = {}) {
         mockTokenRequest({ tokenType: 'leadManagement', accessTokenValue: leadAccessToken });
-        mockTokenRequest({ tokenType: 'callTracking', accessTokenValue: callTrackingAccessToken });
+        mockTokenRequest({ tokenType: 'callTracking', accessTokenValue: vinsCallTrackingAccessToken });
     }
 
     describe('getAuthType', () => {
@@ -142,10 +142,10 @@ describe('VinSolutions Connector', () => {
             expect(result.successful).toBe(true);
             expect(result.platformUserInfo.id).toBe('1001-2002-vinsolutions');
             expect(result.platformUserInfo.overridingApiKey).toBe(connectedSentinel);
-            expect(result.platformUserInfo.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
-            expect(result.platformUserInfo.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
-            expect(result.platformUserInfo.platformAdditionalInfo.leadManagementApiKey).toBe('lead-api-key');
-            expect(result.platformUserInfo.platformAdditionalInfo.callTrackingApiKey).toBe('call-api-key');
+            expect(result.platformUserInfo.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe(accessToken);
+            expect(result.platformUserInfo.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('call-tracking-token');
+            expect(result.platformUserInfo.platformAdditionalInfo.vinsLeadManagementApiKey).toBe('lead-api-key');
+            expect(result.platformUserInfo.platformAdditionalInfo.vinsCallTrackingApiKey).toBe('call-api-key');
             expect(result.returnMessage.message).toContain('Demo Motors');
         });
 
@@ -396,10 +396,10 @@ describe('VinSolutions Connector', () => {
                 ...mockUser,
                 platformAdditionalInfo: {
                     ...mockUser.platformAdditionalInfo,
-                    leadManagementAccessToken: accessToken,
-                    leadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString(),
-                    callTrackingAccessToken: 'call-tracking-token',
-                    callTrackingTokenExpiry: new Date(Date.now() - 60000).toISOString()
+                    vinsLeadManagementAccessToken: accessToken,
+                    vinsLeadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString(),
+                    vinsCallTrackingAccessToken: 'call-tracking-token',
+                    vinsCallTrackingTokenExpiry: new Date(Date.now() - 60000).toISOString()
                 },
                 save: jest.fn().mockResolvedValue(true)
             };
@@ -407,8 +407,8 @@ describe('VinSolutions Connector', () => {
 
             const refreshedUser = await vinsolutions.checkAndRefreshAccessToken(null, expiredUser);
 
-            expect(refreshedUser.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
-            expect(refreshedUser.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
+            expect(refreshedUser.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe(accessToken);
+            expect(refreshedUser.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('call-tracking-token');
             expect(expiredUser.save).toHaveBeenCalled();
         });
     });
@@ -430,17 +430,17 @@ describe('VinSolutions Connector', () => {
                     id: '1001-2002-vinsolutions',
                     overridingApiKey: connectedSentinel,
                     platformAdditionalInfo: {
-                        leadManagementAccessToken: accessToken,
-                        leadManagementTokenExpiry: '2099-01-01T00:00:00.000Z',
-                        callTrackingAccessToken: 'call-tracking-token',
-                        callTrackingTokenExpiry: '2099-01-01T00:00:00.000Z'
+                        vinsLeadManagementAccessToken: accessToken,
+                        vinsLeadManagementTokenExpiry: '2099-01-01T00:00:00.000Z',
+                        vinsCallTrackingAccessToken: 'call-tracking-token',
+                        vinsCallTrackingTokenExpiry: '2099-01-01T00:00:00.000Z'
                     }
                 }
             });
 
             expect(save).toHaveBeenCalled();
-            expect(userRecord.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
-            expect(userRecord.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
+            expect(userRecord.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe(accessToken);
+            expect(userRecord.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('call-tracking-token');
         });
     });
 });

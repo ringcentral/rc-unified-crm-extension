@@ -31,14 +31,14 @@ const TOKEN_PROFILES = {
     leadManagement: {
         clientIdEnv: 'VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_ID',
         clientSecretEnv: 'VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_SECRET',
-        accessTokenField: 'leadManagementAccessToken',
-        expiryField: 'leadManagementTokenExpiry'
+        accessTokenField: 'vinsLeadManagementAccessToken',
+        expiryField: 'vinsLeadManagementTokenExpiry'
     },
     callTracking: {
         clientIdEnv: 'VINSOLUTIONS_CALL_TRACKING_CLIENT_ID',
         clientSecretEnv: 'VINSOLUTIONS_CALL_TRACKING_CLIENT_SECRET',
-        accessTokenField: 'callTrackingAccessToken',
-        expiryField: 'callTrackingTokenExpiry'
+        accessTokenField: 'vinsCallTrackingAccessToken',
+        expiryField: 'vinsCallTrackingTokenExpiry'
     }
 };
 
@@ -128,8 +128,8 @@ function getCallTrackingApiKey() {
 
 function getStoredApiKeys() {
     return {
-        leadManagementApiKey: process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY,
-        callTrackingApiKey: process.env.VINSOLUTIONS_CALL_TRACKING_API_KEY
+        vinsLeadManagementApiKey: process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY,
+        vinsCallTrackingApiKey: process.env.VINSOLUTIONS_CALL_TRACKING_API_KEY
     };
 }
 
