@@ -17,6 +17,35 @@ const GATEWAY_JSON = 'application/json';
 const LEAD_MANAGEMENT_V3 = 'application/vnd.coxauto.v3+json';
 const CALL_TRACKING_V1 = 'application/vnd.coxauto.v1+json';
 const TOKEN_EXPIRY_BUFFER_MINUTES = 5;
+/** Core requires user.accessToken to be set; VinSolutions API tokens live in platformAdditionalInfo only. */
+const CONNECTED_SENTINEL = 'vinsolutions-connected';
+
+/**
+ * OAuth token profiles for VinSolutions.
+ * Same token endpoint (TOKEN_URI), different client_id/secret per API family.
+ * All access tokens are stored in user.platformAdditionalInfo only.
+ *
+ * To add another profile later, add one entry here and use ensureAccessToken(user, key).
+ */
+const TOKEN_PROFILES = {
+    leadManagement: {
+        clientIdEnv: 'VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_ID',
+        clientSecretEnv: 'VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_SECRET',
+        accessTokenField: 'leadManagementAccessToken',
+        expiryField: 'leadManagementTokenExpiry'
+    },
+    callTracking: {
+        clientIdEnv: 'VINSOLUTIONS_CALL_TRACKING_CLIENT_ID',
+        clientSecretEnv: 'VINSOLUTIONS_CALL_TRACKING_CLIENT_SECRET',
+        accessTokenField: 'callTrackingAccessToken',
+        expiryField: 'callTrackingTokenExpiry'
+    }
+};
+
+const TOKEN_TYPES = {
+    LEAD_MANAGEMENT: 'leadManagement',
+    CALL_TRACKING: 'callTracking'
+};
 
 function getAuthType() {
     return 'oauth';
@@ -33,10 +62,53 @@ function getBasicAuth() {
 
 // Server-to-server client_credentials only — no authorization redirect or refresh token.
 async function getOauthInfo() {
+    const { clientId, clientSecret } = getClientCredentials(TOKEN_TYPES.LEAD_MANAGEMENT);
     return {
-        clientId: process.env.VINSOLUTIONS_CLIENT_ID,
-        clientSecret: process.env.VINSOLUTIONS_CLIENT_SECRET,
+        clientId,
+        clientSecret,
         accessTokenUri: TOKEN_URI
+    };
+}
+
+function getClientCredentials(tokenType) {
+    const profile = TOKEN_PROFILES[tokenType];
+    if (!profile) {
+        throw new Error(`Unknown VinSolutions token profile: ${tokenType}`);
+    }
+    const clientId = process.env[profile.clientIdEnv];
+    const clientSecret = process.env[profile.clientSecretEnv];
+    if (!clientId || !clientSecret) {
+        throw new Error(
+            `VinSolutions ${tokenType} OAuth credentials are not configured. `
+            + `Set ${profile.clientIdEnv} and ${profile.clientSecretEnv}.`
+        );
+    }
+    return { clientId, clientSecret };
+}
+
+function isTokenExpiringSoon(expiry) {
+    if (!expiry) {
+        return true;
+    }
+    return moment(expiry).isSameOrBefore(moment().add(TOKEN_EXPIRY_BUFFER_MINUTES, 'minutes'));
+}
+
+function getStoredAccessToken(user, tokenType) {
+    const profile = TOKEN_PROFILES[tokenType];
+    return user.platformAdditionalInfo?.[profile.accessTokenField] || '';
+}
+
+function getStoredTokenExpiry(user, tokenType) {
+    const profile = TOKEN_PROFILES[tokenType];
+    return user.platformAdditionalInfo?.[profile.expiryField] || null;
+}
+
+function applyTokenToUser(user, tokenType, tokenData) {
+    const profile = TOKEN_PROFILES[tokenType];
+    user.platformAdditionalInfo = {
+        ...(user.platformAdditionalInfo || {}),
+        [profile.accessTokenField]: tokenData.accessToken,
+        [profile.expiryField]: tokenData.expires
     };
 }
 
@@ -100,12 +172,28 @@ function buildCallTrackingHeaders({ accessToken, user, withContentType = true })
     return headers;
 }
 
-async function fetchAccessToken() {
-    const clientId = process.env.VINSOLUTIONS_CLIENT_ID;
-    const clientSecret = process.env.VINSOLUTIONS_CLIENT_SECRET;
-    if (!clientId || !clientSecret) {
-        throw new Error('VinSolutions OAuth credentials are not configured on the server.');
+async function fetchAllAccessTokens() {
+    const entries = await Promise.all(
+        Object.keys(TOKEN_PROFILES).map(async (tokenType) => {
+            const tokenData = await fetchAccessToken(tokenType);
+            return [tokenType, tokenData];
+        })
+    );
+    return Object.fromEntries(entries);
+}
+
+function buildPlatformTokenFields(tokenDataByType) {
+    const fields = {};
+    for (const [tokenType, tokenData] of Object.entries(tokenDataByType)) {
+        const profile = TOKEN_PROFILES[tokenType];
+        fields[profile.accessTokenField] = tokenData.accessToken;
+        fields[profile.expiryField] = tokenData.expires;
     }
+    return fields;
+}
+
+async function fetchAccessToken(tokenType) {
+    const { clientId, clientSecret } = getClientCredentials(tokenType);
 
     const params = new url.URLSearchParams({
         grant_type: 'client_credentials',
@@ -126,28 +214,56 @@ async function fetchAccessToken() {
     };
 }
 
+async function refreshAccessTokenForUser(user, tokenType) {
+    const tokenData = await fetchAccessToken(tokenType);
+    applyTokenToUser(user, tokenType, tokenData);
+    await user.save();
+    return tokenData.accessToken;
+}
+
+async function ensureAccessToken(user, tokenType) {
+    const storedToken = getStoredAccessToken(user, tokenType);
+    const storedExpiry = getStoredTokenExpiry(user, tokenType);
+    if (storedToken && !isTokenExpiringSoon(storedExpiry)) {
+        return storedToken;
+    }
+    return refreshAccessTokenForUser(user, tokenType);
+}
+
 // VinSolutions uses client_credentials only — there is no refresh_token.
-// When the access token nears expiry, request a new one from the token endpoint.
+// When either access token nears expiry, request new tokens from the token endpoint.
 async function checkAndRefreshAccessToken(_oauthApp, user) {
-    if (!user?.accessToken) {
+    if (!user) {
         return user;
     }
 
-    const tokenExpiry = user.tokenExpiry ? moment(user.tokenExpiry) : moment(0);
-    if (tokenExpiry.isAfter(moment().add(TOKEN_EXPIRY_BUFFER_MINUTES, 'minutes'))) {
+    const hasAnyToken = Object.keys(TOKEN_PROFILES).some(
+        (tokenType) => getStoredAccessToken(user, tokenType)
+    );
+    if (!hasAnyToken) {
         return user;
     }
 
     try {
-        const tokenData = await fetchAccessToken();
-        user.accessToken = tokenData.accessToken;
-        user.tokenExpiry = tokenData.expires;
-        user.refreshToken = '';
-        await user.save();
+        let changed = false;
+        for (const tokenType of Object.keys(TOKEN_PROFILES)) {
+            const hasToken = getStoredAccessToken(user, tokenType);
+            if (!hasToken) {
+                continue;
+            }
+            if (isTokenExpiringSoon(getStoredTokenExpiry(user, tokenType))) {
+                const tokenData = await fetchAccessToken(tokenType);
+                applyTokenToUser(user, tokenType, tokenData);
+                changed = true;
+            }
+        }
+        if (changed) {
+            await user.save();
+        }
         return user;
     }
     catch (error) {
-        logger.error('VinSolutions token renewal failed', { stack: error.stack });
+        logger.error('VinSolutions token renewal failed', { stack: error.stack, tokenType: error.tokenType });
         return null;
     }
 }
@@ -205,12 +321,12 @@ function buildPhoneSearchValues(phoneNumber, overridingFormat) {
     return [...values].filter(Boolean);
 }
 
-async function fetchActiveLeadsForContact({ user, authHeader, contactId }) {
+async function fetchActiveLeadsForContact({ user, contactId }) {
     const { dealerId, userId } = getDealerContext(user);
-    console.log('fetchActiveLeadsForContact', { dealerId, userId, contactId });
     try {
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
         const response = await axios.get(`${API_BASE_URL}/leads`, {
-            headers: buildLeadManagementHeaders({ accessToken: authHeader.replace('Bearer ', ''), user }),
+            headers: buildLeadManagementHeaders({ accessToken, user }),
             params: {
                 dealerId,
                 userId,
@@ -278,11 +394,29 @@ function extractNoteFromComposedLog(body) {
     if (match?.[1] !== undefined) {
         return match[1].trim();
     }
-    return "";
+    return '';
+}
+
+function resolveCallLogNote(fullBody) {
+    const extractedNote = extractNoteFromComposedLog(fullBody);
+    if (extractedNote) {
+        return extractedNote;
+    }
+    if (!fullBody || fullBody.trimStart().startsWith('-')) {
+        return '';
+    }
+    return fullBody.trim();
+}
+
+function isAlreadyLoggedException(error) {
+    const errorBody = error.response?.data;
+    const errorText = typeof errorBody === 'string'
+        ? errorBody
+        : JSON.stringify(errorBody || '');
+    return error.response?.status === 500 && errorText.includes('AlreadyLoggedException');
 }
 
 async function getUserInfo({ additionalInfo }) {
-    console.log('getUserInfo called', { additionalInfo });
     try {
         const dealerId = Number(additionalInfo.dealerId);
         const crmUserId = Number(additionalInfo.crmUserId);
@@ -297,7 +431,8 @@ async function getUserInfo({ additionalInfo }) {
             };
         }
 
-        const tokenData = await fetchAccessToken();
+        const tokenDataByType = await fetchAllAccessTokens();
+        const leadManagementTokenData = tokenDataByType[TOKEN_TYPES.LEAD_MANAGEMENT];
         const storedApiKeys = getStoredApiKeys();
         const tempUser = {
             platformAdditionalInfo: {
@@ -306,7 +441,7 @@ async function getUserInfo({ additionalInfo }) {
                 crmUserId
             }
         };
-        const headers = buildGatewayHeaders({ accessToken: tokenData.accessToken, user: tempUser });
+        const headers = buildGatewayHeaders({ accessToken: leadManagementTokenData.accessToken, user: tempUser });
 
         const [userResponse, dealersResponse] = await Promise.all([
             axios.get(`${API_BASE_URL}/gateway/v1/tenant/user/id/${crmUserId}`, {
@@ -329,13 +464,13 @@ async function getUserInfo({ additionalInfo }) {
                 name,
                 timezoneName: 'UTC',
                 timezoneOffset: 0,
-                overridingApiKey: tokenData.accessToken,
+                overridingApiKey: CONNECTED_SENTINEL,
                 platformAdditionalInfo: {
                     dealerId,
                     crmUserId,
                     dealerName: dealer?.Name || '',
                     ...storedApiKeys,
-                    tokenExpiry: tokenData.expires,
+                    ...buildPlatformTokenFields(tokenDataByType),
                     email: userData.EmailAddress || ''
                 }
             },
@@ -376,13 +511,15 @@ async function postSaveUserInfo({ userInfo }) {
     if (!user) {
         return userInfo;
     }
-    user.tokenExpiry = user.platformAdditionalInfo?.tokenExpiry || user.tokenExpiry;
-    user.refreshToken = '';
+    user.platformAdditionalInfo = {
+        ...(user.platformAdditionalInfo || {}),
+        ...(userInfo.platformAdditionalInfo || {})
+    };
     try {
         await user.save();
     }
     catch (error) {
-        handleDatabaseError(error, 'Error saving VinSolutions token expiry');
+        handleDatabaseError(error, 'Error saving VinSolutions platformAdditionalInfo');
     }
     return userInfo;
 }
@@ -391,6 +528,14 @@ async function unAuthorize({ user }) {
     user.accessToken = '';
     user.refreshToken = '';
     user.tokenExpiry = null;
+    user.platformAdditionalInfo = {
+        ...(user.platformAdditionalInfo || {}),
+        ...Object.values(TOKEN_PROFILES).reduce((cleared, profile) => ({
+            ...cleared,
+            [profile.accessTokenField]: '',
+            [profile.expiryField]: null
+        }), {})
+    };
     try {
         await user.save();
     }
@@ -406,14 +551,15 @@ async function unAuthorize({ user }) {
     };
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+async function findContact({ user, phoneNumber, overridingFormat, isExtension }) {
     if (isExtension === 'true') {
         return { successful: false, matchedContactInfo: [] };
     }
 
     try {
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
         const { dealerId, userId } = getDealerContext(user);
-        const headers = buildGatewayHeaders({ accessToken: authHeader.replace('Bearer ', ''), user });
+        const headers = buildGatewayHeaders({ accessToken, user });
         const phoneValues = buildPhoneSearchValues(phoneNumber, overridingFormat || '');
         const contactsById = new Map();
 
@@ -434,15 +580,14 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 
         const matchedContactInfo = [];
         for (const contact of contactsById.values()) {
-            // const relatedLeads = await fetchActiveLeadsForContact({
-            //     user,
-            //     authHeader,
-            //     contactId: contact.ContactId
-            // });
+            const relatedLeads = await fetchActiveLeadsForContact({
+                user,
+                contactId: contact.ContactId
+            });
             matchedContactInfo.push(formatContact({
                 contact,
-                phoneNumber: getPrimaryPhone(contact)
-                
+                phoneNumber: getPrimaryPhone(contact),
+                relatedLeads
             }));
         }
 
@@ -467,10 +612,11 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     }
 }
 
-async function findContactWithName({ user, authHeader, name }) {
+async function findContactWithName({ user, name }) {
     try {
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
         const { dealerId, userId } = getDealerContext(user);
-        const headers = buildGatewayHeaders({ accessToken: authHeader.replace('Bearer ', ''), user });
+        const headers = buildGatewayHeaders({ accessToken, user });
         const trimmedName = name.trim();
         const [firstName, ...lastNameParts] = trimmedName.split(/\s+/);
         const lastName = lastNameParts.join(' ');
@@ -491,14 +637,14 @@ async function findContactWithName({ user, authHeader, name }) {
         });
         const matchedContactInfo = [];
         for (const contact of response.data || []) {
-            // const relatedLeads = await fetchActiveLeadsForContact({
-            //     user,
-            //     authHeader,
-            //     contactId: contact.ContactId
-            // });
+            const relatedLeads = await fetchActiveLeadsForContact({
+                user,
+                contactId: contact.ContactId
+            });
             matchedContactInfo.push(formatContact({
                 contact,
-                phoneNumber: getPrimaryPhone(contact)
+                phoneNumber: getPrimaryPhone(contact),
+                relatedLeads
             }));
         }
 
@@ -517,10 +663,11 @@ async function findContactWithName({ user, authHeader, name }) {
     }
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+async function createContact({ user, phoneNumber, newContactName }) {
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
     const { dealerId, userId } = getDealerContext(user);
     const headers = buildGatewayHeaders({
-        accessToken: authHeader.replace('Bearer ', ''),
+        accessToken,
         user,
         withContentType: true
     });
@@ -561,10 +708,11 @@ async function createContact({ user, authHeader, phoneNumber, newContactName }) 
     };
 }
 
-async function getUserList({ user, authHeader }) {
+async function getUserList({ user }) {
     try {
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
         const { dealerId } = getDealerContext(user);
-        const headers = buildGatewayHeaders({ accessToken: authHeader.replace('Bearer ', ''), user });
+        const headers = buildGatewayHeaders({ accessToken, user });
         const response = await axios.get(`${API_BASE_URL}/gateway/v1/tenant/user`, {
             headers,
             params: { dealerId }
@@ -615,18 +763,16 @@ async function resolveAssignedCrmUserId({ user, additionalSubmission, hashedAcco
 async function createCallLog({
     user,
     contactInfo,
-    authHeader,
     callLog,
     additionalSubmission,
     transcript,
     composedLogDetails,
     hashedAccountId
 }) {
-    console.log({ m:"in create callLog", contactInfo, authHeader, callLog, additionalSubmission, transcript, composedLogDetails, hashedAccountId });
     try {
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.CALL_TRACKING);
         const { dealerId } = getDealerContext(user);
         const crmUserId = await resolveAssignedCrmUserId({ user, additionalSubmission, hashedAccountId });
-        const accessToken = authHeader.replace('Bearer ', '');
         const headers = buildCallTrackingHeaders({ accessToken, user });
 
         const direction = callLog.direction === 'Outbound' ? 'OUTBOUND' : 'INBOUND';
@@ -680,6 +826,17 @@ async function createCallLog({
         };
     }
     catch (error) {
+        if (isAlreadyLoggedException(error)) {
+            const logId = extractCallDetailId(error.response?.headers);
+            return {
+                logId,
+                returnMessage: {
+                    message: 'Call was already logged in VinSolutions.',
+                    messageType: 'success',
+                    ttl: 2000
+                }
+            };
+        }
         logger.error('VinSolutions createCallLog failed', { error });
         return {
             logId: null,
@@ -692,12 +849,11 @@ async function createCallLog({
     }
 }
 
-async function getCallLog({ user, callLogId, contactId, authHeader }) {
+async function getCallLog({ user, callLogId, contactId }) {
     const { dealerId, userId } = getDealerContext(user);
-    const accessToken = authHeader.replace('Bearer ', '');
-    console.log('callLogId', callLogId);
+    const callTrackingToken = await ensureAccessToken(user, TOKEN_TYPES.CALL_TRACKING);
     const getLogRes = await axios.get(`${API_BASE_URL}/calldetails/id/${callLogId}`, {
-        headers: buildCallTrackingHeaders({ accessToken, user, withContentType: false }),
+        headers: buildCallTrackingHeaders({ accessToken: callTrackingToken, user, withContentType: false }),
         params: {
             accountId: String(dealerId),
             providerName: getProviderName()
@@ -708,13 +864,14 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
 
     const callDetail = getLogRes.data || {};
     const fullBody = callDetail.transcriptFull || callDetail.transcriptShort || '';
-    const note = extractNoteFromComposedLog(fullBody);
+    const note = resolveCallLogNote(fullBody);
     let contactName = '';
     const resolvedContactId = callDetail.vinProperties?.contactId || contactId;
 
     if (resolvedContactId) {
+        const leadManagementToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
         const contactRes = await axios.get(`${API_BASE_URL}/gateway/v1/contact`, {
-            headers: buildGatewayHeaders({ accessToken, user }),
+            headers: buildGatewayHeaders({ accessToken: leadManagementToken, user }),
             params: {
                 dealerId,
                 userId,
@@ -754,7 +911,6 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
 async function updateCallLog({
     user,
     existingCallLog,
-    authHeader,
     duration,
     additionalSubmission,
     composedLogDetails,
@@ -772,10 +928,11 @@ async function updateCallLog({
             };
         }
 
+        const accessToken = await ensureAccessToken(user, TOKEN_TYPES.CALL_TRACKING);
         const { dealerId } = getDealerContext(user);
         const crmUserId = await resolveAssignedCrmUserId({ user, additionalSubmission, hashedAccountId });
         const headers = buildCallTrackingHeaders({
-            accessToken: authHeader.replace('Bearer ', ''),
+            accessToken,
             user
         });
 

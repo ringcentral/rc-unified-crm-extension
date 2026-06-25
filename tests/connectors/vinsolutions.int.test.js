@@ -25,6 +25,7 @@ describe('VinSolutions Connector', () => {
     const apiBase = 'https://api.vinsolutions.com';
     const tokenUri = 'https://authentication.vinsolutions.com';
     const accessToken = 'test-bearer-token';
+    const connectedSentinel = 'vinsolutions-connected';
     const authHeader = `Bearer ${accessToken}`;
 
     let mockUser;
@@ -35,8 +36,12 @@ describe('VinSolutions Connector', () => {
         jest.clearAllMocks();
 
         process.env.VINSOLUTIONS_TOKEN_URI = `${tokenUri}/connect/token`;
-        process.env.VINSOLUTIONS_CLIENT_ID = 'test-client-id';
-        process.env.VINSOLUTIONS_CLIENT_SECRET = 'test-client-secret';
+        process.env.VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_ID = 'lead-client-id';
+        process.env.VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_SECRET = 'lead-client-secret';
+        process.env.VINSOLUTIONS_CALL_TRACKING_CLIENT_ID = 'call-client-id';
+        process.env.VINSOLUTIONS_CALL_TRACKING_CLIENT_SECRET = 'call-client-secret';
+        delete process.env.VINSOLUTIONS_CLIENT_ID;
+        delete process.env.VINSOLUTIONS_CLIENT_SECRET;
         process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY = 'lead-api-key';
         process.env.VINSOLUTIONS_CALL_TRACKING_API_KEY = 'call-api-key';
         delete process.env.VINSOLUTIONS_API_KEY;
@@ -46,14 +51,18 @@ describe('VinSolutions Connector', () => {
             id: '1001-2002-vinsolutions',
             hostname: 'vinsolutions.app.coxautoinc.com',
             platform: 'vinsolutions',
-            accessToken,
-            tokenExpiry: new Date(Date.now() + 3600000).toISOString(),
+            accessToken: connectedSentinel,
+            tokenExpiry: null,
             refreshToken: '',
             platformAdditionalInfo: {
                 dealerId: 2002,
                 crmUserId: 1001,
                 leadManagementApiKey: 'lead-api-key',
-                callTrackingApiKey: 'call-api-key'
+                callTrackingApiKey: 'call-api-key',
+                leadManagementAccessToken: accessToken,
+                leadManagementTokenExpiry: new Date(Date.now() + 3600000).toISOString(),
+                callTrackingAccessToken: 'call-tracking-token',
+                callTrackingTokenExpiry: new Date(Date.now() + 3600000).toISOString()
             }
         });
     });
@@ -63,20 +72,35 @@ describe('VinSolutions Connector', () => {
         nock.enableNetConnect();
     });
 
-    function mockTokenRequest() {
+    function mockTokenRequest({
+        tokenType = 'leadManagement',
+        accessTokenValue = accessToken
+    } = {}) {
+        const credentials = tokenType === 'callTracking'
+            ? { clientId: 'call-client-id', clientSecret: 'call-client-secret' }
+            : { clientId: 'lead-client-id', clientSecret: 'lead-client-secret' };
+
         nock(tokenUri)
             .post('/connect/token', (body) => (
                 body.grant_type === 'client_credentials'
-                && body.client_id === 'test-client-id'
-                && body.client_secret === 'test-client-secret'
+                && body.client_id === credentials.clientId
+                && body.client_secret === credentials.clientSecret
                 && body.scope === 'PublicAPI'
             ))
             .reply(200, {
-                access_token: accessToken,
+                access_token: accessTokenValue,
                 expires_in: 3600,
                 token_type: 'Bearer',
                 scope: 'PublicAPI'
             });
+    }
+
+    function mockBothTokenRequests({
+        leadAccessToken = accessToken,
+        callTrackingAccessToken = 'call-tracking-token'
+    } = {}) {
+        mockTokenRequest({ tokenType: 'leadManagement', accessTokenValue: leadAccessToken });
+        mockTokenRequest({ tokenType: 'callTracking', accessTokenValue: callTrackingAccessToken });
     }
 
     describe('getAuthType', () => {
@@ -93,7 +117,7 @@ describe('VinSolutions Connector', () => {
 
     describe('getUserInfo', () => {
         it('should connect when dealer and user are valid', async () => {
-            mockTokenRequest();
+            mockBothTokenRequests();
             nock(apiBase)
                 .get('/gateway/v1/tenant/user/id/1001')
                 .query({ dealerId: 2002 })
@@ -117,7 +141,9 @@ describe('VinSolutions Connector', () => {
 
             expect(result.successful).toBe(true);
             expect(result.platformUserInfo.id).toBe('1001-2002-vinsolutions');
-            expect(result.platformUserInfo.overridingApiKey).toBe(accessToken);
+            expect(result.platformUserInfo.overridingApiKey).toBe(connectedSentinel);
+            expect(result.platformUserInfo.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
+            expect(result.platformUserInfo.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
             expect(result.platformUserInfo.platformAdditionalInfo.leadManagementApiKey).toBe('lead-api-key');
             expect(result.platformUserInfo.platformAdditionalInfo.callTrackingApiKey).toBe('call-api-key');
             expect(result.returnMessage.message).toContain('Demo Motors');
@@ -154,7 +180,7 @@ describe('VinSolutions Connector', () => {
                 .get('/leads')
                 .query(true)
                 .matchHeader('api_key', 'lead-api-key')
-                .matchHeader('accept', 'application/vnd.coxauto.V3+json')
+                .matchHeader('accept', 'application/vnd.coxauto.v3+json')
                 .reply(200, {
                     results: [{ leadId: 9001, leadStatus: 'ACTIVE_NEW_LEAD' }]
                 });
@@ -365,35 +391,56 @@ describe('VinSolutions Connector', () => {
     });
 
     describe('checkAndRefreshAccessToken', () => {
-        it('should refresh an expired token', async () => {
+        it('should refresh expired lead management and call tracking tokens', async () => {
             const expiredUser = {
                 ...mockUser,
-                tokenExpiry: new Date(Date.now() - 60000).toISOString(),
+                platformAdditionalInfo: {
+                    ...mockUser.platformAdditionalInfo,
+                    leadManagementAccessToken: accessToken,
+                    leadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString(),
+                    callTrackingAccessToken: 'call-tracking-token',
+                    callTrackingTokenExpiry: new Date(Date.now() - 60000).toISOString()
+                },
                 save: jest.fn().mockResolvedValue(true)
             };
-            mockTokenRequest();
+            mockBothTokenRequests();
 
             const refreshedUser = await vinsolutions.checkAndRefreshAccessToken(null, expiredUser);
 
-            expect(refreshedUser.accessToken).toBe(accessToken);
-            expect(refreshedUser.refreshToken).toBe('');
+            expect(refreshedUser.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
+            expect(refreshedUser.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
             expect(expiredUser.save).toHaveBeenCalled();
         });
     });
 
     describe('postSaveUserInfo', () => {
-        it('should persist token expiry after login', async () => {
+        it('should persist tokens in platformAdditionalInfo after login', async () => {
             const save = jest.fn().mockResolvedValue(true);
-            UserModel.findByPk.mockResolvedValue({
+            const userRecord = {
                 id: '1001-2002-vinsolutions',
-                platformAdditionalInfo: { tokenExpiry: '2099-01-01T00:00:00.000Z' },
+                accessToken: connectedSentinel,
+                platformAdditionalInfo: {},
                 refreshToken: '',
                 save
+            };
+            UserModel.findByPk.mockResolvedValue(userRecord);
+
+            await vinsolutions.postSaveUserInfo({
+                userInfo: {
+                    id: '1001-2002-vinsolutions',
+                    overridingApiKey: connectedSentinel,
+                    platformAdditionalInfo: {
+                        leadManagementAccessToken: accessToken,
+                        leadManagementTokenExpiry: '2099-01-01T00:00:00.000Z',
+                        callTrackingAccessToken: 'call-tracking-token',
+                        callTrackingTokenExpiry: '2099-01-01T00:00:00.000Z'
+                    }
+                }
             });
 
-            await vinsolutions.postSaveUserInfo({ userInfo: { id: '1001-2002-vinsolutions' } });
-
             expect(save).toHaveBeenCalled();
+            expect(userRecord.platformAdditionalInfo.leadManagementAccessToken).toBe(accessToken);
+            expect(userRecord.platformAdditionalInfo.callTrackingAccessToken).toBe('call-tracking-token');
         });
     });
 });
