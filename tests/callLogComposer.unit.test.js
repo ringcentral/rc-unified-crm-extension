@@ -31,6 +31,7 @@ const insightly = require('../src/connectors/insightly');
 const netsuite = require('../src/connectors/netsuite');
 const pipedrive = require('../src/connectors/pipedrive');
 const redtail = require('../src/connectors/redtail');
+const vinsolutions = require('../src/connectors/vinsolutions');
 
 connectorRegistry.setDefaultManifest(require('../src/connectors/manifest.json'));
 connectorRegistry.registerConnector('bullhorn', bullhorn);
@@ -40,6 +41,7 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
+connectorRegistry.registerConnector('vinsolutions', vinsolutions);
 
 describe('callLogComposer', () => {
     describe('LOG_DETAILS_FORMAT_TYPE', () => {

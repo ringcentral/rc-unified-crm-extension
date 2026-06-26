@@ -324,7 +324,7 @@ describe('Log Handler', () => {
       expect(result.successful).toBe(true);
       expect(axios.post).toHaveBeenCalledWith(
         'https://plugins.example.com/plugin/testPlugin',
-        { data: mockIncomingData, config: null },
+        { data: mockIncomingData, config: null, hashedExtensionId: null },
         {
           headers: {
             Authorization: 'Bearer plugin-jwt-token'
@@ -402,7 +402,8 @@ describe('Log Handler', () => {
           data: mockIncomingData,
           config: null,
           asyncTaskId: cache.id,
-          callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`
+          callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`,
+          hashedExtensionId: null
         });
         expect(pluginCall[2]).toEqual({
           headers: {
