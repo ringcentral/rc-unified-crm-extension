@@ -1,4 +1,32 @@
 {
+    "1.7.35": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Can show RingCentral Account Id on support page"
+            },
+            {
+                "type": "New",
+                "description": "Add hashedExtensionId in plugin calls"
+            },
+            {
+                "type": "New",
+                "description": "Show notification when having incoming call while minized"
+            },
+            {
+                "type": "Fix",
+                "description": "User session refresh and validtion issue"
+            },
+            {
+                "type": "Fix",
+                "description": "Warm-transfer call pop"
+            },
+            {
+                "type": "Fix",
+                "description": "Refresh manifest for override properties"
+            }
+        ]
+    },
     "1.7.34": {
         "global": [
             {
@@ -424,6 +452,22 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.34": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Can show RingCentral Account Id on support page"
+            },
+            {
+                "type": "Fix",
+                "description": "User session refresh and validtion issue"
+            },
+            {
+                "type": "Fix",
+                "description": "Message log can now show error message"
             }
         ]
     },

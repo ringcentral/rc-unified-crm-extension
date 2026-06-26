@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.7.35
+
+- New: Can show RingCentral Account Id on support page
+- New: Add hashedExtensionId in plugin calls
+- New: Show notification when having incoming call while minized
+- Fix: User session refresh and validtion issue
+- Fix: Warm-transfer call pop
+- Fix: Refresh manifest for override properties
+
 ## 1.7.34
 
 - New: Call pop fallback url when no matched contact
@@ -164,6 +173,12 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.34
+
+- New: Can show RingCentral Account Id on support page
+- Fix: User session refresh and validtion issue
+- Fix: Message log can now show error message
 
 ## 1.6.33
 
