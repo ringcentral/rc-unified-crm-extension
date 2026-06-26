@@ -103,6 +103,7 @@ async function runSyncCallPlugins({ syncCallPlugins, incomingData, user, platfor
         const processedResultResponse = await axios.post(pluginEndpointUrl, {
             data: processedIncomingData,
             config: userConfig,
+            hashedExtensionId: user.hashedRcExtensionId,
         }, {
             headers: {
                 Authorization: `Bearer ${pluginJwtToken}`,
@@ -182,6 +183,7 @@ async function dispatchAsyncCallPlugin({ plugin, incomingData, user, platform, o
             config: pluginCore.getPluginConfigFromUserSettings({ userSettings: user.userSettings, pluginId }),
             asyncTaskId: taskId,
             callbackUrl,
+            hashedExtensionId: user.hashedRcExtensionId,
         }, {
             headers: {
                 Authorization: `Bearer ${syncedPluginJwtToken ?? pluginJwtToken}`,
