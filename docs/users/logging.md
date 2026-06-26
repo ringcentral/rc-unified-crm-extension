@@ -24,7 +24,7 @@ It may take some time in order for a call log's record in the CRM to be complete
     App Connect updates your call log record multiple times before it is complete. Until it is complete, if you make any edits to the record in the CRM you run the risk of losing those edits when the call log is updated by the framework. 
 	
 !!! info "Needed permissions for successful call log updates"
-    Some customers have a policy that states agents can only create call logs, they are NOT permitted to update call logs. Be aware, this policy will make it difficult for App Connect to successfully create a complete log entry for a call, as it requires the ability to update records. Look into [server side call logging](server-side-logging.md) as a possible remedy. 
+    Some customers have a policy that states agents can only create call logs, they are NOT permitted to update call logs. Be aware, this policy will prevent App Connect from completing a call log entry, since the log is updated multiple times as call artifacts (recordings, AI transcripts, etc.) become available. The remedy is to enable [all-at-once logging](#incremental-versus-all-at-once-logging), which creates the call log in a single transaction only after all data is ready, eliminating the need to update it afterward.
 
 ## Incremental versus all-at-once logging
 

@@ -1,12 +1,5 @@
 # Server-side call logging
 
-!!! warning "Server-side call logging is currently in beta"
-    This feature is currently in beta and may exhibit some issues. We encourage users to try the feature out in order to help us refine the feature. Known issues and limitations:
-    
-	* Can only be enabled for entire organization (no partial enablement)
-	* Limited UI for determining which phone number(s) to block from logging
-	* May briefly result in double-logging when initially turned on
-	
 !!! warning "Call logging VS call dispositioning"
     Server-side call logging only supports call logging NOT call dispositioning. Call logging is to sync call metadata onto target platform, whereas call dispositioning is to modify/attach information from user input (including associating call logs with other entities from the target platform).
     
@@ -30,7 +23,7 @@ Server-side call logging eliminates these challenges. Operating at the organizat
 
 ## Enabling server-side call logging
 
-Currently the server-side call logging feature is in beta, and can be enabled from the Admin settings screen as shown below. 
+Server-side call logging can be enabled from the Admin settings screen as shown below.
 
 <figure markdown>
   ![Server-side call logging setup](../img/sscl-setup.png){ .mw-400 }
@@ -109,3 +102,8 @@ To avoid double logging from server side logging and client side extension, the 
 #### Agent notes
 
 Server side logging firstly creates call logs with a pending message. Then, further information e.g. call result, call recording, agent notes will be updated later. 
+
+## Troubleshooting
+
+!!! info "Calls stuck in \"Pending\" or \"preparing data...\""
+    If call log records are created in your CRM but never fully populated, your organization's CRM permission policy may be preventing App Connect from updating records after they are created. See [Calls stuck in "Pending" or "preparing data..."](../troubleshooting/calls-stuck-pending.md) for the full explanation and remediation steps.

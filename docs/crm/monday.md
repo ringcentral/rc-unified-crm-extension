@@ -14,6 +14,9 @@ title: monday.com by Gate6 — App Connect
   </div>
 </div>
 
+!!! warning "Coming Soon — Beta Access Available"
+    This integration has not yet been released. To participate in the early beta, reach out to Gate6 directly at [gate6.com/contact-us](https://www.gate6.com/contact-us/).
+
 !!! info "Requires App Connect 2.0"
     This integration is only available in [App Connect 2.0](../2.0/index.md). Make sure you have the latest version installed before getting started.
 
@@ -45,8 +48,8 @@ Contact Gate6 to get started. Their team will walk you through licensing, connec
 
 <div class="bld-cta">
   <div>
-    <div class="bld-cta__title">Get started with Gate6</div>
-    <p class="bld-cta__desc">Contact Gate6 to discuss licensing, request a demo, or ask about how the connector maps to your monday.com workspace.</p>
+    <div class="bld-cta__title">Interested in the beta?</div>
+    <p class="bld-cta__desc">This integration is coming soon. Reach out to Gate6 to express interest in participating in the early beta program.</p>
   </div>
   <a href="https://www.gate6.com/contact-us/" class="bld-cta__btn" target="_blank" rel="noopener">Contact Gate6 →</a>
 </div>
