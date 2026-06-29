@@ -14,7 +14,7 @@ hide:
   </div>
   <div class="crm-mkt__hero-stats">
     <div class="crm-mkt__stat">
-      <span class="crm-mkt__stat-num">16+</span>
+      <span class="crm-mkt__stat-num">18+</span>
       <span class="crm-mkt__stat-label">Integrations</span>
     </div>
     <div class="crm-mkt__stat">
@@ -124,7 +124,7 @@ hide:
     </div>
   </a>
 
-  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+  <a href="monday/" class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-monday.png" alt="monday.com"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Work OS / Project Management</div>
@@ -132,10 +132,10 @@ hide:
       <p class="crm-mkt__desc">Bring RingEX call activity into monday.com boards — automatically creating items and logging communication history.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon · Gate6</span>
-
+      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming Soon · By Gate6</span>
+      <span class="crm-mkt__cta">Coming soon</span>
     </div>
-  </div>
+  </a>
 
   <a href="netsuite/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-netsuite.png" alt="NetSuite"></div>
@@ -202,7 +202,7 @@ hide:
     </div>
   </a>
 
-  <div class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
+  <a href="servicetitan/" class="crm-mkt__card crm-mkt__card--partner crm-mkt__card--coming-soon">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-servicetitan.png" alt="ServiceTitan"></div>
     <div class="crm-mkt__body">
       <div class="crm-mkt__industry">Field Service Management</div>
@@ -210,10 +210,10 @@ hide:
       <p class="crm-mkt__desc">Log RingEX calls and activity directly into ServiceTitan jobs and customer records for field service teams.</p>
     </div>
     <div class="crm-mkt__footer">
-      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming soon · Gate6</span>
-
+      <span class="crm-mkt__by crm-mkt__by--coming-soon">Coming Soon · By Gate6</span>
+      <span class="crm-mkt__cta">Coming soon</span>
     </div>
-  </div>
+  </a>
 
   <a href="smokeball/" class="crm-mkt__card crm-mkt__card--partner">
     <div class="crm-mkt__logo"><img src="../img/crm-logo-smokeball.png" alt="Smokeball"></div>

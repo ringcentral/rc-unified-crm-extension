@@ -12,61 +12,40 @@
 
 </div>
 
-## Common questions and issues
-
 !!! tip "Always make sure you are running the latest version"
     
     App Connect is frequently updated with fixes and feature enhancements. While the extension is updated automatically, you may need to restart your browser in order for those updates to take effect. 
 
-### I don't see a "Connect" button to login to my CRM
+## Knowledge base
 
-In order to determine which CRM to connect to, you need to launch the extension while visiting and logged into your CRM application. App Connect will detect from the domain you are visiting to determine which CRM to prompt you to connect to. If you launch App Connect from any other domain, you will not see an Authorize or Connect button. 
+<div class="grid cards" markdown>
 
-### Unable to find contact
+-   **[No "Connect" button visible](troubleshooting/no-connect-button.md)**
 
-One of the most common challenges arises from phone calls for which a corresponding contact record in the CRM cannot be found. However, you know for sure the contact exists.
+    App Connect opens but there is no button to authorize or connect your CRM.
 
-When this happens it is almost certainly related to a failed lookup of the contact based on the given phone number. A lookup can fail in some CRMs:
+-   **[Contact not found during call lookup](troubleshooting/contact-not-found.md)**
 
-1.  If the phone number stored in the CRM does not EXACTLY match the phone number as seen in App Connect. This is due to limitations in the connected CRMs' APIs. 
-2.  If you have just created it and the CRM server usually doesn't reflect the change immediately. Some CRMs have refresh clock to update all changes every X seconds/minutes. So if it's just created and can be seen on CRM webpages, please wait for a couple of minutes and it should then be fetched to the extension.
+    A caller's contact exists in your CRM but App Connect cannot find them.
 
-There are two ways to fix the issue:
+-   **[Calls stuck in "Pending" or "preparing data..."](troubleshooting/calls-stuck-pending.md)**
 
-1. Update the contact record's phone number so that it conforms to the E.164 standard. This will be the most reliable solution and the most performant. However, reformatting the phone numbers across a huge contact database may not be feasible or practical. 
+    Call log records are created in the CRM but never fully populated — they stay in a Pending state indefinitely.
 
-2. Update the advanced configuration settings of App Connect to add the phone number formats commonly used by your company. App Connect will then search for contacts using each of the phone number formats stored with us. This solution is easier to deploy, but can sometimes introduce latencies as multiple API calls are needed to successfully find a contact. 
+</div>
 
 ## Does App Connect support contact synchronization?
 
 No. App Connect does not currently support contact synchronization between your CRM and RingCentral.
 
-**Understanding "Contact Synchronization"**
+When users ask for contact sync, they are typically looking for a way to pull CRM contacts into the RingCentral Personal Address Book so that callers are identified by name on the RingCentral desktop or mobile apps. App Connect does not copy data between systems in this way.
 
-When users ask for contact sync, they are typically looking for a way to pull CRM contacts into the RingCentral Personal Address Book.
-
-The goal of this process is usually to ensure that a caller is properly identified by name when receiving calls on the RingCentral desktop or mobile applications. To achieve this, App Connect would need to copy contact details from your CRM and write them into your RingCentral account. App Connect does not perform this action.
-
-**What App Connect does instead**
-
-While we do not sync or "copy" data between systems, App Connect provides high-visibility Contact Lookups and Contact Pops exclusively within the App Connect interface:
-
-* **Real-Time Lookup**. When a call arrives, App Connect searches your CRM for a matching phone number.
-* **Contact Pop**. If a match is found, the contact’s information is displayed within the App Connect sidebar, allowing you to identify the caller and click through to their CRM record.
-* **No Data Transfer**. This process is a "read-only" lookup. It does not create, move, or sync any data into your RingCentral address book.
-
-Summary: If you need a contact to appear in your native RingCentral app's directory or native Caller ID, they must be added to RingCentral manually or via a CSV import. App Connect’s identification features function exclusively within the integration's own interface.
+What App Connect does instead is a real-time, read-only lookup: when a call arrives, App Connect searches your CRM for a matching phone number and displays the contact's information within the App Connect sidebar. No data is written to your RingCentral address book. If you need a contact to appear in your native RingCentral app's directory, they must be added to RingCentral manually or via a CSV import.
 
 ## Managing software updates
 
-Updates to App Connect are installed automatically by Chrome and Edge when you restart your browser. You can see what version of App Connect is currently installed by navigating to the "Manage extensions" area of your browser, finding App Connect in your list of installed browser extensions, and clicking "Show details." On the resulting page you can see the currently installed version. 
+Updates to App Connect are installed automatically by Chrome and Edge when you restart your browser. To check which version is currently installed, navigate to **Manage extensions** in your browser, find App Connect in the list, and click **Show details**. The currently installed version is displayed there.
 
 ![version number](img/version.png){ style="width:50%" }
 
-To ensure you are actively running the most recent version, please restart your browser. 
-
-## Last resort
-
-In rare circumstances, due to voodoo and other supernatural forces, uninstalling and reinstalling the extension has been known to fix some problems. 
-
-
+To ensure you are running the most recent version, restart your browser. In rare cases where a restart does not resolve an issue, uninstalling and reinstalling the extension is worth trying as a last resort.

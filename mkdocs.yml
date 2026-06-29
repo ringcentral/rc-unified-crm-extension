@@ -99,6 +99,7 @@ nav:
   - 'Overview': crm/index.md
   - 'AgencyZoom': crm/agencyzoom/index.md
   - 'Bullhorn': crm/bullhorn.md
+  - 'monday.com': crm/monday.md
   - 'Clio': crm/clio.md
   - 'Freshdesk': crm/freshdesk.md
   - 'GoHighLevel': crm/gohighlevel.md
@@ -129,6 +130,8 @@ nav:
     - 'New CRMs':
 #      - 'JobAdder': crm/jobadder.md
       - 'AgencyZoom': crm/agencyzoom/index.md
+      - 'monday.com': crm/monday.md
+      - 'Odoo': crm/odoo.md
       - 'ServiceTitan': crm/servicetitan.md
       - 'Smokeball': crm/smokeball.md
       - 'Zoho': crm/zoho.md
@@ -248,7 +251,11 @@ nav:
     - 'Gemini': mcp/gemini.md
 
 - 'Support':
-  - 'Troubleshooting': support.md
+  - 'Getting help': support.md
+  - 'Knowledge base':
+    - 'No "Connect" button visible': troubleshooting/no-connect-button.md
+    - 'Contact not found during call lookup': troubleshooting/contact-not-found.md
+    - 'Calls stuck in "Pending" or "preparing data..."': troubleshooting/calls-stuck-pending.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector':
     - 'Overview': build/index.md
