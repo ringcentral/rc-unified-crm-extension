@@ -21,7 +21,7 @@ async function getOauthInfo({ hostname }) {
         clientId: process.env.NETSUITE_CRM_CLIENT_ID,
         clientSecret: process.env.NETSUITE_CRM_CLIENT_SECRET,
         accessTokenUri: tokenUrl,
-        redirectUri: process.env.NETSUITE_CRM_REDIRECT_URI
+        redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html'
     }
 }
 
@@ -2092,16 +2092,16 @@ async function listAppointments({ user, authHeader, range }) {
         let page = 0;
         const rows = [];
         const res = await axios.get(url, {
-                headers: { 'Authorization': authHeader ,'Content-Type': 'application/json'},
-                params: {
-                    script: "customscript_rcfetchcalendarevents",
-                    deploy: "customdeploy_rcfetchcalendarevents", //TODO need to remove this for actual deployment and scriptId 646
-                    startDate,
-                    endDate,
-                    page,
-                    pageSize
-                }
-            });
+            headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+            params: {
+                script: "customscript_rcfetchcalendarevents",
+                deploy: "customdeploy_rcfetchcalendarevents", //TODO need to remove this for actual deployment and scriptId 646
+                startDate,
+                endDate,
+                page,
+                pageSize
+            }
+        });
         const body = res?.data ?? {};
         const data = Array.isArray(body?.data) ? body.data : [];
         rows.push(...data);
@@ -2123,7 +2123,7 @@ async function listAppointments({ user, authHeader, range }) {
 }
 
 async function createAppointment({ user, authHeader, payload }) {
-    console.log({message:'createAppointment function called', payload});
+    console.log({ message: 'createAppointment function called', payload });
     try {
         const attendeeItems = Array.isArray(payload?.attendee?.items)
             ? payload.attendee.items
@@ -2209,7 +2209,7 @@ async function createAppointment({ user, authHeader, payload }) {
         });
         return { appointmentId: appointment?.id ?? null, appointment };
     } catch (error) {
-        console.log({message:'error', error, errorBody: error.response?.data,o:error.response?.data?.['o:errorDetails']});
+        console.log({ message: 'error', error, errorBody: error.response?.data, o: error.response?.data?.['o:errorDetails'] });
         return {
             successful: false,
             returnMessage: {
@@ -2222,7 +2222,7 @@ async function createAppointment({ user, authHeader, payload }) {
 }
 
 async function updateAppointment({ user, authHeader, appointmentId, patchBody }) {
-    console.log({message:'updateAppointment function called', patchBody, appointmentId});
+    console.log({ message: 'updateAppointment function called', patchBody, appointmentId });
     const body = {};
     try {
         // Fetch user's timezone via NetSuite API call if not present
@@ -2255,7 +2255,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         body.endTime = end ? end.format('HH:mm:ss') : '';
 
         // Status format for NetSuite
-        if (patchBody.status ) {
+        if (patchBody.status) {
             body.status = { id: patchBody.status.toUpperCase() };
         }
 
@@ -2263,23 +2263,23 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         body.message = patchBody.summary || '';
         body.title = patchBody.title;
         let attendeeItems = [];
-           
+
         const rawAttendees = Array.isArray(patchBody?.contacts)
-                    ? patchBody.contacts
-                     : [];
+            ? patchBody.contacts
+            : [];
         attendeeItems = rawAttendees
-                    .map((c) => {
-                        const id= c.id;
-                        console.log({message:'id', id});
-                        if (id == null || `${id}`.trim() === '') return null;
-                        return { attendee: { id: `${id}` } };
-                    })
-                    .filter(Boolean);
-            // Include empty items to support clearing attendees.
-            body.attendee = { items: attendeeItems };
-        console.log({message:'body', body});
+            .map((c) => {
+                const id = c.id;
+                console.log({ message: 'id', id });
+                if (id == null || `${id}`.trim() === '') return null;
+                return { attendee: { id: `${id}` } };
+            })
+            .filter(Boolean);
+        // Include empty items to support clearing attendees.
+        body.attendee = { items: attendeeItems };
+        console.log({ message: 'body', body });
         const recordUrl = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`;
-        const patchUrl =  `${recordUrl}?replace=attendee`
+        const patchUrl = `${recordUrl}?replace=attendee`
         const res = await axios.patch(patchUrl, body, {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
         });
@@ -2290,7 +2290,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         });
         return { appointment };
     } catch (error) {
-        console.log({message:'error', error, errorBody: error.response?.data});
+        console.log({ message: 'error', error, errorBody: error.response?.data });
         // Print errorDetails from the NetSuite error body for easier debugging
         if (error?.response?.data?.['o:errorDetails']) {
             console.log('NetSuite errorDetails:', error.response.data['o:errorDetails']);
@@ -2307,14 +2307,14 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
 }
 
 async function refreshAppointment({ user, authHeader, appointmentId }) {
-    console.log({message:'refreshAppointment function called', appointmentId});
+    console.log({ message: 'refreshAppointment function called', appointmentId });
     try {
         const res = await axios.get(`https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`, {
             headers: { 'Authorization': authHeader }
         });
         const event = res?.data?.data ?? res?.data ?? null;
 
-        console.log({message:'event', event});
+        console.log({ message: 'event', event });
         if (!event) {
             return {
                 successful: false,
@@ -2344,7 +2344,7 @@ async function refreshAppointment({ user, authHeader, appointmentId }) {
 }
 
 async function confirmAppointment({ user, authHeader, appointmentId }) {
-    console.log({message:'confirmAppointment function called', appointmentId});
+    console.log({ message: 'confirmAppointment function called', appointmentId });
     try {
         const recordApiBase = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`;
         const patchRes = await axios.patch(recordApiBase, { status: { id: 'CONFIRMED' } }, {
@@ -2384,7 +2384,7 @@ async function cancelAppointment({ user, authHeader, appointmentId }) {
                 message: "Appointment cancelled successfully",
                 ttl: 60000
             }
-        }; 
+        };
     } catch (error) {
         return {
             successful: false,

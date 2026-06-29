@@ -46,7 +46,6 @@ describe('Google Sheets Connector', () => {
         process.env.GOOGLESHEET_CLIENT_ID = 'test-client-id';
         process.env.GOOGLESHEET_CLIENT_SECRET = 'test-client-secret';
         process.env.GOOGLESHEET_REDIRECT_URI = 'https://example.com/callback';
-        process.env.GOOGLESHEET_TOKEN_URI = 'https://oauth2.googleapis.com/token';
 
         mockUser = createMockUser({
             id: '12345-googleSheets',
@@ -91,7 +90,7 @@ describe('Google Sheets Connector', () => {
 
             expect(result.clientId).toBe('test-client-id');
             expect(result.clientSecret).toBe('test-client-secret');
-            expect(result.redirectUri).toBe('https://example.com/callback');
+            expect(result.redirectUri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.accessTokenUri).toBe('https://oauth2.googleapis.com/token');
         });
     });

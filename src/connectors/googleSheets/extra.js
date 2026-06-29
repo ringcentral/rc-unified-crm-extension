@@ -5,6 +5,7 @@ const path = require('path');
 const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 const adminCore = require('@app-connect/core/handlers/admin');
 const util = require('@app-connect/core/lib/util');
+const GOOGLESHEET_PROJECT_ID = 367818015386;
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));
     user = await oauth.checkAndRefreshAccessToken(oauthApp, user);
@@ -13,7 +14,7 @@ async function renderPickerFile({ user }) {
     fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
     fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
-    fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
+    fileContent = fileContent.replace('{projectId}', GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
     return fileContent;
 }
@@ -26,7 +27,7 @@ async function renderAdminPickerFile({ user, rcAccessToken }) {
     fileContent = fileContent.replace('{clientId}', process.env.GOOGLESHEET_CLIENT_ID);
     fileContent = fileContent.replace('{key}', process.env.GOOGLESHEET_KEY);
     fileContent = fileContent.replace('{accessToken}', user.accessToken);
-    fileContent = fileContent.replace('{projectId}', process.env.GOOGLESHEET_PROJECT_ID);
+    fileContent = fileContent.replace('{projectId}', GOOGLESHEET_PROJECT_ID);
     fileContent = fileContent.replace('{serverUrl}', process.env.APP_SERVER);
     fileContent = fileContent.replace('{rcAccessToken}', rcAccessToken);
     return fileContent;

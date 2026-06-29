@@ -96,7 +96,7 @@ async function getOauthInfo({ tokenUrl }) {
         clientId: process.env.BULLHORN_CLIENT_ID,
         clientSecret: process.env.BULLHORN_CLIENT_SECRET,
         accessTokenUri: tokenUrl,
-        redirectUri: process.env.BULLHORN_REDIRECT_URI
+        redirectUri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html'
     }
 }
 
@@ -112,7 +112,7 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
                 password: serverLoggingSettings.apiPassword,
                 response_type: 'code',
                 action: 'Login',
-                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+                redirect_uri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
             },
             maxRedirects: 0,
             validateStatus: status => status === 302,
@@ -135,7 +135,7 @@ async function bullhornPasswordAuthorize(user, oauthApp, serverLoggingSettings) 
                 code,
                 client_id: process.env.BULLHORN_CLIENT_ID,
                 client_secret: process.env.BULLHORN_CLIENT_SECRET,
-                redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+                redirect_uri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
             }
         };
         const { accessToken, refreshToken, expires } = await oauthApp.code.getToken(redirectLocation, overridingOAuthOption);
@@ -368,7 +368,7 @@ function getOverridingOAuthOption({ code }) {
             code,
             client_id: process.env.BULLHORN_CLIENT_ID,
             client_secret: process.env.BULLHORN_CLIENT_SECRET,
-            redirect_uri: process.env.BULLHORN_REDIRECT_URI,
+            redirect_uri: 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html',
         },
         headers: {
             Authorization: ''
@@ -1802,116 +1802,116 @@ async function bullhornDeleteWithRefresh({ user, url, config }) {
 }
 
 async function listAppointments({ user, range }) {
-try{
-    const startDate = moment.utc().subtract(1, 'month').format('YYYY-MM-DD');
-    const endDate = moment.utc().add(3, 'month').format('YYYY-MM-DD');
-    const startMs = moment.utc(startDate, 'YYYY-MM-DD', true).startOf('day').valueOf();
-    const endMs = moment.utc(endDate, 'YYYY-MM-DD', true).endOf('day').valueOf();
+    try {
+        const startDate = moment.utc().subtract(1, 'month').format('YYYY-MM-DD');
+        const endDate = moment.utc().add(3, 'month').format('YYYY-MM-DD');
+        const startMs = moment.utc(startDate, 'YYYY-MM-DD', true).startOf('day').valueOf();
+        const endMs = moment.utc(endDate, 'YYYY-MM-DD', true).endOf('day').valueOf();
 
-    const where = `isDeleted=false AND owner.id=${user.platformAdditionalInfo.id} AND dateBegin>=${startMs} AND dateBegin<=${endMs}`;
-    const fields = 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference,lead';
+        const where = `isDeleted=false AND owner.id=${user.platformAdditionalInfo.id} AND dateBegin>=${startMs} AND dateBegin<=${endMs}`;
+        const fields = 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference,lead';
 
-    const pageSize = 20;
-    const resp = await bullhornGetWithRefresh({
-        user,
-        url: `${user.platformAdditionalInfo.restUrl}query/Appointment`,
-        config: {
-            headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
-            params: { fields, where, start: 0, count: pageSize, orderBy: 'dateBegin' }
-        }
-    });
-
-    const rows = Array.isArray(resp?.data?.data) ? resp.data.data : [];
-    const apptIds = rows
-        .map(a => a?.id)
-        .filter(v => v != null)
-        .map(v => Number(v))
-        .filter(v => Number.isFinite(v));
-    const {attendeesByApptId } = await (async () => {
-        const attendeeIdsByApptId = new Map();
-        const attendeesByApptId = new Map();
-        const uniqIds = Array.from(new Set(apptIds));
-        if (!uniqIds.length) return { attendeeIdsByApptId, attendeesByApptId };
-
-        const attendeeWhere = `appointment.id IN (${uniqIds.join(',')})`;
-        // Bullhorn query fields are picky; keep this close to their documented examples.
-        const attendeeFields = 'id,appointment(id),attendee(id),acceptanceStatus';
-
-        const attResp = await bullhornGetWithRefresh({
+        const pageSize = 20;
+        const resp = await bullhornGetWithRefresh({
             user,
-            url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
+            url: `${user.platformAdditionalInfo.restUrl}query/Appointment`,
             config: {
                 headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
-                params: { fields: attendeeFields, where: attendeeWhere, start: 0, count: 2000 }
+                params: { fields, where, start: 0, count: pageSize, orderBy: 'dateBegin' }
             }
         });
-        const attData = Array.isArray(attResp?.data?.data) ? attResp.data.data : [];
-        for (const row of attData) {
-            const apptId = row?.appointment?.id;
-            const att = row?.attendee ?? null;
-            const attendeeId = att?.id;
-            if (apptId == null || attendeeId == null) continue;
-            const key = `${apptId}`;
 
-            const idStr = `${attendeeId}`;
+        const rows = Array.isArray(resp?.data?.data) ? resp.data.data : [];
+        const apptIds = rows
+            .map(a => a?.id)
+            .filter(v => v != null)
+            .map(v => Number(v))
+            .filter(v => Number.isFinite(v));
+        const { attendeesByApptId } = await (async () => {
+            const attendeeIdsByApptId = new Map();
+            const attendeesByApptId = new Map();
+            const uniqIds = Array.from(new Set(apptIds));
+            if (!uniqIds.length) return { attendeeIdsByApptId, attendeesByApptId };
 
-            const ids = attendeeIdsByApptId.get(key) ?? [];
-            ids.push(idStr);
-            attendeeIdsByApptId.set(key, ids);
+            const attendeeWhere = `appointment.id IN (${uniqIds.join(',')})`;
+            // Bullhorn query fields are picky; keep this close to their documented examples.
+            const attendeeFields = 'id,appointment(id),attendee(id),acceptanceStatus';
 
-            const firstName = att?.firstName ?? '';
-            const lastName = att?.lastName ?? '';
-            const name = `${firstName} ${lastName}`.trim();
-            const type = att?._subtype ?? att?.type ?? '';
-            const attendeeObj = {
-                id: idStr,
-                ...(name ? { name } : {}),
-                ...(type ? { type } : {}),
-                ...(row?.acceptanceStatus != null ? { status: row.acceptanceStatus } : {})
-            };
-            const attendees = attendeesByApptId.get(key) ?? [];
-            attendees.push(attendeeObj);
-            attendeesByApptId.set(key, attendees);
-        }
+            const attResp = await bullhornGetWithRefresh({
+                user,
+                url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
+                config: {
+                    headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+                    params: { fields: attendeeFields, where: attendeeWhere, start: 0, count: 2000 }
+                }
+            });
+            const attData = Array.isArray(attResp?.data?.data) ? attResp.data.data : [];
+            for (const row of attData) {
+                const apptId = row?.appointment?.id;
+                const att = row?.attendee ?? null;
+                const attendeeId = att?.id;
+                if (apptId == null || attendeeId == null) continue;
+                const key = `${apptId}`;
 
-        for (const [k, v] of attendeeIdsByApptId.entries()) {
-            attendeeIdsByApptId.set(k, Array.from(new Set(v)));
-        }
+                const idStr = `${attendeeId}`;
 
-        for (const [k, v] of attendeesByApptId.entries()) {
-            const seen = new Set();
-            const deduped = [];
-            for (const a of v) {
-                const key = a?.id;
-                if (!key || seen.has(key)) continue;
-                seen.add(key);
-                deduped.push(a);
+                const ids = attendeeIdsByApptId.get(key) ?? [];
+                ids.push(idStr);
+                attendeeIdsByApptId.set(key, ids);
+
+                const firstName = att?.firstName ?? '';
+                const lastName = att?.lastName ?? '';
+                const name = `${firstName} ${lastName}`.trim();
+                const type = att?._subtype ?? att?.type ?? '';
+                const attendeeObj = {
+                    id: idStr,
+                    ...(name ? { name } : {}),
+                    ...(type ? { type } : {}),
+                    ...(row?.acceptanceStatus != null ? { status: row.acceptanceStatus } : {})
+                };
+                const attendees = attendeesByApptId.get(key) ?? [];
+                attendees.push(attendeeObj);
+                attendeesByApptId.set(key, attendees);
             }
-            attendeesByApptId.set(k, deduped);
-        }
 
-        return { attendeeIdsByApptId, attendeesByApptId };
-    })();
-    const appointments = rows
-        .map((row) => {
-            const appt = normalizeBullhornAppointmentToAppointment(row);
-            if (appt?.id) {
-                appt.attendees = attendeesByApptId.get(appt.id) ?? [];
+            for (const [k, v] of attendeeIdsByApptId.entries()) {
+                attendeeIdsByApptId.set(k, Array.from(new Set(v)));
             }
-            return appt;
-        })
-        .filter(a => a?.id != null);
-    return { appointments };
-} catch (error) {
-    return {
-        successful: false,
-        returnMessage: {
-            messageType: 'warning',
-            message: 'Error listing appointments',
-            ttl: 5000
+
+            for (const [k, v] of attendeesByApptId.entries()) {
+                const seen = new Set();
+                const deduped = [];
+                for (const a of v) {
+                    const key = a?.id;
+                    if (!key || seen.has(key)) continue;
+                    seen.add(key);
+                    deduped.push(a);
+                }
+                attendeesByApptId.set(k, deduped);
+            }
+
+            return { attendeeIdsByApptId, attendeesByApptId };
+        })();
+        const appointments = rows
+            .map((row) => {
+                const appt = normalizeBullhornAppointmentToAppointment(row);
+                if (appt?.id) {
+                    appt.attendees = attendeesByApptId.get(appt.id) ?? [];
+                }
+                return appt;
+            })
+            .filter(a => a?.id != null);
+        return { appointments };
+    } catch (error) {
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Error listing appointments',
+                ttl: 5000
+            }
         }
     }
-}
 }
 
 function extractPrimaryBullhornAppointmentContact(payload) {
@@ -1925,7 +1925,7 @@ function extractPrimaryBullhornAppointmentContact(payload) {
 }
 
 async function createAppointment({ user, payload }) {
-    const startAt = payload?.startTimeUtc??null;
+    const startAt = payload?.startTimeUtc ?? null;
     const durationMinutes = Number(payload?.durationMinutes ?? 0);
     const startMs = startAt ? moment.utc(startAt).valueOf() : null;
     const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
@@ -1990,7 +1990,7 @@ async function createAppointment({ user, payload }) {
                     }
                 );
             } catch (err) {
-                console.log({message:'error adding attendee to appointment'});
+                console.log({ message: 'error adding attendee to appointment' });
             }
         }
     }
@@ -1998,135 +1998,135 @@ async function createAppointment({ user, payload }) {
 }
 
 async function updateAppointment({ user, appointmentId, patchBody }) {
-    try{
-    const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
-    const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
-    const startMs = startAt ? moment.utc(startAt).valueOf() : null;
-    const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
+    try {
+        const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
+        const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
+        const startMs = startAt ? moment.utc(startAt).valueOf() : null;
+        const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
 
-    const postBody = {};
-    if (patchBody?.title != null) postBody.subject = patchBody.title;
-    postBody.description = patchBody?.summary ?? '';
-    if (startMs != null) postBody.dateBegin = startMs;
-    if (endMs != null) postBody.dateEnd = endMs;
-    if (patchBody?.location != null) postBody.location = patchBody.location;
-    if (patchBody?.communicationMethod != null) postBody.communicationMethod = patchBody.communicationMethod;
-    if (patchBody?.type != null) postBody.type = patchBody.type;
-    await bullhornPostWithRefresh({
-        user,
-        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
-        body: postBody,
-        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
-    });
-    const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+        const postBody = {};
+        if (patchBody?.title != null) postBody.subject = patchBody.title;
+        postBody.description = patchBody?.summary ?? '';
+        if (startMs != null) postBody.dateBegin = startMs;
+        if (endMs != null) postBody.dateEnd = endMs;
+        if (patchBody?.location != null) postBody.location = patchBody.location;
+        if (patchBody?.communicationMethod != null) postBody.communicationMethod = patchBody.communicationMethod;
+        if (patchBody?.type != null) postBody.type = patchBody.type;
+        await bullhornPostWithRefresh({
+            user,
+            url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+            body: postBody,
+            config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+        });
+        const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
 
-    const appointmentIdNum = Number(appointmentId);
-    if (hasAttendeeUpdate && Number.isFinite(appointmentIdNum)) {
-        const toId = (v) => {
-            const raw = (v && typeof v === 'object') ? (v.id) : v;
-            const n = typeof raw === 'number' ? raw : Number(raw);
-            return Number.isFinite(n) ? n : null;
-        };
+        const appointmentIdNum = Number(appointmentId);
+        if (hasAttendeeUpdate && Number.isFinite(appointmentIdNum)) {
+            const toId = (v) => {
+                const raw = (v && typeof v === 'object') ? (v.id) : v;
+                const n = typeof raw === 'number' ? raw : Number(raw);
+                return Number.isFinite(n) ? n : null;
+            };
 
-        const desiredAttendeeSource = Array.isArray(patchBody?.contacts)
-            ? patchBody.contacts
-            :[];
+            const desiredAttendeeSource = Array.isArray(patchBody?.contacts)
+                ? patchBody.contacts
+                : [];
 
-        const desiredAttendeeIds = Array.from(new Set(
-            (Array.isArray(desiredAttendeeSource) && desiredAttendeeSource.length
-                ? desiredAttendeeSource
-                : []
-            )
-                .map(v => {
-                    if (v && typeof v === 'object') return toId(v.id);
-                    return toId(v);
-                })
-                .filter(v => v != null)
-        ));
+            const desiredAttendeeIds = Array.from(new Set(
+                (Array.isArray(desiredAttendeeSource) && desiredAttendeeSource.length
+                    ? desiredAttendeeSource
+                    : []
+                )
+                    .map(v => {
+                        if (v && typeof v === 'object') return toId(v.id);
+                        return toId(v);
+                    })
+                    .filter(v => v != null)
+            ));
 
-        const desiredIdSet = new Set(desiredAttendeeIds);
+            const desiredIdSet = new Set(desiredAttendeeIds);
 
-        const existingLinks = [];
-        try {
-            const existingAttendeesRes = await bullhornGetWithRefresh({
-                user,
-                url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
-                config: {
-                    headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
-                    params: {
-                        fields: 'id,attendee(id),appointment(id)',
-                        where: `appointment.id=${appointmentIdNum}`,
-                        start: 0,
-                        count: 2000
+            const existingLinks = [];
+            try {
+                const existingAttendeesRes = await bullhornGetWithRefresh({
+                    user,
+                    url: `${user.platformAdditionalInfo.restUrl}query/AppointmentAttendee`,
+                    config: {
+                        headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+                        params: {
+                            fields: 'id,attendee(id),appointment(id)',
+                            where: `appointment.id=${appointmentIdNum}`,
+                            start: 0,
+                            count: 2000
+                        }
                     }
+                });
+                const rows = Array.isArray(existingAttendeesRes?.data?.data) ? existingAttendeesRes.data.data : [];
+                for (const row of rows) {
+                    const attendeeId = toId(row?.attendee?.id);
+                    const linkId = toId(row?.id);
+                    if (attendeeId == null || linkId == null) continue;
+                    existingLinks.push({ attendeeId, linkId });
                 }
-            });
-            const rows = Array.isArray(existingAttendeesRes?.data?.data) ? existingAttendeesRes.data.data : [];
-            for (const row of rows) {
-                const attendeeId = toId(row?.attendee?.id);
-                const linkId = toId(row?.id);
-                if (attendeeId == null || linkId == null) continue;
-                existingLinks.push({ attendeeId, linkId });
+            } catch (e) {
+                console.log({ message: 'Error fetching existing Bullhorn appointment attendees' });
             }
-        } catch (e) {
-            console.log({ message: 'Error fetching existing Bullhorn appointment attendees'});
+
+            // Remove attendees that are no longer desired
+            for (const { attendeeId, linkId } of existingLinks) {
+                if (desiredIdSet.has(attendeeId)) continue;
+                try {
+                    await bullhornDeleteWithRefresh({
+                        user,
+                        url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee/${linkId}`,
+                        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+                    });
+                } catch (e) {
+                    console.log({ message: 'Error removing attendee from Bullhorn appointment' });
+                }
+            }
+
+            // Add new attendees that don't exist yet
+            const existingAttendeeIdSet = new Set(existingLinks.map(l => l.attendeeId));
+            for (const attendeeId of desiredAttendeeIds) {
+                if (existingAttendeeIdSet.has(attendeeId)) continue;
+                try {
+                    await bullhornPutWithRefresh({
+                        user,
+                        url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee`,
+                        body: {
+                            appointment: { id: appointmentIdNum },
+                            attendee: { id: attendeeId }
+                        },
+                        config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
+                    });
+                } catch (e) {
+                    console.log({ message: 'Error adding attendee to Bullhorn appointment' });
+                }
+            }
         }
 
-        // Remove attendees that are no longer desired
-        for (const { attendeeId, linkId } of existingLinks) {
-            if (desiredIdSet.has(attendeeId)) continue;
-            try {
-                await bullhornDeleteWithRefresh({
-                    user,
-                    url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee/${linkId}`,
-                    config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
-                });
-            } catch (e) {
-                console.log({ message: 'Error removing attendee from Bullhorn appointment' });
+        const refreshRes = await bullhornGetWithRefresh({
+            user,
+            url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
+            config: {
+                headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
+                params: { fields: 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference' }
             }
-        }
-
-        // Add new attendees that don't exist yet
-        const existingAttendeeIdSet = new Set(existingLinks.map(l => l.attendeeId));
-        for (const attendeeId of desiredAttendeeIds) {
-            if (existingAttendeeIdSet.has(attendeeId)) continue;
-            try {
-                await bullhornPutWithRefresh({
-                    user,
-                    url: `${user.platformAdditionalInfo.restUrl}entity/AppointmentAttendee`,
-                    body: {
-                        appointment: { id: appointmentIdNum },
-                        attendee: { id: attendeeId }
-                    },
-                    config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
-                });
-            } catch (e) {
-                console.log({ message: 'Error adding attendee to Bullhorn appointment' });
+        });
+        const appointment = normalizeBullhornAppointmentToAppointment(refreshRes?.data?.data);
+        return { appointment };
+    } catch (error) {
+        console.log({ message: "Bullhorn Update Error is" });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Error updating appointment',
+                ttl: 5000
             }
         }
     }
-
-    const refreshRes = await bullhornGetWithRefresh({
-        user,
-        url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
-        config: {
-            headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken },
-            params: { fields: 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference' }
-        }
-    });
-    const appointment = normalizeBullhornAppointmentToAppointment(refreshRes?.data?.data);
-    return { appointment };
-} catch (error) {
-    console.log({message:"Bullhorn Update Error is"});
-    return {
-        successful: false,
-        returnMessage: {
-            messageType: 'warning',
-            message: 'Error updating appointment',
-            ttl: 5000
-        }
-    }
-}
 }
 
 async function refreshAppointment({ user, appointmentId }) {

@@ -46,10 +46,8 @@ describe('Google Sheets Routes', () => {
         process.env.GOOGLESHEET_CLIENT_ID = 'test-client-id';
         process.env.GOOGLESHEET_CLIENT_SECRET = 'test-client-secret';
         process.env.GOOGLESHEET_KEY = 'test-key';
-        process.env.GOOGLESHEET_PROJECT_ID = 'test-project-id';
         process.env.APP_SERVER = 'https://app.example.com';
         process.env.GOOGLESHEET_REDIRECT_URI = 'https://example.com/callback';
-        process.env.GOOGLESHEET_TOKEN_URI = 'https://oauth2.googleapis.com/token';
         process.env.HASH_KEY = 'test-hash-key';
 
         // Create test user

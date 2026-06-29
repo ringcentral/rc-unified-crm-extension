@@ -9,13 +9,14 @@ function getAuthType() {
 const predefinedContactSheetName = "Contacts";
 const predefinedCallLogSheetName = "Call Logs";
 const predefinedMessageLogSheetName = "Message Logs";
-
+const GOOGLE_SHEETS_REDIRECT_URI = 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+const GOOGLE_SHEETS_REDIRECT_URI_MCP = 'https://unified-crm-extension.labs.ringcentral.com/oauth-callback';
 async function getOauthInfo({ isFromMCP }) {
     return {
         clientId: process.env.GOOGLESHEET_CLIENT_ID,
         clientSecret: process.env.GOOGLESHEET_CLIENT_SECRET,
-        accessTokenUri: process.env.GOOGLESHEET_TOKEN_URI,
-        redirectUri: isFromMCP ? process.env.GOOGLESHEET_REDIRECT_URI_MCP : process.env.GOOGLESHEET_REDIRECT_URI
+        accessTokenUri: 'https://oauth2.googleapis.com/token',
+        redirectUri: isFromMCP ? GOOGLE_SHEETS_REDIRECT_URI_MCP : GOOGLE_SHEETS_REDIRECT_URI
     }
 }
 

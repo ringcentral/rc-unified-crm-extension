@@ -71,7 +71,6 @@ describe('Bullhorn Connector', () => {
 
         process.env.BULLHORN_CLIENT_ID = 'test-client-id';
         process.env.BULLHORN_CLIENT_SECRET = 'test-client-secret';
-        process.env.BULLHORN_REDIRECT_URI = 'https://example.com/callback';
 
         mockUser = createMockUser({
             id: '12345-bullhorn',
@@ -120,7 +119,7 @@ describe('Bullhorn Connector', () => {
 
             expect(result.clientId).toBe('test-client-id');
             expect(result.clientSecret).toBe('test-client-secret');
-            expect(result.redirectUri).toBe('https://example.com/callback');
+            expect(result.redirectUri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.accessTokenUri).toBe(tokenUrl);
         });
     });
@@ -1665,7 +1664,7 @@ describe('Bullhorn Connector', () => {
             expect(result.query.code).toBe('test-auth-code');
             expect(result.query.client_id).toBe('test-client-id');
             expect(result.query.client_secret).toBe('test-client-secret');
-            expect(result.query.redirect_uri).toBe('https://example.com/callback');
+            expect(result.query.redirect_uri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.headers.Authorization).toBe('');
         });
     });

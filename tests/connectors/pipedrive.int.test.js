@@ -78,7 +78,7 @@ describe('Pipedrive Connector', () => {
 
     // ==================== getOauthInfo ====================
     describe('getOauthInfo', () => {
-        it('should return OAuth configuration from environment variables', async () => {
+        it('should return OAuth configuration with configured token URL', async () => {
             process.env.PIPEDRIVE_CLIENT_ID = 'test-client-id';
             process.env.PIPEDRIVE_CLIENT_SECRET = 'test-client-secret';
             process.env.PIPEDRIVE_ACCESS_TOKEN_URI = 'https://oauth.pipedrive.com/oauth/token';
@@ -90,7 +90,7 @@ describe('Pipedrive Connector', () => {
                 clientId: 'test-client-id',
                 clientSecret: 'test-client-secret',
                 accessTokenUri: 'https://oauth.pipedrive.com/oauth/token',
-                redirectUri: 'https://example.com/callback'
+                redirectUri: 'https://unified-crm-extension.labs.ringcentral.com/pipedrive-redirect'
             });
         });
     });

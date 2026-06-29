@@ -11,6 +11,9 @@ const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
 const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
+const CLIO_REDIRECT_URI = 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+const CLIO_REDIRECT_URI_MCP = 'https://ringcentral.github.io/ringcentral-embeddable/redirect.html';
+
 async function refreshUserInfo({ user, authHeader, proxyConfig }) {
     return {
         successful: true,
@@ -71,31 +74,31 @@ async function getOauthInfo({ hostname, isFromMCP }) {
         return {
             clientId: process.env.CLIO_AU_CLIENT_ID,
             clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
-            accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
-            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
+            accessTokenUri: 'https://au.app.clio.com/oauth/token',
+            redirectUri: isFromMCP ? CLIO_REDIRECT_URI_MCP : CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('eu.')) {
         return {
             clientId: process.env.CLIO_EU_CLIENT_ID,
             clientSecret: process.env.CLIO_EU_CLIENT_SECRET,
-            accessTokenUri: process.env.CLIO_EU_ACCESS_TOKEN_URI,
-            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
+            accessTokenUri: 'https://eu.app.clio.com/oauth/token',
+            redirectUri: isFromMCP ? CLIO_REDIRECT_URI_MCP : CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('ca.')) {
         return {
             clientId: process.env.CLIO_CA_CLIENT_ID,
             clientSecret: process.env.CLIO_CA_CLIENT_SECRET,
-            accessTokenUri: process.env.CLIO_CA_ACCESS_TOKEN_URI,
-            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
+            accessTokenUri: 'https://ca.app.clio.com/oauth/token',
+            redirectUri: isFromMCP ? CLIO_REDIRECT_URI_MCP : CLIO_REDIRECT_URI
         }
     } else {
         return {
             clientId: process.env.CLIO_CLIENT_ID,
             clientSecret: process.env.CLIO_CLIENT_SECRET,
-            accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
-            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
+            accessTokenUri: 'https://app.clio.com/oauth/token',
+            redirectUri: isFromMCP ? CLIO_REDIRECT_URI_MCP : CLIO_REDIRECT_URI
         }
     }
 }

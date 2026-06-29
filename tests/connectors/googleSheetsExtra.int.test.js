@@ -43,10 +43,8 @@ describe('Google Sheets Extra Module', () => {
         process.env.GOOGLESHEET_CLIENT_ID = 'test-client-id';
         process.env.GOOGLESHEET_CLIENT_SECRET = 'test-client-secret';
         process.env.GOOGLESHEET_KEY = 'test-key';
-        process.env.GOOGLESHEET_PROJECT_ID = 'test-project-id';
         process.env.APP_SERVER = 'https://app.example.com';
         process.env.GOOGLESHEET_REDIRECT_URI = 'https://example.com/callback';
-        process.env.GOOGLESHEET_TOKEN_URI = 'https://oauth2.googleapis.com/token';
         process.env.HASH_KEY = 'test-hash-key';
 
         mockUser = createMockUser({
@@ -76,7 +74,7 @@ describe('Google Sheets Extra Module', () => {
             expect(result).toContain('test-client-id');
             expect(result).toContain('test-key');
             expect(result).toContain('test-access-token');
-            expect(result).toContain('test-project-id');
+            expect(result).toContain('367818015386');
             expect(result).toContain('https://app.example.com');
         });
 
@@ -109,7 +107,7 @@ describe('Google Sheets Extra Module', () => {
             expect(result).toContain('test-client-id');
             expect(result).toContain('test-key');
             expect(result).toContain('test-access-token');
-            expect(result).toContain('test-project-id');
+            expect(result).toContain('367818015386');
             expect(result).toContain('https://app.example.com');
             expect(result).toContain('test-rc-token');
         });

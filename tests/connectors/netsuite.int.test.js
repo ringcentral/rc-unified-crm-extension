@@ -82,7 +82,7 @@ describe('Netsuite Connector', () => {
 
             expect(result.clientId).toBe('test-client-id');
             expect(result.clientSecret).toBe('test-client-secret');
-            expect(result.redirectUri).toBe('https://example.com/callback');
+            expect(result.redirectUri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.accessTokenUri).toContain(accountId);
         });
     });
