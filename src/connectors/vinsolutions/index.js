@@ -10,9 +10,9 @@ const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 const logger = require('@app-connect/core/lib/logger');
 const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
-const API_BASE_URL = process.env.VINSOLUTIONS_API_BASE_URL || 'https://api.vinsolutions.com';
-const TOKEN_URI = process.env.VINSOLUTIONS_TOKEN_URI || 'https://authentication.vinsolutions.com/connect/token';
-const DEFAULT_SCOPE = process.env.VINSOLUTIONS_SCOPE || 'PublicAPI';
+const API_BASE_URL = 'https://api.vinsolutions.com';
+const VINSOLUTIONS_TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
+const DEFAULT_SCOPE = 'PublicAPI';
 const GATEWAY_JSON = 'application/json';
 const LEAD_MANAGEMENT_V3 = 'application/vnd.coxauto.v3+json';
 const CALL_TRACKING_V1 = 'application/vnd.coxauto.v1+json';
@@ -66,7 +66,7 @@ async function getOauthInfo() {
     return {
         clientId,
         clientSecret,
-        accessTokenUri: TOKEN_URI
+        accessTokenUri: VINSOLUTIONS_TOKEN_URI
     };
 }
 
@@ -113,7 +113,7 @@ function applyTokenToUser(user, tokenType, tokenData) {
 }
 
 function getProviderName() {
-    return process.env.VINSOLUTIONS_PROVIDER_NAME || 'RingCentral';
+    return 'RingCentral';
 }
 
 function getLeadManagementApiKey() {
@@ -202,7 +202,7 @@ async function fetchAccessToken(tokenType) {
         scope: DEFAULT_SCOPE
     });
 
-    const response = await axios.post(TOKEN_URI, params, {
+    const response = await axios.post(VINSOLUTIONS_TOKEN_URI, params, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
