@@ -110,6 +110,102 @@ describe('Plugin Handler', () => {
     });
   });
 
+  describe('getPluginLicenseStatus', () => {
+    test('should return null and skip provider call when plugin account data is missing', async () => {
+      const result = await pluginHandler.getPluginLicenseStatus({
+        rcAccountId: '12345',
+        pluginId: 'sync-all-caps'
+      });
+
+      expect(result).toBeNull();
+      expect(axios.get).not.toHaveBeenCalled();
+    });
+
+    test('should call plugin license status endpoint with stored plugin bearer token', async () => {
+      const rcAccountId = '12345';
+      const pluginId = 'sync-all-caps';
+      await AccountDataModel.create({
+        rcAccountId,
+        platformName: pluginId,
+        dataKey: 'pluginData',
+        data: {
+          jwtToken: 'plugin-jwt-token',
+          licenseStatusUrl: `https://plugins.example.com/plugin/${pluginId}/license`
+        }
+      });
+      axios.get.mockResolvedValue({
+        data: {
+          licenseStatus: true,
+          licenseStatusDescription: 'Active'
+        }
+      });
+
+      const result = await pluginHandler.getPluginLicenseStatus({ rcAccountId, pluginId });
+
+      expect(axios.get).toHaveBeenCalledWith(
+        `https://plugins.example.com/plugin/${pluginId}/license`,
+        {
+          headers: {
+            Authorization: 'Bearer plugin-jwt-token'
+          }
+        }
+      );
+      expect(result).toEqual({
+        licenseStatus: true,
+        licenseStatusDescription: 'Active'
+      });
+    });
+    test('should normalize non-standard plugin license provider responses to invalid status', async () => {
+      const rcAccountId = '12345';
+      const pluginId = 'sync-all-caps';
+      await AccountDataModel.create({
+        rcAccountId,
+        platformName: pluginId,
+        dataKey: 'pluginData',
+        data: {
+          jwtToken: 'plugin-jwt-token',
+          licenseStatusUrl: `https://plugins.example.com/plugin/${pluginId}/license`
+        }
+      });
+      axios.get.mockResolvedValue({
+        data: {
+          message: 'temporary unavailable'
+        }
+      });
+
+      const result = await pluginHandler.getPluginLicenseStatus({ rcAccountId, pluginId });
+
+      expect(result).toEqual({
+        licenseStatus: false,
+        licenseStatusDescription: 'Plugin license status unavailable'
+      });
+    });
+  });
+  describe('unregisterPluginAccount', () => {
+    test('should remove persisted plugin account data', async () => {
+      const rcAccountId = '12345';
+      const pluginId = 'sync-all-caps';
+      await AccountDataModel.create({
+        rcAccountId,
+        platformName: pluginId,
+        dataKey: 'pluginData',
+        data: {
+          jwtToken: 'plugin-jwt-token'
+        }
+      });
+
+      await pluginHandler.unregisterPluginAccount({ rcAccountId, pluginId });
+
+      const accountData = await AccountDataModel.findOne({
+        where: {
+          rcAccountId,
+          platformName: pluginId,
+          dataKey: 'pluginData'
+        }
+      });
+      expect(accountData).toBeNull();
+    });
+  });
   describe('token header helper', () => {
     test('should parse refreshed jwt token from response headers', () => {
       const token = pluginHandler.getRefreshedJwtTokenFromHeaders({

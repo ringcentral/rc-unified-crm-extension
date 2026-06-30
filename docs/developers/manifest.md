@@ -49,10 +49,10 @@ In App Connect 2.0, the Developer Console is the primary place to manage manifes
 | `auth` | Auth configuration. See [Authorization](auth.md). |
 | `serverSideLogging` | Optional server-side logging config. |
 | `contactTypes` | Optional list of CRM entity types users can create/select. |
-| `contactPageUrl` | Template for opening a contact page. Supports `{hostname}`, `{contactId}`, and `{contactType}`. |
+| `contactPageUrl` | Template for opening a contact page. Supports built-in URL tokens and custom setting tokens. See [URL template tokens](#url-template-tokens). |
 | `enableFallbackContactPageUrl` | Enables the fallback contact page URL for call-pop when no existing contact is matched. Defaults to `false`. |
-| `fallbackContactPageUrl` | Optional fixed URL opened by call-pop when fallback is enabled and no existing contact is matched. Supports `{hostname}`. |
-| `logPageUrl` | Template for opening a log/activity page. Supports `{hostname}`, `{logId}`, `{contactId}`, and `{contactType}` where available. |
+| `fallbackContactPageUrl` | Optional fixed URL opened by call-pop when fallback is enabled and no existing contact is matched. Supports built-in URL tokens and custom setting tokens. |
+| `logPageUrl` | Template for opening a log/activity page. Supports built-in URL tokens and custom setting tokens. See [URL template tokens](#url-template-tokens). |
 | `canOpenLogPage` | When true, App Connect opens `logPageUrl` for logged activities. When false, it opens `contactPageUrl`. |
 | `settings` | Connector-specific user/admin settings. See [Custom settings](custom-settings.md). |
 | `page` | Auth, call log, message log, feedback, and contact-search UI config. See [Manifest pages](manifest-pages.md). |
@@ -61,6 +61,45 @@ In App Connect 2.0, the Developer Console is the primary place to manage manifes
 | `trackSmsTypingDuration` | Sends SMS typing duration data for connectors that bill/track SMS time. |
 | `rcAdditionalSubmission` | Adds selected RingCentral cached data into logging submissions. |
 | `override` | Runtime manifest overrides. See [Regional services](regional-services.md). |
+
+## URL Template Tokens
+
+URL templates can include built-in runtime tokens and connector custom setting tokens.
+
+Built-in tokens include:
+
+| Token | Value |
+| --- | --- |
+| `{hostname}` | The connected user's CRM hostname. |
+| `{contactId}` | The matched CRM contact ID, when available. |
+| `{contactType}` | The matched CRM contact type, when available. |
+| `{logId}` | The CRM activity/log ID returned after logging, when available. |
+| `{thirdPartyAppointmentId}` | The CRM appointment ID for appointment links, when available. |
+
+Custom setting tokens use the setting item `id` directly. For example, if the connector defines an input field with `id: "contactBoardId"`, URL templates can reference `{contactBoardId}`:
+
+```json
+{
+  "settings": [
+    {
+      "id": "mondayOptions",
+      "type": "section",
+      "name": "Monday options",
+      "items": [
+        {
+          "id": "contactBoardId",
+          "type": "inputField",
+          "name": "Contact board ID"
+        }
+      ]
+    }
+  ],
+  "contactPageUrl": "https://{hostname}/boards/{contactBoardId}/pulses/{contactId}",
+  "logPageUrl": "https://{hostname}/boards/{contactBoardId}/pulses/{logId}"
+}
+```
+
+The runtime resolves custom setting tokens from the merged user/admin settings object, using `userSettings.<settingId>.value`. Built-in tokens take precedence over custom setting tokens with the same name.
 
 ## Environment
 

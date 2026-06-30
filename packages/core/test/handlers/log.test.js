@@ -1412,6 +1412,115 @@ describe('Log Handler', () => {
       expect(cache.data.message).toBe('Plugin failed');
     });
 
+    test('should destroy expired task cache and return not found', async () => {
+      await CacheModel.create({
+        id: 'task-expired',
+        status: 'pending',
+        userId: 'test-user-id',
+        cacheKey: 'asyncPluginTask-testPlugin',
+        expiry: new Date(Date.now() - 1000),
+        data: {
+          pluginId: 'testPlugin',
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          sessionId: 'session-1'
+        }
+      });
+
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-expired',
+        body: {
+          successful: true,
+          note: 'Late callback note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 404,
+        body: { successful: false, message: 'Async task not found' }
+      });
+      expect(await CacheModel.findByPk('task-expired')).toBeNull();
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+    });
+
+    test('should mark task failed when callback note cannot be written to CRM', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        platformAdditionalInfo: {}
+      });
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '',
+        platform: 'testCRM',
+        thirdPartyLogId: 'log-1',
+        userId: 'test-user-id',
+        contactId: 'contact-1'
+      });
+      await CacheModel.create({
+        id: 'task-update-failed',
+        status: 'pending',
+        userId: 'test-user-id',
+        cacheKey: 'asyncPluginTask-testPlugin',
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        data: {
+          pluginId: 'testPlugin',
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          sessionId: 'session-1',
+          extensionNumber: '',
+          incomingData: {
+            logInfo: {
+              sessionId: 'session-1',
+              startTime: '2026-06-12T10:00:00.000Z',
+              duration: 120,
+              result: 'Completed',
+              direction: 'Outbound',
+              from: { phoneNumber: '+1234567890' },
+              to: { phoneNumber: '+1987654321' }
+            },
+            note: 'Original note'
+          },
+          hashedAccountId: 'hashed-123',
+          isFromSSCL: false
+        }
+      });
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        getCallLog: jest.fn().mockResolvedValue({
+          callLogInfo: {
+            fullBody: 'Existing body',
+            note: 'Existing note',
+            fullLogResponse: { id: 'log-1' }
+          }
+        }),
+        updateCallLog: jest.fn().mockRejectedValue(new Error('CRM update failed'))
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Updated composed log');
+
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-update-failed',
+        body: {
+          successful: true,
+          note: 'Callback note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 500,
+        body: { successful: false, message: 'CRM update failed' }
+      });
+      const cache = await CacheModel.findByPk('task-update-failed');
+      expect(cache).not.toBeNull();
+      expect(cache.status).toBe('failed');
+      expect(cache.data.message).toBe('CRM update failed');
+      expect(mockConnector.updateCallLog).toHaveBeenCalled();
+    });
     test('should reject callback without successful boolean', async () => {
       const result = await logHandler.handleAsyncPluginCallback({
         taskId: 'task-1',

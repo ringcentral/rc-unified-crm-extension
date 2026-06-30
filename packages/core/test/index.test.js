@@ -20,6 +20,7 @@ const jwt = require('../lib/jwt');
 const authCore = require('../handlers/auth');
 const logCore = require('../handlers/log');
 const { createCoreRouter, createCoreMiddleware } = require('../index');
+const connectorRegistry = require('../connector/registry');
 
 function buildApp() {
   const app = express();
@@ -196,4 +197,105 @@ describe('Core Router JWT normalization', () => {
     });
   });
 });
+describe('Core Router implementedInterfaces contract', () => {
+  const originalUseCache = process.env.USE_CACHE;
 
+  beforeEach(() => {
+    connectorRegistry.connectors.clear();
+    connectorRegistry.manifests.clear();
+    connectorRegistry.platformInterfaces.clear();
+    delete process.env.USE_CACHE;
+  });
+
+  afterEach(() => {
+    connectorRegistry.connectors.clear();
+    connectorRegistry.manifests.clear();
+    connectorRegistry.platformInterfaces.clear();
+    if (originalUseCache === undefined) {
+      delete process.env.USE_CACHE;
+    } else {
+      process.env.USE_CACHE = originalUseCache;
+    }
+  });
+
+  test('returns client capability flags for an oauth platform', async () => {
+    connectorRegistry.registerConnector('contractCRM', {
+      getAuthType: jest.fn().mockReturnValue('oauth'),
+      getOauthInfo: jest.fn(),
+      getUserInfo: jest.fn(),
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn(),
+      createMessageLog: jest.fn(),
+      findContactWithName: jest.fn(),
+      getLicenseStatus: jest.fn(),
+    });
+    const app = buildApp();
+
+    const response = await request(app).get('/implementedInterfaces?platform=contractCRM');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      getAuthType: true,
+      getOauthInfo: true,
+      getUserInfo: true,
+      createCallLog: true,
+      updateCallLog: true,
+      getCallLog: false,
+      createMessageLog: true,
+      updateMessageLog: false,
+      createContact: false,
+      findContact: false,
+      listAppointments: false,
+      createAppointment: false,
+      updateAppointment: false,
+      refreshAppointment: false,
+      confirmAppointment: false,
+      cancelAppointment: false,
+      unAuthorize: false,
+      upsertCallDisposition: false,
+      findContactWithName: true,
+      getUserList: false,
+      getLicenseStatus: true,
+      getLogFormatType: false,
+      refreshUserInfo: false,
+      cacheCallNote: false,
+    });
+    expect(response.body).not.toHaveProperty('getBasicAuth');
+  });
+
+  test('returns basic auth and cache flags for an apiKey platform', async () => {
+    process.env.USE_CACHE = 'true';
+    connectorRegistry.registerConnector('apiKeyCRM', {
+      getAuthType: jest.fn().mockReturnValue('apiKey'),
+      getBasicAuth: jest.fn(),
+      createCallLog: jest.fn(),
+      updateCallLog: jest.fn(),
+      updateMessageLog: jest.fn(),
+      refreshUserInfo: jest.fn(),
+    });
+    const app = buildApp();
+
+    const response = await request(app).get('/implementedInterfaces?platform=apiKeyCRM');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(expect.objectContaining({
+      getAuthType: true,
+      getBasicAuth: true,
+      createCallLog: true,
+      updateCallLog: true,
+      updateMessageLog: true,
+      refreshUserInfo: true,
+      cacheCallNote: true,
+    }));
+    expect(response.body).not.toHaveProperty('getOauthInfo');
+  });
+
+  test('rejects requests without a platform parameter', async () => {
+    const app = buildApp();
+
+    const response = await request(app).get('/implementedInterfaces');
+
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('Please provide platform.');
+  });
+});

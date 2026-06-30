@@ -48,7 +48,14 @@ async function getPluginLicenseStatus({ rcAccountId, pluginId }) {
             'Authorization': `Bearer ${accountData.data.jwtToken}`
         }
     });
-    return licenseStatusResponse.data;
+    const licenseStatus = licenseStatusResponse.data;
+    if (!licenseStatus || !Object.prototype.hasOwnProperty.call(licenseStatus, 'licenseStatus')) {
+        return {
+            licenseStatus: false,
+            licenseStatusDescription: 'Plugin license status unavailable'
+        };
+    }
+    return licenseStatus;
 }
 
 function getRefreshedJwtTokenFromHeaders({ headers }) {

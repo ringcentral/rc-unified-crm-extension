@@ -7,6 +7,9 @@ jest.mock('../../handlers/admin', () => ({
 }));
 jest.mock('../../handlers/managedAuth', () => ({
   getManagedAuthState: jest.fn(),
+  getManagedAuthAdminSettings: jest.fn(),
+  upsertOrgManagedAuthValues: jest.fn(),
+  upsertUserManagedAuthValues: jest.fn(),
 }));
 jest.mock('../../handlers/managedOAuth', () => ({
   getManagedOAuthState: jest.fn(),
@@ -21,11 +24,18 @@ jest.mock('../../lib/jwt', () => ({
   generateJwt: jest.fn().mockReturnValue('jwt-token'),
   decodeJwt: jest.fn(),
 }));
+jest.mock('../../models/userModel', () => ({
+  UserModel: {
+    findByPk: jest.fn(),
+  },
+}));
 
 const adminCore = require('../../handlers/admin');
 const managedAuthCore = require('../../handlers/managedAuth');
 const managedOAuthCore = require('../../handlers/managedOAuth');
 const authCore = require('../../handlers/auth');
+const jwt = require('../../lib/jwt');
+const { UserModel } = require('../../models/userModel');
 const { createCoreRouter } = require('../../index');
 
 describe('Managed Auth Routes', () => {
@@ -194,6 +204,147 @@ describe('Managed Auth Routes', () => {
     });
   });
 
+
+  describe('GET /admin/managedAuth', () => {
+    test('should use CRM jwt platform and validated admin account for settings lookup', async () => {
+      jwt.decodeJwt.mockReturnValue({ id: 'crm-user-id' });
+      UserModel.findByPk.mockResolvedValue({
+        id: 'crm-user-id',
+        platform: 'salesforce',
+      });
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedAuthCore.getManagedAuthAdminSettings.mockResolvedValue({
+        orgFields: [{ const: 'apiKey' }],
+        userFields: [{ const: 'userToken' }],
+        orgValues: {},
+        userValues: [],
+      });
+
+      const response = await request(app)
+        .get('/admin/managedAuth')
+        .query({
+          jwtToken: 'crm-jwt',
+          rcAccessToken: 'valid-rc-token',
+          connectorId: 'shared-connector',
+          isPrivate: 'true',
+        });
+
+      expect(response.status).toBe(200);
+      expect(jwt.decodeJwt).toHaveBeenCalledWith('crm-jwt');
+      expect(UserModel.findByPk).toHaveBeenCalledWith('crm-user-id');
+      expect(adminCore.validateAdminRole).toHaveBeenCalledWith({ rcAccessToken: 'valid-rc-token' });
+      expect(managedAuthCore.getManagedAuthAdminSettings).toHaveBeenCalledWith({
+        platform: 'salesforce',
+        rcAccountId: 'validated-account-id',
+        connectorId: 'shared-connector',
+        isPrivate: true,
+      });
+      expect(response.body.orgFields).toEqual([{ const: 'apiKey' }]);
+    });
+
+    test('should reject non-admin users before reading managed auth settings', async () => {
+      jwt.decodeJwt.mockReturnValue({ id: 'crm-user-id' });
+      UserModel.findByPk.mockResolvedValue({
+        id: 'crm-user-id',
+        platform: 'salesforce',
+      });
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: false,
+        rcAccountId: 'validated-account-id',
+      });
+
+      const response = await request(app)
+        .get('/admin/managedAuth')
+        .query({
+          jwtToken: 'crm-jwt',
+          rcAccessToken: 'valid-rc-token',
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.text).toBe('Admin validation failed');
+      expect(managedAuthCore.getManagedAuthAdminSettings).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /admin/managedAuth', () => {
+    test('should save org scoped values under the validated admin account and CRM platform', async () => {
+      jwt.decodeJwt.mockReturnValue({ id: 'crm-user-id' });
+      UserModel.findByPk.mockResolvedValue({
+        id: 'crm-user-id',
+        platform: 'salesforce',
+      });
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedAuthCore.upsertOrgManagedAuthValues.mockResolvedValue({});
+
+      const response = await request(app)
+        .post('/admin/managedAuth')
+        .query({
+          jwtToken: 'crm-jwt',
+          rcAccessToken: 'valid-rc-token',
+          connectorId: 'private-connector',
+          isPrivate: 'true',
+        })
+        .send({
+          scope: 'org',
+          values: { apiKey: 'api-key' },
+          fieldsToRemove: ['oldApiKey'],
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.text).toBe('Shared authentication updated');
+      expect(managedAuthCore.upsertOrgManagedAuthValues).toHaveBeenCalledWith({
+        rcAccountId: 'validated-account-id',
+        platform: 'salesforce',
+        values: { apiKey: 'api-key' },
+        fieldsToRemove: ['oldApiKey'],
+      });
+      expect(managedAuthCore.upsertUserManagedAuthValues).not.toHaveBeenCalled();
+    });
+
+    test('should save user scoped values with selected RingCentral extension details', async () => {
+      jwt.decodeJwt.mockReturnValue({ id: 'crm-user-id' });
+      UserModel.findByPk.mockResolvedValue({
+        id: 'crm-user-id',
+        platform: 'salesforce',
+      });
+      adminCore.validateAdminRole.mockResolvedValue({
+        isValidated: true,
+        rcAccountId: 'validated-account-id',
+      });
+      managedAuthCore.upsertUserManagedAuthValues.mockResolvedValue({});
+
+      const response = await request(app)
+        .post('/admin/managedAuth')
+        .query({
+          jwtToken: 'crm-jwt',
+          rcAccessToken: 'valid-rc-token',
+        })
+        .send({
+          scope: 'user',
+          rcExtensionId: '101',
+          rcUserName: 'Ada Lovelace',
+          values: { userToken: 'token-101' },
+          fieldsToRemove: ['oldUserToken'],
+        });
+
+      expect(response.status).toBe(200);
+      expect(managedAuthCore.upsertUserManagedAuthValues).toHaveBeenCalledWith({
+        rcAccountId: 'validated-account-id',
+        platform: 'salesforce',
+        rcExtensionId: '101',
+        rcUserName: 'Ada Lovelace',
+        values: { userToken: 'token-101' },
+        fieldsToRemove: ['oldUserToken'],
+      });
+      expect(managedAuthCore.upsertOrgManagedAuthValues).not.toHaveBeenCalled();
+    });
+  });
   describe('POST /apiKeyLogin', () => {
 
     test('should validate rcAccessToken and ignore spoofed rc ids in body', async () => {
