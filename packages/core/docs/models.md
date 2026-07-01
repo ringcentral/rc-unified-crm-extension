@@ -35,6 +35,8 @@ Stores the mapping between telephony sessions and CRM call logs.
 | --- | --- |
 | `id` | Telephony call id |
 | `sessionId` | Session id; also part of the composite primary key |
+| `extensionNumber` | Legacy RingCentral extension number identity; part of the composite primary key |
+| `hashedExtensionId` | Hashed RingCentral extension id used for current call-log identity; part of the composite primary key |
 | `platform` | Connector platform |
 | `thirdPartyLogId` | CRM log id |
 | `userId` | App Connect user id |

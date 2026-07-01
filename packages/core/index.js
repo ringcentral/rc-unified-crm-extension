@@ -33,6 +33,8 @@ const logger = require('./lib/logger');
 const { DebugTracer } = require('./lib/debugTracer');
 const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
+const { sequelize } = require('./models/sequelize');
+const { ensureCallLogsHashedExtensionIdSchema } = require('./lib/migrateCallLogsSchema');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = require('./handlers/managedAuth');
@@ -71,6 +73,7 @@ async function initDB() {
         await UserModel.sync();
         await LlmSessionModel.sync();
         await CallLogModel.sync();
+        await ensureCallLogsHashedExtensionIdSchema(sequelize);
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
@@ -2036,6 +2039,7 @@ function createCoreRouter() {
                     userId,
                     sessionIds: req.query.sessionIds,
                     extensionNumber: req.query.extensionNumber,
+                    hashedExtensionId: req.query.hashedExtensionId,
                     platform,
                     requireDetails: req.query.requireDetails === 'true'
                 });
@@ -2232,6 +2236,7 @@ function createCoreRouter() {
                     userId,
                     sessionId: req.body.sessionId,
                     extensionNumber: req.body.extensionNumber,
+                    hashedExtensionId: req.body.hashedExtensionId,
                     dispositions: req.body.dispositions,
                     additionalSubmission: req.body.additionalSubmission
                 });
@@ -2920,7 +2925,7 @@ function createCoreRouter() {
         router.get('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds, extensionNumber: req.query.extensionNumber });
+                const callLogs = await mock.getCallLog({ sessionIds: req.query.sessionIds, extensionNumber: req.query.extensionNumber, hashedExtensionId: req.query.hashedExtensionId });
                 res.status(200).send(callLogs);
             }
             else {
@@ -2930,7 +2935,7 @@ function createCoreRouter() {
         router.post('/mockCallLog', async function (req, res) {
             const secretKey = req.query.secretKey;
             if (secretKey === process.env.APP_SERVER_SECRET_KEY) {
-                await mock.createCallLog({ sessionId: req.body.sessionId, extensionNumber: req.body.extensionNumber });
+                await mock.createCallLog({ sessionId: req.body.sessionId, extensionNumber: req.body.extensionNumber, hashedExtensionId: req.body.hashedExtensionId });
                 res.status(200).send('Mock call log created');
             }
             else {

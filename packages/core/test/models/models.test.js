@@ -16,6 +16,10 @@ const { UserModel } = require('../../models/userModel');
 const { CacheModel } = require('../../models/cacheModel');
 const { AdminConfigModel } = require('../../models/adminConfigModel');
 const { sequelize } = require('../../models/sequelize');
+const {
+  ensureCallLogsHashedExtensionIdSchema,
+  sqliteCallLogsPkIncludesHashedExtension,
+} = require('../../lib/migrateCallLogsSchema');
 
 describe('Core Models', () => {
   beforeAll(async () => {
@@ -206,6 +210,94 @@ describe('Core Models', () => {
         }
       });
       expect(logs).toHaveLength(2);
+    });
+
+    test('should use hashedExtensionId as part of call log primary key', async () => {
+      // Arrange & Act
+      await CallLogModel.create({
+        id: 'call-shared-hash',
+        sessionId: 'session-shared-hash',
+        extensionNumber: '',
+        hashedExtensionId: 'hashed-1',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-hash-1',
+        userId: 'user-1'
+      });
+      await CallLogModel.create({
+        id: 'call-shared-hash',
+        sessionId: 'session-shared-hash',
+        extensionNumber: '',
+        hashedExtensionId: 'hashed-2',
+        platform: 'testCRM',
+        thirdPartyLogId: 'third-party-hash-2',
+        userId: 'user-1'
+      });
+
+      // Assert
+      const logs = await CallLogModel.findAll({
+        where: {
+          id: 'call-shared-hash',
+          sessionId: 'session-shared-hash'
+        }
+      });
+      expect(logs).toHaveLength(2);
+    });
+
+    test('should migrate legacy call log schema to hashed extension identity key', async () => {
+      await CallLogModel.drop();
+      await sequelize.query(`
+        CREATE TABLE callLogs (
+          id VARCHAR(255) NOT NULL,
+          sessionId VARCHAR(255) NOT NULL,
+          extensionNumber VARCHAR(255) NOT NULL DEFAULT '',
+          platform VARCHAR(255),
+          thirdPartyLogId VARCHAR(255),
+          userId VARCHAR(255),
+          contactId VARCHAR(255),
+          createdAt DATETIME NOT NULL,
+          updatedAt DATETIME NOT NULL,
+          PRIMARY KEY (id, sessionId, extensionNumber)
+        );
+      `);
+      await sequelize.query(`
+        INSERT INTO callLogs (
+          id,
+          sessionId,
+          extensionNumber,
+          platform,
+          thirdPartyLogId,
+          userId,
+          contactId,
+          createdAt,
+          updatedAt
+        ) VALUES (
+          'legacy-call',
+          'legacy-session',
+          '101',
+          'testCRM',
+          'third-party-legacy',
+          'user-1',
+          'contact-1',
+          '2026-01-01T00:00:00.000Z',
+          '2026-01-01T00:00:00.000Z'
+        );
+      `);
+
+      await ensureCallLogsHashedExtensionIdSchema(sequelize);
+
+      const tableDescription = await sequelize.getQueryInterface().describeTable('callLogs');
+      expect(tableDescription.hashedExtensionId).toBeDefined();
+      await expect(sqliteCallLogsPkIncludesHashedExtension(sequelize)).resolves.toBe(true);
+      const migratedLog = await CallLogModel.findOne({
+        where: {
+          id: 'legacy-call',
+          sessionId: 'legacy-session',
+          extensionNumber: '101',
+          hashedExtensionId: ''
+        }
+      });
+      expect(migratedLog).not.toBeNull();
+      expect(migratedLog.thirdPartyLogId).toBe('third-party-legacy');
     });
 
     test('should find call logs by session ID', async () => {

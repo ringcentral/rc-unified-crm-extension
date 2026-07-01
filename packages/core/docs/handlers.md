@@ -59,7 +59,7 @@ This is the heaviest handler in the package.
 
 Key responsibilities:
 
-- prevents duplicate call-log creation by checking `CallLogModel` on `sessionId`
+- prevents duplicate call-log creation by checking `CallLogModel` on `sessionId` plus extension identity (`hashedExtensionId` first, with legacy `extensionNumber` fallback)
 - loads note cache from DynamoDB when `USE_CACHE` and server-side call logging are enabled
 - runs configured synchronous plugins before creating or updating logs
 - dispatches configured asynchronous call plugins after call-log create or update succeeds

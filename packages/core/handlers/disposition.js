@@ -6,12 +6,13 @@ const { Connector } = require('../models/dynamo/connectorSchema');
 const { handleApiError } = require('../lib/errorHandler');
 const { buildCallLogSessionWhere } = require('../lib/callLogLookup');
 
-async function upsertCallDisposition({ platform, userId, sessionId, extensionNumber, dispositions }) {
+async function upsertCallDisposition({ platform, userId, sessionId, extensionNumber, hashedExtensionId, dispositions }) {
     try {
         const existingCallLog = await CallLogModel.findOne({
             where: buildCallLogSessionWhere({
                 sessionId,
                 extensionNumber,
+                hashedExtensionId,
             })
         });
         if (!existingCallLog) {
@@ -75,7 +76,7 @@ async function upsertCallDisposition({ platform, userId, sessionId, extensionNum
         return { successful: !!logId, logId, returnMessage, extraDataTracking };
     }
     catch (e) {
-        return handleApiError(e, platform, 'upsertCallDisposition', { userId, sessionId, extensionNumber, dispositions });
+        return handleApiError(e, platform, 'upsertCallDisposition', { userId, sessionId, extensionNumber, hashedExtensionId, dispositions });
     }
 }
 

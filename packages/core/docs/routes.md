@@ -75,7 +75,7 @@ This page documents the non-MCP HTTP routes defined in `index.js`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/callLog/cacheNote` | Stores a temporary note for server-side call logging |
-| `GET` | `/callLog` | Looks up existing call logs by session id |
+| `GET` | `/callLog` | Looks up existing call logs by session id plus extension identity |
 | `POST` | `/callLog` | Creates a CRM call log and stores the local linkage record |
 | `PATCH` | `/callLog` | Updates an existing CRM call log |
 | `PUT` | `/callDisposition` | Upserts call disposition data through the connector |

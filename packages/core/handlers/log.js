@@ -20,6 +20,7 @@ const { AccountDataModel } = require('../models/accountDataModel');
 const pluginCore = require('./plugin');
 const {
     getCallLogExtensionNumber,
+    getCallLogHashedExtensionId,
     buildCallLogSessionWhere,
     findMatchingCallLog,
 } = require('../lib/callLogLookup');
@@ -73,6 +74,7 @@ function buildAsyncPluginTaskData({ taskId, callbackUrl, pluginId, platform, ope
         rcAccountId: user.rcAccountId,
         sessionId: logInfo.sessionId ?? incomingData?.sessionId,
         extensionNumber: getCallLogExtensionNumber(incomingData),
+        hashedExtensionId: getCallLogHashedExtensionId(incomingData),
         callLogId: existingCallLog?.id ?? logInfo.telephonySessionId ?? logInfo.id,
         thirdPartyLogId: existingCallLog?.thirdPartyLogId,
         contactId: existingCallLog?.contactId ?? incomingData?.contactId,
@@ -307,6 +309,7 @@ async function appendAsyncPluginNoteToCallLog({ taskCache, note }) {
         ...buildCallLogSessionWhere({
             sessionId: taskData.sessionId,
             extensionNumber: taskData.extensionNumber,
+            hashedExtensionId: taskData.hashedExtensionId,
         }),
         platform: taskData.platform,
         userId: taskData.userId,
@@ -448,12 +451,14 @@ async function handleAsyncPluginCallback({ taskId, body }) {
 async function createCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
+        const hashedExtensionId = getCallLogHashedExtensionId(incomingData);
         let existingCallLog = null;
         try {
             existingCallLog = await CallLogModel.findOne({
                 where: buildCallLogSessionWhere({
                     sessionId: incomingData.logInfo.sessionId,
                     extensionNumber,
+                    hashedExtensionId,
                 })
             });
         }
@@ -612,6 +617,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
                     id: incomingData.logInfo.telephonySessionId || incomingData.logInfo.id,
                     sessionId: incomingData.logInfo.sessionId,
                     extensionNumber,
+                    hashedExtensionId,
                     platform,
                     thirdPartyLogId: logId,
                     userId,
@@ -651,7 +657,7 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
     }
 }
 
-async function getCallLog({ userId, sessionIds, extensionNumber, platform, requireDetails }) {
+async function getCallLog({ userId, sessionIds, extensionNumber, hashedExtensionId, platform, requireDetails }) {
     try {
         let user = await UserModel.findByPk(userId);
         if (!user || !user.accessToken) {
@@ -706,15 +712,16 @@ async function getCallLog({ userId, sessionIds, extensionNumber, platform, requi
                 where: buildCallLogSessionWhere({
                     sessionIds: sessionIdsArray,
                     extensionNumber,
+                    hashedExtensionId,
                 }),
-                order: [['extensionNumber', 'ASC']]
+                order: [['hashedExtensionId', 'ASC'], ['extensionNumber', 'ASC']]
             });
             for (const sId of sessionIdsArray) {
                 if (sId == 0) {
                     logs.push({ sessionId: sId, matched: false });
                     continue;
                 }
-                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber);
+                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber, hashedExtensionId);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });
                 }
@@ -731,11 +738,12 @@ async function getCallLog({ userId, sessionIds, extensionNumber, platform, requi
                 where: buildCallLogSessionWhere({
                     sessionIds: sessionIdsArray,
                     extensionNumber,
+                    hashedExtensionId,
                 }),
-                order: [['extensionNumber', 'ASC']]
+                order: [['hashedExtensionId', 'ASC'], ['extensionNumber', 'ASC']]
             });
             for (const sId of sessionIdsArray) {
-                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber);
+                const callLog = findMatchingCallLog(callLogs, sId, extensionNumber, hashedExtensionId);
                 if (!callLog) {
                     logs.push({ sessionId: sId, matched: false });
                 }
@@ -747,19 +755,21 @@ async function getCallLog({ userId, sessionIds, extensionNumber, platform, requi
         return { successful: true, logs, returnMessage, extraDataTracking };
     }
     catch (e) {
-        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails, extensionNumber });
+        return handleApiError(e, platform, 'getCallLog', { userId, sessionIds, requireDetails, extensionNumber, hashedExtensionId });
     }
 }
 
 async function updateCallLog({ platform, userId, incomingData, hashedAccountId, isFromSSCL }) {
     try {
         const extensionNumber = getCallLogExtensionNumber(incomingData);
+        const hashedExtensionId = getCallLogHashedExtensionId(incomingData);
         let existingCallLog = null;
         try {
             existingCallLog = await CallLogModel.findOne({
                 where: buildCallLogSessionWhere({
                     sessionId: incomingData.sessionId,
                     extensionNumber,
+                    hashedExtensionId,
                 })
             });
         }

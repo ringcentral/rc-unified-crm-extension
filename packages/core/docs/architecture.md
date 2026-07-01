@@ -26,6 +26,7 @@ Its job is to expose a stable HTTP surface, persist shared state, and delegate C
 - installs an axios interceptor in local-style environments
 - syncs Sequelize models on startup unless `DISABLE_SYNC_DB_TABLE` or `skipDatabaseInit` disables it
 - adds the `hashedRcExtensionId` column to `users` if an older schema is missing it
+- migrates `callLogs` to include `hashedExtensionId` in the local call-log identity key when an older schema is missing it
 - mounts all shared HTTP routes
 - exposes dev-only mock routes when `IS_PROD === 'false'`
 

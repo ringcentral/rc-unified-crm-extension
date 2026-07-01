@@ -38,6 +38,7 @@ const { composeCallLog } = require('../../lib/callLogComposer');
 const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
+const { getHashValue } = require('../../lib/util');
 
 describe('Log Handler', () => {
   beforeAll(async () => {
@@ -168,6 +169,82 @@ describe('Log Handler', () => {
       });
       expect(savedLog).not.toBeNull();
       expect(savedLog.thirdPartyLogId).toBe('new-log-102');
+    });
+
+    test('should block duplicate client log when SSCL already logged same hashed extension', async () => {
+      // Arrange
+      const hashedExtensionId = getHashValue('rc-ext-1', 'test-hash-key');
+      await CallLogModel.create({
+        id: 'tel-session-123',
+        sessionId: 'session-123',
+        extensionNumber: '',
+        hashedExtensionId,
+        platform: 'testCRM',
+        thirdPartyLogId: 'sscl-log',
+        userId: 'test-user-id'
+      });
+
+      const incomingData = {
+        ...mockIncomingData,
+        extensionNumber: '101',
+        hashedExtensionId
+      };
+
+      // Act
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      // Assert
+      expect(result.successful).toBe(false);
+      expect(result.returnMessage.message).toContain('Existing log for session');
+    });
+
+    test('should derive hashed extension id from SSCL raw rcExtensionId when saving', async () => {
+      // Arrange
+      process.env.HASH_KEY = 'test-hash-key';
+      await UserModel.create(mockUser);
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'new-sscl-log',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+
+      const incomingData = {
+        ...mockIncomingData,
+        rcExtensionId: 'rc-ext-1'
+      };
+
+      // Act
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: true
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      const savedLog = await CallLogModel.findOne({
+        where: {
+          sessionId: 'session-123',
+          hashedExtensionId: getHashValue('rc-ext-1', 'test-hash-key')
+        }
+      });
+      expect(savedLog).not.toBeNull();
+      expect(savedLog.thirdPartyLogId).toBe('new-sscl-log');
     });
 
     test('should return warning when user not found', async () => {
@@ -614,6 +691,43 @@ describe('Log Handler', () => {
         sessionId: 'session-1',
         matched: true,
         logId: 'log-102'
+      }]);
+    });
+
+    test('should match SSCL log by hashedExtensionId when extensionNumber differs', async () => {
+      // Arrange
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token'
+      });
+
+      await CallLogModel.create({
+        id: 'call-1',
+        sessionId: 'session-1',
+        extensionNumber: '',
+        hashedExtensionId: 'hashed-ext-1',
+        platform: 'testCRM',
+        thirdPartyLogId: 'sscl-log',
+        userId: 'test-user-id'
+      });
+
+      // Act
+      const result = await logHandler.getCallLog({
+        userId: 'test-user-id',
+        sessionIds: 'session-1',
+        extensionNumber: '101',
+        hashedExtensionId: 'hashed-ext-1',
+        platform: 'testCRM',
+        requireDetails: false
+      });
+
+      // Assert
+      expect(result.successful).toBe(true);
+      expect(result.logs).toEqual([{
+        sessionId: 'session-1',
+        matched: true,
+        logId: 'sscl-log'
       }]);
     });
 

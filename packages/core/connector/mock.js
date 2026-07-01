@@ -27,19 +27,21 @@ async function deleteUser() {
     return false;
 }
 
-async function getCallLog({ sessionIds, extensionNumber }) {
+async function getCallLog({ sessionIds, extensionNumber, hashedExtensionId }) {
     const sessionIdsArray = sessionIds.split(',');
     const extensionNumberValue = extensionNumber?.toString() ?? '';
+    const hashedExtensionIdValue = hashedExtensionId?.toString() ?? '';
     const callLogs = await CallLogModel.findAll({
         where: buildCallLogSessionWhere({
             sessionIds: sessionIdsArray,
             extensionNumber: extensionNumberValue,
+            hashedExtensionId: hashedExtensionIdValue,
         }),
-        order: [['extensionNumber', 'ASC']]
+        order: [['hashedExtensionId', 'ASC'], ['extensionNumber', 'ASC']]
     });
     const logs = [];
     for (const sId of sessionIdsArray) {
-        const callLog = findMatchingCallLog(callLogs, sId, extensionNumberValue);
+        const callLog = findMatchingCallLog(callLogs, sId, extensionNumberValue, hashedExtensionIdValue);
         if (!callLog) {
             logs.push({ sessionId: sId, matched: false });
         }
@@ -51,12 +53,14 @@ async function getCallLog({ sessionIds, extensionNumber }) {
     return logs;
 }
 
-async function createCallLog({ sessionId, extensionNumber }) {
+async function createCallLog({ sessionId, extensionNumber, hashedExtensionId }) {
     const extensionNumberValue = extensionNumber?.toString() ?? '';
+    const hashedExtensionIdValue = hashedExtensionId?.toString() ?? '';
     let callLog = await CallLogModel.findOne({
         where: buildCallLogSessionWhere({
             sessionId,
             extensionNumber: extensionNumberValue,
+            hashedExtensionId: hashedExtensionIdValue,
         })
     });
     if (!callLog) {
@@ -64,6 +68,7 @@ async function createCallLog({ sessionId, extensionNumber }) {
             id: shortid.generate(),
             sessionId,
             extensionNumber: extensionNumberValue,
+            hashedExtensionId: hashedExtensionIdValue,
             userId: 'mockUser'
         });
     }

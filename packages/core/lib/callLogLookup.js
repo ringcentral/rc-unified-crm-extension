@@ -1,10 +1,39 @@
 const Op = require('sequelize').Op;
+const { getHashValue } = require('./util');
 
-function getCallLogExtensionNumber(incomingData) {
-    return (incomingData?.extensionNumber ?? incomingData?.logInfo?.extensionNumber)?.toString() ?? '';
+function stringOrEmpty(value) {
+    return value == null ? '' : value.toString();
 }
 
-function buildCallLogSessionWhere({ sessionId, sessionIds, extensionNumber }) {
+function getCallLogExtensionNumber(incomingData) {
+    return stringOrEmpty(incomingData?.extensionNumber ?? incomingData?.logInfo?.extensionNumber);
+}
+
+function getCallLogHashedExtensionId(incomingData, hashKey = process.env.HASH_KEY) {
+    const hashedExtensionId = incomingData?.hashedExtensionId ?? incomingData?.logInfo?.hashedExtensionId;
+    if (hashedExtensionId) {
+        return hashedExtensionId.toString();
+    }
+
+    const rcExtensionId = incomingData?.rcExtensionId ?? incomingData?.logInfo?.rcExtensionId;
+    if (rcExtensionId && hashKey) {
+        return getHashValue(rcExtensionId.toString(), hashKey);
+    }
+
+    return '';
+}
+
+function buildLegacyIdentityWhere(extensionNumberValue) {
+    return {
+        extensionNumber: extensionNumberValue,
+        [Op.or]: [
+            { hashedExtensionId: '' },
+            { hashedExtensionId: null },
+        ],
+    };
+}
+
+function buildCallLogSessionWhere({ sessionId, sessionIds, extensionNumber, hashedExtensionId }) {
     const where = {};
     if (sessionIds) {
         where.sessionId = {
@@ -14,21 +43,65 @@ function buildCallLogSessionWhere({ sessionId, sessionIds, extensionNumber }) {
     else {
         where.sessionId = sessionId;
     }
-    const extensionNumberValue = extensionNumber?.toString() ?? '';
-    if (extensionNumberValue) {
+
+    const extensionNumberValue = stringOrEmpty(extensionNumber);
+    const hashedExtensionIdValue = stringOrEmpty(hashedExtensionId);
+
+    if (hashedExtensionIdValue) {
+        const identityWhere = [
+            { hashedExtensionId: hashedExtensionIdValue },
+        ];
+        if (extensionNumberValue) {
+            identityWhere.push(buildLegacyIdentityWhere(extensionNumberValue));
+        }
+        identityWhere.push(buildLegacyIdentityWhere(''));
+        where[Op.or] = identityWhere;
+    }
+    else if (extensionNumberValue) {
         where.extensionNumber = extensionNumberValue;
     }
     return where;
 }
 
-function findMatchingCallLog(callLogs, sessionId, extensionNumber) {
-    const extensionNumberValue = extensionNumber?.toString() ?? '';
-    return callLogs.find(callLog => (
-        callLog.sessionId === sessionId &&
-        (!extensionNumberValue || (callLog.extensionNumber?.toString() ?? '') === extensionNumberValue)
+function hasEmptyHashedExtensionId(callLog) {
+    return !stringOrEmpty(callLog.hashedExtensionId);
+}
+
+function findMatchingCallLog(callLogs, sessionId, extensionNumber, hashedExtensionId) {
+    const extensionNumberValue = stringOrEmpty(extensionNumber);
+    const hashedExtensionIdValue = stringOrEmpty(hashedExtensionId);
+    const sessionLogs = callLogs.filter(callLog => callLog.sessionId === sessionId);
+
+    if (hashedExtensionIdValue) {
+        const exactHashedLog = sessionLogs.find(callLog => (
+            stringOrEmpty(callLog.hashedExtensionId) === hashedExtensionIdValue
+        ));
+        if (exactHashedLog) {
+            return exactHashedLog;
+        }
+
+        if (extensionNumberValue) {
+            const legacyExtensionLog = sessionLogs.find(callLog => (
+                hasEmptyHashedExtensionId(callLog) &&
+                stringOrEmpty(callLog.extensionNumber) === extensionNumberValue
+            ));
+            if (legacyExtensionLog) {
+                return legacyExtensionLog;
+            }
+        }
+
+        return sessionLogs.find(callLog => (
+            hasEmptyHashedExtensionId(callLog) &&
+            !stringOrEmpty(callLog.extensionNumber)
+        ));
+    }
+
+    return sessionLogs.find(callLog => (
+        !extensionNumberValue || stringOrEmpty(callLog.extensionNumber) === extensionNumberValue
     ));
 }
 
 exports.getCallLogExtensionNumber = getCallLogExtensionNumber;
+exports.getCallLogHashedExtensionId = getCallLogHashedExtensionId;
 exports.buildCallLogSessionWhere = buildCallLogSessionWhere;
 exports.findMatchingCallLog = findMatchingCallLog;
