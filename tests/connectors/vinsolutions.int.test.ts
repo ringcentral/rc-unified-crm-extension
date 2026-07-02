@@ -23,7 +23,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
 describe('VinSolutions Connector', () => {
-    const apiBase = 'https://api.vinsolutions.com';
+    const apiBase = 'https://integration.api.vinsolutions.com';
     const tokenUri = 'https://authentication.vinsolutions.com';
     const accessToken = 'test-bearer-token';
     const connectedSentinel = 'vinsolutions-connected';
@@ -183,7 +183,11 @@ describe('VinSolutions Connector', () => {
                 .matchHeader('api_key', 'lead-api-key')
                 .matchHeader('accept', 'application/vnd.coxauto.v3+json')
                 .reply(200, {
-                    results: [{ leadId: 9001, leadStatus: 'ACTIVE_NEW_LEAD' }]
+                    items: [{
+                        leadId: 9001,
+                        leadStatus: 'ACTIVE_NEW_LEAD',
+                        leadSource: { leadSourceName: 'Internet' }
+                    }]
                 });
 
             const result = await vinsolutions.findContact({
@@ -388,6 +392,97 @@ describe('VinSolutions Connector', () => {
 
             expect(result.returnMessage.messageType).toBe('success');
             expect(result.updatedNote).toBe('Updated notes');
+        });
+    });
+
+    describe('createMessageLog', () => {
+        it('should require a lead selection', async () => {
+            const result = await vinsolutions.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
+                authHeader,
+                message: {
+                    id: 'msg-1',
+                    subject: 'Hello there',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: {}
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.message).toContain('Select a lead');
+        });
+
+        it('should write SMS notes to the selected lead', async () => {
+            nock(apiBase)
+                .put('/leads/id/9001', (body) => (
+                    body.isHot === false
+                    && body.coBuyerContact === null
+                    && body.trades === null
+                    && body.vehiclesOfInterest === null
+                    && typeof body.notes === 'string'
+                    && body.notes.includes('SMS conversation with Jane Buyer')
+                    && body.notes.includes('Hello there')
+                ))
+                .matchHeader('api_key', 'lead-api-key')
+                .matchHeader('content-type', 'application/vnd.coxauto.v3+json')
+                .reply(200, {});
+
+            const result = await vinsolutions.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
+                authHeader,
+                message: {
+                    id: 'msg-1',
+                    subject: 'Hello there',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: { leads: 9001 }
+            });
+
+            expect(result.logId).toBe('9001');
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+    });
+
+    describe('updateMessageLog', () => {
+        it('should append a new SMS entry to the lead notes', async () => {
+            nock(apiBase)
+                .get('/leads/id/9001')
+                .query({ dealerId: 2002, userId: 1001 })
+                .matchHeader('api_key', 'lead-api-key')
+                .matchHeader('accept', 'application/vnd.coxauto.v3+json')
+                .reply(200, {
+                    leadId: 9001,
+                    notes: 'Existing SMS note'
+                });
+
+            nock(apiBase)
+                .put('/leads/id/9001', (body) => (
+                    body.notes.includes('Existing SMS note')
+                    && body.notes.includes('Follow up message')
+                ))
+                .matchHeader('api_key', 'lead-api-key')
+                .matchHeader('content-type', 'application/vnd.coxauto.v3+json')
+                .reply(200, {});
+
+            const result = await vinsolutions.updateMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
+                existingMessageLog: { thirdPartyLogId: '9001' },
+                authHeader,
+                message: {
+                    id: 'msg-2',
+                    subject: 'Follow up message',
+                    direction: 'Inbound',
+                    creationTime: new Date('2026-07-02T21:00:00Z')
+                },
+                additionalSubmission: { leads: 9001 }
+            });
+
+            expect(result.returnMessage).toBeUndefined();
         });
     });
 

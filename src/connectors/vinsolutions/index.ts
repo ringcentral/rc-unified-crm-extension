@@ -12,7 +12,7 @@ const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packag
 const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
 
-const API_BASE_URL = 'https://api.vinsolutions.com';
+const API_BASE_URL = process.env.VINSOLUTIONS_API_BASE_URL || 'https://integration.api.vinsolutions.com';
 const VINSOLUTIONS_TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
 const DEFAULT_SCOPE = 'PublicAPI';
 const GATEWAY_JSON = 'application/json';
@@ -323,6 +323,24 @@ function buildPhoneSearchValues(phoneNumber, overridingFormat) {
     return [...values].filter(Boolean);
 }
 
+function formatLeadOptions(items) {
+    return (items || []).map((lead) => {
+        const sourceName = lead.leadSource?.leadSourceName;
+        const status = lead.leadStatus || lead.leadStatusType;
+        let title = `Lead #${lead.leadId}`;
+        if (status) {
+            title += ` (${status})`;
+        }
+        if (sourceName) {
+            title += ` - ${sourceName}`;
+        }
+        return {
+            const: lead.leadId,
+            title
+        };
+    });
+}
+
 async function fetchActiveLeadsForContact({ user, contactId }) {
     const { dealerId, userId } = getDealerContext(user);
     try {
@@ -333,14 +351,11 @@ async function fetchActiveLeadsForContact({ user, contactId }) {
                 dealerId,
                 userId,
                 contactId,
-                leadStatusType: 'ACTIVE'
+                limit: 100
             }
         });
-        const leads = response.data?.results || [];
-        return leads.map((lead) => ({
-            const: lead.leadId,
-            title: `Lead #${lead.leadId}${lead.leadStatus ? ` (${lead.leadStatus})` : ''}`
-        }));
+        const items = response.data?.items ?? response.data?.results ?? [];
+        return formatLeadOptions(items);
     }
     catch (error) {
         logger.error('VinSolutions lead lookup failed', {
@@ -813,8 +828,6 @@ async function createCallLog({
             }
         };
 
-        console.log('postBody is', postBody);
-
         const response = await axios.post(`${API_BASE_URL}/calldetails`, postBody, { headers });
         const logId = extractCallDetailId(response.headers);
 
@@ -861,8 +874,6 @@ async function getCallLog({ user, callLogId, contactId }) {
             providerName: getProviderName()
         }
     });
-
-    console.log('getLogRes call details', getLogRes.data);
 
     const callDetail = getLogRes.data || {};
     const fullBody = callDetail.transcriptFull || callDetail.transcriptShort || '';
@@ -989,6 +1000,127 @@ async function updateCallLog({
     }
 }
 
+async function createMessageLog({
+    user,
+    contactInfo,
+    correspondents,
+    sharedSMSLogContent,
+    message,
+    additionalSubmission,
+    recordingLink,
+    faxDocLink
+}) {
+    try {
+        const leadId = additionalSubmission?.leads ? Number(additionalSubmission.leads) : null;
+        if (!leadId) {
+            return {
+                logId: null,
+                returnMessage: {
+                    message: 'Select a lead to log SMS messages in VinSolutions.',
+                    messageType: 'warning',
+                    ttl: 5000
+                }
+            };
+        }
+
+        let notes;
+        if (sharedSMSLogContent?.body) {
+            notes = sharedSMSLogContent.body;
+        }
+        else {
+            notes = composeMessageNote({
+                user,
+                contactInfo,
+                correspondents,
+                message,
+                recordingLink,
+                faxDocLink,
+                messageCount: 1
+            });
+        }
+
+        await putLeadNotes({ user, leadId, notes });
+
+        return {
+            logId: String(leadId),
+            returnMessage: {
+                message: 'Message logged to VinSolutions lead.',
+                messageType: 'success',
+                ttl: 2000
+            }
+        };
+    }
+    catch (error) {
+        logger.error('VinSolutions createMessageLog failed', { stack: error.stack, errorResponse: error.response?.data });
+        return {
+            logId: null,
+            returnMessage: {
+                message: 'Failed to log message in VinSolutions. Verify the selected lead and dealer enablement.',
+                messageType: 'error',
+                ttl: 5000
+            }
+        };
+    }
+}
+
+async function updateMessageLog({
+    user,
+    contactInfo,
+    correspondents,
+    sharedSMSLogContent,
+    existingMessageLog,
+    message,
+    additionalSubmission,
+    recordingLink,
+    faxDocLink
+}) {
+    try {
+        const leadId = Number(existingMessageLog?.thirdPartyLogId || additionalSubmission?.leads);
+        if (!leadId) {
+            return {
+                returnMessage: {
+                    message: 'Lead ID not found for message log update.',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
+        }
+
+        if (sharedSMSLogContent?.body) {
+            await putLeadNotes({ user, leadId, notes: sharedSMSLogContent.body });
+            return {};
+        }
+
+        const lead = await fetchLeadById({ user, leadId });
+        const existingNotes = lead?.notes || '';
+        const newEntry = formatSingleMessageEntry({ user, contactInfo, message });
+        const updatedNotes = existingNotes
+            ? `${existingNotes}\n\n${newEntry}\n\n--- Updated via RingCentral App Connect`
+            : composeMessageNote({
+                user,
+                contactInfo,
+                correspondents,
+                message,
+                recordingLink,
+                faxDocLink,
+                messageCount: 1
+            });
+
+        await putLeadNotes({ user, leadId, notes: updatedNotes });
+        return {};
+    }
+    catch (error) {
+        logger.error('VinSolutions updateMessageLog failed', { stack: error.stack, errorResponse: error.response?.data });
+        return {
+            returnMessage: {
+                message: 'Failed to update message log in VinSolutions.',
+                messageType: 'error',
+                ttl: 5000
+            }
+        };
+    }
+}
+
 exports.getAuthType = getAuthType;
 exports.getLogFormatType = getLogFormatType;
 exports.getBasicAuth = getBasicAuth;
@@ -1003,6 +1135,8 @@ exports.createContact = createContact;
 exports.createCallLog = createCallLog;
 exports.getCallLog = getCallLog;
 exports.updateCallLog = updateCallLog;
+exports.createMessageLog = createMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getUserList = getUserList;
 
 export {};
