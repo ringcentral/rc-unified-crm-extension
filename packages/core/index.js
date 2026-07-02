@@ -1043,7 +1043,7 @@ function createCoreRouter() {
             if (jwtToken) {
                 const unAuthData = jwt.decodeJwt(jwtToken);
                 platformName = unAuthData?.platform ?? 'Unknown';
-                if(!unAuthData || !unAuthData?.id) {
+                if (!unAuthData || !unAuthData?.id) {
                     tracer?.trace('getUserSettings:noToken', {});
                     res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
                     return;
@@ -2763,7 +2763,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { pluginId, rcAccountId, pluginAccess, pluginName } = req.body || {};
+            const { pluginId, rcAccountId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
             const rcAccessToken = req.query?.rcAccessToken;
             if (!pluginId || !rcAccountId) {
                 res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
@@ -2787,6 +2787,7 @@ function createCoreRouter() {
                 pluginId,
                 rcAccessToken,
                 rcAccountId: rcAccountId?.toString(),
+                ownerRcAccountId: ownerRcAccountId?.toString(),
                 pluginAccess,
                 pluginName,
             });

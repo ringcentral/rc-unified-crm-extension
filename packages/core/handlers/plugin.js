@@ -65,15 +65,15 @@ function getRefreshedJwtTokenFromHeaders({ headers }) {
     return headers['x-refreshed-jwt-token'] || headers['X-Refreshed-Jwt-Token'] || null;
 }
 
-async function resolvePluginManifest({ pluginId, pluginAccess, rcAccountId, pluginName }) {
+async function resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId, pluginName }) {
     const manifestFetchers = [];
     if (pluginAccess === 'public') {
         manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?type=plugin`);
     } else if (pluginAccess === 'private' || pluginAccess === 'shared') {
-        manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?access=internal&type=plugin&accountId=${rcAccountId}`);
+        manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?access=internal&type=plugin&accountId=${ownerRcAccountId}`);
     } else {
         manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?type=plugin`);
-        manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?access=internal&type=plugin&accountId=${rcAccountId}`);
+        manifestFetchers.push(`${PUBLIC_MANIFEST_BASE}/${pluginId}/manifest?access=internal&type=plugin&accountId=${ownerRcAccountId}`);
     }
 
     let pluginData = null;
@@ -139,8 +139,8 @@ async function persistPluginData({ rcAccountId, pluginId, jwtToken, pluginData =
     }
 }
 
-async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, pluginAccess, pluginName }) {
-    const { pluginManifest } = await resolvePluginManifest({ pluginId, pluginAccess, rcAccountId, pluginName });
+async function registerPluginAccount({ pluginId, rcAccessToken, rcAccountId, pluginAccess, pluginName, ownerRcAccountId }) {
+    const { pluginManifest } = await resolvePluginManifest({ pluginId, pluginAccess, ownerRcAccountId, pluginName });
     if (!pluginManifest?.endpointUrl) {
         throw new Error(`Plugin endpoint URL not found for ${pluginId}`);
     }
