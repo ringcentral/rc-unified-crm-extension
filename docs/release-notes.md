@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.7.36
+
+- New: Custom fields for call pop parameters
+- New: New option for auto log multi match resolver - Earliest created
+- Fix: Server-side logging call log id inconsistency
+
 ## 1.7.35
 
 - New: Can show RingCentral Account Id on support page
@@ -173,6 +179,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.35
+
+- Fix: Server-side logging call log id inconsistency
 
 ## 1.6.34
 

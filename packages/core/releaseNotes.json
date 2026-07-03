@@ -1,4 +1,20 @@
 {
+    "1.7.36": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Custom fields for call pop parameters"
+            },
+            {
+                "type": "New",
+                "description": "New option for auto log multi match resolver - Earliest created"
+            },
+            {
+                "type": "Fix",
+                "description": "Server-side logging call log id inconsistency"
+            }
+        ]
+    },
     "1.7.35": {
         "global": [
             {
