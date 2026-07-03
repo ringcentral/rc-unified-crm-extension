@@ -394,6 +394,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
@@ -404,6 +405,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE_MOBILE,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
@@ -414,6 +416,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.extraPhoneFieldNameValue,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Contact'
@@ -424,6 +427,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.PHONE,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'
@@ -434,6 +438,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.MOBILE,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'
@@ -444,6 +449,7 @@ function formatContact(rawContactInfo) {
                 name: `${rawContactInfo.FIRST_NAME ?? ""} ${rawContactInfo.LAST_NAME ?? ""}`,
                 phone: rawContactInfo.extraPhoneFieldNameValue,
                 title: rawContactInfo.TITLE,
+                createdDate: rawContactInfo.DATE_CREATED_UTC,
                 mostRecentActivityDate: rawContactInfo.LAST_ACTIVITY_DATE_UTC || rawContactInfo.DATE_UPDATED_UTC,
                 additionalInfo: rawContactInfo.additionalInfo,
                 type: 'Lead'

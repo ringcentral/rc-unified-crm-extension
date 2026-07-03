@@ -221,7 +221,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     const matchedContactInfo = [];
     for (const numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?query=${numberToQuery}&fields=type,id,name,updated_at`,
+            `https://${user.hostname}/api/v4/contacts.json?query=${numberToQuery}&fields=type,id,name,created_at,updated_at`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -275,6 +275,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     name: result.name,
                     phone: numberFromRc,
                     type: result.type,
+                    createdDate: result.created_at,
                     mostRecentActivityDate: result.updated_at,
                     additionalInfo: returnedMatters.length > 0 ?
                         {
@@ -316,7 +317,7 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
     Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
     It handles all variations without requiring the query to be split
     */
-    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_email_address,primary_phone_number`, {
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,created_at,updated_at,primary_email_address,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
     extraDataTracking = {
@@ -355,6 +356,8 @@ async function findContactWithName({ user, authHeader, name, appointment }) {
                 type: 'contact',
                 phone: result.primary_phone_number ?? "",
                 email: result.primary_email_address ?? "",
+                createdDate: result.created_at,
+                mostRecentActivityDate: result.updated_at,
                 additionalInfo: returnedMatters.length > 0 ?
                     {
                         matters: returnedMatters,

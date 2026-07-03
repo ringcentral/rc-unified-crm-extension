@@ -179,7 +179,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     user,
     authHeader
   });
-  const matchedContactInfo = mapFindContactResponse({ config: cfg, response });
+  const matchedContactInfo = mapFindContactResponse({ config: cfg, response, opName: 'findContact' });
   return {
     successful: true,
     matchedContactInfo,
@@ -225,7 +225,7 @@ async function findContactWithName({ user, authHeader, name, proxyConfig }) {
     user,
     authHeader
   });
-  const matchedContactInfo = mapFindContactResponse({ config: cfg, response });
+  const matchedContactInfo = mapFindContactResponse({ config: cfg, response, opName: 'findContactWithName' });
   return {
     successful: true,
     matchedContactInfo,

@@ -109,8 +109,8 @@ async function performRequest({ config, opName, inputs, user, authHeader }) {
   return response;
 }
 
-function mapFindContactResponse({ config, response }) {
-  const map = config.operations?.findContact?.responseMapping;
+function mapFindContactResponse({ config, response, opName = 'findContact' }) {
+  const map = config.operations?.[opName]?.responseMapping;
   if (!map) return [];
   const __ctx = { body: response.data };
   const list = getByPath(__ctx, map.listPath || 'body') || [];
@@ -123,6 +123,7 @@ function mapFindContactResponse({ config, response }) {
       type: getByPath(it, itemMap.typePath || 'type') || 'Contact',
       title: getByPath(it, itemMap.titlePath || 'title') || "",
       company: getByPath(it, itemMap.companyPath || 'company') || "",
+      createdDate: getByPath(it, itemMap.createdDatePath || 'createdDate') || undefined,
       mostRecentActivityDate: getByPath(it, itemMap.mostRecentActivityDatePath || 'mostRecentActivityDate') || undefined,
       additionalInfo: getByPath(it, itemMap.additionalInfoPath || 'additionalInfo') || null
     };

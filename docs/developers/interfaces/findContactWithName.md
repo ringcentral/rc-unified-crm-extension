@@ -44,6 +44,7 @@ return {
       type: 'Contact',
       phone: '+14155550100',
       email: 'jane@example.com',
+      createdDate: '2024-01-01T00:00:00Z',
       additionalInfo: null
     }
   ],

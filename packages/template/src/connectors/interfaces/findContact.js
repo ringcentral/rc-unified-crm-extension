@@ -40,6 +40,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     //                 name: result.name,
     //                 type: result.type,
     //                 phone: numberToQuery,
+    //                 createdDate: result.created_at,
+    //                 mostRecentActivityDate: result.updated_at,
     //                 additionalInfo: null
     //             })
     //         }

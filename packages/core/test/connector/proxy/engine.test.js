@@ -8,6 +8,7 @@ const {
   renderDeep,
   joinUrl,
   performRequest,
+  mapFindContactResponse,
 } = require('../../../connector/proxy/engine');
 
 describe('proxy engine utilities', () => {
@@ -120,6 +121,90 @@ describe('proxy engine utilities', () => {
 
     const args = axios.mock.calls[0][0];
     expect(args.headers.Authorization).toBe(`Basic ${Buffer.from('login-key').toString('base64')}`);
+  });
+
+  test('mapFindContactResponse maps contact created date', () => {
+    const config = {
+      operations: {
+        findContact: {
+          responseMapping: {
+            listPath: 'body.contacts',
+            item: {
+              idPath: 'id',
+              namePath: 'name',
+              createdDatePath: 'created_at',
+              mostRecentActivityDatePath: 'updated_at'
+            }
+          }
+        }
+      }
+    };
+    const response = {
+      data: {
+        contacts: [
+          {
+            id: 'c1',
+            name: 'Alice',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-02-01T00:00:00Z'
+          }
+        ]
+      }
+    };
+
+    expect(mapFindContactResponse({ config, response })).toEqual([
+      expect.objectContaining({
+        id: 'c1',
+        name: 'Alice',
+        createdDate: '2024-01-01T00:00:00Z',
+        mostRecentActivityDate: '2024-02-01T00:00:00Z'
+      })
+    ]);
+  });
+
+  test('mapFindContactResponse can map findContactWithName responses', () => {
+    const config = {
+      operations: {
+        findContact: {
+          responseMapping: {
+            listPath: 'body.phoneMatches',
+            item: {
+              idPath: 'id',
+              namePath: 'name'
+            }
+          }
+        },
+        findContactWithName: {
+          responseMapping: {
+            listPath: 'body.nameMatches',
+            item: {
+              idPath: 'personId',
+              namePath: 'displayName',
+              createdDatePath: 'created'
+            }
+          }
+        }
+      }
+    };
+    const response = {
+      data: {
+        nameMatches: [
+          {
+            personId: 'p1',
+            displayName: 'Jane Smith',
+            created: '2023-05-01T00:00:00Z'
+          }
+        ]
+      }
+    };
+
+    expect(mapFindContactResponse({ config, response, opName: 'findContactWithName' })).toEqual([
+      expect.objectContaining({
+        id: 'p1',
+        name: 'Jane Smith',
+        createdDate: '2023-05-01T00:00:00Z'
+      })
+    ]);
   });
 });
 

@@ -563,6 +563,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             name: result.name,
             phone: result.phone,
             type: 'Contact',
+            createdDate: result.dateAdded,
             mostRecentActivityDate: mostRecentDateForContact,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
@@ -587,6 +588,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             name: result.name,
             phone: result.phone,
             type: 'Candidate',
+            createdDate: result.dateAdded,
             mostRecentActivityDate: mostRecentDateForCandidate,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
@@ -611,6 +613,7 @@ async function findContact({ user, phoneNumber, isExtension, isForceRefreshAccou
             name: result.name,
             phone: result.phone,
             type: 'Lead',
+            createdDate: result.dateAdded,
             mostRecentActivityDate: mostRecentDateForLead,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
@@ -936,7 +939,7 @@ async function findContactWithName({ user, name }) {
     const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
     // Make single API call with combined query
     const contactSearchResponse = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone,status'`,
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone,status,dateAdded`,
         { query: `(${combinedQuery}) NOT status:"Archive"` },
         {
             headers: {
@@ -960,12 +963,13 @@ async function findContactWithName({ user, name }) {
             name: result.name,
             phone: result.phone,
             type: 'Contact',
+            createdDate: result.dateAdded,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
 
     const candidatePersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone,dateAdded`,
         {
             query: `(${combinedQuery}) NOT status:"Archived"`
         },
@@ -991,13 +995,14 @@ async function findContactWithName({ user, name }) {
             name: result.name,
             phone: result.phone,
             type: 'Candidate',
+            createdDate: result.dateAdded,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
 
     //Search Candidates
     const leadPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status,dateAdded`,
         {
             query: combinedQuery
         },
@@ -1023,6 +1028,7 @@ async function findContactWithName({ user, name }) {
             name: result.name,
             phone: result.phone,
             type: 'Lead',
+            createdDate: result.dateAdded,
             additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
         });
     }
