@@ -496,6 +496,53 @@ describe('Log Handler', () => {
       }
     });
 
+    test('should mark async plugin task failed when token sync URL is missing', async () => {
+      await UserModel.create(mockUser);
+      await AccountDataModel.create({
+        rcAccountId: mockUser.rcAccountId,
+        platformName: 'asyncPlugin',
+        dataKey: 'pluginData',
+        data: {
+          name: 'plugin.async',
+          supportedLogTypes: ['call'],
+          isAsync: true,
+          endpointUrl: 'https://plugins.example.com/plugin/asyncPlugin',
+          jwtToken: 'plugin-jwt-token'
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'new-log-async-failed',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      composeCallLog.mockReturnValue('Composed log details');
+
+      const result = await logHandler.createCallLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: mockIncomingData,
+        hashedAccountId: 'hashed-123',
+        isFromSSCL: false
+      });
+
+      expect(result.successful).toBe(true);
+      const cache = await CacheModel.findOne({
+        where: {
+          cacheKey: 'asyncPluginTask-asyncPlugin'
+        }
+      });
+      expect(cache).not.toBeNull();
+      expect(cache.status).toBe('failed');
+      expect(cache.data.message).toBe('Plugin token sync URL is not set');
+      expect(axios.post).not.toHaveBeenCalled();
+    });
+
     test('should successfully create call log with oauth auth', async () => {
       // Arrange
       const oauthUser = { ...mockUser };
@@ -1405,6 +1452,21 @@ describe('Log Handler', () => {
   });
 
   describe('handleAsyncPluginCallback', () => {
+    test('should return not found when callback task cache is missing', async () => {
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'missing-task',
+        body: {
+          successful: true,
+          note: 'Callback note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 404,
+        body: { successful: false, message: 'Async task not found' }
+      });
+    });
+
     test('should append callback note to call log and remove task cache on success', async () => {
       await UserModel.create({
         id: 'test-user-id',
@@ -1554,6 +1616,45 @@ describe('Log Handler', () => {
         body: { successful: false, message: 'Async task not found' }
       });
       expect(await CacheModel.findByPk('task-expired')).toBeNull();
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+    });
+
+    test('should mark task failed when callback cannot find the original call log', async () => {
+      await CacheModel.create({
+        id: 'task-missing-log',
+        status: 'pending',
+        userId: 'test-user-id',
+        cacheKey: 'asyncPluginTask-testPlugin',
+        expiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        data: {
+          pluginId: 'testPlugin',
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          sessionId: 'missing-session',
+          extensionNumber: '',
+          incomingData: {
+            logInfo: {
+              sessionId: 'missing-session'
+            }
+          }
+        }
+      });
+
+      const result = await logHandler.handleAsyncPluginCallback({
+        taskId: 'task-missing-log',
+        body: {
+          successful: true,
+          note: 'Callback note'
+        }
+      });
+
+      expect(result).toEqual({
+        statusCode: 500,
+        body: { successful: false, message: 'Call log not found for async plugin task' }
+      });
+      const cache = await CacheModel.findByPk('task-missing-log');
+      expect(cache.status).toBe('failed');
+      expect(cache.data.message).toBe('Call log not found for async plugin task');
       expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
     });
 
@@ -1744,4 +1845,3 @@ describe('Log Handler', () => {
     });
   });
 });
-

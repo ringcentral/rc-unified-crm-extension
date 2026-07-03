@@ -1074,6 +1074,547 @@ describe('Google Sheets Connector', () => {
         });
     });
 
+    // ==================== Additional Branch Coverage ====================
+    describe('Additional Branch Coverage', () => {
+        const mockContact = createMockContact({ id: '1', name: 'John Doe', phoneNumber: '+14155551234' });
+        const mockCallLogData = createMockCallLog();
+        const mockMessageData = createMockMessage();
+
+        const callLogHeaders = [
+            'ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time',
+            'Duration', 'Session Id', 'Direction', 'Incoming Phone Number', 'Outgoing Phone Number',
+            'Transcript', 'Smart summary', 'ACE Summary', 'ACE Transcript', 'ACE AI Score',
+            'ACE Bulleted Summary', 'ACE Link', 'Call Result', 'Call Recording'
+        ];
+        const messageLogHeaders = [
+            'ID', 'Sheet Id', 'Subject', 'Contact name', 'Message', 'Phone', 'Message Type', 'Message Time', 'Direction'
+        ];
+
+        function mockSpreadsheetWithSheet(sheetTitle) {
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}`)
+                .reply(200, {
+                    sheets: [
+                        { properties: { title: sheetTitle, sheetId: 1 } }
+                    ]
+                });
+        }
+
+        it('returns warning when contact sheet headers are invalid', async () => {
+            mockSpreadsheetWithSheet('Contacts');
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Contacts`)
+                .reply(200, {
+                    values: [
+                        ['Name', 'Phone Number'],
+                        ['John Doe', '+14155551234']
+                    ]
+                });
+
+            const result = await googleSheets.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Invalid Headers, First Row of Sheet should be ID,SheetId, ContactName, PhoneNumber');
+        });
+
+        it('returns warning when creating a contact without Contacts sheet', async () => {
+            mockSpreadsheetWithSheet('Call Logs');
+
+            const result = await googleSheets.createContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+14155551234',
+                newContactName: 'New Contact'
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Invalid SheetName');
+        });
+
+        it('adds missing call log columns and writes inbound ACE details', async () => {
+            const baseHeaders = ['ID', 'Sheet Id', 'Subject', 'Notes', 'Contact name', 'Phone', 'Start time', 'End time', 'Duration', 'Session Id', 'Direction'];
+            let updatedHeaders;
+            let appendedRow;
+
+            mockSpreadsheetWithSheet('Call Logs');
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        baseHeaders,
+                        ['1', spreadsheetId, 'Existing']
+                    ]
+                });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`)
+                .reply(200, { values: [baseHeaders] });
+
+            nock(sheetsApiUrl)
+                .put(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`, body => {
+                    updatedHeaders = body.values[0];
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updatedRows: 1 });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`)
+                .reply(200, { values: [callLogHeaders] });
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!A1:append`, body => {
+                    appendedRow = body.values[0];
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            const result = await googleSheets.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: {
+                    ...mockCallLogData,
+                    direction: 'Inbound',
+                    from: { phoneNumber: '+14155550001' },
+                    to: { phoneNumber: '+14155550002' }
+                },
+                note: 'Detailed note',
+                additionalSubmission: null,
+                aiNote: 'AI summary',
+                transcript: 'Transcript text',
+                ringSenseTranscript: 'ACE transcript',
+                ringSenseSummary: 'ACE summary',
+                ringSenseAIScore: '95',
+                ringSenseBulletedSummary: 'ACE bullets',
+                ringSenseLink: 'https://aces.example.com/1'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(updatedHeaders).toEqual(expect.arrayContaining(['Incoming Phone Number', 'ACE Link']));
+            expect(appendedRow[callLogHeaders.indexOf('Incoming Phone Number')]).toBe('+14155550002');
+            expect(appendedRow[callLogHeaders.indexOf('Outgoing Phone Number')]).toBe('+14155550001');
+            expect(appendedRow[callLogHeaders.indexOf('ACE Transcript')]).toBe('ACE transcript');
+            expect(appendedRow[callLogHeaders.indexOf('ACE Summary')]).toBe('ACE summary');
+            expect(appendedRow[callLogHeaders.indexOf('ACE AI Score')]).toBe('95');
+            expect(appendedRow[callLogHeaders.indexOf('ACE Bulleted Summary')]).toBe('ACE bullets');
+            expect(appendedRow[callLogHeaders.indexOf('ACE Link')]).toBe('https://aces.example.com/1');
+        });
+
+        it('returns warning when createCallLog append fails', async () => {
+            mockSpreadsheetWithSheet('Call Logs');
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, { values: [callLogHeaders] });
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`)
+                .reply(200, { values: [callLogHeaders] });
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!A1:append`)
+                .query({ valueInputOption: 'RAW' })
+                .replyWithError('append failed');
+
+            const result = await googleSheets.createCallLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: mockCallLogData,
+                note: 'Note',
+                additionalSubmission: null
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error logging call');
+        });
+
+        it('covers updateCallLog no sheet, invalid sheet, missing columns, ACE fields, and batch failure', async () => {
+            const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
+
+            const noSheetResult = await googleSheets.updateCallLog({
+                user: userWithoutSheet,
+                existingCallLog,
+                authHeader,
+                subject: 'Subject',
+                note: 'Note',
+                duration: 60,
+                result: 'Connected'
+            });
+            expect(noSheetResult.successful).toBe(false);
+            expect(noSheetResult.returnMessage.message).toBe('No sheet selected');
+
+            mockSpreadsheetWithSheet('Contacts');
+            const invalidSheetResult = await googleSheets.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                subject: 'Subject',
+                note: 'Note',
+                duration: 60,
+                result: 'Connected'
+            });
+            expect(invalidSheetResult.successful).toBe(false);
+            expect(invalidSheetResult.returnMessage.message).toBe('Invalid SheetName');
+
+            mockSpreadsheetWithSheet('Call Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Duration'],
+                        ['1', '10']
+                    ]
+                });
+            const missingColumnsResult = await googleSheets.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                subject: 'Subject',
+                note: 'Note',
+                duration: 60,
+                result: 'Connected'
+            });
+            expect(missingColumnsResult.returnMessage.message).toBe('Error logging out of GoogleSheet');
+
+            let updateRequestData;
+            mockSpreadsheetWithSheet('Call Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        callLogHeaders,
+                        ['1', spreadsheetId, 'Old subject', 'Old note', 'John Doe', '+14155551234', '', '', '10', 'session', 'Outbound', '', '', '', '', '', '', '', '', '', 'Connected', '']
+                    ]
+                });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, body => {
+                    updateRequestData = body.data;
+                    return true;
+                })
+                .reply(200, { responses: [] });
+            const aceResult = await googleSheets.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                recordingLink: 'https://recording.example.com/1',
+                subject: 'Updated subject',
+                note: 'Updated note',
+                duration: 120,
+                result: 'Voicemail',
+                aiNote: 'AI summary',
+                transcript: 'Transcript text',
+                ringSenseTranscript: 'ACE transcript',
+                ringSenseSummary: 'ACE summary',
+                ringSenseAIScore: '90',
+                ringSenseBulletedSummary: 'ACE bullets',
+                ringSenseLink: 'https://aces.example.com/2'
+            });
+            expect(aceResult.successful).toBe(true);
+            expect(updateRequestData.map(item => item.values[0][0])).toEqual(expect.arrayContaining([
+                'https://recording.example.com/1',
+                'Transcript text',
+                'AI summary',
+                'ACE transcript',
+                'ACE summary',
+                '90',
+                'ACE bullets',
+                'https://aces.example.com/2'
+            ]));
+
+            mockSpreadsheetWithSheet('Call Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        callLogHeaders,
+                        ['1', spreadsheetId, 'Old subject', 'Old note']
+                    ]
+                });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`)
+                .replyWithError('batch update failed');
+            const failureResult = await googleSheets.updateCallLog({
+                user: mockUser,
+                existingCallLog,
+                authHeader,
+                subject: 'Subject',
+                note: 'Note',
+                duration: 60,
+                result: 'Connected'
+            });
+            expect(failureResult.successful).toBe(false);
+            expect(failureResult.returnMessage.message).toBe('Error Updating call');
+        });
+
+        it('covers getCallLog no sheet, invalid sheet, and missing required columns', async () => {
+            const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
+
+            const noSheetResult = await googleSheets.getCallLog({
+                user: userWithoutSheet,
+                callLogId: '1',
+                authHeader
+            });
+            expect(noSheetResult.successful).toBe(false);
+            expect(noSheetResult.returnMessage.message).toBe('No sheet selected');
+
+            mockSpreadsheetWithSheet('Contacts');
+            const invalidSheetResult = await googleSheets.getCallLog({
+                user: mockUser,
+                callLogId: '1',
+                authHeader
+            });
+            expect(invalidSheetResult.successful).toBe(false);
+            expect(invalidSheetResult.returnMessage.message).toBe('Invalid SheetName');
+
+            mockSpreadsheetWithSheet('Call Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Duration'],
+                        ['1', '10']
+                    ]
+                });
+            const missingColumnsResult = await googleSheets.getCallLog({
+                user: mockUser,
+                callLogId: '1',
+                authHeader
+            });
+            expect(missingColumnsResult.returnMessage.message).toBe('Error logging out of GoogleSheet');
+        });
+
+        it('returns warning when Message Logs sheet creation fails', async () => {
+            mockSpreadsheetWithSheet('Contacts');
+
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}:batchUpdate`)
+                .replyWithError('create sheet failed');
+
+            const result = await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error creating Message Log Sheet');
+        });
+
+        it('creates shared SMS and correspondent message logs', async () => {
+            let sharedRow;
+            let correspondentRow;
+
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`, body => {
+                    sharedRow = body.values[0];
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            const sharedResult = await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                sharedSMSLogContent: {
+                    body: 'Shared conversation body',
+                    subject: 'Shared conversation subject',
+                    conversationCreatedDate: '2024-01-15T10:00:00Z'
+                },
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null
+            });
+            expect(sharedResult.successful).toBe(true);
+            expect(sharedRow[messageLogHeaders.indexOf('Subject')]).toBe('Shared conversation subject');
+            expect(sharedRow[messageLogHeaders.indexOf('Message')]).toBe('Shared conversation body');
+
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`, body => {
+                    correspondentRow = body.values[0];
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            const correspondentResult = await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                correspondents: [
+                    [{ name: 'Jane Smith' }],
+                    [{}]
+                ],
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null
+            });
+            expect(correspondentResult.successful).toBe(true);
+            expect(correspondentRow[messageLogHeaders.indexOf('Message')]).toContain('Jane Smith');
+            expect(correspondentRow[messageLogHeaders.indexOf('Message')]).toContain('Unknown');
+        });
+
+        it('returns warning when createMessageLog append fails', async () => {
+            mockSpreadsheetWithSheet('Message Logs');
+
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!1:1`)
+                .reply(200, { values: [messageLogHeaders] });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs!A1:append`)
+                .query({ valueInputOption: 'RAW' })
+                .replyWithError('append failed');
+
+            const result = await googleSheets.createMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error logging message');
+        });
+
+        it('covers updateMessageLog no sheet, invalid sheet, missing row, missing message column, shared SMS, and batch failure', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
+            const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
+
+            const noSheetResult = await googleSheets.updateMessageLog({
+                user: userWithoutSheet,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(noSheetResult.successful).toBe(false);
+            expect(noSheetResult.returnMessage.message).toBe('No sheet selected');
+
+            mockSpreadsheetWithSheet('Contacts');
+            const invalidSheetResult = await googleSheets.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(invalidSheetResult.successful).toBe(false);
+            expect(invalidSheetResult.returnMessage.message).toBe('Invalid SheetName');
+
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        messageLogHeaders,
+                        ['2', spreadsheetId, 'Subject', 'John Doe', 'Body']
+                    ]
+                });
+            const missingRowResult = await googleSheets.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(missingRowResult.successful).toBe(false);
+            expect(missingRowResult.returnMessage.message).toBe('Error while adding message');
+
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        ['ID', 'Subject'],
+                        ['1', 'Subject']
+                    ]
+                });
+            const missingMessageColumnResult = await googleSheets.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(missingMessageColumnResult.returnMessage.message).toBe('Error logging out of GoogleSheet');
+
+            let sharedUpdate;
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        messageLogHeaders,
+                        ['1', spreadsheetId, 'Subject', 'John Doe', 'Old body', '+14155551234', 'SMS', '2024-01-15', 'Inbound']
+                    ]
+                });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`, body => {
+                    sharedUpdate = body.data[0].values[0][0];
+                    return true;
+                })
+                .reply(200, { responses: [] });
+            const sharedResult = await googleSheets.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                sharedSMSLogContent: { body: 'Updated shared body' },
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(sharedResult.successful).toBe(true);
+            expect(sharedUpdate).toBe('Updated shared body');
+
+            mockSpreadsheetWithSheet('Message Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Message%20Logs`)
+                .reply(200, {
+                    values: [
+                        messageLogHeaders,
+                        ['1', spreadsheetId, 'Subject', 'John Doe', 'Body without markers', '+14155551234', 'SMS', '2024-01-15', 'Inbound']
+                    ]
+                });
+            const failureResult = await googleSheets.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+            expect(failureResult.successful).toBe(false);
+            expect(failureResult.returnMessage.message).toBe('Error updating message');
+        });
+    });
+
     // ==================== upsertCallDisposition ====================
     describe('upsertCallDisposition', () => {
         it('should return existing log ID', async () => {

@@ -20,6 +20,7 @@ jest.mock('@app-connect/core/models/adminConfigModel', () => ({
 }));
 
 const { UserModel } = require('@app-connect/core/models/userModel');
+const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
 describe('VinSolutions Connector', () => {
     const apiBase = 'https://api.vinsolutions.com';
@@ -441,6 +442,312 @@ describe('VinSolutions Connector', () => {
             expect(save).toHaveBeenCalled();
             expect(userRecord.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe(accessToken);
             expect(userRecord.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('call-tracking-token');
+        });
+    });
+
+    describe('additional branch coverage', () => {
+        it('should expose log format and oauth metadata', async () => {
+            expect(vinsolutions.getLogFormatType()).toBe('text/plain');
+
+            const info = await vinsolutions.getOauthInfo();
+
+            expect(info).toEqual({
+                clientId: 'lead-client-id',
+                clientSecret: 'lead-client-secret',
+                accessTokenUri: 'https://authentication.vinsolutions.com/connect/token'
+            });
+        });
+
+        it('should return the user unchanged when token refresh has nothing to do', async () => {
+            await expect(vinsolutions.checkAndRefreshAccessToken(null, null)).resolves.toBeNull();
+
+            const userWithoutTokens = {
+                platformAdditionalInfo: {},
+                save: jest.fn()
+            };
+            await expect(vinsolutions.checkAndRefreshAccessToken(null, userWithoutTokens)).resolves.toBe(userWithoutTokens);
+            expect(userWithoutTokens.save).not.toHaveBeenCalled();
+        });
+
+        it('should return null when token renewal fails', async () => {
+            const expiredUser = {
+                ...mockUser,
+                platformAdditionalInfo: {
+                    ...mockUser.platformAdditionalInfo,
+                    vinsLeadManagementAccessToken: accessToken,
+                    vinsLeadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString()
+                },
+                save: jest.fn()
+            };
+            nock(tokenUri)
+                .post('/connect/token')
+                .reply(500, { message: 'token unavailable' });
+
+            await expect(vinsolutions.checkAndRefreshAccessToken(null, expiredUser)).resolves.toBeNull();
+        });
+
+        it('should return a warning when getUserInfo cannot fetch tokens', async () => {
+            const result = await vinsolutions.getUserInfo({
+                additionalInfo: {
+                    dealerId: '2002',
+                    crmUserId: '1001'
+                }
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toContain('Could not connect to VinSolutions');
+        });
+
+        it('should return userInfo unchanged when postSaveUserInfo cannot find a user', async () => {
+            UserModel.findByPk.mockResolvedValue(null);
+            const userInfo = { id: 'missing-vinsolutions', platformAdditionalInfo: { dealerId: 2002 } };
+
+            await expect(vinsolutions.postSaveUserInfo({ userInfo })).resolves.toBe(userInfo);
+        });
+
+        it('should swallow save errors in postSaveUserInfo', async () => {
+            const userRecord = {
+                platformAdditionalInfo: {},
+                save: jest.fn().mockRejectedValue(new Error('database unavailable'))
+            };
+            UserModel.findByPk.mockResolvedValue(userRecord);
+
+            await expect(vinsolutions.postSaveUserInfo({
+                userInfo: {
+                    id: '1001-2002-vinsolutions',
+                    platformAdditionalInfo: { dealerId: 2002 }
+                }
+            })).resolves.toMatchObject({
+                id: '1001-2002-vinsolutions'
+            });
+            expect(userRecord.platformAdditionalInfo.dealerId).toBe(2002);
+        });
+
+        it('should clear all VinSolutions tokens on logout', async () => {
+            const result = await vinsolutions.unAuthorize({ user: mockUser });
+
+            expect(result.returnMessage.messageType).toBe('success');
+            expect(mockUser.accessToken).toBe('');
+            expect(mockUser.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe('');
+            expect(mockUser.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('');
+            expect(mockUser.save).toHaveBeenCalled();
+        });
+
+        it('should return no matches for extension lookup and warning on lookup failure', async () => {
+            await expect(vinsolutions.findContact({
+                user: mockUser,
+                phoneNumber: '101',
+                isExtension: 'true'
+            })).resolves.toEqual({ successful: false, matchedContactInfo: [] });
+
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query(true)
+                .reply(500, { message: 'lookup failed' });
+
+            const result = await vinsolutions.findContact({
+                user: mockUser,
+                phoneNumber: '+14155552671'
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Contact lookup failed in VinSolutions.');
+        });
+
+        it('should support overriding phone formats during contact lookup', async () => {
+            nock(apiBase)
+                .persist()
+                .get('/gateway/v1/contact')
+                .query(true)
+                .reply(200, []);
+
+            const result = await vinsolutions.findContact({
+                user: mockUser,
+                phoneNumber: '+14155552671',
+                overridingFormat: '###-###-####,(###) ###-####'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo).toEqual([
+                {
+                    id: 'createNewContact',
+                    name: 'Create new contact...',
+                    isNewContact: true
+                }
+            ]);
+        });
+
+        it('should find contacts by name and tolerate lead lookup failures', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query(true)
+                .reply(200, [
+                    {
+                        ContactId: 888,
+                        ContactInformation: {
+                            CompanyName: 'Acme Motors',
+                            Phones: [
+                                { PhoneType: 'Home', Number: '5550001111' }
+                            ]
+                        }
+                    }
+                ]);
+            nock(apiBase)
+                .get('/leads')
+                .query(true)
+                .reply(500, { message: 'lead lookup failed' });
+
+            const result = await vinsolutions.findContactWithName({
+                user: mockUser,
+                name: 'Acme Motors'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo).toEqual([
+                {
+                    id: 888,
+                    name: 'Acme Motors',
+                    phone: '5550001111',
+                    additionalInfo: null,
+                    type: 'contact'
+                }
+            ]);
+        });
+
+        it('should return warning when name lookup fails', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query(true)
+                .reply(500, { message: 'name lookup failed' });
+
+            const result = await vinsolutions.findContactWithName({
+                user: mockUser,
+                name: 'Jane Buyer'
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Name search failed in VinSolutions.');
+        });
+
+        it('should load user list and ignore users without email', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user')
+                .query({ dealerId: 2002 })
+                .reply(200, [
+                    { UserId: 1, FullName: 'Full Name', EmailAddress: 'full@example.com' },
+                    { UserId: 2, FirstName: 'Split', LastName: 'Name', EmailAddress: 'split@example.com' },
+                    { UserId: 3, FullName: 'No Email' }
+                ]);
+
+            await expect(vinsolutions.getUserList({ user: mockUser })).resolves.toEqual([
+                { id: 1, name: 'Full Name', email: 'full@example.com' },
+                { id: 2, name: 'Split Name', email: 'split@example.com' }
+            ]);
+        });
+
+        it('should return empty user list when VinSolutions user lookup fails', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user')
+                .query(true)
+                .reply(500, { message: 'tenant unavailable' });
+
+            await expect(vinsolutions.getUserList({ user: mockUser })).resolves.toEqual([]);
+        });
+
+        it('should map voicemail result and return error response on createCallLog failure', async () => {
+            nock(apiBase)
+                .post('/calldetails', body => body.callResult === 'LEFT_MESSAGE')
+                .reply(201, {}, { Location: `${apiBase}/calldetails/id/2468` });
+
+            const success = await vinsolutions.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                callLog: createMockCallLog({ result: 'Left voicemail', duration: 0 }),
+                composedLogDetails: 'Left a message',
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(success.logId).toBe('2468');
+
+            nock(apiBase)
+                .post('/calldetails')
+                .reply(403, { message: 'provider disabled' });
+
+            const failure = await vinsolutions.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                callLog: createMockCallLog({ result: 'Busy' }),
+                composedLogDetails: 'Could not connect',
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(failure.logId).toBeNull();
+            expect(failure.returnMessage.messageType).toBe('error');
+        });
+
+        it('should cover updateCallLog missing id, nothing to update, lead assignment, and failure', async () => {
+            await expect(vinsolutions.updateCallLog({
+                user: mockUser,
+                existingCallLog: {},
+                hashedAccountId: 'hash-1'
+            })).resolves.toMatchObject({
+                returnMessage: {
+                    message: 'Call log ID not found.',
+                    messageType: 'warning'
+                }
+            });
+
+            await expect(vinsolutions.updateCallLog({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '4321' },
+                hashedAccountId: 'hash-1'
+            })).resolves.toMatchObject({
+                returnMessage: {
+                    message: 'Nothing to update.',
+                    messageType: 'success'
+                }
+            });
+
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['ext-2'], crmUserId: 8080 }
+                ]
+            });
+            nock(apiBase)
+                .patch('/calldetails/id/4321', body => (
+                    body.vinProperties.userId === 8080
+                    && body.vinProperties.leadId === 9001
+                    && body.callDurationSeconds === 123
+                    && body.callResult === undefined
+                ))
+                .reply(204);
+
+            const assigned = await vinsolutions.updateCallLog({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '4321' },
+                duration: 123,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: 'ext-2',
+                    leads: 9001
+                },
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(assigned.returnMessage.messageType).toBe('success');
+
+            nock(apiBase)
+                .patch('/calldetails/id/5000')
+                .reply(500, { message: 'patch failed' });
+
+            const failed = await vinsolutions.updateCallLog({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '5000' },
+                duration: 10,
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(failed.returnMessage.messageType).toBe('error');
         });
     });
 });
