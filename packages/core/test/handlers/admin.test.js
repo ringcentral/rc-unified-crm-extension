@@ -29,6 +29,7 @@ const oauth = require('../../lib/oauth');
 const { RingCentral } = require('../../lib/ringcentral');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { sequelize } = require('../../models/sequelize');
+const { getHashValue } = require('../../lib/util');
 
 describe('Admin Handler', () => {
   beforeAll(async () => {
@@ -610,6 +611,349 @@ describe('Admin Handler', () => {
       // Assert
       expect(result).toHaveLength(1);
       expect(result[0].rcUser[0].extensionId).toBe('ext-existing');
+    });
+  });
+
+  describe('reports and mapping branch coverage', () => {
+    beforeEach(() => {
+      process.env.RINGCENTRAL_SERVER = 'https://platform.example.com';
+      process.env.RINGCENTRAL_CLIENT_ID = 'client-id';
+      process.env.RINGCENTRAL_CLIENT_SECRET = 'client-secret';
+      process.env.APP_SERVER = 'https://app.example.com';
+      process.env.HASH_KEY = 'hash-key';
+    });
+
+    afterEach(() => {
+      delete process.env.RINGCENTRAL_SERVER;
+      delete process.env.RINGCENTRAL_CLIENT_ID;
+      delete process.env.RINGCENTRAL_CLIENT_SECRET;
+      delete process.env.APP_SERVER;
+      delete process.env.HASH_KEY;
+    });
+
+    test('getAdminReport builds aggregation rows and skips unnamed records', async () => {
+      const hashedAccountId = getHashValue('account', process.env.HASH_KEY);
+      await AdminConfigModel.create({
+        id: hashedAccountId,
+        adminAccessToken: 'admin-token',
+        adminRefreshToken: 'refresh-token',
+        adminTokenExpiry: new Date(Date.now() + 60 * 60 * 1000)
+      });
+      const getCallsAggregationData = jest.fn().mockResolvedValue({
+        data: {
+          groupedBy: 'Users',
+          records: [
+            {},
+            {
+              info: { name: 'Agent 1' },
+              counters: {
+                callsByDirection: { values: { inbound: 2, outbound: 1 } },
+                callsByResponse: { values: { answered: 1 } }
+              },
+              timers: {
+                allCalls: { values: 90 }
+              }
+            },
+            {
+              info: { name: 'Agent 2' },
+              counters: {
+                callsByDirection: { values: { inbound: 0, outbound: 0 } },
+                callsByResponse: { values: { answered: 0 } }
+              },
+              timers: {
+                allCalls: { values: 0 }
+              }
+            }
+          ]
+        }
+      });
+      RingCentral.mockImplementation(() => ({
+        getCallsAggregationData
+      }));
+
+      const result = await adminHandler.getAdminReport({
+        rcAccountId: 'account',
+        timezone: 'UTC',
+        timeFrom: '2026-07-01T00:00:00Z',
+        timeTo: '2026-07-31T23:59:59Z',
+        groupBy: 'undefined'
+      });
+
+      expect(result.groupedBy).toBe('Users');
+      expect(result.itemKeys).toEqual(['Agent 1', 'Agent 2']);
+      expect(result.callLogStats[0]).toMatchObject({
+        name: 'Agent 1',
+        inboundCallCount: 2,
+        outboundCallCount: 1,
+        answeredCallCount: 1,
+        answeredCallPercentage: '50.00%',
+        totalTalkTime: '90.00',
+        averageTalkTime: '30.00'
+      });
+      expect(result.callLogStats[1]).toMatchObject({
+        name: 'Agent 2',
+        answeredCallPercentage: '0%',
+        totalTalkTime: 0,
+        averageTalkTime: 0
+      });
+      expect(getCallsAggregationData).toHaveBeenCalledWith(expect.objectContaining({
+        groupBy: 'Company'
+      }));
+    });
+
+    test('getUserReport builds call and SMS stats', async () => {
+      const hashedAccountId = getHashValue('account', process.env.HASH_KEY);
+      await AdminConfigModel.create({
+        id: hashedAccountId,
+        adminAccessToken: 'admin-token',
+        adminRefreshToken: 'refresh-token',
+        adminTokenExpiry: new Date(Date.now() + 60 * 60 * 1000)
+      });
+      RingCentral.mockImplementation(() => ({
+        getCallLogData: jest.fn().mockResolvedValue({
+          records: [
+            { direction: 'Inbound', result: 'Call connected', duration: 120 },
+            { direction: 'Inbound', result: 'Missed', duration: 0 },
+            { direction: 'Outbound', result: 'Accepted', duration: 60 }
+          ]
+        }),
+        getSMSData: jest.fn().mockResolvedValue({
+          records: [
+            { direction: 'Outbound' },
+            { direction: 'Inbound' },
+            { direction: 'Inbound' }
+          ]
+        })
+      }));
+
+      const result = await adminHandler.getUserReport({
+        rcAccountId: 'account',
+        rcExtensionId: '101',
+        timezone: 'UTC',
+        timeFrom: '2026-07-01T00:00:00Z',
+        timeTo: '2026-07-31T23:59:59Z'
+      });
+
+      expect(result).toEqual({
+        callLogStats: {
+          inboundCallCount: 2,
+          outboundCallCount: 1,
+          answeredCallCount: 1,
+          answeredCallPercentage: '50.00%',
+          totalTalkTime: 3,
+          averageTalkTime: 1
+        },
+        smsLogStats: {
+          smsSentCount: 1,
+          smsReceivedCount: 2
+        }
+      });
+    });
+
+    test('report helpers return empty data on missing env or provider errors', async () => {
+      delete process.env.RINGCENTRAL_SERVER;
+      await expect(adminHandler.getAdminReport({ rcAccountId: 'account' })).resolves.toEqual({
+        callLogStats: {}
+      });
+      await expect(adminHandler.getUserReport({ rcAccountId: 'account' })).resolves.toEqual({
+        callLogStats: {}
+      });
+
+      process.env.RINGCENTRAL_SERVER = 'https://platform.example.com';
+      const hashedAccountId = getHashValue('account', process.env.HASH_KEY);
+      await AdminConfigModel.create({
+        id: hashedAccountId,
+        adminAccessToken: 'admin-token',
+        adminRefreshToken: 'refresh-token',
+        adminTokenExpiry: new Date(Date.now() + 60 * 60 * 1000)
+      });
+      RingCentral.mockImplementation(() => ({
+        getCallsAggregationData: jest.fn().mockRejectedValue(new Error('aggregation failed')),
+        getCallLogData: jest.fn().mockRejectedValue(new Error('call log failed'))
+      }));
+
+      await expect(adminHandler.getAdminReport({ rcAccountId: 'account' })).resolves.toEqual({
+        callLogStats: {}
+      });
+      await expect(adminHandler.getUserReport({ rcAccountId: 'account', rcExtensionId: '101' })).resolves.toBeNull();
+    });
+
+    test('getUserMapping updates existing mappings, creates new matches, and handles oauth revocation', async () => {
+      await AdminConfigModel.create({
+        id: 'hashed-branch-mapping',
+        userMappings: [
+          { crmUserId: 'crm-user-1', rcExtensionId: 'ext-existing' }
+        ]
+      });
+      const user = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
+      const connector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn(() => 'encoded-key'),
+        getUserList: jest.fn().mockResolvedValue([
+          { id: 'crm-user-1', name: 'Existing User', email: 'existing@example.com' },
+          { id: 'crm-user-2', name: 'Jane Smith', email: 'jane@example.com' },
+          { id: 'crm-user-3', name: 'No Match', email: 'nomatch@example.com' }
+        ])
+      };
+      connectorRegistry.getConnector.mockReturnValue(connector);
+
+      const result = await adminHandler.getUserMapping({
+        user,
+        hashedRcAccountId: 'hashed-branch-mapping',
+        rcExtensionList: [
+          { id: 'ext-existing', name: 'Existing RC', email: 'existing@example.com', extensionNumber: '100' },
+          { id: 'ext-jane', firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', extensionNumber: '101' }
+        ]
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result[0].rcUser[0].extensionId).toBe('ext-existing');
+      expect(result[1].rcUser[0].extensionId).toBe('ext-jane');
+      expect(result[2].rcUser).toEqual([]);
+      const updatedConfig = await AdminConfigModel.findByPk('hashed-branch-mapping');
+      expect(updatedConfig.userMappings).toEqual(expect.arrayContaining([
+        expect.objectContaining({ crmUserId: 'crm-user-2', rcExtensionId: ['ext-jane'] })
+      ]));
+
+      connectorRegistry.getConnector.mockReturnValue({
+        getUserList: jest.fn(),
+        getAuthType: jest.fn().mockResolvedValue('oauth'),
+        getOauthInfo: jest.fn().mockResolvedValue({})
+      });
+      oauth.checkAndRefreshAccessToken.mockResolvedValueOnce(null);
+      await expect(adminHandler.getUserMapping({
+        user: {
+          platform: 'testCRM',
+          hostname: 'crm.example.com',
+          accessToken: 'expired-token',
+          platformAdditionalInfo: {}
+        },
+        hashedRcAccountId: 'hashed-branch-mapping',
+        rcExtensionList: []
+      })).resolves.toMatchObject({
+        successful: false,
+        isRevokeUserSession: true
+      });
+    });
+
+    test('getUserMapping initializes mappings when no admin config exists and reports database errors', async () => {
+      const user = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
+      connectorRegistry.getConnector.mockReturnValue({
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn(() => 'encoded-key'),
+        getUserList: jest.fn().mockResolvedValue([
+          { id: 'crm-user-10', name: 'Alex Agent', email: 'alex@example.com' }
+        ])
+      });
+
+      const result = await adminHandler.getUserMapping({
+        user,
+        hashedRcAccountId: 'hashed-new-mapping',
+        rcExtensionList: [
+          { id: 'ext-alex', firstName: 'Alex', lastName: 'Agent', email: 'alex@example.com', extensionNumber: '201' }
+        ]
+      });
+
+      expect(result[0].rcUser[0].extensionId).toBe('ext-alex');
+      const newConfig = await AdminConfigModel.findByPk('hashed-new-mapping');
+      expect(newConfig.userMappings).toEqual([
+        { crmUserId: 'crm-user-10', rcExtensionId: ['ext-alex'] }
+      ]);
+
+      jest.spyOn(AdminConfigModel, 'findByPk').mockRejectedValueOnce(new Error('read failed'));
+      const errorResult = await adminHandler.getUserMapping({
+        user,
+        hashedRcAccountId: 'hashed-error',
+        rcExtensionList: []
+      });
+      expect(errorResult.successful).toBe(false);
+      AdminConfigModel.findByPk.mockRestore();
+    });
+
+    test('reinitializeUserMapping handles missing capability, proxy limits, oauth revoke, apiKey remap, and update failure', async () => {
+      const baseUser = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
+
+      connectorRegistry.getConnector.mockReturnValueOnce({});
+      await expect(adminHandler.reinitializeUserMapping({
+        user: baseUser,
+        hashedRcAccountId: 'hashed-reinit',
+        rcExtensionList: []
+      })).resolves.toEqual([]);
+
+      connectorRegistry.getConnector.mockReturnValueOnce({ getUserList: jest.fn() });
+      Connector.getProxyConfig.mockResolvedValueOnce({ operations: {} });
+      await expect(adminHandler.reinitializeUserMapping({
+        user: {
+          ...baseUser,
+          platformAdditionalInfo: { proxyId: 'proxy-1' }
+        },
+        hashedRcAccountId: 'hashed-reinit',
+        rcExtensionList: []
+      })).resolves.toEqual([]);
+
+      connectorRegistry.getConnector.mockReturnValueOnce({
+        getUserList: jest.fn(),
+        getAuthType: jest.fn().mockResolvedValue('oauth'),
+        getOauthInfo: jest.fn().mockResolvedValue({})
+      });
+      oauth.checkAndRefreshAccessToken.mockResolvedValueOnce(null);
+      await expect(adminHandler.reinitializeUserMapping({
+        user: {
+          ...baseUser,
+          hostname: 'crm.example.com'
+        },
+        hashedRcAccountId: 'hashed-reinit',
+        rcExtensionList: []
+      })).resolves.toMatchObject({
+        successful: false,
+        isRevokeUserSession: true
+      });
+
+      connectorRegistry.getConnector.mockReturnValueOnce({
+        getUserList: jest.fn().mockResolvedValue([
+          { id: 'crm-user-20', name: 'Matched User', email: 'matched@example.com' },
+          { id: 'crm-user-21', name: 'Unmatched User', email: 'unmatched@example.com' }
+        ]),
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn(() => 'encoded-key')
+      });
+      const result = await adminHandler.reinitializeUserMapping({
+        user: baseUser,
+        hashedRcAccountId: 'hashed-reinit',
+        rcExtensionList: [
+          { id: 'ext-20', firstName: 'Matched', lastName: 'User', email: 'matched@example.com', extensionNumber: '301' }
+        ]
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result[0].rcUser[0].extensionId).toBe('ext-20');
+      expect(result[1].rcUser).toEqual([]);
+
+      connectorRegistry.getConnector.mockReturnValueOnce({
+        getUserList: jest.fn().mockResolvedValue([]),
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn(() => 'encoded-key')
+      });
+      jest.spyOn(AdminConfigModel, 'create').mockRejectedValueOnce(new Error('write failed'));
+      const failure = await adminHandler.reinitializeUserMapping({
+        user: baseUser,
+        hashedRcAccountId: 'hashed-reinit-fail',
+        rcExtensionList: []
+      });
+      expect(failure.successful).toBe(false);
+      AdminConfigModel.create.mockRestore();
     });
   });
 });

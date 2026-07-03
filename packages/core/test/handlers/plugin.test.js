@@ -16,6 +16,7 @@ const { CacheModel } = require('../../models/cacheModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
+const logger = require('../../lib/logger');
 
 describe('Plugin Handler', () => {
   beforeAll(async () => {
@@ -28,6 +29,7 @@ describe('Plugin Handler', () => {
     await CacheModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   afterAll(async () => {
@@ -107,6 +109,204 @@ describe('Plugin Handler', () => {
         pluginAccess: 'public',
         pluginName: 'plugin.sample'
       })).rejects.toThrow('Plugin register API did not return jwtToken');
+    });
+
+    test('should throw when resolved plugin manifest has no endpoint URL', async () => {
+      axios.get.mockResolvedValue({
+        data: {
+          platforms: {
+            'plugin.sample': {
+              userRegisterEndpointUrl: 'https://plugins.example.com/plugin/auth/register'
+            }
+          }
+        }
+      });
+
+      await expect(pluginHandler.registerPluginAccount({
+        pluginId: 'missing-endpoint',
+        rcAccessToken: 'rc-access-token',
+        rcAccountId: '12345',
+        pluginAccess: 'public',
+        pluginName: 'plugin.sample'
+      })).rejects.toThrow('Plugin endpoint URL not found for missing-endpoint');
+    });
+  });
+
+  describe('plugin data helpers', () => {
+    test('should list persisted plugin data for an RC account', async () => {
+      await AccountDataModel.bulkCreate([
+        {
+          rcAccountId: '12345',
+          platformName: 'plugin-one',
+          dataKey: 'pluginData',
+          data: { endpointUrl: 'https://plugin-one.example.com' }
+        },
+        {
+          rcAccountId: '12345',
+          platformName: 'plugin-two',
+          dataKey: 'pluginData',
+          data: { endpointUrl: 'https://plugin-two.example.com' }
+        },
+        {
+          rcAccountId: '12345',
+          platformName: 'not-plugin',
+          dataKey: 'otherData',
+          data: { ignored: true }
+        }
+      ]);
+
+      await expect(pluginHandler.getPluginsFromRcAccountId({ rcAccountId: '12345' }))
+        .resolves.toEqual([
+          { id: 'plugin-one', data: { endpointUrl: 'https://plugin-one.example.com' } },
+          { id: 'plugin-two', data: { endpointUrl: 'https://plugin-two.example.com' } }
+        ]);
+    });
+
+    test('should resolve plugin config from user settings and return null for missing config', () => {
+      expect(pluginHandler.getPluginConfigFromUserSettings({
+        userSettings: null,
+        pluginId: 'plugin-one'
+      })).toBeNull();
+      expect(pluginHandler.getPluginConfigFromUserSettings({
+        userSettings: {
+          'plugin_plugin-one': {
+            value: {}
+          }
+        },
+        pluginId: 'plugin-one'
+      })).toBeNull();
+      expect(pluginHandler.getPluginConfigFromUserSettings({
+        userSettings: {
+          'plugin_plugin-one': {
+            value: {
+              config: {
+                queueId: 'q-1'
+              }
+            }
+          }
+        },
+        pluginId: 'plugin-one'
+      })).toEqual({ queueId: 'q-1' });
+    });
+
+    test('should update existing plugin data and log persist failures without throwing', async () => {
+      await AccountDataModel.create({
+        rcAccountId: '12345',
+        platformName: 'plugin-one',
+        dataKey: 'pluginData',
+        data: {
+          jwtToken: 'old-token',
+          endpointUrl: 'https://old.example.com'
+        }
+      });
+
+      await pluginHandler.persistPluginData({
+        rcAccountId: '12345',
+        pluginId: 'plugin-one',
+        jwtToken: 'new-token',
+        pluginData: {
+          endpointUrl: 'https://new.example.com'
+        }
+      });
+
+      const updated = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: '12345',
+          platformName: 'plugin-one'
+        }
+      });
+      expect(updated.data).toEqual({
+        jwtToken: 'new-token',
+        endpointUrl: 'https://new.example.com'
+      });
+
+      const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+      jest.spyOn(AccountDataModel, 'findOne').mockRejectedValueOnce(new Error('db unavailable'));
+      await expect(pluginHandler.persistPluginData({
+        rcAccountId: '12345',
+        pluginId: 'plugin-one',
+        jwtToken: 'ignored'
+      })).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledWith('Failed to persist plugin data', {
+        pluginId: 'plugin-one',
+        rcAccountId: '12345',
+        message: 'db unavailable'
+      });
+    });
+  });
+
+  describe('resolvePluginManifest', () => {
+    test('should load private manifests with owner account id and infer the platform key', async () => {
+      axios.get.mockResolvedValue({
+        data: {
+          platforms: {
+            'plugin.private': {
+              endpointUrl: 'https://plugins.example.com/private',
+              userRegisterEndpointUrl: 'https://plugins.example.com/private/register'
+            }
+          }
+        }
+      });
+
+      const result = await pluginHandler.resolvePluginManifest({
+        pluginId: 'private-plugin',
+        pluginAccess: 'private',
+        ownerRcAccountId: 'owner-account'
+      });
+
+      expect(axios.get).toHaveBeenCalledWith(
+        'https://appconnect.labs.ringcentral.com/public-api/connectors/private-plugin/manifest?access=internal&type=plugin&accountId=owner-account'
+      );
+      expect(result.platformKey).toBe('plugin.private');
+      expect(result.pluginManifest.endpointUrl).toBe('https://plugins.example.com/private');
+    });
+
+    test('should fall back from public to internal manifest when access is unspecified', async () => {
+      axios.get
+        .mockRejectedValueOnce(new Error('public missing'))
+        .mockResolvedValueOnce({
+          data: {
+            platforms: {
+              'plugin.shared': {
+                endpointUrl: 'https://plugins.example.com/shared'
+              }
+            }
+          }
+        });
+
+      const result = await pluginHandler.resolvePluginManifest({
+        pluginId: 'shared-plugin',
+        ownerRcAccountId: 'owner-account'
+      });
+
+      expect(axios.get).toHaveBeenCalledTimes(2);
+      expect(axios.get.mock.calls[0][0]).toBe(
+        'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-plugin/manifest?type=plugin'
+      );
+      expect(axios.get.mock.calls[1][0]).toBe(
+        'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-plugin/manifest?access=internal&type=plugin&accountId=owner-account'
+      );
+      expect(result.platformKey).toBe('plugin.shared');
+    });
+
+    test('should throw the last manifest fetch error or platform resolution error', async () => {
+      axios.get.mockRejectedValueOnce(new Error('manifest unavailable'));
+
+      await expect(pluginHandler.resolvePluginManifest({
+        pluginId: 'missing-plugin',
+        pluginAccess: 'public'
+      })).rejects.toThrow('manifest unavailable');
+
+      axios.get.mockResolvedValueOnce({
+        data: {
+          platforms: {}
+        }
+      });
+      await expect(pluginHandler.resolvePluginManifest({
+        pluginId: 'empty-plugin',
+        pluginAccess: 'public',
+        pluginName: 'plugin.missing'
+      })).rejects.toThrow('Unable to resolve platform manifest for plugin empty-plugin');
     });
   });
 
@@ -214,6 +414,15 @@ describe('Plugin Handler', () => {
         }
       });
       expect(token).toBe('new-plugin-token');
+    });
+
+    test('should parse uppercase refreshed jwt token header and return null without headers', () => {
+      expect(pluginHandler.getRefreshedJwtTokenFromHeaders({ headers: null })).toBeNull();
+      expect(pluginHandler.getRefreshedJwtTokenFromHeaders({
+        headers: {
+          'X-Refreshed-Jwt-Token': 'upper-token'
+        }
+      })).toBe('upper-token');
     });
   });
 });
