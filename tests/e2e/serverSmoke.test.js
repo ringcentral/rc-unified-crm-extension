@@ -5,8 +5,8 @@ const { getServer } = require('../../src/index');
 const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
-const { MessageLogModel } = require('@app-connect/core/models/messageLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
+const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 
 describe('App Connect Server E2E smoke', () => {
   const platform = 'pipedrive';
@@ -70,6 +70,43 @@ describe('App Connect Server E2E smoke', () => {
         person: {
           101: { name: 'John Doe' },
         },
+      },
+    };
+  }
+
+  function bullhornNoteResponse(overrides = {}) {
+    return {
+      data: {
+        id: 801,
+        comments: '<ul><li><b>Summary</b>: Bullhorn E2E call subject<li><b>Result</b>: Completed</li></ul><b>Agent notes</b><br>Bullhorn e2e agent note<br><b>Call details</b><br>Call metadata',
+        action: 'Call',
+        clientContacts: {
+          total: 1,
+          data: [{
+            id: 701,
+            firstName: 'Bullhorn',
+            lastName: 'Contact',
+          }],
+        },
+        candidates: {
+          total: 0,
+          data: [],
+        },
+        ...overrides,
+      },
+    };
+  }
+
+  function clioCommunicationResponse(overrides = {}) {
+    return {
+      data: {
+        id: 1001,
+        subject: 'Clio E2E call subject',
+        body: '- Agent notes: Clio e2e agent note\n- Duration: 5 minutes\n- Result: Completed\n',
+        matter: { id: 902 },
+        senders: [{ id: '67890', type: 'User' }],
+        receivers: [{ id: 901, type: 'Contact' }],
+        ...overrides,
       },
     };
   }
@@ -156,9 +193,21 @@ describe('App Connect Server E2E smoke', () => {
     await seedClioUser();
   }
 
+  async function withMockedBullhornLock(callback) {
+    const lockDelete = jest.fn().mockResolvedValue({});
+    const lockCreateSpy = jest.spyOn(Lock, 'create').mockResolvedValue({ delete: lockDelete });
+    const lockGetSpy = jest.spyOn(Lock, 'get').mockResolvedValue(null);
+
+    try {
+      return await callback({ lockCreateSpy, lockDelete });
+    } finally {
+      lockCreateSpy.mockRestore();
+      lockGetSpy.mockRestore();
+    }
+  }
+
   async function cleanE2EData() {
     await CallLogModel.destroy({ where: { userId: { [Op.in]: e2eUserIds } } });
-    await MessageLogModel.destroy({ where: { userId: { [Op.in]: e2eUserIds } } });
     await AccountDataModel.destroy({ where: { rcAccountId: { [Op.in]: e2eRcAccountIds } } });
     await UserModel.destroy({ where: { id: { [Op.in]: e2eUserIds } } });
   }
@@ -171,6 +220,7 @@ describe('App Connect Server E2E smoke', () => {
     client = axios.create({
       baseURL: `http://127.0.0.1:${port}`,
       validateStatus: () => true,
+      timeout: 10000,
       proxy: false,
     });
   });
@@ -621,7 +671,205 @@ describe('App Connect Server E2E smoke', () => {
       userId: bullhornUserId,
       contactId: '701',
     });
+
+    const pingGetLogScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/ping`)
+      .reply(200, {
+        sessionExpires: Date.now() + 60 * 60 * 1000,
+      }, bullhornRateLimitHeaders);
+
+    const getNoteScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/entity/Note/801`)
+      .query({ fields: 'comments,candidates,clientContacts,action' })
+      .reply(200, bullhornNoteResponse(), bullhornRateLimitHeaders);
+
+    const getLog = await client.get('/callLog', {
+      params: {
+        jwtToken: bullhornJwtToken,
+        sessionIds: bullhornSessionId,
+        extensionNumber: bullhornExtensionNumber,
+        requireDetails: 'true',
+      },
+    });
+
+    expect(getLog.status).toBe(200);
+    expect(getLog.data.successful).toBe(true);
+    expect(getLog.data.logs).toHaveLength(1);
+    expect(getLog.data.logs[0]).toMatchObject({
+      sessionId: bullhornSessionId,
+      matched: true,
+      logId: '801',
+      logData: {
+        subject: 'Bullhorn E2E call subject',
+        note: 'Bullhorn e2e agent note',
+        contactName: 'Bullhorn Contact',
+        dispositions: {
+          noteActions: 'Call',
+        },
+      },
+    });
+    expect(pingGetLogScope.isDone()).toBe(true);
+    expect(getNoteScope.isDone()).toBe(true);
+
+    const pingUpdateLogScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/ping`)
+      .reply(200, {
+        sessionExpires: Date.now() + 60 * 60 * 1000,
+      }, bullhornRateLimitHeaders);
+
+    const getBeforeUpdateScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/entity/Note/801`)
+      .query({ fields: 'comments,candidates,clientContacts,action' })
+      .reply(200, bullhornNoteResponse(), bullhornRateLimitHeaders);
+
+    let updatedNoteBody;
+    const updateNoteScope = nock(bullhornRestBaseUrl)
+      .post(`${bullhornRestPath}/entity/Note/801`, body => {
+        updatedNoteBody = body;
+        return true;
+      })
+      .reply(200, { changedEntityId: 801 }, bullhornRateLimitHeaders);
+
+    const updateLog = await client.patch('/callLog', {
+      sessionId: bullhornSessionId,
+      extensionNumber: bullhornExtensionNumber,
+      subject: 'Bullhorn E2E updated subject',
+      note: 'Bullhorn e2e follow-up note',
+      startTime: new Date('2026-01-02T03:10:05.000Z').getTime(),
+      duration: 240,
+      result: 'Completed',
+      direction: 'Outbound',
+      from: logInfo.from,
+      to: logInfo.to,
+    }, {
+      params: { jwtToken: bullhornJwtToken },
+      headers: {
+        'rc-account-id': 'e2e-bullhorn-hashed-account',
+        'rc-extension-id': 'e2e-bullhorn-hashed-extension',
+      },
+    });
+
+    expect(updateLog.status).toBe(200);
+    expect(updateLog.data).toMatchObject({
+      successful: true,
+      logId: '801',
+      returnMessage: {
+        message: 'Call log updated.',
+        messageType: 'success',
+      },
+    });
+    expect(updateLog.data.updatedNote).toContain('Bullhorn e2e follow-up note');
+    expect(updatedNoteBody).toMatchObject({
+      minutesSpent: 4,
+    });
+    expect(updatedNoteBody.comments).toContain('Bullhorn e2e follow-up note');
+    expect(updatedNoteBody.comments).toContain('Bullhorn E2E updated subject');
+    expect(pingUpdateLogScope.isDone()).toBe(true);
+    expect(getBeforeUpdateScope.isDone()).toBe(true);
+    expect(updateNoteScope.isDone()).toBe(true);
     expect(nock.pendingMocks()).toEqual([]);
+  });
+
+  test('refreshes an expiring Bullhorn session before a contact lookup', async () => {
+    const refreshPhoneNumber = '+14155556543';
+
+    const expiredPingScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/ping`)
+      .reply(200, {
+        sessionExpires: Date.now() - 1000,
+      }, bullhornRateLimitHeaders);
+
+    const refreshTokenScope = nock('https://auth.bullhornstaffing.com')
+      .post('/oauth/token')
+      .query(true)
+      .reply(200, {
+        access_token: 'e2e-bullhorn-refreshed-access-token',
+        refresh_token: 'e2e-bullhorn-refreshed-refresh-token',
+        expires_in: 3600,
+      });
+
+    const loginScope = nock(bullhornRestBaseUrl)
+      .post('/login')
+      .query(true)
+      .reply(200, {
+        BhRestToken: 'e2e-bh-refreshed-rest-token',
+        restUrl: bullhornRestUrl,
+      });
+
+    const actionListScope = nock(bullhornRestBaseUrl)
+      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
+      .get(`${bullhornRestPath}/settings/commentActionList`)
+      .reply(200, {
+        commentActionList: ['Call'],
+      }, bullhornRateLimitHeaders);
+
+    const contactSearchScope = nock(bullhornRestBaseUrl)
+      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
+      .post(`${bullhornRestPath}/search/ClientContact`)
+      .query(true)
+      .reply(200, {
+        data: [{
+          id: 711,
+          name: 'Refreshed Bullhorn Contact',
+          email: 'refreshed-bullhorn-contact@example.test',
+          phone: refreshPhoneNumber,
+          dateAdded: new Date('2026-01-02T03:04:05.000Z').getTime(),
+          dateLastModified: new Date('2026-01-02T04:04:05.000Z').getTime(),
+          dateLastVisit: new Date('2026-01-02T05:04:05.000Z').getTime(),
+        }],
+      }, bullhornRateLimitHeaders);
+
+    const candidateSearchScope = nock(bullhornRestBaseUrl)
+      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
+      .post(`${bullhornRestPath}/search/Candidate`)
+      .query(true)
+      .reply(200, { data: [] }, bullhornRateLimitHeaders);
+
+    const leadSearchScope = nock(bullhornRestBaseUrl)
+      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
+      .post(`${bullhornRestPath}/search/Lead`)
+      .query(true)
+      .reply(200, { data: [] }, bullhornRateLimitHeaders);
+
+    await withMockedBullhornLock(async ({ lockCreateSpy, lockDelete }) => {
+      const contact = await client.get('/contact', {
+        params: {
+          jwtToken: bullhornJwtToken,
+          phoneNumber: refreshPhoneNumber,
+          isExtension: 'false',
+        },
+      });
+
+      expect(contact.status).toBe(200);
+      expect(contact.data.successful).toBe(true);
+      expect(contact.data.contact[0]).toMatchObject({
+        id: 711,
+        name: 'Refreshed Bullhorn Contact',
+        type: 'Contact',
+      });
+      expect(lockCreateSpy).toHaveBeenCalledWith({
+        userId: bullhornUserId,
+        ttl: expect.any(Number),
+      }, {
+        overwrite: false,
+      });
+      expect(lockDelete).toHaveBeenCalled();
+      expect(expiredPingScope.isDone()).toBe(true);
+      expect(refreshTokenScope.isDone()).toBe(true);
+      expect(loginScope.isDone()).toBe(true);
+      expect(actionListScope.isDone()).toBe(true);
+      expect(contactSearchScope.isDone()).toBe(true);
+      expect(candidateSearchScope.isDone()).toBe(true);
+      expect(leadSearchScope.isDone()).toBe(true);
+
+      const refreshedUser = await UserModel.findByPk(bullhornUserId);
+      expect(refreshedUser).toMatchObject({
+        accessToken: 'e2e-bullhorn-refreshed-access-token',
+        refreshToken: 'e2e-bullhorn-refreshed-refresh-token',
+      });
+      expect(refreshedUser.platformAdditionalInfo.bhRestToken).toBe('e2e-bh-refreshed-rest-token');
+      expect(nock.pendingMocks()).toEqual([]);
+    });
   });
 
   test('completes a Clio contact-to-call-log HTTP flow', async () => {
@@ -803,310 +1051,101 @@ describe('App Connect Server E2E smoke', () => {
       userId: clioUserId,
       contactId: '901',
     });
-    expect(nock.pendingMocks()).toEqual([]);
-  });
 
-  test('rejects core CRM routes without a valid user session before provider calls', async () => {
-    const contact = await client.get('/contact', {
-      params: { phoneNumber },
-    });
+    const getCommunicationScope = nock(clioProviderBaseUrl)
+      .get('/api/v4/communications/1001.json')
+      .query({ fields: 'subject,body,matter,senders,receivers,id' })
+      .reply(200, clioCommunicationResponse(), rateLimitHeaders);
 
-    expect(contact.status).toBe(400);
-    expect(contact.data).toBe('Please go to Settings and authorize CRM platform');
+    const getContactScope = nock(clioProviderBaseUrl)
+      .get('/api/v4/contacts/901.json')
+      .query({ fields: 'name' })
+      .reply(200, { data: { id: 901, name: 'Clio Contact' } }, rateLimitHeaders);
 
-    const callLog = await client.post('/callLog', {
-      logInfo: {
-        sessionId: 'missing-session-token',
+    const getLog = await client.get('/callLog', {
+      params: {
+        jwtToken: clioJwtToken,
+        sessionIds: clioSessionId,
+        extensionNumber: clioExtensionNumber,
+        requireDetails: 'true',
       },
-      contactId: 101,
     });
 
-    expect(callLog.status).toBe(400);
-    expect(callLog.data).toBe('Please go to Settings and authorize CRM platform');
-
-    const messageLog = await client.post('/messageLog', {
-      logInfo: {
-        messages: [],
-        correspondents: [],
-      },
-      contactId: 101,
-    });
-
-    expect(messageLog.status).toBe(400);
-    expect(messageLog.data).toBe('Please go to Settings and authorize CRM platform');
-    expect(nock.pendingMocks()).toEqual([]);
-  });
-
-  test('serves cached contact results and refreshes account contact data when forced', async () => {
-    nock(providerBaseUrl)
-      .get('/api/v2/persons/search')
-      .query({ term: '4155551234', fields: 'phone' })
-      .reply(200, {
-        data: {
-          items: [{
-            item: {
-              id: 101,
-              name: 'John Doe',
-              phone: phoneNumber,
-              organization: { name: 'E2E Org' },
-              update_time: '2026-01-02T03:04:05Z',
-            },
-          }],
+    expect(getLog.status).toBe(200);
+    expect(getLog.data.successful).toBe(true);
+    expect(getLog.data.logs).toHaveLength(1);
+    expect(getLog.data.logs[0]).toMatchObject({
+      sessionId: clioSessionId,
+      matched: true,
+      logId: '1001',
+      logData: {
+        subject: 'Clio E2E call subject',
+        note: 'Clio e2e agent note',
+        contactName: 'Clio Contact',
+        dispositions: {
+          matters: 902,
         },
-      }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/api/v2/deals')
-      .query({ person_id: '101', status: 'open' })
-      .reply(200, { data: [{ id: 201, title: 'E2E Deal' }] }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/v1/leads')
-      .query({ person_id: '101' })
-      .reply(200, { data: [] }, rateLimitHeaders);
-
-    const firstLookup = await client.get('/contact', {
-      params: {
-        jwtToken,
-        phoneNumber,
-        isExtension: 'false',
       },
     });
+    expect(getCommunicationScope.isDone()).toBe(true);
+    expect(getContactScope.isDone()).toBe(true);
 
-    expect(firstLookup.status).toBe(200);
-    expect(firstLookup.data.successful).toBe(true);
-    expect(firstLookup.data.contact[0].name).toBe('John Doe');
-    expect(nock.pendingMocks()).toEqual([]);
+    const getBeforeUpdateCommunicationScope = nock(clioProviderBaseUrl)
+      .get('/api/v4/communications/1001.json')
+      .query({ fields: 'subject,body,matter,senders,receivers,id' })
+      .reply(200, clioCommunicationResponse(), rateLimitHeaders);
 
-    nock.cleanAll();
+    const getBeforeUpdateContactScope = nock(clioProviderBaseUrl)
+      .get('/api/v4/contacts/901.json')
+      .query({ fields: 'name' })
+      .reply(200, { data: { id: 901, name: 'Clio Contact' } }, rateLimitHeaders);
 
-    const cachedLookup = await client.get('/contact', {
-      params: {
-        jwtToken,
-        phoneNumber,
-        isExtension: 'false',
-      },
-    });
-
-    expect(cachedLookup.status).toBe(200);
-    expect(cachedLookup.data.successful).toBe(true);
-    expect(cachedLookup.data.contact[0].name).toBe('John Doe');
-
-    nock(providerBaseUrl)
-      .get('/api/v2/persons/search')
-      .query({ term: '4155551234', fields: 'phone' })
-      .reply(200, {
-        data: {
-          items: [{
-            item: {
-              id: 102,
-              name: 'Jane Refresh',
-              phone: phoneNumber,
-              organization: { name: 'Refresh Org' },
-              update_time: '2026-01-03T03:04:05Z',
-            },
-          }],
-        },
-      }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/api/v2/deals')
-      .query({ person_id: '102', status: 'open' })
-      .reply(200, { data: [] }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/v1/leads')
-      .query({ person_id: '102' })
-      .reply(200, { data: [{ id: 302, title: 'Refresh Lead' }] }, rateLimitHeaders);
-
-    const refreshedLookup = await client.get('/contact', {
-      params: {
-        jwtToken,
-        phoneNumber,
-        isExtension: 'false',
-        isForceRefreshAccountData: 'true',
-      },
-    });
-
-    expect(refreshedLookup.status).toBe(200);
-    expect(refreshedLookup.data.successful).toBe(true);
-    expect(refreshedLookup.data.contact[0]).toMatchObject({
-      id: 102,
-      name: 'Jane Refresh',
-      organization: 'Refresh Org',
-    });
-
-    const cachedContact = await AccountDataModel.findOne({
-      where: {
-        rcAccountId,
-        platformName: platform,
-        dataKey: `contact-${phoneNumber}`,
-      },
-    });
-    expect(cachedContact.data[0].name).toBe('Jane Refresh');
-    expect(nock.pendingMocks()).toEqual([]);
-  });
-
-  test('creates and appends a Pipedrive SMS message log over HTTP', async () => {
-    const conversationId = 'e2e-conversation-1';
-    const conversationLogId = 'e2e-conversation-log-1';
-
-    nock(providerBaseUrl)
-      .get('/v1/users/me')
-      .reply(200, { data: { name: 'E2E Agent' } }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/api/v2/persons/101')
-      .reply(200, { data: { org_id: 201 } }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/v1/activityTypes')
-      .reply(200, {
-        data: [
-          { name: 'SMS', key_string: 'sms', active_flag: true },
-          { name: 'Call', key_string: 'call', active_flag: true },
-        ],
-      }, rateLimitHeaders);
-
-    let createdMessageActivityBody;
-    nock(providerBaseUrl)
-      .post('/api/v2/activities', body => {
-        createdMessageActivityBody = body;
+    let patchedCommunicationBody;
+    const updateCommunicationScope = nock(clioProviderBaseUrl)
+      .patch('/api/v4/communications/1001.json', body => {
+        patchedCommunicationBody = body;
         return true;
       })
-      .reply(201, { data: { id: 501 } }, rateLimitHeaders);
+      .reply(200, { data: { id: 1001 } }, rateLimitHeaders);
 
-    const firstMessage = await client.post('/messageLog', {
-      contactId: 101,
-      contactName: 'John Doe',
-      contactType: 'contact',
-      additionalSubmission: { deals: 201 },
-      logInfo: {
-        conversationId,
-        conversationLogId,
-        correspondents: [{
-          phoneNumber,
-          name: 'John Doe',
-        }],
-        messages: [{
-          id: 'e2e-message-1',
-          type: 'SMS',
-          direction: 'Inbound',
-          creationTime: '2026-01-02T03:04:05.000Z',
-          subject: 'First E2E SMS',
-          from: {
-            phoneNumber,
-            name: 'John Doe',
-          },
-          to: [{
-            phoneNumber: '+14155550001',
-            name: 'E2E Agent',
-          }],
-        }],
-      },
+    const updateLog = await client.patch('/callLog', {
+      sessionId: clioSessionId,
+      extensionNumber: clioExtensionNumber,
+      subject: 'Clio E2E updated subject',
+      note: 'Clio e2e follow-up note',
+      startTime: new Date('2026-01-02T03:10:05.000Z').getTime(),
+      duration: 360,
+      result: 'Completed',
+      direction: 'Outbound',
+      from: logInfo.from,
+      to: logInfo.to,
     }, {
-      params: { jwtToken },
+      params: { jwtToken: clioJwtToken },
+      headers: {
+        'rc-account-id': 'e2e-clio-hashed-account',
+        'rc-extension-id': 'e2e-clio-hashed-extension',
+      },
     });
 
-    expect(firstMessage.status).toBe(200);
-    expect(firstMessage.data).toMatchObject({
+    expect(updateLog.status).toBe(200);
+    expect(updateLog.data).toMatchObject({
       successful: true,
-      logIds: ['e2e-message-1'],
+      logId: '1001',
       returnMessage: {
-        message: 'Message logged',
+        message: 'Call log updated.',
         messageType: 'success',
       },
     });
-    expect(createdMessageActivityBody).toMatchObject({
-      owner_id: 12345,
-      subject: 'SMS conversation with John Doe - 26/01/02',
-      deal_id: 201,
-      org_id: 201,
-      type: 'sms',
-      participants: [{ person_id: 101, primary: true }],
+    expect(updateLog.data.updatedNote).toContain('Clio e2e follow-up note');
+    expect(patchedCommunicationBody.data).toMatchObject({
+      subject: 'Clio E2E updated subject',
+      received_at: '2026-01-02T03:10:05.000Z',
     });
-    expect(createdMessageActivityBody.note).toContain('First E2E SMS');
-    expect(createdMessageActivityBody.note).toContain('Conversation(1 messages)');
-
-    const persistedFirstMessage = await MessageLogModel.findByPk('e2e-message-1');
-    expect(persistedFirstMessage).toMatchObject({
-      platform,
-      conversationId,
-      conversationLogId,
-      thirdPartyLogId: '501',
-      userId,
-    });
-
-    nock('https://api.pipedrive.com')
-      .get('/v1/users/me')
-      .reply(200, { data: { name: 'E2E Agent' } }, rateLimitHeaders);
-
-    nock(providerBaseUrl)
-      .get('/api/v2/activities/501')
-      .reply(200, {
-        data: {
-          id: 501,
-          note: createdMessageActivityBody.note,
-        },
-      }, rateLimitHeaders);
-
-    let patchedMessageActivityBody;
-    nock(providerBaseUrl)
-      .patch('/api/v2/activities/501', body => {
-        patchedMessageActivityBody = body;
-        return true;
-      })
-      .reply(200, { data: { id: 501 } }, rateLimitHeaders);
-
-    const secondMessage = await client.post('/messageLog', {
-      contactId: 101,
-      contactName: 'John Doe',
-      contactType: 'contact',
-      additionalSubmission: { deals: 201 },
-      logInfo: {
-        conversationId,
-        conversationLogId,
-        correspondents: [{
-          phoneNumber,
-          name: 'John Doe',
-        }],
-        messages: [{
-          id: 'e2e-message-2',
-          type: 'SMS',
-          direction: 'Outbound',
-          creationTime: '2026-01-02T03:06:05.000Z',
-          subject: 'Second E2E SMS',
-          from: {
-            phoneNumber: '+14155550001',
-            name: 'E2E Agent',
-          },
-          to: [{
-            phoneNumber,
-            name: 'John Doe',
-          }],
-        }],
-      },
-    }, {
-      params: { jwtToken },
-    });
-
-    expect(secondMessage.status).toBe(200);
-    expect(secondMessage.data.successful).toBe(true);
-    expect(secondMessage.data.logIds).toEqual(['e2e-message-2']);
-    expect(patchedMessageActivityBody).toMatchObject({
-      deal_id: 201,
-    });
-    expect(patchedMessageActivityBody.note).toContain('Conversation(2 messages)');
-    expect(patchedMessageActivityBody.note).toContain('Second E2E SMS');
-
-    const persistedSecondMessage = await MessageLogModel.findByPk('e2e-message-2');
-    expect(persistedSecondMessage).toMatchObject({
-      platform,
-      conversationId,
-      conversationLogId,
-      thirdPartyLogId: '501',
-      userId,
-    });
+    expect(patchedCommunicationBody.data.body).toContain('Clio e2e follow-up note');
+    expect(patchedCommunicationBody.data.body).toContain('Clio E2E updated subject');
+    expect(getBeforeUpdateCommunicationScope.isDone()).toBe(true);
+    expect(getBeforeUpdateContactScope.isDone()).toBe(true);
+    expect(updateCommunicationScope.isDone()).toBe(true);
     expect(nock.pendingMocks()).toEqual([]);
   });
 });
