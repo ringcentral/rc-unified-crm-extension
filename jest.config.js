@@ -13,6 +13,9 @@ module.exports = {
     '<rootDir>/tests/failedTestsReporter.js'
   ],
   testEnvironment: 'node',
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/e2e/'
+  ],
   coveragePathIgnorePatterns: ['/node_modules/', '/packages/'],
   modulePathIgnorePatterns: [
     '<rootDir>/build/',

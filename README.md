@@ -19,3 +19,9 @@ For focused contract checks during App Connect client/server work, run targeted 
 ```bash
 npm test -- test/routes/pluginRoutes.test.js test/handlers/plugin.test.js --runInBand
 ```
+
+Run the App Connect Server E2E smoke suite from the repository root:
+
+```bash
+npm run test:e2e
+```

@@ -193,7 +193,7 @@ async function unAuthorize({ user }) {
     }
 }
 
-async function findContact({ user, authHeader, phoneNumber, overridingFormat, isExtension }) {
+async function findContact({ user, authHeader, phoneNumber, overridingFormat = '', isExtension }) {
     if (isExtension === 'true') {
         return {
             successful: false,
@@ -248,7 +248,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 let associatedMatterInfoResponse;
                 let associatedMatterInfo = [];
                 do {
-                    if (!!associatedMatterInfoResponse?.data?.meta?.paging?.next) {
+                    if (associatedMatterInfoResponse?.data?.meta?.paging?.next) {
                         associatedMatterUrl = associatedMatterInfoResponse.data.meta.paging.next;
                     }
                     associatedMatterInfoResponse = await axios.get(
@@ -262,7 +262,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         ratelimitReset: associatedMatterInfoResponse.headers['x-ratelimit-reset']
                     };
                     associatedMatterInfo = associatedMatterInfo.concat(associatedMatterInfoResponse?.data?.data ?? []);
-                } while (!!associatedMatterInfoResponse?.data?.meta?.paging?.next);
+                } while (associatedMatterInfoResponse?.data?.meta?.paging?.next);
                 let associatedMatters = associatedMatterInfo.length > 0 ? associatedMatterInfo.map(m => { return { const: m.matter.id, title: m.matter.display_number, description: `${m.matter.status} - ${m.matter.description}`, status: m.matter.status } }) : null;
                 if (!user.userSettings?.clioSeeClosedMatters?.value) {
                     associatedMatters = associatedMatters?.filter(m => m.status !== 'Closed');

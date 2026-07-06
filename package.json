@@ -18,6 +18,7 @@
     "start-debug": "node --inspect ./src/server.js",
     "test": "node scripts/run-tests.js",
     "test:root": "set NODE_ENV=test&&jest --forceExit -i",
+    "test:e2e": "set NODE_ENV=test&&jest --config jest.e2e.config.js --runInBand",
     "test-coverage": "node scripts/run-coverage.js",
     "build-local": "node ./scripts/build",
     "build": "node ./scripts/serverless-build",
