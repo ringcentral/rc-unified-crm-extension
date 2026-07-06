@@ -1,5 +1,5 @@
 {
-    "1.7.36": {
+    "1.7.37": {
         "global": [
             {
                 "type": "New",
@@ -8,6 +8,10 @@
             {
                 "type": "New",
                 "description": "New option for auto log multi match resolver - Earliest created"
+            },
+            {
+                "type": "Fix",
+                "description": "Shared SMS sending for company main number"
             },
             {
                 "type": "Fix",

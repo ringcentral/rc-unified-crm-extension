@@ -1,9 +1,10 @@
 # Release notes
 
-## 1.7.36
+## 1.7.37
 
 - New: Custom fields for call pop parameters
 - New: New option for auto log multi match resolver - Earliest created
+- Fix: Shared SMS sending for company main number
 - Fix: Server-side logging call log id inconsistency
 
 ## 1.7.35
