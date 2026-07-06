@@ -73,7 +73,7 @@ async function initDB() {
         await UserModel.sync();
         await LlmSessionModel.sync();
         await CallLogModel.sync();
-        await ensureCallLogsHashedExtensionIdSchema(sequelize);
+        //await ensureCallLogsHashedExtensionIdSchema(sequelize);
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
