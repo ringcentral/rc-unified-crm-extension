@@ -34,7 +34,7 @@ const { DebugTracer } = require('./lib/debugTracer');
 const s3ErrorLogReport = require('./lib/s3ErrorLogReport');
 const pluginCore = require('./handlers/plugin');
 const { sequelize } = require('./models/sequelize');
-const { ensureCallLogsHashedExtensionIdSchema } = require('./lib/migrateCallLogsSchema');
+const { runCallLogsSchemaMigration } = require('./lib/migrateCallLogsSchema');
 const { handleDatabaseError } = require('./lib/errorHandler');
 const { updateAuthSession } = require('./lib/authSession');
 const managedAuthCore = require('./handlers/managedAuth');
@@ -73,7 +73,6 @@ async function initDB() {
         await UserModel.sync();
         await LlmSessionModel.sync();
         await CallLogModel.sync();
-        await ensureCallLogsHashedExtensionIdSchema(sequelize);
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
@@ -3125,6 +3124,16 @@ async function initializeCore(options = {}) {
 
     if (!skipDatabaseInit) {
         await initDB();
+        // Run the heavy callLogs primary-key migration in the BACKGROUND, off the
+        // readiness critical path. It must not gate coreInit: on a large production
+        // table the index rebuild takes minutes, and blocking here would stall every
+        // request (including the load-balancer health check) and fail the deploy.
+        // The runner is self-guarding (advisory-locked across instances, idempotent,
+        // never throws) and uses online DDL on Postgres so live traffic is unaffected.
+        // Gated on the same flag as the schema sync so operators have one switch.
+        if (!process.env.DISABLE_SYNC_DB_TABLE) {
+            runCallLogsSchemaMigration(sequelize, logger);
+        }
     }
 }
 
