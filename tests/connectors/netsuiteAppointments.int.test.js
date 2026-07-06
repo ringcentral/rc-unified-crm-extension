@@ -151,9 +151,9 @@ describe('NetSuite appointment connector', () => {
             'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent',
             {
                 title: 'Created Event',
-                startDate: '2026-07-21',
-                startTime: '03:00:00',
-                endTime: '03:30:00',
+                startDate: '2026-07-20',
+                startTime: '15:00:00',
+                endTime: '15:30:00',
                 timedEvent: true,
                 message: 'Created body',
                 status: { id: 'CONFIRMED' },

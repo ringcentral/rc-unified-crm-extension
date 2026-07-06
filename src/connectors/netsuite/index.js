@@ -2142,7 +2142,7 @@ async function createAppointment({ user, authHeader, payload }) {
             let start, end;
             const offset = typeof user?.timezoneOffset === 'string' ? user.timezoneOffset : null;
             if (offset && /^[-+]\d{2}:\d{2}$/.test(offset)) {
-                start = moment(payload.startTimeUtc).utcOffset(offset, true);
+                start = moment(payload.startTimeUtc).utcOffset(offset);
                 end = moment(start).add(Number(payload.durationMinutes), 'minutes');
             } else {
                 // Fetch the user's timezone name only when needed (DST-safe).
