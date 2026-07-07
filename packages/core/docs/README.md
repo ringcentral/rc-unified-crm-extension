@@ -24,7 +24,7 @@ Excluded:
 ## Reading Order
 
 1. [Architecture](architecture.md) for the runtime shape and request flow
-2. [Routes](routes.md) for the HTTP surface in `index.js`
+2. [Routes](routes.md) for the HTTP surface in `index.ts`
 3. [Handlers](handlers.md) for shared business logic
 4. [Connectors](connectors.md) for registration, proxy behavior, and developer-portal helpers
 5. [Models](models.md) for persistence
@@ -35,13 +35,13 @@ Excluded:
 
 | Area | Files |
 | --- | --- |
-| Package root | `index.js`, `package.json`, `README.md`, `releaseNotes.json`, `jest.config.js` |
-| Connectors | `connector/registry.js`, `connector/developerPortal.js`, `connector/mock.js`, `connector/proxy/index.js`, `connector/proxy/engine.js` |
-| Handlers | `handlers/admin.js`, `handlers/auth.js`, `handlers/calldown.js`, `handlers/contact.js`, `handlers/disposition.js`, `handlers/log.js`, `handlers/plugin.js`, `handlers/managedAuth.js`, `handlers/user.js` |
-| Sequelize models | `models/accountDataModel.js`, `models/adminConfigModel.js`, `models/cacheModel.js`, `models/callDownListModel.js`, `models/callLogModel.js`, `models/llmSessionModel.js`, `models/messageLogModel.js`, `models/sequelize.js`, `models/userModel.js` |
-| DynamoDB models | `models/dynamo/connectorSchema.js`, `models/dynamo/lockSchema.js`, `models/dynamo/noteCacheSchema.js` |
-| Libraries | `lib/analytics.js`, `lib/authSession.js`, `lib/callLogComposer.js`, `lib/constants.js`, `lib/debugTracer.js`, `lib/encode.js`, `lib/errorHandler.js`, `lib/generalErrorMessage.js`, `lib/jwt.js`, `lib/logger.js`, `lib/oauth.js`, `lib/ringcentral.js`, `lib/s3ErrorLogReport.js`, `lib/sharedSMSComposer.js`, `lib/util.js` |
-| Tests | `test/setup.js`, `test/connector/**`, `test/handlers/**`, `test/lib/**`, `test/models/**`, `test/routes/**` excluding `test/mcp/**` |
+| Package root | `index.ts`, `package.json`, `README.md`, `releaseNotes.json`, `jest.config.ts` |
+| Connectors | `connector/registry.ts`, `connector/developerPortal.ts`, `connector/mock.ts`, `connector/proxy/index.ts`, `connector/proxy/engine.ts` |
+| Handlers | `handlers/admin.ts`, `handlers/auth.ts`, `handlers/calldown.ts`, `handlers/contact.ts`, `handlers/disposition.ts`, `handlers/log.ts`, `handlers/plugin.ts`, `handlers/managedAuth.ts`, `handlers/user.ts` |
+| Sequelize models | `models/accountDataModel.ts`, `models/adminConfigModel.ts`, `models/cacheModel.ts`, `models/callDownListModel.ts`, `models/callLogModel.ts`, `models/llmSessionModel.ts`, `models/messageLogModel.ts`, `models/sequelize.ts`, `models/userModel.ts` |
+| DynamoDB models | `models/dynamo/connectorSchema.ts`, `models/dynamo/lockSchema.ts`, `models/dynamo/noteCacheSchema.ts` |
+| Libraries | `lib/analytics.ts`, `lib/authSession.ts`, `lib/callLogComposer.ts`, `lib/constants.ts`, `lib/debugTracer.ts`, `lib/encode.ts`, `lib/errorHandler.ts`, `lib/generalErrorMessage.ts`, `lib/jwt.ts`, `lib/logger.ts`, `lib/oauth.ts`, `lib/ringcentral.ts`, `lib/s3ErrorLogReport.ts`, `lib/sharedSMSComposer.ts`, `lib/util.ts` |
+| Tests | `test/setup.ts`, `test/connector/**`, `test/handlers/**`, `test/lib/**`, `test/models/**`, `test/routes/**` excluding `test/mcp/**` |
 
 ## Relationship To The Package README
 

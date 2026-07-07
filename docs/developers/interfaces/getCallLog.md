@@ -53,6 +53,6 @@ async function getCallLog({
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getCallLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/getCallLog.ts"
     ```
 

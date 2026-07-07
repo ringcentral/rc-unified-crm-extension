@@ -51,6 +51,6 @@ Older template code may name this argument `callDisposition`; the current runtim
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/upsertCallDisposition.js"
+    --8<-- "packages/template/src/connectors/interfaces/upsertCallDisposition.ts"
     ```
 

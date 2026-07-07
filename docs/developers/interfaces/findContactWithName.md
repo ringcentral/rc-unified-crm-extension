@@ -59,6 +59,6 @@ Core treats an empty list as "no contact found" and can show a default warning i
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/findContactWithName.js"
+    --8<-- "packages/template/src/connectors/interfaces/findContactWithName.ts"
     ```
 

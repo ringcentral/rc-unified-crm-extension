@@ -2,7 +2,7 @@
 
 The manifest tells App Connect how to present a connector in the client, how users authenticate, which CRM pages can be opened, which custom fields appear in log forms, and which optional features are enabled.
 
-In App Connect 2.0, the Developer Console is the primary place to manage manifests. The local `src/connectors/manifest.json` file still matters for bundled connectors, local development, and backward compatibility with older clients.
+In App Connect 2.0, the Developer Console is the primary place to manage manifests. The local `src/connectors/manifest.tson` file still matters for bundled connectors, local development, and backward compatibility with older clients.
 
 ## Top-Level Shape
 

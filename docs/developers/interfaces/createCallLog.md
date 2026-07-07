@@ -73,5 +73,5 @@ When possible, write `composedLogDetails` directly to the CRM body. That keeps u
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/createCallLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/createCallLog.ts"
     ```

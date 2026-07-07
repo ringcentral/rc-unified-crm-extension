@@ -30,7 +30,7 @@ const toolDefinition = {
         destructiveHint: false
     },
     _meta: {
-        // openai/outputTemplate is injected at registration time by mcpHandler.js
+        // openai/outputTemplate is injected at registration time by mcpHandler.ts
         // using the module-level WIDGET_URI — do not hardcode a version here.
         "openai/toolBehavior": 'interactive',
         "openai/widgetAccessible": true

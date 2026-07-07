@@ -3,7 +3,7 @@
   "info": {
     "title": "App Connect CRM Server",
     "version": "1.7.34",
-    "description": "OpenAPI 3.0 specification for the App Connect Express server endpoints. Runtime source of truth is packages/core/index.js plus app-specific routes in src/index.js. RingCentral call and message entity schemas are modeled from the attached RingCentral platform OAS and trimmed to the fields this server consumes."
+    "description": "OpenAPI 3.0 specification for the App Connect Express server endpoints. Runtime source of truth is packages/core/index.ts plus app-specific routes in src/index.ts. RingCentral call and message entity schemas are modeled from the attached RingCentral platform OAS and trimmed to the fields this server consumes."
   },
   "servers": [
     {

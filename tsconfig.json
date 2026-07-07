@@ -1,14 +1,15 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "."
+    "rootDir": ".",
+    "strict": true
   },
   "include": [
     "src/**/*.ts",
     "packages/core/**/*.ts",
     "scripts/**/*.ts",
-    "jest.config.typecheck.ts",
-    "tests/**/*.js",
+    "jest.config.ts",
+    "jest.e2e.config.ts",
     "tests/**/*.ts"
   ],
   "exclude": [

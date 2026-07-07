@@ -1,6 +1,6 @@
 # Core Routes
 
-This page documents the non-MCP HTTP routes defined in `index.js`.
+This page documents the non-MCP HTTP routes defined in `index.ts`.
 
 ## Route Design Notes
 

@@ -8,30 +8,30 @@ The MCP (Model Context Protocol) module provides an AI assistant interface for t
 
 ```
 packages/core/mcp/
-├── mcpHandler.js          # Main MCP server handler + WIDGET_VERSION constant
+├── mcpHandler.ts          # Main MCP server handler + WIDGET_VERSION constant
 ├── lib/
-│   └── validator.js       # Connector manifest validation
+│   └── validator.ts       # Connector manifest validation
 ├── tools/                 # MCP tool implementations
-│   ├── index.js           # Tool registry (tools + widgetTools)
-│   ├── getHelp.js         # Help/onboarding tool
-│   ├── getPublicConnectors.js  # Triggers widget, resolves RC account ID + rcExtensionId + openaiSessionId
-│   ├── doAuth.js          # OAuth session creation (widget-only)
-│   ├── checkAuthStatus.js # Poll OAuth status (widget-only)
-│   ├── logout.js          # Logout from CRM
-│   ├── findContactByPhone.js  # Search contact by phone
-│   ├── findContactByName.js   # Search contact by name
-│   ├── createContact.js   # Create new contact
-│   ├── createCallLog.js   # Create call log entry
-│   ├── rcGetCallLogs.js   # Fetch RingCentral call logs
-│   ├── listAppointments.js    # List appointments (upcoming/today/past/all/custom)
-│   ├── createAppointment.js   # Create a new appointment/event
-│   ├── updateAppointment.js   # Update/reschedule an appointment/event
-│   ├── confirmAppointment.js  # Confirm an appointment/event
-│   ├── cancelAppointment.js   # Cancel an appointment/event
-│   ├── getGoogleFilePicker.js # Google Sheets picker (disabled)
-│   ├── getCallLog.js      # Get call log (disabled)
-│   ├── updateCallLog.js   # Update call log (disabled)
-│   └── createMessageLog.js # Create message log (disabled)
+│   ├── index.ts           # Tool registry (tools + widgetTools)
+│   ├── getHelp.ts         # Help/onboarding tool
+│   ├── getPublicConnectors.ts  # Triggers widget, resolves RC account ID + rcExtensionId + openaiSessionId
+│   ├── doAuth.ts          # OAuth session creation (widget-only)
+│   ├── checkAuthStatus.ts # Poll OAuth status (widget-only)
+│   ├── logout.ts          # Logout from CRM
+│   ├── findContactByPhone.ts  # Search contact by phone
+│   ├── findContactByName.ts   # Search contact by name
+│   ├── createContact.ts   # Create new contact
+│   ├── createCallLog.ts   # Create call log entry
+│   ├── rcGetCallLogs.ts   # Fetch RingCentral call logs
+│   ├── listAppointments.ts    # List appointments (upcoming/today/past/all/custom)
+│   ├── createAppointment.ts   # Create a new appointment/event
+│   ├── updateAppointment.ts   # Update/reschedule an appointment/event
+│   ├── confirmAppointment.ts  # Confirm an appointment/event
+│   ├── cancelAppointment.ts   # Cancel an appointment/event
+│   ├── getGoogleFilePicker.ts # Google Sheets picker (disabled)
+│   ├── getCallLog.ts      # Get call log (disabled)
+│   ├── updateCallLog.ts   # Update call log (disabled)
+│   └── createMessageLog.ts # Create message log (disabled)
 └── ui/                    # ChatGPT Widget UI
     ├── index.html         # Entry HTML
     ├── package.json       # UI dependencies
@@ -55,7 +55,7 @@ packages/core/mcp/
 
 ## Core Components
 
-### MCP Handler (`mcpHandler.js`)
+### MCP Handler (`mcpHandler.ts`)
 
 A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no SSE, no in-memory sessions. Each POST request is handled independently, making it fully compatible with stateless deployments like AWS Lambda.
 
@@ -82,22 +82,22 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 
 ### Widget Version Management
 
-`WIDGET_VERSION` in `mcpHandler.js` is the **only place** that needs to change when bumping the widget version:
+`WIDGET_VERSION` in `mcpHandler.ts` is the **only place** that needs to change when bumping the widget version:
 
 ```js
-// mcpHandler.js
+// mcpHandler.ts
 const WIDGET_VERSION = 6;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
 ```
 
-At registration time, `mcpHandler.js` stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']`. `getPublicConnectors.js` itself does **not** contain a version number.
+At registration time, `mcpHandler.ts` stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']`. `getPublicConnectors.ts` itself does **not** contain a version number.
 
 **To deploy a new widget build:**
 1. Rebuild the widget: `cd packages/core/mcp/ui && npm run build`
-2. Increment `WIDGET_VERSION` in `mcpHandler.js`
+2. Increment `WIDGET_VERSION` in `mcpHandler.ts`
 3. Restart the server
 
-### Manifest Validator (`lib/validator.js`)
+### Manifest Validator (`lib/validator.ts`)
 
 Validates connector manifest structures before authentication operations.
 
@@ -105,7 +105,7 @@ Validates connector manifest structures before authentication operations.
 
 ### Tool Registry
 
-Tools are split into two registries in `tools/index.js`:
+Tools are split into two registries in `tools/index.ts`:
 
 | Registry | Purpose |
 |----------|---------|
@@ -114,7 +114,7 @@ Tools are split into two registries in `tools/index.js`:
 
 ### Argument Handling
 
-`mcpHandler.js` automatically injects server-side values into every tool's args before calling `execute()`:
+`mcpHandler.ts` automatically injects server-side values into every tool's args before calling `execute()`:
 
 | Injected arg | Source | Purpose |
 |---|---|---|
@@ -131,7 +131,7 @@ Note: `widgetTools` are called via `POST /mcp/widget-tool-call` which bypasses t
 
 ### Output Handling
 
-`tools/list` includes an `outputSchema` for every AI-visible MCP tool. For `tools/call`, `mcpHandler.js` converts each tool's returned object into MCP `structuredContent` and also returns the same payload as serialized JSON in a text content block for clients that still read only `content`.
+`tools/list` includes an `outputSchema` for every AI-visible MCP tool. For `tools/call`, `mcpHandler.ts` converts each tool's returned object into MCP `structuredContent` and also returns the same payload as serialized JSON in a text content block for clients that still read only `content`.
 
 Tools that return `{ success: false, ... }` are surfaced as regular MCP tool results with `isError: true`, so the model can see the error payload and self-correct.
 
@@ -154,7 +154,7 @@ Triggers the interactive connector selection widget. The widget fetches the conn
 | Read-only | Yes |
 | Parameters | None (server injects `rcAccessToken` and `openaiSessionId`) |
 | Returns | `structuredContent` with `serverUrl`, `rcAccountId`, `rcExtensionId`, and `openaiSessionId` |
-| Widget | `ui://widget/ConnectorList-v{WIDGET_VERSION}.html` (versioned by `mcpHandler.js`) |
+| Widget | `ui://widget/ConnectorList-v{WIDGET_VERSION}.html` (versioned by `mcpHandler.ts`) |
 
 #### `logout`
 Logs out user from the CRM platform.
@@ -317,7 +317,7 @@ cd packages/core/mcp/ui
 npm run dev
 ```
 
-**Cache busting after a build:** Increment `WIDGET_VERSION` in `mcpHandler.js` and restart the server. That is the only file that needs to change — `getPublicConnectors.js` and the README do not contain a version number.
+**Cache busting after a build:** Increment `WIDGET_VERSION` in `mcpHandler.ts` and restart the server. That is the only file that needs to change — `getPublicConnectors.ts` and the README do not contain a version number.
 
 ## API Integration
 
@@ -372,7 +372,7 @@ Currently supported for MCP integration:
 ## Security Considerations
 
 1. **JWT Tokens**: Stored server-side in `LlmSessionModel`, **keyed by `rcExtensionId`** (a cryptographically verified RingCentral identity). Tools receive the JWT via server injection — it is never sent back to ChatGPT as a visible parameter.
-2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.js` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
+2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.ts` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
 3. **Session key binding**: The sessions Map is keyed on the stable `openai/session` ID so the same `sessionContext` (and its verified `rcExtensionId`) is reused for all tool calls within a ChatGPT conversation. A session can only access credentials stored under its own verified `rcExtensionId`.
 4. **Session Management**: MCP sessions are server-side and automatically cleaned up on transport close.
 5. **OAuth Flows**: Uses secure OAuth 2.0 with server-side callback handling.

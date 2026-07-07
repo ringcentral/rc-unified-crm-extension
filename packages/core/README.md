@@ -415,24 +415,24 @@ The core package uses the following environment variables:
 ```
 Core Package
 ├── Handlers (Business Logic)
-│   ├── auth.js      - Authentication logic
-│   ├── contact.js   - Contact management
-│   ├── log.js       - Call/message logging
-│   ├── admin.js     - Admin operations
-│   ├── user.js      - User management
-│   └── disposition.js - Call disposition
+│   ├── auth.ts      - Authentication logic
+│   ├── contact.ts   - Contact management
+│   ├── log.ts       - Call/message logging
+│   ├── admin.ts     - Admin operations
+│   ├── user.ts      - User management
+│   └── disposition.ts - Call disposition
 ├── Models (Data Layer)
-│   ├── userModel.js
-│   ├── callLogModel.js
-│   ├── messageLogModel.js
-│   ├── adminConfigModel.js
-│   └── cacheModel.js
+│   ├── userModel.ts
+│   ├── callLogModel.ts
+│   ├── messageLogModel.ts
+│   ├── adminConfigModel.ts
+│   └── cacheModel.ts
 ├── Utils (Utilities)
-│   ├── jwt.js       - JWT operations
-│   ├── analytics.js - Analytics tracking
-│   └── util.js      - General utilities
+│   ├── jwt.ts       - JWT operations
+│   ├── analytics.ts - Analytics tracking
+│   └── util.ts      - General utilities
 ├── Connector Registry
-│   └── registry.js  - CRM connector management
+│   └── registry.ts  - CRM connector management
 └── API Layer
     ├── createCoreApp()     - Complete app setup
     ├── createCoreRouter()  - Route management

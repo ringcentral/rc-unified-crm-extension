@@ -73,11 +73,11 @@ module.exports = getAuthType;
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getAuthType.js"
+    --8<-- "packages/template/src/connectors/interfaces/getAuthType.ts"
     ```
 
 === "Pipedrive (OAuth)"
 
     ```js
-    --8<-- "src/connectors/pipedrive/index.js:11:13"
+    --8<-- "src/connectors/pipedrive/index.ts:11:13"
     ```

@@ -74,6 +74,6 @@ Shared SMS uses `conversationLogId`. Core composes `sharedSMSLogContent` and eit
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/createMessageLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/createMessageLog.ts"
     ```
 

@@ -22,7 +22,7 @@ Use a code connector when logging one call requires several dependent API calls,
 2. Auth data is saved with the App Connect user record, including `platformAdditionalInfo.proxyId`.
 3. Core loads `proxyConfig` from the connector store by `proxyId`.
 4. The proxy connector implements the same interfaces as a code connector.
-5. For each operation, `proxy/engine.js` renders URL, headers, query, and body values, performs the request with axios, and maps the response.
+5. For each operation, `proxy/engine.ts` renders URL, headers, query, and body values, performs the request with axios, and maps the response.
 
 ## Top-Level Config
 

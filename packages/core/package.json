@@ -2,7 +2,21 @@
   "name": "@app-connect/core",
   "version": "1.7.37",
   "description": "RingCentral App Connect Core",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "require": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ringcentral/rc-unified-crm-extension.git"
@@ -10,6 +24,11 @@
   "keywords": [
     "RingCentral",
     "App Connect"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "releaseNotes.json"
   ],
   "author": "RingCentral Labs",
   "license": "MIT",
@@ -42,10 +61,11 @@
   },
   "scripts": {
     "test": "cd ../.. && npm run build:ts && cd packages/core && npm run test:raw",
-    "test:raw": "jest",
-    "test:watch": "cd ../.. && npm run build:ts && cd packages/core && jest --watch",
-    "test:coverage": "cd ../.. && npm run build:ts && cd packages/core && jest --coverage",
-    "test:ci": "cd ../.. && npm run build:ts && cd packages/core && jest --ci --coverage --watchAll=false"
+    "test:raw": "jest --config ../../.ts-build/packages/core/jest.config.js",
+    "test:watch": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --watch",
+    "test:coverage": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --coverage",
+    "test:ci": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --ci --coverage --watchAll=false",
+    "prepack": "cd ../.. && npm run build:ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

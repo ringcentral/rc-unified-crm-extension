@@ -26,6 +26,7 @@ client/src/manifest.json
 /devGuideDraft.md
 /build/*
 /.ts-build/*
+packages/core/dist/
 /.tmp-test-summaries/*
 /src/test.js
 /.vscode/settings.json

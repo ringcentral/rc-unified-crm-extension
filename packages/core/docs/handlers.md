@@ -6,14 +6,14 @@ Handlers contain the shared business workflows behind the route layer.
 
 | File | Responsibility | Main exports |
 | --- | --- | --- |
-| `handlers/auth.js` | Connector login, OAuth callback handling, user persistence, and auth validation | `onOAuthCallback`, `onApiKeyLogin`, `authValidation`, `getLicenseStatus`, `onRingcentralOAuthCallback` |
-| `handlers/contact.js` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
-| `handlers/log.js` | Call logging, message logging, plugin execution, async plugin callbacks, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache`, `handleAsyncPluginCallback` |
-| `handlers/admin.js` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
-| `handlers/user.js` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
-| `handlers/disposition.js` | Call-disposition writes against an existing log | `upsertCallDisposition` |
-| `handlers/calldown.js` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
-| `handlers/managedAuth.js` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getManagedAuthAdminSettings`, `getManagedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgManagedAuthValues`, `upsertUserManagedAuthValues` |
+| `handlers/auth.ts` | Connector login, OAuth callback handling, user persistence, and auth validation | `onOAuthCallback`, `onApiKeyLogin`, `authValidation`, `getLicenseStatus`, `onRingcentralOAuthCallback` |
+| `handlers/contact.ts` | Contact search, creation, and account-data caching | `findContact`, `createContact`, `findContactWithName` |
+| `handlers/log.ts` | Call logging, message logging, plugin execution, async plugin callbacks, call-log lookup, and note cache writes | `createCallLog`, `updateCallLog`, `createMessageLog`, `getCallLog`, `saveNoteCache`, `handleAsyncPluginCallback` |
+| `handlers/admin.ts` | Admin settings, RingCentral reporting, server logging settings, and user mapping | `validateAdminRole`, `upsertAdminSettings`, `getAdminSettings`, `updateAdminRcTokens`, `getServerLoggingSettings`, `updateServerLoggingSettings`, `getAdminReport`, `getUserReport`, `getUserMapping`, `reinitializeUserMapping` |
+| `handlers/user.ts` | User info refresh, user setting reads, admin/user setting merge, and updates | `refreshUserInfo`, `getUserSettingsByAdmin`, `getUserSettings`, `updateUserSettings` |
+| `handlers/disposition.ts` | Call-disposition writes against an existing log | `upsertCallDisposition` |
+| `handlers/calldown.ts` | User-owned call-down scheduling | `schedule`, `list`, `remove`, `markCalled`, `update` |
+| `handlers/managedAuth.ts` | Shared API-key auth field discovery, secure storage, and login-time field resolution | `getManagedAuthAdminSettings`, `getManagedAuthState`, `resolveApiKeyLoginFields`, `upsertOrgManagedAuthValues`, `upsertUserManagedAuthValues` |
 
 ## Common Execution Pattern
 
@@ -23,23 +23,23 @@ Most connector-backed handlers follow the same sequence:
 2. Derive `proxyId` and optional proxy configuration from `platformAdditionalInfo`.
 3. Resolve the connector from `connectorRegistry`.
 4. Ask the connector for its auth type.
-5. Refresh OAuth tokens through `lib/oauth.js` or build API-key auth.
+5. Refresh OAuth tokens through `lib/oauth.ts` or build API-key auth.
 6. Call the connector method with normalized inputs.
 7. Return a shared `successful` plus `returnMessage` shape.
 
-## `auth.js`
+## `auth.ts`
 
 Key behavior:
 
 - `onOAuthCallback()` completes the external OAuth code exchange, calls `getUserInfo()`, and persists the user through `saveUserInfo()`.
 - `onApiKeyLogin()` uses connector-provided basic-auth construction and the same user persistence path.
-- `onApiKeyLogin()` resolves shared API-key fields from `handlers/managedAuth.js`, ignores end-user overrides for shared fields, and returns `missingRequiredFieldConsts` when required fields are missing.
+- `onApiKeyLogin()` resolves shared API-key fields from `handlers/managedAuth.ts`, ignores end-user overrides for shared fields, and returns `missingRequiredFieldConsts` when required fields are missing.
 - `saveUserInfo()` updates or creates `UserModel`, preserving existing `platformAdditionalInfo` keys and adding `proxyId`.
 - `authValidation()` refreshes OAuth tokens when needed, then delegates session validation to the connector.
 - `getLicenseStatus()` is connector-defined and only wrapped here.
 - `onRingcentralOAuthCallback()` stores admin RingCentral tokens in `AdminConfigModel`.
 
-## `contact.js`
+## `contact.ts`
 
 Key behavior:
 
@@ -53,7 +53,7 @@ Known caveat called out in code:
 
 - account-data contact caching assumes one RingCentral account does not need separate caches for multiple CRM platforms at the same time
 
-## `log.js`
+## `log.ts`
 
 This is the heaviest handler in the package.
 
@@ -76,7 +76,7 @@ Important persistence behavior:
 - `CacheModel` stores async plugin callback tasks with a one-week expiry; successful callbacks delete the task and failed callbacks keep the task with status `failed`
 - `NoteCache` stores temporary notes keyed by session id
 
-## `admin.js`
+## `admin.ts`
 
 Key responsibilities:
 
@@ -88,7 +88,7 @@ Key responsibilities:
 - delegates server-side logging settings to connector-specific methods when available
 - builds CRM user to RingCentral extension mappings through `getUserList()`
 
-## `user.js`
+## `user.ts`
 
 This module handles user-owned workflows that do not belong to login, contact, or logging handlers.
 
@@ -102,23 +102,23 @@ Rules implemented here:
 
 ## Smaller Handler Modules
 
-`disposition.js`:
+`disposition.ts`:
 
 - requires an existing local call-log mapping before writing disposition data
 
-`calldown.js`:
+`calldown.ts`:
 
 - decodes the JWT directly
 - keeps operations scoped to the authenticated user
 - supports schedule, list, remove, mark-as-called, and partial update flows
 
-`plugin.js`:
+`plugin.ts`:
 
 - registers and unregisters account-level plugins
 - validates plugin registration against RingCentral account identity
 - reads plugin license status through the installed plugin profile
 
-`managedAuth.js`:
+`managedAuth.ts`:
 
 - reads API-key field definitions from either the developer portal manifest or the connector registry manifest
 - isolates managed field definitions with `managed: true` and `managedScope` (`account` or `user`)

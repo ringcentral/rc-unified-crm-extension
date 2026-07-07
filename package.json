@@ -2,10 +2,8 @@
   "name": "rc-unified-crm-extension-server",
   "version": "1.7.37",
   "description": "RingCentral App Connect",
-  "main": "index.js",
-  "bin": {
-    "rc-unified-crm-extension": "bin/index.js"
-  },
+  "main": ".ts-build/src/index.js",
+  "types": ".ts-build/src/index.d.ts",
   "private": true,
   "workspaces": [
     "./packages/*"
@@ -18,12 +16,13 @@
     "start-debug": "npm run build:ts && node --inspect ./.ts-build/src/server.js",
     "test": "npm run build:ts && node ./.ts-build/scripts/run-tests.js",
     "test:root": "npm run build:ts && npm run test:root:raw",
-    "test:root:raw": "set NODE_ENV=test&&jest --forceExit -i",
-    "test:e2e": "set NODE_ENV=test&&jest --config jest.e2e.config.js --runInBand",
+    "test:root:raw": "set NODE_ENV=test&&jest --config ./.ts-build/jest.config.js --forceExit -i",
+    "test:e2e": "npm run build:ts && set NODE_ENV=test&&jest --config ./.ts-build/jest.e2e.config.js --runInBand",
     "test-coverage": "npm run build:ts && node ./.ts-build/scripts/run-coverage.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:core": "tsc -p packages/core/tsconfig.json --noEmit",
-    "build:ts": "tsc -p tsconfig.build.json && node ./.ts-build/scripts/copy-ts-assets.js",
+    "clean:ts": "node -e \"require('fs').rmSync('.ts-build',{recursive:true,force:true})\"",
+    "build:ts": "npm run clean:ts && tsc -p tsconfig.build.json && node ./.ts-build/scripts/copy-ts-assets.js",
     "build-local": "npm run build:ts && node ./.ts-build/scripts/build.js",
     "build": "npm run build:ts && node ./.ts-build/scripts/serverless-build.js",
     "deploy": "npm run build:ts && node ./.ts-build/scripts/serverless-deploy.js",
@@ -33,7 +32,7 @@
     "deploy-test-beta": "npm run build:ts && node ./.ts-build/scripts/serverless-deploy-test-beta.js",
     "dynamo-local": "npm run build:ts && node ./.ts-build/scripts/dynamo-local.js",
     "dynamo-admin": "dynamodb-admin --port 8001",
-    "htt": "node ./tests/highTrafficTestRun.js",
+    "htt": "npm run build:ts && node ./.ts-build/tests/highTrafficTestRun.js",
     "update": "npm run build:ts && node ./.ts-build/scripts/updateVersion.js",
     "s3-local": "minio.exe server ./data --address \":9001\" --console-address \":9002\""
   },
@@ -65,6 +64,7 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@octokit/rest": "^19.0.5",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.19.0",
     "commander": "^9.4.1",
     "dynamodb-admin": "^5.1.3",

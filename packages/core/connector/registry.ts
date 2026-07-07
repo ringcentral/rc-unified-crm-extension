@@ -1,4 +1,4 @@
-// core/src/connector/registry.js
+// core/src/connector/registry.ts
 // @ts-check
 
 const logger = require('../lib/logger');

@@ -4,14 +4,17 @@
     "rootDir": ".",
     "outDir": ".ts-build",
     "noEmit": false,
-    "declaration": false,
+    "declaration": true,
+    "declarationMap": false,
     "sourceMap": false
   },
   "include": [
     "src/**/*.ts",
     "packages/core/**/*.ts",
     "scripts/**/*.ts",
-    "jest.config.typecheck.ts"
+    "tests/**/*.ts",
+    "jest.config.ts",
+    "jest.e2e.config.ts"
   ],
   "exclude": [
     "node_modules",
@@ -21,7 +24,6 @@
     "serverless-deploy-test",
     "serverless-deploy-test-beta",
     ".ts-build",
-    "tests",
     "packages/core/test",
     "packages/core/mcp/ui",
     "packages/**/node_modules"

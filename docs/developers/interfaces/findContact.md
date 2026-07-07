@@ -98,6 +98,6 @@ Do not create contacts inside `findContact` just because no match was found. Ret
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/findContact.js"
+    --8<-- "packages/template/src/connectors/interfaces/findContact.ts"
     ```
 

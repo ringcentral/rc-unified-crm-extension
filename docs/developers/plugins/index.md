@@ -17,7 +17,7 @@ Scaffold a plugin server with:
 npx @app-connect/cli init my-plugin --template plugin
 ```
 
-The template route wiring lives in `packages/plugin-template/src/app.js`. It shows the endpoints App Connect expects a plugin server to expose.
+The template route wiring lives in `packages/plugin-template/src/app.ts`. It shows the endpoints App Connect expects a plugin server to expose.
 
 ## Registration Flow
 
@@ -28,7 +28,7 @@ The template route wiring lives in `packages/plugin-template/src/app.js`. It sho
 5. The plugin server validates the RingCentral admin identity and returns `{ jwtToken }`.
 6. App Connect stores that plugin JWT in account data and uses it as a bearer token when invoking plugin endpoints.
 
-Core resolves public, private, and shared plugin manifests through `packages/core/handlers/plugin.js`.
+Core resolves public, private, and shared plugin manifests through `packages/core/handlers/plugin.ts`.
 
 ## Manifest Fields
 
@@ -206,7 +206,7 @@ If a plugin requires entitlement checks, configure `licenseStatusUrl`. App Conne
 Authorization: Bearer <pluginJwtToken>
 ```
 
-Return a JSON object that the client can interpret as the plugin license state. The template handler is `packages/plugin-template/src/handlers/license.js`.
+Return a JSON object that the client can interpret as the plugin license state. The template handler is `packages/plugin-template/src/handlers/license.ts`.
 
 ## Custom Configuration
 

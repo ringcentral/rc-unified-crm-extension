@@ -4,7 +4,7 @@ Connectors are the extension seam that lets the shared framework support multipl
 
 ## Registry
 
-`connector/registry.js` exports a singleton `ConnectorRegistry`.
+`connector/registry.ts` exports a singleton `ConnectorRegistry`.
 
 ### Responsibilities
 
@@ -33,19 +33,19 @@ The proxy connector makes integrations configurable through stored connector met
 
 | File | Role |
 | --- | --- |
-| `connector/proxy/index.js` | User-facing connector implementation for auth, contacts, call logs, message logs, dispositions, and logout |
-| `connector/proxy/engine.js` | Low-level request templating, auth header creation, and response mapping |
+| `connector/proxy/index.ts` | User-facing connector implementation for auth, contacts, call logs, message logs, dispositions, and logout |
+| `connector/proxy/engine.ts` | Low-level request templating, auth header creation, and response mapping |
 
-### What `proxy/index.js` does
+### What `proxy/index.ts` does
 
-- loads proxy config from `models/dynamo/connectorSchema.js`
+- loads proxy config from `models/dynamo/connectorSchema.ts`
 - resolves auth type from config, defaulting to `apiKey`
 - builds `getOauthInfo()` for OAuth-style proxy integrations
 - performs `getUserInfo()`, `findContact()`, `createContact()`, `findContactWithName()`, `createCallLog()`, `getCallLog()`, `updateCallLog()`, `createMessageLog()`, `updateMessageLog()`, `upsertCallDisposition()`, and `getUserList()`
 - clears stored tokens in `unAuthorize()`
 - exposes connector-specific log format through `meta.logFormat`
 
-### What `proxy/engine.js` does
+### What `proxy/engine.ts` does
 
 - resolves dot-path expressions with `getByPath()`
 - renders template strings like `{{ user.accessToken }}`
@@ -56,7 +56,7 @@ The proxy connector makes integrations configurable through stored connector met
 
 ## Developer Portal Helpers
 
-`connector/developerPortal.js` wraps public API calls to the App Connect Developer Portal.
+`connector/developerPortal.ts` wraps public API calls to the App Connect Developer Portal.
 
 Exports:
 
@@ -67,7 +67,7 @@ These functions are small fetch helpers and return `null` on failure after loggi
 
 ## Mock Connector Helpers
 
-`connector/mock.js` is not a full connector implementation. It is a development helper used by the dev-only mock routes.
+`connector/mock.ts` is not a full connector implementation. It is a development helper used by the dev-only mock routes.
 
 Exports:
 
