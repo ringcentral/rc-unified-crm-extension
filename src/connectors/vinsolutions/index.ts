@@ -12,7 +12,7 @@ const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packag
 const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
 
-const API_BASE_URL = process.env.VINSOLUTIONS_API_BASE_URL || 'https://integration.api.vinsolutions.com';
+const API_BASE_URL = 'https://integration.api.vinsolutions.com';
 const VINSOLUTIONS_TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
 const DEFAULT_SCOPE = 'PublicAPI';
 const GATEWAY_JSON = 'application/json';
@@ -1011,16 +1011,9 @@ async function createMessageLog({
     faxDocLink
 }) {
     try {
-        const leadId = additionalSubmission?.leads ? Number(additionalSubmission.leads) : null;
-        if (!leadId) {
-            return {
-                logId: null,
-                returnMessage: {
-                    message: 'Select a lead to log SMS messages in VinSolutions.',
-                    messageType: 'warning',
-                    ttl: 5000
-                }
-            };
+        let leadId = additionalSubmission?.leads ? Number(additionalSubmission.leads) : null;
+        if(!!!leadId){
+            leadId = await createLead({ user, contactInfo });
         }
 
         let notes;
@@ -1119,6 +1112,67 @@ async function updateMessageLog({
             }
         };
     }
+}
+
+async function createLead({ user, contactInfo }) {
+    console.log({m:'createLead', user, contactInfo});
+    let leadId=null;
+    // Fetch lead sources from VinSolutions and extract the first item from the items array
+    const { dealerId } = getDealerContext(user);
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const headers = {
+        'Accept': 'application/vnd.coxauto.v1+json',
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/vnd.coxauto.v1+json',
+        'api_key': process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY
+    };
+    let firstLeadSource = null;
+        const response = await axios.get(
+            `${API_BASE_URL}/leadSources`,
+            {
+                headers,
+                params: {
+                    dealerId,
+                    limit: 100
+                }
+            }
+        );
+        const items = response.data?.items || []; 
+        //TODO will add logic to fetch relevent lead source
+        if (items.length > 0) {
+            firstLeadSource = items[0];
+            console.log({m:'firstLeadSource', firstLeadSource});
+        const contactId = contactInfo.id;
+        const dealerIdForContact =  dealerId;
+        const userIdForContact =  user?.platformAdditionalInfo?.crmUserId;
+        console.log({m:'data', contactId, dealerIdForContact, userIdForContact});
+
+        const data = {
+            leadSource: firstLeadSource.href,
+            leadType: 'INTERNET',
+            contact: contactId
+                ? `${API_BASE_URL}/contacts/id/${contactId}?dealerid=${dealerIdForContact}&userid=${userIdForContact}`
+                : undefined
+        };
+
+        const v3Headers = {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/vnd.coxauto.v3+json',
+            'Accept': 'application/vnd.coxauto.v3+json',
+            'api_key': process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY
+        };
+
+        const leadCreateRes = await axios.post(
+                `${API_BASE_URL}/leads`,
+                data,
+                { headers: v3Headers }
+            );
+            leadId = leadCreateRes.data?.leadId ;
+        } else {
+            logger.error('No lead sources found for createLead', { dealerId });
+            throw new Error('No lead sources found for createLead');
+        }
+    return leadId;
 }
 
 exports.getAuthType = getAuthType;
