@@ -16,9 +16,10 @@ jobs:
         with:
           node-version: '20'
           cache: npm
+          registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --registry=https://registry.npmjs.org/ --replace-registry-host=always
 
       - name: Run tests
         run: npm run test-coverage
