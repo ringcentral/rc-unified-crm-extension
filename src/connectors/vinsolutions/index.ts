@@ -12,7 +12,7 @@ const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packag
 const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
 const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
 
-const API_BASE_URL = 'https://integration.api.vinsolutions.com';
+const API_BASE_URL = 'https://api.vinsolutions.com';
 const VINSOLUTIONS_TOKEN_URI = 'https://authentication.vinsolutions.com/connect/token';
 const DEFAULT_SCOPE = 'PublicAPI';
 const GATEWAY_JSON = 'application/json';
@@ -267,6 +267,35 @@ async function checkAndRefreshAccessToken(_oauthApp, user) {
     catch (error) {
         logger.error('VinSolutions token renewal failed', { stack: error.stack, tokenType: error.tokenType });
         return null;
+    }
+}
+
+// VinSolutions tokens are server-side client_credentials managed by ensureAccessToken.
+// refreshUserInfo just makes sure both token profiles are valid and reports status.
+async function refreshUserInfo({ user }) {
+    try {
+        await Promise.all(
+            Object.keys(TOKEN_PROFILES).map((tokenType) => ensureAccessToken(user, tokenType))
+        );
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'User info refreshed',
+                ttl: 1000
+            }
+        };
+    }
+    catch (error) {
+        logger.error('VinSolutions refreshUserInfo failed', { stack: error.stack });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to refresh VinSolutions session. Please reconnect.',
+                ttl: 5000
+            }
+        };
     }
 }
 
@@ -1000,6 +1029,88 @@ async function updateCallLog({
     }
 }
 
+function getMessageType({ recordingLink, faxDocLink }) {
+    if (recordingLink) {
+        return 'Voicemail';
+    }
+    if (faxDocLink) {
+        return 'Fax';
+    }
+    return 'SMS';
+}
+
+function formatSingleMessageEntry({ user, contactInfo, message }) {
+    const offset = user?.timezoneOffset || 0;
+    const time = moment(message?.creationTime).utcOffset(offset).format('YYYY-MM-DD hh:mm A');
+    const sender = message?.direction === 'Inbound'
+        ? `${contactInfo?.name || 'Contact'}${contactInfo?.phoneNumber ? ` (${contactInfo.phoneNumber})` : ''}`
+        : (user?.name || 'Agent');
+    const body = message?.subject || '';
+    return `[${time}] ${sender}: ${body}`;
+}
+
+function composeMessageNote({ user, contactInfo, correspondents, message, recordingLink, faxDocLink, messageCount = 1 }) {
+    const offset = user?.timezoneOffset || 0;
+    const messageType = getMessageType({ recordingLink, faxDocLink });
+    const dateLabel = moment(message?.creationTime).utcOffset(offset).format('dddd, MMMM DD, YYYY');
+
+    if (messageType === 'Voicemail') {
+        return [
+            `Voicemail left by ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+            `Voicemail recording link: ${recordingLink}`,
+            '',
+            '--- Created via RingCentral App Connect'
+        ].join('\n');
+    }
+
+    if (messageType === 'Fax') {
+        return [
+            `Fax document from ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+            `Fax document link: ${faxDocLink}`,
+            '',
+            '--- Created via RingCentral App Connect'
+        ].join('\n');
+    }
+
+    const participants = [user?.name, contactInfo?.name]
+        .concat((correspondents ?? []).map((c) => (Array.isArray(c) ? c[0]?.name : c?.name)))
+        .filter(Boolean);
+
+    return [
+        `SMS conversation with ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+        `Participants: ${participants.join(', ')}`,
+        `Conversation (${messageCount} message${messageCount === 1 ? '' : 's'}):`,
+        formatSingleMessageEntry({ user, contactInfo, message }),
+        '',
+        '--- Created via RingCentral App Connect'
+    ].join('\n');
+}
+
+async function fetchLeadById({ user, leadId }) {
+    const { dealerId, userId } = getDealerContext(user);
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const response = await axios.get(`${API_BASE_URL}/leads/id/${leadId}`, {
+        headers: buildLeadManagementHeaders({ accessToken, user }),
+        params: { dealerId, userId }
+    });
+    return response.data || null;
+}
+
+async function putLeadNotes({ user, leadId, notes }) {
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const body = {
+        isHot: false,
+        coBuyerContact: null,
+        trades: null,
+        vehiclesOfInterest: null,
+        notes
+    };
+    console.log({m:'putLeadNotes', leadId, body});
+    return axios.put(`${API_BASE_URL}/leads/id/${leadId}`, body, {
+        headers: buildLeadManagementHeaders({ accessToken, user, withContentType: true })
+    });
+}
+
 async function createMessageLog({
     user,
     contactInfo,
@@ -1180,6 +1291,7 @@ exports.getLogFormatType = getLogFormatType;
 exports.getBasicAuth = getBasicAuth;
 exports.getOauthInfo = getOauthInfo;
 exports.checkAndRefreshAccessToken = checkAndRefreshAccessToken;
+exports.refreshUserInfo = refreshUserInfo;
 exports.getUserInfo = getUserInfo;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.unAuthorize = unAuthorize;

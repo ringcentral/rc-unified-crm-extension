@@ -23,7 +23,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 
 describe('VinSolutions Connector', () => {
-    const apiBase = 'https://integration.api.vinsolutions.com';
+    const apiBase = 'https://api.vinsolutions.com';
     const tokenUri = 'https://authentication.vinsolutions.com';
     const accessToken = 'test-bearer-token';
     const connectedSentinel = 'vinsolutions-connected';
@@ -396,7 +396,32 @@ describe('VinSolutions Connector', () => {
     });
 
     describe('createMessageLog', () => {
-        it('should require a lead selection', async () => {
+        it('should create a lead when none is selected', async () => {
+            nock(apiBase)
+                .get('/leadSources')
+                .query({ dealerId: 2002, limit: 100 })
+                .matchHeader('api_key', 'lead-api-key')
+                .reply(200, {
+                    items: [{ href: `${apiBase}/leadSources/id/77` }]
+                });
+
+            nock(apiBase)
+                .post('/leads', (body) => (
+                    body.leadSource === `${apiBase}/leadSources/id/77`
+                    && body.leadType === 'INTERNET'
+                    && typeof body.contact === 'string'
+                ))
+                .matchHeader('content-type', 'application/vnd.coxauto.v3+json')
+                .reply(200, { leadId: 9500 });
+
+            nock(apiBase)
+                .put('/leads/id/9500', (body) => (
+                    typeof body.notes === 'string'
+                    && body.notes.includes('SMS conversation with Jane Buyer')
+                ))
+                .matchHeader('api_key', 'lead-api-key')
+                .reply(200, {});
+
             const result = await vinsolutions.createMessageLog({
                 user: mockUser,
                 contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
@@ -410,8 +435,8 @@ describe('VinSolutions Connector', () => {
                 additionalSubmission: {}
             });
 
-            expect(result.logId).toBeNull();
-            expect(result.returnMessage.message).toContain('Select a lead');
+            expect(result.logId).toBe('9500');
+            expect(result.returnMessage.messageType).toBe('success');
         });
 
         it('should write SMS notes to the selected lead', async () => {
@@ -506,6 +531,33 @@ describe('VinSolutions Connector', () => {
             expect(refreshedUser.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe(accessToken);
             expect(refreshedUser.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('call-tracking-token');
             expect(expiredUser.save).toHaveBeenCalled();
+        });
+    });
+
+    describe('refreshUserInfo', () => {
+        it('should report success when both tokens are still valid', async () => {
+            const result = await vinsolutions.refreshUserInfo({ user: mockUser });
+
+            expect(result.successful).toBe(true);
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should warn when a token cannot be renewed', async () => {
+            const expiredUser = {
+                ...mockUser,
+                platformAdditionalInfo: {
+                    ...mockUser.platformAdditionalInfo,
+                    vinsLeadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString(),
+                    vinsCallTrackingTokenExpiry: new Date(Date.now() - 60000).toISOString()
+                }
+            };
+
+            nock(tokenUri).post('/connect/token').reply(500, {});
+
+            const result = await vinsolutions.refreshUserInfo({ user: expiredUser });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.messageType).toBe('warning');
         });
     });
 
