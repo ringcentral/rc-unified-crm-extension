@@ -5,9 +5,70 @@ const {
   processEntities,
   escapeHtml
 } = require('../../lib/sharedSMSComposer');
+const tsSharedSMSComposer = require('../../lib/sharedSMSComposer.ts');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../../lib/constants');
 
 describe('sharedSMSComposer', () => {
+  test('TypeScript implementation keeps composed output aligned with compatibility JS entrypoint', () => {
+    const conversation = {
+      creationTime: '2024-01-15T10:30:00Z',
+      messages: [
+        { lastModifiedTime: '2024-01-15T10:30:00Z' },
+        { lastModifiedTime: '2024-01-15T11:45:00Z' }
+      ],
+      entities: [
+        {
+          recordType: 'AliveMessage',
+          creationTime: '2024-01-15T10:30:00Z',
+          direction: 'Inbound',
+          author: { name: 'John Customer' },
+          text: 'Hello, I need help'
+        },
+        {
+          recordType: 'AliveNote',
+          creationTime: '2024-01-15T10:40:00Z',
+          author: { name: 'Agent Smith' },
+          text: 'Customer prefers email contact'
+        }
+      ],
+      owner: {
+        name: 'Support Queue',
+        extensionType: 'Department',
+        extensionId: '12345'
+      }
+    };
+
+    for (const logFormat of [
+      LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+      LOG_DETAILS_FORMAT_TYPE.HTML,
+      LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+    ]) {
+      const params = {
+        logFormat,
+        conversation,
+        contactName: 'John Customer',
+        timezoneOffset: '+00:00'
+      };
+
+      expect(tsSharedSMSComposer.composeSharedSMSLog(params)).toEqual(composeSharedSMSLog(params));
+    }
+
+    expect(tsSharedSMSComposer.gatherParticipants(conversation.entities)).toEqual(gatherParticipants(conversation.entities));
+    expect(tsSharedSMSComposer.countEntities(conversation.entities)).toEqual(countEntities(conversation.entities));
+    expect(tsSharedSMSComposer.processEntities({
+      entities: conversation.entities,
+      timezoneOffset: '+00:00',
+      logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+      contactName: 'John Customer'
+    })).toEqual(processEntities({
+      entities: conversation.entities,
+      timezoneOffset: '+00:00',
+      logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+      contactName: 'John Customer'
+    }));
+    expect(tsSharedSMSComposer.escapeHtml('<b>Tom & Jerry</b>')).toBe(escapeHtml('<b>Tom & Jerry</b>'));
+  });
+
   describe('composeSharedSMSLog', () => {
     const baseConversation = {
       creationTime: '2024-01-15T10:30:00Z',

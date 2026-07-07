@@ -1,6 +1,7 @@
 const { CacheModel } = require('../../models/cacheModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { clearExpiredAccountContactData, clearExpiredCache } = require('../../lib/cacheCleanup');
+const tsCacheCleanup = require('../../lib/cacheCleanup.ts');
 
 describe('cacheCleanup', () => {
   beforeEach(async () => {
@@ -122,6 +123,34 @@ describe('cacheCleanup', () => {
     expect(await CacheModel.findByPk('expired-cache')).toBeNull();
     expect(await AccountDataModel.findOne({
       where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+1111111111' }
+    })).toBeNull();
+  });
+
+  test('TypeScript implementation deletes the same expired cache surfaces', async () => {
+    const now = new Date('2026-06-08T00:00:00.000Z');
+
+    await CacheModel.create({
+      id: 'ts-expired-cache',
+      userId: 'user-1',
+      cacheKey: 'auth-session',
+      status: 'expired',
+      expiry: new Date('2026-06-07T23:59:59.000Z')
+    });
+    await AccountDataModel.create({
+      rcAccountId: 'account-1',
+      platformName: 'test-platform',
+      dataKey: 'contact-+2222222222',
+      data: [{ id: 'old-contact' }],
+      createdAt: new Date('2026-03-07T23:59:59.000Z'),
+      updatedAt: new Date('2026-03-07T23:59:59.000Z')
+    });
+
+    const deletedCount = await tsCacheCleanup.clearExpiredCache({ now });
+
+    expect(deletedCount).toBe(2);
+    expect(await CacheModel.findByPk('ts-expired-cache')).toBeNull();
+    expect(await AccountDataModel.findOne({
+      where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+2222222222' }
     })).toBeNull();
   });
 });

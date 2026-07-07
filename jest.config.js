@@ -13,11 +13,21 @@ module.exports = {
     '<rootDir>/tests/failedTestsReporter.js'
   ],
   testEnvironment: 'node',
+  moduleFileExtensions: ['js', 'json', 'node', 'ts'],
+  transform: {
+    '^.+\\.js$': 'babel-jest',
+    '^.+\\.ts$': '<rootDir>/.ts-build/scripts/jestTsTransformer.js'
+  },
+  moduleNameMapper: {
+    '^@app-connect/core$': '<rootDir>/packages/core/index',
+    '^@app-connect/core/(.*)$': '<rootDir>/packages/core/$1'
+  },
   testPathIgnorePatterns: [
     '<rootDir>/tests/e2e/'
   ],
   coveragePathIgnorePatterns: ['/node_modules/', '/packages/'],
   modulePathIgnorePatterns: [
+    '<rootDir>/.ts-build/',
     '<rootDir>/build/',
     '<rootDir>/serverless-deploy/',
     '<rootDir>/serverless-deploy-test/',

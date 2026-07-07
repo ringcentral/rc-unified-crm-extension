@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": [
+    "src/**/*.ts",
+    "packages/core/**/*.ts",
+    "scripts/**/*.ts",
+    "jest.config.typecheck.ts",
+    "tests/**/*.js",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "coverage",
+    "build",
+    "serverless-deploy",
+    "serverless-deploy-test",
+    "serverless-deploy-test-beta",
+    ".ts-build",
+    "packages/core/mcp/ui",
+    "packages/**/node_modules"
+  ]
+}

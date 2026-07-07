@@ -1,4 +1,5 @@
 const jwt = require('../../lib/jwt');
+const tsJwt = require('../../lib/jwt.ts');
 
 describe('JWT Utility', () => {
   beforeEach(() => {
@@ -113,6 +114,16 @@ describe('JWT Utility', () => {
   });
 
   describe('generateJwt and decodeJwt round trip', () => {
+    test('keeps TypeScript implementation aligned with compatibility JS entrypoint', () => {
+      const payload = { id: 'cross-path-user', platform: 'testCRM' };
+
+      const jsToken = jwt.generateJwt(payload);
+      const tsToken = tsJwt.generateJwt(payload);
+
+      expect(tsJwt.decodeJwt(jsToken)).toMatchObject(payload);
+      expect(jwt.decodeJwt(tsToken)).toMatchObject(payload);
+    });
+
     test('should successfully generate and decode complex payload', () => {
       // Arrange
       const complexPayload = {

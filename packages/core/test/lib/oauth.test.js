@@ -15,6 +15,7 @@ const ClientOAuth2 = require('client-oauth2');
 const { UserModel } = require('../../models/userModel');
 const connectorRegistry = require('../../connector/registry');
 const { getOAuthApp, checkAndRefreshAccessToken } = require('../../lib/oauth');
+const tsOauth = require('../../lib/oauth.ts');
 
 describe('oauth', () => {
   beforeEach(() => {
@@ -44,6 +45,32 @@ describe('oauth', () => {
       const result = getOAuthApp(config);
 
       expect(ClientOAuth2).toHaveBeenCalledWith({
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        accessTokenUri: config.accessTokenUri,
+        authorizationUri: config.authorizationUri,
+        redirectUri: config.redirectUri,
+        scopes: config.scopes
+      });
+      expect(result).toBe(mockOAuthApp);
+    });
+
+    test('TypeScript implementation should create OAuth app with provided configuration', () => {
+      const config = {
+        clientId: 'test-client-id',
+        clientSecret: 'test-client-secret',
+        accessTokenUri: 'https://api.example.com/oauth/token',
+        authorizationUri: 'https://api.example.com/oauth/authorize',
+        redirectUri: 'https://app.example.com/callback',
+        scopes: ['read', 'write']
+      };
+
+      const mockOAuthApp = { code: { getToken: jest.fn() } };
+      ClientOAuth2.mockReturnValue(mockOAuthApp);
+
+      const result = tsOauth.getOAuthApp(config);
+
+      expect(ClientOAuth2).toHaveBeenLastCalledWith({
         clientId: config.clientId,
         clientSecret: config.clientSecret,
         accessTokenUri: config.accessTokenUri,
@@ -127,6 +154,34 @@ describe('oauth', () => {
       expect(mockToken.refresh).toHaveBeenCalled();
       expect(user.accessToken).toBe('new-access-token');
       expect(user.refreshToken).toBe('new-refresh-token');
+      expect(user.save).toHaveBeenCalled();
+    });
+
+    test('TypeScript implementation should refresh token when expired', async () => {
+      const user = createMockUser();
+      const newExpiry = moment().add(1, 'hour').toDate();
+
+      connectorRegistry.getConnector.mockReturnValue({});
+
+      const mockToken = {
+        refresh: jest.fn().mockResolvedValue({
+          accessToken: 'ts-new-access-token',
+          refreshToken: 'ts-new-refresh-token',
+          expires: newExpiry
+        })
+      };
+      mockOAuthApp.createToken.mockReturnValue(mockToken);
+
+      const result = await tsOauth.checkAndRefreshAccessToken(mockOAuthApp, user);
+
+      expect(result).toBe(user);
+      expect(mockOAuthApp.createToken).toHaveBeenLastCalledWith(
+        'old-access-token',
+        'old-refresh-token'
+      );
+      expect(mockToken.refresh).toHaveBeenCalled();
+      expect(user.accessToken).toBe('ts-new-access-token');
+      expect(user.refreshToken).toBe('ts-new-refresh-token');
       expect(user.save).toHaveBeenCalled();
     });
 

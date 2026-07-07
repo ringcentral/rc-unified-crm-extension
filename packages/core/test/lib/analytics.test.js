@@ -4,7 +4,7 @@ describe('analytics', () => {
   let track;
   let parseUserAgent;
 
-  function loadAnalytics({ token } = {}) {
+  function loadAnalytics({ token, modulePath = '../../lib/analytics' } = {}) {
     jest.resetModules();
     peopleSetOnce = jest.fn();
     track = jest.fn();
@@ -37,7 +37,7 @@ describe('analytics', () => {
     }));
 
     return {
-      analytics: require('../../lib/analytics'),
+      analytics: require(modulePath),
       logger: require('../../lib/logger')
     };
   }
@@ -101,6 +101,57 @@ describe('analytics', () => {
       }
     });
 
+    expect(peopleSetOnce).toHaveBeenCalledWith('ext-1', {
+      version: expect.any(String),
+      appName: 'App Connect',
+      crmPlatform: 'salesforce'
+    });
+    expect(parseUserAgent).toHaveBeenCalledWith('Mozilla/5.0');
+    expect(track).toHaveBeenCalledWith('Call Log Created', expect.objectContaining({
+      distinct_id: 'ext-1',
+      interfaceName: 'desktop',
+      adapterName: 'salesforce',
+      rcAccountId: 'account-1',
+      extensionId: 'ext-1',
+      success: true,
+      requestDuration: 123,
+      collectedFrom: 'server',
+      appName: 'App Connect',
+      eventAddedVia: 'server',
+      $browser: 'Chrome',
+      $os: 'Windows',
+      $device: 'desktop',
+      ip: '127.0.0.1',
+      author: 'unit-test',
+      extraKey: 'extra-value'
+    }));
+    expect(logger.info).toHaveBeenCalledWith('Event: Call Log Created');
+  });
+
+  test('TypeScript implementation tracks event properties through the same public API', () => {
+    const { analytics, logger } = loadAnalytics({
+      token: 'mixpanel-token',
+      modulePath: '../../lib/analytics.ts'
+    });
+
+    analytics.init();
+    analytics.track({
+      eventName: 'Call Log Created',
+      interfaceName: 'desktop',
+      connectorName: 'salesforce',
+      accountId: 'account-1',
+      extensionId: 'ext-1',
+      success: true,
+      requestDuration: 123,
+      userAgent: 'Mozilla/5.0',
+      ip: '127.0.0.1',
+      author: 'unit-test',
+      extras: {
+        extraKey: 'extra-value'
+      }
+    });
+
+    expect(mixpanelInit).toHaveBeenCalledWith('mixpanel-token');
     expect(peopleSetOnce).toHaveBeenCalledWith('ext-1', {
       version: expect.any(String),
       appName: 'App Connect',

@@ -4,6 +4,7 @@ const {
   getAuthSession,
   updateAuthSession,
 } = require('../../lib/authSession');
+const tsAuthSession = require('../../lib/authSession.ts');
 
 describe('authSession', () => {
   const baseTime = new Date(Date.now() + (60 * 60 * 1000));
@@ -169,5 +170,30 @@ describe('authSession', () => {
     })).resolves.toBeUndefined();
 
     await expect(CacheModel.findByPk('auth-session-missing-session')).resolves.toBeNull();
+  });
+
+  test('TypeScript implementation creates, reads, and updates auth sessions', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(baseTime.getTime());
+
+    await tsAuthSession.createAuthSession('ts-session', {
+      platform: 'clio',
+      hostname: 'ts-host',
+    });
+    await tsAuthSession.updateAuthSession('ts-session', {
+      status: 'completed',
+      jwtToken: 'ts-jwt-token',
+    });
+
+    const session = await tsAuthSession.getAuthSession('ts-session');
+    const record = await CacheModel.findByPk('auth-session-ts-session');
+
+    expect(session).toMatchObject({
+      sessionId: 'ts-session',
+      status: 'completed',
+      platform: 'clio',
+      hostname: 'ts-host',
+      jwtToken: 'ts-jwt-token',
+    });
+    expect(record.status).toBe('completed');
   });
 });

@@ -1,4 +1,5 @@
 const { decoded, encode } = require('../../lib/encode');
+const tsEncode = require('../../lib/encode.ts');
 
 describe('encode', () => {
   const originalSecret = process.env.APP_SERVER_SECRET_KEY;
@@ -19,6 +20,17 @@ describe('encode', () => {
     expect(encrypted).toMatch(/^[0-9a-f]+$/);
     expect(encrypted).not.toBe('sensitive token value');
     expect(decoded(encrypted)).toBe('sensitive token value');
+  });
+
+  test('keeps TypeScript implementation aligned with compatibility JS entrypoint', () => {
+    process.env.APP_SERVER_SECRET_KEY = '12345678901234567890123456789012';
+
+    const jsEncrypted = encode('payload');
+    const tsEncrypted = tsEncode.encode('payload');
+
+    expect(tsEncrypted).toBe(jsEncrypted);
+    expect(tsEncode.decoded(jsEncrypted)).toBe('payload');
+    expect(decoded(tsEncrypted)).toBe('payload');
   });
 
   test('throws a deterministic error when secret is missing', () => {

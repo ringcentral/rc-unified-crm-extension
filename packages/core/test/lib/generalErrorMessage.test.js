@@ -2,8 +2,16 @@ const {
   authorizationErrorMessage,
   rateLimitErrorMessage,
 } = require('../../lib/generalErrorMessage');
+const tsGeneralErrorMessage = require('../../lib/generalErrorMessage.ts');
 
 describe('generalErrorMessage', () => {
+  test('keeps TypeScript implementation aligned with compatibility JS entrypoint', () => {
+    expect(tsGeneralErrorMessage.rateLimitErrorMessage({ platform: 'Clio' }))
+      .toEqual(rateLimitErrorMessage({ platform: 'Clio' }));
+    expect(tsGeneralErrorMessage.authorizationErrorMessage({ platform: 'Bullhorn' }))
+      .toEqual(authorizationErrorMessage({ platform: 'Bullhorn' }));
+  });
+
   describe('rateLimitErrorMessage', () => {
     test('builds the standard rate limit warning message', () => {
       const result = rateLimitErrorMessage({ platform: 'Clio' });

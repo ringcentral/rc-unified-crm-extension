@@ -2,6 +2,7 @@ jest.mock('node-fetch');
 
 const fetch = require('node-fetch');
 const { RingCentral, isRefreshTokenValid, isAccessTokenValid } = require('../../lib/ringcentral');
+const tsRingCentral = require('../../lib/ringcentral.ts');
 
 describe('ringcentral', () => {
   beforeEach(() => {
@@ -76,6 +77,39 @@ describe('ringcentral', () => {
 
     beforeEach(() => {
       rc = new RingCentral(options);
+    });
+
+    test('TypeScript implementation keeps helper and request behavior aligned with compatibility JS entrypoint', async () => {
+      const token = {
+        refresh_token_expire_time: Date.now() + 60000,
+        expire_time: Date.now() + 120000,
+        token_type: 'bearer',
+        access_token: 'test-access-token'
+      };
+      const tsRc = new tsRingCentral.RingCentral(options);
+      const mockResponse = { status: 200 };
+      fetch.mockResolvedValue(mockResponse);
+
+      expect(tsRingCentral.isRefreshTokenValid(token)).toBe(isRefreshTokenValid(token));
+      expect(tsRingCentral.isAccessTokenValid(token)).toBe(isAccessTokenValid(token));
+      expect(tsRc.loginUrl({ state: 'custom-state-123' })).toBe(rc.loginUrl({ state: 'custom-state-123' }));
+
+      const response = await tsRc.request({
+        path: '/restapi/v1.0/account/~',
+        method: 'GET',
+        query: { view: 'Simple' }
+      }, token);
+
+      expect(response).toBe(mockResponse);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://platform.ringcentral.com/restapi/v1.0/account/~?view=Simple',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'Authorization': 'bearer test-access-token'
+          })
+        })
+      );
     });
 
     describe('loginUrl', () => {

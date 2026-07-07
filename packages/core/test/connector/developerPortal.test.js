@@ -3,13 +3,11 @@ jest.mock('axios', () => ({
 }));
 
 jest.mock('../../lib/logger', () => ({
-  logger: {
-    error: jest.fn(),
-  },
+  error: jest.fn(),
 }));
 
 const axios = require('axios');
-const { logger } = require('../../lib/logger');
+const logger = require('../../lib/logger');
 const {
   getPublicConnectorList,
   getConnectorManifest,

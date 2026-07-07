@@ -19,6 +19,7 @@ const {
   upsertRingSenseBulletedSummary,
   upsertRingSenseLink,
 } = require('../../lib/callLogComposer');
+const tsCallLogComposer = require('../../lib/callLogComposer.ts');
 const { LOG_DETAILS_FORMAT_TYPE } = require('../../lib/constants');
 
 describe('callLogComposer', () => {
@@ -43,6 +44,31 @@ describe('callLogComposer', () => {
       duration: 120,
       result: 'Completed'
     };
+
+    test('TypeScript implementation should keep composed output aligned with compatibility JS entrypoint', () => {
+      const params = {
+        ...baseParams,
+        recordingLink: 'https://recording.example.com/123',
+        aiNote: 'AI generated summary',
+        transcript: 'Speaker 1: Hello',
+        ringSenseTranscript: 'ACE transcript',
+        ringSenseSummary: 'ACE summary',
+        ringSenseAIScore: '92',
+        ringSenseBulletedSummary: '- First item\n- Second item',
+        ringSenseLink: 'https://ringsense.example.com/recording',
+        user: {
+          userSettings: {
+            addCallSessionId: { value: true },
+            addRingCentralUserName: { value: true },
+            addRingCentralNumber: { value: true },
+            addCallLogContactNumber: { value: true }
+          },
+          timezoneOffset: '+00:00'
+        }
+      };
+
+      expect(tsCallLogComposer.composeCallLog(params)).toBe(composeCallLog(params));
+    });
 
     test('should compose call log with default settings (plain text)', async () => {
       const result = await composeCallLog(baseParams);

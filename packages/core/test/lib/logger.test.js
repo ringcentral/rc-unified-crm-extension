@@ -1,4 +1,6 @@
-const { Logger, LOG_LEVELS } = require('../../lib/logger');
+const jsLoggerModule = require('../../lib/logger');
+const tsLoggerModule = require('../../lib/logger.ts');
+const { Logger, LOG_LEVELS } = jsLoggerModule;
 
 describe('Logger', () => {
   let originalEnv;
@@ -15,6 +17,24 @@ describe('Logger', () => {
     process.env.NODE_ENV = originalEnv;
     consoleSpy.mockRestore();
     consoleErrorSpy.mockRestore();
+  });
+
+  describe('TypeScript implementation parity', () => {
+    test('keeps module shape and production formatting aligned with compatibility JS entrypoint', () => {
+      process.env.NODE_ENV = 'production';
+      const jsLogger = new Logger({ level: 'INFO' });
+      const tsLogger = new tsLoggerModule.Logger({ level: 'INFO' });
+
+      const jsOutput = JSON.parse(jsLogger._formatMessage('INFO', 'test message', { userId: '123' }));
+      const tsOutput = JSON.parse(tsLogger._formatMessage('INFO', 'test message', { userId: '123' }));
+      delete jsOutput.timestamp;
+      delete tsOutput.timestamp;
+
+      expect(tsLoggerModule.LOG_LEVELS).toEqual(LOG_LEVELS);
+      expect(typeof tsLoggerModule.info).toBe('function');
+      expect(typeof tsLoggerModule.child).toBe('function');
+      expect(tsOutput).toEqual(jsOutput);
+    });
   });
 
   describe('Log Levels', () => {

@@ -1,10 +1,44 @@
 const { DebugTracer } = require('../../lib/debugTracer');
+const { DebugTracer: TsDebugTracer } = require('../../lib/debugTracer.ts');
 
 describe('DebugTracer', () => {
   let tracer;
 
   beforeEach(() => {
     tracer = new DebugTracer();
+  });
+
+  test('keeps TypeScript implementation aligned with compatibility JS entrypoint', () => {
+    const jsTracer = new DebugTracer();
+    const tsTracer = new TsDebugTracer();
+
+    jsTracer.trace('testMethod', {
+      user: {
+        name: 'John',
+        accessToken: 'secret-token',
+      },
+      users: [
+        { name: 'User1', apiKey: 'key1' },
+      ],
+    }, { includeStack: false, level: 'warn' });
+    tsTracer.trace('testMethod', {
+      user: {
+        name: 'John',
+        accessToken: 'secret-token',
+      },
+      users: [
+        { name: 'User1', apiKey: 'key1' },
+      ],
+    }, { includeStack: false, level: 'warn' });
+
+    const jsTrace = jsTracer.traces[0];
+    const tsTrace = tsTracer.traces[0];
+
+    expect(tsTrace.methodName).toBe(jsTrace.methodName);
+    expect(tsTrace.level).toBe(jsTrace.level);
+    expect(tsTrace.data).toEqual(jsTrace.data);
+    expect(tsTracer.wrapResponse({ success: true })._debug.traceCount)
+      .toBe(jsTracer.wrapResponse({ success: true })._debug.traceCount);
   });
 
   describe('constructor', () => {

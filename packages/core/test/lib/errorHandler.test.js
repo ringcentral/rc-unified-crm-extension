@@ -3,6 +3,7 @@ jest.mock('../../lib/logger', () => ({
 }));
 
 const logger = require('../../lib/logger');
+const tsErrorHandler = require('../../lib/errorHandler.ts');
 const {
   asyncHandler,
   errorMiddleware,
@@ -95,6 +96,23 @@ describe('errorHandler', () => {
       expect(result.extraDataTracking).toEqual({ statusCode: 'unknown' });
       expect(result.returnMessage.message).toBe('Error creating contact');
     });
+
+    test('TypeScript implementation keeps API error mapping aligned with compatibility JS entrypoint', () => {
+      const jsError = new Error('provider unavailable');
+      jsError.response = {
+        status: 500,
+        data: { message: 'unavailable' },
+      };
+      const tsError = new Error('provider unavailable');
+      tsError.response = {
+        status: 500,
+        data: { message: 'unavailable' },
+      };
+
+      expect(tsErrorHandler.handleApiError(tsError, 'Salesforce', 'updateCallLog')).toEqual(
+        handleApiError(jsError, 'Salesforce', 'updateCallLog')
+      );
+    });
   });
 
   describe('getOperationErrorMessage', () => {
@@ -126,6 +144,12 @@ describe('errorHandler', () => {
         ],
         ttl: 5000,
       });
+    });
+
+    test('TypeScript implementation keeps operation messages aligned', () => {
+      expect(tsErrorHandler.getOperationErrorMessage('updateAppointment', 'Google')).toEqual(
+        getOperationErrorMessage('updateAppointment', 'Google')
+      );
     });
   });
 

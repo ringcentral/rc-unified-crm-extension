@@ -22,6 +22,18 @@ const logCore = require('../handlers/log');
 const { createCoreRouter, createCoreMiddleware } = require('../index');
 const connectorRegistry = require('../connector/registry');
 
+test('TypeScript package entrypoint exposes the compatibility core API', () => {
+  const tsCore = require('../index.ts');
+
+  expect(tsCore.createCoreRouter).toEqual(expect.any(Function));
+  expect(tsCore.createCoreMiddleware).toEqual(expect.any(Function));
+  expect(tsCore.createCoreApp).toEqual(expect.any(Function));
+  expect(tsCore.initializeCore).toEqual(expect.any(Function));
+  expect(tsCore.connectorRegistry).toBeDefined();
+  expect(tsCore.proxyConnector).toBeDefined();
+  expect(tsCore.DebugTracer).toEqual(expect.any(Function));
+});
+
 function buildApp() {
   const app = express();
   createCoreMiddleware().forEach((m) => app.use(m));

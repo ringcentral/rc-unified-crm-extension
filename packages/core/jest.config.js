@@ -1,8 +1,15 @@
+// @ts-check
+
 const path = require('path');
 
 module.exports = {
   // Test environment
   testEnvironment: 'node',
+  moduleFileExtensions: ['js', 'json', 'node', 'ts'],
+  transform: {
+    '^.+\\.js$': 'babel-jest',
+    '^.+\\.ts$': '<rootDir>/../../.ts-build/scripts/jestTsTransformer.js'
+  },
   
   // Test file patterns
   testMatch: [
@@ -30,6 +37,7 @@ module.exports = {
   // Module resolution
   moduleDirectories: ['node_modules', '<rootDir>'],
   moduleNameMapper: {
+    '^@app-connect/core$': '<rootDir>/index',
     '^@app-connect/core/(.*)$': '<rootDir>/$1'
   },
   
@@ -54,4 +62,4 @@ module.exports = {
   
   // Verbose output
   verbose: true
-}; 
+};

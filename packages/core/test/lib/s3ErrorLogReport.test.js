@@ -60,6 +60,7 @@ const {
   ensureBucketExists,
   getUploadUrl,
 } = require('../../lib/s3ErrorLogReport');
+const tsS3ErrorLogReport = require('../../lib/s3ErrorLogReport.ts');
 
 describe('s3ErrorLogReport', () => {
   beforeEach(() => {
@@ -180,6 +181,33 @@ describe('s3ErrorLogReport', () => {
         Metadata: {
           'user-id': 'user-2',
           platform: 'bullhorn',
+        },
+      });
+    });
+
+    test('TypeScript implementation checks bucket and composes upload command', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-04T01:02:03.000Z'));
+      mockS3Send.mockResolvedValueOnce({});
+
+      const uploadUrl = await tsS3ErrorLogReport.getUploadUrl({
+        userId: 'user-ts',
+        platform: 'clio',
+        metadata: {
+          source: 'ts-suite',
+        },
+      });
+
+      expect(uploadUrl).toBe('https://signed-upload.example.com/report');
+      expect(mockS3Send.mock.calls[0][0]).toBeInstanceOf(HeadBucketCommand);
+      expect(getSignedUrl.mock.calls[0][1]).toBeInstanceOf(PutObjectCommand);
+      expect(getSignedUrl.mock.calls[0][1].input).toEqual({
+        Bucket: 'error-reports-bucket',
+        Key: 'error-reports/2026-07-04/user-ts-report-123.json',
+        ContentType: 'application/json',
+        Metadata: {
+          'user-id': 'user-ts',
+          platform: 'clio',
+          source: 'ts-suite',
         },
       });
     });

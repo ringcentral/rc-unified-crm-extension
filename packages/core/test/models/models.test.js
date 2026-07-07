@@ -20,6 +20,7 @@ const {
   ensureCallLogsHashedExtensionIdSchema,
   sqliteCallLogsPkIncludesHashedExtension,
 } = require('../../lib/migrateCallLogsSchema');
+const tsMigrateCallLogsSchema = require('../../lib/migrateCallLogsSchema.ts');
 
 describe('Core Models', () => {
   beforeAll(async () => {
@@ -298,6 +299,63 @@ describe('Core Models', () => {
       });
       expect(migratedLog).not.toBeNull();
       expect(migratedLog.thirdPartyLogId).toBe('third-party-legacy');
+    });
+
+    test('TypeScript implementation should migrate legacy call log schema to hashed extension identity key', async () => {
+      await CallLogModel.drop();
+      await sequelize.query(`
+        CREATE TABLE callLogs (
+          id VARCHAR(255) NOT NULL,
+          sessionId VARCHAR(255) NOT NULL,
+          extensionNumber VARCHAR(255) NOT NULL DEFAULT '',
+          platform VARCHAR(255),
+          thirdPartyLogId VARCHAR(255),
+          userId VARCHAR(255),
+          contactId VARCHAR(255),
+          createdAt DATETIME NOT NULL,
+          updatedAt DATETIME NOT NULL,
+          PRIMARY KEY (id, sessionId, extensionNumber)
+        );
+      `);
+      await sequelize.query(`
+        INSERT INTO callLogs (
+          id,
+          sessionId,
+          extensionNumber,
+          platform,
+          thirdPartyLogId,
+          userId,
+          contactId,
+          createdAt,
+          updatedAt
+        ) VALUES (
+          'ts-legacy-call',
+          'ts-legacy-session',
+          '102',
+          'testCRM',
+          'third-party-ts-legacy',
+          'user-1',
+          'contact-1',
+          '2026-01-01T00:00:00.000Z',
+          '2026-01-01T00:00:00.000Z'
+        );
+      `);
+
+      await tsMigrateCallLogsSchema.ensureCallLogsHashedExtensionIdSchema(sequelize);
+
+      const tableDescription = await sequelize.getQueryInterface().describeTable('callLogs');
+      expect(tableDescription.hashedExtensionId).toBeDefined();
+      await expect(tsMigrateCallLogsSchema.sqliteCallLogsPkIncludesHashedExtension(sequelize)).resolves.toBe(true);
+      const migratedLog = await CallLogModel.findOne({
+        where: {
+          id: 'ts-legacy-call',
+          sessionId: 'ts-legacy-session',
+          extensionNumber: '102',
+          hashedExtensionId: ''
+        }
+      });
+      expect(migratedLog).not.toBeNull();
+      expect(migratedLog.thirdPartyLogId).toBe('third-party-ts-legacy');
     });
 
     test('should find call logs by session ID', async () => {

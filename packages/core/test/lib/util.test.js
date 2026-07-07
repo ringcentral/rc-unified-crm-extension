@@ -10,8 +10,27 @@ const {
   getMostRecentDate,
   getMediaReaderLinkByPlatformMediaLink
 } = require('../../lib/util');
+const tsUtil = require('../../lib/util.ts');
 
 describe('Utility Functions', () => {
+  test('TypeScript implementation keeps pure utility exports aligned with compatibility JS entrypoint', () => {
+    const dates = [1000, null, 5000, undefined, 3000];
+    const mediaLink = 'https://media.ringcentral.com/file?id=123&type=audio';
+
+    expect(tsUtil.getHashValue('test-string', 'secret-key')).toBe(getHashValue('test-string', 'secret-key'));
+    expect(tsUtil.secondsToHoursMinutesSeconds(3661)).toBe(secondsToHoursMinutesSeconds(3661));
+    expect(tsUtil.secondsToHoursMinutesSeconds('not a number')).toBe(secondsToHoursMinutesSeconds('not a number'));
+    expect(tsUtil.getMostRecentDate({ allDateValues: dates })).toBe(getMostRecentDate({ allDateValues: dates }));
+    expect(tsUtil.getMediaReaderLinkByPlatformMediaLink(mediaLink)).toBe(getMediaReaderLinkByPlatformMediaLink(mediaLink));
+    expect(Object.keys(tsUtil).sort()).toEqual([
+      'getHashValue',
+      'getMediaReaderLinkByPlatformMediaLink',
+      'getMostRecentDate',
+      'getTimeZone',
+      'secondsToHoursMinutesSeconds'
+    ]);
+  });
+
   describe('getTimeZone', () => {
     beforeEach(() => {
       jest.clearAllMocks();
@@ -109,6 +128,17 @@ describe('Utility Functions', () => {
       // Assert - tzlookup is called with null coords, returns null
       expect(tzlookup).toHaveBeenCalledWith(null, null);
       expect(result).toBeNull();
+    });
+
+    test('TypeScript implementation keeps timezone lookup aligned with compatibility JS entrypoint', () => {
+      State.getStateByCodeAndCountry = jest.fn().mockReturnValue({
+        name: 'California',
+        latitude: '36.778259',
+        longitude: '-119.417931'
+      });
+      tzlookup.mockReturnValue('America/Los_Angeles');
+
+      expect(tsUtil.getTimeZone('US', 'CA')).toBe(getTimeZone('US', 'CA'));
     });
   });
 
