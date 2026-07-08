@@ -35,7 +35,6 @@ connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
 connectorRegistry.registerConnector('vinsolutions', vinsolutions);
-connectorRegistry.registerConnector('cox_automotive_sushil_local', vinsolutions);
 connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality
