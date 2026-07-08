@@ -50,6 +50,11 @@ describe('Bullhorn monthly report connector', () => {
         return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
     }
 
+    function getUtcEmailDateString() {
+        const now = new Date();
+        return `${String(now.getUTCDate()).padStart(2, '0')}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${now.getUTCFullYear()}`;
+    }
+
     function getLocalPrettyDate() {
         const months = [
             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -511,7 +516,7 @@ describe('Bullhorn monthly report connector', () => {
 
         expect(axios.post).toHaveBeenCalledTimes(3);
         expect(axios.post.mock.calls[2][1]).toMatchObject({
-            subject: `Bullhorn Monthly Salesforce Report FAILED ${getLocalEmailDateString()}`,
+            subject: `Bullhorn Monthly Salesforce Report FAILED ${getUtcEmailDateString()}`,
             identifiers: {
                 id: 'noreply@devemail.ringcentral.com'
             }
