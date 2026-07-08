@@ -59,12 +59,16 @@ describe('MCP TypeScript module parity', () => {
     await expect(doAuth.execute({
       sessionId: 'session-1',
       connectorName: 'testCrm',
-      hostname: 'crm.example.com'
+      hostname: 'crm.example.com',
+      rcExtensionId: 'rc-ext-1',
+      openaiSessionId: 'openai-session-1'
     })).resolves.toEqual({ success: true });
 
     expect(createAuthSession).toHaveBeenCalledWith('session-1', {
       platform: 'testCrm',
-      hostname: 'crm.example.com'
+      hostname: 'crm.example.com',
+      rcExtensionId: 'rc-ext-1',
+      openaiSessionId: 'openai-session-1'
     });
   });
 

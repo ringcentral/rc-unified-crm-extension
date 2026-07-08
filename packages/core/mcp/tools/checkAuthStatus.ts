@@ -56,8 +56,21 @@ async function execute(args) {
             };
         }
 
+        if (session.rcExtensionId && session.rcExtensionId !== rcExtensionId) {
+            return {
+                success: false,
+                error: 'CRM auth session does not belong to this RingCentral extension.'
+            };
+        }
+
         switch (session.status) {
             case 'completed':
+                if (!session.jwtToken) {
+                    return {
+                        success: false,
+                        error: 'CRM auth session completed without a CRM token.'
+                    };
+                }
                 await LlmSessionModel.upsert({
                     id: rcExtensionId,
                     jwtToken: session.jwtToken,
@@ -66,9 +79,8 @@ async function execute(args) {
                 return {
                     data: {
                         status: 'completed',
-                        jwtToken: session.jwtToken,
                         userInfo: session.userInfo,
-                        message: 'IMPORTANT: Authentication successful! Keep jwtToken in memory for future use. DO NOT directly show it to user.'
+                        message: 'Authentication successful. CRM token stored server-side for future tool calls.'
                     }
                 };
 

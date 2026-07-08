@@ -22,12 +22,16 @@ const toolDefinition = {
                 type: 'string',
                 description: 'Connector platform name'
             },
+            sessionId: {
+                type: 'string',
+                description: 'Server-issued widget session ID'
+            },
             hostname: {
                 type: 'string',
                 description: 'Resolved hostname for the CRM instance'
             }
         },
-        required: ['connectorName']
+        required: ['sessionId', 'connectorName']
     },
     annotations: {
         readOnlyHint: false,
@@ -38,15 +42,17 @@ const toolDefinition = {
 
 async function execute(args) {
     try {
-        const { sessionId, connectorName, hostname = '' } = args;
+        const { sessionId, connectorName, hostname = '', rcExtensionId, openaiSessionId } = args;
 
-        if (!sessionId || !connectorName) {
-            return { success: false, error: 'Missing required fields: sessionId, connectorName' };
+        if (!sessionId || !connectorName || !rcExtensionId) {
+            return { success: false, error: 'Missing required fields: sessionId, connectorName, rcExtensionId' };
         }
 
         await createAuthSession(sessionId, {
             platform: connectorName,
             hostname,
+            rcExtensionId,
+            openaiSessionId,
         });
 
         return { success: true };

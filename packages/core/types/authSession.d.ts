@@ -12,6 +12,7 @@ export interface AuthSessionData {
   status?: AuthSessionStatus;
   jwtToken?: string;
   rcExtensionId?: string;
+  openaiSessionId?: string;
   [key: string]: unknown;
 }
 

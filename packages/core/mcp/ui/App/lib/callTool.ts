@@ -5,6 +5,7 @@ import { dbg } from './debugLog';
  * Set from structuredContent.serverUrl when the initial tool output arrives.
  */
 let _serverUrl: string | null = null;
+let _widgetSessionToken: string | null = null;
 
 /**
  * Send a JSON-RPC 2.0 request to the host (ChatGPT) and await the response.
@@ -77,6 +78,11 @@ export function setServerUrl(url: string) {
   dbg.info('serverUrl set to:', _serverUrl);
 }
 
+export function setWidgetSessionToken(token: string | null | undefined) {
+  _widgetSessionToken = token ?? null;
+  dbg.info('widgetSessionToken set:', _widgetSessionToken ? 'present' : 'missing');
+}
+
 export function getServerUrl(): string | null {
   return _serverUrl;
 }
@@ -102,6 +108,12 @@ export async function callTool(
     throw new Error(msg);
   }
 
+  if (!_widgetSessionToken) {
+    const msg = 'widgetSessionToken not set — run getPublicConnectors with a verified RingCentral session';
+    dbg.error(msg);
+    throw new Error(msg);
+  }
+
   const endpoint = `${_serverUrl}/mcp/widget-tool-call`;
   const body = JSON.stringify({ tool: toolName, toolArgs: args });
   dbg.info('fetch POST', endpoint, 'body:', body);
@@ -109,7 +121,10 @@ export async function callTool(
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-App-Connect-Widget-Token': _widgetSessionToken,
+      },
       body,
     });
 

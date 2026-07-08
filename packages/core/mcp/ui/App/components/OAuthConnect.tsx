@@ -11,8 +11,7 @@ interface OAuthConnectProps {
   connectorDisplayName: string
   hostname: string
   openaiSessionId?: string | null
-  rcExtensionId?: string | null
-  onSuccess: (data: { jwtToken: string; userInfo?: any }) => void
+  onSuccess: (data: { userInfo?: any }) => void
   onError: (error: string) => void
   onBack: () => void
 }
@@ -43,7 +42,6 @@ export function OAuthConnect({
   connectorDisplayName,
   hostname,
   openaiSessionId,
-  rcExtensionId,
   onSuccess,
   onError,
   onBack,
@@ -130,30 +128,27 @@ export function OAuthConnect({
       try {
         const res = await callTool('checkAuthStatus', {
           sessionId: sessionIdRef.current,
-          ...(rcExtensionId ? { rcExtensionId } : {}),
         })
         const sc = res?.data ?? null
 
         if (unmountedRef.current) return
 
         const dataStatus = sc?.status
-        if (dataStatus === 'completed' && sc?.jwtToken) {
+        if (dataStatus === 'completed') {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current)
 
-          // Push the JWT into ChatGPT's model context so it can be used
-          // in future tool calls. updateModelContext tries ui/update-model-context
-          // first (invisible to user, visible to model), then falls back to ui/message.
+          // Notify the model without exposing the CRM JWT. Future tool calls
+          // resolve the token server-side from the verified RC extension session.
           const userLabel = sc.userInfo?.name ? ` as ${sc.userInfo.name}` : ''
           await updateModelContext(
             `CRM authentication with ${connectorDisplayName} completed${userLabel}. ` +
             `Platform: ${connectorName}. ` +
-            `jwtToken: ${sc.jwtToken}. ` +
-            `IMPORTANT: Store this jwtToken and pass it as a parameter to all future CRM tool calls.`
+            `Use the server-side connected session for future CRM tool calls. ` +
+            `Do not ask the user for or include a jwtToken.`
           )
-          dbg.info('updateModelContext sent with jwtToken')
+          dbg.info('updateModelContext sent without jwtToken')
 
           onSuccess({
-            jwtToken: sc.jwtToken,
             userInfo: sc.userInfo,
           })
         } else if (dataStatus === 'failed') {

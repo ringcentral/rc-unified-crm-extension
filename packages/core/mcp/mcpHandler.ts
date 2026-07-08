@@ -21,6 +21,8 @@ const { getHashValue: rawGetHashValue } = require('../lib/util');
 const getHashValue = /** @type {any} */ (rawGetHashValue);
 const jwt = /** @type {any} */ (require('../lib/jwt'));
 const logger = /** @type {any} */ (require('../lib/logger'));
+const { verifyWidgetSessionToken: rawVerifyWidgetSessionToken } = require('./lib/widgetSessionToken');
+const verifyWidgetSessionToken = /** @type {any} */ (rawVerifyWidgetSessionToken);
 const fs = require('fs');
 const path = require('path');
 
@@ -28,7 +30,7 @@ const path = require('path');
  * Increment this to bust ChatGPT's widget resource cache after every UI build.
  * This is the single source of truth — injected into getPublicConnectors _meta at response time.
  */
-const WIDGET_VERSION = 10;
+const WIDGET_VERSION = 11;
 const WIDGET_URI = `ui://widget/ConnectorList-v${WIDGET_VERSION}.html`;
 const RC_EXTENSION_CACHE_KEY = 'rcExtensionId';
 const RC_EXTENSION_CACHE_STATUS = 'resolved';
@@ -36,6 +38,10 @@ const RC_EXTENSION_CACHE_STATUS = 'resolved';
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_METHOD_NOT_FOUND = -32601;
 const JSON_RPC_INVALID_PARAMS = -32602;
+
+function getWidgetSessionToken(req) {
+    return req.headers?.['x-app-connect-widget-token'] || req.headers?.['X-App-Connect-Widget-Token'];
+}
 
 /**
  * JSON Schema definitions for tools that accept parameters.
@@ -510,17 +516,34 @@ async function handleWidgetToolCall(req, res) {
 
         logger.info('Widget tool call parsed:', { toolName, args: JSON.stringify(args) });
 
+        const widgetContext = verifyWidgetSessionToken(getWidgetSessionToken(req));
+        if (!widgetContext) {
+            return res.status(401).json({ success: false, error: 'Invalid widget session' });
+        }
+
         if (!toolName) {
             return res.status(400).json({ success: false, error: 'Missing tool name' });
         }
 
-        const allWidgetCallable = [...tools.tools, ...tools.widgetTools];
-        const tool = allWidgetCallable.find(t => t.definition.name === toolName);
+        const tool = tools.widgetTools.find(t => t.definition.name === toolName);
         if (!tool) {
             return res.status(404).json({ success: false, error: `Unknown tool: ${toolName}` });
         }
 
-        const result = await tool.execute(args || {});
+        const toolArgs = args && typeof args === 'object' ? args : {};
+        if (
+            widgetContext.openaiSessionId &&
+            toolArgs.sessionId &&
+            toolArgs.sessionId !== widgetContext.openaiSessionId
+        ) {
+            return res.status(403).json({ success: false, error: 'Widget session mismatch' });
+        }
+
+        const result = await tool.execute({
+            ...toolArgs,
+            rcExtensionId: widgetContext.rcExtensionId,
+            openaiSessionId: widgetContext.openaiSessionId,
+        });
         logger.info('Widget tool call result:', { toolName, success: result?.success });
         res.json(result);
     } catch (error) {

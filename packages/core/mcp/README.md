@@ -70,7 +70,7 @@ A stateless, hand-rolled JSON-RPC handler — no `@modelcontextprotocol/sdk`, no
 - Stamps `WIDGET_URI` into `getPublicConnectors`'s `_meta['openai/outputTemplate']` at response time
 - Returns `structuredContent` for schema-bearing tool calls and includes serialized JSON text content for backwards compatibility
 - Serves the widget HTML via `resources/read`
-- Exposes `handleWidgetToolCall` which searches both `tools.tools` and `tools.widgetTools`
+- Exposes `handleWidgetToolCall`, which verifies the signed widget session token and dispatches only `tools.widgetTools`
 
 **Request Flow:**
 1. Receives `POST /mcp` with a JSON-RPC body
@@ -127,7 +127,7 @@ Tools do **not** need ChatGPT to pass `jwtToken` explicitly — it is resolved f
 
 New or refreshed LLM session JWTs are written only when the user record has an `accessToken`, so disconnected users are not issued a new tool JWT.
 
-Note: `widgetTools` are called via `POST /mcp/widget-tool-call` which bypasses the MCP session layer entirely. No server-side injection occurs for widget tool calls — all required values must be passed explicitly by the widget in the request body.
+Note: `widgetTools` are called via `POST /mcp/widget-tool-call`. The widget must send the short-lived `X-App-Connect-Widget-Token` issued by `getPublicConnectors`; `mcpHandler.ts` verifies that token and injects `rcExtensionId` / `openaiSessionId` into widget tool args. Widget request bodies are not trusted for identity.
 
 ### Output Handling
 
@@ -208,9 +208,9 @@ Polls the OAuth session status. Called exclusively by the widget during the OAut
 
 | Property | Value |
 |----------|-------|
-| Parameters | `sessionId`, `rcExtensionId?` (passed by widget from `getPublicConnectors` structuredContent) |
+| Parameters | `sessionId`; `rcExtensionId` is injected from the signed widget session token |
 | Returns | `{ data: { status, ... } }` for all states |
-| On Success | `data.jwtToken` and `data.userInfo` included; JWT stored in `LlmSessionModel` keyed by `rcExtensionId` |
+| On Success | `data.userInfo` included; JWT stored server-side in `LlmSessionModel` keyed by verified `rcExtensionId` and not returned to the widget |
 | Statuses | `pending` · `completed` · `failed` — all return consistent `{ data: { status } }` for reliable widget parsing |
 
 ## ChatGPT Widget UI
@@ -234,7 +234,7 @@ The UI module provides a single interactive widget that drives the full authenti
 | `ui/notifications/tool-result` postMessage | MCP Apps bridge notification |
 | Polling `window.openai.toolOutput` | Fallback for async population |
 
-The initial payload is `{ serverUrl, rcAccountId, rcExtensionId, openaiSessionId }`.
+The initial payload is `{ serverUrl, rcAccountId, rcExtensionId, openaiSessionId, widgetSessionToken }`. `widgetSessionToken` is short-lived and sent only as the `X-App-Connect-Widget-Token` header for widget tool calls.
 
 **2. Fetching connectors and manifests** — via direct `fetch()` to `appconnect.labs.ringcentral.com`:
 
@@ -251,10 +251,10 @@ const manifest   = await fetchManifest(connector.id, isPrivate, rcAccountId)
 import { callTool } from './lib/callTool'
 
 const result = await callTool('doAuth', { sessionId, connectorName, hostname })
-const status = await callTool('checkAuthStatus', { sessionId, rcExtensionId })
+const status = await callTool('checkAuthStatus', { sessionId })
 ```
 
-`window.openai.callTool()` is **intentionally not used** for widget tool calls. Direct `fetch()` to `/mcp/widget-tool-call` forwards all arguments correctly and works for both `doAuth` and `checkAuthStatus`.
+`window.openai.callTool()` is **intentionally not used** for widget tool calls. Direct `fetch()` to `/mcp/widget-tool-call` forwards all arguments correctly and works for both `doAuth` and `checkAuthStatus`. `callTool()` adds the signed widget session token header automatically.
 
 ### Widget Auth Flow
 
@@ -271,7 +271,7 @@ loadingConnectors → select → loading → authInfo (if dynamic/selectable env
 | `select` | `ConnectorList` | Displays available connectors |
 | `loading` | (spinner) | Shown while manifest is being fetched |
 | `authInfo` | `AuthInfoForm` | Collects hostname (dynamic) or environment (selectable). Resolved locally — no server call |
-| `oauth` | `OAuthConnect` | Uses `openaiSessionId` as the OAuth session ID (falls back to `crypto.randomUUID()`). Generates the OAuth URL client-side, calls `doAuth` in background to register the session in the DB, then shows "Authorize" button. After click, polls `checkAuthStatus` every 5 seconds via direct fetch |
+| `oauth` | `OAuthConnect` | Uses `openaiSessionId` as the OAuth session ID (falls back to `crypto.randomUUID()`). Generates the OAuth URL client-side, calls `doAuth` in background with the signed widget token to register the session in the DB, then shows "Authorize" button. After click, polls `checkAuthStatus` every 5 seconds via direct fetch |
 | `success` | `AuthSuccess` | Shows connected CRM name and user info |
 | `error` | (inline) | Shows error with "Back to connector list" link |
 
@@ -284,7 +284,7 @@ Displays available CRM connectors with public/private badges. On selection, dele
 Form for environment info collection. Handles `dynamic` (text input) and `selectable` (button list) environment types. Hostname resolution happens inline in `App.tsx`.
 
 #### OAuthConnect
-Handles the full OAuth step. Uses `openaiSessionId` (from the initial tool output) as the session ID so the OAuth callback can be correlated with the ChatGPT conversation — falls back to `crypto.randomUUID()` when running outside ChatGPT. Calls `doAuth` in the background, shows an "Authorize in [CRM]" button (disabled until session is created), then polls `checkAuthStatus` every 5 seconds via `callTool()` (direct fetch). On success, fires `updateModelContext` to push the jwtToken into ChatGPT's context, then calls `onSuccess`.
+Handles the full OAuth step. Uses `openaiSessionId` (from the initial tool output) as the session ID so the OAuth callback can be correlated with the ChatGPT conversation — falls back to `crypto.randomUUID()` when running outside ChatGPT. Calls `doAuth` in the background, shows an "Authorize in [CRM]" button (disabled until session is created), then polls `checkAuthStatus` every 5 seconds via `callTool()` (direct fetch). On success, fires `updateModelContext` with a non-secret connected-session message, then calls `onSuccess`.
 
 #### AuthSuccess
 Success banner showing the connected CRM name and optional user info.
@@ -332,6 +332,12 @@ npm run dev
 
 Called by the widget via `fetch()` to invoke `doAuth` and `checkAuthStatus` with full argument support.
 
+Required header:
+
+```http
+X-App-Connect-Widget-Token: <widgetSessionToken from getPublicConnectors>
+```
+
 **`doAuth` request:**
 ```json
 {
@@ -349,8 +355,7 @@ Called by the widget via `fetch()` to invoke `doAuth` and `checkAuthStatus` with
 {
   "tool": "checkAuthStatus",
   "toolArgs": {
-    "sessionId": "<same sessionId used in doAuth>",
-    "rcExtensionId": "<from getPublicConnectors structuredContent>"
+    "sessionId": "<same sessionId used in doAuth>"
   }
 }
 ```
@@ -377,7 +382,8 @@ Currently supported for MCP integration:
 4. **Session Management**: MCP sessions are server-side and automatically cleaned up on transport close.
 5. **OAuth Flows**: Uses secure OAuth 2.0 with server-side callback handling.
 6. **RC Account ID**: Resolved server-side via RC API and passed to the widget — never requires exposing secrets to the browser.
-7. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.
+7. **Widget session token**: `getPublicConnectors` issues a short-lived signed token after RC identity resolution. `/mcp/widget-tool-call` requires that token and injects the verified `rcExtensionId`; it does not trust widget-provided identity values.
+8. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.
 
 | | Before | After |
 |---|---|---|
@@ -411,8 +417,8 @@ A typical conversation flow:
 5. **Widget**: Fetches Clio manifest → shows environment selector (US/EU/AU/CA)
 6. **User**: Selects region → widget calls `doAuth` with `openaiSessionId` as OAuth session key → shows "Authorize in Clio" button
 7. **User**: Clicks button → Clio OAuth page opens in new tab → user authorizes
-8. **Widget**: Polls `checkAuthStatus` every 5 seconds via direct fetch (passes `sessionId` + `rcExtensionId`) → "Waiting for authorization..."
-9. **Widget**: Auth completes → jwtToken stored in `LlmSessionModel[rcExtensionId]` → widget fires `updateModelContext` with jwtToken → shows success banner
+8. **Widget**: Polls `checkAuthStatus` every 5 seconds via direct fetch (passes `sessionId`; server injects `rcExtensionId` from signed token) → "Waiting for authorization..."
+9. **Widget**: Auth completes → jwtToken stored in `LlmSessionModel[rcExtensionId]` server-side → widget fires `updateModelContext` without jwtToken → shows success banner
 10. **AI**: "You're now connected! What would you like to do?"
 11. **User**: "Find contacts named Test"
 12. **AI**: Calls `findContactByName(name="Test")` — server injects jwtToken automatically using cached `rcExtensionId` as lookup key → returns results

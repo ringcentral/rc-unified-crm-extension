@@ -6,6 +6,8 @@ const { UserModel: RawUserModel } = require('../../models/userModel');
 const UserModel = /** @type {any} */ (RawUserModel);
 const { getHashValue: rawGetHashValue } = require('../../lib/util');
 const getHashValue = /** @type {any} */ (rawGetHashValue);
+const { createWidgetSessionToken: rawCreateWidgetSessionToken } = require('../lib/widgetSessionToken');
+const createWidgetSessionToken = /** @type {any} */ (rawCreateWidgetSessionToken);
 
 /**
  * MCP Tool: Get Public Connectors
@@ -90,6 +92,7 @@ async function execute({ rcAccessToken, openaiSessionId }: { rcAccessToken?: str
                 rcExtensionId,
                 rcAccountId,
                 openaiSessionId: openaiSessionId ?? null,
+                widgetSessionToken: createWidgetSessionToken({ rcExtensionId, openaiSessionId: openaiSessionId ?? null }),
             }
         };
     }

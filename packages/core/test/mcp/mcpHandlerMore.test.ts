@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const toolsModule = require('../../mcp/tools');
+const { verifyWidgetSessionToken } = require('../../mcp/lib/widgetSessionToken');
 const { LlmSessionModel } = require('../../models/llmSessionModel');
 const { CacheModel } = require('../../models/cacheModel');
 const { UserModel } = require('../../models/userModel');
@@ -74,6 +75,10 @@ jest.mock('../../lib/logger', () => ({
   error: jest.fn(),
 }));
 
+jest.mock('../../mcp/lib/widgetSessionToken', () => ({
+  verifyWidgetSessionToken: jest.fn(),
+}));
+
 function mockResponse() {
   return {
     status: jest.fn().mockReturnThis(),
@@ -107,6 +112,10 @@ describe('MCP Handler additional protocol coverage', () => {
     jest.clearAllMocks();
     process.env.APP_SERVER = 'https://app.example.test';
     process.env.HASH_KEY = 'test-hash-key';
+    verifyWidgetSessionToken.mockReturnValue({
+      rcExtensionId: 'rc-ext-widget',
+      openaiSessionId: 's1',
+    });
 
     getTool('getPublicConnectors').execute.mockResolvedValue({ success: true });
     getTool('simpleTool').execute.mockResolvedValue({
@@ -360,24 +369,57 @@ describe('MCP Handler additional protocol coverage', () => {
   });
 
   test('handles widget tool call validation, success, and execution errors', async () => {
+    verifyWidgetSessionToken.mockReturnValueOnce(null);
+    const invalidSessionRes = mockResponse();
+    await handleWidgetToolCall({ headers: {}, body: { tool: 'widgetOnly' } }, invalidSessionRes);
+    expect(invalidSessionRes.status).toHaveBeenCalledWith(401);
+    expect(invalidSessionRes.json).toHaveBeenCalledWith({ success: false, error: 'Invalid widget session' });
+
     const missingRes = mockResponse();
-    await handleWidgetToolCall({ body: {} }, missingRes);
+    await handleWidgetToolCall({ headers: { 'x-app-connect-widget-token': 'widget-token' }, body: {} }, missingRes);
     expect(missingRes.status).toHaveBeenCalledWith(400);
     expect(missingRes.json).toHaveBeenCalledWith({ success: false, error: 'Missing tool name' });
 
     const unknownRes = mockResponse();
-    await handleWidgetToolCall({ body: { tool: 'notRegistered' } }, unknownRes);
+    await handleWidgetToolCall({ headers: { 'x-app-connect-widget-token': 'widget-token' }, body: { tool: 'notRegistered' } }, unknownRes);
     expect(unknownRes.status).toHaveBeenCalledWith(404);
     expect(unknownRes.json).toHaveBeenCalledWith({ success: false, error: 'Unknown tool: notRegistered' });
 
+    const aiToolRes = mockResponse();
+    await handleWidgetToolCall({ headers: { 'x-app-connect-widget-token': 'widget-token' }, body: { tool: 'simpleTool' } }, aiToolRes);
+    expect(aiToolRes.status).toHaveBeenCalledWith(404);
+    expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+
+    verifyWidgetSessionToken.mockReturnValueOnce({
+      rcExtensionId: 'rc-ext-widget',
+      openaiSessionId: 'expected-session',
+    });
+    const mismatchRes = mockResponse();
+    await handleWidgetToolCall({
+      headers: { 'x-app-connect-widget-token': 'widget-token' },
+      body: { tool: 'widgetOnly', toolArgs: { sessionId: 'other-session' } },
+    }, mismatchRes);
+    expect(mismatchRes.status).toHaveBeenCalledWith(403);
+    expect(mismatchRes.json).toHaveBeenCalledWith({ success: false, error: 'Widget session mismatch' });
+
     const successRes = mockResponse();
-    await handleWidgetToolCall({ body: { tool: 'widgetOnly', toolArgs: { sessionId: 's1' } } }, successRes);
-    expect(getTool('widgetOnly').execute).toHaveBeenCalledWith({ sessionId: 's1' });
+    await handleWidgetToolCall({
+      headers: { 'x-app-connect-widget-token': 'widget-token' },
+      body: { tool: 'widgetOnly', toolArgs: { sessionId: 's1' } },
+    }, successRes);
+    expect(getTool('widgetOnly').execute).toHaveBeenCalledWith({
+      sessionId: 's1',
+      rcExtensionId: 'rc-ext-widget',
+      openaiSessionId: 's1',
+    });
     expect(successRes.json).toHaveBeenCalledWith({ success: true, data: { widget: true } });
 
     getTool('widgetOnly').execute.mockRejectedValueOnce(new Error('widget failed'));
     const failRes = mockResponse();
-    await handleWidgetToolCall({ body: { tool: 'widgetOnly' } }, failRes);
+    await handleWidgetToolCall({
+      headers: { 'x-app-connect-widget-token': 'widget-token' },
+      body: { tool: 'widgetOnly' },
+    }, failRes);
     expect(failRes.status).toHaveBeenCalledWith(500);
     expect(failRes.json).toHaveBeenCalledWith({ success: false, error: 'widget failed' });
   });

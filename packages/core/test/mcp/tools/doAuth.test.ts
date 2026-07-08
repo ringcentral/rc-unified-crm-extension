@@ -32,14 +32,18 @@ describe('MCP Tool: doAuth', () => {
       const result = await doAuth.execute({
         sessionId: 'session-abc',
         connectorName: 'pipedrive',
-        hostname: 'mycompany.pipedrive.com'
+        hostname: 'mycompany.pipedrive.com',
+        rcExtensionId: 'rc-ext-1',
+        openaiSessionId: 'openai-session-1'
       });
 
       // Assert
       expect(result).toEqual({ success: true });
       expect(createAuthSession).toHaveBeenCalledWith('session-abc', {
         platform: 'pipedrive',
-        hostname: 'mycompany.pipedrive.com'
+        hostname: 'mycompany.pipedrive.com',
+        rcExtensionId: 'rc-ext-1',
+        openaiSessionId: 'openai-session-1'
       });
     });
 
@@ -50,14 +54,17 @@ describe('MCP Tool: doAuth', () => {
       // Act
       const result = await doAuth.execute({
         sessionId: 'session-xyz',
-        connectorName: 'clio'
+        connectorName: 'clio',
+        rcExtensionId: 'rc-ext-1'
       });
 
       // Assert
       expect(result).toEqual({ success: true });
       expect(createAuthSession).toHaveBeenCalledWith('session-xyz', {
         platform: 'clio',
-        hostname: ''
+        hostname: '',
+        rcExtensionId: 'rc-ext-1',
+        openaiSessionId: undefined
       });
     });
 
@@ -68,7 +75,7 @@ describe('MCP Tool: doAuth', () => {
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'Missing required fields: sessionId, connectorName'
+        error: 'Missing required fields: sessionId, connectorName, rcExtensionId'
       });
       expect(createAuthSession).not.toHaveBeenCalled();
     });
@@ -80,7 +87,20 @@ describe('MCP Tool: doAuth', () => {
       // Assert
       expect(result).toEqual({
         success: false,
-        error: 'Missing required fields: sessionId, connectorName'
+        error: 'Missing required fields: sessionId, connectorName, rcExtensionId'
+      });
+      expect(createAuthSession).not.toHaveBeenCalled();
+    });
+
+    test('should return error when rcExtensionId is missing', async () => {
+      const result = await doAuth.execute({
+        sessionId: 'session-abc',
+        connectorName: 'pipedrive'
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Missing required fields: sessionId, connectorName, rcExtensionId'
       });
       expect(createAuthSession).not.toHaveBeenCalled();
     });
@@ -101,7 +121,8 @@ describe('MCP Tool: doAuth', () => {
       // Act
       const result = await doAuth.execute({
         sessionId: 'session-abc',
-        connectorName: 'pipedrive'
+        connectorName: 'pipedrive',
+        rcExtensionId: 'rc-ext-1'
       });
 
       // Assert

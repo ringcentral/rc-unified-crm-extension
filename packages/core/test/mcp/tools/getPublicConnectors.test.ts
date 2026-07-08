@@ -1,4 +1,5 @@
 const getPublicConnectors = require('../../../mcp/tools/getPublicConnectors');
+const { verifyWidgetSessionToken } = require('../../../mcp/lib/widgetSessionToken');
 const axios = require('axios');
 
 jest.mock('axios');
@@ -7,6 +8,7 @@ describe('MCP Tool: getPublicConnectors', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.APP_SERVER = 'https://test-server.com';
+    process.env.APP_SERVER_SECRET_KEY = 'test-app-server-secret-key-123456';
   });
 
   describe('tool definition', () => {
@@ -35,6 +37,7 @@ describe('MCP Tool: getPublicConnectors', () => {
           rcExtensionId: null,
           rcAccountId: null,
           openaiSessionId: null,
+          widgetSessionToken: null,
         }
       });
       expect(axios.get).not.toHaveBeenCalled();
@@ -53,13 +56,18 @@ describe('MCP Tool: getPublicConnectors', () => {
       });
 
       // Assert
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         structuredContent: {
           serverUrl: 'https://test-server.com',
           rcExtensionId: 'ext-456',
           rcAccountId: 'acc-789',
           openaiSessionId: 'session-abc',
         }
+      });
+      expect(result.structuredContent.widgetSessionToken).toEqual(expect.any(String));
+      expect(verifyWidgetSessionToken(result.structuredContent.widgetSessionToken)).toEqual({
+        rcExtensionId: 'ext-456',
+        openaiSessionId: 'session-abc',
       });
       expect(axios.get).toHaveBeenCalledWith(
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
@@ -81,6 +89,7 @@ describe('MCP Tool: getPublicConnectors', () => {
           rcExtensionId: null,
           rcAccountId: null,
           openaiSessionId: null,
+          widgetSessionToken: null,
         }
       });
     });

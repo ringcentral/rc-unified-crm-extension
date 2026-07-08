@@ -47,11 +47,29 @@ describe('MCP Tool: checkAuthStatus', () => {
     expect(result).toEqual({
       data: {
         status: 'completed',
-        jwtToken: 'jwt-token',
         userInfo: { id: 'user-1', name: 'Casey' },
-        message: expect.stringContaining('IMPORTANT')
+        message: 'Authentication successful. CRM token stored server-side for future tool calls.'
       }
     });
+  });
+
+  test('should not persist completed auth when session is bound to another rcExtensionId', async () => {
+    getAuthSession.mockResolvedValue({
+      status: 'completed',
+      jwtToken: 'jwt-token',
+      rcExtensionId: 'rc-ext-other'
+    });
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'CRM auth session does not belong to this RingCentral extension.'
+    });
+    expect(LlmSessionModel.upsert).not.toHaveBeenCalled();
   });
 
   test('should return expired when the auth session TTL has elapsed', async () => {

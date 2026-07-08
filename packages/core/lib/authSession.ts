@@ -29,6 +29,8 @@ async function createAuthSession(sessionId: string, data: AuthSessionCreateData)
     const sessionData = {
         platform: data.platform,
         hostname: data.hostname || '',
+        rcExtensionId: data.rcExtensionId,
+        openaiSessionId: data.openaiSessionId,
         createdAt: new Date().toISOString(),
     };
 

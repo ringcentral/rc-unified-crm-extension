@@ -3083,7 +3083,7 @@ function createCoreRouter() {
     router.options('/mcp/widget-tool-call', (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-App-Connect-Widget-Token');
         res.status(200).end();
     });
     router.post('/mcp/widget-tool-call', async (req, res) => {
