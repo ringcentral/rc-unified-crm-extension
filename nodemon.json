@@ -1,9 +1,16 @@
 {
     "watch": [
-        "src","packages"
+        "src",
+        "packages"
     ],
-    "ext": "*",
+    "ext": "ts,json",
     "ignore": [
-        "node_modules"
-    ]
+        "node_modules",
+        ".ts-build",
+        "packages/*/dist/**",
+        "packages/*/dist",
+        "packages/core/mcp/ui",
+        "**/*.d.ts"
+    ],
+    "exec": "tsc -p tsconfig.build.json --incremental && node ./.ts-build/scripts/copy-ts-assets.js && node ./.ts-build/src/server.js"
 }

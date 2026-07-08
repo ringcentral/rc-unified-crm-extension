@@ -11,7 +11,7 @@
   "scripts": {
     "ngrok": "ngrok http 6066 ",
     "tunnel": "lite-http-tunnel start 6066 -p crm",
-    "server": "npm run build:ts && nodemon ./.ts-build/src/server.js",
+    "server": "npm run build:ts && nodemon",
     "start": "npm run server",
     "start-debug": "npm run build:ts && node --inspect ./.ts-build/src/server.js",
     "test": "npm run build:ts && node ./.ts-build/scripts/run-tests.js",
