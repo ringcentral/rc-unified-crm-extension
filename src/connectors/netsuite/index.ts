@@ -622,116 +622,159 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 }
 async function findContactWithName({ user, authHeader, name }) {
     const matchedContactInfo = [];
+    const seenResults = new Set();
+    const searchName = String(name ?? '').trim().replace(/'/g, "''");
     const contactSearch = user.userSettings?.contactsSearchId?.value ?? [];
     if (contactSearch.length === 0) {
         contactSearch.push('contact', 'customer', 'vendor');
     }
+    const isContactOnlySearch = contactSearch.length === 1 && contactSearch.includes('contact');
     const { enableSalesOrderLogging = false } = user.userSettings;
     const { enableOpportunityLogging = { value: false } } = user.userSettings;
-    // const contactQuery = `SELECT id,firstName,middleName,lastName,entitytitle,phone FROM contact WHERE firstname ='${name}' OR lastname ='${name}' OR (firstname || ' ' || lastname) ='${name}'`;
-    const contactQuery = `SELECT * FROM contact WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
-    const customerQuery = `SELECT * FROM customer WHERE LOWER(firstname) =LOWER('${name}') OR LOWER(lastname) =LOWER('${name}') OR LOWER(entitytitle) =LOWER('${name}')`;
-    const vendorQuery = `SELECT * FROM vendor WHERE LOWER(companyname) =LOWER('${name}') OR LOWER(entityid) =LOWER('${name}')`;
-    if (contactSearch.includes('contact')) {
-        const personInfo = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: contactQuery
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        if (personInfo.data.items.length > 0) {
-            for (var result of personInfo.data.items) {
-                let firstName = result.firstname ?? '';
-                let middleName = result.middlename ?? '';
-                let lastName = result.lastname ?? '';
-                let salesOrders = [];
-                let opportunities = [];
-                const contactName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                if (result?.company) {
-                    try {
-                        if (enableSalesOrderLogging.value) {
+    const suiteQlUrl = `https://${user.hostname.split('.')[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`;
+    const suiteQlHeaders = { Authorization: authHeader, 'Content-Type': 'application/json', Prefer: 'transient' };
 
-                            const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
-                            for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
-                                salesOrders.push({
-                                    const: salesOrder?.id,
-                                    title: salesOrder?.trandisplayname
-                                });
-                            }
+    const pushUniqueResult = (entry) => {
+        const key = `${entry.type}-${entry.id}`;
+        if (seenResults.has(key)) {
+            return;
+        }
+        seenResults.add(key);
+        matchedContactInfo.push(entry);
+    };
+
+    const formatPersonName = (result) => {
+        const firstName = (result.firstname ?? '').trim();
+        const middleName = (result.middlename ?? '').trim();
+        const lastName = (result.lastname ?? '').trim();
+        const nameFromParts = [firstName, middleName, lastName].filter(Boolean).join(' ');
+        return nameFromParts || result.entitytitle || '';
+    };
+
+    const formatContactDisplayName = (result) => {
+        return formatPersonName(result) || result.entitytitle || '';
+    };
+
+    const formatCustomerDisplayName = (result) => {
+        const companyName = (result.companyname ?? result.companyName ?? '').trim();
+        return companyName || formatPersonName(result) || result.entitytitle || result.entityid || '';
+    };
+
+    const formatVendorDisplayName = (result) => {
+        const personName = formatPersonName(result);
+        const companyName = (result.companyname ?? result.companyName ?? '').trim();
+        return personName || companyName || result.entitytitle || result.entityid || '';
+    };
+
+    const nameMatchClause = (fieldPrefix = '') => {
+        const prefix = fieldPrefix ? `${fieldPrefix}.` : '';
+        return [
+            `LOWER(${prefix}firstname) = LOWER('${searchName}')`,
+            `LOWER(${prefix}lastname) = LOWER('${searchName}')`,
+            `LOWER(${prefix}entitytitle) = LOWER('${searchName}')`,
+            `LOWER(${prefix}firstname) LIKE LOWER('%${searchName}%')`,
+            `LOWER(${prefix}lastname) LIKE LOWER('%${searchName}%')`,
+            `LOWER(${prefix}entitytitle) LIKE LOWER('%${searchName}%')`
+        ].join(' OR ');
+    };
+
+    const contactSelectColumns = `contact.id, contact.firstname, contact.middlename, contact.lastname, contact.entitytitle, contact.phone, contact.homephone, contact.mobilephone, contact.officephone, contact.company, customer.companyname AS companyname`;
+    const contactNameQuery = `SELECT ${contactSelectColumns} FROM contact LEFT JOIN customer ON contact.company = customer.id WHERE ${nameMatchClause('contact')}`;
+    const contactByCompanyQuery = `SELECT ${contactSelectColumns} FROM contact LEFT JOIN customer ON contact.company = customer.id WHERE LOWER(customer.companyname) LIKE LOWER('%${searchName}%') OR LOWER(customer.entityid) LIKE LOWER('%${searchName}%')`;
+    const customerQuery = `SELECT * FROM customer WHERE ${nameMatchClause()} OR LOWER(companyname) LIKE LOWER('%${searchName}%') OR LOWER(entityid) LIKE LOWER('%${searchName}%')`;
+    const vendorQuery = `SELECT * FROM vendor WHERE ${nameMatchClause()} OR LOWER(companyname) LIKE LOWER('%${searchName}%') OR LOWER(entityid) LIKE LOWER('%${searchName}%')`;
+
+    const runSuiteQlQuery = async (query) => {
+        try {
+            const response = await axios.post(suiteQlUrl, { q: query }, { headers: suiteQlHeaders });
+            return response.data?.items ?? [];
+        }
+        catch (error) {
+            logger.error({ message: 'NetSuite findContactWithName SuiteQL query failed', query, stack: error.stack, errorResponse: error.response?.data });
+            return [];
+        }
+    };
+
+    const addContactResults = async (items) => {
+        for (const result of items) {
+            let salesOrders = [];
+            let opportunities = [];
+            const personName = formatContactDisplayName(result);
+            const associatedCompanyName = (result.companyname ?? result.companyName ?? '').trim();
+            const contactName = (associatedCompanyName && !isContactOnlySearch)
+                ? `${personName} - (${associatedCompanyName})`
+                : personName;
+            if (result?.company) {
+                try {
+                    if (enableSalesOrderLogging?.value) {
+                        const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.company });
+                        for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
+                            salesOrders.push({
+                                const: salesOrder?.id,
+                                title: salesOrder?.trandisplayname
+                            });
                         }
-                        if (enableOpportunityLogging.value) {
-                            const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
-                            for (const opportunity of opportunityResponse?.data?.items ?? []) {
-                                opportunities.push({
-                                    const: opportunity?.id,
-                                    title: opportunity?.trandisplayname
-                                });
-                            }
+                    }
+                    if (enableOpportunityLogging?.value) {
+                        const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.company });
+                        for (const opportunity of opportunityResponse?.data?.items ?? []) {
+                            opportunities.push({
+                                const: opportunity?.id,
+                                title: opportunity?.trandisplayname
+                            });
                         }
-                    } catch (error) {
-                        logger.error({ message: "Error in SalesOrder/Opportunity in contact", stack: error.stack });
                     }
                 }
-                matchedContactInfo.push({
-                    id: result.id,
-                    name: contactName,
-                    phone: result.phone ?? '',
-                    homephone: result.homephone ?? '',
-                    mobilephone: result.mobilephone ?? '',
-                    officephone: result.officephone ?? '',
-                    additionalInfo: {
-                        ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
-                        ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
-                    },
-                    type: 'contact'
-                })
+                catch (error) {
+                    logger.error({ message: 'Error in SalesOrder/Opportunity in contact', stack: error.stack });
+                }
             }
+            pushUniqueResult({
+                id: result.id,
+                name: contactName,
+                phone: result.phone ?? '',
+                homephone: result.homephone ?? '',
+                mobilephone: result.mobilephone ?? '',
+                officephone: result.officephone ?? '',
+                additionalInfo: {
+                    ...(salesOrders.length > 0 ? { salesorder: salesOrders } : {}),
+                    ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
+                },
+                type: 'contact'
+            });
         }
+    };
+
+    if (contactSearch.includes('contact')) {
+        const contactNameResults = await runSuiteQlQuery(contactNameQuery);
+        await addContactResults(contactNameResults);
+
+        const contactCompanyResults = await runSuiteQlQuery(contactByCompanyQuery);
+        await addContactResults(contactCompanyResults);
     }
     if (contactSearch.includes('vendor')) {
-        const vendorInfo = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: vendorQuery
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        if (vendorInfo.data.items.length > 0) {
-            for (const result of vendorInfo.data.items) {
-                const first = (result.firstname || '').trim();
-                const middle = (result.middlename || '').trim();
-                const last = (result.lastname || '').trim();
-                const nameFromParts = [first, middle, last].filter(Boolean).join(' ');
-                const vendorName = nameFromParts || result.companyname || result.entitytitle || result.entityid || '';
-                matchedContactInfo.push({
+        const vendorResults = await runSuiteQlQuery(vendorQuery);
+        if (vendorResults.length > 0) {
+            for (const result of vendorResults) {
+                pushUniqueResult({
                     id: result.id,
-                    name: vendorName,
+                    name: formatVendorDisplayName(result),
                     phone: result.phone ?? '',
                     altphone: result.altphone ?? '',
                     additionalInfo: {},
                     type: 'vendor'
-                })
+                });
             }
         }
     }
     if (contactSearch.includes('customer')) {
-        const customerInfo = await axios.post(
-            `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`,
-            {
-                q: customerQuery
-            },
-            {
-                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Prefer': 'transient' }
-            });
-        if (customerInfo.data.items.length > 0) {
-            for (const result of customerInfo.data.items) {
+        const customerResults = await runSuiteQlQuery(customerQuery);
+        if (customerResults.length > 0) {
+            for (const result of customerResults) {
                 let salesOrders = [];
                 let opportunities = [];
                 try {
-                    if (enableSalesOrderLogging.value) {
+                    if (enableSalesOrderLogging?.value) {
                         const salesOrderResponse = await findSalesOrdersAgainstContact({ user, authHeader, contactId: result.id });
                         for (const salesOrder of salesOrderResponse?.data?.items ?? []) {
                             salesOrders.push({
@@ -740,8 +783,7 @@ async function findContactWithName({ user, authHeader, name }) {
                             });
                         }
                     }
-                    // Add opportunity search
-                    if (enableOpportunityLogging.value) {
+                    if (enableOpportunityLogging?.value) {
                         const opportunityResponse = await findOpportunitiesAgainstContact({ user, authHeader, contactId: result.id });
                         for (const opportunity of opportunityResponse?.data?.items ?? []) {
                             opportunities.push({
@@ -753,13 +795,9 @@ async function findContactWithName({ user, authHeader, name }) {
                 } catch (error) {
                     logger.error({ message: "Error in SalesOrder/Opportunity search", stack: error.stack });
                 }
-                let firstName = result.firstname ?? '';
-                let middleName = result.middlename ?? '';
-                let lastName = result.lastname ?? '';
-                const customerName = (firstName + middleName + lastName).length > 0 ? `${firstName} ${middleName} ${lastName}` : result.entitytitle;
-                matchedContactInfo.push({
+                pushUniqueResult({
                     id: result.id,
-                    name: customerName,
+                    name: formatCustomerDisplayName(result),
                     phone: result.phone ?? '',
                     homephone: result.homephone ?? '',
                     mobilephone: result.mobilephone ?? '',
@@ -769,14 +807,14 @@ async function findContactWithName({ user, authHeader, name }) {
                         ...(opportunities.length > 0 ? { opportunity: opportunities } : {})
                     },
                     type: 'custjob'
-                })
+                });
             }
         }
     }
     return {
         successful: true,
         matchedContactInfo
-    }
+    };
 }
 
 async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails }) {

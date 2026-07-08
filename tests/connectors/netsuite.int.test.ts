@@ -411,6 +411,109 @@ describe('Netsuite Connector', () => {
 
             expect(result.successful).toBe(true);
             expect(result.matchedContactInfo.length).toBe(1);
+            expect(result.matchedContactInfo[0].name).toBe('John Doe');
+        });
+
+        it('should find contacts and companies by company name', async () => {
+            nock(apiUrl)
+                .post('/services/rest/query/v1/suiteql')
+                .reply(function(uri, requestBody) {
+                    if (requestBody.q && requestBody.q.includes('FROM contact') && requestBody.q.includes('JOIN customer')) {
+                        return [200, {
+                            items: [
+                                {
+                                    id: 101,
+                                    firstname: 'Al',
+                                    middlename: '',
+                                    lastname: 'Erlinson',
+                                    entitytitle: 'Al Erlinson',
+                                    phone: '+14155551111',
+                                    company: 501,
+                                    companyname: 'Advanced Machining Techniques Inc.'
+                                },
+                                {
+                                    id: 102,
+                                    firstname: 'Anna',
+                                    middlename: '',
+                                    lastname: 'Hudspethon',
+                                    entitytitle: 'Anna Hudspethon',
+                                    phone: '+14155552222',
+                                    company: 501,
+                                    companyname: 'Advanced Machining Techniques Inc.'
+                                }
+                            ]
+                        }];
+                    }
+                    if (requestBody.q && requestBody.q.includes('FROM customer')) {
+                        return [200, {
+                            items: [{
+                                id: 501,
+                                companyname: 'Advanced Machining Techniques Inc.',
+                                entitytitle: 'Advanced Machining Techniques Inc.'
+                            }]
+                        }];
+                    }
+                    if (requestBody.q && requestBody.q.includes('FROM vendor')) {
+                        return [200, { items: [] }];
+                    }
+                    return [200, { items: [] }];
+                })
+                .persist();
+
+            const result = await netsuite.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'Advanced Machining'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo).toHaveLength(3);
+            expect(result.matchedContactInfo[0].name).toBe('Al Erlinson - (Advanced Machining Techniques Inc.)');
+            expect(result.matchedContactInfo[0].type).toBe('contact');
+            expect(result.matchedContactInfo[1].name).toBe('Anna Hudspethon - (Advanced Machining Techniques Inc.)');
+            expect(result.matchedContactInfo[2].name).toBe('Advanced Machining Techniques Inc.');
+            expect(result.matchedContactInfo[2].type).toBe('custjob');
+            expect(result.matchedContactInfo.some((entry) => entry.isNewContact)).toBe(false);
+        });
+
+        it('should not append the company name for a contact-only search', async () => {
+            const contactOnlyUser = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    contactsSearchId: { value: ['contact'] }
+                }
+            });
+
+            nock(apiUrl)
+                .post('/services/rest/query/v1/suiteql')
+                .reply(function(uri, requestBody) {
+                    if (requestBody.q && requestBody.q.includes('FROM contact')) {
+                        return [200, {
+                            items: [{
+                                id: 101,
+                                firstname: 'Al',
+                                middlename: '',
+                                lastname: 'Erlinson',
+                                entitytitle: 'Al Erlinson',
+                                phone: '+14155551111',
+                                company: 501,
+                                companyname: 'Advanced Machining Techniques Inc.'
+                            }]
+                        }];
+                    }
+                    return [200, { items: [] }];
+                })
+                .persist();
+
+            const result = await netsuite.findContactWithName({
+                user: contactOnlyUser,
+                authHeader,
+                name: 'Al'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].name).toBe('Al Erlinson');
+            expect(result.matchedContactInfo[0].type).toBe('contact');
         });
 
         it('should enrich name search results with sales orders and opportunities', async () => {
@@ -2732,6 +2835,7 @@ describe('Netsuite Connector', () => {
 
             expect(result.successful).toBe(true);
             expect(result.matchedContactInfo.length).toBe(2);
+            expect(result.matchedContactInfo.some((entry) => entry.isNewContact)).toBe(false);
         });
     });
 
