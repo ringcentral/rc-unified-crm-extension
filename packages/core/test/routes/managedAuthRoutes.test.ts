@@ -78,6 +78,24 @@ describe('Managed Auth Routes', () => {
         rcExtensionId: 'validated-extension-id',
       }));
     });
+
+    test('should read rcAccessToken from X-RC-Access-Token header', async () => {
+      adminCore.validateRcUserToken.mockResolvedValue({
+        rcAccountId: 'validated-account-id',
+        rcExtensionId: 'validated-extension-id',
+      });
+      managedAuthCore.getManagedAuthState.mockResolvedValue({
+        hasManagedAuth: false,
+      });
+
+      const response = await request(app)
+        .get('/apiKeyManagedAuthState')
+        .set('X-RC-Access-Token', 'header-rc-token')
+        .query({ platform: 'testCRM' });
+
+      expect(response.status).toBe(200);
+      expect(adminCore.validateRcUserToken).toHaveBeenCalledWith({ rcAccessToken: 'header-rc-token' });
+    });
   });
 
   describe('GET /oauthManagedAuthState', () => {

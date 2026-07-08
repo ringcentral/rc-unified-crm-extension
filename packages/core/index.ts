@@ -117,6 +117,26 @@ function getBearerTokenFromRequest(req) {
     return token;
 }
 
+function normalizeTokenValue(value) {
+    const token = Array.isArray(value) ? value[0] : value;
+    if (typeof token !== 'string') {
+        return token || null;
+    }
+    const trimmedToken = token.trim();
+    return trimmedToken.toLowerCase().startsWith('bearer ')
+        ? trimmedToken.slice('bearer '.length).trim()
+        : trimmedToken;
+}
+
+function getRcAccessTokenFromRequest(req) {
+    return normalizeTokenValue(
+        req.get?.('X-RC-Access-Token')
+        || req.headers?.['x-rc-access-token']
+        || req.body?.rcAccessToken
+        || req.query?.rcAccessToken
+    );
+}
+
 function normalizeJwtFromRequest(req, res, next) {
     if (req.path?.startsWith('/mcp')) {
         return next();
@@ -419,7 +439,7 @@ function createCoreRouter() {
         tracer?.trace('apiKeyManagedAuthState:start', { query: req.query });
         try {
             const platform = req.query.platform;
-            const rcAccessToken = req.query.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             if (!platform) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
@@ -449,7 +469,7 @@ function createCoreRouter() {
         tracer?.trace('oauthManagedAuthState:start', { query: req.query });
         try {
             const platform = req.query.platform;
-            const rcAccessToken = req.query.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             if (!platform) {
                 res.status(400).send(tracer ? tracer.wrapResponse('Missing platform name') : 'Missing platform name');
                 return;
@@ -485,7 +505,7 @@ function createCoreRouter() {
         let success = false;
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
             if (isValidated) {
                 await adminCore.upsertAdminSettings({ hashedRcAccountId, adminSettings: req.body.adminSettings });
@@ -536,7 +556,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const adminSettings = await adminCore.getAdminSettings({ hashedRcAccountId });
@@ -601,7 +621,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -635,7 +655,7 @@ function createCoreRouter() {
                 res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                 return;
             }
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -675,7 +695,7 @@ function createCoreRouter() {
             }
         });
         try {
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -696,7 +716,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('deleteAdminManagedOAuthCache:start', {});
         try {
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -714,7 +734,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('deleteAdminManagedOAuthAccount:start', { query: req.query });
         try {
-            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+            const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
             if (!isValidated) {
                 res.status(403).send(tracer ? tracer.wrapResponse('Admin validation failed') : 'Admin validation failed');
                 return;
@@ -753,7 +773,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
@@ -816,7 +836,7 @@ function createCoreRouter() {
                     res.status(400).send(tracer ? tracer.wrapResponse('User not found') : 'User not found');
                     return;
                 }
-                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: getRcAccessTokenFromRequest(req) });
                 const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
                 if (isValidated) {
                     const userMapping = await adminCore.reinitializeUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
@@ -973,7 +993,7 @@ function createCoreRouter() {
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
         tracer?.trace('getUserSettingsByAdmin:start', { query: req.query });
         try {
-            const rcAccessToken = req.query.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             const rcAccountId = req.query.rcAccountId;
             if (rcAccessToken || rcAccountId) {
                 const userSettings = await userCore.getUserSettingsByAdmin({ rcAccessToken, rcAccountId });
@@ -1058,7 +1078,7 @@ function createCoreRouter() {
                     return;
                 }
                 else {
-                    const rcAccessToken = req.query.rcAccessToken;
+                    const rcAccessToken = getRcAccessTokenFromRequest(req);
                     const rcAccountId = req.query.rcAccountId;
                     const userSettings = await userCore.getUserSettings({ user, rcAccessToken, rcAccountId });
                     success = true;
@@ -1303,7 +1323,7 @@ function createCoreRouter() {
             const hostname = req.body.hostname;
             const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
-            const rcAccessToken = req.body.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             const connectorId = req.body.connectorId;
             const isPrivate = !!req.body.isPrivate;
             if (!platform) {
@@ -2367,7 +2387,7 @@ function createCoreRouter() {
                 return;
             }
             try {
-                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
+                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: getRcAccessTokenFromRequest(req), body: req.body });
                 success = true;
                 res.status(200).send(tracer ? tracer.wrapResponse({ successful: true, id }) : { successful: true, id });
             }
@@ -2767,7 +2787,7 @@ function createCoreRouter() {
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginAccess, pluginName, ownerRcAccountId } = req.body || {};
-            const rcAccessToken = req.query?.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             if (!pluginId || !rcAccountId) {
                 res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
                 return;
@@ -2826,7 +2846,7 @@ function createCoreRouter() {
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
             const { pluginId, rcAccountId, pluginName } = req.query || {};
-            const rcAccessToken = req.query?.rcAccessToken;
+            const rcAccessToken = getRcAccessTokenFromRequest(req);
             if (!pluginId || !rcAccountId) {
                 res.status(400).send(tracer ? tracer.wrapResponse({ successful: false, returnMessage: 'pluginId and rcAccountId are required' }) : { successful: false, returnMessage: 'pluginId and rcAccountId are required' });
                 return;

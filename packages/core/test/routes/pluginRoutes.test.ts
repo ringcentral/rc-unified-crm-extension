@@ -51,7 +51,7 @@ describe('Plugin Routes', () => {
 
       const response = await request(app)
         .post('/plugin/register')
-        .query({ rcAccessToken: 'valid-rc-token' })
+        .set('X-RC-Access-Token', 'valid-rc-token')
         .send({
           pluginId: 'plugin-1',
           rcAccountId: 'validated-account-id',
@@ -214,8 +214,8 @@ describe('Plugin Routes', () => {
 
       const response = await request(app)
         .delete('/plugin/unregister')
+        .set('X-RC-Access-Token', 'valid-rc-token')
         .query({
-          rcAccessToken: 'valid-rc-token',
           pluginId: 'plugin-1',
           rcAccountId: 'validated-account-id',
           pluginName: 'plugin.sample',
