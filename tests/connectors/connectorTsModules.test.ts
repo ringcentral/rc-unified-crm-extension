@@ -103,6 +103,7 @@ describe('app connector TypeScript modules', () => {
             'checkAndRefreshAccessToken',
             'createCallLog',
             'createContact',
+            'createMessageLog',
             'findContact',
             'findContactWithName',
             'getAuthType',
@@ -113,8 +114,10 @@ describe('app connector TypeScript modules', () => {
             'getUserInfo',
             'getUserList',
             'postSaveUserInfo',
+            'refreshUserInfo',
             'unAuthorize',
-            'updateCallLog'
+            'updateCallLog',
+            'updateMessageLog'
         ]);
     });
 

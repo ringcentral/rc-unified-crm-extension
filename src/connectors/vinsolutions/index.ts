@@ -270,6 +270,35 @@ async function checkAndRefreshAccessToken(_oauthApp, user) {
     }
 }
 
+// VinSolutions tokens are server-side client_credentials managed by ensureAccessToken.
+// refreshUserInfo just makes sure both token profiles are valid and reports status.
+async function refreshUserInfo({ user }) {
+    try {
+        await Promise.all(
+            Object.keys(TOKEN_PROFILES).map((tokenType) => ensureAccessToken(user, tokenType))
+        );
+        return {
+            successful: true,
+            returnMessage: {
+                messageType: 'success',
+                message: 'User info refreshed',
+                ttl: 1000
+            }
+        };
+    }
+    catch (error) {
+        logger.error('VinSolutions refreshUserInfo failed', { stack: error.stack });
+        return {
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Failed to refresh VinSolutions session. Please reconnect.',
+                ttl: 5000
+            }
+        };
+    }
+}
+
 function getDealerContext(user) {
     return {
         dealerId: Number(user.platformAdditionalInfo.dealerId),
@@ -323,6 +352,24 @@ function buildPhoneSearchValues(phoneNumber, overridingFormat) {
     return [...values].filter(Boolean);
 }
 
+function formatLeadOptions(items) {
+    return (items || []).map((lead) => {
+        const sourceName = lead.leadSource?.leadSourceName;
+        const status = lead.leadStatus || lead.leadStatusType;
+        let title = `Lead #${lead.leadId}`;
+        if (status) {
+            title += ` (${status})`;
+        }
+        if (sourceName) {
+            title += ` - ${sourceName}`;
+        }
+        return {
+            const: lead.leadId,
+            title
+        };
+    });
+}
+
 async function fetchActiveLeadsForContact({ user, contactId }) {
     const { dealerId, userId } = getDealerContext(user);
     try {
@@ -333,14 +380,11 @@ async function fetchActiveLeadsForContact({ user, contactId }) {
                 dealerId,
                 userId,
                 contactId,
-                leadStatusType: 'ACTIVE'
+                limit: 100
             }
         });
-        const leads = response.data?.results || [];
-        return leads.map((lead) => ({
-            const: lead.leadId,
-            title: `Lead #${lead.leadId}${lead.leadStatus ? ` (${lead.leadStatus})` : ''}`
-        }));
+        const items = response.data?.items ?? response.data?.results ?? [];
+        return formatLeadOptions(items);
     }
     catch (error) {
         logger.error('VinSolutions lead lookup failed', {
@@ -813,8 +857,6 @@ async function createCallLog({
             }
         };
 
-        console.log('postBody is', postBody);
-
         const response = await axios.post(`${API_BASE_URL}/calldetails`, postBody, { headers });
         const logId = extractCallDetailId(response.headers);
 
@@ -861,8 +903,6 @@ async function getCallLog({ user, callLogId, contactId }) {
             providerName: getProviderName()
         }
     });
-
-    console.log('getLogRes call details', getLogRes.data);
 
     const callDetail = getLogRes.data || {};
     const fullBody = callDetail.transcriptFull || callDetail.transcriptShort || '';
@@ -989,11 +1029,269 @@ async function updateCallLog({
     }
 }
 
+function getMessageType({ recordingLink, faxDocLink }) {
+    if (recordingLink) {
+        return 'Voicemail';
+    }
+    if (faxDocLink) {
+        return 'Fax';
+    }
+    return 'SMS';
+}
+
+function formatSingleMessageEntry({ user, contactInfo, message }) {
+    const offset = user?.timezoneOffset || 0;
+    const time = moment(message?.creationTime).utcOffset(offset).format('YYYY-MM-DD hh:mm A');
+    const sender = message?.direction === 'Inbound'
+        ? `${contactInfo?.name || 'Contact'}${contactInfo?.phoneNumber ? ` (${contactInfo.phoneNumber})` : ''}`
+        : (user?.name || 'Agent');
+    const body = message?.subject || '';
+    return `[${time}] ${sender}: ${body}`;
+}
+
+function composeMessageNote({ user, contactInfo, correspondents, message, recordingLink, faxDocLink, messageCount = 1 }) {
+    const offset = user?.timezoneOffset || 0;
+    const messageType = getMessageType({ recordingLink, faxDocLink });
+    const dateLabel = moment(message?.creationTime).utcOffset(offset).format('dddd, MMMM DD, YYYY');
+
+    if (messageType === 'Voicemail') {
+        return [
+            `Voicemail left by ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+            `Voicemail recording link: ${recordingLink}`,
+            '',
+            '--- Created via RingCentral App Connect'
+        ].join('\n');
+    }
+
+    if (messageType === 'Fax') {
+        return [
+            `Fax document from ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+            `Fax document link: ${faxDocLink}`,
+            '',
+            '--- Created via RingCentral App Connect'
+        ].join('\n');
+    }
+
+    const participants = [user?.name, contactInfo?.name]
+        .concat((correspondents ?? []).map((c) => (Array.isArray(c) ? c[0]?.name : c?.name)))
+        .filter(Boolean);
+
+    return [
+        `SMS conversation with ${contactInfo?.name || 'Contact'} - ${dateLabel}`,
+        `Participants: ${participants.join(', ')}`,
+        `Conversation (${messageCount} message${messageCount === 1 ? '' : 's'}):`,
+        formatSingleMessageEntry({ user, contactInfo, message }),
+        '',
+        '--- Created via RingCentral App Connect'
+    ].join('\n');
+}
+
+async function fetchLeadById({ user, leadId }) {
+    const { dealerId, userId } = getDealerContext(user);
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const response = await axios.get(`${API_BASE_URL}/leads/id/${leadId}`, {
+        headers: buildLeadManagementHeaders({ accessToken, user }),
+        params: { dealerId, userId }
+    });
+    return response.data || null;
+}
+
+async function putLeadNotes({ user, leadId, notes }) {
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const body = {
+        isHot: false,
+        coBuyerContact: null,
+        trades: null,
+        vehiclesOfInterest: null,
+        notes
+    };
+    console.log({m:'putLeadNotes', leadId, body});
+    return axios.put(`${API_BASE_URL}/leads/id/${leadId}`, body, {
+        headers: buildLeadManagementHeaders({ accessToken, user, withContentType: true })
+    });
+}
+
+async function createMessageLog({
+    user,
+    contactInfo,
+    correspondents,
+    sharedSMSLogContent,
+    message,
+    additionalSubmission,
+    recordingLink,
+    faxDocLink
+}) {
+    try {
+        let leadId = additionalSubmission?.leads ? Number(additionalSubmission.leads) : null;
+        if(!!!leadId){
+            leadId = await createLead({ user, contactInfo });
+        }
+
+        let notes;
+        if (sharedSMSLogContent?.body) {
+            notes = sharedSMSLogContent.body;
+        }
+        else {
+            notes = composeMessageNote({
+                user,
+                contactInfo,
+                correspondents,
+                message,
+                recordingLink,
+                faxDocLink,
+                messageCount: 1
+            });
+        }
+
+        await putLeadNotes({ user, leadId, notes });
+
+        return {
+            logId: String(leadId),
+            returnMessage: {
+                message: 'Message logged to VinSolutions lead.',
+                messageType: 'success',
+                ttl: 2000
+            }
+        };
+    }
+    catch (error) {
+        logger.error('VinSolutions createMessageLog failed', { stack: error.stack, errorResponse: error.response?.data });
+        return {
+            logId: null,
+            returnMessage: {
+                message: 'Failed to log message in VinSolutions. Verify the selected lead and dealer enablement.',
+                messageType: 'error',
+                ttl: 5000
+            }
+        };
+    }
+}
+
+async function updateMessageLog({
+    user,
+    contactInfo,
+    correspondents,
+    sharedSMSLogContent,
+    existingMessageLog,
+    message,
+    additionalSubmission,
+    recordingLink,
+    faxDocLink
+}) {
+    try {
+        const leadId = Number(existingMessageLog?.thirdPartyLogId || additionalSubmission?.leads);
+        if (!leadId) {
+            return {
+                returnMessage: {
+                    message: 'Lead ID not found for message log update.',
+                    messageType: 'warning',
+                    ttl: 3000
+                }
+            };
+        }
+
+        if (sharedSMSLogContent?.body) {
+            await putLeadNotes({ user, leadId, notes: sharedSMSLogContent.body });
+            return {};
+        }
+
+        const lead = await fetchLeadById({ user, leadId });
+        const existingNotes = lead?.notes || '';
+        const newEntry = formatSingleMessageEntry({ user, contactInfo, message });
+        const updatedNotes = existingNotes
+            ? `${existingNotes}\n\n${newEntry}\n\n--- Updated via RingCentral App Connect`
+            : composeMessageNote({
+                user,
+                contactInfo,
+                correspondents,
+                message,
+                recordingLink,
+                faxDocLink,
+                messageCount: 1
+            });
+
+        await putLeadNotes({ user, leadId, notes: updatedNotes });
+        return {};
+    }
+    catch (error) {
+        logger.error('VinSolutions updateMessageLog failed', { stack: error.stack, errorResponse: error.response?.data });
+        return {
+            returnMessage: {
+                message: 'Failed to update message log in VinSolutions.',
+                messageType: 'error',
+                ttl: 5000
+            }
+        };
+    }
+}
+
+async function createLead({ user, contactInfo }) {
+    console.log({m:'createLead', user, contactInfo});
+    let leadId=null;
+    // Fetch lead sources from VinSolutions and extract the first item from the items array
+    const { dealerId } = getDealerContext(user);
+    const accessToken = await ensureAccessToken(user, TOKEN_TYPES.LEAD_MANAGEMENT);
+    const headers = {
+        'Accept': 'application/vnd.coxauto.v1+json',
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/vnd.coxauto.v1+json',
+        'api_key': process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY
+    };
+    let firstLeadSource = null;
+        const response = await axios.get(
+            `${API_BASE_URL}/leadSources`,
+            {
+                headers,
+                params: {
+                    dealerId,
+                    limit: 100
+                }
+            }
+        );
+        const items = response.data?.items || []; 
+        //TODO will add logic to fetch relevent lead source
+        if (items.length > 0) {
+            firstLeadSource = items[0];
+            console.log({m:'firstLeadSource', firstLeadSource});
+        const contactId = contactInfo.id;
+        const dealerIdForContact =  dealerId;
+        const userIdForContact =  user?.platformAdditionalInfo?.crmUserId;
+        console.log({m:'data', contactId, dealerIdForContact, userIdForContact});
+
+        const data = {
+            leadSource: firstLeadSource.href,
+            leadType: 'INTERNET',
+            contact: contactId
+                ? `${API_BASE_URL}/contacts/id/${contactId}?dealerid=${dealerIdForContact}&userid=${userIdForContact}`
+                : undefined
+        };
+
+        const v3Headers = {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/vnd.coxauto.v3+json',
+            'Accept': 'application/vnd.coxauto.v3+json',
+            'api_key': process.env.VINSOLUTIONS_LEAD_MANAGEMENT_API_KEY
+        };
+
+        const leadCreateRes = await axios.post(
+                `${API_BASE_URL}/leads`,
+                data,
+                { headers: v3Headers }
+            );
+            leadId = leadCreateRes.data?.leadId ;
+        } else {
+            logger.error('No lead sources found for createLead', { dealerId });
+            throw new Error('No lead sources found for createLead');
+        }
+    return leadId;
+}
+
 exports.getAuthType = getAuthType;
 exports.getLogFormatType = getLogFormatType;
 exports.getBasicAuth = getBasicAuth;
 exports.getOauthInfo = getOauthInfo;
 exports.checkAndRefreshAccessToken = checkAndRefreshAccessToken;
+exports.refreshUserInfo = refreshUserInfo;
 exports.getUserInfo = getUserInfo;
 exports.postSaveUserInfo = postSaveUserInfo;
 exports.unAuthorize = unAuthorize;
@@ -1003,6 +1301,8 @@ exports.createContact = createContact;
 exports.createCallLog = createCallLog;
 exports.getCallLog = getCallLog;
 exports.updateCallLog = updateCallLog;
+exports.createMessageLog = createMessageLog;
+exports.updateMessageLog = updateMessageLog;
 exports.getUserList = getUserList;
 
 export {};
