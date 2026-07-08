@@ -3434,6 +3434,251 @@ describe('Bullhorn Connector', () => {
         });
     });
 
+    // ==================== Appointment operations ====================
+    describe('appointment operations', () => {
+        const startMs = Date.parse('2026-07-08T10:00:00.000Z');
+        const endMs = Date.parse('2026-07-08T10:30:00.000Z');
+
+        it('should list appointments with de-duplicated attendees', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/query/Appointment')
+                .query(true)
+                .reply(200, {
+                    data: [{
+                        id: 10,
+                        subject: 'Intro call',
+                        description: 'Discuss role',
+                        dateBegin: startMs,
+                        dateEnd: endMs,
+                        isDeleted: false,
+                        candidateReference: { id: 101 }
+                    }]
+                }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/query/AppointmentAttendee')
+                .query(true)
+                .reply(200, {
+                    data: [
+                        {
+                            id: 900,
+                            appointment: { id: 10 },
+                            attendee: { id: 501, firstName: 'Alex', lastName: 'Agent', _subtype: 'CorporateUser' },
+                            acceptanceStatus: 'ACCEPTED'
+                        },
+                        {
+                            id: 901,
+                            appointment: { id: 10 },
+                            attendee: { id: 501, firstName: 'Alex', lastName: 'Agent', _subtype: 'CorporateUser' },
+                            acceptanceStatus: 'ACCEPTED'
+                        }
+                    ]
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.listAppointments({ user: mockUser, range: 'upcoming' });
+
+            expect(result.appointments).toHaveLength(1);
+            expect(result.appointments[0]).toEqual(expect.objectContaining({
+                id: '10',
+                title: 'Intro call',
+                contactId: '101',
+                contactType: 'Candidate',
+                durationMinutes: 30,
+                attendees: [{
+                    id: '501',
+                    name: 'Alex Agent',
+                    type: 'CorporateUser',
+                    status: 'ACCEPTED'
+                }]
+            }));
+        });
+
+        it('should return a warning result when appointment listing fails', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/query/Appointment')
+                .query(true)
+                .reply(500, { error: 'failed' });
+
+            const result = await bullhorn.listAppointments({ user: mockUser });
+
+            expect(result).toEqual({
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Error listing appointments',
+                    ttl: 5000
+                }
+            });
+        });
+
+        it('should create an appointment with primary contact and attendees', async () => {
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Appointment', body => {
+                    return body.subject === 'Candidate interview'
+                        && body.candidateReference.id === 101
+                        && body.dateEnd - body.dateBegin === 30 * 60 * 1000;
+                })
+                .reply(200, { changedEntityId: 77 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee', body => body.appointment.id === 77 && body.attendee.id === 101)
+                .reply(200, { changedEntityId: 970 }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.createAppointment({
+                user: mockUser,
+                payload: {
+                    title: 'Candidate interview',
+                    startTimeUtc: '2026-07-08T10:00:00.000Z',
+                    durationMinutes: 30,
+                    contacts: [{ id: '101', type: 'candidate' }]
+                }
+            });
+
+            expect(result).toEqual({ appointmentId: '77' });
+        });
+
+        it('should return warning when Bullhorn does not return created appointment id', async () => {
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Appointment')
+                .reply(200, {}, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.createAppointment({
+                user: mockUser,
+                payload: {
+                    title: 'Missing id'
+                }
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toContain('Could not create appointment');
+        });
+
+        it('should update appointment details, remove old attendees, add new attendees, and refresh result', async () => {
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/77', body => {
+                    return body.subject === 'Updated interview'
+                        && body.location === 'Zoom'
+                        && body.communicationMethod === 'Video'
+                        && body.type === 'Interview';
+                })
+                .reply(200, { changedEntityId: 77 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/query/AppointmentAttendee')
+                .query(true)
+                .reply(200, {
+                    data: [
+                        { id: 900, attendee: { id: 101 }, appointment: { id: 77 } },
+                        { id: 901, attendee: { id: 202 }, appointment: { id: 77 } }
+                    ]
+                }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .delete('/entity/AppointmentAttendee/901')
+                .reply(200, {}, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee', body => body.appointment.id === 77 && body.attendee.id === 303)
+                .reply(200, {}, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/77')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 77,
+                        subject: 'Updated interview',
+                        dateBegin: startMs,
+                        dateEnd: endMs,
+                        clientContactReference: { id: 202 }
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: '77',
+                patchBody: {
+                    title: 'Updated interview',
+                    startTimeUtc: '2026-07-08T10:00:00.000Z',
+                    durationMinutes: 30,
+                    location: 'Zoom',
+                    communicationMethod: 'Video',
+                    type: 'Interview',
+                    contacts: [{ id: 101 }, { id: 303 }]
+                }
+            });
+
+            expect(result.appointment).toEqual(expect.objectContaining({
+                id: '77',
+                title: 'Updated interview',
+                contactId: '202',
+                contactType: 'ClientContact'
+            }));
+        });
+
+        it('should refresh and cancel appointments', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/77')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 77,
+                        subject: 'Lead sync',
+                        dateBegin: startMs,
+                        dateEnd: endMs,
+                        lead: { id: 909 }
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const refreshResult = await bullhorn.refreshAppointment({ user: mockUser, appointmentId: '77' });
+            expect(refreshResult.appointment).toEqual(expect.objectContaining({
+                id: '77',
+                contactId: '909',
+                contactType: 'Lead'
+            }));
+
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/77', { isDeleted: true })
+                .reply(200, {}, mockBullhornRateLimitHeaders);
+
+            const cancelResult = await bullhorn.cancelAppointment({ user: mockUser, appointmentId: '77' });
+            expect(cancelResult.successful).toBe(true);
+        });
+
+        it('should refresh session token on appointment read auth errors', async () => {
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/77')
+                .query(true)
+                .reply(401, { error: 'expired' });
+
+            nock(loginUrl)
+                .post('/login')
+                .query(true)
+                .reply(200, {
+                    BhRestToken: 'new-bh-rest-token',
+                    restUrl
+                });
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/77')
+                .query(true)
+                .matchHeader('BhRestToken', 'new-bh-rest-token')
+                .reply(200, {
+                    data: {
+                        id: 77,
+                        subject: 'Refreshed appointment',
+                        dateBegin: startMs,
+                        dateEnd: endMs
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.refreshAppointment({ user: mockUser, appointmentId: '77' });
+
+            expect(mockUser.save).toHaveBeenCalled();
+            expect(result.appointment.title).toBe('Refreshed appointment');
+        });
+    });
+
 });
 
 export {};

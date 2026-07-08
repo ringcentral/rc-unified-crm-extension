@@ -1429,6 +1429,379 @@ describe('Log Handler', () => {
       expect(savedLog.conversationLogId).toBe('conv-log-original-contact-999');
       expect(savedLog.conversationId).toBe('conv-original-contact-999');
     });
+
+    test('should revoke session when oauth message logging cannot refresh the user', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'expired-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('oauth'),
+        getOauthInfo: jest.fn().mockResolvedValue({
+          clientId: 'client-id',
+          clientSecret: 'client-secret'
+        }),
+        createMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      oauth.getOAuthApp.mockReturnValue({});
+      oauth.checkAndRefreshAccessToken.mockResolvedValue(null);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'msg-oauth-expired', type: 'SMS', creationTime: new Date() }],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'conv-oauth-expired',
+            conversationLogId: 'conv-log-oauth-expired'
+          },
+          contactId: 'contact-oauth',
+          contactName: 'OAuth Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result).toEqual({
+        successful: false,
+        returnMessage: {
+          message: 'User session expired. Please connect again.',
+          messageType: 'warning',
+          ttl: 5000
+        },
+        isRevokeUserSession: true
+      });
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('should sync async message plugin tokens and persist refreshed plugin credentials', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        userSettings: {
+          plugin_smsPlugin: {
+            value: {
+              config: {
+                ignoredLetters: ['x']
+              }
+            }
+          }
+        },
+        platformAdditionalInfo: {}
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'smsPlugin',
+        dataKey: 'pluginData',
+        data: {
+          name: 'plugin.sms',
+          supportedLogTypes: ['sms'],
+          isAsync: true,
+          endpointUrl: 'https://plugins.example.com/sms',
+          tokenSyncUrl: 'https://plugins.example.com/sms/token',
+          jwtToken: 'old-plugin-jwt'
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-async-plugin',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      axios.post.mockImplementation((url) => {
+        if (url === 'https://plugins.example.com/sms/token') {
+          return Promise.resolve({
+            headers: {
+              'x-refreshed-jwt-token': 'new-plugin-jwt'
+            }
+          });
+        }
+        return Promise.resolve({ data: { accepted: true }, headers: {} });
+      });
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'msg-async-plugin', type: 'SMS', subject: 'SMS', direction: 'Outbound', creationTime: new Date() }],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'conv-async-plugin',
+            conversationLogId: 'conv-log-async-plugin'
+          },
+          contactId: 'contact-async-plugin',
+          contactName: 'Plugin Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result.successful).toBe(true);
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://plugins.example.com/sms/token',
+        {},
+        {
+          headers: {
+            Authorization: 'Bearer old-plugin-jwt'
+          }
+        }
+      );
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://plugins.example.com/sms',
+        {
+          data: {
+            logInfo: expect.objectContaining({
+              logInfo: expect.objectContaining({
+                messages: expect.any(Array)
+              }),
+              contactId: 'contact-async-plugin',
+              contactName: 'Plugin Contact',
+              additionalSubmission: {}
+            }),
+          },
+          config: {
+            ignoredLetters: ['x']
+          }
+        },
+        {
+          headers: {
+            Authorization: 'Bearer new-plugin-jwt'
+          }
+        }
+      );
+
+      const pluginRecord = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'smsPlugin',
+          dataKey: 'pluginData'
+        }
+      });
+      expect(pluginRecord.data.jwtToken).toBe('new-plugin-jwt');
+    });
+
+    test('should apply sync message plugin logInfo responses before creating the CRM message log', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-123',
+        platformName: 'syncSmsPlugin',
+        dataKey: 'pluginData',
+        data: {
+          name: 'plugin.syncSms',
+          supportedLogTypes: ['sms'],
+          isAsync: false,
+          endpointUrl: 'https://plugins.example.com/sync-sms',
+          jwtToken: 'sync-plugin-jwt'
+        }
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-sync-plugin',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      axios.post.mockResolvedValue({
+        data: {
+          logInfo: {
+            messages: [{ id: 'msg-sync-plugin-updated', type: 'SMS', subject: 'Updated', direction: 'Outbound', creationTime: new Date() }],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'conv-sync-plugin',
+            conversationLogId: 'conv-log-sync-plugin'
+          },
+          contactId: 'contact-sync-plugin',
+          contactName: 'Updated Contact',
+          additionalSubmission: { source: 'plugin' }
+        },
+        headers: {
+          'x-refreshed-jwt-token': 'refreshed-sync-plugin-jwt'
+        }
+      });
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'msg-sync-plugin-original', type: 'SMS', subject: 'Original', direction: 'Outbound', creationTime: new Date() }],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'conv-original',
+            conversationLogId: 'conv-log-original'
+          },
+          contactId: 'contact-original',
+          contactName: 'Original Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        contactInfo: expect.objectContaining({
+          id: 'contact-original',
+          name: 'Original Contact'
+        }),
+        additionalSubmission: {},
+        message: expect.objectContaining({
+          id: 'msg-sync-plugin-updated'
+        })
+      }));
+
+      const pluginRecord = await AccountDataModel.findOne({
+        where: {
+          rcAccountId: 'rc-account-123',
+          platformName: 'syncSmsPlugin',
+          dataKey: 'pluginData'
+        }
+      });
+      expect(pluginRecord.data.jwtToken).toBe('refreshed-sync-plugin-jwt');
+    });
+
+    test('should update an existing shared SMS conversation log', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        timezoneOffset: '+00:00',
+        platformAdditionalInfo: {}
+      });
+      await MessageLogModel.create({
+        id: 'shared-conversation-log',
+        platform: 'testCRM',
+        conversationId: 'shared-conversation',
+        thirdPartyLogId: 'existing-crm-log',
+        userId: 'test-user-id',
+        conversationLogId: 'shared-conversation-log'
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createMessageLog: jest.fn(),
+        updateMessageLog: jest.fn().mockResolvedValue({
+          returnMessage: { message: 'Conversation updated', messageType: 'success', ttl: 2000 },
+          extraDataTracking: { updated: true }
+        })
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [{ id: 'shared-message-1', type: 'SMS', lastModifiedTime: '2026-06-12T10:05:00.000Z' }],
+            entities: [
+              { type: 'Message', from: { name: 'Agent One' }, creationTime: '2026-06-12T10:00:00.000Z', lastModifiedTime: '2026-06-12T10:05:00.000Z', subject: 'Hello' }
+            ],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'shared-conversation',
+            conversationLogId: 'shared-conversation-log',
+            creationTime: '2026-06-12T10:00:00.000Z',
+            owner: { name: 'Owner Agent' }
+          },
+          contactId: 'contact-shared',
+          contactName: 'Shared Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result.successful).toBe(true);
+      expect(result.logIds).toEqual([]);
+      expect(mockConnector.updateMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        existingMessageLog: expect.objectContaining({
+          thirdPartyLogId: 'existing-crm-log'
+        }),
+        sharedSMSLogContent: expect.objectContaining({
+          subject: 'SMS conversation with Shared Contact',
+          body: expect.stringContaining('Conversation summary')
+        })
+      }));
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+    });
+
+    test('should pass recording, fax, image, and video attachment details to CRM message creation', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        rcAccountId: 'rc-account-123',
+        platformAdditionalInfo: {}
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'msg-log-attachments',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+        }),
+        updateMessageLog: jest.fn()
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            rcAccessToken: 'rc-access-token',
+            messages: [{
+              id: 'msg-attachments',
+              type: 'SMS',
+              subject: 'Attachments',
+              direction: 'Outbound',
+              creationTime: new Date(),
+              attachments: [
+                { type: 'AudioRecording', link: 'https://media.example.com/audio.mp3' },
+                { type: 'RenderedDocument', link: 'https://media.example.com/fax.pdf', uri: 'https://platform.example.com/fax.pdf' },
+                { type: 'MmsAttachment', contentType: 'image/png', uri: 'https://platform.example.com/image.png' },
+                { type: 'MmsAttachment', contentType: 'video/mp4', uri: 'https://platform.example.com/video.mp4' }
+              ]
+            }],
+            correspondents: [{ phoneNumber: '+15550000001' }],
+            conversationId: 'conv-attachments',
+            conversationLogId: 'conv-log-attachments'
+          },
+          contactId: 'contact-attachments',
+          contactName: 'Attachment Contact',
+          additionalSubmission: {}
+        }
+      });
+
+      expect(result.successful).toBe(true);
+      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        recordingLink: 'https://media.example.com/audio.mp3',
+        faxDocLink: 'https://media.example.com/fax.pdf',
+        faxDownloadLink: 'https://platform.example.com/fax.pdf?access_token=rc-access-token',
+        imageLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=https%3A%2F%2Fplatform.example.com%2Fimage.png',
+        imageDownloadLink: 'https://platform.example.com/image.png?access_token=rc-access-token',
+        imageContentType: 'image/png',
+        videoLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=https%3A%2F%2Fplatform.example.com%2Fvideo.mp4'
+      }));
+    });
   });
 
   describe('saveNoteCache', () => {

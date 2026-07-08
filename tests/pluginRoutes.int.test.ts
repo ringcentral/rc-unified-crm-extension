@@ -219,6 +219,23 @@ describe('Application plugin routes', () => {
     });
   });
 
+  test('GET /plugin/licenseStatus/googleDrive keeps the base invalid license message when auth is successful', async () => {
+    googleDrivePlugin.checkAuth.mockResolvedValue({
+      isSuccessful: true,
+    });
+
+    const response = await request(getServer())
+      .get('/plugin/licenseStatus/googleDrive')
+      .query({ jwtToken: 'crm-jwt' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      licenseStatus: false,
+      errorMessage: 'License is invalid',
+      licenseStatusDescription: 'Invalid. Please go [here](https://www.google.com)',
+    });
+  });
+
   test('GET /plugin/licenseStatus/:pluginId rejects unknown plugins', async () => {
     const response = await request(getServer())
       .get('/plugin/licenseStatus/unknownPlugin')
@@ -288,6 +305,44 @@ describe('Application plugin routes', () => {
       successful: true,
       id: 'google-file-id',
     });
+  });
+
+  test('POST /plugin/googleDrive returns user not found before plugin dispatch', async () => {
+    UserModel.findByPk.mockResolvedValueOnce(null);
+
+    const response = await request(getServer())
+      .post('/plugin/googleDrive')
+      .query({ jwtToken: 'crm-jwt' })
+      .send({
+        data: {
+          logInfo: {
+            telephonySessionId: 'telephony-session-1',
+          },
+        },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('User not found');
+    expect(googleDrivePlugin.uploadToGoogleDrive).not.toHaveBeenCalled();
+  });
+
+  test('POST /plugin/googleDrive converts plugin exceptions to a 400 response', async () => {
+    googleDrivePlugin.uploadToGoogleDrive.mockImplementation(() => {
+      throw new Error('upload failed');
+    });
+
+    const response = await request(getServer())
+      .post('/plugin/googleDrive')
+      .query({ jwtToken: 'crm-jwt' })
+      .send({
+        data: {
+          logInfo: {
+            telephonySessionId: 'telephony-session-1',
+          },
+        },
+      });
+
+    expect(response.status).toBe(400);
   });
 
   test('POST /plugin/:pluginId rejects unknown plugins', async () => {

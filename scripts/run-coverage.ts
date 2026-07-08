@@ -86,6 +86,7 @@ async function main() {
         '--coverageReporters=lcov',
         '--coverageReporters=clover',
         '--coverageReporters=json-summary',
+        '--collectCoverageFrom=src/**/*.ts',
     ]);
     const rootSummary = readCoverageSummary(ROOT_SUMMARY_PATH);
 

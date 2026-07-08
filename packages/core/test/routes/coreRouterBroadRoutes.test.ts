@@ -562,6 +562,33 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).post('/messageLog').query(authQuery()).send({ messages: [] })).body.logIds).toEqual(['msg-1']);
   });
 
+  test('normalizes bearer RC access token headers and tracks forwarded client IP', async () => {
+    analytics.track.mockClear();
+
+    const response = await request(app)
+      .post('/calldown')
+      .query(authQuery())
+      .set('X-RC-Access-Token', 'Bearer rc-header-token')
+      .set('X-Forwarded-For', '10.0.0.4,203.0.113.10')
+      .set('User-Agent', 'Route Test Agent')
+      .set('developer-author-name', 'Route Tester')
+      .send({ contactId: 'contact-1' });
+
+    expect(response.status).toBe(200);
+    expect(calldown.schedule).toHaveBeenCalledWith({
+      jwtToken: 'generated-crm-jwt',
+      rcAccessToken: 'rc-header-token',
+      body: { contactId: 'contact-1' }
+    });
+    expect(analytics.track).toHaveBeenLastCalledWith(expect.objectContaining({
+      eventName: 'Schedule call down',
+      ip: '203.0.113.10',
+      userAgent: 'Route Test Agent',
+      author: 'Route Tester',
+      success: true
+    }));
+  });
+
   test('serves RingCentral report, callback, debug, and plugin routes', async () => {
     expect((await request(app).get('/ringcentral/admin/report').query({ ...authQuery(), timezone: 'UTC' })).body).toEqual({ rows: [{ id: 'admin-row' }] });
     expect((await request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' })).body).toEqual({ rows: [{ id: 'user-row' }] });

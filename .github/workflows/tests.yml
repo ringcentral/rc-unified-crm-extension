@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,6 +29,25 @@ jobs:
         run: npm run test-coverage
         env:
           NODE_ENV: test
+
+      - name: Upload server root coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          name: server-root
+          flags: server-root
+          fail_ci_if_error: true
+
+      - name: Upload server core coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          working-directory: ./packages/core
+          name: server-core
+          flags: server-core
+          fail_ci_if_error: true
 
       - name: Run E2E tests
         run: npm run test:e2e

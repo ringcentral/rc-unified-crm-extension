@@ -1219,6 +1219,150 @@ describe('callLogComposer', () => {
     });
   });
 
+  describe('Remaining branch cases', () => {
+    test('should update existing HTML fields and insert recording links before closing lists', () => {
+      expect(upsertCallSessionId({
+        body: '<li><b>Session Id</b>: old-session</li>',
+        id: 'new-session',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Session Id</b>: new-session</li>');
+
+      expect(upsertRingCentralNumberAndExtension({
+        body: '<li><b>RingCentral number and extension</b>: +111 101</li>',
+        number: '+222',
+        extension: '202',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>RingCentral number and extension</b>: +222 202</li>');
+
+      expect(upsertCallSubject({
+        body: '<li><b>Summary</b>: Old summary</li>',
+        subject: 'New summary',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Summary</b>: New summary</li>');
+
+      const recordingResult = upsertCallRecording({
+        body: '<ul><li><b>Duration</b>: 1 minute</li></ul>',
+        recordingLink: 'pending',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      });
+
+      expect(recordingResult).toBe('<ul><li><b>Duration</b>: 1 minute</li><li><b>Call recording link</b>: (pending...)</li></ul>');
+
+      expect(upsertRingSenseLink({
+        body: '<li><b>ACE recording link</b>: <a href="https://old.example.com">open</a></li>',
+        link: 'https://ringsense.example.com/new',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toContain('href="https://ringsense.example.com/new"');
+    });
+
+    test('should replace existing ACE sections across formats', () => {
+      expect(upsertRingSenseTranscript({
+        body: '<div><b>ACE transcript</b><br>Old transcript</div>',
+        transcript: 'New transcript',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>ACE transcript</b><br>New transcript</div>');
+
+      expect(upsertRingSenseSummary({
+        body: '- ACE summary:\nOld summary\n--- END\n',
+        summary: 'New summary',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('New summary');
+
+      expect(upsertRingSenseAIScore({
+        body: '- Call score: 10\n',
+        score: '99',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- Call score: 99');
+
+      expect(upsertRingSenseBulletedSummary({
+        body: '### ACE bulleted summary\nOld item\n',
+        summary: '- New item',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toContain('### ACE bulleted summary\n- New item');
+
+      expect(upsertRingSenseLink({
+        body: '- ACE recording link: https://old.example.com\n',
+        link: 'https://new.example.com',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- ACE recording link: https://new.example.com');
+    });
+
+    test('should format leg party variants and replace existing plain text journeys', () => {
+      const result = upsertLegs({
+        body: '- Call journey:\nOld journey\n--- JOURNEY END\n',
+        legs: [
+          {
+            direction: 'Outbound',
+            from: { extensionNumber: '101' },
+            to: { phoneNumber: '+15550000001' },
+            duration: 2
+          },
+          {
+            direction: 'Outbound',
+            legType: 'PstnToSip',
+            from: { phoneNumber: '+15550000002' },
+            to: { extensionNumber: '202' },
+            duration: 1
+          },
+          {
+            direction: 'Inbound',
+            from: { phoneNumber: '+15550000003' },
+            to: { name: 'Support', phoneNumber: '+15550000004' },
+            duration: 3
+          }
+        ],
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      });
+
+      expect(result).toContain('Made call from ext 101');
+      expect(result).toContain('Transferred to ext 202, duration: 1 second');
+      expect(result).toContain('Transferred to Support, +15550000004, duration: 3 seconds');
+      expect(result).not.toContain('Old journey');
+    });
+
+    test('should skip disabled ACE and leg sections during full composition', () => {
+      const result = composeCallLog({
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        callLog: {
+          sessionId: 'session-disabled',
+          direction: 'Outbound',
+          startTime: '2024-01-15T10:30:00Z',
+          legs: [
+            {
+              direction: 'Outbound',
+              from: { phoneNumber: '+15550000001' },
+              to: { phoneNumber: '+15550000002' },
+              duration: 5
+            }
+          ]
+        },
+        user: {
+          timezoneOffset: '+00:00',
+          userSettings: {
+            addCallLogRingSenseRecordingTranscript: { value: false },
+            addCallLogRingSenseRecordingSummary: { value: false },
+            addCallLogRingSenseRecordingAIScore: { value: false },
+            addCallLogRingSenseRecordingBulletedSummary: { value: false },
+            addCallLogRingSenseRecordingLink: { value: false },
+            addCallLogLegs: { value: false }
+          }
+        },
+        ringSenseTranscript: 'Transcript',
+        ringSenseSummary: 'Summary',
+        ringSenseAIScore: '88',
+        ringSenseBulletedSummary: '- Item',
+        ringSenseLink: 'https://ringsense.example.com/disabled'
+      });
+
+      expect(result).not.toContain('ACE transcript');
+      expect(result).not.toContain('ACE summary');
+      expect(result).not.toContain('Call score');
+      expect(result).not.toContain('ACE bulleted summary');
+      expect(result).not.toContain('ACE recording link');
+      expect(result).not.toContain('Call journey');
+    });
+  });
+
   describe('Edge Cases', () => {
     test('should handle null user settings', async () => {
       const result = await composeCallLog({

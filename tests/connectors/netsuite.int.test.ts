@@ -412,6 +412,106 @@ describe('Netsuite Connector', () => {
             expect(result.successful).toBe(true);
             expect(result.matchedContactInfo.length).toBe(1);
         });
+
+        it('should enrich name search results with sales orders and opportunities', async () => {
+            const userWithLogging = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    contactsSearchId: { value: ['contact', 'vendor', 'customer'] },
+                    enableSalesOrderLogging: { value: true },
+                    enableOpportunityLogging: { value: true }
+                }
+            });
+
+            nock(apiUrl)
+                .post('/services/rest/query/v1/suiteql')
+                .reply(function(uri, requestBody) {
+                    const query = requestBody.q || '';
+                    if (query.includes('FROM contact')) {
+                        return [200, {
+                            items: [{
+                                id: 701,
+                                firstname: 'Casey',
+                                middlename: '',
+                                lastname: 'Contact',
+                                phone: '+1415555701',
+                                company: 3001
+                            }]
+                        }];
+                    }
+                    if (query.includes("entity = 3001") && query.includes("type='SalesOrd'")) {
+                        return [200, {
+                            items: [{ id: 801, trandisplayname: 'SO-CONTACT' }]
+                        }];
+                    }
+                    if (query.includes("entity = 3001") && query.includes("type='Opprtnty'")) {
+                        return [200, {
+                            items: [{ id: 901, trandisplayname: 'OPP-CONTACT' }]
+                        }];
+                    }
+                    if (query.includes('FROM vendor')) {
+                        return [200, {
+                            items: [{
+                                id: 702,
+                                firstname: '',
+                                middlename: '',
+                                lastname: '',
+                                companyname: '',
+                                entitytitle: '',
+                                entityid: 'VEND-702',
+                                phone: '+1415555702'
+                            }]
+                        }];
+                    }
+                    if (query.includes('FROM customer')) {
+                        return [200, {
+                            items: [{
+                                id: 703,
+                                firstname: '',
+                                middlename: '',
+                                lastname: '',
+                                entitytitle: 'Acme Customer',
+                                phone: '+1415555703'
+                            }]
+                        }];
+                    }
+                    if (query.includes("entity = 703") && query.includes("type='SalesOrd'")) {
+                        return [200, {
+                            items: [{ id: 803, trandisplayname: 'SO-CUSTOMER' }]
+                        }];
+                    }
+                    if (query.includes("entity = 703") && query.includes("type='Opprtnty'")) {
+                        return [200, {
+                            items: [{ id: 903, title: 'Customer Opportunity' }]
+                        }];
+                    }
+                    return [200, { items: [] }];
+                })
+                .persist();
+
+            const result = await netsuite.findContactWithName({
+                user: userWithLogging,
+                authHeader,
+                name: 'Casey'
+            });
+
+            expect(result.successful).toBe(true);
+            const contact = result.matchedContactInfo.find(c => c.id === 701);
+            expect(contact.additionalInfo).toEqual({
+                salesorder: [{ const: 801, title: 'SO-CONTACT' }],
+                opportunity: [{ const: 901, title: 'OPP-CONTACT' }]
+            });
+
+            const vendor = result.matchedContactInfo.find(c => c.id === 702);
+            expect(vendor.name).toBe('VEND-702');
+
+            const customer = result.matchedContactInfo.find(c => c.id === 703);
+            expect(customer.name).toBe('Acme Customer');
+            expect(customer.additionalInfo).toEqual({
+                salesorder: [{ const: 803, title: 'SO-CUSTOMER' }],
+                opportunity: [{ const: 903, title: 'Customer Opportunity' }]
+            });
+        });
     });
 
     // ==================== createContact ====================
@@ -2094,6 +2194,69 @@ describe('Netsuite Connector', () => {
             });
 
             expect(result.logId).toBe('501');
+        });
+
+        it('should create and assign a placeholder company when a CONTACT has none', async () => {
+            const oneWorldUser = createMockUser({
+                ...mockUser,
+                platformAdditionalInfo: {
+                    ...mockUser.platformAdditionalInfo,
+                    oneWorldEnabled: true,
+                    subsidiaryId: 10
+                }
+            });
+            const contactInfo = createMockContact({ id: 102, name: 'No Company', type: 'CONTACT' });
+
+            nock(restletsUrlCreateCall)
+                .get(/gettimezone/)
+                .reply(200, { userTimezone: 'America/New_York' });
+
+            nock(apiUrl)
+                .get('/services/rest/record/v1/contact/102')
+                .reply(200, {
+                    id: 102
+                });
+
+            nock(apiUrl)
+                .post('/services/rest/query/v1/suiteql', body =>
+                    body.q && body.q.includes('RingCentral_CRM_Extension_Placeholder_Company')
+                )
+                .reply(200, {
+                    count: 0,
+                    items: []
+                });
+
+            nock(apiUrl)
+                .post('/services/rest/record/v1/customer', body =>
+                    body.companyName === 'RingCentral_CRM_Extension_Placeholder_Company' &&
+                    body.subsidiary?.id === 10
+                )
+                .reply(201, {}, { location: '/services/rest/record/v1/customer/650' });
+
+            nock(apiUrl)
+                .patch('/services/rest/record/v1/contact/102', body =>
+                    body.company?.id === '650'
+                )
+                .reply(200, {});
+
+            nock(apiUrl)
+                .post('/services/rest/record/v1/phonecall', body =>
+                    body.contact?.id === 102 && body.company?.id === '650'
+                )
+                .reply(201, {}, { location: '/services/rest/record/v1/phonecall/502' });
+
+            const result = await netsuite.createCallLog({
+                user: oneWorldUser,
+                contactInfo,
+                authHeader,
+                callLog: mockCallLogData,
+                additionalSubmission: null,
+                aiNote: null,
+                transcript: null,
+                composedLogDetails: 'Details'
+            });
+
+            expect(result.logId).toBe('502');
         });
     });
 

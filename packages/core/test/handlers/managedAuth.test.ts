@@ -397,6 +397,84 @@ describe('Managed Auth Handler', () => {
     expect(result.missingRequiredFieldConsts).toEqual([]);
   });
 
+  test('getApiKeyFieldDefinitions returns no fields for missing platforms or manifest lookup failures', async () => {
+    expect(await managedAuthHandler.getApiKeyFieldDefinitions({
+      platform: '',
+      rcAccountId: 'acc-empty'
+    })).toEqual([]);
+
+    connectorRegistry.getManifest.mockImplementationOnce(() => {
+      throw new Error('manifest unavailable');
+    });
+
+    expect(await managedAuthHandler.getApiKeyFieldDefinitions({
+      platform: 'testCRM',
+      rcAccountId: 'acc-error'
+    })).toEqual([]);
+  });
+
+  test('persistSubmittedManagedValues stores submitted org and user managed fields', async () => {
+    connectorRegistry.getManifest.mockReturnValue({
+      platforms: {
+        testCRM: {
+          auth: {
+            type: 'apiKey',
+            apiKey: {
+              page: {
+                content: [
+                  { const: 'tenantId', managed: true, managedScope: 'account' },
+                  { const: 'apiKey', managed: true, managedScope: 'user' }
+                ]
+              }
+            }
+          }
+        }
+      }
+    });
+
+    await managedAuthHandler.persistSubmittedManagedValues({
+      platform: 'testCRM',
+      rcAccountId: 'acc-persist',
+      rcExtensionId: '888',
+      rcUserName: 'Agent 888',
+      submittedManagedValues: {
+        org: {
+          tenantId: 'tenant-persist'
+        },
+        user: {
+          apiKey: 'user-persist'
+        }
+      }
+    });
+
+    await managedAuthHandler.persistSubmittedManagedValues({
+      platform: 'testCRM',
+      rcExtensionId: '999',
+      submittedManagedValues: {
+        org: {
+          tenantId: 'ignored-without-account'
+        }
+      }
+    });
+
+    const records = await AccountDataModel.findAll({
+      where: {
+        platformName: 'testCRM'
+      }
+    });
+    const dataKeys = records.map(record => record.dataKey).sort();
+
+    expect(dataKeys).toEqual(['managed-auth-org', 'managed-auth-user:888']);
+
+    const settings = await managedAuthHandler.getManagedAuthAdminSettings({
+      platform: 'testCRM',
+      rcAccountId: 'acc-persist'
+    });
+
+    expect(settings.orgValues.tenantId.value).toBe('tenant-persist');
+    expect(settings.userValues[0].fields.apiKey.value).toBe('user-persist');
+  });
+
   test('upsertUserManagedAuthValues throws when rcExtensionId is missing', async () => {
     await expect(managedAuthHandler.upsertUserManagedAuthValues({
       rcAccountId: 'acc-5',
