@@ -1238,11 +1238,11 @@ describe('Google Sheets Connector', () => {
             expect(result.returnMessage.message).toBe('Error logging call');
         });
 
-        it('covers updateCallLog no sheet, invalid sheet, missing columns, ACE fields, and batch failure', async () => {
+        it('returns warning when updateCallLog has no selected sheet', async () => {
             const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
             const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
 
-            const noSheetResult = await googleSheets.updateCallLog({
+            const result = await googleSheets.updateCallLog({
                 user: userWithoutSheet,
                 existingCallLog,
                 authHeader,
@@ -1251,11 +1251,15 @@ describe('Google Sheets Connector', () => {
                 duration: 60,
                 result: 'Connected'
             });
-            expect(noSheetResult.successful).toBe(false);
-            expect(noSheetResult.returnMessage.message).toBe('No sheet selected');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('No sheet selected');
+        });
+
+        it('returns warning when updateCallLog cannot find the Call Logs sheet', async () => {
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Contacts');
-            const invalidSheetResult = await googleSheets.updateCallLog({
+            const result = await googleSheets.updateCallLog({
                 user: mockUser,
                 existingCallLog,
                 authHeader,
@@ -1264,8 +1268,12 @@ describe('Google Sheets Connector', () => {
                 duration: 60,
                 result: 'Connected'
             });
-            expect(invalidSheetResult.successful).toBe(false);
-            expect(invalidSheetResult.returnMessage.message).toBe('Invalid SheetName');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Invalid SheetName');
+        });
+
+        it('returns warning when updateCallLog finds a sheet with missing columns', async () => {
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Call Logs');
             nock(sheetsApiUrl)
@@ -1276,7 +1284,7 @@ describe('Google Sheets Connector', () => {
                         ['1', '10']
                     ]
                 });
-            const missingColumnsResult = await googleSheets.updateCallLog({
+            const result = await googleSheets.updateCallLog({
                 user: mockUser,
                 existingCallLog,
                 authHeader,
@@ -1285,7 +1293,11 @@ describe('Google Sheets Connector', () => {
                 duration: 60,
                 result: 'Connected'
             });
-            expect(missingColumnsResult.returnMessage.message).toBe('Error logging out of GoogleSheet');
+            expect(result.returnMessage.message).toBe('Error logging out of GoogleSheet');
+        });
+
+        it('updates call log recording, transcript, AI note, and ACE fields', async () => {
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
 
             let updateRequestData;
             mockSpreadsheetWithSheet('Call Logs');
@@ -1303,7 +1315,7 @@ describe('Google Sheets Connector', () => {
                     return true;
                 })
                 .reply(200, { responses: [] });
-            const aceResult = await googleSheets.updateCallLog({
+            const result = await googleSheets.updateCallLog({
                 user: mockUser,
                 existingCallLog,
                 authHeader,
@@ -1320,7 +1332,7 @@ describe('Google Sheets Connector', () => {
                 ringSenseBulletedSummary: 'ACE bullets',
                 ringSenseLink: 'https://aces.example.com/2'
             });
-            expect(aceResult.successful).toBe(true);
+            expect(result.successful).toBe(true);
             expect(updateRequestData.map(item => item.values[0][0])).toEqual(expect.arrayContaining([
                 'https://recording.example.com/1',
                 'Transcript text',
@@ -1331,6 +1343,10 @@ describe('Google Sheets Connector', () => {
                 'ACE bullets',
                 'https://aces.example.com/2'
             ]));
+        });
+
+        it('returns warning when updateCallLog batch update fails', async () => {
+            const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Call Logs');
             nock(sheetsApiUrl)
@@ -1344,7 +1360,7 @@ describe('Google Sheets Connector', () => {
             nock(sheetsApiUrl)
                 .post(`/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`)
                 .replyWithError('batch update failed');
-            const failureResult = await googleSheets.updateCallLog({
+            const result = await googleSheets.updateCallLog({
                 user: mockUser,
                 existingCallLog,
                 authHeader,
@@ -1353,8 +1369,8 @@ describe('Google Sheets Connector', () => {
                 duration: 60,
                 result: 'Connected'
             });
-            expect(failureResult.successful).toBe(false);
-            expect(failureResult.returnMessage.message).toBe('Error Updating call');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error Updating call');
         });
 
         it('covers getCallLog no sheet, invalid sheet, and missing required columns', async () => {
@@ -1505,30 +1521,38 @@ describe('Google Sheets Connector', () => {
             expect(result.returnMessage.message).toBe('Error logging message');
         });
 
-        it('covers updateMessageLog no sheet, invalid sheet, missing row, missing message column, shared SMS, and batch failure', async () => {
+        it('returns warning when updateMessageLog has no selected sheet', async () => {
             const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
             const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
 
-            const noSheetResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: userWithoutSheet,
                 contactInfo: mockContact,
                 existingMessageLog,
                 message: mockMessageData,
                 authHeader
             });
-            expect(noSheetResult.successful).toBe(false);
-            expect(noSheetResult.returnMessage.message).toBe('No sheet selected');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('No sheet selected');
+        });
+
+        it('returns warning when updateMessageLog cannot find the Message Logs sheet', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Contacts');
-            const invalidSheetResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: mockUser,
                 contactInfo: mockContact,
                 existingMessageLog,
                 message: mockMessageData,
                 authHeader
             });
-            expect(invalidSheetResult.successful).toBe(false);
-            expect(invalidSheetResult.returnMessage.message).toBe('Invalid SheetName');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Invalid SheetName');
+        });
+
+        it('returns warning when updateMessageLog cannot find the target row', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Message Logs');
             nock(sheetsApiUrl)
@@ -1539,15 +1563,19 @@ describe('Google Sheets Connector', () => {
                         ['2', spreadsheetId, 'Subject', 'John Doe', 'Body']
                     ]
                 });
-            const missingRowResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: mockUser,
                 contactInfo: mockContact,
                 existingMessageLog,
                 message: mockMessageData,
                 authHeader
             });
-            expect(missingRowResult.successful).toBe(false);
-            expect(missingRowResult.returnMessage.message).toBe('Error while adding message');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error while adding message');
+        });
+
+        it('returns warning when updateMessageLog finds a sheet with no Message column', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Message Logs');
             nock(sheetsApiUrl)
@@ -1558,14 +1586,18 @@ describe('Google Sheets Connector', () => {
                         ['1', 'Subject']
                     ]
                 });
-            const missingMessageColumnResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: mockUser,
                 contactInfo: mockContact,
                 existingMessageLog,
                 message: mockMessageData,
                 authHeader
             });
-            expect(missingMessageColumnResult.returnMessage.message).toBe('Error logging out of GoogleSheet');
+            expect(result.returnMessage.message).toBe('Error logging out of GoogleSheet');
+        });
+
+        it('updates shared SMS message log content in the existing row', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
 
             let sharedUpdate;
             mockSpreadsheetWithSheet('Message Logs');
@@ -1583,7 +1615,7 @@ describe('Google Sheets Connector', () => {
                     return true;
                 })
                 .reply(200, { responses: [] });
-            const sharedResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: mockUser,
                 contactInfo: mockContact,
                 sharedSMSLogContent: { body: 'Updated shared body' },
@@ -1591,8 +1623,12 @@ describe('Google Sheets Connector', () => {
                 message: mockMessageData,
                 authHeader
             });
-            expect(sharedResult.successful).toBe(true);
+            expect(result.successful).toBe(true);
             expect(sharedUpdate).toBe('Updated shared body');
+        });
+
+        it('returns warning when updateMessageLog cannot update a body without markers', async () => {
+            const existingMessageLog = createMockExistingMessageLog({ thirdPartyLogId: '1' });
 
             mockSpreadsheetWithSheet('Message Logs');
             nock(sheetsApiUrl)
@@ -1603,15 +1639,15 @@ describe('Google Sheets Connector', () => {
                         ['1', spreadsheetId, 'Subject', 'John Doe', 'Body without markers', '+14155551234', 'SMS', '2024-01-15', 'Inbound']
                     ]
                 });
-            const failureResult = await googleSheets.updateMessageLog({
+            const result = await googleSheets.updateMessageLog({
                 user: mockUser,
                 contactInfo: mockContact,
                 existingMessageLog,
                 message: mockMessageData,
                 authHeader
             });
-            expect(failureResult.successful).toBe(false);
-            expect(failureResult.returnMessage.message).toBe('Error updating message');
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('Error updating message');
         });
     });
 

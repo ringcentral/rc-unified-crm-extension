@@ -162,22 +162,86 @@ describe('TypeScript model definitions', () => {
     }
   });
 
-  test('sequelize.ts constructs the shared Sequelize instance with postgres settings', () => {
+  const loadSequelizeConfig = (databaseUrl: string, databaseSsl?: string) => {
     jest.resetModules();
+    const previousDatabaseUrl = process.env.DATABASE_URL;
+    const previousDatabaseSsl = process.env.DATABASE_SSL;
+    process.env.DATABASE_URL = databaseUrl;
+    if (typeof databaseSsl === 'undefined') {
+      delete process.env.DATABASE_SSL;
+    } else {
+      process.env.DATABASE_SSL = databaseSsl;
+    }
+
     const Sequelize = jest.fn();
     jest.doMock('sequelize', () => ({ Sequelize }));
 
-    const { sequelize } = require('../../models/sequelize.ts');
+    try {
+      const { sequelize } = require('../../models/sequelize.ts');
+      expect(sequelize).toBeInstanceOf(Sequelize);
+      return Sequelize.mock.calls[0] as [string, any];
+    } finally {
+      restoreEnvValue('DATABASE_URL', previousDatabaseUrl);
+      restoreEnvValue('DATABASE_SSL', previousDatabaseSsl);
+    }
+  };
 
-    expect(sequelize).toBeInstanceOf(Sequelize);
-    expect(Sequelize).toHaveBeenCalledWith(
-      process.env.DATABASE_URL,
-      expect.objectContaining({
-        dialect: 'postgres',
-        protocol: 'postgres',
-        logging: false
-      })
+  test('sequelize.ts enables SSL for remote postgres URLs by default', () => {
+    const [databaseUrl, options] = loadSequelizeConfig('postgres://user:password@db.example.com:5432/app_connect');
+
+    expect(databaseUrl).toBe('postgres://user:password@db.example.com:5432/app_connect');
+    expect(options).toEqual(expect.objectContaining({
+      dialect: 'postgres',
+      protocol: 'postgres',
+      dialectOptions: {
+        ssl: {
+          rejectUnauthorized: false
+        }
+      },
+      logging: false
+    }));
+  });
+
+  test('sequelize.ts disables SSL for localhost postgres URLs by default', () => {
+    const [, options] = loadSequelizeConfig('postgres://user:password@localhost:5432/app_connect');
+
+    expect(options).toEqual(expect.objectContaining({
+      dialect: 'postgres',
+      protocol: 'postgres',
+      logging: false
+    }));
+    expect(options).not.toHaveProperty('dialectOptions');
+  });
+
+  test('sequelize.ts lets DATABASE_SSL override the postgres host default', () => {
+    const [, remoteOptions] = loadSequelizeConfig(
+      'postgres://user:password@db.example.com:5432/app_connect',
+      'false'
     );
+    const [, localOptions] = loadSequelizeConfig(
+      'postgres://user:password@localhost:5432/app_connect',
+      'true'
+    );
+
+    expect(remoteOptions).not.toHaveProperty('dialectOptions');
+    expect(localOptions).toEqual(expect.objectContaining({
+      dialectOptions: {
+        ssl: {
+          rejectUnauthorized: false
+        }
+      }
+    }));
+  });
+
+  test('sequelize.ts keeps sqlite URLs on sqlite without SSL options', () => {
+    const [, options] = loadSequelizeConfig('sqlite::memory:');
+
+    expect(options).toEqual(expect.objectContaining({
+      dialect: 'sqlite',
+      logging: false
+    }));
+    expect(options).not.toHaveProperty('protocol');
+    expect(options).not.toHaveProperty('dialectOptions');
   });
 
   test('Dynamo TS schemas preserve model names and table options', () => {

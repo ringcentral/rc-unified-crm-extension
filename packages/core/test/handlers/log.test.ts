@@ -93,6 +93,75 @@ describe('Log Handler', () => {
       additionalSubmission: {}
     };
 
+    async function runAsyncCallPluginLog() {
+      const originalAppServer = process.env.APP_SERVER;
+      process.env.APP_SERVER = 'https://app.example.com';
+      try {
+        await UserModel.create(mockUser);
+        await AccountDataModel.create({
+          rcAccountId: mockUser.rcAccountId,
+          platformName: 'asyncPlugin',
+          dataKey: 'pluginData',
+          data: {
+            name: 'plugin.async',
+            supportedLogTypes: ['call'],
+            isAsync: true,
+            endpointUrl: 'https://plugins.example.com/plugin/asyncPlugin',
+            tokenSyncUrl: 'https://plugins.example.com/plugin/asyncPlugin/token',
+            jwtToken: 'plugin-jwt-token'
+          }
+        });
+
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+          createCallLog: jest.fn().mockResolvedValue({
+            logId: 'new-log-async',
+            returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
+          })
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+        composeCallLog.mockReturnValue('Composed log details');
+        axios.post.mockImplementation((url) => {
+          if (url === 'https://plugins.example.com/plugin/asyncPlugin/token') {
+            return Promise.resolve({
+              headers: {
+                'x-refreshed-jwt-token': 'synced-plugin-jwt'
+              }
+            });
+          }
+          return Promise.resolve({ data: { accepted: true }, headers: {} });
+        });
+
+        const result = await logHandler.createCallLog({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          incomingData: mockIncomingData,
+          hashedAccountId: 'hashed-123',
+          isFromSSCL: false
+        });
+        const cache = await CacheModel.findOne({
+          where: {
+            cacheKey: 'asyncPluginTask-asyncPlugin'
+          }
+        });
+        const pluginCall = axios.post.mock.calls.find(([url]) => url === 'https://plugins.example.com/plugin/asyncPlugin');
+
+        return {
+          result,
+          cache,
+          pluginCall
+        };
+      } finally {
+        if (originalAppServer) {
+          process.env.APP_SERVER = originalAppServer;
+        } else {
+          delete process.env.APP_SERVER;
+        }
+      }
+    }
+
     test('should return warning when call log already exists for session', async () => {
       // Arrange
       await CallLogModel.create({
@@ -410,90 +479,35 @@ describe('Log Handler', () => {
       );
     });
 
-    test('should create async task cache and pass task details to async call plugin after log creation', async () => {
-      const originalAppServer = process.env.APP_SERVER;
-      process.env.APP_SERVER = 'https://app.example.com';
-      try {
-        await UserModel.create(mockUser);
-        await AccountDataModel.create({
-          rcAccountId: mockUser.rcAccountId,
-          platformName: 'asyncPlugin',
-          dataKey: 'pluginData',
-          data: {
-            name: 'plugin.async',
-            supportedLogTypes: ['call'],
-            isAsync: true,
-            endpointUrl: 'https://plugins.example.com/plugin/asyncPlugin',
-            tokenSyncUrl: 'https://plugins.example.com/plugin/asyncPlugin/token',
-            jwtToken: 'plugin-jwt-token'
-          }
-        });
+    test('should create pending async task cache after async call plugin log creation', async () => {
+      const { result, cache } = await runAsyncCallPluginLog();
 
-        const mockConnector = {
-          getAuthType: jest.fn().mockResolvedValue('apiKey'),
-          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
-          getLogFormatType: jest.fn().mockReturnValue('text/plain'),
-          createCallLog: jest.fn().mockResolvedValue({
-            logId: 'new-log-async',
-            returnMessage: { message: 'Call logged', messageType: 'success', ttl: 2000 }
-          })
-        };
-        connectorRegistry.getConnector.mockReturnValue(mockConnector);
-        composeCallLog.mockReturnValue('Composed log details');
-        axios.post.mockImplementation((url) => {
-          if (url === 'https://plugins.example.com/plugin/asyncPlugin/token') {
-            return Promise.resolve({
-              headers: {
-                'x-refreshed-jwt-token': 'synced-plugin-jwt'
-              }
-            });
-          }
-          return Promise.resolve({ data: { accepted: true }, headers: {} });
-        });
+      expect(result.successful).toBe(true);
+      expect(cache).not.toBeNull();
+      expect(cache.status).toBe('pending');
+      expect(cache.userId).toBe('test-user-id');
+      expect(cache.data.pluginId).toBe('asyncPlugin');
+      expect(cache.data.sessionId).toBe('session-123');
+      expect(cache.data.thirdPartyLogId).toBe('new-log-async');
+      expect(cache.expiry.getTime() - Date.now()).toBeGreaterThan(6 * 24 * 60 * 60 * 1000);
+    });
 
-        const result = await logHandler.createCallLog({
-          platform: 'testCRM',
-          userId: 'test-user-id',
-          incomingData: mockIncomingData,
-          hashedAccountId: 'hashed-123',
-          isFromSSCL: false
-        });
+    test('should pass async task callback details and refreshed token to call plugin', async () => {
+      const { cache, pluginCall } = await runAsyncCallPluginLog();
 
-        expect(result.successful).toBe(true);
-        const cache = await CacheModel.findOne({
-          where: {
-            cacheKey: 'asyncPluginTask-asyncPlugin'
-          }
-        });
-        expect(cache).not.toBeNull();
-        expect(cache.status).toBe('pending');
-        expect(cache.userId).toBe('test-user-id');
-        expect(cache.data.pluginId).toBe('asyncPlugin');
-        expect(cache.data.sessionId).toBe('session-123');
-        expect(cache.data.thirdPartyLogId).toBe('new-log-async');
-        expect(cache.expiry.getTime() - Date.now()).toBeGreaterThan(6 * 24 * 60 * 60 * 1000);
-
-        const pluginCall = axios.post.mock.calls.find(([url]) => url === 'https://plugins.example.com/plugin/asyncPlugin');
-        expect(pluginCall).toBeTruthy();
-        expect(pluginCall[1]).toEqual({
-          data: mockIncomingData,
-          config: null,
-          asyncTaskId: cache.id,
-          callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`,
-          hashedExtensionId: null
-        });
-        expect(pluginCall[2]).toEqual({
-          headers: {
-            Authorization: 'Bearer synced-plugin-jwt'
-          }
-        });
-      } finally {
-        if (originalAppServer) {
-          process.env.APP_SERVER = originalAppServer;
-        } else {
-          delete process.env.APP_SERVER;
+      expect(pluginCall).toBeTruthy();
+      expect(pluginCall[1]).toEqual({
+        data: mockIncomingData,
+        config: null,
+        asyncTaskId: cache.id,
+        callbackUrl: `https://app.example.com/plugin/async-callback/${cache.id}`,
+        hashedExtensionId: null
+      });
+      expect(pluginCall[2]).toEqual({
+        headers: {
+          Authorization: 'Bearer synced-plugin-jwt'
         }
-      }
+      });
     });
 
     test('should mark async plugin task failed when token sync URL is missing', async () => {

@@ -878,7 +878,7 @@ describe('Admin Handler', () => {
       AdminConfigModel.findByPk.mockRestore();
     });
 
-    test('reinitializeUserMapping handles missing capability, proxy limits, oauth revoke, apiKey remap, and update failure', async () => {
+    test('reinitializeUserMapping returns empty mappings when connector has no getUserList capability', async () => {
       const baseUser = {
         platform: 'testCRM',
         accessToken: 'api-key',
@@ -891,6 +891,14 @@ describe('Admin Handler', () => {
         hashedRcAccountId: 'hashed-reinit',
         rcExtensionList: []
       })).resolves.toEqual([]);
+    });
+
+    test('reinitializeUserMapping returns empty mappings when proxy config does not expose getUserList', async () => {
+      const baseUser = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
 
       connectorRegistry.getConnector.mockReturnValueOnce({ getUserList: jest.fn() });
       Connector.getProxyConfig.mockResolvedValueOnce({ operations: {} });
@@ -902,6 +910,14 @@ describe('Admin Handler', () => {
         hashedRcAccountId: 'hashed-reinit',
         rcExtensionList: []
       })).resolves.toEqual([]);
+    });
+
+    test('reinitializeUserMapping revokes the session when OAuth refresh fails', async () => {
+      const baseUser = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
 
       connectorRegistry.getConnector.mockReturnValueOnce({
         getUserList: jest.fn(),
@@ -920,6 +936,14 @@ describe('Admin Handler', () => {
         successful: false,
         isRevokeUserSession: true
       });
+    });
+
+    test('reinitializeUserMapping remaps CRM users to matching RingCentral extensions with API-key auth', async () => {
+      const baseUser = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
 
       connectorRegistry.getConnector.mockReturnValueOnce({
         getUserList: jest.fn().mockResolvedValue([
@@ -940,6 +964,14 @@ describe('Admin Handler', () => {
       expect(result).toHaveLength(2);
       expect(result[0].rcUser[0].extensionId).toBe('ext-20');
       expect(result[1].rcUser).toEqual([]);
+    });
+
+    test('reinitializeUserMapping returns unsuccessful when mapping persistence fails', async () => {
+      const baseUser = {
+        platform: 'testCRM',
+        accessToken: 'api-key',
+        platformAdditionalInfo: {}
+      };
 
       connectorRegistry.getConnector.mockReturnValueOnce({
         getUserList: jest.fn().mockResolvedValue([]),

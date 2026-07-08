@@ -384,7 +384,7 @@ describe('Core router broad route coverage', () => {
     delete process.env.IS_PROD;
   });
 
-  test('serves manifest, release, implementation, metadata, mock, and MCP routes', async () => {
+  test('serves health, manifest, release, version, and implemented interface routes', async () => {
     await expect(request(app).get('/isAlive')).resolves.toMatchObject({ status: 200, text: 'OK' });
     expect((await request(app).get('/releaseNotes')).status).toBe(200);
     const manifestResponse = await request(app)
@@ -399,7 +399,9 @@ describe('Core router broad route coverage', () => {
       .query({ platform: 'testCRM' });
     expect(interfacesResponse.status).toBe(200);
     expect(interfacesResponse.body.createCallLog).toBe(true);
+  });
 
+  test('serves ChatGPT and OAuth metadata routes', async () => {
     await expect(request(app).get('/.well-known/openai-apps-challenge')).resolves.toMatchObject({ text: 'verify-code' });
     expect((await request(app).get('/.well-known/oauth-protected-resource')).body.resource).toBe('https://app.example.com');
     expect((await request(app).get('/.well-known/oauth-authorization-server')).body.registration_endpoint).toBe('https://app.example.com/oauth/register');
@@ -415,16 +417,20 @@ describe('Core router broad route coverage', () => {
         redirect_uri: 'https://chat.example.com/callback',
         state: 'state-1',
         scope: 'ReadAccounts',
-      });
+    });
     expect(redirectResponse.status).toBe(302);
     expect(redirectResponse.headers.location).toContain('/restapi/oauth/authorize?');
+  });
 
+  test('serves mock connector utility routes', async () => {
     await expect(request(app).post('/registerMockUser').query({ secretKey: 'secret-key' }).send({ userName: 'A' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).delete('/deleteMockUser').query({ secretKey: 'secret-key', userName: 'A' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).get('/mockCallLog').query({ secretKey: 'secret-key', sessionIds: 's1' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).post('/mockCallLog').query({ secretKey: 'secret-key' }).send({ sessionId: 's1' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).delete('/mockCallLog').query({ secretKey: 'secret-key' })).resolves.toMatchObject({ status: 200 });
+  });
 
+  test('serves MCP and widget tool-call routes', async () => {
     expect((await request(app).options('/mcp')).status).toBe(200);
     expect((await request(app).post('/mcp').send({ method: 'tools/list' })).body).toEqual({ jsonrpc: '2.0', result: 'mcp-ok' });
     expect(mcpHandler.handleMcpRequest).toHaveBeenCalled();
@@ -432,7 +438,7 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).post('/mcp/widget-tool-call').send({ name: 'tool' })).body).toEqual({ successful: true });
   });
 
-  test('covers auth, admin, managed auth, managed OAuth, and user routes', async () => {
+  test('serves auth and managed-auth state routes', async () => {
     expect((await request(app).get('/licenseStatus').query(authQuery())).body).toEqual({ isLicenseValid: true });
     expect((await request(app).get('/authValidation').query(authQuery())).body).toEqual({
       successful: true,
@@ -440,7 +446,9 @@ describe('Core router broad route coverage', () => {
     });
     expect((await request(app).get('/apiKeyManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' })).body).toEqual({ hasManagedAuth: true });
     expect((await request(app).get('/oauthManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' })).body).toEqual({ isConfigured: true });
+  });
 
+  test('serves admin settings, managed auth, managed OAuth, mapping, and server logging routes', async () => {
     await expect(request(app).post('/admin/settings').query({ rcAccessToken: 'rc-token' }).send({ adminSettings: { a: 1 } })).resolves.toMatchObject({ status: 200 });
     expect((await request(app).get('/admin/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' })).body).toEqual({ userSettings: { theme: 'dark' } });
     expect((await request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token', connectorId: 'connector-1' })).body).toEqual({ shared: true });
@@ -456,7 +464,9 @@ describe('Core router broad route coverage', () => {
       successful: true,
       returnMessage: { messageType: 'success', message: 'Updated' },
     });
+  });
 
+  test('serves user settings, user info, hostname, and user hash routes', async () => {
     expect((await request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' })).body).toEqual({ fields: [] });
     expect((await request(app).post('/user/refreshInfo').query(authQuery()).send({})).body).toEqual({
       successful: true,
@@ -471,7 +481,7 @@ describe('Core router broad route coverage', () => {
     });
   });
 
-  test('covers login, contact, appointment, log, report, and plugin routes', async () => {
+  test('serves CRM OAuth, MCP session OAuth, API-key login, and disconnect routes', async () => {
     const callbackState = encodeURIComponent('platform=testCRM&hostname=crm.example.com');
     const callbackResponse = await request(app)
       .get('/oauth-callback')
@@ -501,7 +511,9 @@ describe('Core router broad route coverage', () => {
       messageType: 'success',
       message: 'Disconnected',
     });
+  });
 
+  test('serves contact lookup, contact creation, and custom contact search routes', async () => {
     expect((await request(app).get('/contact').query({ ...authQuery(), phoneNumber: '+15551234567' })).body).toEqual({
       successful: true,
       returnMessage: { messageType: 'success', message: 'Found' },
@@ -509,21 +521,27 @@ describe('Core router broad route coverage', () => {
     });
     expect((await request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555', newContactName: 'Alice' })).body.contact).toEqual({ id: 'contact-2' });
     expect((await request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' })).body.contact).toEqual([{ id: 'contact-3' }]);
+  });
 
+  test('serves appointment list, create, update, refresh, confirm, and cancel routes', async () => {
     expect((await request(app).get('/appointments').query(authQuery())).body.appointments).toEqual([{ id: 'appt-1' }]);
     expect((await request(app).post('/appointments').query(authQuery()).send({ payload: { title: 'Meet' } })).body.appointmentId).toBe('appt-2');
     expect((await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } })).body.appointmentId).toBe('appt-2');
     expect((await request(app).get('/appointments/appt-2/refresh').query(authQuery())).body.appointmentId).toBe('appt-2');
     expect((await request(app).post('/appointments/appt-2/confirm').query(authQuery())).body.appointmentId).toBe('appt-2');
     expect((await request(app).post('/appointments/appt-2/cancel').query(authQuery())).body.appointmentId).toBe('appt-2');
+  });
 
+  test('serves call-log, disposition, and message-log routes', async () => {
     expect((await request(app).post('/callLog/cacheNote').query(authQuery()).send({ sessionId: 's1', note: 'note' })).body.successful).toBe(true);
     expect((await request(app).get('/callLog').query({ ...authQuery(), sessionIds: 's1', requireDetails: 'true' })).body.logs).toEqual([{ sessionId: 'session-1' }]);
     expect((await request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } })).body.logId).toBe('log-1');
     expect((await request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' })).body.updatedNote).toBe('updated');
     expect((await request(app).put('/callDisposition').query(authQuery()).send({ sessionId: 's1', dispositions: ['left voicemail'] })).body.successful).toBe(true);
     expect((await request(app).post('/messageLog').query(authQuery()).send({ messages: [] })).body.logIds).toEqual(['msg-1']);
+  });
 
+  test('serves RingCentral report, callback, debug, and plugin routes', async () => {
     expect((await request(app).get('/ringcentral/admin/report').query({ ...authQuery(), timezone: 'UTC' })).body).toEqual({ rows: [{ id: 'admin-row' }] });
     expect((await request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' })).body).toEqual({ rows: [{ id: 'user-row' }] });
     await expect(request(app).get('/ringcentral/oauth/callback').query({ ...authQuery(), code: 'rc-code' })).resolves.toMatchObject({ status: 200 });
@@ -534,7 +552,7 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).get('/plugin/licenseStatus').query({ ...authQuery(), rcAccountId: 'rc-account-1', pluginId: 'p1' })).body).toEqual({ licenseStatus: true });
   });
 
-  test('covers no-token and missing-parameter validation branches', async () => {
+  test('rejects protected routes when JWT token is missing', async () => {
     const noTokenCases: Array<[any, string, any?]> = [
       ['get', '/authValidation'],
       ['get', '/admin/settings'],
@@ -578,7 +596,9 @@ describe('Core router broad route coverage', () => {
       const response = body === undefined ? await req : await req.send(body);
       expect(response.status).toBe(400);
     }
+  });
 
+  test('rejects routes with missing required parameters', async () => {
     await expect(request(app).get('/implementedInterfaces')).resolves.toMatchObject({ status: 400 });
     await expect(request(app).get('/apiKeyManagedAuthState').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
     await expect(request(app).get('/apiKeyManagedAuthState').query({ platform: 'testCRM' })).resolves.toMatchObject({ status: 400 });
@@ -592,7 +612,7 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
   });
 
-  test('covers invalid JWT and revoke-session branches', async () => {
+  test('rejects protected routes when JWT is invalid', async () => {
     async function expectInvalidJwt(requestPromise, expectedText = null) {
       jwt.decodeJwt.mockReturnValue(null);
       const response = await requestPromise();
@@ -619,7 +639,9 @@ describe('Core router broad route coverage', () => {
     await expectInvalidJwt(() => request(app).put('/callDisposition').query({ jwtToken: 'bad' }).send({ sessionId: 's1' }), 'Invalid JWT token');
     await expectInvalidJwt(() => request(app).post('/messageLog').query({ jwtToken: 'bad' }).send({ messages: [] }));
     await expectInvalidJwt(() => request(app).get('/custom/contact/search').query({ jwtToken: 'bad', name: 'Alice' }), 'Invalid JWT token');
+  });
 
+  test('returns 401 when contact handlers request session revocation', async () => {
     contactCore.findContact.mockResolvedValueOnce({
       successful: false,
       returnMessage: { messageType: 'warning', message: 'Reconnect' },
@@ -633,7 +655,9 @@ describe('Core router broad route coverage', () => {
       isRevokeUserSession: true,
     });
     expect((await request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555' })).status).toBe(401);
+  });
 
+  test('returns 401 when appointment handlers request session revocation', async () => {
     for (const [method, path, mockFn, body] of [
       ['get', '/appointments', appointmentCore.listAppointments],
       ['post', '/appointments', appointmentCore.createAppointment, { payload: {} }],
@@ -651,7 +675,9 @@ describe('Core router broad route coverage', () => {
       const response = body === undefined ? await req : await req.send(body);
       expect(response.status).toBe(401);
     }
+  });
 
+  test('returns 401 when log and contact-search handlers request session revocation', async () => {
     logCore.getCallLog.mockResolvedValueOnce({
       successful: false,
       returnMessage: { messageType: 'warning', message: 'Reconnect' },
@@ -688,7 +714,7 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' })).status).toBe(401);
   });
 
-  test('covers route catch branches for mocked handler failures', async () => {
+  test('handles metadata and auth route failures', async () => {
     connectorRegistry.getConnector.mockImplementationOnce(() => {
       throw new Error('connector unavailable');
     });
@@ -705,7 +731,9 @@ describe('Core router broad route coverage', () => {
 
     adminCore.validateAdminRole.mockRejectedValueOnce(new Error('admin validation failed'));
     await expect(request(app).get('/oauthManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
+  });
 
+  test('handles admin, managed OAuth, mapping, and server-logging route failures', async () => {
     UserModel.findByPk.mockResolvedValueOnce(null);
     await expect(request(app).get('/admin/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
 
@@ -744,7 +772,9 @@ describe('Core router broad route coverage', () => {
 
     adminCore.updateServerLoggingSettings.mockRejectedValueOnce(new Error('settings failed'));
     await expect(request(app).post('/admin/serverLoggingSettings').query(authQuery()).send({ additionalFieldValues: { enabled: true } })).resolves.toMatchObject({ status: 400 });
+  });
 
+  test('handles user, hostname, OAuth callback, login, and disconnect route failures', async () => {
     userCore.getUserSettingsByAdmin.mockRejectedValueOnce(new Error('preload failed'));
     await expect(request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
 
@@ -778,7 +808,9 @@ describe('Core router broad route coverage', () => {
       unAuthorize: jest.fn().mockRejectedValue(new Error('logout failed')),
     });
     await expect(request(app).post('/unAuthorize').query(authQuery()).send({})).resolves.toMatchObject({ status: 400 });
+  });
 
+  test('handles contact and appointment route failures', async () => {
     contactCore.findContact.mockRejectedValueOnce({ response: { status: 500 }, message: 'find failed' });
     await expect(request(app).get('/contact').query({ ...authQuery(), phoneNumber: '+1555' })).resolves.toMatchObject({ status: 400 });
 
@@ -802,7 +834,9 @@ describe('Core router broad route coverage', () => {
 
     appointmentCore.cancelAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'cancel appointment failed' });
     await expect(request(app).post('/appointments/appt-2/cancel').query(authQuery())).resolves.toMatchObject({ status: 400 });
+  });
 
+  test('handles log, calldown, report, and plugin callback route failures', async () => {
     logCore.saveNoteCache.mockRejectedValueOnce({ response: { status: 500 }, message: 'cache failed' });
     await expect(request(app).post('/callLog/cacheNote').query(authQuery()).send({ sessionId: 's1' })).resolves.toMatchObject({ status: 400 });
 

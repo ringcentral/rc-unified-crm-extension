@@ -38,7 +38,7 @@ describe('MCP appointment tools', () => {
     expect(cancelAppointment.definition.annotations.destructiveHint).toBe(true);
   });
 
-  test('listAppointments resolves filters, custom ranges, success, and handler failure', async () => {
+  test('listAppointments resolves upcoming filters and returns matching appointments', async () => {
     appointmentCore.listAppointments.mockResolvedValueOnce({
       successful: true,
       appointments: [{ id: 'appt-1' }],
@@ -64,7 +64,9 @@ describe('MCP appointment tools', () => {
       mineOnly: true,
       forceSync: false
     });
+  });
 
+  test('listAppointments forwards custom date ranges', async () => {
     appointmentCore.listAppointments.mockResolvedValueOnce({
       successful: true,
       appointments: []
@@ -79,7 +81,9 @@ describe('MCP appointment tools', () => {
       startDate: '2026-07-01',
       endDate: '2026-07-31'
     });
+  });
 
+  test('listAppointments returns handler failure messages', async () => {
     appointmentCore.listAppointments.mockResolvedValueOnce({
       successful: false,
       returnMessage: { message: 'List failed' }
@@ -94,7 +98,7 @@ describe('MCP appointment tools', () => {
     });
   });
 
-  test('listAppointments validates auth and connector capability errors', async () => {
+  test('listAppointments validates missing and invalid auth', async () => {
     await expect(listAppointments.execute({})).resolves.toMatchObject({
       success: false,
       error: 'Please go to Settings and authorize CRM platform'
@@ -111,7 +115,9 @@ describe('MCP appointment tools', () => {
       success: false,
       error: 'Invalid JWT token: userId not found'
     });
+  });
 
+  test('listAppointments validates connector availability and implementation', async () => {
     connectorRegistry.getConnector.mockReturnValueOnce(null);
     await expect(listAppointments.execute({ jwtToken: 'jwt-token' })).resolves.toMatchObject({
       success: false,
@@ -125,7 +131,7 @@ describe('MCP appointment tools', () => {
     });
   });
 
-  test('createAppointment validates payload and returns success or handler failure', async () => {
+  test('createAppointment validates required payload fields', async () => {
     await expect(createAppointment.execute({})).resolves.toMatchObject({
       success: false,
       error: 'Please go to Settings and authorize CRM platform'
@@ -146,7 +152,9 @@ describe('MCP appointment tools', () => {
       success: false,
       error: 'durationMinutes is required'
     });
+  });
 
+  test('createAppointment submits normalized payload and returns created appointment', async () => {
     appointmentCore.createAppointment.mockResolvedValueOnce({
       successful: true,
       appointmentId: 'appt-1',
@@ -181,7 +189,9 @@ describe('MCP appointment tools', () => {
         contacts: ['contact-1']
       }
     });
+  });
 
+  test('createAppointment returns handler failure messages', async () => {
     appointmentCore.createAppointment.mockResolvedValueOnce({
       successful: false,
       returnMessage: { message: 'Create failed' }
@@ -221,12 +231,14 @@ describe('MCP appointment tools', () => {
     });
   });
 
-  test('updateAppointment builds sparse patch body and handles failures', async () => {
+  test('updateAppointment validates required appointment id', async () => {
     await expect(updateAppointment.execute({ jwtToken: 'jwt-token' })).resolves.toMatchObject({
       success: false,
       error: 'appointmentId is required'
     });
+  });
 
+  test('updateAppointment builds sparse patch body', async () => {
     appointmentCore.updateAppointment.mockResolvedValueOnce({
       successful: true,
       appointment: { id: 'appt-1' },
@@ -261,7 +273,9 @@ describe('MCP appointment tools', () => {
         contacts: [{ id: 'contact-1' }]
       }
     });
+  });
 
+  test('updateAppointment returns handler failure messages', async () => {
     appointmentCore.updateAppointment.mockResolvedValueOnce({
       successful: false,
       returnMessage: { message: 'Update failed' }

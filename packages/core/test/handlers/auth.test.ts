@@ -47,6 +47,91 @@ describe('Auth Handler', () => {
       await AccountDataModel.destroy({ where: {} });
     });
 
+    function mockManagedApiKeyManifest() {
+      connectorRegistry.getManifest.mockReturnValue({
+        platforms: {
+          testCRM: {
+            auth: {
+              type: 'apiKey',
+              apiKey: {
+                page: {
+                  content: [
+                    { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
+                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function seedRecoverableManagedCredentials({ includeFailureRecord = false } = {}) {
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-recover',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-org',
+        data: {
+          fields: {
+            tenantId: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-tenant')) }
+          }
+        }
+      });
+      await AccountDataModel.create({
+        rcAccountId: 'rc-account-recover',
+        platformName: 'testCRM',
+        dataKey: 'managed-auth-user:202',
+        data: {
+          rcExtensionId: '202',
+          rcUserName: 'Agent 202',
+          fields: {
+            apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-bad-key')) }
+          }
+        }
+      });
+      if (includeFailureRecord) {
+        await AccountDataModel.create({
+          rcAccountId: 'rc-account-recover',
+          platformName: 'testCRM',
+          dataKey: 'managed-auth-login-failure:202',
+          data: {
+            failedAt: '2026-04-07T00:00:00.000Z'
+          }
+        });
+      }
+    }
+
+    function mockRecoveredUserConnector() {
+      const mockConnector = global.testUtils.createMockConnector({
+        getBasicAuth: jest.fn().mockReturnValue('encoded-manual-key'),
+        getUserInfo: jest.fn().mockResolvedValue({
+          successful: true,
+          platformUserInfo: {
+            id: 'test-user-id',
+            name: 'Recovered User',
+            platformAdditionalInfo: {}
+          },
+          returnMessage: { messageType: 'success', message: 'ok' }
+        })
+      });
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      return mockConnector;
+    }
+
+    async function loginWithManualManagedValues() {
+      return authHandler.onApiKeyLogin({
+        platform: 'testCRM',
+        hostname: 'test.example.com',
+        rcAccountId: 'rc-account-recover',
+        rcExtensionId: '202',
+        additionalInfo: {
+          apiKey: 'manual-good-key',
+          tenantId: 'manual-tenant'
+        }
+      });
+    }
+
     test('should handle successful API key login', async () => {
       // Arrange
       const mockUserInfo = {
@@ -383,80 +468,12 @@ describe('Auth Handler', () => {
       expect(stored).toBeNull();
     });
 
-    test('should allow manual fallback values to override stored managed credentials and clear failure state after success', async () => {
-      connectorRegistry.getManifest.mockReturnValue({
-        platforms: {
-          testCRM: {
-            auth: {
-              type: 'apiKey',
-              apiKey: {
-                page: {
-                  content: [
-                    { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
-                    { const: 'tenantId', required: true, managed: true, managedScope: 'account' }
-                  ]
-                }
-              }
-            }
-          }
-        }
-      });
+    test('should allow manual fallback values to override stored managed credentials', async () => {
+      mockManagedApiKeyManifest();
+      await seedRecoverableManagedCredentials({ includeFailureRecord: true });
+      const mockConnector = mockRecoveredUserConnector();
 
-      await AccountDataModel.create({
-        rcAccountId: 'rc-account-recover',
-        platformName: 'testCRM',
-        dataKey: 'managed-auth-org',
-        data: {
-          fields: {
-            tenantId: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-tenant')) }
-          }
-        }
-      });
-      await AccountDataModel.create({
-        rcAccountId: 'rc-account-recover',
-        platformName: 'testCRM',
-        dataKey: 'managed-auth-user:202',
-        data: {
-          rcExtensionId: '202',
-          rcUserName: 'Agent 202',
-          fields: {
-            apiKey: { version: 1, encrypted: true, value: encode(JSON.stringify('stored-bad-key')) }
-          }
-        }
-      });
-      await AccountDataModel.create({
-        rcAccountId: 'rc-account-recover',
-        platformName: 'testCRM',
-        dataKey: 'managed-auth-login-failure:202',
-        data: {
-          failedAt: '2026-04-07T00:00:00.000Z'
-        }
-      });
-
-      const mockConnector = global.testUtils.createMockConnector({
-        getBasicAuth: jest.fn().mockReturnValue('encoded-manual-key'),
-        getUserInfo: jest.fn().mockResolvedValue({
-          successful: true,
-          platformUserInfo: {
-            id: 'test-user-id',
-            name: 'Recovered User',
-            platformAdditionalInfo: {}
-          },
-          returnMessage: { messageType: 'success', message: 'ok' }
-        })
-      });
-      connectorRegistry.getConnector.mockReturnValue(mockConnector);
-
-      const result = await authHandler.onApiKeyLogin({
-        platform: 'testCRM',
-        hostname: 'test.example.com',
-        rcAccountId: 'rc-account-recover',
-        rcExtensionId: '202',
-        additionalInfo: {
-          apiKey: 'manual-good-key',
-          tenantId: 'manual-tenant'
-        }
-      });
+      const result = await loginWithManualManagedValues();
 
       expect(result.userInfo).not.toBeNull();
       expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'manual-good-key' });
@@ -466,6 +483,16 @@ describe('Auth Handler', () => {
           tenantId: 'manual-tenant'
         }
       }));
+    });
+
+    test('should clear managed auth failure state after successful manual fallback login', async () => {
+      mockManagedApiKeyManifest();
+      await seedRecoverableManagedCredentials({ includeFailureRecord: true });
+      mockRecoveredUserConnector();
+
+      const result = await loginWithManualManagedValues();
+
+      expect(result.userInfo).not.toBeNull();
 
       const failureRecord = await AccountDataModel.findOne({
         where: {
