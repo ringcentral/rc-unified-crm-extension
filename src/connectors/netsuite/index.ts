@@ -628,6 +628,7 @@ async function findContactWithName({ user, authHeader, name }) {
     if (contactSearch.length === 0) {
         contactSearch.push('contact', 'customer', 'vendor');
     }
+    const isContactOnlySearch = contactSearch.length === 1 && contactSearch.includes('contact');
     const { enableSalesOrderLogging = false } = user.userSettings;
     const { enableOpportunityLogging = { value: false } } = user.userSettings;
     const suiteQlUrl = `https://${user.hostname.split('.')[0]}.suitetalk.api.netsuite.com/services/rest/query/v1/suiteql`;
@@ -677,8 +678,9 @@ async function findContactWithName({ user, authHeader, name }) {
         ].join(' OR ');
     };
 
-    const contactNameQuery = `SELECT * FROM contact WHERE ${nameMatchClause()}`;
-    const contactByCompanyQuery = `SELECT contact.id, contact.firstname, contact.middlename, contact.lastname, contact.entitytitle, contact.phone, contact.homephone, contact.mobilephone, contact.officephone, contact.company, customer.companyname AS companyname FROM contact LEFT JOIN customer ON contact.company = customer.id WHERE LOWER(customer.companyname) LIKE LOWER('%${searchName}%') OR LOWER(customer.entityid) LIKE LOWER('%${searchName}%')`;
+    const contactSelectColumns = `contact.id, contact.firstname, contact.middlename, contact.lastname, contact.entitytitle, contact.phone, contact.homephone, contact.mobilephone, contact.officephone, contact.company, customer.companyname AS companyname`;
+    const contactNameQuery = `SELECT ${contactSelectColumns} FROM contact LEFT JOIN customer ON contact.company = customer.id WHERE ${nameMatchClause('contact')}`;
+    const contactByCompanyQuery = `SELECT ${contactSelectColumns} FROM contact LEFT JOIN customer ON contact.company = customer.id WHERE LOWER(customer.companyname) LIKE LOWER('%${searchName}%') OR LOWER(customer.entityid) LIKE LOWER('%${searchName}%')`;
     const customerQuery = `SELECT * FROM customer WHERE ${nameMatchClause()} OR LOWER(companyname) LIKE LOWER('%${searchName}%') OR LOWER(entityid) LIKE LOWER('%${searchName}%')`;
     const vendorQuery = `SELECT * FROM vendor WHERE ${nameMatchClause()} OR LOWER(companyname) LIKE LOWER('%${searchName}%') OR LOWER(entityid) LIKE LOWER('%${searchName}%')`;
 
@@ -697,7 +699,11 @@ async function findContactWithName({ user, authHeader, name }) {
         for (const result of items) {
             let salesOrders = [];
             let opportunities = [];
-            const contactName = formatContactDisplayName(result);
+            const personName = formatContactDisplayName(result);
+            const associatedCompanyName = (result.companyname ?? result.companyName ?? '').trim();
+            const contactName = (associatedCompanyName && !isContactOnlySearch)
+                ? `${personName} - (${associatedCompanyName})`
+                : personName;
             if (result?.company) {
                 try {
                     if (enableSalesOrderLogging?.value) {
