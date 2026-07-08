@@ -523,10 +523,17 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' })).body.contact).toEqual([{ id: 'contact-3' }]);
   });
 
-  test('serves appointment list, create, update, refresh, confirm, and cancel routes', async () => {
+  test('serves appointment list, create, update, status, refresh, confirm, and cancel routes', async () => {
     expect((await request(app).get('/appointments').query(authQuery())).body.appointments).toEqual([{ id: 'appt-1' }]);
     expect((await request(app).post('/appointments').query(authQuery()).send({ payload: { title: 'Meet' } })).body.appointmentId).toBe('appt-2');
     expect((await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } })).body.appointmentId).toBe('appt-2');
+    expect((await request(app).post('/appointments/appt-2/status').query(authQuery()).send({ status: 'Tentative' })).body.appointmentId).toBe('appt-2');
+    expect(appointmentCore.updateAppointment).toHaveBeenLastCalledWith({
+      platform: 'testCRM',
+      userId: 'user-1',
+      appointmentId: 'appt-2',
+      patchBody: { status: 'tentative' },
+    });
     expect((await request(app).get('/appointments/appt-2/refresh').query(authQuery())).body.appointmentId).toBe('appt-2');
     expect((await request(app).post('/appointments/appt-2/confirm').query(authQuery())).body.appointmentId).toBe('appt-2');
     expect((await request(app).post('/appointments/appt-2/cancel').query(authQuery())).body.appointmentId).toBe('appt-2');
@@ -540,6 +547,7 @@ describe('Core router broad route coverage', () => {
     expect((await withAuth(request(app).get('/appointments').query({ range: 'past' }))).body.appointments).toEqual([{ id: 'appt-1' }]);
     expect((await withAuth(request(app).post('/appointments').send({ payload: { title: 'Meet' } }))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).patch('/appointments/appt-2').send({ patch: { title: 'Updated' } }))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).post('/appointments/appt-2/status').send({ status: 'tentative' }))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).get('/appointments/appt-2/refresh'))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).post('/appointments/appt-2/confirm'))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).post('/appointments/appt-2/cancel'))).body.appointmentId).toBe('appt-2');
@@ -585,6 +593,7 @@ describe('Core router broad route coverage', () => {
       ['get', '/appointments'],
       ['post', '/appointments', { payload: { title: 'Meet' } }],
       ['patch', '/appointments/appt-2', { patch: { title: 'Meet' } }],
+      ['post', '/appointments/appt-2/status', { status: 'tentative' }],
       ['get', '/appointments/appt-2/refresh'],
       ['post', '/appointments/appt-2/confirm', {}],
       ['post', '/appointments/appt-2/cancel', {}],
@@ -622,6 +631,7 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).get('/oauth-callback')).resolves.toMatchObject({ status: 400 });
     await expect(request(app).get('/oauth-callback').query({ callbackUri: 'https://redirect.example.com/callback' })).resolves.toMatchObject({ status: 400 });
     await expect(request(app).post('/apiKeyLogin').send({ apiKey: 'api-key' })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).post('/appointments/appt-2/status').query(authQuery()).send({})).resolves.toMatchObject({ status: 400 });
     await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
   });
 
@@ -643,6 +653,7 @@ describe('Core router broad route coverage', () => {
     await expectInvalidJwt(() => request(app).get('/appointments').query({ jwtToken: 'bad' }));
     await expectInvalidJwt(() => request(app).post('/appointments').query({ jwtToken: 'bad' }).send({ payload: {} }));
     await expectInvalidJwt(() => request(app).patch('/appointments/appt-2').query({ jwtToken: 'bad' }).send({ patch: {} }));
+    await expectInvalidJwt(() => request(app).post('/appointments/appt-2/status').query({ jwtToken: 'bad' }).send({ status: 'tentative' }));
     await expectInvalidJwt(() => request(app).get('/appointments/appt-2/refresh').query({ jwtToken: 'bad' }));
     await expectInvalidJwt(() => request(app).post('/appointments/appt-2/confirm').query({ jwtToken: 'bad' }));
     await expectInvalidJwt(() => request(app).post('/appointments/appt-2/cancel').query({ jwtToken: 'bad' }));
@@ -675,6 +686,7 @@ describe('Core router broad route coverage', () => {
       ['get', '/appointments', appointmentCore.listAppointments],
       ['post', '/appointments', appointmentCore.createAppointment, { payload: {} }],
       ['patch', '/appointments/appt-2', appointmentCore.updateAppointment, { patch: {} }],
+      ['post', '/appointments/appt-2/status', appointmentCore.updateAppointment, { status: 'tentative' }],
       ['get', '/appointments/appt-2/refresh', appointmentCore.refreshAppointment],
       ['post', '/appointments/appt-2/confirm', appointmentCore.confirmAppointment, {}],
       ['post', '/appointments/appt-2/cancel', appointmentCore.cancelAppointment, {}],
@@ -838,6 +850,9 @@ describe('Core router broad route coverage', () => {
 
     appointmentCore.updateAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'update appointment failed' });
     await expect(request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} })).resolves.toMatchObject({ status: 400 });
+
+    appointmentCore.updateAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'update appointment status failed' });
+    await expect(request(app).post('/appointments/appt-2/status').query(authQuery()).send({ status: 'tentative' })).resolves.toMatchObject({ status: 400 });
 
     appointmentCore.refreshAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'refresh appointment failed' });
     await expect(request(app).get('/appointments/appt-2/refresh').query(authQuery())).resolves.toMatchObject({ status: 400 });

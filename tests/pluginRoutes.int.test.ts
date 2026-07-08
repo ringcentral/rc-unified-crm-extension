@@ -13,6 +13,9 @@ jest.mock('@app-connect/core/models/userModel', () => ({
 }));
 jest.mock('../src/plugins/googleDrivePlugin', () => ({
   checkAuth: jest.fn(),
+  getOAuthUrl: jest.fn(),
+  logout: jest.fn(),
+  onOAuthCallback: jest.fn(),
   uploadToGoogleDrive: jest.fn(),
 }));
 
@@ -22,6 +25,8 @@ const googleDrivePlugin = require('../src/plugins/googleDrivePlugin');
 const { getServer } = require('../src/index');
 
 describe('Application plugin routes', () => {
+  let consoleLogSpy;
+
   afterAll(() => {
     if (originalDisableSyncDbTable === undefined) {
       delete process.env.DISABLE_SYNC_DB_TABLE;
@@ -30,8 +35,13 @@ describe('Application plugin routes', () => {
     }
   });
 
+  afterEach(() => {
+    consoleLogSpy?.mockRestore();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     jwt.decodeJwt.mockReturnValue({
       id: 'crm-user-id',
       platform: 'testCRM',
@@ -51,6 +61,128 @@ describe('Application plugin routes', () => {
         },
       },
     });
+  });
+
+  test('GET /googleDrive/oauthUrl returns an OAuth URL for a valid CRM JWT', async () => {
+    googleDrivePlugin.getOAuthUrl.mockResolvedValue({
+      oAuthUri: 'https://accounts.google.example/oauth?state=encoded',
+    });
+
+    const response = await request(getServer())
+      .get('/googleDrive/oauthUrl')
+      .query({ jwtToken: 'crm-jwt', pluginId: 'googleDrive' });
+
+    expect(response.status).toBe(200);
+    expect(googleDrivePlugin.getOAuthUrl).toHaveBeenCalledWith({
+      jwtToken: 'crm-jwt',
+      pluginId: 'googleDrive',
+    });
+    expect(response.body).toEqual({
+      oAuthUri: 'https://accounts.google.example/oauth?state=encoded',
+    });
+  });
+
+  test('GET /googleDrive/oauthUrl validates JWT presence and converts plugin errors to 400', async () => {
+    await expect(request(getServer()).get('/googleDrive/oauthUrl'))
+      .resolves.toMatchObject({ status: 400, text: 'JWT token is required' });
+
+    googleDrivePlugin.getOAuthUrl.mockRejectedValueOnce(new Error('oauth failed'));
+
+    const response = await request(getServer())
+      .get('/googleDrive/oauthUrl')
+      .query({ jwtToken: 'crm-jwt' });
+
+    expect(response.status).toBe(400);
+  });
+
+  test('GET /googleDrive/oauthCallback resolves user, passes reconstructed callback URI, and returns plugin id', async () => {
+    const state = encodeURIComponent(JSON.stringify({
+      jwtToken: 'crm-jwt',
+      pluginId: 'googleDrive',
+    }));
+
+    const response = await request(getServer())
+      .get('/googleDrive/oauthCallback')
+      .query({
+        callbackUri: `https://extension.example/callback?state=${state}`,
+        code: 'google-code',
+        scope: 'drive.file',
+      });
+
+    expect(response.status).toBe(200);
+    expect(jwt.decodeJwt).toHaveBeenCalledWith('crm-jwt');
+    expect(UserModel.findByPk).toHaveBeenCalledWith('crm-user-id');
+    expect(googleDrivePlugin.onOAuthCallback).toHaveBeenCalledWith({
+      user: expect.objectContaining({ id: 'crm-user-id' }),
+      callbackUri: `https://extension.example/callback?state=${state}&code=google-code&scope=drive.file`,
+    });
+    expect(response.body).toEqual({ pluginId: 'googleDrive' });
+  });
+
+  test('GET /googleDrive/oauthCallback returns 400 when the CRM user cannot be found', async () => {
+    UserModel.findByPk.mockResolvedValueOnce(null);
+    const state = encodeURIComponent(JSON.stringify({
+      jwtToken: 'crm-jwt',
+      pluginId: 'googleDrive',
+    }));
+
+    const response = await request(getServer())
+      .get('/googleDrive/oauthCallback')
+      .query({
+        callbackUri: `https://extension.example/callback?state=${state}`,
+        code: 'google-code',
+        scope: 'drive.file',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.text).toBe('User not found');
+    expect(googleDrivePlugin.onOAuthCallback).not.toHaveBeenCalled();
+  });
+
+  test('GET /googleDrive/checkAuth validates JWT and delegates to the Google Drive plugin', async () => {
+    googleDrivePlugin.checkAuth.mockResolvedValue({
+      isSuccessful: true,
+    });
+
+    const response = await request(getServer())
+      .get('/googleDrive/checkAuth')
+      .query({ jwtToken: 'crm-jwt' });
+
+    expect(response.status).toBe(200);
+    expect(jwt.decodeJwt).toHaveBeenCalledWith('crm-jwt');
+    expect(googleDrivePlugin.checkAuth).toHaveBeenCalledWith({
+      userId: 'crm-user-id',
+    });
+    expect(response.body).toEqual({
+      isSuccessful: true,
+    });
+
+    await expect(request(getServer()).get('/googleDrive/checkAuth'))
+      .resolves.toMatchObject({ status: 400, text: 'JWT token is required' });
+  });
+
+  test('POST /googleDrive/logout validates JWT and delegates to the Google Drive plugin', async () => {
+    googleDrivePlugin.logout.mockResolvedValue({
+      successful: true,
+      message: 'Logged out',
+    });
+
+    const response = await request(getServer())
+      .post('/googleDrive/logout')
+      .send({ jwtToken: 'crm-jwt' });
+
+    expect(response.status).toBe(200);
+    expect(jwt.decodeJwt).toHaveBeenCalledWith('crm-jwt');
+    expect(googleDrivePlugin.logout).toHaveBeenCalledWith({
+      userId: 'crm-user-id',
+    });
+    expect(response.body).toEqual({
+      successful: true,
+      message: 'Logged out',
+    });
+
+    await expect(request(getServer()).post('/googleDrive/logout').send({}))
+      .resolves.toMatchObject({ status: 400, text: 'JWT token is required' });
   });
 
   test('GET /plugin/licenseStatus/allCap returns the built-in all-cap license status', async () => {

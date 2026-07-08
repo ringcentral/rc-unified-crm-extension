@@ -1794,6 +1794,82 @@ function createCoreRouter() {
         });
     });
 
+    router.post('/appointments/:appointmentId/status', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
+        tracer?.trace('updateAppointmentStatus:start', { query: req.query, params: req.params });
+        let platformName = null;
+        let success = false;
+        let extraData: any = {};
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.jwtToken || req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    tracer?.trace('updateAppointmentStatus:invalidToken', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                    return;
+                }
+                const status = String(req.body?.status || '').trim().toLowerCase();
+                if (!status) {
+                    tracer?.trace('updateAppointmentStatus:noStatus', {});
+                    res.status(400).send(tracer ? tracer.wrapResponse('Appointment status is required') : 'Appointment status is required');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const appointmentId = req.params.appointmentId;
+                const { successful, appointment, returnMessage, extraDataTracking, isRevokeUserSession } = await appointmentCore.updateAppointment({
+                    platform,
+                    userId,
+                    appointmentId,
+                    patchBody: { status }
+                });
+                if (isRevokeUserSession) {
+                    res.status(401).send(tracer ? tracer.wrapResponse({ successful, returnMessage }) : { successful, returnMessage });
+                    success = false;
+                }
+                else {
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    res.status(200).send(tracer ? tracer.wrapResponse({ successful, appointmentId, appointment, returnMessage }) : { successful, appointmentId, appointment, returnMessage });
+                    success = true;
+                }
+            }
+            else {
+                tracer?.trace('updateAppointmentStatus:noToken', {});
+                res.status(400).send(tracer ? tracer.wrapResponse('Please go to Settings and authorize CRM platform') : 'Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            logger.error('Update appointment status failed', { platform: platformName, stack: e.stack });
+            tracer?.traceError('updateAppointmentStatus:error', e, { platform: platformName });
+            extraData.statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(tracer ? tracer.wrapResponse({ error: e.message || e }) : { error: e.message || e });
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Update appointment status',
+            interfaceName: 'updateAppointmentStatus',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                ...extraData
+            },
+            eventAddedVia
+        });
+    });
+
     router.get('/appointments/:appointmentId/refresh', async function (req, res) {
         const requestStartTime = new Date().getTime();
         const tracer = req.headers['is-debug'] === 'true' ? DebugTracer.fromRequest(req) : null;
