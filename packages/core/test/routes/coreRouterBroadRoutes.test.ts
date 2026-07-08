@@ -532,6 +532,19 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).post('/appointments/appt-2/cancel').query(authQuery())).body.appointmentId).toBe('appt-2');
   });
 
+  test('serves migrated client routes with bearer auth header and no jwtToken query', async () => {
+    const withAuth = (req: any) => req.set('Authorization', 'Bearer valid-crm-jwt');
+
+    await expect(withAuth(request(app).get('/hostname'))).resolves.toMatchObject({ status: 200, text: 'crm.example.com' });
+    expect((await withAuth(request(app).get('/custom/contact/search').query({ name: 'Alice' }))).body.contact).toEqual([{ id: 'contact-3' }]);
+    expect((await withAuth(request(app).get('/appointments').query({ range: 'past' }))).body.appointments).toEqual([{ id: 'appt-1' }]);
+    expect((await withAuth(request(app).post('/appointments').send({ payload: { title: 'Meet' } }))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).patch('/appointments/appt-2').send({ patch: { title: 'Updated' } }))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).get('/appointments/appt-2/refresh'))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).post('/appointments/appt-2/confirm'))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).post('/appointments/appt-2/cancel'))).body.appointmentId).toBe('appt-2');
+  });
+
   test('serves call-log, disposition, and message-log routes', async () => {
     expect((await request(app).post('/callLog/cacheNote').query(authQuery()).send({ sessionId: 's1', note: 'note' })).body.successful).toBe(true);
     expect((await request(app).get('/callLog').query({ ...authQuery(), sessionIds: 's1', requireDetails: 'true' })).body.logs).toEqual([{ sessionId: 'session-1' }]);

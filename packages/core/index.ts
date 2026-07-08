@@ -1581,7 +1581,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1652,7 +1652,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1717,7 +1717,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1783,7 +1783,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1848,7 +1848,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
@@ -1913,7 +1913,7 @@ function createCoreRouter() {
         let extraData: any = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
         try {
-            const jwtToken = req.query.jwtToken;
+            const jwtToken = req.jwtToken || req.query.jwtToken;
             if (jwtToken) {
                 const decodedToken = jwt.decodeJwt(jwtToken);
                 if (!decodedToken) {
