@@ -327,6 +327,14 @@ npm run dev
 |----------|---------|
 | `POST /mcp` | Full MCP protocol endpoint for AI assistants (ChatGPT, etc.) |
 | `POST /mcp/widget-tool-call` | Lightweight direct tool call for the widget iframe (bypasses MCP session protocol) |
+| `GET /.well-known/oauth-protected-resource` | MCP protected-resource metadata |
+| `GET /.well-known/oauth-authorization-server` | MCP OAuth authorization-server metadata |
+| `POST /oauth/register` | Dynamic registration response for the MCP public RingCentral client |
+| `GET /oauth/authorize_shim` | Redirects MCP PKCE authorization requests to RingCentral after stripping unsupported params |
+
+MCP RingCentral OAuth uses `RINGCENTRAL_MCP_CLIENT_ID`, which must be a public/PKCE RingCentral OAuth client. `/oauth/register` returns that client ID plus `token_endpoint_auth_method: "none"` and never returns `RINGCENTRAL_CLIENT_SECRET`. MCP clients exchange authorization codes directly with RingCentral using their `code_verifier`.
+
+Existing MCP client sessions created before the PKCE change may still cache the old RingCentral client ID. When those sessions fail to refresh or try to authorize with the stale client ID, the server returns `mcp_oauth_reconnect_required` / `mcp_oauth_client_mismatch` guidance telling the user to disconnect or remove the App Connect MCP server from the MCP client, then add and connect it again.
 
 #### `POST /mcp/widget-tool-call`
 
@@ -380,7 +388,7 @@ Currently supported for MCP integration:
 2. **RC Identity Verification**: On the first tool call of each session, `mcpHandler.ts` calls `GET /restapi/v1.0/extension/~` with the Bearer token from the request. If the RC token is invalid, the call throws and `rcExtensionId` remains `null`. The result is cached in `sessionContext` so at most **one RC API call** is made per conversation.
 3. **Session key binding**: The sessions Map is keyed on the stable `openai/session` ID so the same `sessionContext` (and its verified `rcExtensionId`) is reused for all tool calls within a ChatGPT conversation. A session can only access credentials stored under its own verified `rcExtensionId`.
 4. **Session Management**: MCP sessions are server-side and automatically cleaned up on transport close.
-5. **OAuth Flows**: Uses secure OAuth 2.0 with server-side callback handling.
+5. **OAuth Flows**: CRM connector OAuth still uses server-side callback handling. MCP RingCentral OAuth uses a public PKCE client (`RINGCENTRAL_MCP_CLIENT_ID`), advertises `code_challenge_methods_supported: ["S256"]`, and does not expose `RINGCENTRAL_CLIENT_SECRET` to MCP clients.
 6. **RC Account ID**: Resolved server-side via RC API and passed to the widget — never requires exposing secrets to the browser.
 7. **Widget session token**: `getPublicConnectors` issues a short-lived signed token after RC identity resolution. `/mcp/widget-tool-call` requires that token and injects the verified `rcExtensionId`; it does not trust widget-provided identity values.
 8. **CORS**: Widget calls `appconnect.labs.ringcentral.com` directly; the developer portal public API supports browser fetch.

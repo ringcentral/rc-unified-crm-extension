@@ -92,3 +92,4 @@ Several concerns are applied in multiple modules:
 | `RINGCENTRAL_SERVER` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_ID` | Used by RingCentral OAuth and reporting helpers |
 | `RINGCENTRAL_CLIENT_SECRET` | Used by RingCentral OAuth and reporting helpers |
+| `RINGCENTRAL_MCP_CLIENT_ID` | Public RingCentral OAuth client ID used by MCP clients with PKCE; no client secret is exposed |

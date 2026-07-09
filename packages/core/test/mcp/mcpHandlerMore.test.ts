@@ -347,7 +347,7 @@ describe('MCP Handler additional protocol coverage', () => {
     }));
   });
 
-  test('continues tool calls when RC extension resolution fails', async () => {
+  test('returns reconnect guidance when RC extension resolution fails', async () => {
     axios.get.mockRejectedValue(new Error('invalid rc token'));
 
     const res = mockResponse();
@@ -361,11 +361,16 @@ describe('MCP Handler additional protocol coverage', () => {
       { headers: { authorization: 'Bearer bad-token' } }
     ), res);
 
-    expect(getTool('simpleTool').execute).toHaveBeenCalledWith(expect.objectContaining({
-      rcAccessToken: 'bad-token',
-      openaiSessionId: 'openai-session-4',
+    expect(getTool('simpleTool').execute).not.toHaveBeenCalled();
+    expect(res.json.mock.calls[0][0].result).toEqual(expect.objectContaining({
+      isError: true,
+      structuredContent: expect.objectContaining({
+        success: false,
+        error: 'mcp_oauth_reconnect_required',
+        message: expect.stringContaining('PKCE update'),
+        errorDetails: 'invalid rc token',
+      }),
     }));
-    expect(getTool('simpleTool').execute.mock.calls[0][0]).not.toHaveProperty('rcExtensionId');
   });
 
   test('handles widget tool call validation, success, and execution errors', async () => {

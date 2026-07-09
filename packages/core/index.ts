@@ -41,6 +41,12 @@ const { handleDatabaseError } = /** @type {any} */ (require('./lib/errorHandler'
 const { updateAuthSession } = /** @type {any} */ (require('./lib/authSession'));
 const managedAuthCore = /** @type {any} */ (require('./handlers/managedAuth'));
 const managedOAuthCore = /** @type {any} */ (require('./handlers/managedOAuth'));
+const {
+    MCP_OAUTH_REQUIRED_MESSAGE,
+    MCP_OAUTH_STALE_CLIENT_MESSAGE,
+    getMcpOAuthChallengeHeader,
+    buildMcpOAuthError,
+} = /** @type {any} */ (require('./mcp/lib/oauthError'));
 
 /** @type {any} */
 let packageJson = null;
@@ -135,6 +141,23 @@ function getRcAccessTokenFromRequest(req) {
         || req.body?.rcAccessToken
         || req.query?.rcAccessToken
     );
+}
+
+function getFirstQueryValue(value) {
+    if (Array.isArray(value)) {
+        return value[0];
+    }
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+    return value.toString();
+}
+
+function appendOAuthQueryParam(params, name, value) {
+    const normalizedValue = getFirstQueryValue(value);
+    if (normalizedValue) {
+        params.set(name, normalizedValue);
+    }
 }
 
 function normalizeJwtFromRequest(req, res, next) {
@@ -3077,31 +3100,58 @@ function createCoreRouter() {
             issuer: process.env.APP_SERVER,
             registration_endpoint: `${process.env.APP_SERVER}/oauth/register`,
 
-            // CHANGE THIS: Don't point to RingCentral. Point to your own Shim.
+            // Keep the shim so unsupported metadata params are stripped before RingCentral.
             authorization_endpoint: `${process.env.APP_SERVER}/oauth/authorize_shim`,
 
-            // Keep the token endpoint pointing to RingCentral (that usually works fine)
+            // MCP clients exchange the authorization code with RingCentral directly using PKCE.
             token_endpoint: `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/token`,
-            token_endpoint_auth_methods_supported: ["client_secret_basic"],
-            response_types_supported: ["code"]
+            token_endpoint_auth_methods_supported: ["none"],
+            response_types_supported: ["code"],
+            grant_types_supported: ["authorization_code", "refresh_token"],
+            code_challenge_methods_supported: ["S256"]
         });
     });
 
     router.get('/oauth/authorize_shim', (req, res) => {
-        // 1. Get the parameters ChatGPT sent us
-        const { response_type, client_id, redirect_uri, state, scope } = req.query;
+        const mcpClientId = process.env.RINGCENTRAL_MCP_CLIENT_ID;
+        if (!mcpClientId) {
+            return res.status(500).send('RINGCENTRAL_MCP_CLIENT_ID is not configured');
+        }
 
-        // 2. Rebuild the query string for RingCentral
-        // We explicitly LEAVE OUT 'resource' and any other junk
-        const params = new URLSearchParams({
+        const {
             response_type,
-            client_id, // This will be your RC Client ID (since ChatGPT got it from /register)
+            client_id,
             redirect_uri,
             state,
-            scope
-        });
+            scope,
+            code_challenge,
+            code_challenge_method,
+        } = req.query;
+        const requestedClientId = getFirstQueryValue(client_id);
+        const requestedCodeChallenge = getFirstQueryValue(code_challenge);
+        const requestedCodeChallengeMethod = getFirstQueryValue(code_challenge_method);
+        if (requestedClientId && requestedClientId !== mcpClientId) {
+            return res.status(400).send(buildMcpOAuthError({
+                error: 'mcp_oauth_client_mismatch',
+                message: MCP_OAUTH_STALE_CLIENT_MESSAGE,
+            }));
+        }
+        if (!getFirstQueryValue(response_type) || !getFirstQueryValue(redirect_uri)) {
+            return res.status(400).send('Missing OAuth authorization parameters');
+        }
+        if (!requestedCodeChallenge || requestedCodeChallengeMethod !== 'S256') {
+            return res.status(400).send('PKCE S256 code_challenge is required');
+        }
 
-        // 3. Redirect the user's browser to the REAL RingCentral URL
+        const params = new URLSearchParams();
+        appendOAuthQueryParam(params, 'response_type', response_type);
+        params.set('client_id', mcpClientId);
+        appendOAuthQueryParam(params, 'redirect_uri', redirect_uri);
+        appendOAuthQueryParam(params, 'state', state);
+        appendOAuthQueryParam(params, 'scope', scope);
+        appendOAuthQueryParam(params, 'code_challenge', code_challenge);
+        appendOAuthQueryParam(params, 'code_challenge_method', code_challenge_method);
+
         const rcUrl = `${process.env.RINGCENTRAL_SERVER}/restapi/oauth/authorize?${params.toString()}`;
 
         console.log("Proxying OAuth request to:", rcUrl); // Helpful for debugging
@@ -3109,11 +3159,17 @@ function createCoreRouter() {
     });
 
     router.post('/oauth/register', (req, res) => {
-        // The MCP client calls this to get credentials.
-        // We simply return our hardcoded RingCentral app credentials.
+        const mcpClientId = process.env.RINGCENTRAL_MCP_CLIENT_ID;
+        if (!mcpClientId) {
+            return res.status(500).send('RINGCENTRAL_MCP_CLIENT_ID is not configured');
+        }
+
+        // Dynamic registration for MCP public clients. No client secret is issued.
         res.json({
-            client_id: process.env.RINGCENTRAL_CLIENT_ID,
-            client_secret: process.env.RINGCENTRAL_CLIENT_SECRET
+            client_id: mcpClientId,
+            token_endpoint_auth_method: 'none',
+            grant_types: ['authorization_code', 'refresh_token'],
+            response_types: ['code']
         });
     });
 
@@ -3145,16 +3201,23 @@ function createCoreRouter() {
         }
         // SCENARIO 1: No Token provided. Kick off the OAuth flow.
         if (!token) {
-            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
-            return res.status(401).send();
+            res.setHeader('WWW-Authenticate', getMcpOAuthChallengeHeader({
+                appServer: process.env.APP_SERVER,
+                errorDescription: MCP_OAUTH_REQUIRED_MESSAGE,
+            }));
+            return res.status(401).json(buildMcpOAuthError({
+                message: MCP_OAUTH_REQUIRED_MESSAGE,
+            }));
         }
 
         // SCENARIO 2: Token provided. Verify it.
         try {
             next();
         } catch {
-            res.setHeader('WWW-Authenticate', `Bearer realm="mcp", resource_metadata="${process.env.APP_SERVER}/.well-known/oauth-protected-resource"`);
-            return res.status(401).send();
+            res.setHeader('WWW-Authenticate', getMcpOAuthChallengeHeader({
+                appServer: process.env.APP_SERVER,
+            }));
+            return res.status(401).json(buildMcpOAuthError());
         }
     });
     // Handle OPTIONS for CORS preflight

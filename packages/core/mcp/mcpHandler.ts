@@ -23,6 +23,11 @@ const jwt = /** @type {any} */ (require('../lib/jwt'));
 const logger = /** @type {any} */ (require('../lib/logger'));
 const { verifyWidgetSessionToken: rawVerifyWidgetSessionToken } = require('./lib/widgetSessionToken');
 const verifyWidgetSessionToken = /** @type {any} */ (rawVerifyWidgetSessionToken);
+const {
+    MCP_OAUTH_INVALID_TOKEN_MESSAGE,
+    buildMcpOAuthError: rawBuildMcpOAuthError,
+} = require('./lib/oauthError');
+const buildMcpOAuthError = /** @type {any} */ (rawBuildMcpOAuthError);
 const fs = require('fs');
 const path = require('path');
 
@@ -232,6 +237,13 @@ async function resolveSessionContext(rcAccessToken, openaiSessionId) {
         }
     } catch (err) {
         logger.warn('Failed to resolve RC extension ID:', { message: err.message });
+        return {
+            rcExtensionId: null,
+            rcTokenError: buildMcpOAuthError({
+                message: MCP_OAUTH_INVALID_TOKEN_MESSAGE,
+                errorDetails: err.message,
+            }),
+        };
     }
 
     return { rcExtensionId };
@@ -333,7 +345,15 @@ async function handleMcpRequest(req, res) {
                 if (rcAccessToken) toolArgs.rcAccessToken = rcAccessToken;
                 if (openaiSessionId) toolArgs.openaiSessionId = openaiSessionId;
 
-                const { rcExtensionId } = await resolveSessionContext(rcAccessToken, openaiSessionId);
+                const { rcExtensionId, rcTokenError } = await resolveSessionContext(rcAccessToken, openaiSessionId);
+                if (rcTokenError) {
+                    response = {
+                        jsonrpc: '2.0',
+                        id,
+                        result: buildToolResult({ outputSchema: standardToolResultOutputSchema }, rcTokenError),
+                    };
+                    break;
+                }
                 if (rcExtensionId) {
                     toolArgs.rcExtensionId = rcExtensionId;
                     if (!toolArgs.jwtToken) {

@@ -164,6 +164,7 @@ describe('Core router broad route coverage', () => {
     process.env.RINGCENTRAL_SERVER = 'https://platform.example.com';
     process.env.RINGCENTRAL_CLIENT_ID = 'rc-client-id';
     process.env.RINGCENTRAL_CLIENT_SECRET = 'rc-client-secret';
+    process.env.RINGCENTRAL_MCP_CLIENT_ID = 'rc-mcp-public-client-id';
     process.env.CHATGPT_VERIFICATION_CODE = 'verify-code';
     process.env.APP_SERVER_SECRET_KEY = 'secret-key';
     process.env.IS_PROD = 'false';
@@ -382,6 +383,7 @@ describe('Core router broad route coverage', () => {
 
   afterEach(() => {
     delete process.env.IS_PROD;
+    delete process.env.RINGCENTRAL_MCP_CLIENT_ID;
   });
 
   test('serves health, manifest, release, version, and implemented interface routes', async () => {
@@ -404,22 +406,50 @@ describe('Core router broad route coverage', () => {
   test('serves ChatGPT and OAuth metadata routes', async () => {
     await expect(request(app).get('/.well-known/openai-apps-challenge')).resolves.toMatchObject({ text: 'verify-code' });
     expect((await request(app).get('/.well-known/oauth-protected-resource')).body.resource).toBe('https://app.example.com');
-    expect((await request(app).get('/.well-known/oauth-authorization-server')).body.registration_endpoint).toBe('https://app.example.com/oauth/register');
+    const authServerMetadata = (await request(app).get('/.well-known/oauth-authorization-server')).body;
+    expect(authServerMetadata.registration_endpoint).toBe('https://app.example.com/oauth/register');
+    expect(authServerMetadata.token_endpoint_auth_methods_supported).toEqual(['none']);
+    expect(authServerMetadata.code_challenge_methods_supported).toEqual(['S256']);
     expect((await request(app).post('/oauth/register')).body).toEqual({
-      client_id: 'rc-client-id',
-      client_secret: 'rc-client-secret',
+      client_id: 'rc-mcp-public-client-id',
+      token_endpoint_auth_method: 'none',
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
     });
     const redirectResponse = await request(app)
       .get('/oauth/authorize_shim')
       .query({
         response_type: 'code',
-        client_id: 'client-id',
+        client_id: 'rc-mcp-public-client-id',
         redirect_uri: 'https://chat.example.com/callback',
         state: 'state-1',
         scope: 'ReadAccounts',
-    });
+        code_challenge: 'pkce-challenge',
+        code_challenge_method: 'S256',
+        resource: 'https://app.example.com',
+      });
     expect(redirectResponse.status).toBe(302);
     expect(redirectResponse.headers.location).toContain('/restapi/oauth/authorize?');
+    expect(redirectResponse.headers.location).toContain('client_id=rc-mcp-public-client-id');
+    expect(redirectResponse.headers.location).toContain('code_challenge=pkce-challenge');
+    expect(redirectResponse.headers.location).toContain('code_challenge_method=S256');
+    expect(redirectResponse.headers.location).not.toContain('resource=');
+
+    const staleClientResponse = await request(app)
+      .get('/oauth/authorize_shim')
+      .query({
+        response_type: 'code',
+        client_id: 'stale-client-id',
+        redirect_uri: 'https://chat.example.com/callback',
+        code_challenge: 'pkce-challenge',
+        code_challenge_method: 'S256',
+      });
+    expect(staleClientResponse.status).toBe(400);
+    expect(staleClientResponse.body).toEqual(expect.objectContaining({
+      success: false,
+      error: 'mcp_oauth_client_mismatch',
+      message: expect.stringContaining('outdated RingCentral OAuth client ID'),
+    }));
   });
 
   test('serves mock connector utility routes', async () => {
@@ -434,6 +464,16 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).options('/mcp')).status).toBe(200);
     expect((await request(app).post('/mcp').send({ method: 'tools/list' })).body).toEqual({ jsonrpc: '2.0', result: 'mcp-ok' });
     expect(mcpHandler.handleMcpRequest).toHaveBeenCalled();
+    const protectedMcpResponse = await request(app)
+      .post('/mcp')
+      .send({ method: 'tools/call', params: { name: 'simpleTool' } });
+    expect(protectedMcpResponse.status).toBe(401);
+    expect(protectedMcpResponse.headers['www-authenticate']).toContain('error_description=');
+    expect(protectedMcpResponse.body).toEqual(expect.objectContaining({
+      success: false,
+      error: 'mcp_oauth_reconnect_required',
+      message: expect.stringContaining('PKCE update'),
+    }));
     expect((await request(app).options('/mcp/widget-tool-call')).status).toBe(200);
     expect((await request(app).post('/mcp/widget-tool-call').send({ name: 'tool' })).body).toEqual({ successful: true });
   });

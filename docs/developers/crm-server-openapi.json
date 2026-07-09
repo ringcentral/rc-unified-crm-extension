@@ -1584,7 +1584,7 @@
         "tags": [
           "MCP"
         ],
-        "summary": "OAuth authorization server metadata",
+        "summary": "OAuth authorization server metadata for MCP PKCE clients",
         "operationId": "getOauthAuthorizationServerMetadata",
         "responses": {
           "200": {
@@ -1598,7 +1598,7 @@
         "tags": [
           "MCP"
         ],
-        "summary": "Redirect MCP OAuth authorization to RingCentral",
+        "summary": "Redirect MCP PKCE OAuth authorization to RingCentral",
         "operationId": "getOauthAuthorizeShim",
         "responses": {
           "302": {
@@ -1612,7 +1612,7 @@
         "tags": [
           "MCP"
         ],
-        "summary": "Return MCP dynamic client registration credentials",
+        "summary": "Return MCP public client registration metadata",
         "operationId": "postOauthRegister",
         "responses": {
           "200": {

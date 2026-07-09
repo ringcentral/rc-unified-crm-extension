@@ -67,6 +67,7 @@ Common variables:
 | `DEVELOPER_APP_SERVER_SECRET_KEY` | Secret used to decrypt stored connector secrets. |
 | CRM OAuth variables | Connector-specific client IDs, client secrets, token URLs, and redirect URIs used by `getOauthInfo()`. |
 | `RINGCENTRAL_SERVER`, `RINGCENTRAL_CLIENT_ID`, `RINGCENTRAL_CLIENT_SECRET` | Required for RingCentral admin OAuth and some reporting flows. |
+| `RINGCENTRAL_MCP_CLIENT_ID` | Public RingCentral OAuth client ID used by MCP clients with PKCE. Do not use a client secret for MCP OAuth. |
 
 Keep CRM client secrets and app secrets in environment variables, not in the manifest.
 

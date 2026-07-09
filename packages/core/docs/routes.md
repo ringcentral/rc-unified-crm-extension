@@ -20,9 +20,9 @@ This page documents the non-MCP HTTP routes defined in `index.ts`.
 | `GET` | `/serverVersionInfo` | Returns manifest version data; marked obsolete in code |
 | `GET` | `/.well-known/openai-apps-challenge` | Returns the ChatGPT verification code |
 | `GET` | `/.well-known/oauth-protected-resource` | OAuth protected-resource metadata |
-| `GET` | `/.well-known/oauth-authorization-server` | OAuth authorization-server metadata |
-| `GET` | `/oauth/authorize_shim` | Rebuilds OAuth params and redirects to RingCentral |
-| `POST` | `/oauth/register` | Returns RingCentral client credentials for the shim flow |
+| `GET` | `/.well-known/oauth-authorization-server` | MCP OAuth authorization-server metadata advertising PKCE public-client auth |
+| `GET` | `/oauth/authorize_shim` | Rebuilds MCP PKCE OAuth params and redirects to RingCentral |
+| `POST` | `/oauth/register` | Returns the MCP public RingCentral client ID without a client secret |
 
 ## Authentication Routes
 
