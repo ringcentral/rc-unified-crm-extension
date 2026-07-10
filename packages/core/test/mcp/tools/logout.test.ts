@@ -150,6 +150,20 @@ describe('MCP Tool: logout', () => {
       expect(result.error).toBeDefined();
     });
 
+    test.each([
+      [{ id: 'test-user-id' }],
+      [{ platform: 'testCRM' }]
+    ])('should reject incomplete JWT payloads', async (payload) => {
+      jwt.decodeJwt.mockReturnValue(payload);
+
+      await expect(logout.execute({
+        jwtToken: 'invalid-token'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Invalid JWT token'
+      });
+    });
+
     test('should succeed when platform connector is missing (unAuthorize skipped)', async () => {
       // Arrange
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -203,6 +217,31 @@ describe('MCP Tool: logout', () => {
       expect(LlmSessionModel.destroy).toHaveBeenNthCalledWith(2, { where: { id: 'rc-ext-123' } });
     });
 
+    test('should not clear the RC extension session twice when it matches the user id', async () => {
+      const mockUser = {
+        id: 'test-user-id',
+        platform: 'testCRM'
+      };
+
+      jwt.decodeJwt.mockReturnValue({
+        id: 'test-user-id',
+        platform: 'testCRM'
+      });
+      UserModel.findByPk.mockResolvedValue(mockUser);
+      connectorRegistry.getConnector.mockReturnValue({
+        unAuthorize: jest.fn().mockResolvedValue({})
+      });
+
+      const result = await logout.execute({
+        jwtToken: 'mock-jwt-token',
+        rcExtensionId: 'test-user-id'
+      });
+
+      expect(result.success).toBe(true);
+      expect(LlmSessionModel.destroy).toHaveBeenCalledTimes(1);
+      expect(CacheModel.destroy).not.toHaveBeenCalled();
+    });
+
     test('should clear the resolved rcExtension cache for the current OpenAI session on logout', async () => {
       const mockUser = {
         id: 'test-user-id',
@@ -227,6 +266,75 @@ describe('MCP Tool: logout', () => {
       expect(CacheModel.destroy).toHaveBeenCalledWith({
         where: { id: 'oa-session-123-rcExtensionId' }
       });
+    });
+
+    test('should ignore missing llmSessions table errors while logging out', async () => {
+      const mockUser = {
+        id: 'test-user-id',
+        platform: 'testCRM'
+      };
+
+      LlmSessionModel.destroy.mockRejectedValueOnce(
+        new Error('SQLITE_ERROR: no such table: llmSessions')
+      );
+      jwt.decodeJwt.mockReturnValue({
+        id: 'test-user-id',
+        platform: 'testCRM'
+      });
+      UserModel.findByPk.mockResolvedValue(mockUser);
+      connectorRegistry.getConnector.mockReturnValue({
+        unAuthorize: jest.fn().mockResolvedValue({})
+      });
+
+      await expect(logout.execute({
+        jwtToken: 'mock-jwt-token'
+      })).resolves.toMatchObject({
+        success: true
+      });
+    });
+
+    test('should return an error when session cleanup fails for other reasons', async () => {
+      LlmSessionModel.destroy.mockRejectedValueOnce(new Error('database is locked'));
+      jwt.decodeJwt.mockReturnValue({
+        id: 'test-user-id',
+        platform: 'testCRM'
+      });
+
+      await expect(logout.execute({
+        jwtToken: 'mock-jwt-token'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'database is locked'
+      });
+    });
+
+    test('should log connector unsuccessful responses and still complete local logout', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const mockUser = {
+        id: 'test-user-id',
+        platform: 'testCRM'
+      };
+      const mockConnector = {
+        unAuthorize: jest.fn().mockResolvedValue({
+          successful: false,
+          returnMessage: { message: 'Remote logout failed' }
+        })
+      };
+
+      jwt.decodeJwt.mockReturnValue({
+        id: 'test-user-id',
+        platform: 'testCRM'
+      });
+      UserModel.findByPk.mockResolvedValue(mockUser);
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      await expect(logout.execute({
+        jwtToken: 'mock-jwt-token'
+      })).resolves.toMatchObject({
+        success: true
+      });
+      expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+      consoleSpy.mockRestore();
     });
   });
 });

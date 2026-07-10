@@ -367,6 +367,12 @@ describe('sharedSMSComposer', () => {
       expect(result).toEqual([]);
     });
 
+    test('should handle null entities', () => {
+      const result = gatherParticipants(null);
+
+      expect(result).toEqual([]);
+    });
+
     test('should handle entities without names', () => {
       const entities = [
         { author: {} },
@@ -557,6 +563,27 @@ describe('sharedSMSComposer', () => {
       expect(result[0].content).toContain('assigned to Agent Smith');
     });
 
+    test.each([
+      [LOG_DETAILS_FORMAT_TYPE.HTML, '<p><i>Conversation assigned to <b>Agent Smith</b></i></p>'],
+      [LOG_DETAILS_FORMAT_TYPE.MARKDOWN, '*Conversation assigned to **Agent Smith***']
+    ])('should process assignment entities in %s format', (logFormat, expectedContent) => {
+      const result = processEntities({
+        entities: [
+          {
+            recordType: 'ThreadAssignedHint',
+            creationTime: '2024-01-15T10:30:00Z',
+            assignee: { name: 'Agent Smith' }
+          }
+        ],
+        timezoneOffset: '+00:00',
+        logFormat,
+        contactName: 'Customer'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toContain(expectedContent);
+    });
+
     test('should skip ThreadResolvedHint entities', () => {
       const entities = [
         {
@@ -618,6 +645,47 @@ describe('sharedSMSComposer', () => {
       expect(result[0].type).toBe('note');
       expect(result[0].content).toContain('left a note');
       expect(result[0].content).toContain('Important note here');
+    });
+
+    test.each([
+      [LOG_DETAILS_FORMAT_TYPE.HTML, '<p><b>Agent Smith</b> left a note'],
+      [LOG_DETAILS_FORMAT_TYPE.MARKDOWN, '**Agent Smith** left a note']
+    ])('should process AliveNote entities in %s format', (logFormat, expectedContent) => {
+      const result = processEntities({
+        entities: [
+          {
+            recordType: 'AliveNote',
+            creationTime: '2024-01-15T10:30:00Z',
+            author: { name: 'Agent Smith' },
+            text: 'Important note here'
+          }
+        ],
+        timezoneOffset: '+00:00',
+        logFormat,
+        contactName: 'Customer'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toContain(expectedContent);
+      expect(result[0].content).toContain('Important note here');
+    });
+
+    test('should process blank outbound messages without author or text', () => {
+      const result = processEntities({
+        entities: [
+          {
+            recordType: 'AliveMessage',
+            creationTime: '2024-01-15T10:30:00Z',
+            direction: 'Outbound'
+          }
+        ],
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        contactName: 'Customer'
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toContain('said on');
     });
 
     test('should skip NoteHint entities (not processed)', () => {

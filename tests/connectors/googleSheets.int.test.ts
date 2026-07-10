@@ -93,6 +93,12 @@ describe('Google Sheets Connector', () => {
             expect(result.redirectUri).toBe('https://ringcentral.github.io/ringcentral-embeddable/redirect.html');
             expect(result.accessTokenUri).toBe('https://oauth2.googleapis.com/token');
         });
+
+        it('should return MCP OAuth redirect URI when requested', async () => {
+            const result = await googleSheets.getOauthInfo({ isFromMCP: true });
+
+            expect(result.redirectUri).toBe('https://unified-crm-extension.labs.ringcentral.com/oauth-callback');
+        });
     });
 
     // ==================== getUserInfo ====================
@@ -1238,6 +1244,77 @@ describe('Google Sheets Connector', () => {
             expect(result.returnMessage.message).toBe('Error logging call');
         });
 
+        it('skips optional call log fields disabled by user settings', async () => {
+            let appendedRow;
+            const userWithDisabledFields = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    ...mockUser.userSettings,
+                    addCallLogTranscript: { value: false },
+                    addCallLogAiNote: { value: false },
+                    addCallLogNote: { value: false },
+                    addCallSessionId: { value: false },
+                    addCallLogSubject: { value: false },
+                    addCallLogContactNumber: { value: false },
+                    addCallLogDuration: { value: false },
+                    addCallLogResult: { value: false },
+                    addCallLogRecording: { value: false },
+                    addCallLogRingSenseRecordingTranscript: { value: false },
+                    addCallLogRingSenseRecordingSummary: { value: false },
+                    addCallLogRingSenseRecordingAIScore: { value: false },
+                    addCallLogRingSenseRecordingBulletedSummary: { value: false },
+                    addCallLogRingSenseRecordingLink: { value: false }
+                }
+            });
+
+            mockSpreadsheetWithSheet('Call Logs');
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs`)
+                .reply(200, { values: [callLogHeaders] });
+            nock(sheetsApiUrl)
+                .get(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!1:1`)
+                .reply(200, { values: [callLogHeaders] });
+            nock(sheetsApiUrl)
+                .post(`/v4/spreadsheets/${spreadsheetId}/values/Call%20Logs!A1:append`, body => {
+                    appendedRow = body.values[0];
+                    return true;
+                })
+                .query({ valueInputOption: 'RAW' })
+                .reply(200, { updates: { updatedRows: 1 } });
+
+            const result = await googleSheets.createCallLog({
+                user: userWithDisabledFields,
+                contactInfo: mockContact,
+                authHeader,
+                callLog: {
+                    ...mockCallLogData,
+                    customSubject: 'Custom hidden subject',
+                    duration: 'pending',
+                    direction: 'Outbound',
+                    from: {},
+                    to: {}
+                },
+                note: 'Hidden note',
+                additionalSubmission: null,
+                aiNote: 'Hidden AI note',
+                transcript: 'Hidden transcript',
+                recordingLink: 'https://recording.example.com/disabled',
+                ringSenseTranscript: 'Hidden ACE transcript',
+                ringSenseSummary: 'Hidden ACE summary',
+                ringSenseAIScore: 'Hidden ACE score',
+                ringSenseBulletedSummary: 'Hidden ACE bullets',
+                ringSenseLink: 'https://aces.example.com/hidden'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(appendedRow[callLogHeaders.indexOf('Incoming Phone Number')]).toBe(mockContact.phoneNumber);
+            expect(appendedRow[callLogHeaders.indexOf('Outgoing Phone Number')]).toBe('');
+            expect(appendedRow[callLogHeaders.indexOf('Subject')]).toBe('');
+            expect(appendedRow[callLogHeaders.indexOf('Notes')]).toBe('');
+            expect(appendedRow[callLogHeaders.indexOf('Transcript')]).toBe('');
+            expect(appendedRow[callLogHeaders.indexOf('ACE Link')]).toBe('');
+        });
+
         it('returns warning when updateCallLog has no selected sheet', async () => {
             const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
             const existingCallLog = createMockExistingCallLog({ thirdPartyLogId: '1' });
@@ -1427,6 +1504,21 @@ describe('Google Sheets Connector', () => {
 
             expect(result.successful).toBe(false);
             expect(result.returnMessage.message).toBe('Error creating Message Log Sheet');
+        });
+
+        it('returns warning when createMessageLog has no selected sheet', async () => {
+            const userWithoutSheet = createMockUser({ ...mockUser, userSettings: {} });
+
+            const result = await googleSheets.createMessageLog({
+                user: userWithoutSheet,
+                contactInfo: mockContact,
+                authHeader,
+                message: mockMessageData,
+                additionalSubmission: null
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toBe('No sheet selected');
         });
 
         it('creates shared SMS and correspondent message logs', async () => {

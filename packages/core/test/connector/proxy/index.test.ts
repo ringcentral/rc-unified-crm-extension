@@ -119,6 +119,18 @@ describe('proxy connector - more coverage', () => {
 
   test('getAuthType returns apiKey', async () => {
     expect(await proxy.getAuthType()).toBe('apiKey');
+    expect(await proxy.getAuthType({
+      proxyConfig: {
+        auth: { type: 'oauth' },
+        operations: {}
+      }
+    })).toBe('oauth');
+    expect(await proxy.getAuthType({
+      proxyConfig: {
+        auth: {},
+        operations: {}
+      }
+    })).toBe('apiKey');
   });
 
   test('getBasicAuth encodes apiKey with colon', () => {
@@ -228,6 +240,79 @@ describe('proxy connector - more coverage', () => {
     expect(res.platformUserInfo.platformAdditionalInfo.userResponse).toEqual({ username: 'u1', role: 'admin' });
   });
 
+  test('getUserInfo maps optional settings, removes password, and falls back to defaults', async () => {
+    const cfg = {
+      requestDefaults: { baseUrl: 'https://api.example.com' },
+      operations: {
+        getUserInfo: {
+          method: 'GET',
+          url: '/authentication',
+          responseMapping: {
+            idPath: 'body.user.id',
+            timezoneNamePath: 'body.user.timezone',
+            overridingApiKeyPath: 'body.user.overrideToken',
+            messagePath: 'body.missingMessage',
+            platformAdditionalInfoPaths: {
+              role: 'body.user.role'
+            }
+          }
+        }
+      }
+    };
+    axios.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 'u2',
+          timezone: 'America/Los_Angeles',
+          overrideToken: 'override-token',
+          role: 'manager'
+        }
+      }
+    });
+
+    const res = await proxy.getUserInfo({
+      authHeader: 'Bearer token',
+      hostname: 'host',
+      additionalInfo: { password: 'secret', region: 'west' },
+      platform: 'test',
+      apiKey: 'k',
+      proxyConfig: cfg
+    });
+
+    expect(res.platformUserInfo).toEqual({
+      id: 'u2-test',
+      name: 'u2',
+      timezoneName: 'America/Los_Angeles',
+      overridingApiKey: 'override-token',
+      platformAdditionalInfo: {
+        region: 'west',
+        role: 'manager'
+      }
+    });
+    expect(res.returnMessage.message).toBe('Connected to test.');
+
+    axios.mockResolvedValueOnce({ data: { id: 'u3' } });
+    const defaultRes = await proxy.getUserInfo({
+      platform: 'minimal',
+      proxyConfig: {
+        requestDefaults: { baseUrl: 'https://api.example.com' },
+        operations: {
+          getUserInfo: {
+            url: '/me',
+            responseMapping: {
+              idPath: 'body.id'
+            }
+          }
+        }
+      }
+    });
+    expect(defaultRes.platformUserInfo).toEqual({
+      id: 'u3-minimal',
+      name: 'u3'
+    });
+    expect(defaultRes.returnMessage.message).toBe('Connected to minimal.');
+  });
+
   test('findContact maps list items', async () => {
     Connector.getProxyConfig.mockResolvedValue(sampleConfig);
     axios.mockResolvedValue({ data: { contacts: [ { id: 'c1', name: 'Alice', type: 'Contact', phone: '+1' } ] } });
@@ -291,6 +376,34 @@ describe('proxy connector - more coverage', () => {
 
     expect(res.contactInfo).toEqual({ id: 'c2', name: 'Bob', type: 'Lead' });
     expect(res.returnMessage.messageType).toBe('success');
+  });
+
+  test('createContact returns null contactInfo when response mapping has no idPath', async () => {
+    axios.mockResolvedValueOnce({ data: { id: 'c3', name: 'Charlie' } });
+
+    const res = await proxy.createContact({
+      user: { accessToken: 't', platformAdditionalInfo: { proxyId: 'p1' } },
+      authHeader: 'x',
+      phoneNumber: '+1',
+      newContactName: 'Charlie',
+      newContactType: 'Contact',
+      additionalSubmission: {},
+      proxyConfig: {
+        requestDefaults: { baseUrl: 'https://api.example.com' },
+        operations: {
+          createContact: {
+            method: 'POST',
+            url: '/contacts',
+            responseMapping: {}
+          }
+        }
+      }
+    });
+
+    expect(res).toEqual({
+      contactInfo: null,
+      returnMessage: { message: 'Contact created', messageType: 'success', ttl: 2000 }
+    });
   });
 
   test('call and message log operations return Not supported when omitted from manifest', async () => {

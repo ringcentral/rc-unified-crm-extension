@@ -395,12 +395,39 @@ describe('Core router broad route coverage', () => {
     expect(manifestResponse.status).toBe(200);
     expect(manifestResponse.body.author.name).toBe('Test Author');
     expect((await request(app).get('/serverVersionInfo')).body).toEqual({ version: '1.0.0' });
+    connectorRegistry.getManifest.mockReturnValueOnce(null);
+    expect((await request(app).get('/serverVersionInfo')).body).toEqual({ version: 'unknown' });
 
     const interfacesResponse = await request(app)
       .get('/implementedInterfaces')
       .query({ platform: 'testCRM' });
     expect(interfacesResponse.status).toBe(200);
     expect(interfacesResponse.body.createCallLog).toBe(true);
+  });
+
+  test('applies local manifest URL overrides and rejects invalid manifests', async () => {
+    process.env.OVERRIDE_APP_SERVER = 'https://local-app.example.com';
+    process.env.OVERRIDE_SERVER_SIDE_LOGGING_SERVER = 'https://local-logging.example.com';
+
+    const manifestResponse = await request(app)
+      .get('/crmManifest')
+      .query({ platformName: 'testCRM' });
+
+    expect(manifestResponse.status).toBe(200);
+    expect(manifestResponse.body.serverUrl).toBe('https://local-app.example.com');
+    expect(manifestResponse.body.platforms.testCRM.serverSideLogging.url).toBe('https://local-logging.example.com');
+
+    delete process.env.OVERRIDE_APP_SERVER;
+    delete process.env.OVERRIDE_SERVER_SIDE_LOGGING_SERVER;
+
+    connectorRegistry.getManifest.mockReturnValueOnce({
+      version: '1.0.0',
+      platforms: {}
+    });
+    await expect(request(app).get('/crmManifest').query({ platformName: 'brokenCRM' })).resolves.toMatchObject({ status: 400 });
+
+    connectorRegistry.getManifest.mockReturnValueOnce(null);
+    await expect(request(app).get('/crmManifest').query({ platformName: 'missingCRM' })).resolves.toMatchObject({ status: 400 });
   });
 
   test('serves ChatGPT and OAuth metadata routes', async () => {
@@ -452,6 +479,27 @@ describe('Core router broad route coverage', () => {
     }));
   });
 
+  test('rejects incomplete OAuth metadata and shim requests', async () => {
+    delete process.env.RINGCENTRAL_MCP_CLIENT_ID;
+    await expect(request(app).post('/oauth/register')).resolves.toMatchObject({ status: 500 });
+    await expect(request(app).get('/oauth/authorize_shim')).resolves.toMatchObject({ status: 500 });
+
+    process.env.RINGCENTRAL_MCP_CLIENT_ID = 'rc-mcp-public-client-id';
+    await expect(request(app).get('/oauth/authorize_shim').query({
+      response_type: 'code',
+      client_id: 'rc-mcp-public-client-id',
+      code_challenge: 'pkce-challenge',
+      code_challenge_method: 'S256',
+    })).resolves.toMatchObject({ status: 400, text: 'Missing OAuth authorization parameters' });
+
+    await expect(request(app).get('/oauth/authorize_shim').query({
+      response_type: 'code',
+      client_id: 'rc-mcp-public-client-id',
+      redirect_uri: 'https://chat.example.com/callback',
+      code_challenge_method: 'plain',
+    })).resolves.toMatchObject({ status: 400, text: 'PKCE S256 code_challenge is required' });
+  });
+
   test('serves mock connector utility routes', async () => {
     await expect(request(app).post('/registerMockUser').query({ secretKey: 'secret-key' }).send({ userName: 'A' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).delete('/deleteMockUser').query({ secretKey: 'secret-key', userName: 'A' })).resolves.toMatchObject({ status: 200 });
@@ -464,6 +512,8 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).options('/mcp')).status).toBe(200);
     expect((await request(app).post('/mcp').send({ method: 'tools/list' })).body).toEqual({ jsonrpc: '2.0', result: 'mcp-ok' });
     expect(mcpHandler.handleMcpRequest).toHaveBeenCalled();
+    expect((await request(app).post('/mcp').send({ method: 'notifications/cancelled' })).body).toEqual({ jsonrpc: '2.0', result: 'mcp-ok' });
+    expect((await request(app).post('/mcp').set('Authorization', 'Bearer rc-oauth-token').send({ method: 'tools/call' })).body).toEqual({ jsonrpc: '2.0', result: 'mcp-ok' });
     const protectedMcpResponse = await request(app)
       .post('/mcp')
       .send({ method: 'tools/call', params: { name: 'simpleTool' } });
@@ -600,6 +650,55 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' })).body.updatedNote).toBe('updated');
     expect((await request(app).put('/callDisposition').query(authQuery()).send({ sessionId: 's1', dispositions: ['left voicemail'] })).body.successful).toBe(true);
     expect((await request(app).post('/messageLog').query(authQuery()).send({ messages: [] })).body.logIds).toEqual(['msg-1']);
+  });
+
+  test('wraps representative route responses with debug trace data', async () => {
+    async function expectDebugResponse(req) {
+      const response = await req.set('is-debug', 'true');
+      expect(response.status).toBeLessThan(500);
+      expect(response.body._debug).toEqual(expect.objectContaining({
+        requestId: expect.any(String),
+        traceCount: expect.any(Number),
+        traces: expect.any(Array),
+      }));
+      return response;
+    }
+
+    await expectDebugResponse(request(app).get('/releaseNotes'));
+    await expectDebugResponse(request(app).get('/implementedInterfaces').query({ platform: 'testCRM' }));
+    await expectDebugResponse(request(app).get('/licenseStatus').query(authQuery()));
+    await expectDebugResponse(request(app).get('/authValidation').query(authQuery()));
+    await expectDebugResponse(request(app).get('/apiKeyManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).get('/oauthManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).get('/admin/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ scope: 'org', values: { key: 'value' } }));
+    await expectDebugResponse(request(app).post('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' }).send({ values: { clientSecret: 'secret' } }));
+    await expectDebugResponse(request(app).delete('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token', platform: 'testCRM' }));
+    await expectDebugResponse(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] }));
+    await expectDebugResponse(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] }));
+    await expectDebugResponse(request(app).get('/admin/serverLoggingSettings').query(authQuery()));
+    await expectDebugResponse(request(app).post('/admin/serverLoggingSettings').query(authQuery()).send({ additionalFieldValues: { enabled: true } }));
+    await expectDebugResponse(request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' }));
+    await expectDebugResponse(request(app).post('/user/refreshInfo').query(authQuery()).send({}));
+    await expectDebugResponse(request(app).get('/user/settings').query(authQuery()));
+    await expectDebugResponse(request(app).post('/user/settings').query(authQuery()).send({ userSettings: { timezone: 'UTC' } }));
+    await expectDebugResponse(request(app).get('/hostname').query(authQuery()));
+    await expectDebugResponse(request(app).get('/contact').query({ ...authQuery(), phoneNumber: '+15551234567' }));
+    await expectDebugResponse(request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555', newContactName: 'Alice' }));
+    await expectDebugResponse(request(app).get('/appointments').query(authQuery()));
+    await expectDebugResponse(request(app).post('/appointments').query(authQuery()).send({ payload: { title: 'Meet' } }));
+    await expectDebugResponse(request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } }));
+    await expectDebugResponse(request(app).get('/callLog').query(authQuery()));
+    await expectDebugResponse(request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } }));
+    await expectDebugResponse(request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' }));
+    await expectDebugResponse(request(app).put('/callDisposition').query(authQuery()).send({ sessionId: 's1' }));
+    await expectDebugResponse(request(app).post('/messageLog').query(authQuery()).send({ messages: [] }));
+    await expectDebugResponse(request(app).get('/custom/contact/search').query({ ...authQuery(), name: 'Alice' }));
+    await expectDebugResponse(request(app).get('/ringcentral/admin/report').query(authQuery()));
+    await expectDebugResponse(request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' }));
+    await expectDebugResponse(request(app).get('/debug/report/url').query(authQuery()));
   });
 
   test('normalizes bearer RC access token headers and tracks forwarded client IP', async () => {
@@ -838,8 +937,20 @@ describe('Core router broad route coverage', () => {
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).post('/admin/settings').query({ rcAccessToken: 'rc-token' }).send({ adminSettings: {} })).resolves.toMatchObject({ status: 403 });
 
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).get('/admin/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 403 });
+
     UserModel.findByPk.mockResolvedValueOnce(null);
     await expect(request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 400 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 403 });
+
+    UserModel.findByPk.mockResolvedValueOnce(null);
+    await expect(request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ scope: 'user' })).resolves.toMatchObject({ status: 400 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ scope: 'user' })).resolves.toMatchObject({ status: 403 });
 
     adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
     await expect(request(app).post('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' }).send({ values: {} })).resolves.toMatchObject({ status: 403 });
@@ -858,6 +969,12 @@ describe('Core router broad route coverage', () => {
 
     adminCore.reinitializeUserMapping.mockResolvedValueOnce({ isRevokeUserSession: true });
     await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 401 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 403 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).resolves.toMatchObject({ status: 403 });
 
     UserModel.findByPk.mockResolvedValueOnce(null);
     await expect(request(app).get('/admin/serverLoggingSettings').query(authQuery())).resolves.toMatchObject({ status: 400 });
@@ -967,6 +1084,44 @@ describe('Core router broad route coverage', () => {
 
     logCore.handleAsyncPluginCallback.mockRejectedValueOnce(new Error('plugin failed'));
     await expect(request(app).post('/plugin/async-callback/task-1').send({ successful: true })).resolves.toMatchObject({ status: 500 });
+  });
+
+  test('rejects plugin account routes with invalid admin request details', async () => {
+    await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).post('/plugin/register').send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: 'different-account' });
+    await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
+
+    pluginCore.registerPluginAccount.mockRejectedValueOnce(new Error('register failed'));
+    await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+
+    await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).delete('/plugin/unregister').query({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: false, rcAccountId: 'rc-account-1' });
+    await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
+
+    adminCore.validateAdminRole.mockResolvedValueOnce({ isValidated: true, rcAccountId: 'different-account' });
+    await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 403 });
+
+    pluginCore.unregisterPluginAccount.mockRejectedValueOnce(new Error('unregister failed'));
+    await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 400 });
+
+    await expect(request(app).get('/plugin/licenseStatus').query(authQuery())).resolves.toMatchObject({ status: 400 });
+    UserModel.findByPk.mockResolvedValueOnce(null);
+    await expect(request(app).get('/plugin/licenseStatus').query({ ...authQuery(), rcAccountId: 'rc-account-1', pluginId: 'p1' })).resolves.toMatchObject({ status: 400 });
+    pluginCore.getPluginLicenseStatus.mockRejectedValueOnce(new Error('license failed'));
+    await expect(request(app).get('/plugin/licenseStatus').query({ ...authQuery(), rcAccountId: 'rc-account-1', pluginId: 'p1' })).resolves.toMatchObject({
+      status: 200,
+      body: {
+        licenseStatus: false,
+        licenseStatusDescription: 'license failed',
+      },
+    });
   });
 
   test('covers exported app and initialization helpers', async () => {

@@ -1103,6 +1103,268 @@ describe('Pipedrive Connector', () => {
         });
     });
 
+    describe('additional branch coverage', () => {
+        it('should omit related deals and leads when Pipedrive returns empty payloads', async () => {
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/search')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        items: [{
+                            item: {
+                                id: 102,
+                                name: 'No Related',
+                                phone: '+14155550000',
+                                organization: null
+                            }
+                        }]
+                    }
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/api/v2/deals')
+                .query({ person_id: 102, status: 'open' })
+                .reply(200, {}, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/leads')
+                .query({ person_id: 102 })
+                .reply(200, {}, mockRateLimitHeaders);
+
+            const result = await pipedrive.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: '+1 4155550000',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0]).toMatchObject({
+                id: 102,
+                name: 'No Related',
+                organization: ''
+            });
+            expect(result.matchedContactInfo[0].additionalInfo.deals).toBeUndefined();
+            expect(result.matchedContactInfo[0].additionalInfo.leads).toBeUndefined();
+        });
+
+        it('should omit related deals and tolerate lead lookup failure during name search', async () => {
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/search')
+                .query({ term: 'No Related', fields: 'name' })
+                .reply(200, {
+                    data: {
+                        items: [{
+                            item: {
+                                id: 103,
+                                name: 'No Related'
+                            }
+                        }]
+                    }
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/api/v2/deals')
+                .query({ person_id: 103, status: 'open' })
+                .reply(200, {}, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/leads')
+                .query({ person_id: 103 })
+                .reply(500, { error: 'leads unavailable' });
+
+            const result = await pipedrive.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'No Related'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0].additionalInfo.deals).toBeUndefined();
+            expect(result.matchedContactInfo[0].additionalInfo.leads).toBeUndefined();
+        });
+
+        it('should use admin config fallback and skip org id when creating assigned call logs', async () => {
+            UserModel.findByPk.mockResolvedValue(null);
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: 'ext-3', crmUserId: 808 }
+                ]
+            });
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/202')
+                .reply(200, { data: {} }, mockRateLimitHeaders);
+            mockActivityTypes();
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => (
+                    body.owner_id === 808
+                    && body.org_id === undefined
+                    && body.subject === 'Outbound Call to Assigned Contact'
+                ))
+                .reply(201, { data: { id: 408 } }, mockRateLimitHeaders);
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'Assigned Contact' }),
+                authHeader,
+                callLog: createMockCallLog({ direction: 'Outbound' }),
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'valid-jwt-token',
+                    adminAssignedUserRcId: 'ext-3'
+                },
+                composedLogDetails: 'Assigned call',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBe(408);
+        });
+
+        it('should return an error when no active call activity type exists', async () => {
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/202')
+                .reply(200, { data: {} }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'Email', key_string: 'email', active_flag: true },
+                        { name: 'Call', key_string: 'call', active_flag: false }
+                    ]
+                }, mockRateLimitHeaders);
+
+            const result = await pipedrive.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'No Call Type' }),
+                authHeader,
+                callLog: createMockCallLog(),
+                additionalSubmission: null,
+                composedLogDetails: 'No active type',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.messageType).toBe('error');
+        });
+
+        it('should assign call log updates from admin config without subject or duration', async () => {
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: ['ext-4'], crmUserId: 909 }
+                ]
+            });
+            nock(`https://${hostname}`)
+                .patch('/api/v2/activities/402', body => (
+                    body.owner_id === 909
+                    && body.subject === undefined
+                    && body.duration === undefined
+                    && body.note === 'Assigned update only'
+                ))
+                .reply(200, { data: { id: 402 } }, mockRateLimitHeaders);
+
+            const result = await pipedrive.updateCallLog({
+                user: mockUser,
+                existingCallLog: createMockExistingCallLog({ thirdPartyLogId: '402' }),
+                authHeader,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserRcId: 'ext-4'
+                },
+                composedLogDetails: 'Assigned update only',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should return an error when no active SMS activity type exists', async () => {
+            nock(`https://${hostname}`)
+                .get('/v1/users/me')
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/202')
+                .reply(200, { data: {} }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'SMS', key_string: 'sms', active_flag: false },
+                        { name: 'Call', key_string: 'call', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+
+            const result = await pipedrive.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'No SMS Type' }),
+                authHeader,
+                message: createMockMessage(),
+                additionalSubmission: null
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.messageType).toBe('error');
+        });
+
+        it('should create a shared SMS lead activity without org id', async () => {
+            nock(`https://${hostname}`)
+                .get('/v1/users/me')
+                .reply(200, { data: { name: 'Test User' } }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/api/v2/persons/202')
+                .reply(200, { data: {} }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .get('/v1/activityTypes')
+                .reply(200, {
+                    data: [
+                        { name: 'SMS', key_string: 'sms', active_flag: true }
+                    ]
+                }, mockRateLimitHeaders);
+            nock(`https://${hostname}`)
+                .post('/api/v2/activities', body => (
+                    body.subject === 'Shared SMS'
+                    && body.note === '<b>Shared body</b>'
+                    && body.lead_id === 303
+                    && body.org_id === undefined
+                ))
+                .reply(201, { data: { id: 505 } }, mockRateLimitHeaders);
+
+            const result = await pipedrive.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'Shared Contact' }),
+                authHeader,
+                sharedSMSLogContent: {
+                    subject: 'Shared SMS',
+                    body: '<b>Shared body</b>',
+                    conversationCreatedDate: new Date('2026-07-02T20:00:00Z')
+                },
+                message: createMockMessage(),
+                additionalSubmission: { leads: 303 }
+            });
+
+            expect(result.logId).toBe(505);
+        });
+
+        it('should update a message log with shared SMS body and lead disposition', async () => {
+            nock(`https://${hostname}`)
+                .patch('/api/v2/activities/506', body => (
+                    body.note === 'Shared updated body'
+                    && body.deal_id === undefined
+                    && body.lead_id === 404
+                ))
+                .reply(200, { data: { id: 506 } }, mockRateLimitHeaders);
+
+            const result = await pipedrive.updateMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 202, name: 'Shared Contact' }),
+                existingMessageLog: createMockExistingMessageLog({ thirdPartyLogId: '506' }),
+                authHeader,
+                sharedSMSLogContent: {
+                    body: 'Shared updated body'
+                },
+                message: createMockMessage(),
+                additionalSubmission: { leads: 404 }
+            });
+
+            expect(result.extraDataTracking).toBeDefined();
+        });
+    });
+
     // ==================== Duration Formatting ====================
     describe('Duration Formatting', () => {
         beforeEach(() => {

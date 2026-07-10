@@ -216,6 +216,77 @@ describe('NetSuite appointment connector', () => {
         });
     });
 
+    test('createAppointment accepts direct date fields and existing attendee items', async () => {
+        axios.post.mockResolvedValueOnce({
+            headers: {
+                Location: 'https://example.com/services/rest/record/v1/calendarEvent/2100'
+            },
+            data: {}
+        });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 2100,
+                    title: 'Direct Date Event',
+                    description: 'Direct body',
+                    startDate: '2026-07-21',
+                    startTime: '09:15:00',
+                    endTime: '10:00:00',
+                    status: 'TENTATIVE'
+                }
+            }
+        });
+
+        const result = await netsuite.createAppointment({
+            user: { ...user, timezoneOffset: null },
+            authHeader,
+            payload: {
+                title: 'Direct Date Event',
+                message: 'Direct body',
+                startDate: '2026-07-21',
+                startTime: '09:15:00',
+                endTime: '10:00:00',
+                status: { id: 'tentative' },
+                attendee: {
+                    items: [
+                        { attendee: { id: 701 } }
+                    ]
+                }
+            }
+        });
+
+        expect(axios.post).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent',
+            {
+                title: 'Direct Date Event',
+                startDate: '2026-07-21',
+                startTime: '09:15:00',
+                endTime: '10:00:00',
+                timedEvent: true,
+                message: 'Direct body',
+                status: { id: 'TENTATIVE' },
+                attendee: {
+                    items: [
+                        { attendee: { id: 701 } }
+                    ]
+                }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(result).toMatchObject({
+            appointmentId: '2100',
+            appointment: {
+                id: '2100',
+                title: 'Direct Date Event',
+                startTimeUtc: '2026-07-21T01:15:00.000Z',
+                durationMinutes: 45,
+                status: 'TENTATIVE'
+            }
+        });
+    });
+
     test('updateAppointment patches attendees and normalizes the updated event', async () => {
         axios.patch.mockResolvedValueOnce({
             data: {
@@ -274,6 +345,85 @@ describe('NetSuite appointment connector', () => {
             attendees: [
                 { id: '601', name: 'Updated Client', type: 'contact' }
             ]
+        });
+    });
+
+    test('updateAppointment falls back to UTC timezone and clears attendees when contacts are omitted', async () => {
+        axios.get.mockRejectedValueOnce(new Error('timezone unavailable'));
+        axios.patch.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 3004,
+                    title: 'UTC Event',
+                    message: 'UTC body',
+                    startDate: '2026-07-22',
+                    startTime: '14:00:00',
+                    endTime: '14:45:00'
+                }
+            }
+        });
+
+        const result = await netsuite.updateAppointment({
+            user: { hostname: user.hostname },
+            authHeader,
+            appointmentId: '3004',
+            patchBody: {
+                start_at: '2026-07-22T14:00:00.000Z',
+                durationMinutes: 45,
+                summary: 'UTC body'
+            }
+        });
+
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004?replace=attendee',
+            {
+                startDate: '2026-07-22',
+                startTime: '14:00:00',
+                endTime: '14:45:00',
+                message: 'UTC body',
+                title: undefined,
+                attendee: { items: [] }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3004',
+            title: 'UTC Event',
+            durationMinutes: 45
+        });
+    });
+
+    test('updateAppointment maps provider errors into warning responses', async () => {
+        axios.patch.mockRejectedValueOnce({
+            response: {
+                data: {
+                    'o:errorDetails': [
+                        { detail: 'Update denied' }
+                    ]
+                }
+            }
+        });
+
+        await expect(netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: 'broken',
+            patchBody: {
+                title: 'Blocked'
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Update denied',
+                ttl: 60000
+            }
         });
     });
 
@@ -387,6 +537,91 @@ describe('NetSuite appointment connector', () => {
             { status: { id: 'CANCELLED' } },
             { headers: { Authorization: authHeader, 'Content-Type': 'application/json' } }
         );
+    });
+
+    test('confirmAppointment and cancelAppointment map provider errors into warnings', async () => {
+        axios.patch
+            .mockRejectedValueOnce({
+                response: {
+                    data: {
+                        'o:errorDetails': [
+                            { detail: 'Confirm denied' }
+                        ]
+                    }
+                }
+            })
+            .mockRejectedValueOnce(new Error('cancel failed'));
+
+        await expect(netsuite.confirmAppointment({
+            user,
+            authHeader,
+            appointmentId: '5006'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Confirm denied',
+                ttl: 60000
+            }
+        });
+
+        await expect(netsuite.cancelAppointment({
+            user,
+            authHeader,
+            appointmentId: '5006'
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Error cancelling appointment',
+                ttl: 60000
+            }
+        });
+    });
+
+    test('listAppointments normalizes sparse calendar events and attendee rows', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 9001,
+                        attendee: {
+                            items: [
+                                { attendee: null },
+                                { attendee: { id: 801 } },
+                                {}
+                            ]
+                        },
+                        attendees: [
+                            {},
+                            { id: 802 }
+                        ]
+                    }
+                ]
+            }
+        });
+
+        await expect(netsuite.listAppointments({
+            user,
+            authHeader
+        })).resolves.toEqual({
+            appointments: [
+                {
+                    thirdPartyAppointmentId: '9001',
+                    id: '9001',
+                    title: '',
+                    description: '',
+                    startTimeUtc: null,
+                    durationMinutes: 0,
+                    status: undefined,
+                    contactId: '',
+                    attendees: [
+                        { id: '802', name: '', type: '' },
+                        { id: '801', name: '', type: '' }
+                    ]
+                }
+            ]
+        });
     });
 });
 

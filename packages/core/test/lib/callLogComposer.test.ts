@@ -1320,6 +1320,155 @@ describe('callLogComposer', () => {
       expect(result).not.toContain('Old journey');
     });
 
+    test('should update existing scalar call detail fields across formats', () => {
+      expect(upsertContactPhoneNumber({
+        body: '<li><b>Recipient phone number</b>: +111</li>',
+        phoneNumber: '+222',
+        direction: 'Outbound',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Recipient phone number</b>: +222</li>');
+
+      expect(upsertContactPhoneNumber({
+        body: '**Contact Number**: +111\n',
+        phoneNumber: '+222',
+        direction: 'Inbound',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toBe('**Contact Number**: +222\n');
+
+      expect(upsertCallDateTime({
+        body: '<li><b>Date/time</b>: old date</li>',
+        startTime: '2024-01-15T10:30:00Z',
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
+        logDateFormat: 'YYYY-MM-DD HH:mm'
+      })).toBe('<li><b>Date/time</b>: 2024-01-15 10:30</li>');
+
+      expect(upsertCallDateTime({
+        body: '- Date/Time: old date\n',
+        startTime: '2024-01-15T10:30:00Z',
+        timezoneOffset: '+00:00',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
+        logDateFormat: 'YYYY-MM-DD HH:mm'
+      })).toBe('- Date/Time: 2024-01-15 10:30\n');
+
+      expect(upsertCallDuration({
+        body: '<li><b>Duration</b>: 1 minute</li>',
+        duration: 120,
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Duration</b>: 2 minutes</li>');
+
+      expect(upsertCallDuration({
+        body: '- Duration: 1 minute\n- Result: Pending',
+        duration: 180,
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- Duration: 3 minutes');
+
+      expect(upsertCallResult({
+        body: '<li><b>Result</b>: Missed</li>',
+        result: 'Completed',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Result</b>: Completed</li>');
+    });
+
+    test('should update recording, AI note, transcript, and journey sections in alternate formats', () => {
+      expect(upsertCallRecording({
+        body: '<li><b>Call recording link</b>: <a href="https://old.example.com">open</a></li>',
+        recordingLink: 'pending',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Call recording link</b>: (pending...)</li>');
+
+      expect(upsertCallRecording({
+        body: '- Summary: Existing',
+        recordingLink: 'https://recording.example.com/123',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toBe('- Summary: Existing\n- Call recording link: https://recording.example.com/123\n');
+
+      expect(upsertAiNote({
+        body: '<div><b>AI Note</b><br>Old AI note</div>',
+        aiNote: 'New AI note\n',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>AI Note</b><br>New AI note</div>');
+
+      expect(upsertTranscript({
+        body: '<div><b>Transcript</b><br>Old transcript</div>',
+        transcript: 'New transcript',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>Transcript</b><br>New transcript</div>');
+
+      expect(upsertTranscript({
+        body: '- Transcript:\nOld transcript\n--- END\n',
+        transcript: 'New transcript',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- Transcript:\nNew transcript\n--- END');
+
+      expect(upsertLegs({
+        body: '<div><b>Call journey</b><br>Old journey</div>',
+        legs: [{
+          direction: 'Inbound',
+          from: { phoneNumber: '+15550000001' },
+          to: { extensionNumber: '101' },
+          duration: 1
+        }],
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>Call journey</b><br>Received call at ext 101</div>');
+    });
+
+    test('should replace ACE fields in the remaining formats', () => {
+      expect(upsertRingSenseTranscript({
+        body: '### ACE transcript\nOld transcript\n',
+        transcript: 'New transcript\n',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toContain('### ACE transcript\nNew transcript\n');
+
+      expect(upsertRingSenseTranscript({
+        body: '- ACE transcript:\nOld transcript\n--- END\n',
+        transcript: 'New transcript\n',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- ACE transcript:\nNew transcript\n--- END');
+
+      expect(upsertRingSenseSummary({
+        body: '<div><b>ACE summary</b><br>Old summary</div>',
+        summary: 'New summary\nwith details\n',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>ACE summary</b><br>New summary<br>with details</div>');
+
+      expect(upsertRingSenseSummary({
+        body: '### ACE summary\nOld summary\n',
+        summary: 'New summary',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toContain('### ACE summary\nNew summary\n');
+
+      expect(upsertRingSenseAIScore({
+        body: '<li><b>Call score</b>: 10</li>',
+        score: '99',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<li><b>Call score</b>: 99</li>');
+
+      expect(upsertRingSenseAIScore({
+        body: '**Call score**: 10\n',
+        score: '99',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toBe('**Call score**: 99\n');
+
+      expect(upsertRingSenseBulletedSummary({
+        body: '<div><b>ACE bulleted summary</b><br>Old item</div>',
+        summary: '- New item\n- Next item\n',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.HTML
+      })).toBe('<div><b>ACE bulleted summary</b><br>- New item<br>- Next item</div>');
+
+      expect(upsertRingSenseBulletedSummary({
+        body: '- ACE bulleted summary: Old item\n',
+        summary: '- New item',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
+      })).toContain('- ACE bulleted summary:\n- New item\n--- END');
+
+      expect(upsertRingSenseLink({
+        body: '**ACE recording link**: https://old.example.com\n',
+        link: 'https://new.example.com',
+        logFormat: LOG_DETAILS_FORMAT_TYPE.MARKDOWN
+      })).toContain('**ACE recording link**: https://new.example.com');
+    });
+
     test('should skip disabled ACE and leg sections during full composition', () => {
       const result = composeCallLog({
         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,

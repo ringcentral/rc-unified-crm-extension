@@ -4,17 +4,24 @@ const { Logger, LOG_LEVELS } = jsLoggerModule;
 
 describe('Logger', () => {
   let originalEnv;
+  let originalLogLevel;
   let consoleSpy;
   let consoleErrorSpy;
 
   beforeEach(() => {
     originalEnv = process.env.NODE_ENV;
+    originalLogLevel = process.env.LOG_LEVEL;
     consoleSpy = jest.spyOn(console, 'log').mockImplementation();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
+    if (originalLogLevel === undefined) {
+      delete process.env.LOG_LEVEL;
+    } else {
+      process.env.LOG_LEVEL = originalLogLevel;
+    }
     consoleSpy.mockRestore();
     consoleErrorSpy.mockRestore();
   });
@@ -38,6 +45,14 @@ describe('Logger', () => {
   });
 
   describe('Log Levels', () => {
+    test('should use LOG_LEVEL env and fall back to INFO for unknown levels', () => {
+      process.env.LOG_LEVEL = 'DEBUG';
+      expect(new Logger().level).toBe(LOG_LEVELS.DEBUG);
+
+      process.env.LOG_LEVEL = 'TRACE';
+      expect(new Logger().level).toBe(LOG_LEVELS.INFO);
+    });
+
     test('should only log messages at or above the configured level', () => {
       const logger = new Logger({ level: 'WARN' });
 
@@ -90,6 +105,30 @@ describe('Logger', () => {
       expect(logOutput).toContain('[INFO]');
       expect(logOutput).toContain('test message');
     });
+
+    test('should include colors when stdout is a TTY and omit context block when empty', () => {
+      process.env.NODE_ENV = 'development';
+      const originalDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value: true,
+        configurable: true
+      });
+
+      try {
+        const logger = new Logger({ level: 'INFO' });
+        const formatted = logger._formatMessage('INFO', 'test message');
+
+        expect(formatted).toContain('\x1b[36m');
+        expect(formatted).toContain('\x1b[0m');
+        expect(formatted).not.toContain('\n');
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(process.stdout, 'isTTY', originalDescriptor);
+        } else {
+          delete process.stdout.isTTY;
+        }
+      }
+    });
   });
 
   describe('Error Handling', () => {
@@ -112,6 +151,33 @@ describe('Logger', () => {
       expect(parsed).toHaveProperty('errorStatus', 500);
       expect(parsed).toHaveProperty('errorResponse');
       expect(parsed).not.toHaveProperty('error'); // Should be removed
+    });
+
+    test('should keep non-Error error fields unchanged', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+
+      logger.error('Operation failed', { error: 'plain error' });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('error', 'plain error');
+      expect(parsed).not.toHaveProperty('errorMessage');
+    });
+
+    test('TypeScript implementation should enrich Error context without response data', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new tsLoggerModule.Logger({ level: 'ERROR' });
+
+      logger.error('Operation failed', { error: new Error('TS error') });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('errorMessage', 'TS error');
+      expect(parsed).toHaveProperty('errorStack');
+      expect(parsed).not.toHaveProperty('error');
     });
   });
 
@@ -144,6 +210,20 @@ describe('Logger', () => {
 
       expect(parsed).toHaveProperty('platform', 'clio');
       expect(parsed).toHaveProperty('userId', '123');
+    });
+
+    test('should merge context for child error logs', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+      const childLogger = logger.child({ platform: 'clio' });
+
+      childLogger.error('child failed', { operation: 'sync' });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('platform', 'clio');
+      expect(parsed).toHaveProperty('operation', 'sync');
     });
   });
 

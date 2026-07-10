@@ -348,6 +348,94 @@ describe('oauth', () => {
         expect(newLock.delete).toHaveBeenCalled();
       });
 
+      test('should handle AWS conditional __type when an existing lock disappears', async () => {
+        const { Lock } = require('../../models/dynamo/lockSchema');
+        const user = createMockUser();
+        const newExpiry = moment().add(1, 'hour').toDate();
+
+        Lock.create.mockRejectedValue({
+          __type: 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException'
+        });
+        Lock.get.mockResolvedValue(null);
+
+        connectorRegistry.getConnector.mockReturnValue({});
+
+        const mockToken = {
+          refresh: jest.fn().mockResolvedValue({
+            accessToken: 'new-token',
+            refreshToken: 'new-refresh',
+            expires: newExpiry
+          })
+        };
+        mockOAuthApp.createToken.mockReturnValue(mockToken);
+
+        const result = await checkAndRefreshAccessToken(mockOAuthApp, user);
+
+        expect(result).toBe(user);
+        expect(mockToken.refresh).toHaveBeenCalled();
+      });
+
+      test('should continue when expired lock recreation loses a conditional race', async () => {
+        const { Lock } = require('../../models/dynamo/lockSchema');
+        const user = createMockUser();
+        const newExpiry = moment().add(1, 'hour').toDate();
+        const conditionalError = new Error('Lock exists');
+        conditionalError.name = 'ConditionalCheckFailedException';
+        const recreatedByOtherProcess = new Error('Recreated by another process');
+        recreatedByOtherProcess.name = 'ConditionalCheckFailedException';
+        const expiredLock = {
+          ttl: moment().subtract(10, 'seconds').unix(),
+          delete: jest.fn().mockResolvedValue(true)
+        };
+
+        Lock.create
+          .mockRejectedValueOnce(conditionalError)
+          .mockRejectedValueOnce(recreatedByOtherProcess);
+        Lock.get
+          .mockResolvedValueOnce(expiredLock)
+          .mockResolvedValueOnce(null);
+
+        connectorRegistry.getConnector.mockReturnValue({});
+
+        const mockToken = {
+          refresh: jest.fn().mockResolvedValue({
+            accessToken: 'new-token',
+            refreshToken: 'new-refresh',
+            expires: newExpiry
+          })
+        };
+        mockOAuthApp.createToken.mockReturnValue(mockToken);
+
+        const result = await checkAndRefreshAccessToken(mockOAuthApp, user);
+
+        expect(result).toBe(user);
+        expect(expiredLock.delete).toHaveBeenCalled();
+        expect(mockToken.refresh).toHaveBeenCalled();
+      });
+
+      test('should rethrow non-conditional expired lock recreation errors', async () => {
+        const { Lock } = require('../../models/dynamo/lockSchema');
+        const user = createMockUser();
+        const conditionalError = new Error('Lock exists');
+        conditionalError.name = 'ConditionalCheckFailedException';
+        const recreateError = new Error('Lock table unavailable');
+        const expiredLock = {
+          ttl: moment().subtract(10, 'seconds').unix(),
+          delete: jest.fn().mockResolvedValue(true)
+        };
+
+        Lock.create
+          .mockRejectedValueOnce(conditionalError)
+          .mockRejectedValueOnce(recreateError);
+        Lock.get.mockResolvedValue(expiredLock);
+
+        connectorRegistry.getConnector.mockReturnValue({});
+
+        await expect(
+          checkAndRefreshAccessToken(mockOAuthApp, user)
+        ).rejects.toThrow('Lock table unavailable');
+      });
+
       test('should delete lock if refresh fails', async () => {
         jest.resetModules();
         const { Lock } = require('../../models/dynamo/lockSchema');

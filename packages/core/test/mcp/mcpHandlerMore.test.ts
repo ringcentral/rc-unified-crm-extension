@@ -167,6 +167,12 @@ describe('MCP Handler additional protocol coverage', () => {
     expect(notificationRes.end).toHaveBeenCalled();
     expect(notificationRes.json).not.toHaveBeenCalled();
 
+    const cancelledRes = mockResponse();
+    await handleMcpRequest(makeRequest('notifications/cancelled'), cancelledRes);
+    expect(cancelledRes.status).toHaveBeenCalledWith(200);
+    expect(cancelledRes.end).toHaveBeenCalled();
+    expect(cancelledRes.json).not.toHaveBeenCalled();
+
     const unknownRes = mockResponse();
     await handleMcpRequest(makeRequest('no/such-method'), unknownRes);
     expect(unknownRes.json.mock.calls[0][0].error).toEqual(expect.objectContaining({
@@ -210,6 +216,18 @@ describe('MCP Handler additional protocol coverage', () => {
     readFileSpy.mockRestore();
   });
 
+  test('reads widget resources from dist html when available', async () => {
+    const readFileSpy = jest.spyOn(fs, 'readFileSync')
+      .mockReturnValueOnce('<html>dist widget</html>');
+
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest('resources/read', { uri: 'ui://widget/ConnectorList-v11.html' }), res);
+
+    expect(res.json.mock.calls[0][0].result.contents[0].text).toBe('<html>dist widget</html>');
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+    readFileSpy.mockRestore();
+  });
+
   test('injects cached rc extension and valid CRM jwt into tool calls', async () => {
     CacheModel.findByPk.mockResolvedValue({
       data: { rcExtensionId: 'rc-ext-cached' },
@@ -243,6 +261,73 @@ describe('MCP Handler additional protocol coverage', () => {
       content: [{ type: 'text', text: 'custom content' }],
       structuredContent: { success: true, data: { ok: true } },
     }));
+  });
+
+  test('continues tool calls when extension cache lookup fails and RC has no extension id', async () => {
+    const logger = require('../../lib/logger');
+    CacheModel.findByPk.mockRejectedValueOnce(new Error('cache unavailable'));
+    axios.get.mockResolvedValueOnce({ data: {} });
+
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest(
+      'tools/call',
+      {
+        name: 'simpleTool',
+        arguments: {},
+        _meta: { 'openai/session': 'openai-session-cache-fail' },
+      },
+      { headers: { authorization: 'Bearer rc-token' } }
+    ), res);
+
+    expect(logger.warn).toHaveBeenCalledWith('CacheModel lookup failed:', { message: 'cache unavailable' });
+    expect(CacheModel.upsert).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute).toHaveBeenCalledWith(expect.objectContaining({
+      rcAccessToken: 'rc-token',
+      openaiSessionId: 'openai-session-cache-fail',
+    }));
+    expect(getTool('simpleTool').execute.mock.calls.at(-1)[0]).not.toHaveProperty('rcExtensionId');
+  });
+
+  test('preserves caller-provided CRM jwt and skips LLM session lookup', async () => {
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest(
+      'tools/call',
+      {
+        name: 'simpleTool',
+        arguments: { jwtToken: 'provided-jwt' },
+        _meta: { 'openai/session': 'openai-session-provided-jwt' },
+      },
+      { headers: { authorization: 'Bearer rc-token' } }
+    ), res);
+
+    expect(LlmSessionModel.findByPk).not.toHaveBeenCalled();
+    expect(getTool('simpleTool').execute).toHaveBeenCalledWith(expect.objectContaining({
+      jwtToken: 'provided-jwt',
+      rcExtensionId: 'rc-ext-1',
+    }));
+  });
+
+  test('does not inject fallback or generated jwt when no valid CRM user is available', async () => {
+    LlmSessionModel.findByPk
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ jwtToken: 'fallback-jwt' });
+    jwt.decodeJwt.mockReturnValueOnce({});
+    UserModel.findOne.mockResolvedValueOnce(null);
+
+    const res = mockResponse();
+    await handleMcpRequest(makeRequest(
+      'tools/call',
+      {
+        name: 'simpleTool',
+        arguments: {},
+        _meta: { 'openai/session': 'openai-session-no-user' },
+      },
+      { headers: { authorization: 'Bearer rc-token' } }
+    ), res);
+
+    expect(UserModel.findByPk).not.toHaveBeenCalledWith(undefined);
+    expect(UserModel.findOne).toHaveBeenCalled();
+    expect(getTool('simpleTool').execute.mock.calls.at(-1)[0]).not.toHaveProperty('jwtToken');
   });
 
   test('refreshes rc extension, removes expired sessions, and reuses fallback session jwt', async () => {
@@ -418,6 +503,18 @@ describe('MCP Handler additional protocol coverage', () => {
       openaiSessionId: 's1',
     });
     expect(successRes.json).toHaveBeenCalledWith({ success: true, data: { widget: true } });
+
+    const uppercaseHeaderRes = mockResponse();
+    await handleWidgetToolCall({
+      headers: { 'X-App-Connect-Widget-Token': 'upper-widget-token' },
+      body: { tool: 'widgetOnly', toolArgs: 'not-an-object' },
+    }, uppercaseHeaderRes);
+    expect(verifyWidgetSessionToken).toHaveBeenLastCalledWith('upper-widget-token');
+    expect(getTool('widgetOnly').execute).toHaveBeenLastCalledWith({
+      rcExtensionId: 'rc-ext-widget',
+      openaiSessionId: 's1',
+    });
+    expect(uppercaseHeaderRes.json).toHaveBeenCalledWith({ success: true, data: { widget: true } });
 
     getTool('widgetOnly').execute.mockRejectedValueOnce(new Error('widget failed'));
     const failRes = mockResponse();

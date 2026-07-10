@@ -399,6 +399,99 @@ describe('NetSuite contact creation branches', () => {
         );
     });
 
+    test('updateCallLog attaches a long transcript file to an existing folder', async () => {
+        const longTranscript = 'transcript '.repeat(500);
+        const composedLogDetails = `- Note: Long call\n- Transcript:\nold transcript\n--- END\n${'x'.repeat(3600)}`;
+        axios.patch.mockResolvedValueOnce({});
+        axios.get.mockResolvedValueOnce({
+            data: {
+                success: true,
+                results: [{ id: 3003 }]
+            }
+        });
+        axios.post
+            .mockResolvedValueOnce({
+                data: {
+                    fileId: 3004
+                }
+            })
+            .mockResolvedValueOnce({});
+
+        const result = await netsuite.updateCallLog({
+            user: {
+                ...user,
+                userSettings: {
+                    addCallLogDateTime: { value: false }
+                }
+            },
+            existingCallLog: {
+                thirdPartyLogId: '4002'
+            },
+            authHeader,
+            subject: 'Existing Folder Call',
+            note: 'Long call',
+            transcript: longTranscript,
+            composedLogDetails
+        });
+
+        expect(result.returnMessage.messageType).toBe('success');
+        expect(axios.post).toHaveBeenNthCalledWith(
+            1,
+            'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_createappconnectfile&deploy=customdeploy_createappconnectfile',
+            expect.objectContaining({
+                folderId: 3003,
+                fileName: 'Existing Folder Call 4002',
+                content: longTranscript
+            }),
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.post).toHaveBeenNthCalledWith(
+            2,
+            'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_attachfilewithphonecalls&deploy=customdeploy_attachfilewithphonecalls',
+            {
+                phoneCallId: '4002',
+                fileId: 3004
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+    });
+
+    test('updateCallLog skips file upload when the folder lookup returns no usable folder', async () => {
+        const longTranscript = 'transcript '.repeat(500);
+        const composedLogDetails = `- Note: Long call\n- Transcript:\nold transcript\n--- END\n${'x'.repeat(3600)}`;
+        axios.patch.mockResolvedValueOnce({});
+        axios.get.mockResolvedValueOnce({
+            data: {
+                success: true,
+                results: []
+            }
+        });
+
+        const result = await netsuite.updateCallLog({
+            user: {
+                ...user,
+                userSettings: {
+                    addCallLogDateTime: { value: false }
+                }
+            },
+            existingCallLog: {
+                thirdPartyLogId: '4003'
+            },
+            authHeader,
+            subject: 'No Folder Call',
+            note: 'Long call',
+            transcript: longTranscript,
+            composedLogDetails
+        });
+
+        expect(result.returnMessage.messageType).toBe('success');
+        expect(axios.post).not.toHaveBeenCalled();
+    });
+
     test('createAppointment falls back to fetched timezone when offset is missing', async () => {
         axios.get
             .mockResolvedValueOnce({

@@ -62,6 +62,25 @@ describe('encode', () => {
     expect(decoded(encryptedWithLongSecret)).toBe('payload');
   });
 
+  test('TypeScript implementation handles secret normalization branches', () => {
+    process.env.APP_SERVER_SECRET_KEY = 'short-secret';
+    const shortSecretEncrypted = tsEncode.encode('payload');
+
+    process.env.APP_SERVER_SECRET_KEY = 'short-secret'.padEnd(32, ' ');
+    expect(tsEncode.encode('payload')).toBe(shortSecretEncrypted);
+    expect(tsEncode.decoded(shortSecretEncrypted)).toBe('payload');
+
+    process.env.APP_SERVER_SECRET_KEY = '12345678901234567890123456789012-first-suffix';
+    const longSecretEncrypted = tsEncode.encode('payload');
+
+    process.env.APP_SERVER_SECRET_KEY = '12345678901234567890123456789012-second-suffix';
+    expect(tsEncode.encode('payload')).toBe(longSecretEncrypted);
+    expect(tsEncode.decoded(longSecretEncrypted)).toBe('payload');
+
+    delete process.env.APP_SERVER_SECRET_KEY;
+    expect(() => tsEncode.encode('payload')).toThrow('APP_SERVER_SECRET_KEY is not defined');
+  });
+
   test('throws when encrypted input is not valid hex ciphertext', () => {
     process.env.APP_SERVER_SECRET_KEY = '12345678901234567890123456789012';
 

@@ -3553,6 +3553,73 @@ describe('Bullhorn Connector', () => {
             expect(result.returnMessage.message).toContain('Could not create appointment');
         });
 
+        it('should create appointments for client contacts and lead references', async () => {
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Appointment', body => {
+                    return body.subject === 'Client contact meeting'
+                        && body.clientContactReference.id === 202;
+                })
+                .reply(200, { changedEntityId: 83 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee')
+                .reply(500, { error: 'attendee failed' });
+
+            const clientContactResult = await bullhorn.createAppointment({
+                user: mockUser,
+                payload: {
+                    title: 'Client contact meeting',
+                    summary: 'Discuss rollout',
+                    contacts: [{ id: '202', contactType: 'ClientContact' }]
+                }
+            });
+
+            expect(clientContactResult).toEqual({ appointmentId: '83' });
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Appointment', body => {
+                    return body.subject === 'Lead follow-up'
+                        && body.lead.id === 303;
+                })
+                .reply(200, { changedEntityId: 84 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee', body => body.appointment.id === 84 && body.attendee.id === 303)
+                .reply(200, { changedEntityId: 984 }, mockBullhornRateLimitHeaders);
+
+            const leadResult = await bullhorn.createAppointment({
+                user: mockUser,
+                payload: {
+                    title: 'Lead follow-up',
+                    contacts: [{ id: '303', type: 'lead' }]
+                }
+            });
+
+            expect(leadResult).toEqual({ appointmentId: '84' });
+        });
+
+        it('should create a default appointment when payload fields are missing', async () => {
+            nock(restUrl.slice(0, -1))
+                .put('/entity/Appointment', body => {
+                    return body.subject === 'Appointment'
+                        && body.description === ''
+                        && typeof body.dateBegin === 'number'
+                        && typeof body.dateEnd === 'number'
+                        && body.isPrivate === false
+                        && body.isDeleted === false
+                        && !body.candidateReference
+                        && !body.clientContactReference
+                        && !body.lead;
+                })
+                .reply(200, { changedEntityId: 85 }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.createAppointment({
+                user: mockUser
+            });
+
+            expect(result).toEqual({ appointmentId: '85' });
+        });
+
         it('should update appointment details, remove old attendees, add new attendees, and refresh result', async () => {
             nock(restUrl.slice(0, -1))
                 .post('/entity/Appointment/77', body => {
@@ -3614,6 +3681,174 @@ describe('Bullhorn Connector', () => {
                 contactId: '202',
                 contactType: 'ClientContact'
             }));
+        });
+
+        it('should update minimal appointment fields without attendee reconciliation', async () => {
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/78', body => {
+                    return body.description === ''
+                        && body.subject === undefined
+                        && body.dateBegin === undefined
+                        && body.dateEnd === undefined;
+                })
+                .reply(200, { changedEntityId: 78 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/78')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 78,
+                        subject: 'Minimal update',
+                        description: '',
+                        dateBegin: startMs,
+                        dateEnd: endMs
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: '78',
+                patchBody: {}
+            });
+
+            expect(result.appointment).toEqual(expect.objectContaining({
+                id: '78',
+                title: 'Minimal update'
+            }));
+        });
+
+        it('should skip attendee reconciliation when appointment id is not numeric', async () => {
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/not-a-number')
+                .reply(200, { changedEntityId: 79 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/not-a-number')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 'not-a-number',
+                        subject: 'External appointment',
+                        dateBegin: startMs,
+                        dateEnd: endMs
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: 'not-a-number',
+                patchBody: {
+                    contacts: [{ id: 101 }]
+                }
+            });
+
+            expect(result.appointment.title).toBe('External appointment');
+        });
+
+        it('should tolerate attendee lookup rows and failed attendee changes', async () => {
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/80')
+                .reply(200, { changedEntityId: 80 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/query/AppointmentAttendee')
+                .query(true)
+                .reply(200, {
+                    data: [
+                        { id: null, attendee: { id: 111 }, appointment: { id: 80 } },
+                        { id: 902, attendee: null, appointment: { id: 80 } },
+                        { id: 903, attendee: { id: 111 }, appointment: { id: 80 } }
+                    ]
+                }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .delete('/entity/AppointmentAttendee/903')
+                .reply(500, { error: 'delete failed' });
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee', body => body.appointment.id === 80 && body.attendee.id === 202)
+                .reply(500, { error: 'add failed' });
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/80')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 80,
+                        subject: 'Attendee errors ignored',
+                        dateBegin: startMs,
+                        dateEnd: endMs
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: '80',
+                patchBody: {
+                    contacts: [202, null, { id: 'bad' }, { id: 202 }]
+                }
+            });
+
+            expect(result.appointment.title).toBe('Attendee errors ignored');
+        });
+
+        it('should continue when attendee lookup fails and return warning on update failure', async () => {
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/81')
+                .reply(200, { changedEntityId: 81 }, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/query/AppointmentAttendee')
+                .query(true)
+                .reply(500, { error: 'lookup failed' });
+
+            nock(restUrl.slice(0, -1))
+                .put('/entity/AppointmentAttendee', body => body.appointment.id === 81 && body.attendee.id === 303)
+                .reply(200, {}, mockBullhornRateLimitHeaders);
+
+            nock(restUrl.slice(0, -1))
+                .get('/entity/Appointment/81')
+                .query(true)
+                .reply(200, {
+                    data: {
+                        id: 81,
+                        subject: 'Lookup failed but refreshed',
+                        dateBegin: startMs,
+                        dateEnd: endMs
+                    }
+                }, mockBullhornRateLimitHeaders);
+
+            const result = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: '81',
+                patchBody: {
+                    contacts: [{ id: '303' }]
+                }
+            });
+
+            expect(result.appointment.title).toBe('Lookup failed but refreshed');
+
+            nock(restUrl.slice(0, -1))
+                .post('/entity/Appointment/82')
+                .reply(500, { error: 'update failed' });
+
+            const failure = await bullhorn.updateAppointment({
+                user: mockUser,
+                appointmentId: '82',
+                patchBody: {
+                    title: 'will fail'
+                }
+            });
+
+            expect(failure).toEqual({
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Error updating appointment',
+                    ttl: 5000
+                }
+            });
         });
 
         it('should refresh and cancel appointments', async () => {

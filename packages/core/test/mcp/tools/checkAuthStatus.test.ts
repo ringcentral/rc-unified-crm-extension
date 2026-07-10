@@ -72,6 +72,39 @@ describe('MCP Tool: checkAuthStatus', () => {
     expect(LlmSessionModel.upsert).not.toHaveBeenCalled();
   });
 
+  test('should return an error when completed auth has no CRM token', async () => {
+    getAuthSession.mockResolvedValue({
+      status: 'completed',
+      userInfo: { id: 'user-1' }
+    });
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'CRM auth session completed without a CRM token.'
+    });
+    expect(LlmSessionModel.upsert).not.toHaveBeenCalled();
+  });
+
+  test('should return not found when auth session is missing', async () => {
+    getAuthSession.mockResolvedValue(undefined);
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'CRM auth session not found or expired. Ask the user to start the auth flow again.'
+    });
+    expect(LlmSessionModel.upsert).not.toHaveBeenCalled();
+  });
+
   test('should return expired when the auth session TTL has elapsed', async () => {
     getAuthSession.mockResolvedValue({ status: 'expired' });
 
@@ -84,6 +117,56 @@ describe('MCP Tool: checkAuthStatus', () => {
       data: {
         status: 'expired',
         errorMessage: 'Authentication session expired. Ask the user to start the auth flow again.'
+      }
+    });
+  });
+
+  test('should return failed with the stored error message', async () => {
+    getAuthSession.mockResolvedValue({
+      status: 'failed',
+      errorMessage: 'User denied access'
+    });
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      data: {
+        status: 'failed',
+        errorMessage: 'User denied access'
+      }
+    });
+  });
+
+  test('should return failed with default error message', async () => {
+    getAuthSession.mockResolvedValue({ status: 'failed' });
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      data: {
+        status: 'failed',
+        errorMessage: 'Unknown error'
+      }
+    });
+  });
+
+  test('should return pending for unknown auth status', async () => {
+    getAuthSession.mockResolvedValue({ status: 'redirected' });
+
+    const result = await checkAuthStatus.execute({
+      sessionId: 'session-1',
+      rcExtensionId: 'rc-ext-1'
+    });
+
+    expect(result).toEqual({
+      data: {
+        status: 'pending'
       }
     });
   });

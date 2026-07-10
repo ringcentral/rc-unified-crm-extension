@@ -184,6 +184,40 @@ describe('Bullhorn monthly report connector', () => {
         });
     });
 
+    test('batches monthly CSV users and creates the reports directory when missing', async () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+        fs.rmSync(reportsDir, { recursive: true, force: true });
+        const users = Array.from({ length: 11 }, (_value, index) => ({
+            id: `${1000 + index}-bullhorn`,
+            platformAdditionalInfo: {
+                id: `bh-${index}`,
+                tokenUrl: 'https://auth.bullhorn.example/token',
+                restUrl: `https://rest.bullhorn.example/rest-services/corp-${index}/`,
+                bhRestToken: `rest-token-${index}`
+            }
+        }));
+        mockFindAll.mockResolvedValueOnce(users);
+        axios.get.mockResolvedValue({
+            data: {
+                data: [
+                    {
+                        email: 'batch@example.com',
+                        name: 'Batch User'
+                    }
+                ]
+            }
+        });
+
+        const reportPromise = bullhornReport.generateMonthlyCsvReport();
+        await jest.advanceTimersByTimeAsync(100);
+        const report = await reportPromise;
+
+        expect(axios.get).toHaveBeenCalledTimes(11);
+        expect(report.csv.split('\n')).toHaveLength(12);
+        expect(report.csv).toContain('1010,batch@example.com,bh-10,Batch User,corp-10');
+        expect(fs.existsSync(reportsDir)).toBe(true);
+    });
+
     test('sends the generated monthly CSV by email and removes the temporary report file', async () => {
         jest.useFakeTimers().setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
         mockFindAll.mockResolvedValueOnce([userOne]);
@@ -342,6 +376,86 @@ describe('Bullhorn monthly report connector', () => {
             message: 'Salesforce contacts fetched',
             count: 1
         });
+    });
+
+    test('reads paged Salesforce records and joins duplicate Bullhorn ids by email', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1'
+            },
+            {
+                ...userTwo,
+                rcAccountId: 'rc-account-2',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: 'Shared@Example.com',
+                            name: 'Shared One'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: ' shared@example.com ',
+                            name: 'Shared Two'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    Records: [],
+                    nextRecordsUrl: '/services/data/v60.0/query/next-account-page'
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1',
+                            CSM_Name__c: 'Owner One'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    Records: [
+                        {
+                            Id: 'sf-contact-1',
+                            FirstName: null,
+                            LastName: 'Shared',
+                            AccountId: '001ABC000000000001',
+                            Email: 'shared@example.com',
+                            Company__c: 'Shared Co',
+                            Account_Number_of_DLs__c: null,
+                            Account_Status__c: 'Active'
+                        }
+                    ]
+                }
+            });
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(1);
+        expect(axios.get.mock.calls[3][0]).toBe('https://rc.my.salesforce.com/services/data/v60.0/query/next-account-page');
+        expect(report.csv).toContain('"100,200",,Shared,shared@example.com,Shared Co,Owner One,001ABC000000000001,RingCentral App Connect,,Active,,rc-account-1');
     });
 
     test('generates a Salesforce report with only the header when Bullhorn users have no rcAccountId', async () => {
@@ -525,6 +639,415 @@ describe('Bullhorn monthly report connector', () => {
         expect(logger.error).toHaveBeenCalledWith('Failed to send Salesforce report email:', {
             stack: sendError.stack,
             error: sendError
+        });
+    });
+
+    test('generates the monthly CSV outside Lambda and fills optional user fields with defaults', async () => {
+        delete process.env.AWS_LAMBDA_FUNCTION_NAME;
+        jest.useFakeTimers().setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+        mockFindAll.mockResolvedValueOnce([
+            {
+                id: '300-bullhorn',
+                platformAdditionalInfo: {
+                    tokenUrl: 'https://auth.bullhorn.example/token',
+                    bhRestToken: 'rest-token-300'
+                }
+            }
+        ]);
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        email: 'fallback@example.com',
+                        name: 'Fallback User'
+                    }
+                ]
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReport();
+
+        expect(report.filePath).toBe(path.join(process.cwd(), 'reports', 'bullhorn_report_2026-07-20.csv'));
+        expect(report.csv).toContain('300,fallback@example.com,,Fallback User,');
+        if (fs.existsSync(report.filePath)) {
+            fs.unlinkSync(report.filePath);
+        }
+    });
+
+    test('logs and continues when monthly report file deletion fails', async () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+        mockFindAll.mockResolvedValueOnce([userOne]);
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        email: 'alice@example.com',
+                        name: 'Alice Example'
+                    }
+                ]
+            }
+        });
+        axios.post.mockResolvedValueOnce({ data: { ok: true } });
+        const unlinkSpy = jest.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
+            throw new Error('unlink failed');
+        });
+
+        await bullhornReport.sendMonthlyCsvReportByEmail();
+
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to delete file'),
+            expect.objectContaining({
+                stack: expect.stringContaining('unlink failed')
+            })
+        );
+        unlinkSpy.mockRestore();
+        const filePath = path.join(reportsDir, 'bullhorn_report_2026-07-20.csv');
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    });
+
+    test('logs when the monthly report error email also fails', async () => {
+        jest.useFakeTimers().setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+        mockFindAll.mockResolvedValueOnce([userOne]);
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        email: 'alice@example.com',
+                        name: 'Alice Example'
+                    }
+                ]
+            }
+        });
+        axios.post
+            .mockRejectedValueOnce(new Error('main email failed'))
+            .mockRejectedValueOnce(new Error('error email failed'));
+
+        await bullhornReport.sendMonthlyCsvReportByEmail();
+
+        expect(logger.error).toHaveBeenCalledWith(
+            'Failed to send error report email:',
+            expect.objectContaining({
+                stack: expect.stringContaining('error email failed')
+            })
+        );
+    });
+
+    test('sends Salesforce error email for plain errors with default context', async () => {
+        axios.post.mockResolvedValueOnce({ data: { ok: true } });
+
+        await bullhornReport.sendErrorReportEmailWithSalesforce('plain failure');
+
+        expect(axios.post).toHaveBeenCalledWith(
+            'https://api.customer.io/v1/send/email',
+            expect.objectContaining({
+                body: expect.stringContaining('Error: plain failure')
+            }),
+            expect.any(Object)
+        );
+        expect(axios.post.mock.calls[0][1].body).toContain('Context: ');
+    });
+
+    test('generates Salesforce rows without an email filter when Bullhorn profile lookup fails', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockRejectedValueOnce(new Error('profile unavailable'))
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-contact-1',
+                            FirstName: 'No',
+                            LastName: 'EmailFilter',
+                            AccountId: '001ABC000000000001',
+                            Email: 'contact@example.com'
+                        }
+                    ]
+                }
+            });
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(1);
+        expect(report.csv).toContain(',No,EmailFilter,contact@example.com');
+        expect(axios.get.mock.calls[2][0]).not.toContain('Email IN');
+        expect(logger.error).toHaveBeenCalledWith(
+            'Error fetching Bullhorn user profile',
+            expect.objectContaining({
+                stack: expect.stringContaining('profile unavailable')
+            })
+        );
+    });
+
+    test('generates only the Salesforce header when the account query fails', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: 'alice@example.com',
+                            name: 'Alice Example'
+                        }
+                    ]
+                }
+            })
+            .mockRejectedValueOnce(new Error('account query failed'));
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(0);
+        expect(logger.error).toHaveBeenCalledWith(
+            'Failed to fetch Salesforce Account data:',
+            expect.objectContaining({
+                stack: expect.stringContaining('account query failed')
+            })
+        );
+    });
+
+    test('generates only the Salesforce header when the contact query fails', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: 'alice@example.com',
+                            name: 'Alice Example'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1'
+                        }
+                    ]
+                }
+            })
+            .mockRejectedValueOnce(new Error('contact query failed'));
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(0);
+        expect(logger.error).toHaveBeenCalledWith(
+            'Failed to fetch Salesforce Contact data:',
+            expect.objectContaining({
+                Stack: expect.stringContaining('contact query failed')
+            })
+        );
+    });
+
+    test('generates only the Salesforce header when accounts have no 18 digit IDs', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: 'alice@example.com',
+                            name: 'Alice Example'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-without-18',
+                            RC_User_ID__c: 'rc-account-1'
+                        }
+                    ]
+                }
+            });
+        axios.post.mockResolvedValueOnce({
+            data: {
+                access_token: 'salesforce-access-token'
+            }
+        });
+
+        const report = await bullhornReport.generateMonthlyCsvReportWithSalesforceData();
+
+        expect(report.rowCount).toBe(0);
+        expect(logger.warn).toHaveBeenCalledWith('No accounts found for Bullhorn users; skipping Salesforce query');
+    });
+
+    test('logs when the Salesforce error report email fails', async () => {
+        const error = new Error('original failure');
+        axios.post.mockRejectedValueOnce(new Error('salesforce error email failed'));
+
+        await bullhornReport.sendErrorReportEmailWithSalesforce(error, 'unit-test');
+
+        expect(logger.error).toHaveBeenCalledWith(
+            'Failed to send Salesforce error report email:',
+            expect.objectContaining({
+                stack: expect.stringContaining('salesforce error email failed')
+            })
+        );
+    });
+
+    test('logs and continues when Salesforce report file deletion fails', async () => {
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get
+            .mockResolvedValueOnce({
+                data: {
+                    data: [
+                        {
+                            email: 'alice@example.com',
+                            name: 'Alice Example'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-account-1',
+                            Accoutn18DigitID__c: '001ABC000000000001',
+                            RC_User_ID__c: 'rc-account-1'
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    records: [
+                        {
+                            Id: 'sf-contact-1',
+                            FirstName: 'Alice',
+                            LastName: 'Example',
+                            AccountId: '001ABC000000000001',
+                            Email: 'alice@example.com'
+                        }
+                    ]
+                }
+            });
+        axios.post
+            .mockResolvedValueOnce({
+                data: {
+                    access_token: 'salesforce-access-token'
+                }
+            })
+            .mockResolvedValueOnce({ data: { ok: true } });
+        const unlinkSpy = jest.spyOn(fs, 'unlinkSync').mockImplementationOnce(() => {
+            throw new Error('salesforce unlink failed');
+        });
+
+        await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
+
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining('Failed to delete file'),
+            expect.objectContaining({
+                stack: expect.stringContaining('salesforce unlink failed')
+            })
+        );
+        unlinkSpy.mockRestore();
+        const filePath = path.join(reportsDir, `bullhorn_salesforce_report_${getUtcReportDate()}.csv`);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    });
+
+    test('sends a Salesforce error report when OAuth token retrieval fails', async () => {
+        const oauthError = new Error('salesforce oauth failed');
+        mockFindAll.mockResolvedValueOnce([
+            {
+                ...userOne,
+                rcAccountId: 'rc-account-1',
+                updatedAt: new Date(Date.now() - dayMs)
+            }
+        ]);
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        email: 'alice@example.com',
+                        name: 'Alice Example'
+                    }
+                ]
+            }
+        });
+        axios.post
+            .mockRejectedValueOnce(oauthError)
+            .mockResolvedValueOnce({ data: { ok: true } });
+
+        await bullhornReport.sendMonthlyCsvReportByEmailWithSalesforceData();
+
+        expect(logger.error).toHaveBeenCalledWith('Failed to retrieve Salesforce OAuth token:', {
+            stack: oauthError.stack
+        });
+        expect(logger.error).toHaveBeenCalledWith(
+            'Failed to generate Salesforce report and send email:',
+            expect.objectContaining({
+                stack: oauthError.stack
+            })
+        );
+        expect(axios.post).toHaveBeenCalledTimes(2);
+        expect(axios.post.mock.calls[1][1]).toMatchObject({
+            subject: `Bullhorn Monthly Salesforce Report FAILED ${getUtcEmailDateString()}`
         });
     });
 });

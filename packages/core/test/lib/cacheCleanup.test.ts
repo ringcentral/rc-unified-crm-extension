@@ -9,6 +9,10 @@ describe('cacheCleanup', () => {
     await AccountDataModel.destroy({ where: {} });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('deletes only cache records whose expiry has passed', async () => {
     const now = new Date('2026-05-08T00:00:00.000Z');
 
@@ -124,6 +128,70 @@ describe('cacheCleanup', () => {
     expect(await AccountDataModel.findOne({
       where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+1111111111' }
     })).toBeNull();
+  });
+
+  test('clearExpiredCache uses current time when options are omitted', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-08T00:00:00.000Z'));
+
+    await CacheModel.create({
+      id: 'default-now-expired-cache',
+      userId: 'user-1',
+      cacheKey: 'auth-session',
+      status: 'expired',
+      expiry: new Date('2026-06-07T23:59:59.000Z')
+    });
+    await AccountDataModel.create({
+      rcAccountId: 'account-1',
+      platformName: 'test-platform',
+      dataKey: 'contact-+1111111111',
+      data: [{ id: 'old-contact' }],
+      createdAt: new Date('2026-03-07T23:59:59.000Z'),
+      updatedAt: new Date('2026-03-07T23:59:59.000Z')
+    });
+
+    const deletedCount = await clearExpiredCache();
+
+    expect(deletedCount).toBe(2);
+    expect(await CacheModel.findByPk('default-now-expired-cache')).toBeNull();
+    expect(await AccountDataModel.findOne({
+      where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+1111111111' }
+    })).toBeNull();
+  });
+
+  test('clearExpiredAccountContactData accepts custom retention months', async () => {
+    const now = new Date('2026-06-08T00:00:00.000Z');
+
+    await AccountDataModel.bulkCreate([
+      {
+        rcAccountId: 'account-1',
+        platformName: 'test-platform',
+        dataKey: 'contact-+1111111111',
+        data: [{ id: 'old-contact' }],
+        createdAt: new Date('2026-05-07T23:59:59.000Z'),
+        updatedAt: new Date('2026-05-07T23:59:59.000Z')
+      },
+      {
+        rcAccountId: 'account-1',
+        platformName: 'test-platform',
+        dataKey: 'contact-+2222222222',
+        data: [{ id: 'active-contact' }],
+        createdAt: new Date('2026-05-08T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-08T00:00:00.000Z')
+      }
+    ]);
+
+    const deletedCount = await clearExpiredAccountContactData({
+      now,
+      retentionMonths: 1
+    });
+
+    expect(deletedCount).toBe(1);
+    expect(await AccountDataModel.findOne({
+      where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+1111111111' }
+    })).toBeNull();
+    expect(await AccountDataModel.findOne({
+      where: { rcAccountId: 'account-1', platformName: 'test-platform', dataKey: 'contact-+2222222222' }
+    })).not.toBeNull();
   });
 
   test('TypeScript implementation deletes the same expired cache surfaces', async () => {

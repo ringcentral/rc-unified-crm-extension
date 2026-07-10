@@ -1148,6 +1148,219 @@ describe('Redtail Connector', () => {
         });
     });
 
+    describe('additional branch coverage', () => {
+        it('should format contacts with full_name fallback and blank optional title', async () => {
+            nock(apiUrl)
+                .get('/contacts/search_basic')
+                .query({ name: 'Company Only' })
+                .reply(200, {
+                    contacts: [
+                        {
+                            id: 303,
+                            first_name: '',
+                            middle_name: '',
+                            last_name: '',
+                            full_name: 'Company Only',
+                            updated_at: '2026-07-09T00:00:00Z'
+                        }
+                    ]
+                });
+            nock(apiUrl)
+                .get('/lists/categories')
+                .reply(200, { categories: [] });
+
+            const result = await redtail.findContactWithName({
+                user: mockUser,
+                authHeader,
+                name: 'Company Only'
+            });
+
+            expect(result.matchedContactInfo[0]).toMatchObject({
+                id: 303,
+                name: 'Company Only',
+                title: ''
+            });
+        });
+
+        it('should use admin config fallback when assigned token has no matching user', async () => {
+            UserModel.findByPk.mockResolvedValue(null);
+            AdminConfigModel.findByPk.mockResolvedValue({
+                userMappings: [
+                    { rcExtensionId: 'ext-5', crmUserId: 555 }
+                ]
+            });
+
+            nock(apiUrl)
+                .post('/activities', body => (
+                    body.attendees
+                    && body.attendees[0].user_id === 555
+                    && body.category_id === 2
+                ))
+                .reply(201, { activity: { id: 206 } });
+            nock(apiUrl)
+                .put('/activities/206')
+                .reply(200, { activity: { id: 206 } });
+            nock(apiUrl)
+                .get('/lists/categories')
+                .reply(200, { categories: [] });
+
+            const created = await redtail.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 101, name: 'Fallback Owner' }),
+                authHeader,
+                callLog: createMockCallLog(),
+                note: '',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'valid-jwt-token',
+                    adminAssignedUserRcId: 'ext-5'
+                },
+                composedLogDetails: 'Assigned fallback',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(created.logId).toBe(206);
+
+            nock(apiUrl)
+                .put('/activities/207', body => (
+                    body.attendees
+                    && body.attendees[0].user_id === 555
+                    && body.subject === undefined
+                ))
+                .reply(200, { activity: { id: 207 } });
+
+            const updated = await redtail.updateCallLog({
+                user: mockUser,
+                existingCallLog: createMockExistingCallLog({ thirdPartyLogId: '207' }),
+                authHeader,
+                subject: null,
+                startTime: Date.now(),
+                duration: 60,
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'valid-jwt-token',
+                    adminAssignedUserRcId: 'ext-5'
+                },
+                composedLogDetails: 'Assigned update fallback',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(updated.returnMessage.messageType).toBe('success');
+        });
+
+        it('should preserve existing default category settings when logging a call', async () => {
+            const userWithCategory = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    defaultCategory: {
+                        value: 9,
+                        customizable: false
+                    }
+                }
+            });
+            nock(apiUrl)
+                .post('/activities')
+                .reply(201, { activity: { id: 208 } });
+            nock(apiUrl)
+                .put('/activities/208')
+                .reply(200, { activity: { id: 208 } });
+            nock(apiUrl)
+                .get('/lists/categories')
+                .reply(200, {
+                    categories: [
+                        { id: 9, name: 'Existing', deleted: false }
+                    ]
+                });
+
+            await redtail.createCallLog({
+                user: userWithCategory,
+                contactInfo: createMockContact({ id: 101, name: 'Category Contact' }),
+                authHeader,
+                callLog: createMockCallLog(),
+                note: '',
+                additionalSubmission: null,
+                composedLogDetails: 'Category settings',
+                hashedAccountId: 'hash-123'
+            });
+
+            expect(userWithCategory.update).toHaveBeenCalledWith({
+                userSettings: expect.objectContaining({
+                    defaultCategory: expect.objectContaining({
+                        value: 9,
+                        customizable: false
+                    })
+                })
+            });
+        });
+
+        it('should create shared SMS and unknown-correspondent message logs', async () => {
+            nock(apiUrl)
+                .post('/activities', body => (
+                    body.subject === 'Shared Redtail SMS'
+                    && body.description === 'Shared Redtail body'
+                    && body.start_date === '2026-07-02T20:00:00.000Z'
+                ))
+                .reply(201, { activity: { id: 304 } });
+            nock(apiUrl)
+                .put('/activities/304')
+                .reply(200, { activity: { id: 304 } });
+
+            const shared = await redtail.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 101, name: 'Shared Redtail' }),
+                authHeader,
+                sharedSMSLogContent: {
+                    subject: 'Shared Redtail SMS',
+                    body: 'Shared Redtail body',
+                    conversationCreatedDate: new Date('2026-07-02T20:00:00Z')
+                },
+                message: createMockMessage()
+            });
+
+            expect(shared.logId).toBe(304);
+
+            nock(apiUrl)
+                .post('/activities', body => body.description.includes('<b>Unknown</b>'))
+                .reply(201, { activity: { id: 305 } });
+            nock(apiUrl)
+                .put('/activities/305')
+                .reply(200, { activity: { id: 305 } });
+
+            const withUnknownCorrespondent = await redtail.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' }),
+                authHeader,
+                correspondents: [[{}]],
+                message: createMockMessage(),
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(withUnknownCorrespondent.logId).toBe(305);
+        });
+
+        it('should update message logs with shared SMS body and date', async () => {
+            nock(apiUrl)
+                .patch('/activities/306', body => (
+                    body.description === 'Shared update body'
+                    && body.end_date === '2026-07-02T21:00:00.000Z'
+                ))
+                .reply(200, { activity: { id: 306 } });
+
+            await redtail.updateMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 101, name: 'John Doe', phoneNumber: '+14155551234' }),
+                existingMessageLog: createMockExistingMessageLog({ thirdPartyLogId: '306' }),
+                authHeader,
+                sharedSMSLogContent: {
+                    body: 'Shared update body',
+                    conversationCreatedDate: new Date('2026-07-02T21:00:00Z')
+                },
+                message: createMockMessage()
+            });
+        });
+    });
+
     // ==================== Custom Timezone ====================
     describe('Custom Timezone Handling', () => {
         it('should use custom timezone when configured', async () => {

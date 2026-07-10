@@ -52,6 +52,29 @@ describe('mock connector', () => {
     });
   });
 
+  test('creates and matches mock call logs without extension identifiers', async () => {
+    await mockConnector.createCallLog({
+      sessionId: 'session-without-extension',
+    });
+
+    const records = await CallLogModel.findAll({
+      where: {
+        sessionId: 'session-without-extension',
+      },
+    });
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      extensionNumber: '',
+      hashedExtensionId: '',
+    });
+
+    await expect(mockConnector.getCallLog({
+      sessionIds: 'session-without-extension',
+    })).resolves.toEqual([
+      { sessionId: 'session-without-extension', matched: true, logId: 'mockThirdPartyLogId' },
+    ]);
+  });
+
   test('returns matched and unmatched call logs in requested session order', async () => {
     await mockConnector.createCallLog({
       sessionId: 'session-1',

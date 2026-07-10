@@ -960,6 +960,74 @@ describe('Insightly Connector', () => {
 
             expect(result.logId).toBe(304);
         });
+
+        it('should create shared SMS log with shared content timestamps', async () => {
+            let capturedBody;
+            const mobileContact = { ...mockContact, type: 'contactMobile' };
+
+            nock(apiUrl)
+                .post('/v3.1/events', body => {
+                    capturedBody = body;
+                    return body.TITLE === 'Shared SMS thread' && body.DETAILS === 'Shared body';
+                })
+                .reply(201, { EVENT_ID: 305 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/305/links', {
+                    LINK_OBJECT_NAME: 'contact',
+                    LINK_OBJECT_ID: 101
+                })
+                .reply(201, {});
+
+            const result = await insightly.createMessageLog({
+                user: mockUser,
+                contactInfo: mobileContact,
+                authHeader,
+                message: mockMessageData,
+                sharedSMSLogContent: {
+                    body: 'Shared body',
+                    subject: 'Shared SMS thread',
+                    conversationCreatedDate: '2024-02-01T12:00:00Z'
+                },
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(result.logId).toBe(305);
+            expect(capturedBody.START_DATE_UTC).toBe('2024-02-01T12:00:00.000Z');
+            expect(capturedBody.END_DATE_UTC).toBe('2024-02-01T12:00:00.000Z');
+        });
+
+        it('should create outbound SMS with unknown correspondents', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .post('/v3.1/events', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(201, { EVENT_ID: 306 });
+
+            nock(apiUrl)
+                .post('/v3.1/events/306/links')
+                .reply(201, {});
+
+            const result = await insightly.createMessageLog({
+                user: mockUser,
+                contactInfo: { ...mockContact, type: 'contactPhone' },
+                correspondents: [[]],
+                authHeader,
+                message: createMockMessage({ direction: 'Outbound', subject: 'Outbound note' }),
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(result.logId).toBe(306);
+            expect(capturedBody.DETAILS).toContain('    Unknown');
+            expect(capturedBody.DETAILS).toContain('Test User');
+            expect(capturedBody.DETAILS).toContain('Outbound note');
+        });
     });
 
     // ==================== Message Log Format Tests ====================
@@ -1109,6 +1177,67 @@ describe('Insightly Connector', () => {
 
             // No return value to check, but no error means success
         });
+
+        it('should update an existing message log with outbound sender text', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .get('/v3.1/events/301')
+                .reply(200, {
+                    EVENT_ID: 301,
+                    DETAILS: '\nConversation(1 messages)\nBEGIN\n------------\nFirst message\n------------\nEND\n'
+                });
+
+            nock(apiUrl)
+                .get('/v3.1/users/me')
+                .reply(200, {
+                    USER_ID: 12345,
+                    FIRST_NAME: 'Test',
+                    LAST_NAME: 'User'
+                });
+
+            nock(apiUrl)
+                .put('/v3.1/events', body => {
+                    capturedBody = body;
+                    return true;
+                })
+                .reply(200, { EVENT_ID: 301 });
+
+            await insightly.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                existingMessageLog,
+                message: createMockMessage({ direction: 'Outbound', subject: 'Outbound follow-up' }),
+                authHeader
+            });
+
+            expect(capturedBody.DETAILS).toContain('Test User');
+            expect(capturedBody.DETAILS).toContain('Outbound follow-up');
+            expect(capturedBody.DETAILS).toContain('Conversation(2 messages)');
+        });
+
+        it('should update an existing message log with shared SMS content', async () => {
+            let capturedBody;
+            nock(apiUrl)
+                .put('/v3.1/events', body => {
+                    capturedBody = body;
+                    return body.DETAILS === 'Shared updated body';
+                })
+                .reply(200, { EVENT_ID: 301 });
+
+            await insightly.updateMessageLog({
+                user: mockUser,
+                contactInfo: mockContact,
+                sharedSMSLogContent: {
+                    body: 'Shared updated body',
+                    conversationCreatedDate: '2024-03-01T15:30:00Z'
+                },
+                existingMessageLog,
+                message: mockMessageData,
+                authHeader
+            });
+
+            expect(capturedBody.END_DATE_UTC).toBe('2024-03-01T15:30:00.000Z');
+        });
     });
 
     // ==================== Additional Coverage Tests ====================
@@ -1178,6 +1307,118 @@ describe('Insightly Connector', () => {
             });
 
             expect(result.successful).toBe(true);
+        });
+
+        it('should skip API lookup when phone number is invalid', async () => {
+            const defaultFormatResult = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: 'not-a-phone-number',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            const overrideFormatResult = await insightly.findContact({
+                user: mockUser,
+                authHeader,
+                phoneNumber: 'not-a-phone-number',
+                overridingFormat: '***-***-****',
+                isExtension: 'false'
+            });
+
+            expect(defaultFormatResult.successful).toBe(true);
+            expect(defaultFormatResult.matchedContactInfo).toEqual([{
+                id: 'createNewContact',
+                name: 'Create new contact...',
+                additionalInfo: null,
+                isNewContact: true
+            }]);
+            expect(overrideFormatResult.matchedContactInfo).toEqual(defaultFormatResult.matchedContactInfo);
+            expect(nock.isDone()).toBe(true);
+        });
+
+        it('should format all Insightly phone contact types with blank names and fallback dates', async () => {
+            const userWithExtraFields = createMockUser({
+                ...mockUser,
+                userSettings: {
+                    insightlyExtraPhoneFieldNameForContact: { value: 'CUSTOM_CONTACT_PHONE' },
+                    insightlyExtraPhoneFieldNameForLead: { value: 'CUSTOM_LEAD_PHONE' }
+                },
+                platformAdditionalInfo: { apiUrl }
+            });
+
+            nock(apiUrl)
+                .persist()
+                .get(/\/v3\.1\/(contacts|leads)\/search/)
+                .reply(200, function(uri) {
+                    if (uri.includes('contacts/search') && uri.includes('field_name=PHONE') && !uri.includes('PHONE_MOBILE')) {
+                        return [{
+                            CONTACT_ID: 101,
+                            PHONE: '+14155551234',
+                            DATE_UPDATED_UTC: '2024-02-01T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    if (uri.includes('contacts/search') && uri.includes('field_name=PHONE_MOBILE')) {
+                        return [{
+                            CONTACT_ID: 102,
+                            PHONE_MOBILE: '+14155551234',
+                            DATE_UPDATED_UTC: '2024-02-02T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    if (uri.includes('contacts/search') && uri.includes('field_name=CUSTOM_CONTACT_PHONE')) {
+                        return [{
+                            CONTACT_ID: 103,
+                            CUSTOMFIELDS: [{ FIELD_NAME: 'CUSTOM_CONTACT_PHONE', FIELD_VALUE: '+14155551234' }],
+                            DATE_UPDATED_UTC: '2024-02-03T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    if (uri.includes('leads/search') && uri.includes('field_name=PHONE')) {
+                        return [{
+                            LEAD_ID: 201,
+                            PHONE: '+14155551234',
+                            DATE_UPDATED_UTC: '2024-02-04T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    if (uri.includes('leads/search') && uri.includes('field_name=MOBILE')) {
+                        return [{
+                            LEAD_ID: 202,
+                            MOBILE: '+14155551234',
+                            DATE_UPDATED_UTC: '2024-02-05T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    if (uri.includes('leads/search') && uri.includes('field_name=CUSTOM_LEAD_PHONE')) {
+                        return [{
+                            LEAD_ID: 203,
+                            CUSTOMFIELDS: [{ FIELD_NAME: 'CUSTOM_LEAD_PHONE', FIELD_VALUE: '+14155551234' }],
+                            DATE_UPDATED_UTC: '2024-02-06T10:00:00Z',
+                            LINKS: []
+                        }];
+                    }
+                    return [];
+                });
+
+            const result = await insightly.findContact({
+                user: userWithExtraFields,
+                authHeader,
+                phoneNumber: '+14155551234',
+                overridingFormat: '',
+                isExtension: 'false'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo).toEqual(expect.arrayContaining([
+                expect.objectContaining({ id: 101, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-01T10:00:00Z', type: 'Contact' }),
+                expect.objectContaining({ id: 102, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-02T10:00:00Z', type: 'Contact' }),
+                expect.objectContaining({ id: 103, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-03T10:00:00Z', type: 'Contact' }),
+                expect.objectContaining({ id: 201, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-04T10:00:00Z', type: 'Lead' }),
+                expect.objectContaining({ id: 202, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-05T10:00:00Z', type: 'Lead' }),
+                expect.objectContaining({ id: 203, name: ' ', phone: '+14155551234', mostRecentActivityDate: '2024-02-06T10:00:00Z', type: 'Lead' })
+            ]));
         });
 
         it('should find contacts by mobile phone', async () => {

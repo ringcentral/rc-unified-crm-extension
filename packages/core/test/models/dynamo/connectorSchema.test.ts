@@ -1,4 +1,6 @@
 // Mock dynamoose before requiring the module
+const crypto = require('crypto');
+
 jest.mock('dynamoose', () => {
   const mockModel = {
     query: jest.fn().mockReturnThis(),
@@ -15,6 +17,7 @@ jest.mock('dynamoose', () => {
 
 describe('Connector Schema', () => {
   const originalEnv = process.env.DEVELOPER_APP_SERVER_SECRET_KEY;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,7 +31,17 @@ describe('Connector Schema', () => {
     } else {
       delete process.env.DEVELOPER_APP_SERVER_SECRET_KEY;
     }
+    if (originalNodeEnv) {
+      process.env.NODE_ENV = originalNodeEnv;
+    } else {
+      delete process.env.NODE_ENV;
+    }
   });
+
+  function encryptSecret(secret, key) {
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, Buffer.alloc(16, 0));
+    return cipher.update(secret, 'utf8', 'hex') + cipher.final('hex');
+  }
 
   describe('getProxyConfig', () => {
     test('should return proxy config when connector found', async () => {
@@ -153,6 +166,25 @@ describe('Connector Schema', () => {
     });
   });
 
+  describe('table options', () => {
+    test('should disable table creation in production', () => {
+      process.env.NODE_ENV = 'production';
+      jest.resetModules();
+
+      const dynamoose = require('dynamoose');
+      require('../../../models/dynamo/connectorSchema');
+
+      expect(dynamoose.model).toHaveBeenCalledWith(
+        'connectors',
+        expect.anything(),
+        expect.objectContaining({
+          create: false,
+          waitForActive: false
+        })
+      );
+    });
+  });
+
   describe('getDeveloperCipherKey behavior', () => {
     // These tests verify the cipher key handling indirectly through the module
     
@@ -184,6 +216,52 @@ describe('Connector Schema', () => {
 
       // The decode function will be called which requires the secret key
       await expect(Connector.getProxyConfig('test')).rejects.toThrow('DEVELOPER_APP_SERVER_SECRET_KEY is not defined');
+    });
+
+    test('should decrypt encoded secret key using padded short secret', async () => {
+      process.env.DEVELOPER_APP_SERVER_SECRET_KEY = 'short-secret';
+      jest.resetModules();
+
+      const encodedSecretKey = encryptSecret(
+        'decoded-secret',
+        process.env.DEVELOPER_APP_SERVER_SECRET_KEY.padEnd(32, ' ')
+      );
+      const { Connector } = require('../../../models/dynamo/connectorSchema');
+
+      Connector.query = jest.fn().mockReturnThis();
+      Connector.eq = jest.fn().mockReturnThis();
+      Connector.using = jest.fn().mockReturnThis();
+      Connector.exec = jest.fn().mockResolvedValue([{
+        proxyConfig: { operations: {} },
+        encodedSecretKey
+      }]);
+
+      const result = await Connector.getProxyConfig('test');
+
+      expect(result.secretKey).toBe('decoded-secret');
+    });
+
+    test('should decrypt encoded secret key using truncated long secret', async () => {
+      process.env.DEVELOPER_APP_SERVER_SECRET_KEY = '12345678901234567890123456789012-extra';
+      jest.resetModules();
+
+      const encodedSecretKey = encryptSecret(
+        'decoded-secret',
+        process.env.DEVELOPER_APP_SERVER_SECRET_KEY.slice(0, 32)
+      );
+      const { Connector } = require('../../../models/dynamo/connectorSchema');
+
+      Connector.query = jest.fn().mockReturnThis();
+      Connector.eq = jest.fn().mockReturnThis();
+      Connector.using = jest.fn().mockReturnThis();
+      Connector.exec = jest.fn().mockResolvedValue([{
+        proxyConfig: { operations: {} },
+        encodedSecretKey
+      }]);
+
+      const result = await Connector.getProxyConfig('test');
+
+      expect(result.secretKey).toBe('decoded-secret');
     });
   });
 });

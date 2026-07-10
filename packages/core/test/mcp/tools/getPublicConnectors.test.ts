@@ -1,14 +1,18 @@
 const getPublicConnectors = require('../../../mcp/tools/getPublicConnectors');
 const { verifyWidgetSessionToken } = require('../../../mcp/lib/widgetSessionToken');
 const axios = require('axios');
+const { UserModel } = require('../../../models/userModel');
+const { getHashValue } = require('../../../lib/util');
 
 jest.mock('axios');
 
 describe('MCP Tool: getPublicConnectors', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await UserModel.destroy({ where: {} });
     process.env.APP_SERVER = 'https://test-server.com';
     process.env.APP_SERVER_SECRET_KEY = 'test-app-server-secret-key-123456';
+    process.env.HASH_KEY = 'hash-secret';
   });
 
   describe('tool definition', () => {
@@ -73,6 +77,44 @@ describe('MCP Tool: getPublicConnectors', () => {
         'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/~',
         { headers: { Authorization: 'Bearer valid-rc-token' } }
       );
+    });
+
+    test('should return existing extension-session warning instead of widget metadata', async () => {
+      axios.get.mockResolvedValue({
+        data: { id: 'ext-456', account: { id: 'acc-789' } }
+      });
+      await UserModel.create({
+        id: 'connected-user',
+        platform: 'clio',
+        accessToken: 'crm-token',
+        hashedRcExtensionId: getHashValue('ext-456', process.env.HASH_KEY)
+      });
+
+      const result = await getPublicConnectors.execute({
+        rcAccessToken: 'valid-rc-token',
+        openaiSessionId: 'session-abc'
+      });
+
+      expect(result).toEqual({
+        structuredContent: {
+          error: true,
+          errorMessage: "You are already connected to clio. It's controlled from App Connect Chrome extension."
+        }
+      });
+    });
+
+    test('should tolerate missing account data in the RC extension response', async () => {
+      axios.get.mockResolvedValue({
+        data: { id: 'ext-without-account' }
+      });
+
+      const result = await getPublicConnectors.execute({
+        rcAccessToken: 'valid-rc-token'
+      });
+
+      expect(result.structuredContent.rcExtensionId).toBe('ext-without-account');
+      expect(result.structuredContent.rcAccountId).toBeNull();
+      expect(result.structuredContent.widgetSessionToken).toEqual(expect.any(String));
     });
 
     test('should return null RC IDs and continue when RC API call fails', async () => {

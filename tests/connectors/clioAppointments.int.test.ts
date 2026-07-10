@@ -170,6 +170,57 @@ describe('Clio appointment connector', () => {
         );
     });
 
+    test('createAppointment uses fallback calendar lookup and omits attendees when none are supplied', async () => {
+        axios.get
+            .mockResolvedValueOnce({ data: { data: [] } })
+            .mockResolvedValueOnce({ data: { data: [{ id: 9002 }] } });
+        axios.post.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 223,
+                    summary: 'Appointment',
+                    description: '',
+                    start_at: null,
+                    end_at: null,
+                    attendees: [],
+                    external_properties: []
+                }
+            }
+        });
+
+        const result = await clio.createAppointment({
+            user,
+            authHeader,
+            payload: {}
+        });
+
+        expect(result.appointmentId).toBe('223');
+        expect(axios.post).toHaveBeenCalledWith(
+            'https://app.clio.com/api/v4/calendar_entries.json',
+            {
+                data: {
+                    calendar_owner: { id: 9002 },
+                    summary: 'Appointment',
+                    description: '',
+                    start_at: null,
+                    end_at: null,
+                    send_email_notification: false
+                }
+            },
+            {
+                headers: { Authorization: authHeader },
+                params: {
+                    fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id'
+                }
+            }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '223',
+            title: 'Appointment',
+            durationMinutes: null
+        });
+    });
+
     test('updateAppointment returns a warning when the appointment is missing', async () => {
         axios.get.mockResolvedValueOnce({
             data: {
@@ -271,6 +322,68 @@ describe('Clio appointment connector', () => {
             attendeeIds: ['502', '503'],
             durationMinutes: 60,
             status: 'tentative'
+        });
+    });
+
+    test('updateAppointment leaves attendees untouched when contacts are not supplied', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 334,
+                    attendees: [
+                        { id: '701' }
+                    ]
+                }
+            }
+        });
+        axios.patch.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 334,
+                    summary: 'No attendee change',
+                    description: '',
+                    start_at: '2026-07-20T22:00:00.000Z',
+                    end_at: '2026-07-20T22:10:00.000Z',
+                    attendees: [
+                        { id: 701, name: 'Existing Client', type: 'Contact' }
+                    ],
+                    external_properties: []
+                }
+            }
+        });
+
+        const result = await clio.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '334',
+            patchBody: {
+                title: 'No attendee change',
+                startTime: '2026-07-20T22:00:00.000Z',
+                durationMinutes: 10
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://app.clio.com/api/v4/calendar_entries/334.json',
+            {
+                data: {
+                    summary: 'No attendee change',
+                    description: '',
+                    start_at: '2026-07-20T22:00:00.000Z',
+                    end_at: '2026-07-20T22:10:00.000Z'
+                }
+            },
+            {
+                headers: { Authorization: authHeader },
+                params: {
+                    fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id'
+                }
+            }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '334',
+            attendeeIds: ['701'],
+            durationMinutes: 10
         });
     });
 

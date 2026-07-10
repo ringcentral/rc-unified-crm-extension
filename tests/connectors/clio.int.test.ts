@@ -1018,6 +1018,104 @@ describe('Clio Connector', () => {
             expect(result.returnMessage.message).toBe('Message logged');
         });
 
+        it('should create SMS time entry with default minimum duration and matter', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, {
+                    data: { id: 405 }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json', body => {
+                    return body.data.quantity === 30
+                        && body.data.non_billable === true
+                        && body.data.communication.id === 405
+                        && body.data.matter.id === 201;
+                })
+                .reply(201, {
+                    data: { id: 505 }
+                }, mockRateLimitHeaders);
+
+            const result = await clio.createMessageLog({
+                user: {
+                    ...mockUser,
+                    userSettings: {
+                        smsTimeTrackingEnabled: { value: true },
+                        smsTimeTrackingDefaultBillable: { value: 'non-billable' }
+                    }
+                },
+                contactInfo: mockContact,
+                authHeader,
+                message: createMockMessage({
+                    direction: 'Outbound',
+                    typingDurationMs: 1000
+                }),
+                additionalSubmission: { matters: 201 },
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(result.logId).toBe(405);
+        });
+
+        it('should keep message logging successful when SMS time entry creation fails', async () => {
+            nock(apiUrl)
+                .get('/api/v4/users/who_am_i.json')
+                .query({ fields: 'name' })
+                .reply(200, {
+                    data: { name: 'Test User' }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/communications.json')
+                .reply(201, {
+                    data: { id: 406 }
+                }, mockRateLimitHeaders);
+
+            nock(apiUrl)
+                .post('/api/v4/activities.json', body => {
+                    return body.data.quantity === 12
+                        && body.data.non_billable === false
+                        && !body.data.matter;
+                })
+                .reply(500, {
+                    error: 'time entry failed'
+                });
+
+            const result = await clio.createMessageLog({
+                user: {
+                    ...mockUser,
+                    userSettings: {
+                        smsTimeTrackingEnabled: { value: true },
+                        smsTimeTrackingMinimumDuration: { value: '5' }
+                    }
+                },
+                contactInfo: mockContact,
+                authHeader,
+                message: createMockMessage({
+                    direction: 'Outbound',
+                    typingDurationMs: 12000
+                }),
+                additionalSubmission: null,
+                recordingLink: null,
+                faxDocLink: null
+            });
+
+            expect(result).toMatchObject({
+                logId: 406,
+                returnMessage: {
+                    messageType: 'success'
+                }
+            });
+        });
+
         it('should create a voicemail message log', async () => {
             // First fetches user info
             nock(apiUrl)

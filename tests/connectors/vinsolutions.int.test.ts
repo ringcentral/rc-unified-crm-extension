@@ -605,6 +605,14 @@ describe('VinSolutions Connector', () => {
             });
         });
 
+        it('should throw when required OAuth client credentials are missing', async () => {
+            delete process.env.VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_SECRET;
+
+            await expect(vinsolutions.getOauthInfo()).rejects.toThrow(
+                'VinSolutions leadManagement OAuth credentials are not configured'
+            );
+        });
+
         it('should return the user unchanged when token refresh has nothing to do', async () => {
             await expect(vinsolutions.checkAndRefreshAccessToken(null, null)).resolves.toBeNull();
 
@@ -633,6 +641,20 @@ describe('VinSolutions Connector', () => {
             await expect(vinsolutions.checkAndRefreshAccessToken(null, expiredUser)).resolves.toBeNull();
         });
 
+        it('should leave partially configured valid tokens unchanged', async () => {
+            const partialTokenUser = {
+                ...mockUser,
+                platformAdditionalInfo: {
+                    vinsLeadManagementAccessToken: accessToken,
+                    vinsLeadManagementTokenExpiry: new Date(Date.now() + 3600000).toISOString()
+                },
+                save: jest.fn()
+            };
+
+            await expect(vinsolutions.checkAndRefreshAccessToken(null, partialTokenUser)).resolves.toBe(partialTokenUser);
+            expect(partialTokenUser.save).not.toHaveBeenCalled();
+        });
+
         it('should return a warning when getUserInfo cannot fetch tokens', async () => {
             const result = await vinsolutions.getUserInfo({
                 additionalInfo: {
@@ -643,6 +665,38 @@ describe('VinSolutions Connector', () => {
 
             expect(result.successful).toBe(false);
             expect(result.returnMessage.message).toContain('Could not connect to VinSolutions');
+        });
+
+        it('should connect with split user names and no matching dealer name', async () => {
+            mockBothTokenRequests({
+                leadAccessToken: 'fresh-lead-token',
+                vinsCallTrackingAccessToken: 'fresh-call-token'
+            });
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user/id/1001')
+                .query({ dealerId: 2002 })
+                .reply(200, {
+                    FirstName: 'Alex',
+                    LastName: 'Fallback'
+                });
+            nock(apiBase)
+                .get('/gateway/v1/organization/dealers')
+                .reply(200, {
+                    Items: [{ DealerId: 9999, Name: 'Other Dealer' }]
+                });
+
+            const result = await vinsolutions.getUserInfo({
+                additionalInfo: {
+                    dealerId: '2002',
+                    crmUserId: '1001'
+                }
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.name).toBe('Alex Fallback');
+            expect(result.platformUserInfo.platformAdditionalInfo.dealerName).toBe('');
+            expect(result.platformUserInfo.platformAdditionalInfo.email).toBe('');
+            expect(result.returnMessage.message).toBe('Connected to VinSolutions.');
         });
 
         it('should return userInfo unchanged when postSaveUserInfo cannot find a user', async () => {
@@ -722,6 +776,28 @@ describe('VinSolutions Connector', () => {
                     isNewContact: true
                 }
             ]);
+        });
+
+        it('should create a single-name contact with default customer last name and fallback contact id path', async () => {
+            nock(apiBase)
+                .post('/gateway/v1/contact', (body) => (
+                    body.ContactInformation.FirstName === 'Cher'
+                    && body.ContactInformation.LastName === 'Customer'
+                    && body.ContactInformation.Phones[0].Number === 'not-a-phone'
+                ))
+                .matchHeader('api_key', 'lead-api-key')
+                .reply(201, { ContactInformation: { ContactId: 779 } });
+
+            const result = await vinsolutions.createContact({
+                user: mockUser,
+                phoneNumber: 'not-a-phone',
+                newContactName: 'Cher'
+            });
+
+            expect(result.contactInfo).toEqual({
+                id: 779,
+                name: 'Cher'
+            });
         });
 
         it('should find contacts by name and tolerate lead lookup failures', async () => {
@@ -832,6 +908,246 @@ describe('VinSolutions Connector', () => {
             expect(failure.returnMessage.messageType).toBe('error');
         });
 
+        it('should create inbound pending-duration call logs with fallback numbers and ids', async () => {
+            nock(apiBase)
+                .post('/calldetails', (body) => (
+                    body.callDirection === 'INBOUND'
+                    && body.fromNumber === '101'
+                    && body.toNumber === ''
+                    && body.callDurationSeconds === 0
+                    && body.providerReferenceId === 'call-id-1'
+                    && !('leadId' in body.vinProperties)
+                ))
+                .reply(201, {}, { Location: `${apiBase}/calldetails/id/3579` });
+
+            const result = await vinsolutions.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                callLog: {
+                    id: 'call-id-1',
+                    direction: 'Inbound',
+                    startTime: '2026-07-09T00:00:00Z',
+                    duration: 'pending',
+                    from: { extensionId: '101' },
+                    to: {},
+                    result: 'Connected',
+                    recordingLink: 'https://recording.example.com/1'
+                },
+                composedLogDetails: '',
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(result.logId).toBe('3579');
+        });
+
+        it('should map generic call log details without a related contact lookup', async () => {
+            nock(apiBase)
+                .get('/calldetails/id/9999')
+                .query({
+                    accountId: '2002',
+                    providerName: 'RingCentral'
+                })
+                .reply(200, {
+                    callDetailId: 9999,
+                    callDirection: 'SIDEWAYS',
+                    transcriptFull: 'Free form CRM note',
+                    vinProperties: {}
+                });
+
+            const result = await vinsolutions.getCallLog({
+                user: mockUser,
+                callLogId: '9999'
+            });
+
+            expect(result.callLogInfo).toMatchObject({
+                subject: 'Phone call',
+                note: 'Free form CRM note',
+                fullBody: 'Free form CRM note',
+                contactName: '',
+                dispositions: {}
+            });
+        });
+
+        it('should map inbound call details with empty contact results and structured notes', async () => {
+            nock(apiBase)
+                .get('/calldetails/id/1000')
+                .query({
+                    accountId: '2002',
+                    providerName: 'RingCentral'
+                })
+                .reply(200, {
+                    callDetailId: 1000,
+                    callDirection: 'INBOUND',
+                    transcriptFull: '- Summary: no explicit note',
+                    vinProperties: {
+                        contactId: 501
+                    }
+                });
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query({
+                    dealerId: 2002,
+                    userId: 1001,
+                    contactId: 501,
+                    pageSize: 1
+                })
+                .reply(200, []);
+
+            const result = await vinsolutions.getCallLog({
+                user: mockUser,
+                callLogId: '1000'
+            });
+
+            expect(result.callLogInfo).toMatchObject({
+                subject: 'Inbound call',
+                note: '',
+                contactName: ''
+            });
+        });
+
+        it('should treat object AlreadyLoggedException responses as success', async () => {
+            nock(apiBase)
+                .post('/calldetails')
+                .reply(500, { message: 'AlreadyLoggedException: duplicate call' }, { Location: `${apiBase}/calldetails/id/2222` });
+
+            const result = await vinsolutions.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                callLog: createMockCallLog({ sessionId: 'session-already-logged-object' }),
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(result.logId).toBe('2222');
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should write shared SMS content directly to the selected lead', async () => {
+            nock(apiBase)
+                .put('/leads/id/9001', (body) => body.notes === 'Shared SMS transcript')
+                .reply(200, {});
+
+            const result = await vinsolutions.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                sharedSMSLogContent: { body: 'Shared SMS transcript' },
+                message: {
+                    subject: 'Ignored body',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: { leads: 9001 }
+            });
+
+            expect(result.logId).toBe('9001');
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it.each([
+            ['voicemail', { recordingLink: 'https://recording.example.com/1' }, 'Voicemail left by Jane Buyer'],
+            ['fax', { faxDocLink: 'https://fax.example.com/1' }, 'Fax document from Jane Buyer']
+        ])('should compose %s notes for selected leads', async (_name, linkArgs, expectedText) => {
+            nock(apiBase)
+                .put('/leads/id/9001', (body) => (
+                    typeof body.notes === 'string'
+                    && body.notes.includes(expectedText)
+                ))
+                .reply(200, {});
+
+            const result = await vinsolutions.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                message: {
+                    subject: 'Message body',
+                    direction: 'Inbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: { leads: 9001 },
+                ...linkArgs
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should return an error when no lead source exists for automatic lead creation', async () => {
+            nock(apiBase)
+                .get('/leadSources')
+                .query({ dealerId: 2002, limit: 100 })
+                .reply(200, { items: [] });
+
+            const result = await vinsolutions.createMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                message: {
+                    subject: 'Hello',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: {}
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.messageType).toBe('error');
+        });
+
+        it('should cover updateMessageLog warning, shared body, empty notes, and failure paths', async () => {
+            await expect(vinsolutions.updateMessageLog({
+                user: mockUser,
+                existingMessageLog: {},
+                additionalSubmission: {}
+            })).resolves.toMatchObject({
+                returnMessage: {
+                    message: 'Lead ID not found for message log update.',
+                    messageType: 'warning'
+                }
+            });
+
+            nock(apiBase)
+                .put('/leads/id/9001', (body) => body.notes === 'Updated shared transcript')
+                .reply(200, {});
+            await expect(vinsolutions.updateMessageLog({
+                user: mockUser,
+                existingMessageLog: { thirdPartyLogId: '9001' },
+                sharedSMSLogContent: { body: 'Updated shared transcript' }
+            })).resolves.toEqual({});
+
+            nock(apiBase)
+                .get('/leads/id/9002')
+                .query({ dealerId: 2002, userId: 1001 })
+                .reply(200, {});
+            nock(apiBase)
+                .put('/leads/id/9002', (body) => (
+                    typeof body.notes === 'string'
+                    && body.notes.includes('SMS conversation with Jane Buyer')
+                ))
+                .reply(200, {});
+            await expect(vinsolutions.updateMessageLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                existingMessageLog: { thirdPartyLogId: '9002' },
+                message: {
+                    subject: 'Fresh thread',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                }
+            })).resolves.toEqual({});
+
+            nock(apiBase)
+                .get('/leads/id/9003')
+                .query(true)
+                .reply(500, { message: 'lead unavailable' });
+            const failed = await vinsolutions.updateMessageLog({
+                user: mockUser,
+                existingMessageLog: { thirdPartyLogId: '9003' },
+                message: {
+                    subject: 'Failure path',
+                    direction: 'Inbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                }
+            });
+
+            expect(failed.returnMessage.messageType).toBe('error');
+        });
+
         it('should cover updateCallLog missing id, nothing to update, lead assignment, and failure', async () => {
             await expect(vinsolutions.updateCallLog({
                 user: mockUser,
@@ -895,6 +1211,259 @@ describe('VinSolutions Connector', () => {
             });
 
             expect(failed.returnMessage.messageType).toBe('error');
+        });
+
+        it('should throw when the OAuth client id is missing and reject login without dealer id', async () => {
+            delete process.env.VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_ID;
+
+            await expect(vinsolutions.getOauthInfo()).rejects.toThrow(
+                'VinSolutions leadManagement OAuth credentials are not configured'
+            );
+
+            const result = await vinsolutions.getUserInfo({
+                additionalInfo: {
+                    crmUserId: '1001'
+                }
+            });
+
+            expect(result.successful).toBe(false);
+            expect(result.returnMessage.message).toContain('required');
+        });
+
+        it('should refresh missing stored tokens and use token response defaults', async () => {
+            const userWithoutStoredTokens: any = {
+                ...mockUser,
+                platformAdditionalInfo: null,
+                save: jest.fn().mockResolvedValue(true)
+            };
+            nock(tokenUri)
+                .post('/connect/token')
+                .twice()
+                .reply(200, {
+                    access_token: 'defaulted-token'
+                });
+
+            const result = await vinsolutions.refreshUserInfo({ user: userWithoutStoredTokens });
+
+            expect(result.successful).toBe(true);
+            expect(userWithoutStoredTokens.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe('defaulted-token');
+            expect(userWithoutStoredTokens.platformAdditionalInfo.vinsCallTrackingAccessToken).toBe('defaulted-token');
+            expect(userWithoutStoredTokens.save).toHaveBeenCalledTimes(2);
+        });
+
+        it('should refresh a single expired configured token and skip missing token profiles', async () => {
+            const partialExpiredUser: any = {
+                ...mockUser,
+                platformAdditionalInfo: {
+                    vinsLeadManagementAccessToken: 'expired-lead-token',
+                    vinsLeadManagementTokenExpiry: new Date(Date.now() - 60000).toISOString()
+                },
+                save: jest.fn().mockResolvedValue(true)
+            };
+            mockTokenRequest({ tokenType: 'leadManagement', accessTokenValue: 'fresh-lead-token' });
+
+            const result = await vinsolutions.checkAndRefreshAccessToken(null, partialExpiredUser);
+
+            expect(result).toBe(partialExpiredUser);
+            expect(partialExpiredUser.platformAdditionalInfo.vinsLeadManagementAccessToken).toBe('fresh-lead-token');
+            expect(partialExpiredUser.save).toHaveBeenCalledTimes(1);
+        });
+
+        it('should connect with token defaults, empty dealer list, and empty user display fields', async () => {
+            nock(tokenUri)
+                .post('/connect/token')
+                .twice()
+                .reply(200, {
+                    access_token: 'token-with-defaults'
+                });
+            nock(apiBase)
+                .get('/gateway/v1/tenant/user/id/1001')
+                .query({ dealerId: 2002 })
+                .reply(200, {});
+            nock(apiBase)
+                .get('/gateway/v1/organization/dealers')
+                .reply(200, {});
+
+            const result = await vinsolutions.getUserInfo({
+                additionalInfo: {
+                    dealerId: '2002',
+                    crmUserId: '1001'
+                }
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.platformUserInfo.name).toBe('');
+            expect(result.platformUserInfo.platformAdditionalInfo.dealerName).toBe('');
+            expect(result.platformUserInfo.platformAdditionalInfo.email).toBe('');
+        });
+
+        it('should format fallback contacts and lead results during phone lookup', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query({
+                    dealerId: 2002,
+                    userId: 1001,
+                    phone: 'lookup',
+                    pageSize: 100
+                })
+                .reply(200, [
+                    {
+                        ContactId: 999,
+                        ContactInformation: {
+                            Phones: [
+                                {
+                                    PhoneType: 'Work',
+                                    Number: '5550002222'
+                                }
+                            ]
+                        }
+                    }
+                ]);
+            nock(apiBase)
+                .get('/leads')
+                .query({
+                    dealerId: 2002,
+                    userId: 1001,
+                    contactId: 999,
+                    limit: 100
+                })
+                .reply(200, {
+                    results: [
+                        {
+                            leadId: 9100,
+                            leadStatusType: 'ACTIVE'
+                        }
+                    ]
+                });
+
+            const result = await vinsolutions.findContact({
+                user: mockUser,
+                phoneNumber: 'lookup'
+            });
+
+            expect(result.successful).toBe(true);
+            expect(result.matchedContactInfo[0]).toMatchObject({
+                id: 999,
+                name: 'Contact 999',
+                phone: '5550002222',
+                additionalInfo: {
+                    leads: [
+                        {
+                            const: 9100,
+                            title: 'Lead #9100 (ACTIVE)'
+                        }
+                    ]
+                }
+            });
+        });
+
+        it('should search by first name only when no last name is supplied', async () => {
+            nock(apiBase)
+                .get('/gateway/v1/contact')
+                .query((query) => (
+                    query.dealerId === '2002'
+                    && query.userId === '1001'
+                    && query.firstName === 'Cher'
+                    && !('lastName' in query)
+                ))
+                .reply(200, null);
+
+            const result = await vinsolutions.findContactWithName({
+                user: mockUser,
+                name: 'Cher'
+            });
+
+            expect(result).toEqual({
+                successful: true,
+                matchedContactInfo: []
+            });
+        });
+
+        it('should create a default no-answer call log without optional ids or recordings', async () => {
+            nock(apiBase)
+                .post('/calldetails', (body) => (
+                    body.callResult === 'NO_ANSWER'
+                    && body.fromNumber === ''
+                    && body.toNumber === ''
+                    && body.recordingHref === ''
+                    && body.providerReferenceId === ''
+                ))
+                .reply(201, {});
+
+            const result = await vinsolutions.createCallLog({
+                user: mockUser,
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                callLog: {
+                    direction: 'Outbound',
+                    startTime: '2026-07-09T00:00:00Z',
+                    duration: 0,
+                    from: {},
+                    to: {},
+                    result: ''
+                },
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(result.logId).toBeNull();
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should resolve admin assigned user from token during call log update', async () => {
+            UserModel.findByPk.mockResolvedValue({
+                platformAdditionalInfo: {
+                    crmUserId: 7070
+                }
+            });
+            nock(apiBase)
+                .patch('/calldetails/id/7000', (body) => (
+                    body.vinProperties.userId === 7070
+                    && body.vinProperties.leadId === 9004
+                    && body.transcriptFull === 'Assigned update'
+                ))
+                .reply(204);
+
+            const result = await vinsolutions.updateCallLog({
+                user: mockUser,
+                existingCallLog: { thirdPartyLogId: '7000' },
+                composedLogDetails: 'Assigned update',
+                additionalSubmission: {
+                    isAssignedToUser: true,
+                    adminAssignedUserToken: 'encoded-token',
+                    leads: 9004
+                },
+                hashedAccountId: 'hash-1'
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
+        });
+
+        it('should include correspondent names in composed SMS notes', async () => {
+            nock(apiBase)
+                .put('/leads/id/9005', (body) => (
+                    body.notes.includes('Participants: Alex Agent, Jane Buyer, Co Buyer, Manager')
+                    && body.notes.includes('Conversation (1 message):')
+                ))
+                .reply(200, {});
+
+            const result = await vinsolutions.createMessageLog({
+                user: {
+                    ...mockUser,
+                    name: 'Alex Agent'
+                },
+                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer' }),
+                correspondents: [
+                    [{ name: 'Co Buyer' }],
+                    { name: 'Manager' }
+                ],
+                message: {
+                    subject: 'See you soon',
+                    direction: 'Outbound',
+                    creationTime: new Date('2026-07-02T20:00:00Z')
+                },
+                additionalSubmission: { leads: 9005 }
+            });
+
+            expect(result.returnMessage.messageType).toBe('success');
         });
     });
 });
