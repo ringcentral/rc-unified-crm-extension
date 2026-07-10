@@ -95,6 +95,12 @@ function rewriteCompiledCorePackageJson() {
                 default: './index.js'
             },
             './package.json': './package.json',
+            './types': {
+                types: './types/index.d.ts'
+            },
+            './types/*': {
+                types: './types/*.d.ts'
+            },
             './*': {
                 types: './*.d.ts',
                 require: './*.js',
@@ -118,6 +124,12 @@ function syncCoreDistPackage() {
                 default: './index.js'
             },
             './package.json': './package.json',
+            './types': {
+                types: './types/index.d.ts'
+            },
+            './types/*': {
+                types: './types/*.d.ts'
+            },
             './*': {
                 types: './*.d.ts',
                 require: './*.js',

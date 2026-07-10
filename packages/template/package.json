@@ -2,11 +2,11 @@
   "name": "@app-connect/template",
   "version": "1.7.37",
   "description": "Template project for RingCentral App Connect",
-  "main": "dist/src/server.ts",
+  "main": "dist/src/server.js",
   "private": true,
   "scripts": {
     "start": "npm run prod",
-    "prod": "npm run build:ts && node dist/src/server.ts",
+    "prod": "npm run build:ts && node dist/src/server.js",
     "dev": "nodemon --watch src --ext ts,json --exec \"npm run prod\"",
     "test": "npm run build:ts && jest --config dist/jest.config.js",
     "test:coverage": "npm run build:ts && jest --config dist/jest.config.js --coverage",

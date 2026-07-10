@@ -68,12 +68,12 @@ function createPostgresSequelize({ hasIdentityPk = false, descriptions = [{}], p
 }
 
 function createOnlinePostgresSequelize(client, hasIdentityPk = false) {
-  const { sequelize } = createPostgresSequelize({ hasIdentityPk });
+  const { sequelize: baseSequelize } = createPostgresSequelize({ hasIdentityPk });
   const connectionManager = {
     getConnection: jest.fn(async () => client),
     releaseConnection: jest.fn(),
   };
-  sequelize.connectionManager = connectionManager;
+  const sequelize = Object.assign(baseSequelize, { connectionManager });
   return { sequelize, connectionManager };
 }
 

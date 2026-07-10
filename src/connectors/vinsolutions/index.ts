@@ -1105,7 +1105,6 @@ async function putLeadNotes({ user, leadId, notes }) {
         vehiclesOfInterest: null,
         notes
     };
-    console.log({m:'putLeadNotes', leadId, body});
     return axios.put(`${API_BASE_URL}/leads/id/${leadId}`, body, {
         headers: buildLeadManagementHeaders({ accessToken, user, withContentType: true })
     });
@@ -1226,7 +1225,6 @@ async function updateMessageLog({
 }
 
 async function createLead({ user, contactInfo }) {
-    console.log({m:'createLead', user, contactInfo});
     let leadId=null;
     // Fetch lead sources from VinSolutions and extract the first item from the items array
     const { dealerId } = getDealerContext(user);
@@ -1252,11 +1250,9 @@ async function createLead({ user, contactInfo }) {
         //TODO will add logic to fetch relevent lead source
         if (items.length > 0) {
             firstLeadSource = items[0];
-            console.log({m:'firstLeadSource', firstLeadSource});
         const contactId = contactInfo.id;
         const dealerIdForContact =  dealerId;
         const userIdForContact =  user?.platformAdditionalInfo?.crmUserId;
-        console.log({m:'data', contactId, dealerIdForContact, userIdForContact});
 
         const data = {
             leadSource: firstLeadSource.href,

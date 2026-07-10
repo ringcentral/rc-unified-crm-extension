@@ -396,7 +396,8 @@ describe('VinSolutions Connector', () => {
     });
 
     describe('createMessageLog', () => {
-        it('should create a lead when none is selected', async () => {
+        it('should create a lead without logging credentials, contact data, or message notes', async () => {
+            const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
             nock(apiBase)
                 .get('/leadSources')
                 .query({ dealerId: 2002, limit: 100 })
@@ -422,21 +423,27 @@ describe('VinSolutions Connector', () => {
                 .matchHeader('api_key', 'lead-api-key')
                 .reply(200, {});
 
-            const result = await vinsolutions.createMessageLog({
-                user: mockUser,
-                contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
-                authHeader,
-                message: {
-                    id: 'msg-1',
-                    subject: 'Hello there',
-                    direction: 'Outbound',
-                    creationTime: new Date('2026-07-02T20:00:00Z')
-                },
-                additionalSubmission: {}
-            });
+            try {
+                const result = await vinsolutions.createMessageLog({
+                    user: mockUser,
+                    contactInfo: createMockContact({ id: 501, name: 'Jane Buyer', phoneNumber: '+15551234567' }),
+                    authHeader,
+                    message: {
+                        id: 'msg-1',
+                        subject: 'Hello there',
+                        direction: 'Outbound',
+                        creationTime: new Date('2026-07-02T20:00:00Z')
+                    },
+                    additionalSubmission: {}
+                });
 
-            expect(result.logId).toBe('9500');
-            expect(result.returnMessage.messageType).toBe('success');
+                expect(result.logId).toBe('9500');
+                expect(result.returnMessage.messageType).toBe('success');
+                expect(consoleLogSpy).not.toHaveBeenCalled();
+            }
+            finally {
+                consoleLogSpy.mockRestore();
+            }
         });
 
         it('should write SMS notes to the selected lead', async () => {
