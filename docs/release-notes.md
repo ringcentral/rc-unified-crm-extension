@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.7.38
+
+- Fix: Security patches
+
 ## 1.7.37
 
 - New: Custom fields for call pop parameters

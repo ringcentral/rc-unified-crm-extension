@@ -1,6 +1,6 @@
 {
   "name": "@app-connect/template",
-  "version": "1.7.37",
+  "version": "1.7.38",
   "description": "Template project for RingCentral App Connect",
   "main": "dist/src/server.js",
   "private": true,
@@ -16,7 +16,7 @@
     "deploy": "npm run build && node ./dist/scripts/serverless-deploy.js"
   },
   "dependencies": {
-    "@app-connect/core": "^1.7.37",
+    "@app-connect/core": "^1.7.38",
     "axios": "^1.12.2",
     "dotenv": "^16.0.3",
     "express": "^4.22.1",
