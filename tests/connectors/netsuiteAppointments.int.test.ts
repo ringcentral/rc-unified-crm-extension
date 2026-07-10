@@ -238,7 +238,7 @@ describe('NetSuite appointment connector', () => {
         });
 
         const result = await netsuite.createAppointment({
-            user: { ...user, timezoneOffset: null },
+            user: { ...user, timezoneOffset: '+00:00' },
             authHeader,
             payload: {
                 title: 'Direct Date Event',
@@ -280,7 +280,7 @@ describe('NetSuite appointment connector', () => {
             appointment: {
                 id: '2100',
                 title: 'Direct Date Event',
-                startTimeUtc: '2026-07-21T01:15:00.000Z',
+                startTimeUtc: '2026-07-21T09:15:00.000Z',
                 durationMinutes: 45,
                 status: 'TENTATIVE'
             }
