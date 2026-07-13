@@ -41,4 +41,3 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
-/package-lock.json
