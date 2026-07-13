@@ -29,6 +29,10 @@ const pluginCore = require('../../handlers/plugin');
 const analytics = require('../../lib/analytics');
 const jwt = require('../../lib/jwt');
 const { UserModel } = require('../../models/userModel');
+const {
+  PluginMutationResponseSchema,
+  PluginRegisterRequestSchema,
+} = require('../../contracts');
 const { createCoreRouter } = require('../../index');
 
 describe('Plugin Routes', () => {
@@ -49,18 +53,22 @@ describe('Plugin Routes', () => {
       });
       pluginCore.registerPluginAccount.mockResolvedValue({ successful: true });
 
+      const requestBody = {
+        pluginId: 'plugin-1',
+        rcAccountId: 'validated-account-id',
+        pluginAccess: 'shared',
+        pluginName: 'plugin.sample',
+      };
+      expect(PluginRegisterRequestSchema.parse(requestBody)).toEqual(requestBody);
+
       const response = await request(app)
         .post('/plugin/register')
         .set('X-RC-Access-Token', 'valid-rc-token')
-        .send({
-          pluginId: 'plugin-1',
-          rcAccountId: 'validated-account-id',
-          pluginAccess: 'shared',
-          pluginName: 'plugin.sample',
-        });
+        .send(requestBody);
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ successful: true });
+      expect(PluginMutationResponseSchema.parse(response.body)).toEqual(response.body);
       expect(adminCore.validateAdminRole).toHaveBeenCalledWith({ rcAccessToken: 'valid-rc-token' });
       expect(pluginCore.registerPluginAccount).toHaveBeenCalledWith({
         pluginId: 'plugin-1',

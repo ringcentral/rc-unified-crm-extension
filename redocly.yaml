@@ -1,6 +1,8 @@
 apis:
   app-connect@v1:
     root: ./docs/developers/crm-server-openapi.json
+  app-connect-public@v1:
+    root: ./docs/developers/crm-server-openapi-public.json
 
 extends:
   - recommended-strict

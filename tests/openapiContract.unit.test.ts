@@ -8,12 +8,18 @@ const PROJECT_ROOT = path.basename(sourceRoot) === '.ts-build'
     ? path.resolve(sourceRoot, '..')
     : sourceRoot;
 const SPEC_PATH = path.join(PROJECT_ROOT, 'docs', 'developers', 'crm-server-openapi.json');
+const PUBLIC_SPEC_PATH = path.join(PROJECT_ROOT, 'docs', 'developers', 'crm-server-openapi-public.json');
 const PACKAGE_PATH = path.join(PROJECT_ROOT, 'package.json');
 const ROUTE_FILES = [
     path.join(PROJECT_ROOT, 'packages', 'core', 'index.ts'),
     path.join(PROJECT_ROOT, 'src', 'index.ts'),
 ];
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
+const { HIDDEN_TAGS, buildPublicSpec } = require(path.join(
+    PROJECT_ROOT,
+    'scripts',
+    'generate-public-openapi.cjs',
+));
 const INTENTIONALLY_UNPUBLISHED_DIRECT_PARAMETERS = [
     // The route cannot match without the path id, so the query fallback is unreachable compatibility code.
     'DELETE /calldown/{id} -> query:id',
@@ -216,6 +222,7 @@ function collectSpecOperations(spec: any) {
 
 describe('App Connect OpenAPI contract', () => {
     const spec = JSON.parse(fs.readFileSync(SPEC_PATH, 'utf8'));
+    const publicSpec = JSON.parse(fs.readFileSync(PUBLIC_SPEC_PATH, 'utf8'));
     const packageJson = JSON.parse(fs.readFileSync(PACKAGE_PATH, 'utf8'));
 
     test('is a valid OpenAPI document with only local references', async () => {
@@ -228,6 +235,40 @@ describe('App Connect OpenAPI contract', () => {
 
     test('matches the server package version', () => {
         expect(spec.info.version).toBe(packageJson.version);
+    });
+
+    test('publishes a current OpenAPI subset without non-public tag groups', async () => {
+        await expect(SwaggerParser.validate(PUBLIC_SPEC_PATH, {
+            resolve: {
+                http: false,
+            },
+        })).resolves.toBeDefined();
+
+        expect(publicSpec).toEqual(buildPublicSpec(spec));
+        expect(publicSpec.info.version).toBe(packageJson.version);
+
+        const publishedTags = new Set(publicSpec.tags.map((tag: any) => tag.name));
+        for (const hiddenTag of HIDDEN_TAGS) {
+            expect(publishedTags.has(hiddenTag)).toBe(false);
+        }
+
+        for (const pathItem of Object.values(publicSpec.paths) as any[]) {
+            for (const method of HTTP_METHODS) {
+                const operation = pathItem[method];
+                if (operation) {
+                    expect(operation.tags.some((tag: string) => HIDDEN_TAGS.includes(tag))).toBe(false);
+                }
+            }
+        }
+        expect(publicSpec.paths['/plugin/licenseStatus/{pluginId}']).toBeUndefined();
+        expect(publicSpec.paths['/plugin/{pluginId}']).toBeUndefined();
+        expect(Object.keys(publicSpec.components.securitySchemes || {})).not.toEqual(expect.arrayContaining([
+            'mcpBearer',
+            'widgetSessionToken',
+            'filePickerJwt',
+            'pipedriveBasicAuth',
+        ]));
+        expect(collectSpecOperations(publicSpec).length).toBeLessThan(collectSpecOperations(spec).length);
     });
 
     test('publishes an actionable API-key login contract', () => {

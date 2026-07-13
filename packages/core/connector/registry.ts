@@ -1,6 +1,8 @@
 // core/src/connector/registry.ts
 // @ts-check
 
+import type { ReleaseNotesResponse } from '../contracts';
+
 const logger = require('../lib/logger');
 
 /** @typedef {import('../types').ConnectorCapabilities} ConnectorCapabilities */
@@ -13,7 +15,7 @@ class ConnectorRegistry {
 
   manifests: Map<string, any>;
 
-  releaseNotes: any;
+  releaseNotes: ReleaseNotesResponse;
 
   platformInterfaces: Map<string, Map<string, any>>;
 
@@ -22,7 +24,7 @@ class ConnectorRegistry {
       this.connectors = new Map();
       /** @type {Map<string, ConnectorManifest>} */
       this.manifests = new Map();
-      /** @type {unknown} */
+      /** @type {ReleaseNotesResponse} */
       this.releaseNotes = {};
       /** @type {Map<string, Map<string, ConnectorInterfaceFunction>>} */
       this.platformInterfaces = new Map(); // Store interface functions per platform
@@ -235,14 +237,14 @@ class ConnectorRegistry {
   }
 
   /**
-   * @param {unknown} releaseNotes
+   * @param {ReleaseNotesResponse} releaseNotes
    */
   setReleaseNotes(releaseNotes) {
     this.releaseNotes = releaseNotes;
   }
 
   /**
-   * @returns {unknown}
+   * @returns {ReleaseNotesResponse}
    */
   getReleaseNotes() {
     return this.releaseNotes; 

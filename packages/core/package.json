@@ -64,7 +64,8 @@
     "mixpanel": "^0.18.0",
     "shortid": "^2.2.17",
     "tz-lookup": "^6.1.25",
-    "ua-parser-js": "^1.0.38"
+    "ua-parser-js": "^1.0.38",
+    "zod": "^4.4.3"
   },
   "scripts": {
     "test": "cd ../.. && npm run build:ts && cd packages/core && npm run test:raw",

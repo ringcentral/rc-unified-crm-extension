@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "strict": true,
+    "strictNullChecks": true
+  },
+  "include": [
+    "packages/core/contracts/**/*.ts",
+    "scripts/generate-openapi-contract.ts",
+    "tests/httpApiContracts.unit.test.ts"
+  ]
+}

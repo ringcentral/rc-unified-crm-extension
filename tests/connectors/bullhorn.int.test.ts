@@ -3686,8 +3686,8 @@ describe('Bullhorn Connector', () => {
         it('should update minimal appointment fields without attendee reconciliation', async () => {
             nock(restUrl.slice(0, -1))
                 .post('/entity/Appointment/78', body => {
-                    return body.description === ''
-                        && body.subject === undefined
+                    return body.subject === 'Minimal update'
+                        && body.description === undefined
                         && body.dateBegin === undefined
                         && body.dateEnd === undefined;
                 })
@@ -3709,7 +3709,7 @@ describe('Bullhorn Connector', () => {
             const result = await bullhorn.updateAppointment({
                 user: mockUser,
                 appointmentId: '78',
-                patchBody: {}
+                patchBody: { title: 'Minimal update' }
             });
 
             expect(result.appointment).toEqual(expect.objectContaining({

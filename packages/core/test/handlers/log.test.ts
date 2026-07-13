@@ -39,6 +39,7 @@ const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 const { getHashValue } = require('../../lib/util');
+const { MessageLogResponseSchema } = require('../../contracts');
 
 describe('Log Handler', () => {
   beforeAll(async () => {
@@ -1206,6 +1207,63 @@ describe('Log Handler', () => {
       // msg-1 is skipped (already logged), msg-2 uses updateMessageLog because same conversationLogId exists
       expect(mockConnector.createMessageLog).toHaveBeenCalledTimes(0);
       expect(mockConnector.updateMessageLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('should return a schema-valid no-op result when every message is already logged', async () => {
+      await UserModel.create({
+        id: 'test-user-id',
+        platform: 'testCRM',
+        accessToken: 'test-token',
+        platformAdditionalInfo: {},
+      });
+      await MessageLogModel.create({
+        id: 'msg-1',
+        platform: 'testCRM',
+        conversationId: 'conv-123',
+        conversationLogId: 'conv-log-123',
+        thirdPartyLogId: 'existing-log',
+        userId: 'test-user-id',
+      });
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        createMessageLog: jest.fn(),
+        updateMessageLog: jest.fn(),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+      const result = await logHandler.createMessageLog({
+        platform: 'testCRM',
+        userId: 'test-user-id',
+        incomingData: {
+          logInfo: {
+            messages: [
+              {
+                id: 'msg-1',
+                subject: 'Already logged',
+                direction: 'Outbound',
+                creationTime: new Date(),
+              },
+            ],
+            correspondents: [{ phoneNumber: '+1234567890' }],
+            conversationId: 'conv-123',
+            conversationLogId: 'conv-log-123',
+          },
+          contactId: 'contact-123',
+          contactType: 'Contact',
+          additionalSubmission: {},
+        },
+      });
+
+      expect(result).toEqual(expect.objectContaining({
+        successful: true,
+        logIds: [],
+        returnMessage: null,
+      }));
+      expect(() => MessageLogResponseSchema.parse(result)).not.toThrow();
+      expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
+      expect(mockConnector.updateMessageLog).not.toHaveBeenCalled();
     });
 
     test('should handle group SMS with contactId suffix for message IDs', async () => {

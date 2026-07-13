@@ -56,6 +56,7 @@ plugins:
         - crm/jobadder.md
         - solutions/solutions-footer.md
         - build.md
+        - developers/crm-server-openapi.json
   - swagger-ui-tag:
       filter_files:
         - developers/server-api.md

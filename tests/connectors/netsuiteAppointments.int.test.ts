@@ -6,6 +6,12 @@ jest.mock('axios', () => ({
 
 const axios = require('axios');
 const netsuite = require('../../src/connectors/netsuite');
+const {
+    AppointmentActionResponseSchema,
+    AppointmentCreateResponseSchema,
+    AppointmentListResponseSchema,
+    AppointmentRecordResponseSchema
+} = require('../../packages/core/contracts');
 
 describe('NetSuite appointment connector', () => {
     const authHeader = 'Bearer netsuite-token';
@@ -66,14 +72,16 @@ describe('NetSuite appointment connector', () => {
             }
         });
 
-        await expect(netsuite.listAppointments({
+        const result = await netsuite.listAppointments({
             user,
             authHeader,
             range: {
                 startDate: '2026-07-01',
                 endDate: '2026-07-31'
             }
-        })).resolves.toEqual({
+        });
+
+        expect(result).toEqual({
             appointments: [
                 {
                     thirdPartyAppointmentId: '1001',
@@ -91,6 +99,10 @@ describe('NetSuite appointment connector', () => {
                 }
             ]
         });
+        expect(() => AppointmentListResponseSchema.parse({
+            successful: true,
+            ...result
+        })).not.toThrow();
         expect(axios.get).toHaveBeenCalledWith(
             'https://1234567.restlets.api.netsuite.com/app/site/hosting/restlet.nl',
             {
@@ -105,6 +117,35 @@ describe('NetSuite appointment connector', () => {
                 }
             }
         );
+    });
+
+    test('listAppointments normalizes object status values to their ids', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 1002,
+                        title: 'Object Status Event',
+                        status: {
+                            id: 'CONFIRMED',
+                            refName: 'Confirmed'
+                        }
+                    }
+                ]
+            }
+        });
+
+        const result = await netsuite.listAppointments({
+            user,
+            authHeader
+        });
+
+        expect(result.appointments).toEqual([
+            expect.objectContaining({
+                id: '1002',
+                status: 'CONFIRMED'
+            })
+        ]);
     });
 
     test('createAppointment posts a calendar event, reloads it, and normalizes the result', async () => {
@@ -186,6 +227,10 @@ describe('NetSuite appointment connector', () => {
                 ]
             }
         });
+        expect(() => AppointmentCreateResponseSchema.parse({
+            successful: true,
+            ...result
+        })).not.toThrow();
     });
 
     test('createAppointment maps NetSuite error details into the warning message', async () => {
@@ -214,6 +259,31 @@ describe('NetSuite appointment connector', () => {
                 ttl: 60000
             }
         });
+    });
+
+    test('createAppointment returns a warning when NetSuite omits the created appointment id', async () => {
+        axios.post.mockResolvedValueOnce({
+            headers: {},
+            data: {}
+        });
+
+        await expect(netsuite.createAppointment({
+            user,
+            authHeader,
+            payload: {
+                title: 'Missing Id Event',
+                startTimeUtc: '2026-07-20T19:00:00.000Z',
+                durationMinutes: 30
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'NetSuite did not return the created appointment ID.',
+                ttl: 60000
+            }
+        });
+        expect(axios.get).not.toHaveBeenCalled();
     });
 
     test('createAppointment accepts direct date fields and existing attendee items', async () => {
@@ -288,7 +358,8 @@ describe('NetSuite appointment connector', () => {
     });
 
     test('updateAppointment patches attendees and normalizes the updated event', async () => {
-        axios.patch.mockResolvedValueOnce({
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
             data: {
                 id: 3003,
                 title: 'Updated Event',
@@ -321,9 +392,6 @@ describe('NetSuite appointment connector', () => {
         expect(axios.patch).toHaveBeenCalledWith(
             'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3003?replace=attendee',
             {
-                startDate: '',
-                startTime: '',
-                endTime: '',
                 status: { id: 'TENTATIVE' },
                 message: 'Updated body',
                 title: 'Updated Event',
@@ -337,6 +405,10 @@ describe('NetSuite appointment connector', () => {
                 headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
             }
         );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3003',
+            { headers: { Authorization: authHeader } }
+        );
         expect(result.appointment).toMatchObject({
             id: '3003',
             title: 'Updated Event',
@@ -346,22 +418,117 @@ describe('NetSuite appointment connector', () => {
                 { id: '601', name: 'Updated Client', type: 'contact' }
             ]
         });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '3003',
+            ...result
+        })).not.toThrow();
     });
 
-    test('updateAppointment falls back to UTC timezone and clears attendees when contacts are omitted', async () => {
-        axios.get.mockRejectedValueOnce(new Error('timezone unavailable'));
-        axios.patch.mockResolvedValueOnce({
+    test('updateAppointment sends only status for a status-only patch', async () => {
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
             data: {
-                data: {
-                    id: 3004,
-                    title: 'UTC Event',
-                    message: 'UTC body',
-                    startDate: '2026-07-22',
-                    startTime: '14:00:00',
-                    endTime: '14:45:00'
-                }
+                id: 3004,
+                title: 'Existing Event',
+                status: 'TENTATIVE'
             }
         });
+
+        const result = await netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '3004',
+            patchBody: {
+                status: 'tentative'
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            {
+                status: { id: 'TENTATIVE' }
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3004',
+            title: 'Existing Event',
+            status: 'TENTATIVE'
+        });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '3004',
+            ...result
+        })).not.toThrow();
+    });
+
+    test('updateAppointment preserves omitted fields and attendees for a title-only patch', async () => {
+        axios.patch.mockResolvedValueOnce({ status: 204 });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                id: 3005,
+                title: 'Renamed Event',
+                status: 'CONFIRMED',
+                attendees: [
+                    { id: 701, name: 'Existing Attendee', type: 'contact' }
+                ]
+            }
+        });
+
+        const result = await netsuite.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '3005',
+            patchBody: {
+                title: 'Renamed Event'
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3005',
+            {
+                title: 'Renamed Event'
+            },
+            {
+                headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
+            }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3005',
+            { headers: { Authorization: authHeader } }
+        );
+        expect(result.appointment).toMatchObject({
+            id: '3005',
+            title: 'Renamed Event',
+            attendees: [
+                { id: '701', name: 'Existing Attendee', type: 'contact' }
+            ]
+        });
+    });
+
+    test('updateAppointment falls back to UTC timezone and preserves attendees when contacts are omitted', async () => {
+        axios.get
+            .mockRejectedValueOnce(new Error('timezone unavailable'))
+            .mockResolvedValueOnce({
+                data: {
+                    data: {
+                        id: 3004,
+                        title: 'UTC Event',
+                        message: 'UTC body',
+                        startDate: '2026-07-22',
+                        startTime: '14:00:00',
+                        endTime: '14:45:00'
+                    }
+                }
+            });
+        axios.patch.mockResolvedValueOnce({ status: 204 });
 
         const result = await netsuite.updateAppointment({
             user: { hostname: user.hostname },
@@ -379,18 +546,20 @@ describe('NetSuite appointment connector', () => {
             { headers: { Authorization: authHeader } }
         );
         expect(axios.patch).toHaveBeenCalledWith(
-            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004?replace=attendee',
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
             {
                 startDate: '2026-07-22',
                 startTime: '14:00:00',
                 endTime: '14:45:00',
-                message: 'UTC body',
-                title: undefined,
-                attendee: { items: [] }
+                message: 'UTC body'
             },
             {
                 headers: { Authorization: authHeader, 'Content-Type': 'application/json' }
             }
+        );
+        expect(axios.get).toHaveBeenCalledWith(
+            'https://1234567.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/3004',
+            { headers: { Authorization: authHeader } }
         );
         expect(result.appointment).toMatchObject({
             id: '3004',
@@ -499,11 +668,12 @@ describe('NetSuite appointment connector', () => {
             .mockResolvedValueOnce({ data: { ok: true } })
             .mockResolvedValueOnce({ data: { ok: true } });
 
-        await expect(netsuite.confirmAppointment({
+        const confirmResult = await netsuite.confirmAppointment({
             user,
             authHeader,
             appointmentId: '5005'
-        })).resolves.toEqual({
+        });
+        expect(confirmResult).toEqual({
             successful: true,
             returnMessage: {
                 messageType: 'success',
@@ -511,12 +681,17 @@ describe('NetSuite appointment connector', () => {
                 ttl: 60000
             }
         });
+        expect(() => AppointmentActionResponseSchema.parse({
+            appointmentId: '5005',
+            ...confirmResult
+        })).not.toThrow();
 
-        await expect(netsuite.cancelAppointment({
+        const cancelResult = await netsuite.cancelAppointment({
             user,
             authHeader,
             appointmentId: '5005'
-        })).resolves.toEqual({
+        });
+        expect(cancelResult).toEqual({
             successful: true,
             returnMessage: {
                 messageType: 'success',
@@ -524,6 +699,10 @@ describe('NetSuite appointment connector', () => {
                 ttl: 60000
             }
         });
+        expect(() => AppointmentActionResponseSchema.parse({
+            appointmentId: '5005',
+            ...cancelResult
+        })).not.toThrow();
 
         expect(axios.patch).toHaveBeenNthCalledWith(
             1,

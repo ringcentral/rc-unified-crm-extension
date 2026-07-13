@@ -7,6 +7,12 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const {
+  practicalContacts,
+  practicalAgents,
+  practicalNotes,
+  buildPracticalCall,
+} = require('./support/practicalData');
 
 describe('App Connect Server E2E smoke', () => {
   const platform = 'pipedrive';
@@ -1146,6 +1152,244 @@ describe('App Connect Server E2E smoke', () => {
     expect(getBeforeUpdateCommunicationScope.isDone()).toBe(true);
     expect(getBeforeUpdateContactScope.isDone()).toBe(true);
     expect(updateCommunicationScope.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toEqual([]);
+  });
+
+  test('logs a practical inbound Pipedrive renewal without optional recording or disposition data', async () => {
+    const renewalSessionId = 'e2e-pipedrive-renewal-session';
+    const renewalTelephonySessionId = 'e2e-pipedrive-renewal-telephony-session';
+    const renewalContactId = 1101;
+    const logInfo = buildPracticalCall({
+      id: 'e2e-pipedrive-renewal-call',
+      sessionId: renewalSessionId,
+      telephonySessionId: renewalTelephonySessionId,
+      extensionNumber,
+      contact: practicalContacts.renewalCustomer,
+      agent: practicalAgents.accountManager,
+      duration: 487,
+      customSubject: 'Annual service renewal follow-up',
+    });
+
+    const personScope = nock(providerBaseUrl)
+      .get(`/api/v2/persons/${renewalContactId}`)
+      .reply(200, { data: { org_id: null } }, rateLimitHeaders);
+
+    const activityTypesScope = nock(providerBaseUrl)
+      .get('/v1/activityTypes')
+      .reply(200, {
+        data: [{ name: 'Call', key_string: 'call', active_flag: true }],
+      }, rateLimitHeaders);
+
+    let createdActivityBody;
+    const createActivityScope = nock(providerBaseUrl)
+      .post('/api/v2/activities', body => {
+        createdActivityBody = body;
+        return true;
+      })
+      .reply(201, { data: { id: 1401 } }, rateLimitHeaders);
+
+    const createLog = await client.post('/callLog', {
+      logInfo,
+      contactId: renewalContactId,
+      contactName: practicalContacts.renewalCustomer.name,
+      contactType: 'contact',
+      note: practicalNotes.renewalFollowUp,
+    }, {
+      params: { jwtToken },
+      headers: {
+        'rc-account-id': 'e2e-hashed-account',
+        'rc-extension-id': 'e2e-hashed-extension',
+      },
+    });
+
+    expect(createLog.status).toBe(200);
+    expect(createLog.data).toMatchObject({
+      successful: true,
+      logId: 1401,
+    });
+    expect(logInfo).not.toHaveProperty('recording');
+    expect(createdActivityBody).toMatchObject({
+      owner_id: 12345,
+      subject: 'Annual service renewal follow-up',
+      duration: '00:09',
+      deal_id: '',
+      done: true,
+      type: 'call',
+      participants: [{ person_id: renewalContactId, primary: true }],
+    });
+    expect(createdActivityBody).not.toHaveProperty('lead_id');
+    expect(createdActivityBody).not.toHaveProperty('org_id');
+    expect(createdActivityBody.note).toContain(practicalNotes.renewalFollowUp);
+    expect(createdActivityBody.note).not.toContain('Call recording link');
+
+    const persistedCallLog = await CallLogModel.findOne({
+      where: { sessionId: renewalSessionId, userId },
+    });
+    expect(persistedCallLog).toMatchObject({
+      id: renewalTelephonySessionId,
+      sessionId: renewalSessionId,
+      extensionNumber,
+      platform,
+      thirdPartyLogId: '1401',
+      userId,
+      contactId: String(renewalContactId),
+    });
+    expect(personScope.isDone()).toBe(true);
+    expect(activityTypesScope.isDone()).toBe(true);
+    expect(createActivityScope.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toEqual([]);
+  });
+
+  test('logs a practical Bullhorn recruiting call against a Candidate with a Unicode name', async () => {
+    const candidateSessionId = 'e2e-bullhorn-candidate-session';
+    const candidateTelephonySessionId = 'e2e-bullhorn-candidate-telephony-session';
+    const candidateId = 1701;
+    const candidate = practicalContacts.recruitingCandidate;
+    const logInfo = buildPracticalCall({
+      id: 'e2e-bullhorn-candidate-call',
+      sessionId: candidateSessionId,
+      telephonySessionId: candidateTelephonySessionId,
+      extensionNumber: bullhornExtensionNumber,
+      contact: candidate,
+      agent: practicalAgents.accountManager,
+      duration: 720,
+      customSubject: `Warehouse supervisor interview with ${candidate.name}`,
+    });
+
+    const pingScope = nock(bullhornRestBaseUrl)
+      .get(`${bullhornRestPath}/ping`)
+      .reply(200, {
+        sessionExpires: Date.now() + 60 * 60 * 1000,
+      }, bullhornRateLimitHeaders);
+
+    let createdNoteBody;
+    const createNoteScope = nock(bullhornRestBaseUrl)
+      .put(`${bullhornRestPath}/entity/Note`, body => {
+        createdNoteBody = body;
+        return true;
+      })
+      .reply(200, { changedEntityId: 1801 }, bullhornRateLimitHeaders);
+
+    const createLog = await client.post('/callLog', {
+      logInfo,
+      contactId: candidateId,
+      contactName: candidate.name,
+      contactType: 'Candidate',
+      note: practicalNotes.recruitingFollowUp,
+      additionalSubmission: { noteActions: 'Interview' },
+    }, {
+      params: { jwtToken: bullhornJwtToken },
+      headers: {
+        'rc-account-id': 'e2e-bullhorn-hashed-account',
+        'rc-extension-id': 'e2e-bullhorn-hashed-extension',
+      },
+    });
+
+    expect(createLog.status).toBe(200);
+    expect(createLog.data).toMatchObject({
+      successful: true,
+      logId: 1801,
+    });
+    expect(createdNoteBody).toMatchObject({
+      personReference: {
+        id: candidateId,
+        personSubtype: 'Candidate',
+      },
+      action: 'Interview',
+      externalID: candidateSessionId,
+      minutesSpent: 12,
+    });
+    expect(createdNoteBody.comments).toContain(candidate.name);
+    expect(createdNoteBody.comments).toContain(practicalNotes.recruitingFollowUp);
+
+    const persistedCallLog = await CallLogModel.findOne({
+      where: { sessionId: candidateSessionId, userId: bullhornUserId },
+    });
+    expect(persistedCallLog).toMatchObject({
+      id: candidateTelephonySessionId,
+      sessionId: candidateSessionId,
+      extensionNumber: bullhornExtensionNumber,
+      platform: bullhornPlatform,
+      thirdPartyLogId: '1801',
+      userId: bullhornUserId,
+      contactId: String(candidateId),
+    });
+    expect(pingScope.isDone()).toBe(true);
+    expect(createNoteScope.isDone()).toBe(true);
+    expect(nock.pendingMocks()).toEqual([]);
+  });
+
+  test('logs a practical outbound Clio no-answer call with zero duration and no matter', async () => {
+    const noAnswerSessionId = 'e2e-clio-international-no-answer-session';
+    const noAnswerTelephonySessionId = 'e2e-clio-international-no-answer-telephony-session';
+    const internationalContactId = 1901;
+    const internationalContact = practicalContacts.internationalProspect;
+    const logInfo = buildPracticalCall({
+      id: 'e2e-clio-international-no-answer-call',
+      sessionId: noAnswerSessionId,
+      telephonySessionId: noAnswerTelephonySessionId,
+      extensionNumber: clioExtensionNumber,
+      direction: 'Outbound',
+      contact: internationalContact,
+      agent: practicalAgents.accountManager,
+      duration: 0,
+      result: 'No Answer',
+      customSubject: `International follow-up with ${internationalContact.name}`,
+    });
+
+    let communicationBody;
+    const createCommunicationScope = nock(clioProviderBaseUrl)
+      .post('/api/v4/communications.json', body => {
+        communicationBody = body;
+        return true;
+      })
+      .reply(201, { data: { id: 2001 } }, rateLimitHeaders);
+
+    const createLog = await client.post('/callLog', {
+      logInfo,
+      contactId: internationalContactId,
+      contactName: internationalContact.name,
+      contactType: 'Person',
+      note: practicalNotes.noAnswer,
+    }, {
+      params: { jwtToken: clioJwtToken },
+      headers: {
+        'rc-account-id': 'e2e-clio-hashed-account',
+        'rc-extension-id': 'e2e-clio-hashed-extension',
+      },
+    });
+
+    expect(createLog.status).toBe(200);
+    expect(createLog.data).toMatchObject({
+      successful: true,
+      logId: 2001,
+    });
+    expect(logInfo).not.toHaveProperty('recording');
+    expect(communicationBody.data).toMatchObject({
+      subject: `International follow-up with ${internationalContact.name}`,
+      type: 'PhoneCommunication',
+      senders: [{ id: '67890', type: 'User' }],
+      receivers: [{ id: internationalContactId, type: 'Contact' }],
+    });
+    expect(communicationBody.data).not.toHaveProperty('matter');
+    expect(communicationBody.data.body).toContain(practicalNotes.noAnswer);
+    expect(communicationBody.data.body).toContain('- Duration: 0 seconds');
+    expect(communicationBody.data.body).toContain('- Result: No Answer');
+    expect(communicationBody.data.body).not.toContain('Call recording link');
+
+    const persistedCallLog = await CallLogModel.findOne({
+      where: { sessionId: noAnswerSessionId, userId: clioUserId },
+    });
+    expect(persistedCallLog).toMatchObject({
+      id: noAnswerTelephonySessionId,
+      sessionId: noAnswerSessionId,
+      extensionNumber: clioExtensionNumber,
+      platform: clioPlatform,
+      thirdPartyLogId: '2001',
+      userId: clioUserId,
+      contactId: String(internationalContactId),
+    });
+    expect(createCommunicationScope.isDone()).toBe(true);
     expect(nock.pendingMocks()).toEqual([]);
   });
 });

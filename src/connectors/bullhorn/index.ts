@@ -1809,10 +1809,28 @@ async function bullhornDeleteWithRefresh({ user, url, config }) {
     }
 }
 
-async function listAppointments({ user, range }) {
+type BullhornAppointmentRange = {
+    startDate: string;
+    endDate: string;
+};
+
+function isBullhornAppointmentRange(range: unknown): range is BullhornAppointmentRange {
+    if (!range || typeof range !== 'object' || Array.isArray(range)) return false;
+    const { startDate, endDate } = range as Record<string, unknown>;
+    return typeof startDate === 'string'
+        && typeof endDate === 'string'
+        && moment.utc(startDate, 'YYYY-MM-DD', true).isValid()
+        && moment.utc(endDate, 'YYYY-MM-DD', true).isValid();
+}
+
+async function listAppointments({ user, range }: { user: any; range?: BullhornAppointmentRange | string }) {
     try {
-        const startDate = moment.utc().subtract(1, 'month').format('YYYY-MM-DD');
-        const endDate = moment.utc().add(3, 'month').format('YYYY-MM-DD');
+        const startDate = isBullhornAppointmentRange(range)
+            ? range.startDate
+            : moment.utc().subtract(1, 'month').format('YYYY-MM-DD');
+        const endDate = isBullhornAppointmentRange(range)
+            ? range.endDate
+            : moment.utc().add(3, 'month').format('YYYY-MM-DD');
         const startMs = moment.utc(startDate, 'YYYY-MM-DD', true).startOf('day').valueOf();
         const endMs = moment.utc(endDate, 'YYYY-MM-DD', true).endOf('day').valueOf();
 
@@ -1922,12 +1940,24 @@ async function listAppointments({ user, range }) {
     }
 }
 
+function normalizeBullhornAppointmentContactId(contact) {
+    const rawId = contact && typeof contact === 'object' ? contact.id : contact;
+    if (rawId == null || (typeof rawId === 'string' && rawId.trim() === '')) return null;
+    const id = typeof rawId === 'number' ? rawId : Number(rawId);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 function extractPrimaryBullhornAppointmentContact(payload) {
     if (!payload) return { id: null, type: null };
     if (Array.isArray(payload.contacts) && payload.contacts.length) {
         const c0 = payload.contacts[0];
-        if (c0 && typeof c0 === 'object') return { id: c0.id != null ? `${c0.id}` : null, type: c0.type ?? c0.contactType ?? null };
-        return { id: `${c0}`, type: null };
+        if (c0 && typeof c0 === 'object') {
+            return {
+                id: normalizeBullhornAppointmentContactId(c0),
+                type: c0.type ?? c0.contactType ?? null
+            };
+        }
+        return { id: normalizeBullhornAppointmentContactId(c0), type: null };
     }
     return { id: null, type: null };
 }
@@ -1950,13 +1980,13 @@ async function createAppointment({ user, payload }) {
     if (primaryContact?.id) {
         const type = (primaryContact.type ?? '').toLowerCase();
         if (type === 'candidate') {
-            putBody.candidateReference = { id: Number(primaryContact.id) };
+            putBody.candidateReference = { id: primaryContact.id };
         }
         else if (type === 'contact' || type === 'clientcontact') {
-            putBody.clientContactReference = { id: Number(primaryContact.id) };
+            putBody.clientContactReference = { id: primaryContact.id };
         }
         else if (type === 'lead') {
-            putBody.lead = { id: Number(primaryContact.id) };
+            putBody.lead = { id: primaryContact.id };
         }
     }
 
@@ -1981,17 +2011,21 @@ async function createAppointment({ user, payload }) {
 
     // Add all contacts as attendee for the created appointment in Bullhorn
     if (Array.isArray(payload?.contacts) && payload.contacts.length > 0) {
-        const attendeesToAdd = payload.contacts.filter(id => !!id);
+        const attendeeIdsToAdd = Array.from(new Set(
+            payload.contacts
+                .map(normalizeBullhornAppointmentContactId)
+                .filter((id): id is number => id != null)
+        ));
         const axios = /** @type {any} */ (require('axios'));
         const restUrl = user.platformAdditionalInfo.restUrl;
         const bhRestToken = user.platformAdditionalInfo.bhRestToken;
-        for (const attendee of attendeesToAdd) {
+        for (const attendeeId of attendeeIdsToAdd) {
             try {
                 await axios.put(
                     `${restUrl}entity/AppointmentAttendee`,
                     {
                         appointment: { id: Number(appointmentId) },
-                        attendee: { id: Number(attendee?.id) }
+                        attendee: { id: attendeeId }
                     },
                     {
                         headers: { BhRestToken: bhRestToken }
@@ -2008,34 +2042,38 @@ async function createAppointment({ user, payload }) {
 async function updateAppointment({ user, appointmentId, patchBody }) {
     try {
         const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
-        const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
-        const startMs = startAt ? moment.utc(startAt).valueOf() : null;
-        const endMs = startMs != null ? moment.utc(startAt).add(durationMinutes, 'minutes').valueOf() : null;
-
         const postBody: any = {};
         if (patchBody?.title != null) postBody.subject = patchBody.title;
-        postBody.description = patchBody?.summary ?? '';
-        if (startMs != null) postBody.dateBegin = startMs;
-        if (endMs != null) postBody.dateEnd = endMs;
+        const description = patchBody?.description ?? patchBody?.summary;
+        if (description != null) postBody.description = description;
+        if (startAt) {
+            const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
+            postBody.dateBegin = moment.utc(startAt).valueOf();
+            postBody.dateEnd = moment.utc(startAt).add(durationMinutes, 'minutes').valueOf();
+        }
         if (patchBody?.location != null) postBody.location = patchBody.location;
         if (patchBody?.communicationMethod != null) postBody.communicationMethod = patchBody.communicationMethod;
         if (patchBody?.type != null) postBody.type = patchBody.type;
+        const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+        if (patchBody?.status != null && Object.keys(postBody).length === 0 && !hasAttendeeUpdate) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'Bullhorn does not support appointment status changes.',
+                    ttl: 5000
+                }
+            };
+        }
         await bullhornPostWithRefresh({
             user,
             url: `${user.platformAdditionalInfo.restUrl}entity/Appointment/${appointmentId}`,
             body: postBody,
             config: { headers: { BhRestToken: user.platformAdditionalInfo.bhRestToken } }
         });
-        const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
 
         const appointmentIdNum = Number(appointmentId);
         if (hasAttendeeUpdate && Number.isFinite(appointmentIdNum)) {
-            const toId = (v) => {
-                const raw = (v && typeof v === 'object') ? (v.id) : v;
-                const n = typeof raw === 'number' ? raw : Number(raw);
-                return Number.isFinite(n) ? n : null;
-            };
-
             const desiredAttendeeSource = Array.isArray(patchBody?.contacts)
                 ? patchBody.contacts
                 : [];
@@ -2045,10 +2083,7 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
                     ? desiredAttendeeSource
                     : []
                 )
-                    .map(v => {
-                        if (v && typeof v === 'object') return toId(v.id);
-                        return toId(v);
-                    })
+                    .map(normalizeBullhornAppointmentContactId)
                     .filter(v => v != null)
             ));
 
@@ -2071,8 +2106,8 @@ async function updateAppointment({ user, appointmentId, patchBody }) {
                 });
                 const rows = Array.isArray(existingAttendeesRes?.data?.data) ? existingAttendeesRes.data.data : [];
                 for (const row of rows) {
-                    const attendeeId = toId(row?.attendee?.id);
-                    const linkId = toId(row?.id);
+                    const attendeeId = normalizeBullhornAppointmentContactId(row?.attendee?.id);
+                    const linkId = normalizeBullhornAppointmentContactId(row?.id);
                     if (attendeeId == null || linkId == null) continue;
                     existingLinks.push({ attendeeId, linkId });
                 }

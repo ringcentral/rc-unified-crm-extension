@@ -34,6 +34,13 @@ jest.mock('@app-connect/core/lib/encode', () => ({
     decoded: jest.fn(value => value?.replace('encoded:', '') || '')
 }));
 
+const {
+    AppointmentActionResponseSchema,
+    AppointmentCreateResponseSchema,
+    AppointmentListResponseSchema,
+    AppointmentRecordResponseSchema
+} = require('../../packages/core/contracts');
+
 jest.mock('@app-connect/core/models/dynamo/lockSchema', () => ({
     Lock: {
         create: jest.fn(),
@@ -129,7 +136,15 @@ describe('Bullhorn appointment connector', () => {
                 }
             });
 
-        const result = await bullhorn.listAppointments({ user });
+        const result = await bullhorn.listAppointments({
+            user,
+            range: {
+                startDate: '2026-07-20',
+                endDate: '2026-07-21'
+            }
+        });
+
+        expect(() => AppointmentListResponseSchema.parse({ successful: true, ...result })).not.toThrow();
 
         expect(result.appointments).toEqual([
             {
@@ -165,6 +180,15 @@ describe('Bullhorn appointment connector', () => {
                 ]
             }
         ]);
+        expect(axios.get).toHaveBeenNthCalledWith(
+            1,
+            `${restUrl}query/Appointment`,
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    where: `isDeleted=false AND owner.id=321 AND dateBegin>=${Date.parse('2026-07-20T00:00:00.000Z')} AND dateBegin<=${Date.parse('2026-07-21T23:59:59.999Z')}`
+                })
+            })
+        );
         expect(axios.get).toHaveBeenNthCalledWith(
             2,
             `${restUrl}query/AppointmentAttendee`,
@@ -208,6 +232,7 @@ describe('Bullhorn appointment connector', () => {
         });
 
         expect(result).toEqual({ appointmentId: '777' });
+        expect(() => AppointmentCreateResponseSchema.parse({ successful: true, ...result })).not.toThrow();
         expect(axios.put).toHaveBeenNthCalledWith(
             1,
             `${restUrl}entity/Appointment`,
@@ -227,6 +252,34 @@ describe('Bullhorn appointment connector', () => {
             `${restUrl}entity/AppointmentAttendee`,
             {
                 appointment: { id: 777 },
+                attendee: { id: 701 }
+            },
+            { headers: { BhRestToken: 'bh-token' } }
+        );
+    });
+
+    test('createAppointment writes primitive attendee ids and skips invalid contacts', async () => {
+        axios.put
+            .mockResolvedValueOnce({ data: { changedEntityId: 780 } })
+            .mockResolvedValueOnce({ data: {} });
+
+        await expect(bullhorn.createAppointment({
+            user,
+            payload: {
+                title: 'Primitive attendee meeting',
+                summary: 'Validate portable contact references',
+                startTimeUtc: '2026-07-22T17:00:00.000Z',
+                durationMinutes: 30,
+                contacts: ['701', '', 'invalid', '   ']
+            }
+        })).resolves.toEqual({ appointmentId: '780' });
+
+        expect(axios.put).toHaveBeenCalledTimes(2);
+        expect(axios.put).toHaveBeenNthCalledWith(
+            2,
+            `${restUrl}entity/AppointmentAttendee`,
+            {
+                appointment: { id: 780 },
                 attendee: { id: 701 }
             },
             { headers: { BhRestToken: 'bh-token' } }
@@ -333,7 +386,13 @@ describe('Bullhorn appointment connector', () => {
                 contacts: [
                     { id: 602 },
                     603,
-                    { id: 'bad' }
+                    { id: 'bad' },
+                    null,
+                    '',
+                    '   ',
+                    -1,
+                    1.5,
+                    Number.MAX_SAFE_INTEGER + 1
                 ]
             }
         });
@@ -365,6 +424,7 @@ describe('Bullhorn appointment connector', () => {
             },
             { headers: { BhRestToken: 'retry-token' } }
         );
+        expect(axios.put).toHaveBeenCalledTimes(1);
         expect(result.appointment).toMatchObject({
             id: '888',
             title: 'Updated Meeting',
@@ -373,6 +433,80 @@ describe('Bullhorn appointment connector', () => {
             contactId: '502',
             contactType: 'ClientContact'
         });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '888',
+            ...result
+        })).not.toThrow();
+    });
+
+    test('updateAppointment preserves omitted fields and attendees for a title-only patch', async () => {
+        axios.post.mockResolvedValueOnce({ data: {} });
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 889,
+                    subject: 'Renamed Meeting',
+                    description: 'Existing description',
+                    dateBegin: Date.parse('2026-07-23T18:00:00.000Z'),
+                    dateEnd: Date.parse('2026-07-23T18:30:00.000Z'),
+                    isDeleted: false
+                }
+            }
+        });
+
+        const result = await bullhorn.updateAppointment({
+            user,
+            appointmentId: '889',
+            patchBody: {
+                title: 'Renamed Meeting'
+            }
+        });
+
+        expect(axios.post).toHaveBeenCalledWith(
+            `${restUrl}entity/Appointment/889`,
+            { subject: 'Renamed Meeting' },
+            { headers: { BhRestToken: 'bh-token' } }
+        );
+        expect(axios.get).toHaveBeenCalledTimes(1);
+        expect(axios.get).toHaveBeenCalledWith(
+            `${restUrl}entity/Appointment/889`,
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    fields: 'id,subject,description,dateBegin,dateEnd,isDeleted,candidateReference,clientContactReference'
+                })
+            })
+        );
+        expect(axios.put).not.toHaveBeenCalled();
+        expect(axios.delete).not.toHaveBeenCalled();
+        expect(result.appointment).toMatchObject({
+            id: '889',
+            title: 'Renamed Meeting',
+            description: 'Existing description',
+            durationMinutes: 30
+        });
+    });
+
+    test('updateAppointment rejects a status-only patch without calling Bullhorn APIs', async () => {
+        await expect(bullhorn.updateAppointment({
+            user,
+            appointmentId: '890',
+            patchBody: {
+                status: 'tentative'
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                messageType: 'warning',
+                message: 'Bullhorn does not support appointment status changes.',
+                ttl: 5000
+            }
+        });
+
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(axios.post).not.toHaveBeenCalled();
+        expect(axios.put).not.toHaveBeenCalled();
+        expect(axios.delete).not.toHaveBeenCalled();
     });
 
     test('updateAppointment returns a warning on a Bullhorn write failure', async () => {
@@ -585,6 +719,11 @@ describe('Bullhorn appointment connector', () => {
             contactType: 'Lead',
             attendeeIds: ['901', '902']
         });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '445',
+            ...result
+        })).not.toThrow();
         expect(axios.get).toHaveBeenNthCalledWith(
             2,
             `${restUrl}entity/Appointment/445`,
@@ -606,10 +745,11 @@ describe('Bullhorn appointment connector', () => {
             })
             .mockResolvedValueOnce({ data: {} });
 
-        await expect(bullhorn.cancelAppointment({
+        const result = await bullhorn.cancelAppointment({
             user,
             appointmentId: '780'
-        })).resolves.toEqual({
+        });
+        expect(result).toEqual({
             successful: true,
             returnMessage: {
                 messageType: 'success',
@@ -617,6 +757,7 @@ describe('Bullhorn appointment connector', () => {
                 ttl: 5000
             }
         });
+        expect(() => AppointmentActionResponseSchema.parse({ appointmentId: '780', ...result })).not.toThrow();
         expect(axios.post).toHaveBeenNthCalledWith(
             3,
             `${restUrl}entity/Appointment/780`,

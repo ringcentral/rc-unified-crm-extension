@@ -132,11 +132,41 @@ const { updateAuthSession } = require('../../lib/authSession');
 const mcpHandler = require('../../mcp/mcpHandler');
 const { UserModel } = require('../../models/userModel');
 const {
+  AdminManagedOAuthCacheRequestSchema,
+  AdminSettingsUpdateRequestSchema,
+  AdminSuccessMessageSchema,
+  AppointmentActionResponseSchema,
+  AppointmentCreateRequestSchema,
+  AppointmentCreateResponseSchema,
+  AppointmentListResponseSchema,
+  AppointmentPatchRequestSchema,
+  AppointmentRecordResponseSchema,
+  AppointmentStatusRequestSchema,
+  ApiKeyLoginRequestSchema,
+  ApiKeyLoginResponseSchema,
+  AuthValidationResponseSchema,
+  BasicMutationResponseSchema,
+  CallLogMutationResponseSchema,
+  DebugReportUrlResponseSchema,
+  HealthResponseSchema,
+  ManagedAuthStateResponseSchema,
+  ManagedAuthAdminResponseSchema,
+  ManagedAuthUpdateRequestSchema,
+  ManagedOAuthStateResponseSchema,
+  MessageLogResponseSchema,
+  ReleaseNotesResponseSchema,
+  ServerVersionInfoResponseSchema,
+  UserSettingsEnvelopeSchema,
+  UserSettingsSchema,
+  UserSettingsUpdateRequestSchema,
+} = require('../../contracts');
+const {
   createCoreRouter,
   createCoreApp,
   createCoreMiddleware,
   initializeCore,
 } = require('../../index');
+const coreReleaseNotes = require('../../releaseNotes.json');
 
 describe('Core router broad route coverage', () => {
   const decodedJwt = {
@@ -157,6 +187,17 @@ describe('Core router broad route coverage', () => {
     return { jwtToken: 'valid-crm-jwt' };
   }
 
+  function appointmentCreateBody() {
+    return {
+      payload: {
+        title: 'Meet',
+        summary: 'Discuss next steps',
+        startTimeUtc: '2026-07-20T19:00:00.000Z',
+        durationMinutes: 30,
+      },
+    };
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.HASH_KEY = 'hash-key';
@@ -173,7 +214,9 @@ describe('Core router broad route coverage', () => {
     jwt.generateJwt.mockReturnValue('generated-crm-jwt');
     UserModel.findByPk.mockResolvedValue(mockUser);
     connectorRegistry.getReleaseNotes.mockReturnValue({
-      '1.0.0': { testCRM: { notes: ['connector note'] } },
+      '1.0.0': {
+        testCRM: [{ type: 'New', description: 'Connector note.' }],
+      },
     });
     connectorRegistry.getManifest.mockReturnValue({
       author: { name: 'Test Author' },
@@ -237,11 +280,28 @@ describe('Core router broad route coverage', () => {
     adminCore.getAdminReport.mockResolvedValue({ rows: [{ id: 'admin-row' }] });
     adminCore.getUserReport.mockResolvedValue({ rows: [{ id: 'user-row' }] });
 
-    managedAuthCore.getManagedAuthState.mockResolvedValue({ hasManagedAuth: true });
-    managedAuthCore.getManagedAuthAdminSettings.mockResolvedValue({ shared: true });
+    managedAuthCore.getManagedAuthState.mockResolvedValue({
+      hasManagedAuth: true,
+      allRequiredFieldsSatisfied: true,
+      visibleFieldConsts: ['apiKey'],
+      missingRequiredFieldConsts: [],
+      fallbackToManualAuth: false,
+    });
+    managedAuthCore.getManagedAuthAdminSettings.mockResolvedValue({
+      hasManagedAuth: true,
+      fields: [{ const: 'tenantId', managedScope: 'account' }],
+      orgFields: [{ const: 'tenantId', managedScope: 'account' }],
+      userFields: [],
+      orgValues: { tenantId: { hasValue: true, value: 'tenant.example' } },
+      userValues: [],
+    });
     managedAuthCore.upsertUserManagedAuthValues.mockResolvedValue();
     managedAuthCore.upsertOrgManagedAuthValues.mockResolvedValue();
-    managedOAuthCore.getManagedOAuthState.mockResolvedValue({ isConfigured: true });
+    managedOAuthCore.getManagedOAuthState.mockResolvedValue({
+      isAdmin: true,
+      hasAccountOAuth: true,
+      hasPendingOAuth: false,
+    });
     managedOAuthCore.upsertPendingManagedOAuth.mockResolvedValue();
     managedOAuthCore.clearPendingManagedOAuth.mockResolvedValue();
     managedOAuthCore.resetManagedOAuth.mockResolvedValue();
@@ -263,13 +323,17 @@ describe('Core router broad route coverage', () => {
     });
     authCore.onRingcentralOAuthCallback.mockResolvedValue();
 
-    userCore.getUserSettingsByAdmin.mockResolvedValue({ fields: [] });
+    userCore.getUserSettingsByAdmin.mockResolvedValue({
+      userSettings: { theme: { value: 'dark', customizable: true } },
+    });
     userCore.refreshUserInfo.mockResolvedValue({
       successful: true,
       returnMessage: { messageType: 'success', message: 'Refreshed' },
     });
-    userCore.getUserSettings.mockResolvedValue({ timezone: 'UTC' });
-    userCore.updateUserSettings.mockResolvedValue({ userSettings: { timezone: 'UTC' } });
+    userCore.getUserSettings.mockResolvedValue({ timezone: { value: 'UTC', customizable: true } });
+    userCore.updateUserSettings.mockResolvedValue({
+      userSettings: { timezone: { value: 'UTC', customizable: true } },
+    });
 
     contactCore.findContact.mockResolvedValue({
       successful: true,
@@ -387,16 +451,29 @@ describe('Core router broad route coverage', () => {
   });
 
   test('serves health, manifest, release, version, and implemented interface routes', async () => {
-    await expect(request(app).get('/isAlive')).resolves.toMatchObject({ status: 200, text: 'OK' });
-    expect((await request(app).get('/releaseNotes')).status).toBe(200);
+    const healthResponse = await request(app).get('/isAlive');
+    expect(healthResponse).toMatchObject({ status: 200, text: 'OK' });
+    expect(healthResponse.headers['content-type']).toMatch(/^text\/plain\b/);
+    expect(() => HealthResponseSchema.parse(healthResponse.text)).not.toThrow();
+    const releaseNotesResponse = await request(app).get('/releaseNotes');
+    expect(releaseNotesResponse.status).toBe(200);
+    expect(() => ReleaseNotesResponseSchema.parse(releaseNotesResponse.body)).not.toThrow();
+    expect(releaseNotesResponse.body['1.0.0'].global).toEqual(coreReleaseNotes['1.0.0'].global);
+    expect(releaseNotesResponse.body['1.0.0'].testCRM).toEqual([
+      { type: 'New', description: 'Connector note.' },
+    ]);
     const manifestResponse = await request(app)
       .get('/crmManifest')
       .query({ platformName: 'testCRM' });
     expect(manifestResponse.status).toBe(200);
     expect(manifestResponse.body.author.name).toBe('Test Author');
-    expect((await request(app).get('/serverVersionInfo')).body).toEqual({ version: '1.0.0' });
+    const versionResponse = await request(app).get('/serverVersionInfo');
+    expect(versionResponse.body).toEqual({ version: '1.0.0' });
+    expect(() => ServerVersionInfoResponseSchema.parse(versionResponse.body)).not.toThrow();
     connectorRegistry.getManifest.mockReturnValueOnce(null);
-    expect((await request(app).get('/serverVersionInfo')).body).toEqual({ version: 'unknown' });
+    const unknownVersionResponse = await request(app).get('/serverVersionInfo');
+    expect(unknownVersionResponse.body).toEqual({ version: 'unknown' });
+    expect(() => ServerVersionInfoResponseSchema.parse(unknownVersionResponse.body)).not.toThrow();
 
     const interfacesResponse = await request(app)
       .get('/implementedInterfaces')
@@ -530,23 +607,48 @@ describe('Core router broad route coverage', () => {
 
   test('serves auth and managed-auth state routes', async () => {
     expect((await request(app).get('/licenseStatus').query(authQuery())).body).toEqual({ isLicenseValid: true });
-    expect((await request(app).get('/authValidation').query(authQuery())).body).toEqual({
+    const authValidationResponse = await request(app).get('/authValidation').query(authQuery());
+    expect(authValidationResponse.body).toEqual({
       successful: true,
       returnMessage: { messageType: 'success', message: 'Valid' },
     });
-    expect((await request(app).get('/apiKeyManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' })).body).toEqual({ hasManagedAuth: true });
-    expect((await request(app).get('/oauthManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' })).body).toEqual({ isConfigured: true });
+    expect(() => AuthValidationResponseSchema.parse(authValidationResponse.body)).not.toThrow();
+
+    const managedAuthResponse = await request(app).get('/apiKeyManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' });
+    expect(() => ManagedAuthStateResponseSchema.parse(managedAuthResponse.body)).not.toThrow();
+    const managedOAuthResponse = await request(app).get('/oauthManagedAuthState').query({ platform: 'testCRM', rcAccessToken: 'rc-token' });
+    expect(() => ManagedOAuthStateResponseSchema.parse(managedOAuthResponse.body)).not.toThrow();
   });
 
   test('serves admin settings, managed auth, managed OAuth, mapping, and server logging routes', async () => {
-    await expect(request(app).post('/admin/settings').query({ rcAccessToken: 'rc-token' }).send({ adminSettings: { a: 1 } })).resolves.toMatchObject({ status: 200 });
+    const adminSettingsRequest = { adminSettings: { a: 1 } };
+    expect(() => AdminSettingsUpdateRequestSchema.parse(adminSettingsRequest)).not.toThrow();
+    const adminSettingsResponse = await request(app).post('/admin/settings').query({ rcAccessToken: 'rc-token' }).send(adminSettingsRequest);
+    expect(adminSettingsResponse.text).toBe('Admin settings updated');
+    expect(adminSettingsResponse.headers['content-type']).toMatch(/^text\/html/);
+    expect(() => AdminSuccessMessageSchema.parse(adminSettingsResponse.text)).not.toThrow();
     expect((await request(app).get('/admin/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' })).body).toEqual({ userSettings: { theme: 'dark' } });
-    expect((await request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token', connectorId: 'connector-1' })).body).toEqual({ shared: true });
-    await expect(request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ scope: 'user', rcExtensionId: 'ext-1', values: { key: 'value' } })).resolves.toMatchObject({ status: 200 });
-    await expect(request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ scope: 'org', values: { key: 'value' } })).resolves.toMatchObject({ status: 200 });
-    await expect(request(app).post('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' }).send({ values: { clientId: 'id' } })).resolves.toMatchObject({ status: 200 });
-    await expect(request(app).delete('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' })).resolves.toMatchObject({ status: 200 });
-    await expect(request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token', platform: 'testCRM' })).resolves.toMatchObject({ status: 200 });
+    const managedAuthAdminResponse = await request(app).get('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token', connectorId: 'connector-1' });
+    expect(() => ManagedAuthAdminResponseSchema.parse(managedAuthAdminResponse.body)).not.toThrow();
+
+    for (const managedAuthRequest of [
+      { scope: 'user', rcExtensionId: 'ext-1', values: { key: 'value' } },
+      { scope: 'org', values: { key: 'value' } },
+    ]) {
+      expect(() => ManagedAuthUpdateRequestSchema.parse(managedAuthRequest)).not.toThrow();
+      const response = await request(app).post('/admin/managedAuth').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send(managedAuthRequest);
+      expect(response.text).toBe('Shared authentication updated');
+      expect(() => AdminSuccessMessageSchema.parse(response.text)).not.toThrow();
+    }
+
+    const managedOAuthRequest = { values: { clientId: 'id' } };
+    expect(() => AdminManagedOAuthCacheRequestSchema.parse(managedOAuthRequest)).not.toThrow();
+    const managedOAuthCacheResponse = await request(app).post('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' }).send(managedOAuthRequest);
+    expect(() => BasicMutationResponseSchema.parse(managedOAuthCacheResponse.body)).not.toThrow();
+    const managedOAuthCacheDeleteResponse = await request(app).delete('/admin/managedOAuth/cache').query({ rcAccessToken: 'rc-token' });
+    expect(() => BasicMutationResponseSchema.parse(managedOAuthCacheDeleteResponse.body)).not.toThrow();
+    const managedOAuthAccountDeleteResponse = await request(app).delete('/admin/managedOAuth/account').query({ rcAccessToken: 'rc-token', platform: 'testCRM' });
+    expect(() => BasicMutationResponseSchema.parse(managedOAuthAccountDeleteResponse.body)).not.toThrow();
     expect((await request(app).post('/admin/userMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).body).toEqual({ users: ['mapped-user'] });
     expect((await request(app).post('/admin/reinitializeUserMapping').query({ ...authQuery(), rcAccessToken: 'rc-token' }).send({ rcExtensionList: ['100'] })).body).toEqual({ users: ['remapped-user'] });
     expect((await request(app).get('/admin/serverLoggingSettings').query(authQuery())).body).toEqual({ enabled: true });
@@ -557,13 +659,22 @@ describe('Core router broad route coverage', () => {
   });
 
   test('serves user settings, user info, hostname, and user hash routes', async () => {
-    expect((await request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' })).body).toEqual({ fields: [] });
-    expect((await request(app).post('/user/refreshInfo').query(authQuery()).send({})).body).toEqual({
+    const preloadResponse = await request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' });
+    expect(() => UserSettingsEnvelopeSchema.parse(preloadResponse.body)).not.toThrow();
+
+    const refreshResponse = await request(app).post('/user/refreshInfo').query(authQuery()).send({});
+    expect(refreshResponse.body).toEqual({
       successful: true,
       returnMessage: { messageType: 'success', message: 'Refreshed' },
     });
-    expect((await request(app).get('/user/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' })).body).toEqual({ timezone: 'UTC' });
-    expect((await request(app).post('/user/settings').query(authQuery()).send({ userSettings: { timezone: 'UTC' } })).body).toEqual({ userSettings: { timezone: 'UTC' } });
+    expect(() => BasicMutationResponseSchema.parse(refreshResponse.body)).not.toThrow();
+
+    const settingsResponse = await request(app).get('/user/settings').query({ ...authQuery(), rcAccessToken: 'rc-token' });
+    expect(() => UserSettingsSchema.parse(settingsResponse.body)).not.toThrow();
+    const settingsRequest = { userSettings: { timezone: { value: 'UTC', customizable: true } } };
+    expect(() => UserSettingsUpdateRequestSchema.parse(settingsRequest)).not.toThrow();
+    const settingsUpdateResponse = await request(app).post('/user/settings').query(authQuery()).send(settingsRequest);
+    expect(() => UserSettingsEnvelopeSchema.parse(settingsUpdateResponse.body)).not.toThrow();
     await expect(request(app).get('/hostname').query(authQuery())).resolves.toMatchObject({ status: 200, text: 'crm.example.com' });
     expect((await request(app).get('/userInfoHash').query({ extensionId: 'ext', accountId: 'acc' })).body).toEqual({
       extensionId: 'hash-ext',
@@ -592,11 +703,19 @@ describe('Core router broad route coverage', () => {
     })).resolves.toMatchObject({ status: 200, text: 'Authentication successful. Please go back to AI Agent and confirm it.' });
     expect(updateAuthSession).toHaveBeenCalledWith('session-1', expect.objectContaining({ status: 'completed' }));
 
-    expect((await request(app).post('/apiKeyLogin').send({ platform: 'testCRM', apiKey: 'api-key', rcAccessToken: 'rc-token' })).body).toEqual({
+    const apiKeyLoginRequest = {
+      platform: 'testCRM',
+      apiKey: 'api-key',
+      rcAccessToken: 'rc-token',
+    };
+    expect(ApiKeyLoginRequestSchema.parse(apiKeyLoginRequest)).toEqual(apiKeyLoginRequest);
+    const apiKeyLoginResponse = await request(app).post('/apiKeyLogin').send(apiKeyLoginRequest);
+    expect(apiKeyLoginResponse.body).toEqual({
       jwtToken: 'generated-crm-jwt',
       name: 'CRM User',
       returnMessage: { messageType: 'success', message: 'Connected' },
     });
+    expect(ApiKeyLoginResponseSchema.parse(apiKeyLoginResponse.body)).toEqual(apiKeyLoginResponse.body);
     expect((await request(app).post('/unAuthorize').query(authQuery()).send({})).body).toEqual({
       messageType: 'success',
       message: 'Disconnected',
@@ -614,19 +733,113 @@ describe('Core router broad route coverage', () => {
   });
 
   test('serves appointment list, create, update, status, refresh, confirm, and cancel routes', async () => {
-    expect((await request(app).get('/appointments').query(authQuery())).body.appointments).toEqual([{ id: 'appt-1' }]);
-    expect((await request(app).post('/appointments').query(authQuery()).send({ payload: { title: 'Meet' } })).body.appointmentId).toBe('appt-2');
-    expect((await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } })).body.appointmentId).toBe('appt-2');
-    expect((await request(app).post('/appointments/appt-2/status').query(authQuery()).send({ status: 'Tentative' })).body.appointmentId).toBe('appt-2');
+    const listResponse = await request(app).get('/appointments').query(authQuery());
+    expect(() => AppointmentListResponseSchema.parse(listResponse.body)).not.toThrow();
+    const rangedListResponse = await request(app).get('/appointments').query({
+      ...authQuery(),
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+    });
+    expect(rangedListResponse.status).toBe(200);
+    expect(appointmentCore.listAppointments).toHaveBeenLastCalledWith(expect.objectContaining({
+      range: { startDate: '2026-07-01', endDate: '2026-07-31' },
+    }));
+
+    const createBody = appointmentCreateBody();
+    expect(() => AppointmentCreateRequestSchema.parse(createBody)).not.toThrow();
+    const createResponse = await request(app).post('/appointments').query(authQuery()).send(createBody);
+    expect(() => AppointmentCreateResponseSchema.parse(createResponse.body)).not.toThrow();
+
+    const patchBody = { patch: { title: 'Updated' } };
+    expect(() => AppointmentPatchRequestSchema.parse(patchBody)).not.toThrow();
+    const patchResponse = await request(app).patch('/appointments/appt-2').query(authQuery()).send(patchBody);
+    expect(() => AppointmentRecordResponseSchema.parse(patchResponse.body)).not.toThrow();
+
+    const statusBody = { status: 'Tentative' };
+    expect(() => AppointmentStatusRequestSchema.parse(statusBody)).not.toThrow();
+    const statusResponse = await request(app).post('/appointments/appt-2/status').query(authQuery()).send(statusBody);
+    expect(() => AppointmentRecordResponseSchema.parse(statusResponse.body)).not.toThrow();
     expect(appointmentCore.updateAppointment).toHaveBeenLastCalledWith({
       platform: 'testCRM',
       userId: 'user-1',
       appointmentId: 'appt-2',
       patchBody: { status: 'tentative' },
     });
-    expect((await request(app).get('/appointments/appt-2/refresh').query(authQuery())).body.appointmentId).toBe('appt-2');
-    expect((await request(app).post('/appointments/appt-2/confirm').query(authQuery())).body.appointmentId).toBe('appt-2');
-    expect((await request(app).post('/appointments/appt-2/cancel').query(authQuery())).body.appointmentId).toBe('appt-2');
+    const refreshResponse = await request(app).get('/appointments/appt-2/refresh').query(authQuery());
+    expect(() => AppointmentRecordResponseSchema.parse(refreshResponse.body)).not.toThrow();
+    const confirmResponse = await request(app).post('/appointments/appt-2/confirm').query(authQuery());
+    expect(() => AppointmentActionResponseSchema.parse(confirmResponse.body)).not.toThrow();
+    const cancelResponse = await request(app).post('/appointments/appt-2/cancel').query(authQuery());
+    expect(() => AppointmentActionResponseSchema.parse(cancelResponse.body)).not.toThrow();
+  });
+
+  test('rejects malformed appointment request bodies before invoking connectors', async () => {
+    appointmentCore.listAppointments.mockClear();
+    appointmentCore.createAppointment.mockClear();
+    appointmentCore.updateAppointment.mockClear();
+
+    const responses = [
+      await request(app).get('/appointments').query({ ...authQuery(), startDate: '2026-07-01' }),
+      await request(app).get('/appointments').query({
+        ...authQuery(),
+        startDate: '2026-08-01',
+        endDate: '2026-07-01',
+      }),
+      await request(app).post('/appointments').query(authQuery()).send({ payload: null }),
+      await request(app).post('/appointments').query(authQuery()).send({ arbitrary: true }),
+      await request(app).post('/appointments').query(authQuery()).send({
+        ...appointmentCreateBody(),
+        payload: { ...appointmentCreateBody().payload, status: 'scheduled' },
+      }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: 'bad' }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { location: 'Zoom' } }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { status: 'tentative' } }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({
+        patch: { startTimeUtc: '2026-07-20T19:00:00.000Z' },
+      }),
+      await request(app).patch('/appointments/appt-2').query(authQuery()).send({
+        patch: { durationMinutes: -1 },
+      }),
+      await request(app).post('/appointments/appt-2/status').query(authQuery()).send({ status: 123 }),
+    ];
+
+    for (const response of responses) {
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual(expect.objectContaining({ error: expect.any(String) }));
+    }
+    expect(appointmentCore.listAppointments).not.toHaveBeenCalled();
+    expect(appointmentCore.createAppointment).not.toHaveBeenCalled();
+    expect(appointmentCore.updateAppointment).not.toHaveBeenCalled();
+  });
+
+  test('rejects connector appointment results that violate the published response contracts', async () => {
+    appointmentCore.listAppointments.mockResolvedValueOnce({
+      successful: true,
+      appointments: [{ id: null, title: 'Missing identifier' }],
+    });
+    const listResponse = await request(app).get('/appointments').query(authQuery());
+    expect(listResponse.status).toBe(400);
+
+    appointmentCore.createAppointment.mockResolvedValueOnce({ successful: true });
+    const createResponse = await request(app)
+      .post('/appointments')
+      .query(authQuery())
+      .send(appointmentCreateBody());
+    expect(createResponse.status).toBe(400);
+
+    appointmentCore.updateAppointment.mockResolvedValueOnce({ successful: true });
+    const updateResponse = await request(app)
+      .patch('/appointments/appt-2')
+      .query(authQuery())
+      .send({ patch: { title: 'Updated' } });
+    expect(updateResponse.status).toBe(400);
+
+    appointmentCore.confirmAppointment.mockResolvedValueOnce({ successful: true });
+    const confirmResponse = await request(app)
+      .post('/appointments/appt-2/confirm')
+      .query(authQuery());
+    expect(confirmResponse.status).toBe(400);
   });
 
   test('serves migrated client routes with bearer auth header and no jwtToken query', async () => {
@@ -634,8 +847,11 @@ describe('Core router broad route coverage', () => {
 
     await expect(withAuth(request(app).get('/hostname'))).resolves.toMatchObject({ status: 200, text: 'crm.example.com' });
     expect((await withAuth(request(app).get('/custom/contact/search').query({ name: 'Alice' }))).body.contact).toEqual([{ id: 'contact-3' }]);
-    expect((await withAuth(request(app).get('/appointments').query({ range: 'past' }))).body.appointments).toEqual([{ id: 'appt-1' }]);
-    expect((await withAuth(request(app).post('/appointments').send({ payload: { title: 'Meet' } }))).body.appointmentId).toBe('appt-2');
+    expect((await withAuth(request(app).get('/appointments').query({
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+    }))).body.appointments).toEqual([{ id: 'appt-1' }]);
+    expect((await withAuth(request(app).post('/appointments').send(appointmentCreateBody()))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).patch('/appointments/appt-2').send({ patch: { title: 'Updated' } }))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).post('/appointments/appt-2/status').send({ status: 'tentative' }))).body.appointmentId).toBe('appt-2');
     expect((await withAuth(request(app).get('/appointments/appt-2/refresh'))).body.appointmentId).toBe('appt-2');
@@ -646,10 +862,30 @@ describe('Core router broad route coverage', () => {
   test('serves call-log, disposition, and message-log routes', async () => {
     expect((await request(app).post('/callLog/cacheNote').query(authQuery()).send({ sessionId: 's1', note: 'note' })).body.successful).toBe(true);
     expect((await request(app).get('/callLog').query({ ...authQuery(), sessionIds: 's1', requireDetails: 'true' })).body.logs).toEqual([{ sessionId: 'session-1' }]);
-    expect((await request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } })).body.logId).toBe('log-1');
+    const callLogResponse = await request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } });
+    expect(callLogResponse.body.logId).toBe('log-1');
+    expect(() => CallLogMutationResponseSchema.parse(callLogResponse.body)).not.toThrow();
     expect((await request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' })).body.updatedNote).toBe('updated');
-    expect((await request(app).put('/callDisposition').query(authQuery()).send({ sessionId: 's1', dispositions: ['left voicemail'] })).body.successful).toBe(true);
-    expect((await request(app).post('/messageLog').query(authQuery()).send({ messages: [] })).body.logIds).toEqual(['msg-1']);
+    expect((await request(app).put('/callDisposition').query(authQuery()).send({
+      sessionId: 's1',
+      dispositions: [{ id: 'left-voicemail', value: 'Left voicemail' }],
+    })).body.successful).toBe(true);
+    const messageLogResponse = await request(app).post('/messageLog').query(authQuery()).send({ messages: [] });
+    expect(messageLogResponse.body.logIds).toEqual(['msg-1']);
+    expect(() => MessageLogResponseSchema.parse(messageLogResponse.body)).not.toThrow();
+
+    logCore.createMessageLog.mockResolvedValueOnce({
+      successful: true,
+      logIds: [],
+      returnMessage: null,
+    });
+    const alreadyLoggedResponse = await request(app).post('/messageLog').query(authQuery()).send({ messages: [] });
+    expect(alreadyLoggedResponse.body).toEqual({
+      successful: true,
+      logIds: [],
+      returnMessage: null,
+    });
+    expect(() => MessageLogResponseSchema.parse(alreadyLoggedResponse.body)).not.toThrow();
   });
 
   test('wraps representative route responses with debug trace data', async () => {
@@ -683,12 +919,14 @@ describe('Core router broad route coverage', () => {
     await expectDebugResponse(request(app).get('/user/preloadSettings').query({ rcAccessToken: 'rc-token' }));
     await expectDebugResponse(request(app).post('/user/refreshInfo').query(authQuery()).send({}));
     await expectDebugResponse(request(app).get('/user/settings').query(authQuery()));
-    await expectDebugResponse(request(app).post('/user/settings').query(authQuery()).send({ userSettings: { timezone: 'UTC' } }));
+    await expectDebugResponse(request(app).post('/user/settings').query(authQuery()).send({
+      userSettings: { timezone: { value: 'UTC', customizable: true } },
+    }));
     await expectDebugResponse(request(app).get('/hostname').query(authQuery()));
     await expectDebugResponse(request(app).get('/contact').query({ ...authQuery(), phoneNumber: '+15551234567' }));
     await expectDebugResponse(request(app).post('/contact').query(authQuery()).send({ phoneNumber: '+1555', newContactName: 'Alice' }));
     await expectDebugResponse(request(app).get('/appointments').query(authQuery()));
-    await expectDebugResponse(request(app).post('/appointments').query(authQuery()).send({ payload: { title: 'Meet' } }));
+    await expectDebugResponse(request(app).post('/appointments').query(authQuery()).send(appointmentCreateBody()));
     await expectDebugResponse(request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } }));
     await expectDebugResponse(request(app).get('/callLog').query(authQuery()));
     await expectDebugResponse(request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } }));
@@ -732,7 +970,9 @@ describe('Core router broad route coverage', () => {
     expect((await request(app).get('/ringcentral/admin/report').query({ ...authQuery(), timezone: 'UTC' })).body).toEqual({ rows: [{ id: 'admin-row' }] });
     expect((await request(app).get('/ringcentral/admin/userReport').query({ ...authQuery(), rcExtensionId: 'ext-1' })).body).toEqual({ rows: [{ id: 'user-row' }] });
     await expect(request(app).get('/ringcentral/oauth/callback').query({ ...authQuery(), code: 'rc-code' })).resolves.toMatchObject({ status: 200 });
-    expect((await request(app).get('/debug/report/url').query(authQuery())).body).toEqual({ presignedUrl: 'https://upload.example.com/report' });
+    const debugReportResponse = await request(app).get('/debug/report/url').query(authQuery());
+    expect(debugReportResponse.body).toEqual({ presignedUrl: 'https://upload.example.com/report' });
+    expect(() => DebugReportUrlResponseSchema.parse(debugReportResponse.body)).not.toThrow();
     expect((await request(app).post('/plugin/async-callback/task-1').send({ successful: true })).body).toEqual({ successful: true });
     await expect(request(app).post('/plugin/register').query({ rcAccessToken: 'rc-token' }).send({ pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 200 });
     await expect(request(app).delete('/plugin/unregister').query({ rcAccessToken: 'rc-token', pluginId: 'p1', rcAccountId: 'rc-account-1' })).resolves.toMatchObject({ status: 200 });
@@ -757,7 +997,7 @@ describe('Core router broad route coverage', () => {
       ['get', '/contact'],
       ['post', '/contact', { phoneNumber: '+1555', newContactName: 'Alice' }],
       ['get', '/appointments'],
-      ['post', '/appointments', { payload: { title: 'Meet' } }],
+      ['post', '/appointments', appointmentCreateBody()],
       ['patch', '/appointments/appt-2', { patch: { title: 'Meet' } }],
       ['post', '/appointments/appt-2/status', { status: 'tentative' }],
       ['get', '/appointments/appt-2/refresh'],
@@ -817,8 +1057,8 @@ describe('Core router broad route coverage', () => {
     await expectInvalidJwt(() => request(app).get('/contact').query({ jwtToken: 'bad', phoneNumber: '+1555' }));
     await expectInvalidJwt(() => request(app).post('/contact').query({ jwtToken: 'bad' }).send({ phoneNumber: '+1555' }));
     await expectInvalidJwt(() => request(app).get('/appointments').query({ jwtToken: 'bad' }));
-    await expectInvalidJwt(() => request(app).post('/appointments').query({ jwtToken: 'bad' }).send({ payload: {} }));
-    await expectInvalidJwt(() => request(app).patch('/appointments/appt-2').query({ jwtToken: 'bad' }).send({ patch: {} }));
+    await expectInvalidJwt(() => request(app).post('/appointments').query({ jwtToken: 'bad' }).send(appointmentCreateBody()));
+    await expectInvalidJwt(() => request(app).patch('/appointments/appt-2').query({ jwtToken: 'bad' }).send({ patch: { title: 'Updated' } }));
     await expectInvalidJwt(() => request(app).post('/appointments/appt-2/status').query({ jwtToken: 'bad' }).send({ status: 'tentative' }));
     await expectInvalidJwt(() => request(app).get('/appointments/appt-2/refresh').query({ jwtToken: 'bad' }));
     await expectInvalidJwt(() => request(app).post('/appointments/appt-2/confirm').query({ jwtToken: 'bad' }));
@@ -850,8 +1090,8 @@ describe('Core router broad route coverage', () => {
   test('returns 401 when appointment handlers request session revocation', async () => {
     for (const [method, path, mockFn, body] of [
       ['get', '/appointments', appointmentCore.listAppointments],
-      ['post', '/appointments', appointmentCore.createAppointment, { payload: {} }],
-      ['patch', '/appointments/appt-2', appointmentCore.updateAppointment, { patch: {} }],
+      ['post', '/appointments', appointmentCore.createAppointment, appointmentCreateBody()],
+      ['patch', '/appointments/appt-2', appointmentCore.updateAppointment, { patch: { title: 'Updated' } }],
       ['post', '/appointments/appt-2/status', appointmentCore.updateAppointment, { status: 'tentative' }],
       ['get', '/appointments/appt-2/refresh', appointmentCore.refreshAppointment],
       ['post', '/appointments/appt-2/confirm', appointmentCore.confirmAppointment, {}],
@@ -1030,10 +1270,10 @@ describe('Core router broad route coverage', () => {
     await expect(request(app).get('/appointments').query(authQuery())).resolves.toMatchObject({ status: 400 });
 
     appointmentCore.createAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'create appointment failed' });
-    await expect(request(app).post('/appointments').query(authQuery()).send({ payload: {} })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).post('/appointments').query(authQuery()).send(appointmentCreateBody())).resolves.toMatchObject({ status: 400 });
 
     appointmentCore.updateAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'update appointment failed' });
-    await expect(request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: {} })).resolves.toMatchObject({ status: 400 });
+    await expect(request(app).patch('/appointments/appt-2').query(authQuery()).send({ patch: { title: 'Updated' } })).resolves.toMatchObject({ status: 400 });
 
     appointmentCore.updateAppointment.mockRejectedValueOnce({ response: { status: 500 }, message: 'update appointment status failed' });
     await expect(request(app).post('/appointments/appt-2/status').query(authQuery()).send({ status: 'tentative' })).resolves.toMatchObject({ status: 400 });

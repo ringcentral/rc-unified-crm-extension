@@ -2,7 +2,11 @@
 /** @typedef {import('../types').AppointmentAuthParams} AppointmentAuthParams */
 /** @typedef {import('../types').AppointmentAuthFailure} AppointmentAuthFailure */
 /** @typedef {import('../types').AppointmentAuthResult} AppointmentAuthResult */
-/** @typedef {import('../types').AppointmentHandlerResult} AppointmentHandlerResult */
+/** @typedef {import('../types').AppointmentConnector} AppointmentConnector */
+/** @typedef {import('../types').AppointmentListHandlerResult} AppointmentListHandlerResult */
+/** @typedef {import('../types').AppointmentCreateHandlerResult} AppointmentCreateHandlerResult */
+/** @typedef {import('../types').AppointmentRecordHandlerResult} AppointmentRecordHandlerResult */
+/** @typedef {import('../types').AppointmentActionHandlerResult} AppointmentActionHandlerResult */
 /** @typedef {import('../types').AppointmentPayloadParams} AppointmentPayloadParams */
 /** @typedef {import('../types').AppointmentPatchParams} AppointmentPatchParams */
 /** @typedef {import('../types').AppointmentRecordParams} AppointmentRecordParams */
@@ -15,6 +19,33 @@ const connectorRegistry = /** @type {any} */ (require('../connector/registry'));
 const { Connector: ConnectorImport } = require('../models/dynamo/connectorSchema');
 const Connector = /** @type {any} */ (ConnectorImport);
 const { handleApiError, handleDatabaseError } = require('../lib/errorHandler');
+
+/**
+ * Adds the handler success envelope while preserving an explicit connector
+ * failure. Connector success may omit `successful` or set it to literal true;
+ * every other supplied value is an invalid connector response.
+ *
+ * @template {{ successful?: true } | { successful: false }} TResult
+ * @param {TResult} result
+ * @returns {TResult extends { successful: false }
+ *   ? TResult
+ *   : Omit<TResult, 'successful'> & { successful: true }}
+ */
+function withAppointmentResultEnvelope(result) {
+    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+        throw new TypeError('Appointment connector returned a non-object result.');
+    }
+    if (
+        'successful' in result
+        && result.successful !== true
+        && result.successful !== false
+    ) {
+        throw new TypeError('Appointment connector returned an invalid successful value.');
+    }
+    return /** @type {TResult extends { successful: false } ? TResult : Omit<TResult, 'successful'> & { successful: true }} */ (
+        { successful: true, ...result }
+    );
+}
 
 /**
  * @param {AppointmentAuthParams} params
@@ -39,7 +70,9 @@ async function resolveAuth({ platform, userId }) {
         };
     }
 
-    const platformModule = connectorRegistry.getConnector(platform);
+    const platformModule = /** @type {AppointmentConnector} */ (
+        connectorRegistry.getConnector(platform)
+    );
     const proxyId = user.platformAdditionalInfo?.proxyId;
     let proxyConfig = null;
     if (proxyId) {
@@ -91,9 +124,9 @@ async function resolveAuth({ platform, userId }) {
 
 /**
  * @param {ListAppointmentsParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentListHandlerResult>}
  */
-async function listAppointments({ platform, userId, range, mineOnly, forceSync }) {
+async function listAppointments({ platform, userId, range }) {
     try {
         const authResult = await resolveAuth({ platform, userId });
         if (!authResult.successful) return authResult;
@@ -102,11 +135,9 @@ async function listAppointments({ platform, userId, range, mineOnly, forceSync }
             user: authResult.user,
             authHeader: authResult.authHeader,
             range,
-            mineOnly,
-            forceSync,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'listAppointments', { userId });
@@ -115,7 +146,7 @@ async function listAppointments({ platform, userId, range, mineOnly, forceSync }
 
 /**
  * @param {AppointmentPayloadParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentCreateHandlerResult>}
  */
 async function createAppointment({ platform, userId, payload }) {
     try {
@@ -128,7 +159,7 @@ async function createAppointment({ platform, userId, payload }) {
             payload,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'createAppointment', { userId });
@@ -137,7 +168,7 @@ async function createAppointment({ platform, userId, payload }) {
 
 /**
  * @param {AppointmentPatchParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentRecordHandlerResult>}
  */
 async function updateAppointment({ platform, userId, appointmentId, patchBody }) {
     try {
@@ -151,7 +182,7 @@ async function updateAppointment({ platform, userId, appointmentId, patchBody })
             patchBody,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'updateAppointment', { userId, appointmentId });
@@ -160,7 +191,7 @@ async function updateAppointment({ platform, userId, appointmentId, patchBody })
 
 /**
  * @param {AppointmentRecordParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentRecordHandlerResult>}
  */
 async function refreshAppointment({ platform, userId, appointmentId }) {
     try {
@@ -173,7 +204,7 @@ async function refreshAppointment({ platform, userId, appointmentId }) {
             appointmentId,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'refreshAppointment', { userId, appointmentId });
@@ -182,7 +213,7 @@ async function refreshAppointment({ platform, userId, appointmentId }) {
 
 /**
  * @param {AppointmentRecordParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentActionHandlerResult>}
  */
 async function confirmAppointment({ platform, userId, appointmentId }) {
     try {
@@ -195,7 +226,7 @@ async function confirmAppointment({ platform, userId, appointmentId }) {
             appointmentId,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'confirmAppointment', { userId, appointmentId });
@@ -204,7 +235,7 @@ async function confirmAppointment({ platform, userId, appointmentId }) {
 
 /**
  * @param {AppointmentRecordParams} params
- * @returns {Promise<AppointmentHandlerResult>}
+ * @returns {Promise<AppointmentActionHandlerResult>}
  */
 async function cancelAppointment({ platform, userId, appointmentId }) {
     try {
@@ -217,19 +248,18 @@ async function cancelAppointment({ platform, userId, appointmentId }) {
             appointmentId,
             proxyConfig: authResult.proxyConfig
         });
-        return { successful: true, ...result };
+        return withAppointmentResultEnvelope(result);
     }
     catch (e) {
         return handleApiError(e, platform, 'cancelAppointment', { userId, appointmentId });
     }
 }
 
-exports.listAppointments = listAppointments;
-exports.createAppointment = createAppointment;
-exports.updateAppointment = updateAppointment;
-exports.refreshAppointment = refreshAppointment;
-exports.confirmAppointment = confirmAppointment;
-exports.cancelAppointment = cancelAppointment;
-
-
-export {};
+export {
+    listAppointments,
+    createAppointment,
+    updateAppointment,
+    refreshAppointment,
+    confirmAppointment,
+    cancelAppointment
+};

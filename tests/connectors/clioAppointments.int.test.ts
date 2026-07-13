@@ -8,6 +8,12 @@ jest.mock('axios', () => ({
 
 const axios = require('axios');
 const clio = require('../../src/connectors/clio');
+const {
+    AppointmentActionResponseSchema,
+    AppointmentCreateResponseSchema,
+    AppointmentListResponseSchema,
+    AppointmentRecordResponseSchema
+} = require('../../packages/core/contracts');
 
 describe('Clio appointment connector', () => {
     const user = {
@@ -38,7 +44,7 @@ describe('Clio appointment connector', () => {
             }
         });
 
-        await expect(clio.listAppointments({ user, authHeader })).resolves.toEqual({
+        await expect(clio.listAppointments({ user, authHeader, range: 'past' })).resolves.toEqual({
             appointments: [
                 {
                     thirdPartyAppointmentId: '101',
@@ -65,6 +71,51 @@ describe('Clio appointment connector', () => {
                 }
             }
         );
+    });
+
+    test('listAppointments filters a custom date range using inclusive boundaries', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: [
+                    {
+                        id: 100,
+                        summary: 'Before range',
+                        start_at: '2026-07-19T23:59:59.999Z',
+                        end_at: '2026-07-20T00:29:59.999Z'
+                    },
+                    {
+                        id: 101,
+                        summary: 'Start boundary',
+                        start_at: '2026-07-20T00:00:00.000Z',
+                        end_at: '2026-07-20T00:30:00.000Z'
+                    },
+                    {
+                        id: 102,
+                        summary: 'End boundary',
+                        start_at: '2026-07-21T23:59:59.999Z',
+                        end_at: '2026-07-22T00:29:59.999Z'
+                    },
+                    {
+                        id: 103,
+                        summary: 'After range',
+                        start_at: '2026-07-22T00:00:00.000Z',
+                        end_at: '2026-07-22T00:30:00.000Z'
+                    }
+                ]
+            }
+        });
+
+        const result = await clio.listAppointments({
+            user,
+            authHeader,
+            range: {
+                startDate: '2026-07-20',
+                endDate: '2026-07-21'
+            }
+        });
+
+        expect(result.appointments.map(appointment => appointment.id)).toEqual(['101', '102']);
+        expect(() => AppointmentListResponseSchema.parse({ successful: true, ...result })).not.toThrow();
     });
 
     test('createAppointment returns a warning when no writeable calendar is available', async () => {
@@ -146,6 +197,7 @@ describe('Clio appointment connector', () => {
             status: 'scheduled',
             durationMinutes: 30
         });
+        expect(() => AppointmentCreateResponseSchema.parse({ successful: true, ...result })).not.toThrow();
         expect(axios.post).toHaveBeenCalledWith(
             'https://app.clio.com/api/v4/calendar_entries.json',
             {
@@ -323,9 +375,70 @@ describe('Clio appointment connector', () => {
             durationMinutes: 60,
             status: 'tentative'
         });
+        expect(() => AppointmentRecordResponseSchema.parse({
+            successful: true,
+            appointmentId: '333',
+            ...result
+        })).not.toThrow();
     });
 
-    test('updateAppointment leaves attendees untouched when contacts are not supplied', async () => {
+    test('updateAppointment sends only the Clio summary for a title-only patch', async () => {
+        axios.get.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 334,
+                    summary: 'Original title',
+                    description: 'Preserve this description',
+                    start_at: '2026-07-20T22:00:00.000Z',
+                    end_at: '2026-07-20T22:30:00.000Z',
+                    attendees: [
+                        { id: 701, name: 'Existing Client', type: 'Contact' }
+                    ]
+                }
+            }
+        });
+        axios.patch.mockResolvedValueOnce({
+            data: {
+                data: {
+                    id: 334,
+                    summary: 'Renamed appointment',
+                    description: 'Preserve this description',
+                    start_at: '2026-07-20T22:00:00.000Z',
+                    end_at: '2026-07-20T22:30:00.000Z',
+                    attendees: [
+                        { id: 701, name: 'Existing Client', type: 'Contact' }
+                    ],
+                    external_properties: []
+                }
+            }
+        });
+
+        await clio.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '334',
+            patchBody: {
+                title: 'Renamed appointment'
+            }
+        });
+
+        expect(axios.patch).toHaveBeenCalledWith(
+            'https://app.clio.com/api/v4/calendar_entries/334.json',
+            {
+                data: {
+                    summary: 'Renamed appointment'
+                }
+            },
+            {
+                headers: { Authorization: authHeader },
+                params: {
+                    fields: 'id,summary,description,start_at,end_at,attendees,external_properties,calendar_owner_id'
+                }
+            }
+        );
+    });
+
+    test('updateAppointment leaves attendees and omitted description untouched when contacts are not supplied', async () => {
         axios.get.mockResolvedValueOnce({
             data: {
                 data: {
@@ -368,7 +481,6 @@ describe('Clio appointment connector', () => {
             {
                 data: {
                     summary: 'No attendee change',
-                    description: '',
                     start_at: '2026-07-20T22:00:00.000Z',
                     end_at: '2026-07-20T22:10:00.000Z'
                 }
@@ -385,6 +497,27 @@ describe('Clio appointment connector', () => {
             attendeeIds: ['701'],
             durationMinutes: 10
         });
+    });
+
+    test('updateAppointment reports unsupported status-only changes without mutating Clio', async () => {
+        await expect(clio.updateAppointment({
+            user,
+            authHeader,
+            appointmentId: '335',
+            patchBody: {
+                status: 'confirmed'
+            }
+        })).resolves.toEqual({
+            successful: false,
+            returnMessage: {
+                message: 'Clio does not support appointment status changes.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        });
+
+        expect(axios.get).not.toHaveBeenCalled();
+        expect(axios.patch).not.toHaveBeenCalled();
     });
 
     test('refreshAppointment returns not-found warning or normalized appointment', async () => {
@@ -441,35 +574,27 @@ describe('Clio appointment connector', () => {
         });
     });
 
-    test('cancelAppointment deletes the entry and returns the normalized cancelled appointment', async () => {
-        axios.delete.mockResolvedValueOnce({
-            data: {
-                data: {
-                    id: 555,
-                    summary: 'Cancelled',
-                    description: '',
-                    start_at: '2026-07-20T22:00:00.000Z',
-                    end_at: '2026-07-20T22:30:00.000Z',
-                    attendees: [],
-                    external_properties: [
-                        { name: 'rcAppointmentStatus', value: 'cancelled' }
-                    ]
-                }
-            }
-        });
+    test('cancelAppointment accepts Clio 204 and returns an action response', async () => {
+        axios.delete.mockResolvedValueOnce({ status: 204 });
 
-        await expect(clio.cancelAppointment({
+        const result = await clio.cancelAppointment({
             user,
             authHeader,
             appointmentId: '555'
-        })).resolves.toMatchObject({
-            appointment: {
-                id: '555',
-                title: 'Cancelled',
-                status: 'cancelled',
-                durationMinutes: 30
+        });
+
+        expect(result).toEqual({
+            successful: true,
+            returnMessage: {
+                message: 'Appointment cancelled successfully.',
+                messageType: 'success',
+                ttl: 5000
             }
         });
+        expect(() => AppointmentActionResponseSchema.parse({
+            appointmentId: '555',
+            ...result
+        })).not.toThrow();
         expect(axios.delete).toHaveBeenCalledWith(
             'https://app.clio.com/api/v4/calendar_entries/555.json',
             { headers: { Authorization: authHeader } }

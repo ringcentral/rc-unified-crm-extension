@@ -29,6 +29,12 @@ describe('Appointment Handler', () => {
     accessToken: 'access-token',
     platformAdditionalInfo: {}
   };
+  const baseCreatePayload = {
+    title: 'Meeting',
+    summary: 'Discuss the project',
+    startTimeUtc: '2026-07-20T19:00:00.000Z',
+    durationMinutes: 30
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -80,7 +86,7 @@ describe('Appointment Handler', () => {
     const noTokenResult = await appointmentHandler.createAppointment({
       platform: 'testCRM',
       userId: 'user-1',
-      payload: { title: 'Meeting' }
+      payload: baseCreatePayload
     });
 
     expect(noTokenResult.successful).toBe(false);
@@ -118,9 +124,7 @@ describe('Appointment Handler', () => {
     const result = await appointmentHandler.listAppointments({
       platform: 'testCRM',
       userId: 'user-1',
-      range: { startDate: '2026-07-01' },
-      mineOnly: true,
-      forceSync: true
+      range: { startDate: '2026-07-01', endDate: '2026-07-31' }
     });
 
     expect(connector.getOauthInfo).toHaveBeenCalledWith({
@@ -132,9 +136,7 @@ describe('Appointment Handler', () => {
     expect(connector.listAppointments).toHaveBeenCalledWith({
       user: refreshedUser,
       authHeader: 'Bearer fresh-token',
-      range: { startDate: '2026-07-01' },
-      mineOnly: true,
-      forceSync: true,
+      range: { startDate: '2026-07-01', endDate: '2026-07-31' },
       proxyConfig: { id: 'proxy-1' }
     });
     expect(result).toMatchObject({
@@ -155,7 +157,7 @@ describe('Appointment Handler', () => {
     const result = await appointmentHandler.createAppointment({
       platform: 'testCRM',
       userId: 'user-1',
-      payload: { title: 'Meeting' }
+      payload: baseCreatePayload
     });
 
     expect(result).toMatchObject({
@@ -174,7 +176,7 @@ describe('Appointment Handler', () => {
     const createResult = await appointmentHandler.createAppointment({
       platform: 'testCRM',
       userId: 'user-1',
-      payload: { title: 'Create' }
+      payload: { ...baseCreatePayload, title: 'Create' }
     });
     const updateResult = await appointmentHandler.updateAppointment({
       platform: 'testCRM',
@@ -207,7 +209,7 @@ describe('Appointment Handler', () => {
     expect(connector.createAppointment).toHaveBeenCalledWith({
       user: baseUser,
       authHeader: 'Basic encoded-key',
-      payload: { title: 'Create' },
+      payload: { ...baseCreatePayload, title: 'Create' },
       proxyConfig: null
     });
     expect(connector.updateAppointment).toHaveBeenCalledWith({
@@ -255,6 +257,72 @@ describe('Appointment Handler', () => {
     });
 
     expect(result.successful).toBe(false);
+    expect(result.returnMessage.messageType).toBe('warning');
+  });
+
+  test('preserves a literal false connector failure envelope', async () => {
+    UserModel.findByPk.mockResolvedValue(baseUser);
+    mockApiKeyConnector({
+      createAppointment: jest.fn().mockResolvedValue({
+        successful: false,
+        returnMessage: {
+          messageType: 'warning',
+          message: 'Provider rejected the appointment',
+          ttl: 5000
+        }
+      })
+    });
+
+    const result = await appointmentHandler.createAppointment({
+      platform: 'testCRM',
+      userId: 'user-1',
+      payload: baseCreatePayload
+    });
+
+    expect(result).toMatchObject({
+      successful: false,
+      returnMessage: {
+        message: 'Provider rejected the appointment'
+      }
+    });
+  });
+
+  test('preserves a literal true connector success envelope', async () => {
+    UserModel.findByPk.mockResolvedValue(baseUser);
+    mockApiKeyConnector({
+      listAppointments: jest.fn().mockResolvedValue({
+        successful: true,
+        appointments: [{ id: 'appt-true' }]
+      })
+    });
+
+    const result = await appointmentHandler.listAppointments({
+      platform: 'testCRM',
+      userId: 'user-1'
+    });
+
+    expect(result).toMatchObject({
+      successful: true,
+      appointments: [{ id: 'appt-true' }]
+    });
+  });
+
+  test('rejects a truthy string successful envelope', async () => {
+    UserModel.findByPk.mockResolvedValue(baseUser);
+    mockApiKeyConnector({
+      listAppointments: jest.fn().mockResolvedValue({
+        successful: 'false',
+        appointments: [{ id: 'appt-invalid' }]
+      })
+    });
+
+    const result = await appointmentHandler.listAppointments({
+      platform: 'testCRM',
+      userId: 'user-1'
+    });
+
+    expect(result.successful).toBe(false);
+    expect(result.appointments).toBeUndefined();
     expect(result.returnMessage.messageType).toBe('warning');
   });
 });

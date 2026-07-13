@@ -1228,7 +1228,31 @@ async function listAppointments({ user, authHeader, range, mineOnly }) {
             attendees
         };
     });
-    return { appointments };
+
+    const hasCustomRange = range
+        && typeof range === 'object'
+        && !Array.isArray(range)
+        && typeof range.startDate === 'string'
+        && typeof range.endDate === 'string';
+    if (!hasCustomRange) {
+        return { appointments };
+    }
+
+    const rangeStart = moment.utc(range.startDate).startOf('day');
+    const rangeEnd = moment.utc(range.endDate).endOf('day');
+    if (!rangeStart.isValid() || !rangeEnd.isValid()) {
+        return { appointments };
+    }
+
+    return {
+        appointments: appointments.filter(appointment => {
+            if (!appointment.startTimeUtc) return false;
+            const appointmentStart = moment.utc(appointment.startTimeUtc);
+            return appointmentStart.isValid()
+                && appointmentStart.valueOf() >= rangeStart.valueOf()
+                && appointmentStart.valueOf() <= rangeEnd.valueOf();
+        })
+    };
 }
 
 async function createAppointment({ user, authHeader, payload }) {
@@ -1287,6 +1311,20 @@ async function createAppointment({ user, authHeader, payload }) {
 }
 
 async function updateAppointment({ user, authHeader, appointmentId, patchBody }) {
+    const hasPatchField = (field) => Object.prototype.hasOwnProperty.call(patchBody ?? {}, field);
+    const hasSupportedMutation = ['title', 'summary', 'startTimeUtc', 'startTime', 'contacts']
+        .some(hasPatchField);
+    if (hasPatchField('status') && !hasSupportedMutation) {
+        return {
+            successful: false,
+            returnMessage: {
+                message: 'Clio does not support appointment status changes.',
+                messageType: 'warning',
+                ttl: 5000
+            }
+        };
+    }
+
     const existing = await getCalendarEntryById({ user, authHeader, appointmentId });
     if (!existing) {
         return {
@@ -1301,9 +1339,12 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
 
     const existingAttendees = existing?.attendees ?? [];
 
-    const startAt = patchBody?.startTimeUtc ?? patchBody?.startTime ?? null;
+    const hasStartUpdate = hasPatchField('startTimeUtc') || hasPatchField('startTime');
+    const startAt = hasStartUpdate ? patchBody?.startTimeUtc ?? patchBody?.startTime ?? null : null;
     const durationMinutes = Number(patchBody?.durationMinutes ?? 0);
-    const endAt = startAt ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString() : null;
+    const endAt = hasStartUpdate && startAt
+        ? moment.utc(startAt).add(durationMinutes, 'minutes').toISOString()
+        : null;
 
     const toAttendee = (id) => {
         const n = typeof id === 'number' ? id : Number(id);
@@ -1311,7 +1352,7 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
         return { id: n, type: 'Contact' };
     };
 
-    const hasAttendeeUpdate = Array.isArray(patchBody?.contacts);
+    const hasAttendeeUpdate = hasPatchField('contacts') && Array.isArray(patchBody?.contacts);
 
     const attendees = (() => {
         if (!hasAttendeeUpdate) return [];
@@ -1354,15 +1395,13 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
             return true;
         });
     })();
-    const updateBody = {
-        data: {
-            summary: patchBody?.title ?? '',
-            description: patchBody?.summary ?? '',
-            start_at: startAt,
-            end_at: endAt,
-            ...(hasAttendeeUpdate ? { attendees } : {})
-        }
+    const updateData = {
+        ...(hasPatchField('title') ? { summary: patchBody.title } : {}),
+        ...(hasPatchField('summary') ? { description: patchBody.summary } : {}),
+        ...(hasStartUpdate ? { start_at: startAt, end_at: endAt } : {}),
+        ...(hasAttendeeUpdate ? { attendees } : {})
     };
+    const updateBody = { data: updateData };
 
     const updateResponseBody = await axios.patch(
         `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
@@ -1389,11 +1428,18 @@ async function refreshAppointment({ user, authHeader, appointmentId }) {
 
 
 async function cancelAppointment({ user, authHeader, appointmentId }) {
-    const cancelResponseBody = await axios.delete(
+    await axios.delete(
         `https://${user.hostname}/api/v4/calendar_entries/${appointmentId}.json`,
         { headers: { 'Authorization': authHeader } }
     );
-    return { appointment: normalizeCalendarEntryToAppointment(cancelResponseBody?.data?.data) };
+    return {
+        successful: true,
+        returnMessage: {
+            message: 'Appointment cancelled successfully.',
+            messageType: 'success',
+            ttl: 5000
+        }
+    };
 }
 
 /**

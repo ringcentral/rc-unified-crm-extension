@@ -2063,7 +2063,7 @@ function normalizeNetSuiteCalendarEventToAppointment({ calendarEvent, timezoneOf
         description: stripHtmlToPlainText(calendarEvent?.description ?? calendarEvent?.message ?? ''),
         startTimeUtc,
         durationMinutes,
-        status: calendarEvent.status,
+        status: calendarEvent?.status?.id ?? calendarEvent?.status,
         contactId: '',
         attendees
     };
@@ -2236,21 +2236,30 @@ async function createAppointment({ user, authHeader, payload }) {
 
         const location = res?.headers?.location ?? res?.headers?.Location ?? null;
         const createdIdFromLocation = typeof location === 'string' ? location.split('/').filter(Boolean).pop() : null;
-        const createdIdFromBody = res?.data?.id != null ? `${res.data.id}` : null;
+        const createdIdFromBodyRaw = res?.data?.id ?? res?.data?.data?.id;
+        const createdIdFromBody = createdIdFromBodyRaw != null ? `${createdIdFromBodyRaw}` : null;
         const createdId = createdIdFromLocation ?? createdIdFromBody ?? null;
 
-        let event = res?.data?.data ?? res?.data ?? null;
-        if (createdId) {
-            const getRes = await axios.get(`${recordApiBase}/${createdId}`, {
-                headers: { 'Authorization': authHeader }
-            });
-            event = getRes?.data?.data ?? getRes?.data ?? null;
+        if (!createdId) {
+            return {
+                successful: false,
+                returnMessage: {
+                    messageType: 'warning',
+                    message: 'NetSuite did not return the created appointment ID.',
+                    ttl: 60000
+                }
+            };
         }
+
+        const getRes = await axios.get(`${recordApiBase}/${createdId}`, {
+            headers: { 'Authorization': authHeader }
+        });
+        const event = getRes?.data?.data ?? getRes?.data ?? null;
         const appointment = normalizeNetSuiteCalendarEventToAppointment({
             calendarEvent: event,
             timezoneOffset: user?.timezoneOffset
         });
-        return { appointmentId: appointment?.id ?? null, appointment };
+        return { appointmentId: appointment?.id ?? createdId, appointment };
     } catch (error) {
         console.log({ message: 'error', error, errorBody: error.response?.data, o: error.response?.data?.['o:errorDetails'] });
         return {
@@ -2268,70 +2277,75 @@ async function updateAppointment({ user, authHeader, appointmentId, patchBody })
     console.log({ message: 'updateAppointment function called', patchBody, appointmentId });
     const body: any = {};
     try {
-        // Fetch user's timezone via NetSuite API call if not present
-        let timezone = user?.timezoneOffset;
-        if (!timezone) {
-            try {
-                const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
-                const timeZoneResponse = await axios.get(getTimeZoneUrl, {
-                    headers: { 'Authorization': authHeader }
-                });
-                timezone = timeZoneResponse?.data?.userTimezone || 'UTC';
-            } catch (err) {
-                timezone = 'UTC'; // fallback
+        const patch = patchBody ?? {};
+        const startUtc = patch.startTime ?? patch.startTimeUtc ?? patch.start_at ?? patch.startDate;
+        const hasStartTimeUpdate = startUtc != null;
+
+        if (hasStartTimeUpdate) {
+            // Resolve a timezone only when the patch actually includes a start time.
+            let timezone = user?.timezoneOffset;
+            if (!timezone) {
+                try {
+                    const getTimeZoneUrl = `https://${user.hostname.split(".")[0]}.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=customscript_gettimezone&deploy=customdeploy_gettimezone`;
+                    const timeZoneResponse = await axios.get(getTimeZoneUrl, {
+                        headers: { 'Authorization': authHeader }
+                    });
+                    timezone = timeZoneResponse?.data?.userTimezone || 'UTC';
+                } catch (err) {
+                    timezone = 'UTC'; // fallback
+                }
             }
+
+            const durationMinutes = Number(patch.durationMinutes ?? 0);
+            const start = moment.utc(startUtc).tz(timezone);
+            const end = Number.isFinite(durationMinutes)
+                ? moment(start).add(durationMinutes, 'minutes')
+                : null;
+
+            body.startDate = start.format('YYYY-MM-DD');
+            body.startTime = start.format('HH:mm:ss');
+            body.endTime = end ? end.format('HH:mm:ss') : '';
         }
-
-        // Support input (patchBody) in ISO8601 for startTime and durationMinutes
-        let startUtc = patchBody.startTime || patchBody.startTimeUtc || patchBody.start_at || patchBody.startDate || null;
-        let durationMinutes = Number(patchBody.durationMinutes ?? 0);
-
-        // Calculate start/end in local time
-        let start = startUtc ? moment.utc(startUtc).tz(timezone) : null;
-        let end = (start && Number.isFinite(durationMinutes))
-            ? moment(start).add(durationMinutes, 'minutes')
-            : null;
-
-        // Format for NetSuite
-        body.startDate = start ? start.format('YYYY-MM-DD') : '';
-        body.startTime = start ? start.format('HH:mm:ss') : '';
-        body.endTime = end ? end.format('HH:mm:ss') : '';
 
         // Status format for NetSuite
-        if (patchBody.status) {
-            body.status = { id: patchBody.status.toUpperCase() };
+        const statusIdRaw = patch?.status?.id ?? patch?.status;
+        if (typeof statusIdRaw === 'string' && statusIdRaw.trim()) {
+            body.status = { id: statusIdRaw.trim().toUpperCase() };
         }
 
-        // Set message
-        body.message = patchBody.summary || '';
-        body.title = patchBody.title;
-        let attendeeItems = [];
+        if (Object.prototype.hasOwnProperty.call(patch, 'summary')) {
+            body.message = patch.summary ?? '';
+        }
+        else if (Object.prototype.hasOwnProperty.call(patch, 'message')) {
+            body.message = patch.message ?? '';
+        }
+        if (Object.prototype.hasOwnProperty.call(patch, 'title')) {
+            body.title = patch.title;
+        }
 
-        const rawAttendees = Array.isArray(patchBody?.contacts)
-            ? patchBody.contacts
-            : [];
-        attendeeItems = rawAttendees
-            .map((c) => {
-                const id = c.id;
-                console.log({ message: 'id', id });
-                if (id == null || `${id}`.trim() === '') return null;
-                return { attendee: { id: `${id}` } };
-            })
-            .filter(Boolean);
-        // Include empty items to support clearing attendees.
-        body.attendee = { items: attendeeItems };
+        const hasAttendeeUpdate = Array.isArray(patch.contacts);
+        if (hasAttendeeUpdate) {
+            const attendeeItems = patch.contacts
+                .map((contact) => {
+                    const id = contact && typeof contact === 'object' ? contact.id : contact;
+                    console.log({ message: 'id', id });
+                    if (id == null || `${id}`.trim() === '') return null;
+                    return { attendee: { id: `${id}` } };
+                })
+                .filter(Boolean);
+            // An explicitly supplied empty contacts array clears attendees.
+            body.attendee = { items: attendeeItems };
+        }
         console.log({ message: 'body', body });
         const recordUrl = `https://${user.hostname.split(".")[0]}.suitetalk.api.netsuite.com/services/rest/record/v1/calendarEvent/${appointmentId}`;
-        const patchUrl = `${recordUrl}?replace=attendee`
-        const res = await axios.patch(patchUrl, body, {
+        const patchUrl = hasAttendeeUpdate ? `${recordUrl}?replace=attendee` : recordUrl;
+        await axios.patch(patchUrl, body, {
             headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' }
         });
-        const event = res?.data?.data ?? res?.data ?? null;
-        const appointment = normalizeNetSuiteCalendarEventToAppointment({
-            calendarEvent: event,
-            timezoneOffset: user?.timezoneOffset
-        });
-        return { appointment };
+
+        // NetSuite record PATCH requests return 204 No Content. Reload the record so
+        // callers receive the complete updated appointment promised by the contract.
+        return refreshAppointment({ user, authHeader, appointmentId });
     } catch (error) {
         console.log({ message: 'error', error, errorBody: error.response?.data });
         // Print errorDetails from the NetSuite error body for easier debugging

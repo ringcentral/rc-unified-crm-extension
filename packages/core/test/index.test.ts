@@ -21,6 +21,7 @@ const authCore = require('../handlers/auth');
 const logCore = require('../handlers/log');
 const { createCoreRouter, createCoreMiddleware } = require('../index');
 const connectorRegistry = require('../connector/registry');
+const { ImplementedInterfacesResponseSchema } = require('../contracts');
 
 test('TypeScript package entrypoint exposes the compatibility core API', () => {
   const tsCore = require('../index.ts');
@@ -272,6 +273,7 @@ describe('Core Router implementedInterfaces contract', () => {
       refreshUserInfo: false,
       cacheCallNote: false,
     });
+    expect(ImplementedInterfacesResponseSchema.parse(response.body)).toEqual(response.body);
     expect(response.body).not.toHaveProperty('getBasicAuth');
   });
 

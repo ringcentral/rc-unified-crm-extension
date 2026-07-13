@@ -3,7 +3,7 @@
   "info": {
     "title": "App Connect CRM Server API",
     "version": "1.7.38",
-    "description": "HTTP API for the App Connect CRM server. The contract covers shared routes from @app-connect/core and connector-specific routes in this server. Response payloads may include connector-defined fields where an operation delegates to a connector interface.",
+    "description": "HTTP API for the App Connect CRM server. The contract covers shared routes from @app-connect/core and connector-specific routes in this server. Response payloads may include connector-defined fields where an operation delegates to a connector interface.\n\nThis public reference omits internal and application-specific endpoints.",
     "contact": {
       "name": "RingCentral Labs",
       "url": "https://github.com/ringcentral/rc-unified-crm-extension"
@@ -83,20 +83,8 @@
       "description": "Plugin registration, callbacks, license checks, and plugin execution."
     },
     {
-      "name": "MCP",
-      "description": "Model Context Protocol discovery, OAuth metadata, RPC, and widget calls."
-    },
-    {
       "name": "RingCentral Reports",
       "description": "RingCentral account and extension reporting endpoints."
-    },
-    {
-      "name": "Google Integrations",
-      "description": "Google Sheets and Google Drive connector-specific flows."
-    },
-    {
-      "name": "Pipedrive",
-      "description": "Pipedrive redirect and application lifecycle callbacks."
     }
   ],
   "security": [],
@@ -3015,745 +3003,357 @@
           }
         ]
       }
-    },
-    "/.well-known/openai-apps-challenge": {
-      "get": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "OpenAI app verification challenge",
-        "operationId": "getOpenAiAppsChallenge",
-        "responses": {
-          "200": {
-            "description": "Verification code as text/plain."
-          }
-        }
-      }
-    },
-    "/.well-known/oauth-protected-resource": {
-      "get": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "OAuth protected resource metadata",
-        "operationId": "getOauthProtectedResourceMetadata",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          }
-        }
-      }
-    },
-    "/.well-known/oauth-authorization-server": {
-      "get": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "OAuth authorization server metadata for MCP PKCE clients",
-        "operationId": "getOauthAuthorizationServerMetadata",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          }
-        }
-      }
-    },
-    "/oauth/authorize_shim": {
-      "get": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "Redirect MCP PKCE OAuth authorization to RingCentral",
-        "operationId": "getOauthAuthorizeShim",
-        "responses": {
-          "302": {
-            "description": "Redirect to the RingCentral OAuth authorization endpoint."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "description": "The MCP OAuth client is not configured."
-          }
-        },
-        "parameters": [
-          {
-            "name": "response_type",
-            "in": "query",
-            "required": true,
-            "description": "OAuth response type.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "code"
-              ]
-            }
-          },
-          {
-            "name": "client_id",
-            "in": "query",
-            "required": false,
-            "description": "MCP public client identifier. When supplied, it must match the configured client.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "redirect_uri",
-            "in": "query",
-            "required": true,
-            "description": "OAuth callback URI.",
-            "schema": {
-              "type": "string",
-              "format": "uri"
-            }
-          },
-          {
-            "name": "state",
-            "in": "query",
-            "required": false,
-            "description": "Opaque OAuth state returned to the client.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "scope",
-            "in": "query",
-            "required": false,
-            "description": "Space-delimited RingCentral OAuth scopes.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "code_challenge",
-            "in": "query",
-            "required": true,
-            "description": "PKCE code challenge.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "code_challenge_method",
-            "in": "query",
-            "required": true,
-            "description": "PKCE challenge method.",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "S256"
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "/oauth/register": {
-      "post": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "Return MCP public client registration metadata",
-        "operationId": "postOauthRegister",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        }
-      }
-    },
-    "/mcp": {
-      "post": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "Handle MCP JSON-RPC requests",
-        "operationId": "postMcp",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "description": "An authenticated MCP method requires a RingCentral OAuth token. The response includes WWW-Authenticate metadata.",
-            "headers": {
-              "WWW-Authenticate": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {},
-          {
-            "mcpBearer": []
-          }
-        ],
-        "description": "Handles MCP JSON-RPC requests. Discovery and handshake methods are public; tool calls that access user data require a RingCentral bearer token."
-      }
-    },
-    "/mcp/widget-tool-call": {
-      "post": {
-        "tags": [
-          "MCP"
-        ],
-        "summary": "Handle unauthenticated widget tool calls",
-        "operationId": "postMcpWidgetToolCall",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/WidgetToolCall"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedSession"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "description": "The requested widget tool is not registered.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The widget tool failed unexpectedly.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "widgetSessionToken": []
-          }
-        ],
-        "description": "Executes an allowlisted widget tool after validating the signed widget-session header."
-      }
-    },
-    "/googleSheets/filePicker": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Open Google Sheets file picker",
-        "operationId": "getGoogleSheetsFilePicker",
-        "responses": {
-          "200": {
-            "description": "Google Sheets picker HTML page.",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "filePickerJwt": []
-          }
-        ],
-        "parameters": []
-      }
-    },
-    "/googleSheets/sheet": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Create or connect a Google Sheet",
-        "operationId": "postGoogleSheetsSheet",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Disconnect a Google Sheet",
-        "operationId": "deleteGoogleSheetsSheet",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ]
-      }
-    },
-    "/googleSheets/selectedSheet": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Select a Google Sheet tab",
-        "operationId": "postGoogleSheetsSelectedSheet",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        }
-      }
-    },
-    "/admin/googleSheets/filePicker": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Open admin Google Sheets file picker",
-        "operationId": "getAdminGoogleSheetsFilePicker",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": [],
-            "legacyRingCentralAccessToken": []
-          }
-        ]
-      }
-    },
-    "/admin/googleSheets/sheet": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Create or connect an admin Google Sheet",
-        "operationId": "postAdminGoogleSheetsSheet",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": [],
-            "legacyRingCentralAccessToken": []
-          }
-        ]
-      }
-    },
-    "/admin/googleSheets/selectedSheet": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Select an admin Google Sheet tab",
-        "operationId": "postAdminGoogleSheetsSelectedSheet",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyRingCentralAccessToken": []
-          }
-        ]
-      }
-    },
-    "/admin/googleSheets/config": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Read admin Google Sheets config",
-        "operationId": "getAdminGoogleSheetsConfig",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": [],
-            "legacyRingCentralAccessToken": []
-          }
-        ]
-      }
-    },
-    "/googleDrive/oauthUrl": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Get Google Drive OAuth URL",
-        "operationId": "getGoogleDriveOauthUrl",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "pluginId",
-            "in": "query",
-            "required": false,
-            "description": "Plugin identifier included in OAuth state.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/googleDrive/oauthCallback": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Google Drive OAuth callback",
-        "operationId": "getGoogleDriveOauthCallback",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "parameters": [
-          {
-            "name": "callbackUri",
-            "in": "query",
-            "required": true,
-            "description": "Original OAuth callback URI containing encoded state.",
-            "schema": {
-              "type": "string",
-              "format": "uri"
-            }
-          },
-          {
-            "name": "code",
-            "in": "query",
-            "required": true,
-            "description": "Google OAuth authorization code.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "scope",
-            "in": "query",
-            "required": false,
-            "description": "Granted Google OAuth scopes.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/googleDrive/checkAuth": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Check Google Drive auth state",
-        "operationId": "getGoogleDriveCheckAuth",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ]
-      }
-    },
-    "/googleDrive/logout": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Disconnect Google Drive",
-        "operationId": "postGoogleDriveLogout",
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GoogleDriveLogout"
-        },
-        "description": "Legacy endpoint that accepts the App Connect session JWT in the request body."
-      }
-    },
-    "/pipedrive-redirect": {
-      "get": {
-        "tags": [
-          "Pipedrive"
-        ],
-        "summary": "Handle Pipedrive redirect",
-        "operationId": "getPipedriveRedirect",
-        "responses": {
-          "200": {
-            "description": "Pipedrive redirect helper page.",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "The redirect helper page could not be served."
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Pipedrive"
-        ],
-        "summary": "Clear Pipedrive redirect state",
-        "operationId": "deletePipedriveRedirect",
-        "responses": {
-          "200": {
-            "description": "Pipedrive user disconnected.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "description": "Pipedrive Basic authentication failed."
-          },
-          "500": {
-            "description": "The Pipedrive user could not be disconnected."
-          }
-        },
-        "security": [
-          {
-            "pipedriveBasicAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "user_id"
-                ],
-                "properties": {
-                  "user_id": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-      }
-    },
-    "/plugin/licenseStatus/{pluginId}": {
-      "get": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Get app-specific plugin license status",
-        "operationId": "getPluginLicenseStatusByPluginId",
-        "parameters": [
-          {
-            "name": "pluginId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ]
-      }
-    },
-    "/plugin/{pluginId}": {
-      "post": {
-        "tags": [
-          "Google Integrations"
-        ],
-        "summary": "Proxy an app-specific plugin request",
-        "operationId": "postPluginByPluginId",
-        "parameters": [
-          {
-            "name": "pluginId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/OkJson"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
-        },
-        "security": [
-          {
-            "legacyUserJwt": []
-          }
-        ]
-      }
     }
+  },
+  "x-app-connect-generated-contracts": {
+    "version": 1,
+    "schemas": [
+      "AdminSuccessMessage",
+      "AdminSettingsUpdateRequest",
+      "ManagedAuthFieldDefinition",
+      "StoredFieldValue",
+      "ManagedAuthAdminUserValue",
+      "ManagedAuthAdminResponse",
+      "ManagedAuthUpdateRequest",
+      "ManagedOAuthValues",
+      "AdminManagedOAuthCacheRequest",
+      "AppointmentAttendee",
+      "IdentifiedAppointment",
+      "AppointmentContactReference",
+      "AppointmentCreateInput",
+      "AppointmentPatchInput",
+      "AppointmentCreateRequest",
+      "AppointmentPatchRequest",
+      "AppointmentStatusUpdateRequest",
+      "AppointmentFailureResponse",
+      "AppointmentListResponse",
+      "AppointmentCreateResponse",
+      "AppointmentRecordResponse",
+      "AppointmentActionResponse",
+      "ReturnMessage",
+      "BasicMutationResponse",
+      "ApiKeyLoginRequest",
+      "ApiKeyLoginResponse",
+      "AuthValidationResponse",
+      "ManagedAuthStateResponse",
+      "ManagedOAuthStateResponse",
+      "HealthResponse",
+      "ReleaseNoteItem",
+      "ReleaseNoteSections",
+      "ReleaseNotesResponse",
+      "ServerVersionInfoResponse",
+      "ImplementedInterfacesResponse",
+      "UserInfoHashResponse",
+      "DebugReportUrlResponse",
+      "PluginRegisterRequest",
+      "PluginMutationResponse",
+      "AdditionalSubmission",
+      "ContactInfo",
+      "CallLogMutationResponse",
+      "MessageLogResponse",
+      "CallDispositionItem",
+      "CallDispositionRequest",
+      "UserSetting",
+      "UserSettings",
+      "UserSettingsEnvelope",
+      "UserSettingsUpdateRequest"
+    ],
+    "requestBodies": [
+      "ApiKeyLogin",
+      "PluginRegister",
+      "CallDisposition",
+      "UserSettingsUpdate",
+      "AdminSettingsUpdate",
+      "ManagedAuthUpdate",
+      "AdminManagedOAuthCache",
+      "AppointmentCreate",
+      "AppointmentPatch",
+      "AppointmentStatusUpdate"
+    ],
+    "operations": [
+      {
+        "method": "get",
+        "path": "/isAlive",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/releaseNotes",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/apiKeyLogin",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/serverVersionInfo",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/implementedInterfaces",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/userInfoHash",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/debug/report/url",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/plugin/register",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/callLog",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/messageLog",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "put",
+        "path": "/callDisposition",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/authValidation",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/apiKeyManagedAuthState",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/oauthManagedAuthState",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/user/preloadSettings",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/user/refreshInfo",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/user/settings",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/user/settings",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/admin/settings",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/admin/managedAuth",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/admin/managedAuth",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/admin/managedOAuth/cache",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "delete",
+        "path": "/admin/managedOAuth/cache",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "delete",
+        "path": "/admin/managedOAuth/account",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/appointments",
+        "parameters": [
+          "query:startDate",
+          "query:endDate"
+        ],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/appointments",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "patch",
+        "path": "/appointments/{appointmentId}",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/appointments/{appointmentId}/status",
+        "parameters": [],
+        "requestBody": true,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "get",
+        "path": "/appointments/{appointmentId}/refresh",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/appointments/{appointmentId}/confirm",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      },
+      {
+        "method": "post",
+        "path": "/appointments/{appointmentId}/cancel",
+        "parameters": [],
+        "requestBody": false,
+        "responses": [
+          "200"
+        ]
+      }
+    ]
   },
   "components": {
     "securitySchemes": {
@@ -3780,28 +3380,6 @@
         "in": "query",
         "name": "rcAccessToken",
         "description": "Legacy RingCentral access-token query parameter. Prefer X-RC-Access-Token. Some legacy request bodies also carry rcAccessToken."
-      },
-      "mcpBearer": {
-        "type": "http",
-        "scheme": "bearer",
-        "description": "RingCentral OAuth access token used by authenticated MCP methods."
-      },
-      "widgetSessionToken": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-App-Connect-Widget-Token",
-        "description": "Short-lived signed session token issued to the App Connect MCP widget."
-      },
-      "filePickerJwt": {
-        "type": "apiKey",
-        "in": "query",
-        "name": "token",
-        "description": "Legacy App Connect user-session JWT used by the Google Sheets picker page."
-      },
-      "pipedriveBasicAuth": {
-        "type": "http",
-        "scheme": "basic",
-        "description": "Pipedrive application credentials used to authenticate uninstall callbacks."
       }
     },
     "parameters": {
@@ -4034,36 +3612,6 @@
                   "status": "tentative"
                 }
               }
-            }
-          }
-        }
-      },
-      "WidgetToolCall": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/WidgetToolCallRequest"
-            }
-          }
-        }
-      },
-      "GoogleDriveLogout": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "required": [
-                "jwtToken"
-              ],
-              "properties": {
-                "jwtToken": {
-                  "type": "string",
-                  "description": "Legacy App Connect user-session JWT."
-                }
-              },
-              "additionalProperties": false
             }
           }
         }
@@ -4331,26 +3879,6 @@
       },
       "UnauthorizedSession": {
         "description": "The user session is expired or revoked.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          },
-          "text/plain": {
-            "schema": {
-              "type": "string"
-            }
-          }
-        },
-        "headers": {
-          "X-Refreshed-JWT-Token": {
-            "$ref": "#/components/headers/RefreshedUserJwt"
-          }
-        }
-      },
-      "InternalServerError": {
-        "description": "The server could not complete the operation because of an unexpected internal or upstream error.",
         "content": {
           "application/json": {
             "schema": {
@@ -5634,25 +5162,6 @@
         ],
         "additionalProperties": false,
         "x-app-connect-generated-contract": true
-      },
-      "WidgetToolCallRequest": {
-        "type": "object",
-        "required": [
-          "tool"
-        ],
-        "properties": {
-          "tool": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Registered widget tool name."
-          },
-          "toolArgs": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Arguments accepted by the selected widget tool."
-          }
-        },
-        "additionalProperties": false
       },
       "ServerVersionInfoResponse": {
         "type": "object",
@@ -6964,355 +6473,5 @@
         }
       }
     }
-  },
-  "x-app-connect-generated-contracts": {
-    "version": 1,
-    "schemas": [
-      "AdminSuccessMessage",
-      "AdminSettingsUpdateRequest",
-      "ManagedAuthFieldDefinition",
-      "StoredFieldValue",
-      "ManagedAuthAdminUserValue",
-      "ManagedAuthAdminResponse",
-      "ManagedAuthUpdateRequest",
-      "ManagedOAuthValues",
-      "AdminManagedOAuthCacheRequest",
-      "AppointmentAttendee",
-      "IdentifiedAppointment",
-      "AppointmentContactReference",
-      "AppointmentCreateInput",
-      "AppointmentPatchInput",
-      "AppointmentCreateRequest",
-      "AppointmentPatchRequest",
-      "AppointmentStatusUpdateRequest",
-      "AppointmentFailureResponse",
-      "AppointmentListResponse",
-      "AppointmentCreateResponse",
-      "AppointmentRecordResponse",
-      "AppointmentActionResponse",
-      "ReturnMessage",
-      "BasicMutationResponse",
-      "ApiKeyLoginRequest",
-      "ApiKeyLoginResponse",
-      "AuthValidationResponse",
-      "ManagedAuthStateResponse",
-      "ManagedOAuthStateResponse",
-      "HealthResponse",
-      "ReleaseNoteItem",
-      "ReleaseNoteSections",
-      "ReleaseNotesResponse",
-      "ServerVersionInfoResponse",
-      "ImplementedInterfacesResponse",
-      "UserInfoHashResponse",
-      "DebugReportUrlResponse",
-      "PluginRegisterRequest",
-      "PluginMutationResponse",
-      "AdditionalSubmission",
-      "ContactInfo",
-      "CallLogMutationResponse",
-      "MessageLogResponse",
-      "CallDispositionItem",
-      "CallDispositionRequest",
-      "UserSetting",
-      "UserSettings",
-      "UserSettingsEnvelope",
-      "UserSettingsUpdateRequest"
-    ],
-    "requestBodies": [
-      "ApiKeyLogin",
-      "PluginRegister",
-      "CallDisposition",
-      "UserSettingsUpdate",
-      "AdminSettingsUpdate",
-      "ManagedAuthUpdate",
-      "AdminManagedOAuthCache",
-      "AppointmentCreate",
-      "AppointmentPatch",
-      "AppointmentStatusUpdate"
-    ],
-    "operations": [
-      {
-        "method": "get",
-        "path": "/isAlive",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/releaseNotes",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/apiKeyLogin",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/serverVersionInfo",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/implementedInterfaces",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/userInfoHash",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/debug/report/url",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/plugin/register",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/callLog",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/messageLog",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "put",
-        "path": "/callDisposition",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/authValidation",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/apiKeyManagedAuthState",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/oauthManagedAuthState",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/user/preloadSettings",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/user/refreshInfo",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/user/settings",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/user/settings",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/admin/settings",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/admin/managedAuth",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/admin/managedAuth",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/admin/managedOAuth/cache",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "delete",
-        "path": "/admin/managedOAuth/cache",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "delete",
-        "path": "/admin/managedOAuth/account",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/appointments",
-        "parameters": [
-          "query:startDate",
-          "query:endDate"
-        ],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/appointments",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "patch",
-        "path": "/appointments/{appointmentId}",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/appointments/{appointmentId}/status",
-        "parameters": [],
-        "requestBody": true,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "get",
-        "path": "/appointments/{appointmentId}/refresh",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/appointments/{appointmentId}/confirm",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      },
-      {
-        "method": "post",
-        "path": "/appointments/{appointmentId}/cancel",
-        "parameters": [],
-        "requestBody": false,
-        "responses": [
-          "200"
-        ]
-      }
-    ]
   }
 }
