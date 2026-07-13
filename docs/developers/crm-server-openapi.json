@@ -1,72 +1,105 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "App Connect CRM Server",
-    "version": "1.7.34",
-    "description": "OpenAPI 3.0 specification for the App Connect Express server endpoints. Runtime source of truth is packages/core/index.ts plus app-specific routes in src/index.ts. RingCentral call and message entity schemas are modeled from the attached RingCentral platform OAS and trimmed to the fields this server consumes."
+    "title": "App Connect CRM Server API",
+    "version": "1.7.38",
+    "description": "HTTP API for the App Connect CRM server. The contract covers shared routes from @app-connect/core and connector-specific routes in this server. Response payloads may include connector-defined fields where an operation delegates to a connector interface.",
+    "contact": {
+      "name": "RingCentral Labs",
+      "url": "https://github.com/ringcentral/rc-unified-crm-extension"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/license/mit"
+    }
+  },
+  "externalDocs": {
+    "description": "App Connect developer guide",
+    "url": "https://appconnect.labs.ringcentral.com/developers/"
   },
   "servers": [
+    {
+      "url": "https://unified-crm-extension.labs.ringcentral.com",
+      "description": "RingCentral Labs hosted server"
+    },
     {
       "url": "http://localhost:6066",
       "description": "Local development server"
     },
     {
       "url": "https://{host}",
-      "description": "Deployed connector server",
+      "description": "Self-managed connector server",
       "variables": {
         "host": {
-          "default": "example.com"
+          "default": "unified-crm-extension.labs.ringcentral.com",
+          "description": "Hostname of the deployed App Connect server."
         }
       }
     }
   ],
   "tags": [
     {
-      "name": "Health"
+      "name": "Health",
+      "description": "Health and runtime readiness endpoints."
     },
     {
-      "name": "Manifest"
+      "name": "Manifest",
+      "description": "Connector manifests, implemented interfaces, release notes, and version metadata."
     },
     {
-      "name": "Auth"
+      "name": "Auth",
+      "description": "CRM authorization, managed-auth state, and user-session lifecycle."
     },
     {
-      "name": "Admin"
+      "name": "Admin",
+      "description": "Account administration, managed credentials, settings, and user mapping."
     },
     {
-      "name": "User"
+      "name": "User",
+      "description": "Per-user settings and connector user information."
     },
     {
-      "name": "Contacts"
+      "name": "Contacts",
+      "description": "CRM contact lookup and creation."
     },
     {
-      "name": "Appointments"
+      "name": "Appointments",
+      "description": "Connector-backed appointment listing and mutations."
     },
     {
-      "name": "Call Logs"
+      "name": "Call Logs",
+      "description": "CRM call-log lookup, creation, updates, notes, and dispositions."
     },
     {
-      "name": "Message Logs"
+      "name": "Message Logs",
+      "description": "CRM logging for SMS, fax, voicemail, and related messages."
     },
     {
-      "name": "Call Down"
+      "name": "Call Down",
+      "description": "Call-down list creation, retrieval, updates, and deletion."
     },
     {
-      "name": "Plugins"
+      "name": "Plugins",
+      "description": "Plugin registration, callbacks, license checks, and plugin execution."
     },
     {
-      "name": "MCP"
+      "name": "MCP",
+      "description": "Model Context Protocol discovery, OAuth metadata, RPC, and widget calls."
     },
     {
-      "name": "RingCentral Reports"
+      "name": "RingCentral Reports",
+      "description": "RingCentral account and extension reporting endpoints."
     },
     {
-      "name": "Google Integrations"
+      "name": "Google Integrations",
+      "description": "Google Sheets and Google Drive connector-specific flows."
     },
     {
-      "name": "Pipedrive"
+      "name": "Pipedrive",
+      "description": "Pipedrive redirect and application lifecycle callbacks."
     }
   ],
+  "security": [],
   "paths": {
     "/isAlive": {
       "get": {
@@ -110,7 +143,7 @@
           "Manifest"
         ],
         "summary": "Return a platform manifest",
-        "description": "Kept for backward compatibility with older clients.",
+        "description": "Deprecated legacy manifest endpoint retained for client compatibility.",
         "operationId": "getCrmManifest",
         "parameters": [
           {
@@ -128,7 +161,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/releaseNotes": {
@@ -156,7 +190,9 @@
           "200": {
             "$ref": "#/components/responses/OkJson"
           }
-        }
+        },
+        "deprecated": true,
+        "description": "Deprecated legacy version endpoint retained for client compatibility."
       }
     },
     "/oauth-callback": {
@@ -208,6 +244,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "proxyId",
+            "in": "query",
+            "required": false,
+            "description": "Proxy connector identifier retained through the OAuth exchange.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -226,18 +271,35 @@
           "Auth"
         ],
         "summary": "API-key login",
+        "description": "Authenticates a user with connector-defined API-key credentials. The platform field selects the connector; credential fields can be supplied directly or resolved from managed authentication when a RingCentral access token is present.",
         "operationId": "postApiKeyLogin",
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/ApiKeyLogin"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The connector credentials were accepted and an App Connect user token was issued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyLoginResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {},
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/unAuthorize": {
@@ -250,6 +312,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -272,11 +337,17 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           }
         }
       }
@@ -291,6 +362,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -315,7 +389,23 @@
             "$ref": "#/components/parameters/platform"
           },
           {
-            "$ref": "#/components/parameters/rcAccessToken"
+            "name": "connectorId",
+            "in": "query",
+            "required": false,
+            "description": "Private or proxy connector identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isPrivate",
+            "in": "query",
+            "required": false,
+            "description": "Whether connector-scoped managed credentials should be used.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -325,7 +415,15 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/oauthManagedAuthState": {
@@ -338,9 +436,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/platform"
-          },
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
           }
         ],
         "responses": {
@@ -350,7 +445,15 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/hostname": {
@@ -360,19 +463,39 @@
         ],
         "summary": "Resolve hostname metadata for a platform",
         "operationId": "getHostname",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/platform"
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Stored CRM hostname.",
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedUserJwt"
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "description": "The hostname could not be loaded."
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "description": "Returns the CRM hostname stored for the authenticated App Connect user."
       }
     },
     "/userInfoHash": {
@@ -382,11 +505,7 @@
         ],
         "summary": "Return a hash for the current user info",
         "operationId": "getUserInfoHash",
-        "security": [
-          {
-            "userJwt": []
-          }
-        ],
+        "security": [],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
@@ -394,7 +513,27 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "extensionId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral extension identifier to hash.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account identifier to hash.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/admin/settings": {
@@ -404,22 +543,36 @@
         ],
         "summary": "Read admin settings",
         "operationId": "getAdminSettings",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/platform"
-          },
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "userJwt": [],
+            "legacyRingCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -427,11 +580,7 @@
         ],
         "summary": "Save admin settings",
         "operationId": "postAdminSettings",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -441,8 +590,19 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/managedAuth": {
@@ -454,10 +614,23 @@
         "operationId": "getAdminManagedAuth",
         "parameters": [
           {
-            "$ref": "#/components/parameters/platform"
+            "name": "connectorId",
+            "in": "query",
+            "required": false,
+            "description": "Private or proxy connector identifier.",
+            "schema": {
+              "type": "string"
+            }
           },
           {
-            "$ref": "#/components/parameters/rcAccessToken"
+            "name": "isPrivate",
+            "in": "query",
+            "required": false,
+            "description": "Whether connector-scoped managed credentials should be used.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -466,8 +639,29 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "userJwt": [],
+            "legacyRingCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -475,11 +669,7 @@
         ],
         "summary": "Save admin-managed API-key credentials",
         "operationId": "postAdminManagedAuth",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -489,8 +679,29 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "userJwt": [],
+            "legacyRingCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/managedOAuth/cache": {
@@ -500,11 +711,7 @@
         ],
         "summary": "Cache admin-managed OAuth credentials",
         "operationId": "postAdminManagedOauthCache",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -514,8 +721,19 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -523,22 +741,26 @@
         ],
         "summary": "Delete cached admin-managed OAuth credentials",
         "operationId": "deleteAdminManagedOauthCache",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/platform"
-          },
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/managedOAuth/account": {
@@ -551,9 +773,6 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/platform"
-          },
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
           }
         ],
         "responses": {
@@ -562,8 +781,19 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/userMapping": {
@@ -573,11 +803,7 @@
         ],
         "summary": "Save admin user mapping",
         "operationId": "postAdminUserMapping",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -587,8 +813,32 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "userJwt": [],
+            "legacyRingCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/reinitializeUserMapping": {
@@ -598,11 +848,7 @@
         ],
         "summary": "Reinitialize admin user mapping",
         "operationId": "postAdminReinitializeUserMapping",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -612,8 +858,32 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "userJwt": [],
+            "legacyRingCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/serverLoggingSettings": {
@@ -626,6 +896,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -646,6 +919,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -670,7 +946,13 @@
         "operationId": "getUserPreloadSettings",
         "parameters": [
           {
-            "$ref": "#/components/parameters/platform"
+            "name": "rcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account identifier used when no access token is available.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -680,7 +962,16 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {},
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/user/refreshInfo": {
@@ -694,6 +985,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -716,6 +1010,20 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "RingCentral account id used to resolve account-managed defaults when an access token is unavailable.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -736,6 +1044,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -761,6 +1072,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -816,6 +1130,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -851,6 +1168,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -894,6 +1214,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -902,8 +1225,42 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "description": "Connector-defined appointment time range.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mineOnly",
+            "in": "query",
+            "required": false,
+            "description": "Limit results to appointments owned by the current CRM user.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "forceSync",
+            "in": "query",
+            "required": false,
+            "description": "Force the connector to refresh appointment data.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -914,6 +1271,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -925,6 +1285,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -939,6 +1302,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -955,6 +1321,46 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          }
+        }
+      }
+    },
+    "/appointments/{appointmentId}/status": {
+      "post": {
+        "tags": [
+          "Appointments"
+        ],
+        "summary": "Update an appointment status",
+        "description": "Normalizes the supplied status to lowercase and delegates the update to the connector appointment interface.",
+        "operationId": "postAppointmentStatus",
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/appointmentId"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AppointmentStatusUpdate"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/OkJson"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -969,6 +1375,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -982,6 +1391,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -996,6 +1408,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -1009,6 +1424,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -1023,6 +1441,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -1036,6 +1457,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         }
       }
@@ -1050,6 +1474,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -1095,6 +1522,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1129,6 +1559,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1162,6 +1595,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1194,6 +1630,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1229,6 +1668,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1265,6 +1707,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "responses": {
@@ -1274,7 +1719,18 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional call-down status filter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -1285,6 +1741,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "requestBody": {
@@ -1310,6 +1769,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -1338,6 +1800,9 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
           }
         ],
         "parameters": [
@@ -1362,11 +1827,7 @@
         ],
         "summary": "Register a plugin for an account",
         "operationId": "postPluginRegister",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
         },
@@ -1380,7 +1841,15 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/plugin/unregister": {
@@ -1390,11 +1859,7 @@
         ],
         "summary": "Unregister a plugin for an account",
         "operationId": "deletePluginUnregister",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/rcAccessToken"
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
@@ -1405,7 +1870,15 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           }
-        }
+        },
+        "security": [
+          {
+            "ringCentralAccessToken": []
+          },
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/plugin/licenseStatus": {
@@ -1418,6 +1891,31 @@
         "security": [
           {
             "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rcAccountId",
+            "in": "query",
+            "required": true,
+            "description": "RingCentral account id whose plugin license is being checked.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "pluginId",
+            "in": "query",
+            "required": true,
+            "description": "Plugin identifier from the connector manifest.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         ],
         "responses": {
@@ -1497,7 +1995,55 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "timezone",
+            "in": "query",
+            "required": false,
+            "description": "IANA timezone used to group report data.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeFrom",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive report start time.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeTo",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive report end time.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "required": false,
+            "description": "Report aggregation interval.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/ringcentral/admin/userReport": {
@@ -1514,7 +2060,55 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "rcExtensionId",
+            "in": "query",
+            "required": true,
+            "description": "RingCentral extension identifier.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timezone",
+            "in": "query",
+            "required": false,
+            "description": "IANA timezone used for report data.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeFrom",
+            "in": "query",
+            "required": false,
+            "description": "Inclusive report start time.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "timeTo",
+            "in": "query",
+            "required": false,
+            "description": "Exclusive report end time.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ]
       }
     },
     "/ringcentral/oauth/callback": {
@@ -1523,15 +2117,43 @@
           "RingCentral Reports"
         ],
         "summary": "RingCentral admin OAuth callback",
+        "description": "Exchanges the RingCentral OAuth authorization code for the account associated with the authenticated App Connect user.",
         "operationId": "getRingCentralOauthCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "One-time authorization code returned by RingCentral OAuth.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The RingCentral OAuth authorization was completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasicMutationResponse"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     },
     "/debug/report/url": {
@@ -1548,7 +2170,15 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "userJwt": []
+          },
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     },
     "/.well-known/openai-apps-challenge": {
@@ -1602,9 +2232,87 @@
         "operationId": "getOauthAuthorizeShim",
         "responses": {
           "302": {
-            "description": "Redirects to RingCentral OAuth authorization."
+            "description": "Redirect to the RingCentral OAuth authorization endpoint."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "description": "The MCP OAuth client is not configured."
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "required": true,
+            "description": "OAuth response type.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "code"
+              ]
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "description": "MCP public client identifier. When supplied, it must match the configured client.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "required": true,
+            "description": "OAuth callback URI.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "description": "Opaque OAuth state returned to the client.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "description": "Space-delimited RingCentral OAuth scopes.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "required": true,
+            "description": "PKCE code challenge.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "required": true,
+            "description": "PKCE challenge method.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "S256"
+              ]
+            }
+          }
+        ]
       }
     },
     "/oauth/register": {
@@ -1617,6 +2325,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -1635,10 +2346,34 @@
           "200": {
             "$ref": "#/components/responses/OkJson"
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
-            "description": "Bearer challenge for protected MCP requests."
+            "description": "An authenticated MCP method requires a RingCentral OAuth token. The response includes WWW-Authenticate metadata.",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {},
+          {
+            "mcpBearer": []
+          }
+        ],
+        "description": "Handles MCP JSON-RPC requests. Discovery and handshake methods are public; tool calls that access user data require a RingCentral bearer token."
       }
     },
     "/mcp/widget-tool-call": {
@@ -1649,13 +2384,48 @@
         "summary": "Handle unauthenticated widget tool calls",
         "operationId": "postMcpWidgetToolCall",
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/WidgetToolCall"
         },
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The requested widget tool is not registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The widget tool failed unexpectedly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "widgetSessionToken": []
+          }
+        ],
+        "description": "Executes an allowlisted widget tool after validating the signed widget-session header."
       }
     },
     "/googleSheets/filePicker": {
@@ -1667,12 +2437,28 @@
         "operationId": "getGoogleSheetsFilePicker",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Google Sheets picker HTML page.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "filePickerJwt": []
+          }
+        ],
+        "parameters": []
       }
     },
     "/googleSheets/sheet": {
@@ -1691,8 +2477,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -1706,8 +2500,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     },
     "/googleSheets/selectedSheet": {
@@ -1743,8 +2545,17 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/googleSheets/sheet": {
@@ -1763,8 +2574,20 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/googleSheets/selectedSheet": {
@@ -1783,8 +2606,19 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/admin/googleSheets/config": {
@@ -1800,8 +2634,20 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": [],
+            "legacyRingCentralAccessToken": []
+          }
+        ]
       }
     },
     "/googleDrive/oauthUrl": {
@@ -1818,7 +2664,23 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "query",
+            "required": false,
+            "description": "Plugin identifier included in OAuth state.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/googleDrive/oauthCallback": {
@@ -1835,7 +2697,37 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "callbackUri",
+            "in": "query",
+            "required": true,
+            "description": "Original OAuth callback URI containing encoded state.",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "Google OAuth authorization code.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "description": "Granted Google OAuth scopes.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/googleDrive/checkAuth": {
@@ -1852,7 +2744,12 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     },
     "/googleDrive/logout": {
@@ -1869,7 +2766,11 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GoogleDriveLogout"
+        },
+        "description": "Legacy endpoint that accepts the App Connect session JWT in the request body."
       }
     },
     "/pipedrive-redirect": {
@@ -1880,8 +2781,18 @@
         "summary": "Handle Pipedrive redirect",
         "operationId": "getPipedriveRedirect",
         "responses": {
-          "302": {
-            "description": "Redirects to the final Pipedrive target."
+          "200": {
+            "description": "Pipedrive redirect helper page.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The redirect helper page could not be served."
           }
         }
       },
@@ -1893,10 +2804,47 @@
         "operationId": "deletePipedriveRedirect",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Pipedrive user disconnected.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "description": "Pipedrive Basic authentication failed."
+          },
+          "500": {
+            "description": "The Pipedrive user could not be disconnected."
+          }
+        },
+        "security": [
+          {
+            "pipedriveBasicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "user_id"
+                ],
+                "properties": {
+                  "user_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
           }
         }
       }
@@ -1924,8 +2872,16 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     },
     "/plugin/{pluginId}": {
@@ -1955,7 +2911,12 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "security": [
+          {
+            "legacyUserJwt": []
+          }
+        ]
       }
     }
   },
@@ -1964,7 +2925,48 @@
       "userJwt": {
         "type": "http",
         "scheme": "bearer",
-        "description": "User session JWT. The server also accepts legacy jwtToken query parameters for backward compatibility."
+        "bearerFormat": "JWT",
+        "description": "App Connect user-session JWT. A response may rotate this token in the X-Refreshed-JWT-Token header."
+      },
+      "legacyUserJwt": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "jwtToken",
+        "description": "Legacy App Connect user-session JWT query parameter. Prefer Authorization: Bearer."
+      },
+      "ringCentralAccessToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-RC-Access-Token",
+        "description": "RingCentral OAuth access token used for user or administrator validation."
+      },
+      "legacyRingCentralAccessToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "rcAccessToken",
+        "description": "Legacy RingCentral access-token query parameter. Prefer X-RC-Access-Token. Some legacy request bodies also carry rcAccessToken."
+      },
+      "mcpBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "RingCentral OAuth access token used by authenticated MCP methods."
+      },
+      "widgetSessionToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-App-Connect-Widget-Token",
+        "description": "Short-lived signed session token issued to the App Connect MCP widget."
+      },
+      "filePickerJwt": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "Legacy App Connect user-session JWT used by the Google Sheets picker page."
+      },
+      "pipedriveBasicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Pipedrive application credentials used to authenticate uninstall callbacks."
       }
     },
     "parameters": {
@@ -1975,15 +2977,6 @@
         "schema": {
           "type": "string"
         }
-      },
-      "rcAccessToken": {
-        "name": "rcAccessToken",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "RingCentral access token used for admin validation."
       },
       "phoneNumber": {
         "name": "phoneNumber",
@@ -2018,15 +3011,6 @@
           "type": "string"
         },
         "description": "Async plugin task id generated by App Connect."
-      },
-      "jwtToken": {
-        "name": "jwtToken",
-        "in": "query",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Legacy user session JWT query parameter. Prefer Authorization: Bearer <token>."
       },
       "sessionIds": {
         "name": "sessionIds",
@@ -2084,6 +3068,17 @@
             "schema": {
               "type": "object",
               "additionalProperties": true
+            }
+          }
+        },
+        "description": "Connector-defined JSON payload. The exact fields depend on the selected connector interface."
+      },
+      "ApiKeyLogin": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiKeyLoginRequest"
             }
           }
         }
@@ -2157,6 +3152,46 @@
             }
           }
         }
+      },
+      "AppointmentStatusUpdate": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AppointmentStatusUpdateRequest"
+            }
+          }
+        }
+      },
+      "WidgetToolCall": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/WidgetToolCallRequest"
+            }
+          }
+        }
+      },
+      "GoogleDriveLogout": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": [
+                "jwtToken"
+              ],
+              "properties": {
+                "jwtToken": {
+                  "type": "string",
+                  "description": "Legacy App Connect user-session JWT."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
       }
     },
     "responses": {
@@ -2168,6 +3203,11 @@
               "$ref": "#/components/schemas/GenericSuccessResponse"
             }
           }
+        },
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
+          }
         }
       },
       "BadRequest": {
@@ -2177,19 +3217,76 @@
             "schema": {
               "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
           }
         }
       },
       "Forbidden": {
-        "description": "Admin validation failed."
+        "description": "The caller is authenticated but is not permitted to perform the operation.",
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
       },
       "UnauthorizedSession": {
         "description": "The user session is expired or revoked.",
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/BasicMutationResponse"
+              "$ref": "#/components/schemas/ErrorResponse"
             }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "The server could not complete the operation because of an unexpected internal or upstream error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          },
+          "text/plain": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "headers": {
+          "X-Refreshed-JWT-Token": {
+            "$ref": "#/components/headers/RefreshedUserJwt"
           }
         }
       }
@@ -2224,6 +3321,76 @@
         },
         "additionalProperties": true
       },
+      "ApiKeyLoginRequest": {
+        "type": "object",
+        "required": [
+          "platform"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Connector platform identifier from the App Connect manifest.",
+            "example": "pipedrive"
+          },
+          "apiKey": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "description": "Primary connector credential. It can be omitted when managed authentication supplies the value."
+          },
+          "rcAccessToken": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "deprecated": true,
+            "description": "Legacy body location for a RingCentral access token. Use the X-RC-Access-Token header instead."
+          },
+          "hostname": {
+            "type": "string",
+            "description": "Optional connector host name for CRM deployments with tenant-specific endpoints."
+          },
+          "proxyId": {
+            "type": "string",
+            "description": "Optional proxy connector identifier."
+          },
+          "connectorId": {
+            "type": "string",
+            "description": "Developer Portal connector identifier used to resolve managed authentication fields."
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether connectorId identifies a private connector."
+          },
+          "additionalInfo": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Connector-defined credential fields, such as tenant or user identifiers."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ApiKeyLoginResponse": {
+        "type": "object",
+        "required": [
+          "jwtToken"
+        ],
+        "properties": {
+          "jwtToken": {
+            "type": "string",
+            "description": "App Connect JWT used to authenticate subsequent user operations."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name returned by the CRM connector."
+          },
+          "returnMessage": {
+            "$ref": "#/components/schemas/ReturnMessage"
+          }
+        },
+        "additionalProperties": true
+      },
       "ErrorResponse": {
         "oneOf": [
           {
@@ -2242,12 +3409,14 @@
             },
             "additionalProperties": true
           }
-        ]
+        ],
+        "description": "Error payload. Legacy routes may return a plain string instead."
       },
       "GenericSuccessResponse": {
         "type": "object",
         "properties": {},
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Connector-defined JSON response. The exact fields depend on the selected connector interface."
       },
       "BasicMutationResponse": {
         "type": "object",
@@ -3292,6 +4461,47 @@
           "message": {
             "type": "string"
           }
+        }
+      },
+      "AppointmentStatusUpdateRequest": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Connector-supported appointment status."
+          }
+        },
+        "additionalProperties": false
+      },
+      "WidgetToolCallRequest": {
+        "type": "object",
+        "required": [
+          "tool"
+        ],
+        "properties": {
+          "tool": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Registered widget tool name."
+          },
+          "toolArgs": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Arguments accepted by the selected widget tool."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "headers": {
+      "RefreshedUserJwt": {
+        "description": "Rotated App Connect user-session JWT. Clients should replace the token they sent when this header is present.",
+        "schema": {
+          "type": "string"
         }
       }
     }

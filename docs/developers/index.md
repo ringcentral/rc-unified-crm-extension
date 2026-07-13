@@ -55,6 +55,7 @@ App Connect builds on RingCentral Embeddable and supplies:
 
 - [Manifest](manifest.md)
 - [Authorization](auth.md)
+- [Server API reference](server-api.md)
 - [Connector interfaces](interfaces/index.md)
 - [Proxy connector](proxy-connector.md)
 - [Logging calls](logging-calls.md)

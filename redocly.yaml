@@ -1,0 +1,13 @@
+apis:
+  app-connect@v1:
+    root: ./docs/developers/crm-server-openapi.json
+
+extends:
+  - recommended-strict
+
+rules:
+  # Local development and custom connector hosts are intentional parts of this API.
+  no-server-example.com: off
+  # Redirect and metadata endpoints legitimately use 3xx-only or 2xx-only responses.
+  operation-2xx-response: off
+  operation-4xx-response: off

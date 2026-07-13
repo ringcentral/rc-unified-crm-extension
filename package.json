@@ -19,6 +19,7 @@
     "test:root:raw": "set NODE_ENV=test&&jest --config ./.ts-build/jest.config.js --forceExit -i",
     "test:e2e": "npm run build:ts && set NODE_ENV=test&&jest --config ./.ts-build/jest.e2e.config.js --runInBand",
     "test-coverage": "npm run build:ts && node ./.ts-build/scripts/run-coverage.js",
+    "lint:openapi": "redocly lint app-connect@v1 --format=stylish",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:core": "tsc -p packages/core/tsconfig.json --noEmit",
     "clean:ts": "node -e \"require('fs').rmSync('.ts-build',{recursive:true,force:true})\"",
@@ -62,8 +63,10 @@
     "shortid": "^2.2.17"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^12.1.0",
     "@eslint/js": "^9.22.0",
     "@octokit/rest": "^19.0.5",
+    "@redocly/cli": "^2.37.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.0",
     "commander": "^9.4.1",

@@ -56,7 +56,17 @@ plugins:
         - crm/jobadder.md
         - solutions/solutions-footer.md
         - build.md
-  - print-site
+  - swagger-ui-tag:
+      filter_files:
+        - developers/server-api.md
+      docExpansion: none
+      filter: true
+      tryItOutEnabled: false
+      supportedSubmitMethods: []
+      validatorUrl: none
+  - print-site:
+      exclude:
+        - developers/server-api.md
 
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
@@ -191,6 +201,7 @@ nav:
       - 'Regional services': developers/regional-services.md
       - 'Sample manifest': https://github.com/ringcentral/rc-unified-crm-extension/blob/main/src/connectors/manifest.json
     - 'Server':
+      - 'API reference': developers/server-api.md
       - 'Build and deployment': developers/deploy.md
       - 'Contact lookup':
         - 'Contact matching': developers/contact-matching.md
