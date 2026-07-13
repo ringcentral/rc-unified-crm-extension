@@ -1,8 +1,28 @@
 {
   "name": "@app-connect/core",
-  "version": "1.7.35",
+  "version": "1.7.38",
   "description": "RingCentral App Connect Core",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./types": {
+      "types": "./dist/types/index.d.ts"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "require": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ringcentral/rc-unified-crm-extension.git"
@@ -10,6 +30,11 @@
   "keywords": [
     "RingCentral",
     "App Connect"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "releaseNotes.json"
   ],
   "author": "RingCentral Labs",
   "license": "MIT",
@@ -26,6 +51,7 @@
     "@aws-sdk/client-s3": "^3.947.0",
     "@aws-sdk/s3-request-presigner": "^3.947.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/express": "^4.17.25",
     "awesome-phonenumber": "^5.6.0",
     "body-parser": "^1.20.4",
     "body-parser-xml": "^2.0.5",
@@ -38,13 +64,16 @@
     "mixpanel": "^0.18.0",
     "shortid": "^2.2.17",
     "tz-lookup": "^6.1.25",
-    "ua-parser-js": "^1.0.38"
+    "ua-parser-js": "^1.0.38",
+    "zod": "^4.4.3"
   },
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test": "cd ../.. && npm run build:ts && cd packages/core && npm run test:raw",
+    "test:raw": "jest --config ../../.ts-build/packages/core/jest.config.js",
+    "test:watch": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --watch",
+    "test:coverage": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --coverage",
+    "test:ci": "cd ../.. && npm run build:ts && cd packages/core && jest --config ../../.ts-build/packages/core/jest.config.js --ci --coverage --watchAll=false",
+    "prepack": "cd ../.. && npm run build:ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

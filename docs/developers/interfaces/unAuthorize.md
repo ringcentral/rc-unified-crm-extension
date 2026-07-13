@@ -50,6 +50,6 @@ Common choices:
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/unAuthorize.js"
+    --8<-- "packages/template/src/connectors/interfaces/unAuthorize.ts"
     ```
 

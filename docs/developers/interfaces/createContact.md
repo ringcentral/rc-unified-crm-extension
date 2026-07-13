@@ -57,6 +57,6 @@ If `contactInfo` is null or missing, core treats the creation as unsuccessful.
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/createContact.js"
+    --8<-- "packages/template/src/connectors/interfaces/createContact.ts"
     ```
 

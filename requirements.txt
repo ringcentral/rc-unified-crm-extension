@@ -11,6 +11,7 @@ pymdown-extensions~=10.2
 mkdocs-exclude>=1.0.2
 mkdocs-badges
 mkdocs-print-site-plugin
+mkdocs-swagger-ui-tag==0.8.1
 
 # Requirements for plugins
 babel~=2.10

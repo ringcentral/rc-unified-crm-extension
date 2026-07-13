@@ -19,7 +19,12 @@ jobs:
           node-version: '20'
           registry-url: https://registry.npmjs.org/
       - run: echo "Start"
-      - run: npm i
+      - run: npm install --registry=https://registry.npmjs.org/ --replace-registry-host=always
       - run: npm run test-coverage
+        env:
+          NODE_ENV: test
+      - run: npm run test:e2e
+        env:
+          NODE_ENV: test
       - name: Coveralls
         uses: coverallsapp/github-action@v2

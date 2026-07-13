@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.7.38
+
+- Fix: Security patches
+
+## 1.7.37
+
+- New: Custom fields for call pop parameters
+- New: New option for auto log multi match resolver - Earliest created
+- Fix: Shared SMS sending for company main number
+- Fix: Server-side logging call log id inconsistency
+
 ## 1.7.35
 
 - New: Can show RingCentral Account Id on support page
@@ -173,6 +184,10 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.35
+
+- Fix: Server-side logging call log id inconsistency
 
 ## 1.6.34
 

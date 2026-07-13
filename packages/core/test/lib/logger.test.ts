@@ -1,0 +1,308 @@
+const jsLoggerModule = require('../../lib/logger');
+const tsLoggerModule = require('../../lib/logger.ts');
+const { Logger, LOG_LEVELS } = jsLoggerModule;
+
+describe('Logger', () => {
+  let originalEnv;
+  let originalLogLevel;
+  let consoleSpy;
+  let consoleErrorSpy;
+
+  beforeEach(() => {
+    originalEnv = process.env.NODE_ENV;
+    originalLogLevel = process.env.LOG_LEVEL;
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalEnv;
+    if (originalLogLevel === undefined) {
+      delete process.env.LOG_LEVEL;
+    } else {
+      process.env.LOG_LEVEL = originalLogLevel;
+    }
+    consoleSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  describe('TypeScript implementation parity', () => {
+    test('keeps module shape and production formatting aligned with compatibility JS entrypoint', () => {
+      process.env.NODE_ENV = 'production';
+      const jsLogger = new Logger({ level: 'INFO' });
+      const tsLogger = new tsLoggerModule.Logger({ level: 'INFO' });
+
+      const jsOutput = JSON.parse(jsLogger._formatMessage('INFO', 'test message', { userId: '123' }));
+      const tsOutput = JSON.parse(tsLogger._formatMessage('INFO', 'test message', { userId: '123' }));
+      delete jsOutput.timestamp;
+      delete tsOutput.timestamp;
+
+      expect(tsLoggerModule.LOG_LEVELS).toEqual(LOG_LEVELS);
+      expect(typeof tsLoggerModule.info).toBe('function');
+      expect(typeof tsLoggerModule.child).toBe('function');
+      expect(tsOutput).toEqual(jsOutput);
+    });
+  });
+
+  describe('Log Levels', () => {
+    test('should use LOG_LEVEL env and fall back to INFO for unknown levels', () => {
+      process.env.LOG_LEVEL = 'DEBUG';
+      expect(new Logger().level).toBe(LOG_LEVELS.DEBUG);
+
+      process.env.LOG_LEVEL = 'TRACE';
+      expect(new Logger().level).toBe(LOG_LEVELS.INFO);
+    });
+
+    test('should only log messages at or above the configured level', () => {
+      const logger = new Logger({ level: 'WARN' });
+
+      logger.debug('debug message');
+      logger.info('info message');
+      logger.warn('warn message');
+      logger.error('error message');
+
+      // Only warn and error should be logged
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+    });
+
+    test('should log all messages when level is DEBUG', () => {
+      const logger = new Logger({ level: 'DEBUG' });
+
+      logger.debug('debug message');
+      logger.info('info message');
+      logger.warn('warn message');
+      logger.error('error message');
+
+      expect(consoleSpy).toHaveBeenCalledTimes(2); // debug and info
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(2); // warn and error
+    });
+  });
+
+  describe('Production vs Development', () => {
+    test('should output JSON in production', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'INFO' });
+
+      logger.info('test message', { userId: '123' });
+
+      const logOutput = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('timestamp');
+      expect(parsed).toHaveProperty('level', 'INFO');
+      expect(parsed).toHaveProperty('message', 'test message');
+      expect(parsed).toHaveProperty('userId', '123');
+    });
+
+    test('should output human-readable format in development', () => {
+      process.env.NODE_ENV = 'development';
+      const logger = new Logger({ level: 'INFO' });
+
+      logger.info('test message', { userId: '123' });
+
+      const logOutput = consoleSpy.mock.calls[0][0];
+      expect(logOutput).toContain('[INFO]');
+      expect(logOutput).toContain('test message');
+    });
+
+    test('should include colors when stdout is a TTY and omit context block when empty', () => {
+      process.env.NODE_ENV = 'development';
+      const originalDescriptor = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY');
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value: true,
+        configurable: true
+      });
+
+      try {
+        const logger = new Logger({ level: 'INFO' });
+        const formatted = logger._formatMessage('INFO', 'test message');
+
+        expect(formatted).toContain('\x1b[36m');
+        expect(formatted).toContain('\x1b[0m');
+        expect(formatted).not.toContain('\n');
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(process.stdout, 'isTTY', originalDescriptor);
+        } else {
+          delete process.stdout.isTTY;
+        }
+      }
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should extract error information from Error objects', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+      const error = new Error('Test error');
+      error.response = {
+        status: 500,
+        data: { message: 'Server error' },
+      };
+
+      logger.error('Operation failed', { error });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('errorMessage', 'Test error');
+      expect(parsed).toHaveProperty('errorStack');
+      expect(parsed).toHaveProperty('errorStatus', 500);
+      expect(parsed).toHaveProperty('errorResponse');
+      expect(parsed).not.toHaveProperty('error'); // Should be removed
+    });
+
+    test('should keep non-Error error fields unchanged', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+
+      logger.error('Operation failed', { error: 'plain error' });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('error', 'plain error');
+      expect(parsed).not.toHaveProperty('errorMessage');
+    });
+
+    test('TypeScript implementation should enrich Error context without response data', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new tsLoggerModule.Logger({ level: 'ERROR' });
+
+      logger.error('Operation failed', { error: new Error('TS error') });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('errorMessage', 'TS error');
+      expect(parsed).toHaveProperty('errorStack');
+      expect(parsed).not.toHaveProperty('error');
+    });
+  });
+
+  describe('Child Logger', () => {
+    test('should create child logger with default context', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'INFO' });
+      const childLogger = logger.child({ platform: 'clio', userId: '123' });
+
+      childLogger.info('test message', { operation: 'createLog' });
+
+      const logOutput = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('platform', 'clio');
+      expect(parsed).toHaveProperty('userId', '123');
+      expect(parsed).toHaveProperty('operation', 'createLog');
+    });
+
+    test('should support nested child loggers', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'INFO' });
+      const child1 = logger.child({ platform: 'clio' });
+      const child2 = child1.child({ userId: '123' });
+
+      child2.info('test message');
+
+      const logOutput = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('platform', 'clio');
+      expect(parsed).toHaveProperty('userId', '123');
+    });
+
+    test('should merge context for child error logs', () => {
+      process.env.NODE_ENV = 'production';
+      const logger = new Logger({ level: 'ERROR' });
+      const childLogger = logger.child({ platform: 'clio' });
+
+      childLogger.error('child failed', { operation: 'sync' });
+
+      const logOutput = consoleErrorSpy.mock.calls[0][0];
+      const parsed = JSON.parse(logOutput);
+
+      expect(parsed).toHaveProperty('platform', 'clio');
+      expect(parsed).toHaveProperty('operation', 'sync');
+    });
+  });
+
+  describe('API Request Logging', () => {
+    test('should log successful API requests at DEBUG level', () => {
+      const logger = new Logger({ level: 'DEBUG' });
+
+      logger.logApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/users',
+        status: 200,
+        duration: 150,
+        platform: 'clio',
+      });
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('should log failed API requests at ERROR level', () => {
+      const logger = new Logger({ level: 'ERROR' });
+      const error = new Error('Request failed');
+
+      logger.logApiRequest({
+        method: 'POST',
+        url: 'https://api.example.com/logs',
+        status: 500,
+        duration: 300,
+        platform: 'clio',
+        error,
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    test('should log 4xx errors at WARN level', () => {
+      const logger = new Logger({ level: 'WARN' });
+
+      logger.logApiRequest({
+        method: 'GET',
+        url: 'https://api.example.com/contact/999',
+        status: 404,
+        duration: 100,
+        platform: 'clio',
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Database Query Logging', () => {
+    test('should log successful queries at DEBUG level', () => {
+      const logger = new Logger({ level: 'DEBUG' });
+
+      logger.logDatabaseQuery({
+        operation: 'SELECT',
+        table: 'users',
+        duration: 50,
+      });
+
+      expect(consoleSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should log failed queries at ERROR level', () => {
+      const logger = new Logger({ level: 'ERROR' });
+      const error = new Error('Constraint violation');
+
+      logger.logDatabaseQuery({
+        operation: 'INSERT',
+        table: 'call_logs',
+        duration: 20,
+        error,
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+
+export {};

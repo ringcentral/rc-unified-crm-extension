@@ -63,17 +63,17 @@ Return a string.
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getBasicAuth.js"
+    --8<-- "packages/template/src/connectors/interfaces/getBasicAuth.ts"
     ```
 
 === "Insightly"
 
     ```js
-    --8<-- "src/connectors/insightly/index.js:19:22"
+    --8<-- "src/connectors/insightly/index.ts:19:22"
     ```
 
 === "Redtail"
 
     ```js
-    --8<-- "src/connectors/redtail/index.js:17:19"
+    --8<-- "src/connectors/redtail/index.ts:17:19"
     ```

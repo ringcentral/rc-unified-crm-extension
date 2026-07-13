@@ -1,4 +1,32 @@
 {
+    "1.7.38": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Security patches"
+            }
+        ]
+    },
+    "1.7.37": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Custom fields for call pop parameters"
+            },
+            {
+                "type": "New",
+                "description": "New option for auto log multi match resolver - Earliest created"
+            },
+            {
+                "type": "Fix",
+                "description": "Shared SMS sending for company main number"
+            },
+            {
+                "type": "Fix",
+                "description": "Server-side logging call log id inconsistency"
+            }
+        ]
+    },
     "1.7.35": {
         "global": [
             {
@@ -452,6 +480,14 @@
             {
                 "type": "Fix",
                 "description": "Remove open all matches in Call-pop since it's not natively supported by Bullhorn"
+            }
+        ]
+    },
+    "1.6.35": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Server-side logging call log id inconsistency"
             }
         ]
     },

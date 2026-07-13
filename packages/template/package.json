@@ -1,21 +1,22 @@
 {
   "name": "@app-connect/template",
-  "version": "1.7.35",
+  "version": "1.7.38",
   "description": "Template project for RingCentral App Connect",
-  "main": "server.js",
+  "main": "dist/src/server.js",
   "private": true,
   "scripts": {
     "start": "npm run prod",
-    "prod": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "setup": "node scripts/setup.js",
-    "build": "node ./scripts/serverless-build",
-    "deploy": "node ./scripts/serverless-deploy"
+    "prod": "npm run build:ts && node dist/src/server.js",
+    "dev": "nodemon --watch src --ext ts,json --exec \"npm run prod\"",
+    "test": "npm run build:ts && jest --config dist/jest.config.js",
+    "test:coverage": "npm run build:ts && jest --config dist/jest.config.js --coverage",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build:ts": "npm run clean && tsc -p tsconfig.build.json && node ./dist/scripts/copy-assets.js",
+    "build": "npm run build:ts && node ./dist/scripts/serverless-build.js",
+    "deploy": "npm run build && node ./dist/scripts/serverless-deploy.js"
   },
   "dependencies": {
-    "@app-connect/core": "^1.7.35",
+    "@app-connect/core": "^1.7.38",
     "axios": "^1.12.2",
     "dotenv": "^16.0.3",
     "express": "^4.22.1",
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.19.0",
     "dynamodb-local": "^0.0.36",
     "eslint": "^9.22.0",
     "globals": "^16.0.0",
@@ -42,7 +45,8 @@
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
     "sqlite3": "^5.1.5",
-    "supertest": "^6.3.1"
+    "supertest": "^6.3.1",
+    "typescript": "^5.6.3"
   },
   "keywords": [
     "ringcentral",

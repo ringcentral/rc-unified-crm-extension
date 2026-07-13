@@ -28,7 +28,7 @@ flowchart TD
   H -->|Recording/final call data/AI arrives| I
   I --> J[Core recomposes body from existing CRM body]
   J --> K[updateCallLog]
-  K --> L[Call log stays linked by session ID]
+  K --> L[Call log stays linked by session ID and extension identity]
 ```
 
 ## Central Log Composition
@@ -69,6 +69,8 @@ Users can edit the CRM activity directly before a later update arrives. Prefer t
 ## Server-Side Call Logging
 
 When server-side call logging creates or updates a log, `isFromSSCL` is true. The note can come from the temporary note cache when `USE_CACHE` is enabled.
+
+Core links call logs by call session plus extension identity. Client-side requests send `hashedExtensionId`; server-side logging requests send raw `rcExtensionId`, and the target adapter server hashes it locally before writing `callLogs`. Older rows without `hashedExtensionId` still match by `extensionNumber` or the legacy empty identity.
 
 If server-side logging should assign CRM owners, implement [`getUserList`](interfaces/getUserList.md) and configure `serverSideLogging.enableUserMapping` in the manifest.
 

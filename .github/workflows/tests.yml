@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,13 +19,49 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
+          registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --registry=https://registry.npmjs.org/ --replace-registry-host=always
+
+      - name: Lint OpenAPI contract
+        run: npm run lint:openapi
+
+      - name: Run server type check
+        run: npm run typecheck
+
+      - name: Run core type check
+        run: npm run typecheck:core
+
+      - name: Run strict HTTP contract type check
+        run: npm run typecheck:contracts
 
       - name: Run tests
         run: npm run test-coverage
+        env:
+          NODE_ENV: test
+
+      - name: Upload server root coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          name: server-root
+          flags: server-root
+          fail_ci_if_error: true
+
+      - name: Upload server core coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: ./coverage/lcov.info
+          working-directory: ./packages/core
+          name: server-core
+          flags: server-core
+          fail_ci_if_error: true
+
+      - name: Run E2E tests
+        run: npm run test:e2e
         env:
           NODE_ENV: test
 

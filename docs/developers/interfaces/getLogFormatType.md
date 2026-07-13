@@ -31,6 +31,6 @@ Proxy mode reads the format from `proxyConfig.meta.logFormat`; without that valu
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/getLogFormatType.js"
+    --8<-- "packages/template/src/connectors/interfaces/getLogFormatType.ts"
     ```
 

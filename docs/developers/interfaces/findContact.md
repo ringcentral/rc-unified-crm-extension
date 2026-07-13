@@ -54,9 +54,25 @@ Each contact can include:
 | `name` | Contact display name. |
 | `phone` | Matched phone number. |
 | `type` | Contact type used by `contactPageUrl` and CRM-specific logic. |
-| `title`, `company`, `email`, `mostRecentActivityDate` | Optional display/search metadata. |
+| `title`, `company`, `email`, `createdDate`, `mostRecentActivityDate` | Optional display/search metadata. |
 | `additionalInfo` | Object keyed by manifest `additionalFields[].const` values. Use this for contact-dependent options such as matters, deals, or opportunities. |
 | `isNewContact` | Use only for the special "Create new contact..." option. Core does not cache contacts marked this way. |
+
+## Created-Date Resolver Support
+
+Auto logging can resolve multiple matched contacts by selecting the earliest created CRM record. To support that option, every real contact returned by `findContact` SHOULD include `createdDate`.
+
+Rules:
+
+| Rule | Verification |
+| --- | --- |
+| `createdDate` MUST be the CRM record creation timestamp for that contact, not the last activity or last update timestamp. | Compare with the CRM API response field used in the connector, such as `created_at`, `DATE_CREATED_UTC`, `dateAdded`, or `add_time`. |
+| `createdDate` SHOULD be returned for every matched real contact when more than one contact may be returned. | Exercise `findContact` with a phone number shared by multiple contacts. |
+| Do not add `createdDate` to the `isNewContact` placeholder. | The placeholder is not a CRM record and is ignored by the resolver. |
+
+Use an ISO 8601 date-time with a timezone when possible, such as `2024-01-01T00:00:00Z`. The client also accepts Unix timestamps in seconds, milliseconds, microseconds, or nanoseconds; numeric timestamp strings; `YYYY-MM-DD HH:mm:ss`; `YYYY-MM-DD`; `YYYYMMDD`; `YYYYMMDDHHmmss`; RFC-style named dates; and `.NET /Date(1704067200000)/` values. Ambiguous slash formats such as `01/02/2024` are not accepted.
+
+If any matched real contact does not include a valid `createdDate`, the client will not use the earliest-created resolver for that log. It will show a warning asking the user to contact the connector developer to add support.
 
 ## Caching
 
@@ -82,6 +98,6 @@ Do not create contacts inside `findContact` just because no match was found. Ret
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/findContact.js"
+    --8<-- "packages/template/src/connectors/interfaces/findContact.ts"
     ```
 

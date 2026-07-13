@@ -81,6 +81,6 @@ Users may edit the CRM activity directly after `createCallLog` and before a late
 === "Template"
 
     ```js
-    --8<-- "packages/template/src/connectors/interfaces/updateCallLog.js"
+    --8<-- "packages/template/src/connectors/interfaces/updateCallLog.ts"
     ```
 
