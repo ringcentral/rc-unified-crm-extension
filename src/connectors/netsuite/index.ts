@@ -6,9 +6,9 @@ const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
 const url = /** @type {any} */ (require('url'));
 const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'));
-const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packages/core/lib/constants'));
-const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
-const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
+const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
 function getAuthType() {
     return 'oauth';
 }

@@ -3,8 +3,8 @@
 const axios = /** @type {any} */ (require('axios'));
 const { PluginUserModel } = /** @type {any} */ (require('./models/pluginUserModel'));
 const { GoogleDriveFileModel } = /** @type {any} */ (require('./models/googleDriveFileModel'));
-const oauth = /** @type {any} */ (require('../../packages/core/lib/oauth'));
-const { CacheModel } = /** @type {any} */ (require('../../packages/core/models/cacheModel'));
+const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
+const { CacheModel } = /** @type {any} */ (require('@app-connect/core/models/cacheModel'));
 const oauthApp = oauth.getOAuthApp({
     clientId: process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_ID,
     clientSecret: process.env.GOOGLE_DRIVE_PLUGIN_CLIENT_SECRET,

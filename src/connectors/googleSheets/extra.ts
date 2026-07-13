@@ -1,12 +1,12 @@
 // @ts-check
 
 const axios = /** @type {any} */ (require('axios'));
-const oauth = /** @type {any} */ (require('../../../packages/core/lib/oauth'));
+const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
 const platformModule = /** @type {any} */ (require('./index'));
 const path = require('path');
-const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
-const adminCore = /** @type {any} */ (require('../../../packages/core/handlers/admin'));
-const util = /** @type {any} */ (require('../../../packages/core/lib/util'));
+const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
+const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
+const util = /** @type {any} */ (require('@app-connect/core/lib/util'));
 const GOOGLESHEET_PROJECT_ID = 367818015386;
 async function renderPickerFile({ user }) {
     const oauthApp = oauth.getOAuthApp((await platformModule.getOauthInfo({ tokenUrl: user?.platformAdditionalInfo?.tokenUrl, hostname: user?.hostname })));

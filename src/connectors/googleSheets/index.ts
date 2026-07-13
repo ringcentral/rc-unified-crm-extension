@@ -2,9 +2,9 @@
 
 const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
-const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'));
-const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packages/core/lib/constants'));
+const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
 function getAuthType() {
     return 'oauth';
 }

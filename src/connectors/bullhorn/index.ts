@@ -3,15 +3,15 @@
 
 const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
-const oauth = /** @type {any} */ (require('../../../packages/core/lib/oauth'));
+const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
 const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'));
-const jwt = /** @type {any} */ (require('../../../packages/core/lib/jwt'));
-const { getMostRecentDate } = /** @type {any} */ (require('../../../packages/core/lib/util'));
-const { encode, decoded } = /** @type {any} */ (require('../../../packages/core/lib/encode'));
-const { UserModel } = /** @type {any} */ (require('../../../packages/core/models/userModel'));
-const { AdminConfigModel } = /** @type {any} */ (require('../../../packages/core/models/adminConfigModel'));
-const { Lock } = /** @type {any} */ (require('../../../packages/core/models/dynamo/lockSchema'));
-const { AccountDataModel, getOrRefreshAccountData } = /** @type {any} */ (require('../../../packages/core/models/accountDataModel'));
+const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
+const { getMostRecentDate } = /** @type {any} */ (require('@app-connect/core/lib/util'));
+const { encode, decoded } = /** @type {any} */ (require('@app-connect/core/lib/encode'));
+const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
+const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { Lock } = /** @type {any} */ (require('@app-connect/core/models/dynamo/lockSchema'));
+const { AccountDataModel, getOrRefreshAccountData } = /** @type {any} */ (require('@app-connect/core/models/accountDataModel'));
 const {
     upsertCallDuration,
     upsertCallResult,
@@ -23,10 +23,10 @@ const {
     upsertRingSenseAIScore,
     upsertRingSenseBulletedSummary,
     upsertRingSenseLink
-} = /** @type {any} */ (require('../../../packages/core/lib/callLogComposer'));
-const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packages/core/lib/constants'));
-const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
-const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
+} = /** @type {any} */ (require('@app-connect/core/lib/callLogComposer'));
+const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
 
 function getAuthType() {
     return 'oauth';
@@ -2210,7 +2210,7 @@ function toCsv(rows) {
 }
 
 async function generateMonthlyCsvReport() {
-    const { UserModel } = require('../../../packages/core/models/userModel');
+    const { UserModel } = require('@app-connect/core/models/userModel');
     const { Op } = require('sequelize');
     const users = await UserModel.findAll({
         where: {

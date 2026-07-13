@@ -5,12 +5,12 @@ const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
 const url = /** @type {any} */ (require('url'));
 const { parsePhoneNumber } = /** @type {any} */ (require('awesome-phonenumber'));
-const jwt = /** @type {any} */ (require('../../../packages/core/lib/jwt'));
-const { UserModel } = /** @type {any} */ (require('../../../packages/core/models/userModel'));
-const { AdminConfigModel } = /** @type {any} */ (require('../../../packages/core/models/adminConfigModel'));
-const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('../../../packages/core/lib/constants'));
-const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
-const { handleDatabaseError } = /** @type {any} */ (require('../../../packages/core/lib/errorHandler'));
+const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
+const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
+const { AdminConfigModel } = /** @type {any} */ (require('@app-connect/core/models/adminConfigModel'));
+const { LOG_DETAILS_FORMAT_TYPE } = /** @type {any} */ (require('@app-connect/core/lib/constants'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const { handleDatabaseError } = /** @type {any} */ (require('@app-connect/core/lib/errorHandler'));
 
 function getAuthType() {
     return 'oauth';

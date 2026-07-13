@@ -2,8 +2,8 @@
 
 const axios = /** @type {any} */ (require('axios'));
 const moment = /** @type {any} */ (require('moment'));
-const oauth = /** @type {any} */ (require('../../../packages/core/lib/oauth'));
-const logger = /** @type {any} */ (require('../../../packages/core/lib/logger'));
+const oauth = /** @type {any} */ (require('@app-connect/core/lib/oauth'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const { getOauthInfo } = /** @type {any} */ (require('./index'));
 const { checkAndRefreshAccessToken } = /** @type {any} */ (require('./index'));
 // ===================== Monthly CSV Report Helpers =====================
@@ -39,7 +39,7 @@ function toCsv(rows) {
 }
 
 async function generateMonthlyCsvReport() {
-    const { UserModel } = require('../../../packages/core/models/userModel');
+    const { UserModel } = require('@app-connect/core/models/userModel');
     const { Op } = require('sequelize');
     const users = await UserModel.findAll({
         where: {
@@ -204,7 +204,7 @@ async function fetchMonthlySalesforceReportRows(){
     // Bullhorn user id looks like `${masterUserId}-bullhorn`. Strip suffix and fetch email from Bullhorn.
     // (Requested: use id to fetch emailId/email from Bullhorn)
     let bullhornEmailList = [];
-    const { UserModel } = require('../../../packages/core/models/userModel');
+    const { UserModel } = require('@app-connect/core/models/userModel');
     const { Op } = require('sequelize');
     users.push(...(await UserModel.findAll({
         where: {

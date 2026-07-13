@@ -1,7 +1,7 @@
 // @ts-check
 
 const Sequelize = /** @type {any} */ (require('sequelize'));
-const { sequelize } = /** @type {any} */ (require('../../../packages/core/models/sequelize'));
+const { sequelize } = /** @type {any} */ (require('@app-connect/core/models/sequelize'));
 
 exports.PluginUserModel = sequelize.define('plugin_users', {
     id: {

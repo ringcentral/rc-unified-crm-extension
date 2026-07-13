@@ -6,7 +6,7 @@
  */
 const serverlessHTTP = /** @type {any} */ (require('serverless-http'));
 const { getServer } = /** @type {any} */ (require('./index'));
-const logger = /** @type {any} */ (require('../packages/core/lib/logger'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 
 const httpHandler = serverlessHTTP(getServer());
 
@@ -28,7 +28,7 @@ exports.bullhornScheduledReport = async () => {
 };
 
 exports.clearExpiredCache = async () => {
-    const { clearExpiredCache } = /** @type {any} */ (require('../packages/core/lib/cacheCleanup'));
+    const { clearExpiredCache } = /** @type {any} */ (require('@app-connect/core/lib/cacheCleanup'));
     const deletedCount = await clearExpiredCache();
     return {
         statusCode: 200,

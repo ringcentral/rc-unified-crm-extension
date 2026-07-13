@@ -4,7 +4,7 @@
 require('dotenv').config()
 
 const { getServer } = /** @type {any} */ (require('./index'));
-const logger = /** @type {any} */ (require('../packages/core/lib/logger'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 const {
   PORT: port,
   APP_HOST: host,

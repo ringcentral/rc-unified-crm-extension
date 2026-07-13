@@ -1,8 +1,8 @@
 // @ts-check
 
 
-const { sequelize } = /** @type {any} */ (require('../packages/core/models/sequelize'));
-const logger = /** @type {any} */ (require('../packages/core/lib/logger'));
+const { sequelize } = /** @type {any} */ (require('@app-connect/core/models/sequelize'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
 // require('dotenv').config();
 /**
  * @param {{ dbQuery: string }} input

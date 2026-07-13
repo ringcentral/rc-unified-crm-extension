@@ -4,10 +4,10 @@ const {
     createCoreApp,
     connectorRegistry,
     proxyConnector
-} = /** @type {any} */ (require('../packages/core'));
+} = /** @type {any} */ (require('@app-connect/core'));
 const path = require('path');
-const { UserModel } = /** @type {any} */ (require('../packages/core/models/userModel'));
-const jwt = /** @type {any} */ (require('../packages/core/lib/jwt'));
+const { UserModel } = /** @type {any} */ (require('@app-connect/core/models/userModel'));
+const jwt = /** @type {any} */ (require('@app-connect/core/lib/jwt'));
 const axios = /** @type {any} */ (require('axios'));
 const bullhorn = /** @type {any} */ (require('./connectors/bullhorn'));
 const bullhornReport = /** @type {any} */ (require('./connectors/bullhorn/report'));
@@ -19,8 +19,8 @@ const pipedrive = /** @type {any} */ (require('./connectors/pipedrive'));
 const redtail = /** @type {any} */ (require('./connectors/redtail'));
 const vinsolutions = /** @type {any} */ (require('./connectors/vinsolutions'));
 const googleSheetsExtra = /** @type {any} */ (require('./connectors/googleSheets/extra'));
-const logger = /** @type {any} */ (require('../packages/core/lib/logger'));
-const adminCore = /** @type {any} */ (require('../packages/core/handlers/admin'));
+const logger = /** @type {any} */ (require('@app-connect/core/lib/logger'));
+const adminCore = /** @type {any} */ (require('@app-connect/core/handlers/admin'));
 const googleDrivePlugin = /** @type {any} */ (require('./plugins/googleDrivePlugin'));
 const allCapPlugin = /** @type {any} */ (require('./plugins/allCapPlugin'));
 // Register connectors
