@@ -15,7 +15,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
 
-describe('Redtail server E2E', () => {
+describe('Redtail App-level E2E', () => {
   const platform = 'redtail';
   const userId = 'e2e-redtail-server-user';
   const rcAccountId = 'e2e-redtail-server-account';

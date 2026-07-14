@@ -14,6 +14,9 @@ function getCoreRoot() {
 const CORE_ROOT = getCoreRoot();
 
 module.exports = {
+  // Framework-level tests may replace the connector contract so they can focus
+  // on Core routing, orchestration, validation, and persistence behavior.
+  displayName: 'framework-level',
   rootDir: CORE_ROOT,
   // Test environment
   testEnvironment: 'node',

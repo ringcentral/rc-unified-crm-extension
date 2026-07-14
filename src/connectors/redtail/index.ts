@@ -518,6 +518,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': overrideAuthHeader }
         });
+    return {};
 }
 
 async function getCallLog({ user, callLogId }) {

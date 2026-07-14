@@ -15,7 +15,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
 
-describe('VinSolutions server E2E', () => {
+describe('VinSolutions App-level E2E', () => {
   const testEnv = {
     VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_ID: 'e2e-lead-client-id',
     VINSOLUTIONS_LEAD_MANAGEMENT_CLIENT_SECRET: 'e2e-lead-client-secret',

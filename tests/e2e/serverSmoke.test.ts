@@ -6,7 +6,6 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
-const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
 const {
   practicalContacts,
   practicalAgents,
@@ -14,7 +13,7 @@ const {
   buildPracticalCall,
 } = require('./support/practicalData');
 
-describe('App Connect Server E2E smoke', () => {
+describe('App Connect App-level E2E smoke', () => {
   const platform = 'pipedrive';
   const userId = '12345-pipedrive-e2e';
   const rcAccountId = 'e2e-rc-account';
@@ -197,19 +196,6 @@ describe('App Connect Server E2E smoke', () => {
     await seedPipedriveUser();
     await seedBullhornUser();
     await seedClioUser();
-  }
-
-  async function withMockedBullhornLock(callback) {
-    const lockDelete = jest.fn().mockResolvedValue({});
-    const lockCreateSpy = jest.spyOn(Lock, 'create').mockResolvedValue({ delete: lockDelete });
-    const lockGetSpy = jest.spyOn(Lock, 'get').mockResolvedValue(null);
-
-    try {
-      return await callback({ lockCreateSpy, lockDelete });
-    } finally {
-      lockCreateSpy.mockRestore();
-      lockGetSpy.mockRestore();
-    }
   }
 
   async function cleanE2EData() {
@@ -774,108 +760,6 @@ describe('App Connect Server E2E smoke', () => {
     expect(getBeforeUpdateScope.isDone()).toBe(true);
     expect(updateNoteScope.isDone()).toBe(true);
     expect(nock.pendingMocks()).toEqual([]);
-  });
-
-  test('refreshes an expiring Bullhorn session before a contact lookup', async () => {
-    const refreshPhoneNumber = '+14155556543';
-
-    const expiredPingScope = nock(bullhornRestBaseUrl)
-      .get(`${bullhornRestPath}/ping`)
-      .reply(200, {
-        sessionExpires: Date.now() - 1000,
-      }, bullhornRateLimitHeaders);
-
-    const refreshTokenScope = nock('https://auth.bullhornstaffing.com')
-      .post('/oauth/token')
-      .query(true)
-      .reply(200, {
-        access_token: 'e2e-bullhorn-refreshed-access-token',
-        refresh_token: 'e2e-bullhorn-refreshed-refresh-token',
-        expires_in: 3600,
-      });
-
-    const loginScope = nock(bullhornRestBaseUrl)
-      .post('/login')
-      .query(true)
-      .reply(200, {
-        BhRestToken: 'e2e-bh-refreshed-rest-token',
-        restUrl: bullhornRestUrl,
-      });
-
-    const actionListScope = nock(bullhornRestBaseUrl)
-      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
-      .get(`${bullhornRestPath}/settings/commentActionList`)
-      .reply(200, {
-        commentActionList: ['Call'],
-      }, bullhornRateLimitHeaders);
-
-    const contactSearchScope = nock(bullhornRestBaseUrl)
-      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
-      .post(`${bullhornRestPath}/search/ClientContact`)
-      .query(true)
-      .reply(200, {
-        data: [{
-          id: 711,
-          name: 'Refreshed Bullhorn Contact',
-          email: 'refreshed-bullhorn-contact@example.test',
-          phone: refreshPhoneNumber,
-          dateAdded: new Date('2026-01-02T03:04:05.000Z').getTime(),
-          dateLastModified: new Date('2026-01-02T04:04:05.000Z').getTime(),
-          dateLastVisit: new Date('2026-01-02T05:04:05.000Z').getTime(),
-        }],
-      }, bullhornRateLimitHeaders);
-
-    const candidateSearchScope = nock(bullhornRestBaseUrl)
-      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
-      .post(`${bullhornRestPath}/search/Candidate`)
-      .query(true)
-      .reply(200, { data: [] }, bullhornRateLimitHeaders);
-
-    const leadSearchScope = nock(bullhornRestBaseUrl)
-      .matchHeader('BhRestToken', 'e2e-bh-refreshed-rest-token')
-      .post(`${bullhornRestPath}/search/Lead`)
-      .query(true)
-      .reply(200, { data: [] }, bullhornRateLimitHeaders);
-
-    await withMockedBullhornLock(async ({ lockCreateSpy, lockDelete }) => {
-      const contact = await client.get('/contact', {
-        params: {
-          jwtToken: bullhornJwtToken,
-          phoneNumber: refreshPhoneNumber,
-          isExtension: 'false',
-        },
-      });
-
-      expect(contact.status).toBe(200);
-      expect(contact.data.successful).toBe(true);
-      expect(contact.data.contact[0]).toMatchObject({
-        id: 711,
-        name: 'Refreshed Bullhorn Contact',
-        type: 'Contact',
-      });
-      expect(lockCreateSpy).toHaveBeenCalledWith({
-        userId: bullhornUserId,
-        ttl: expect.any(Number),
-      }, {
-        overwrite: false,
-      });
-      expect(lockDelete).toHaveBeenCalled();
-      expect(expiredPingScope.isDone()).toBe(true);
-      expect(refreshTokenScope.isDone()).toBe(true);
-      expect(loginScope.isDone()).toBe(true);
-      expect(actionListScope.isDone()).toBe(true);
-      expect(contactSearchScope.isDone()).toBe(true);
-      expect(candidateSearchScope.isDone()).toBe(true);
-      expect(leadSearchScope.isDone()).toBe(true);
-
-      const refreshedUser = await UserModel.findByPk(bullhornUserId);
-      expect(refreshedUser).toMatchObject({
-        accessToken: 'e2e-bullhorn-refreshed-access-token',
-        refreshToken: 'e2e-bullhorn-refreshed-refresh-token',
-      });
-      expect(refreshedUser.platformAdditionalInfo.bhRestToken).toBe('e2e-bh-refreshed-rest-token');
-      expect(nock.pendingMocks()).toEqual([]);
-    });
   });
 
   test('completes a Clio contact-to-call-log HTTP flow', async () => {

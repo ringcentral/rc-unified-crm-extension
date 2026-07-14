@@ -15,7 +15,7 @@ const {
   buildPracticalCall,
 } = require('./support/practicalData');
 
-describe('Insightly server E2E', () => {
+describe('Insightly App-level E2E', () => {
   const platform = 'insightly';
   const userId = 'e2e-insightly-server-user';
   const rcAccountId = 'e2e-insightly-server-account';

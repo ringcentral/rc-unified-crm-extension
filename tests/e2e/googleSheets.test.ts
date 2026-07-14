@@ -15,7 +15,7 @@ const {
   buildPracticalCall,
 } = require('./support/practicalData');
 
-describe('Google Sheets server E2E', () => {
+describe('Google Sheets App-level E2E', () => {
   const platform = 'googleSheets';
   const userId = 'e2e-google-sheets-user-googleSheets';
   const rcAccountId = 'e2e-google-sheets-rc-account';

@@ -7,7 +7,7 @@ const { CallLogModel } = require('../../models/callLogModel');
 const { MessageLogModel } = require('../../models/messageLogModel');
 const { AccountDataModel } = require('../../models/accountDataModel');
 
-describe('Core framework HTTP E2E smoke', () => {
+describe('Core Framework-level HTTP smoke', () => {
   const platform = 'frameworkTest';
   const userId = 'framework-e2e-user';
   const rcAccountId = 'framework-e2e-account';

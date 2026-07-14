@@ -15,7 +15,7 @@ const { UserModel } = require('@app-connect/core/models/userModel');
 const { CallLogModel } = require('@app-connect/core/models/callLogModel');
 const { AccountDataModel } = require('@app-connect/core/models/accountDataModel');
 
-describe('NetSuite server E2E', () => {
+describe('NetSuite App-level E2E', () => {
   const platform = 'netsuite';
   const userId = 'e2e-netsuite-user';
   const rcAccountId = 'e2e-netsuite-rc-account';

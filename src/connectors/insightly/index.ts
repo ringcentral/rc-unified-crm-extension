@@ -915,6 +915,7 @@ async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existi
         {
             headers: { 'Authorization': authHeader }
         });
+    return {};
 }
 
 function splitName(fullName) {
