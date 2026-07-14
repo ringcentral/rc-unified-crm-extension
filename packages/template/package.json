@@ -43,7 +43,7 @@
     "serverless-deployment-bucket": "^1.6.0",
     "serverless-plugin-log-retention": "^2.1.0",
     "shelljs": "^0.8.5",
-    "simple-git": "^3.14.1",
+    "simple-git": "^3.36.0",
     "sqlite3": "^5.1.5",
     "supertest": "^6.3.1",
     "typescript": "^5.6.3"
