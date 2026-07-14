@@ -1,4 +1,31 @@
 const { isManifestValid } = require('../../../mcp/lib/validator');
+const {
+  invalidManifestStructureCases,
+  exactConnectorNameCases,
+  missingAuthCases,
+  missingAuthTypeCases,
+  oauthTypeCasingCases,
+  missingOAuthConfigCases,
+  oauthCredentialCases,
+  apiKeyTypeCasingCases,
+  missingApiKeyConfigCases,
+  validEnvironmentCases,
+  invalidEnvironmentTypeCases,
+  missingSelectableSelectionCases,
+  validCollectionCases,
+  invalidCollectionCases,
+  missingPlatformNameCases,
+} = require('../data/validatorCases');
+
+const manifestWithPlatform = (platform = {}, connectorName = 'testCRM') => ({
+  platforms: {
+    [connectorName]: {
+      name: 'Test CRM',
+      auth: { type: 'custom' },
+      ...platform,
+    },
+  },
+});
 
 describe('MCP manifest validator', () => {
   test('rejects missing manifest structure and unknown connector platforms', () => {
@@ -117,6 +144,148 @@ describe('MCP manifest validator', () => {
         },
       },
     })).toEqual({ isValid: true, errors: [] });
+  });
+
+  describe('top-level manifest and connector-name variations', () => {
+    test.each<[any]>(invalidManifestStructureCases as [any][])('returns one structural error for $label', ({ connectorManifest, error }) => {
+      expect(isManifestValid({ connectorManifest, connectorName: 'testCRM' })).toEqual({
+        isValid: false,
+        errors: [error],
+      });
+    });
+
+    test.each<[any]>(exactConnectorNameCases as [any][])('looks up the exact practical connector key %s', (connectorName) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({}, connectorName),
+        connectorName,
+      })).toEqual({ isValid: true, errors: [] });
+    });
+  });
+
+  describe('auth configuration variations', () => {
+    test.each<[any]>(missingAuthCases as [any][])('rejects $label', ({ auth }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.auth is required'],
+      });
+    });
+
+    test.each<[any]>(missingAuthTypeCases as [any][])('rejects auth with $label', ({ auth }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.auth.type is required'],
+      });
+    });
+
+    test.each<[any]>(oauthTypeCasingCases as [any][])('accepts case-insensitive OAuth type %s with complete credentials', (type) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({
+          auth: {
+            type,
+            oauth: {
+              authUrl: 'https://crm.example.com/oauth?audience=app%20connect',
+              clientId: 'client-客户-42',
+            },
+          },
+        }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: true, errors: [] });
+    });
+
+    test.each<[any]>(missingOAuthConfigCases as [any][])('rejects OAuth with $label', ({ oauth }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth: { type: 'oauth', oauth } }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.auth.oauth configuration is required for oauth type'],
+      });
+    });
+
+    test.each<[any]>(oauthCredentialCases as [any][])('reports $label without hiding sibling validation errors', ({ oauth, errors }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth: { type: 'oauth', oauth } }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: false, errors });
+    });
+
+    test.each<[any]>(apiKeyTypeCasingCases as [any][])('accepts case-insensitive API-key type %s with a configuration object', (type) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth: { type, apiKey: {} } }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: true, errors: [] });
+    });
+
+    test.each<[any]>(missingApiKeyConfigCases as [any][])('rejects API-key auth with $label', ({ apiKey }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ auth: { type: 'apiKey', apiKey } }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.auth.apiKey configuration is required for apiKey type'],
+      });
+    });
+  });
+
+  describe('environment and collection variations', () => {
+    test.each<[any]>(validEnvironmentCases as [any][])('accepts a valid $label', ({ environment }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ environment }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: true, errors: [] });
+    });
+
+    test.each<[any]>(invalidEnvironmentTypeCases as [any][])('rejects $label', ({ environment }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ environment }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.environment.type is required when environment is specified'],
+      });
+    });
+
+    test.each<[any]>(missingSelectableSelectionCases as [any][])('rejects selectable environment with $label', ({ selections }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({
+          environment: { type: 'selectable', selections },
+        }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.environment.selections is required for selectable environment type'],
+      });
+    });
+
+    test.each<[any]>(validCollectionCases as [any][])('accepts $label', ({ settings, contactTypes, override }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ settings, contactTypes, override }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: true, errors: [] });
+    });
+
+    test.each<[any]>(invalidCollectionCases as [any][])('rejects truthy non-array $field value $value', ({ field, value, error }) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ [field]: value }),
+        connectorName: 'testCRM',
+      })).toEqual({ isValid: false, errors: [error] });
+    });
+
+    test.each<[any]>(missingPlatformNameCases as [any][])('requires a truthy platform name: %p', (name) => {
+      expect(isManifestValid({
+        connectorManifest: manifestWithPlatform({ name }),
+        connectorName: 'testCRM',
+      })).toEqual({
+        isValid: false,
+        errors: ['platform.name is required'],
+      });
+    });
   });
 });
 

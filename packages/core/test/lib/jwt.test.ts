@@ -1,5 +1,10 @@
 const jwt = require('../../lib/jwt');
 const tsJwt = require('../../lib/jwt.ts');
+const { sign } = require('jsonwebtoken');
+const {
+  roundTripPayloadCases,
+  invalidTokenInputs,
+} = require('../data/jwtCases');
 
 describe('JWT Utility', () => {
   beforeEach(() => {
@@ -161,6 +166,47 @@ describe('JWT Utility', () => {
       expect(decoded).toMatchObject(emptyPayload);
       expect(decoded).toHaveProperty('exp');
       expect(decoded).toHaveProperty('iat');
+    });
+
+    test.each<[any]>(roundTripPayloadCases as [any][])('preserves $label through a signed-token round trip', ({ payload }) => {
+      const token = jwt.generateJwt(payload);
+
+      expect(jwt.decodeJwt(token)).toMatchObject(payload);
+      expect(tsJwt.decodeJwt(token)).toMatchObject(payload);
+    });
+  });
+
+  describe('decodeJwt token variations', () => {
+    test.each<[any]>(invalidTokenInputs as [any][])('returns null for $label input', ({ token }) => {
+      expect(jwt.decodeJwt(token)).toBeNull();
+    });
+
+    test('returns null for an expired token', () => {
+      const token = sign(
+        { id: 'expired-user', platform: 'testCRM' },
+        process.env.APP_SERVER_SECRET_KEY,
+        { expiresIn: -1 },
+      );
+
+      expect(jwt.decodeJwt(token)).toBeNull();
+    });
+
+    test('returns null for a token that is not active yet', () => {
+      const token = sign(
+        { id: 'future-user', platform: 'testCRM' },
+        process.env.APP_SERVER_SECRET_KEY,
+        { notBefore: '10m' },
+      );
+
+      expect(jwt.decodeJwt(token)).toBeNull();
+    });
+
+    test('returns null when one character of an otherwise valid signature is changed', () => {
+      const token = jwt.generateJwt({ id: 'tampered-user', platform: 'testCRM' });
+      const finalCharacter = token.at(-1);
+      const tamperedToken = `${token.slice(0, -1)}${finalCharacter === 'a' ? 'b' : 'a'}`;
+
+      expect(jwt.decodeJwt(tamperedToken)).toBeNull();
     });
   });
 

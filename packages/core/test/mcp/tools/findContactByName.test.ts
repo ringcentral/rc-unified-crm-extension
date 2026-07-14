@@ -2,6 +2,19 @@ const findContactByName = require('../../../mcp/tools/findContactByName');
 const jwt = require('../../../lib/jwt');
 const connectorRegistry = require('../../../connector/registry');
 const contactCore = require('../../../handlers/contact');
+const {
+  invalidContactAuthTokenCases,
+  invalidContactDecodedJwtCases,
+  normalizedAdapterRejectionCases,
+  invalidAdapterResponseCases,
+  successfulContactPayloadCases,
+  contactSearchFailureCases,
+} = require('../data/contactToolCases');
+const {
+  contactNameForwardingCases,
+  invalidContactNameCases,
+  invalidFindByNameCapabilityCases,
+} = require('../data/findContactByNameCases');
 
 // Mock dependencies
 jest.mock('../../../lib/jwt');
@@ -28,6 +41,20 @@ describe('MCP Tool: findContactByName', () => {
   });
 
   describe('execute', () => {
+    const arrangeAuthorizedSearch = (...resultArgs) => {
+      const searchResult = resultArgs.length === 0
+        ? { successful: true, contact: { id: 'contact-variation' } }
+        : resultArgs[0];
+      jwt.decodeJwt.mockReturnValue({
+        id: 'user-客户-42',
+        platform: 'crm-東京',
+      });
+      connectorRegistry.getConnector.mockReturnValue({
+        findContactWithName: jest.fn(),
+      });
+      contactCore.findContactWithName.mockResolvedValue(searchResult);
+    };
+
     test('should find contact by name successfully', async () => {
       // Arrange
       const mockContact = {
@@ -244,31 +271,116 @@ describe('MCP Tool: findContactByName', () => {
     });
 
     test('should handle empty name parameter', async () => {
-      // Arrange
-      jwt.decodeJwt.mockReturnValue({
-        id: 'user-123',
-        platform: 'testCRM'
-      });
-
-      const mockConnector = {
-        findContactWithName: jest.fn()
-      };
-      connectorRegistry.getConnector.mockReturnValue(mockConnector);
-
-      contactCore.findContactWithName.mockResolvedValue({
-        successful: false,
-        returnMessage: { message: 'Name parameter is required' }
-      });
-
-      // Act
       const result = await findContactByName.execute({
         jwtToken: 'mock-jwt-token',
         name: ''
       });
 
-      // Assert
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Name parameter is required');
+      expect(result.error).toBe('Name is required');
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(contactNameForwardingCases as [any][])('forwards the exact $label without normalization', async ({ name }) => {
+      arrangeAuthorizedSearch();
+
+      const result = await findContactByName.execute({
+        jwtToken: 'jwt-会话-🚀',
+        name,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        data: { id: 'contact-variation' },
+      });
+      expect(contactCore.findContactWithName).toHaveBeenCalledWith({
+        platform: 'crm-東京',
+        userId: 'user-客户-42',
+        name,
+      });
+    });
+
+    test.each<[any]>(successfulContactPayloadCases as [any][])('preserves a successful $label payload', async ({ contact }) => {
+      arrangeAuthorizedSearch({ successful: true, contact });
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toEqual({ success: true, data: contact });
+    });
+
+    test.each<[any]>(contactSearchFailureCases as [any][])('returns a stable failure for $label', async ({ searchResult, expected }) => {
+      arrangeAuthorizedSearch(searchResult);
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toEqual({ success: false, error: expected });
+    });
+
+    test.each<[any]>(invalidAdapterResponseCases as [any][])('handles an invalid $label handler response without throwing', async ({ result }) => {
+      arrangeAuthorizedSearch(result);
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Contact search returned an invalid response',
+      });
+    });
+
+    test.each<[any]>(normalizedAdapterRejectionCases as [any][])('normalizes a $label into a stable error result', async ({ rejection, expected }) => {
+      arrangeAuthorizedSearch();
+      contactCore.findContactWithName.mockRejectedValueOnce(rejection);
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toMatchObject({ success: false, error: expected });
+    });
+
+    test.each<[any]>(invalidContactAuthTokenCases as [any][])('rejects $label before decoding authentication', async ({ jwtToken }) => {
+      await expect(findContactByName.execute({
+        jwtToken,
+        name: 'Customer',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Not authenticated. Please connect to your CRM first.',
+      });
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidContactNameCases as [any][])('rejects $label before decoding authentication', async ({ name, expected }) => {
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name,
+      })).resolves.toMatchObject({ success: false, error: expected });
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidContactDecodedJwtCases as [any][])('rejects decoded JWT with $label', async ({ decoded, expected }) => {
+      jwt.decodeJwt.mockReturnValue(decoded);
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toMatchObject({ success: false, error: expected });
+      expect(contactCore.findContactWithName).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidFindByNameCapabilityCases as [any][])('rejects connector with $label', async ({ connector }) => {
+      jwt.decodeJwt.mockReturnValue({ id: 'user-1', platform: 'testCRM' });
+      connectorRegistry.getConnector.mockReturnValue(connector);
+
+      await expect(findContactByName.execute({
+        jwtToken: 'jwt-token',
+        name: 'Customer',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'findContactByName is not implemented for platform: testCRM',
+      });
+      expect(contactCore.findContactWithName).not.toHaveBeenCalled();
     });
   });
 });

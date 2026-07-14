@@ -1123,6 +1123,13 @@ describe('Core router broad route coverage', () => {
     });
     expect((await request(app).post('/callLog').query(authQuery()).send({ logInfo: { accountId: 'acc' } })).status).toBe(401);
 
+    logCore.updateCallLog.mockResolvedValueOnce({
+      successful: false,
+      returnMessage: { messageType: 'warning', message: 'Reconnect' },
+      isRevokeUserSession: true,
+    });
+    expect((await request(app).patch('/callLog').query(authQuery()).send({ accountId: 'acc' })).status).toBe(401);
+
     dispositionCore.upsertCallDisposition.mockResolvedValueOnce({
       successful: false,
       returnMessage: { messageType: 'warning', message: 'Reconnect' },

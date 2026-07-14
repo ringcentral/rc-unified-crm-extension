@@ -4,6 +4,24 @@ const jwt = /** @type {any} */ (require('../../lib/jwt'));
 const connectorRegistry = /** @type {any} */ (require('../../connector/registry'));
 const contactCore = /** @type {any} */ (require('../../handlers/contact'));
 
+function isNonBlankString(value) {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isCanonicalIdentifier(value) {
+    return isNonBlankString(value) && value.trim() === value;
+}
+
+function normalizeCaughtError(error) {
+    if (error instanceof Error) {
+        return { message: error.message || 'Unknown error occurred', details: error.stack };
+    }
+    if (typeof error === 'string' && error.trim()) {
+        return { message: error, details: undefined };
+    }
+    return { message: 'Unknown error occurred', details: undefined };
+}
+
 /**
  * MCP Tool: Create Contact
  * 
@@ -44,29 +62,39 @@ const toolDefinition = {
  */
 async function execute(args) {
     try {
-        const { jwtToken, phoneNumber, newContactName } = args;
+        const { jwtToken, phoneNumber, newContactName } = args || {};
 
-        if (!jwtToken) {
+        if (!isNonBlankString(jwtToken)) {
             throw new Error('Please go to Settings and authorize CRM platform');
         }
 
-        if (!phoneNumber) {
-            throw new Error('Phone number is required');
+        if (!isNonBlankString(phoneNumber)) {
+            throw new Error(
+                typeof phoneNumber === 'undefined' || phoneNumber === null || typeof phoneNumber === 'string'
+                    ? 'Phone number is required'
+                    : 'Phone number must be a string'
+            );
         }
-
-        if (!newContactName) {
-            throw new Error('Contact name is required');
+        if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+            throw new Error('Phone number must be in E.164 format');
         }
+        if (typeof newContactName !== 'undefined' && newContactName !== null && typeof newContactName !== 'string') {
+            throw new Error('Contact name must be a string');
+        }
+        const resolvedContactName = isNonBlankString(newContactName) ? newContactName : phoneNumber;
 
         // Decode JWT to get userId and platform
         const decodedToken = jwt.decodeJwt(jwtToken);
-        if (!decodedToken) {
+        if (!decodedToken || typeof decodedToken !== 'object' || Array.isArray(decodedToken)) {
             throw new Error('Invalid JWT token');
         }
         const { id: userId, platform } = decodedToken;
 
-        if (!userId) {
+        if (!isCanonicalIdentifier(userId)) {
             throw new Error('Invalid JWT token: userId not found');
+        }
+        if (!isCanonicalIdentifier(platform)) {
+            throw new Error('Invalid JWT token: platform not found');
         }
 
         // Get the platform connector module
@@ -77,19 +105,23 @@ async function execute(args) {
         }
 
         // Check if createContact is implemented
-        if (!platformModule.createContact) {
+        if (typeof platformModule.createContact !== 'function') {
             throw new Error(`createContact is not implemented for platform: ${platform}`);
         }
 
         // Call the createContact method
-        const { successful, returnMessage, contact } = await contactCore.createContact({
+        const createResult = await contactCore.createContact({
             platform,
             userId,
             phoneNumber,
-            newContactName
+            newContactName: resolvedContactName
         });
+        if (!createResult || typeof createResult !== 'object' || Array.isArray(createResult)) {
+            throw new Error('Contact creation returned an invalid response');
+        }
+        const { successful, returnMessage, contact } = createResult;
 
-        if (successful) {
+        if (successful === true) {
             return {
                 success: true,
                 data: {
@@ -106,10 +138,11 @@ async function execute(args) {
         }
     }
     catch (error) {
+        const normalizedError = normalizeCaughtError(error);
         return {
             success: false,
-            error: error.message || 'Unknown error occurred',
-            errorDetails: error.stack
+            error: normalizedError.message,
+            errorDetails: normalizedError.details
         };
     }
 }

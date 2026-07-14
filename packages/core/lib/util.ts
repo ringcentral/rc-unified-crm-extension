@@ -30,7 +30,7 @@ function secondsToHoursMinutesSeconds(seconds: SecondsInput): SecondsInput | str
     const minutes = Math.floor((seconds % 3600) / 60);
     const minutesString = minutes > 0 ? `${minutes} ${minutes > 1 ? 'minutes' : 'minute'}` : '';
     const remainingSeconds = seconds % 60;
-    const secondsString = remainingSeconds > 0 ? `${remainingSeconds} ${remainingSeconds > 1 ? 'seconds' : 'second'}` : '';
+    const secondsString = remainingSeconds > 0 ? `${remainingSeconds} ${remainingSeconds === 1 ? 'second' : 'seconds'}` : '';
 
     if (!hoursString && !minutesString && !secondsString) {
         return '0 seconds';

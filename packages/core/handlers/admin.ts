@@ -454,7 +454,7 @@ async function getUserMapping({ user, hashedRcAccountId, rcExtensionList }) {
             if (adminConfig?.userMappings) {
                 adminConfig.userMappings = /** @type {any} */ (adminConfig.userMappings.map(u => ({
                     ...u,
-                    rcExtensionId: [u.rcExtensionId]
+                    rcExtensionId: Array.isArray(u.rcExtensionId) ? u.rcExtensionId : [u.rcExtensionId]
                 })));
                 try {
                     await upsertAdminSettings({

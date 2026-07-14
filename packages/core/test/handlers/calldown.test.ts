@@ -2,6 +2,14 @@ const calldown = require('../../handlers/calldown');
 const { generateJwt } = require('../../lib/jwt');
 const { CallDownListModel } = require('../../models/callDownListModel');
 const { UserModel } = require('../../models/userModel');
+const {
+  scheduledCalldownCase,
+  calldownListRecords,
+  calldownStatusRecords,
+  calldownStatusFilterCases,
+  unauthorizedCalldownOperationCases,
+  calldownUpdateCase,
+} = require('../data/calldownCases');
 
 describe('Calldown Handler', () => {
   const originalSecret = process.env.APP_SERVER_SECRET_KEY;
@@ -46,25 +54,16 @@ describe('Calldown Handler', () => {
 
     const result = await calldown.schedule({
       jwtToken: tokenFor('user-1'),
-      body: {
-        contactId: 12345,
-        contactType: 'Lead',
-        contactName: 'Ignored By Current Schema',
-        phoneNumber: '+15551234567',
-        scheduledAt: '2026-07-02T13:00:00.000Z',
-      },
+      body: scheduledCalldownCase.body,
     });
 
     expect(result.id).toMatch(/^[0-9a-f]{32}$/);
     const record = await CallDownListModel.findByPk(result.id);
     expect(record).toMatchObject({
       id: result.id,
-      userId: 'user-1',
-      contactId: '12345',
-      contactType: 'Lead',
-      status: 'scheduled',
+      ...scheduledCalldownCase.expectedRecord,
     });
-    expect(record.scheduledAt.toISOString()).toBe('2026-07-02T13:00:00.000Z');
+    expect(record.scheduledAt.toISOString()).toBe(scheduledCalldownCase.body.scheduledAt);
     expect(record.lastCallAt).toBeNull();
   });
 
@@ -83,44 +82,27 @@ describe('Calldown Handler', () => {
     expect(record.scheduledAt).toBeNull();
   });
 
-  test('schedule rejects invalid jwt and missing users', async () => {
-    await expect(calldown.schedule({
-      jwtToken: 'not-a-valid-token',
-      body: {},
-    })).rejects.toThrow('Unauthorized');
-
+  test('schedule rejects missing users', async () => {
     await expect(calldown.schedule({
       jwtToken: tokenFor('missing-user'),
       body: {},
     })).rejects.toThrow('User not found');
   });
 
+  test.each<[any]>(unauthorizedCalldownOperationCases as [any][])(
+    '$label rejects an invalid JWT',
+    async ({ method, args }) => {
+      await expect(calldown[method]({
+        jwtToken: 'not-a-valid-token',
+        ...args,
+      })).rejects.toThrow('Unauthorized');
+    },
+  );
+
   test('list returns all records for the JWT user ordered by scheduledAt', async () => {
     await createUser('user-1');
     await createUser('user-2');
-    await CallDownListModel.bulkCreate([
-      {
-        id: 'later',
-        userId: 'user-1',
-        contactId: 'contact-2',
-        status: 'called',
-        scheduledAt: new Date('2026-07-02T14:00:00.000Z'),
-      },
-      {
-        id: 'earlier',
-        userId: 'user-1',
-        contactId: 'contact-1',
-        status: 'scheduled',
-        scheduledAt: new Date('2026-07-02T13:00:00.000Z'),
-      },
-      {
-        id: 'other-user',
-        userId: 'user-2',
-        contactId: 'contact-3',
-        status: 'scheduled',
-        scheduledAt: new Date('2026-07-02T12:00:00.000Z'),
-      },
-    ]);
+    await CallDownListModel.bulkCreate(calldownListRecords);
 
     const { items } = await calldown.list({
       jwtToken: tokenFor('user-1'),
@@ -129,41 +111,20 @@ describe('Calldown Handler', () => {
     expect(items.map((item) => item.id)).toEqual(['earlier', 'later']);
   });
 
-  test('list filters called and not-called statuses according to current implementation', async () => {
+  test.each<[any]>(calldownStatusFilterCases as [any][])(
+    'list applies the $label status filter',
+    async ({ status, expectedIds }) => {
     await createUser('user-1');
-    await CallDownListModel.bulkCreate([
-      {
-        id: 'called',
-        userId: 'user-1',
-        status: 'called',
-        scheduledAt: new Date('2026-07-02T13:00:00.000Z'),
-      },
-      {
-        id: 'scheduled',
-        userId: 'user-1',
-        status: 'scheduled',
-        scheduledAt: new Date('2026-07-02T14:00:00.000Z'),
-      },
-      {
-        id: 'removed-status',
-        userId: 'user-1',
-        status: 'removed',
-        scheduledAt: new Date('2026-07-02T15:00:00.000Z'),
-      },
-    ]);
+    await CallDownListModel.bulkCreate(calldownStatusRecords);
 
-    const called = await calldown.list({
+    const result = await calldown.list({
       jwtToken: tokenFor('user-1'),
-      status: 'called',
-    });
-    const notCalled = await calldown.list({
-      jwtToken: tokenFor('user-1'),
-      status: 'not_called',
+      status,
     });
 
-    expect(called.items.map((item) => item.id)).toEqual(['called']);
-    expect(notCalled.items.map((item) => item.id)).toEqual(['scheduled', 'removed-status']);
-  });
+    expect(result.items.map((item) => item.id)).toEqual(expectedIds);
+    },
+  );
 
   test('remove physically deletes only records owned by the JWT user', async () => {
     await createUser('user-1');
@@ -215,6 +176,26 @@ describe('Calldown Handler', () => {
     expect(record.lastCallAt.toISOString()).toBe('2026-07-02T14:30:00.000Z');
   });
 
+  test('markCalled defaults lastCallAt to the current time', async () => {
+    await createUser('user-1');
+    await CallDownListModel.create({
+      id: 'call-with-default-time',
+      userId: 'user-1',
+      status: 'scheduled',
+    });
+    const before = Date.now();
+
+    await calldown.markCalled({
+      jwtToken: tokenFor('user-1'),
+      id: 'call-with-default-time',
+    });
+
+    const after = Date.now();
+    const record = await CallDownListModel.findByPk('call-with-default-time');
+    expect(record.lastCallAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(record.lastCallAt.getTime()).toBeLessThanOrEqual(after);
+  });
+
   test('markCalled preserves owner isolation and returns the current database error shape', async () => {
     await createUser('user-1');
     await createUser('user-2');
@@ -244,37 +225,19 @@ describe('Calldown Handler', () => {
 
   test('update applies allowed fields and ignores disallowed fields', async () => {
     await createUser('user-1');
-    await CallDownListModel.create({
-      id: 'call-to-update',
-      userId: 'user-1',
-      contactId: 'old-contact',
-      contactType: 'Lead',
-      status: 'scheduled',
-      scheduledAt: new Date('2026-07-02T13:00:00.000Z'),
-    });
+    await CallDownListModel.create(calldownUpdateCase.existingRecord);
 
     const result = await calldown.update({
       jwtToken: tokenFor('user-1'),
       id: 'call-to-update',
-      updateData: {
-        contactId: 'new-contact',
-        contactType: 'Contact',
-        status: 'called',
-        scheduledAt: '2026-07-02T15:00:00.000Z',
-        lastCallAt: '2026-07-02T15:10:00.000Z',
-        unexpectedField: 'ignored',
-      },
+      updateData: calldownUpdateCase.updateData,
     });
 
     expect(result).toEqual({ successful: true });
     const record = await CallDownListModel.findByPk('call-to-update');
-    expect(record).toMatchObject({
-      contactId: 'new-contact',
-      contactType: 'Contact',
-      status: 'called',
-    });
-    expect(record.scheduledAt.toISOString()).toBe('2026-07-02T15:00:00.000Z');
-    expect(record.lastCallAt.toISOString()).toBe('2026-07-02T15:10:00.000Z');
+    expect(record).toMatchObject(calldownUpdateCase.expectedRecord);
+    expect(record.scheduledAt.toISOString()).toBe(calldownUpdateCase.updateData.scheduledAt);
+    expect(record.lastCallAt.toISOString()).toBe(calldownUpdateCase.updateData.lastCallAt);
     expect(record.unexpectedField).toBeUndefined();
   });
 

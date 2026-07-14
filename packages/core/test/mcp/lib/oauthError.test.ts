@@ -5,6 +5,12 @@ const {
   buildMcpOAuthError,
   getMcpOAuthChallengeHeader,
 } = require('../../../mcp/lib/oauthError');
+const {
+  resourceMetadataCases,
+  explicitOAuthErrorFieldCases,
+  optionalOAuthErrorDetailCases,
+  structuredOAuthErrorCases,
+} = require('../data/oauthErrorCases');
 
 describe('MCP OAuth error helpers', () => {
   const originalAppServer = process.env.APP_SERVER;
@@ -52,5 +58,45 @@ describe('MCP OAuth error helpers', () => {
     expect(header).toContain('resource_metadata="https://app.example.com/path\\\\segment/.well-known/oauth-protected-resource"');
     expect(header).toContain('error="invalid\\"token"');
     expect(header).toContain('error_description="Line with \\"quotes\\" and slash \\\\"');
+  });
+
+  test.each<[any]>(resourceMetadataCases as [any][])('preserves the $label while building resource metadata', ({ appServer, expectedResource }) => {
+    const header = getMcpOAuthChallengeHeader({ appServer });
+
+    expect(header).toContain(`resource_metadata="${expectedResource}"`);
+    expect(header).toContain('error="invalid_token"');
+    expect(header).toContain(`error_description="${MCP_OAUTH_REQUIRED_MESSAGE}"`);
+  });
+
+  test.each<[any]>(explicitOAuthErrorFieldCases as [any][])('preserves $label in explicit OAuth error fields', ({ error, errorDescription }) => {
+    const header = getMcpOAuthChallengeHeader({
+      appServer: 'https://app.example.com',
+      error,
+      errorDescription,
+    });
+
+    expect(header).toContain(`error="${error}"`);
+    expect(header).toContain(`error_description="${errorDescription}"`);
+  });
+
+  test.each<[any]>(optionalOAuthErrorDetailCases as [any][])('handles $label optional error details', ({ errorDetails, expectedIncluded }) => {
+    const result = buildMcpOAuthError({
+      error: 'variation_error',
+      message: 'Variation message',
+      errorDetails,
+    });
+
+    expect(Object.prototype.hasOwnProperty.call(result, 'errorDetails')).toBe(expectedIncluded);
+    if (expectedIncluded) {
+      expect(result.errorDetails).toEqual(errorDetails);
+    }
+  });
+
+  test.each<[any]>(structuredOAuthErrorCases as [any][])('preserves custom $label in the structured error', ({ error, message }) => {
+    expect(buildMcpOAuthError({ error, message })).toEqual({
+      success: false,
+      error,
+      message,
+    });
   });
 });

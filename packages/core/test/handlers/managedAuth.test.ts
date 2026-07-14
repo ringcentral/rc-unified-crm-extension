@@ -12,7 +12,7 @@ jest.mock('../../models/sequelize', () => {
 
 jest.mock('../../connector/registry');
 jest.mock('../../connector/developerPortal', () => ({
-  getConnectorManifest: jest.fn()
+  getConnectorManifest: jest.fn(),
 }));
 
 const managedAuthHandler = require('../../handlers/managedAuth');
@@ -20,6 +20,64 @@ const connectorRegistry = require('../../connector/registry');
 const developerPortal = require('../../connector/developerPortal');
 const { AccountDataModel } = require('../../models/accountDataModel');
 const { sequelize } = require('../../models/sequelize');
+const {
+  managedAuthStateCases,
+  managedAuthResolutionCases,
+  managedAuthMutationCases,
+  managedAuthIsolationFields,
+  managedAuthIsolationCases,
+  managedAuthFailureRecoveryCase,
+} = require('../data/managedAuthCases');
+
+const defaultPlatform = 'testCRM';
+
+function buildManifest(platform, fields) {
+  return {
+    platforms: {
+      [platform]: {
+        auth: {
+          type: 'apiKey',
+          apiKey: {
+            page: {
+              content: fields,
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function mockManifest(fields) {
+  connectorRegistry.getManifest.mockImplementation((platform) => (
+    buildManifest(platform, fields)
+  ));
+}
+
+async function seedManagedValues({
+  rcAccountId,
+  platform = defaultPlatform,
+  rcExtensionId,
+  orgValues = {},
+  userValues = {},
+}) {
+  if (Object.keys(orgValues).length > 0) {
+    await managedAuthHandler.upsertOrgManagedAuthValues({
+      rcAccountId,
+      platform,
+      values: orgValues,
+    });
+  }
+  if (Object.keys(userValues).length > 0) {
+    await managedAuthHandler.upsertUserManagedAuthValues({
+      rcAccountId,
+      platform,
+      rcExtensionId,
+      rcUserName: `Agent ${rcExtensionId}`,
+      values: userValues,
+    });
+  }
+}
 
 describe('Managed Auth Handler', () => {
   beforeAll(async () => {
@@ -36,503 +94,347 @@ describe('Managed Auth Handler', () => {
     await sequelize.close();
   });
 
-  test('getManagedAuthState reports all required fields satisfied when shared values exist', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
-                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
-                ]
-              }
-            }
-          }
-        }
+  describe('getManagedAuthState', () => {
+    test.each(managedAuthStateCases)('$label', async (...args: any[]) => {
+      const {
+        rcAccountId,
+        rcExtensionId,
+        fields,
+        orgValues,
+        userValues,
+        markLoginFailure,
+        expectedState,
+      } = args[0];
+      mockManifest(fields);
+      await seedManagedValues({
+        rcAccountId,
+        rcExtensionId,
+        orgValues,
+        userValues,
+      });
+      if (markLoginFailure) {
+        await managedAuthHandler.markManagedAuthLoginFailure({
+          rcAccountId,
+          platform: defaultPlatform,
+          rcExtensionId,
+        });
       }
+
+      const state = await managedAuthHandler.getManagedAuthState({
+        platform: defaultPlatform,
+        rcAccountId,
+        rcExtensionId,
+      });
+
+      expect(state).toEqual(expectedState);
     });
 
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-1',
-      platform: 'testCRM',
-      values: { tenantId: 'tenant-1' }
-    });
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-1',
-      platform: 'testCRM',
-      rcExtensionId: '101',
-      rcUserName: 'Agent 101',
-      values: { apiKey: 'user-api-key' }
-    });
+    test('clearing a login failure restores automatic managed authentication', async () => {
+      const {
+        rcAccountId,
+        rcExtensionId,
+        fields,
+        orgValues,
+        userValues,
+      } = managedAuthFailureRecoveryCase;
+      mockManifest(fields);
+      await seedManagedValues({
+        rcAccountId,
+        rcExtensionId,
+        orgValues,
+        userValues,
+      });
+      await managedAuthHandler.markManagedAuthLoginFailure({
+        rcAccountId,
+        platform: defaultPlatform,
+        rcExtensionId,
+      });
 
-    const state = await managedAuthHandler.getManagedAuthState({
-      platform: 'testCRM',
-      rcAccountId: 'acc-1',
-      rcExtensionId: '101'
-    });
+      await expect(managedAuthHandler.getManagedAuthState({
+        platform: defaultPlatform,
+        rcAccountId,
+        rcExtensionId,
+      })).resolves.toMatchObject({
+        fallbackToManualAuth: true,
+      });
 
-    expect(state.hasManagedAuth).toBe(true);
-    expect(state.allRequiredFieldsSatisfied).toBe(true);
-    expect(state.visibleFieldConsts).toEqual([]);
+      await expect(managedAuthHandler.clearManagedAuthLoginFailure({
+        rcAccountId,
+        platform: defaultPlatform,
+        rcExtensionId,
+      })).resolves.toBe(1);
+
+      await expect(managedAuthHandler.getManagedAuthState({
+        platform: defaultPlatform,
+        rcAccountId,
+        rcExtensionId,
+      })).resolves.toEqual({
+        hasManagedAuth: true,
+        allRequiredFieldsSatisfied: true,
+        visibleFieldConsts: [],
+        missingRequiredFieldConsts: [],
+        fallbackToManualAuth: false,
+      });
+    });
   });
 
-  test('getManagedAuthAdminSettings returns configured field values and keeps user records separate', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', managed: true, managedScope: 'account' },
-                  { const: 'apiKey', managed: true, managedScope: 'user' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-2',
-      platform: 'testCRM',
-      values: { tenantId: 'tenant-secret' }
-    });
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-2',
-      platform: 'testCRM',
-      rcExtensionId: '102',
-      rcUserName: 'Agent 102',
-      values: { apiKey: 'user-key' }
+  test('getManagedAuthAdminSettings returns decrypted account and user fields while storage stays encrypted', async () => {
+    const fields = [
+      { const: 'tenantId', managed: true, managedScope: 'account' },
+      { const: 'apiKey', managed: true, managedScope: 'user' },
+    ];
+    mockManifest(fields);
+    await seedManagedValues({
+      rcAccountId: 'admin-settings-account',
+      rcExtensionId: '601',
+      orgValues: { tenantId: 'tenant-secret' },
+      userValues: { apiKey: 'user-secret' },
     });
 
     const settings = await managedAuthHandler.getManagedAuthAdminSettings({
-      platform: 'testCRM',
-      rcAccountId: 'acc-2'
+      platform: defaultPlatform,
+      rcAccountId: 'admin-settings-account',
     });
 
-    expect(settings.orgValues.tenantId.hasValue).toBe(true);
-    expect(settings.orgValues.tenantId.value).toBe('tenant-secret');
-    expect(settings.userValues[0].rcExtensionId).toBe('102');
-    expect(settings.userValues[0].fields.apiKey.value).toBe('user-key');
-  });
-
-  test('upsertUserManagedAuthValues stores one row per extension with scoped dataKey', async () => {
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-scope',
-      platform: 'testCRM',
-      rcExtensionId: '201',
-      rcUserName: 'Agent 201',
-      values: { apiKey: 'key-201' }
+    expect(settings.orgValues.tenantId).toEqual({
+      hasValue: true,
+      value: 'tenant-secret',
     });
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-scope',
-      platform: 'testCRM',
-      rcExtensionId: '202',
-      rcUserName: 'Agent 202',
-      values: { apiKey: 'key-202' }
-    });
-
-    const records = await AccountDataModel.findAll({
-      where: {
-        rcAccountId: 'acc-scope',
-        platformName: 'testCRM'
-      }
-    });
-    const dataKeys = records.map(r => r.dataKey).sort();
-
-    expect(dataKeys).toEqual(['managed-auth-user:201', 'managed-auth-user:202']);
-    expect(records).toHaveLength(2);
-  });
-
-  test('getManagedAuthState loads field definitions from Developer Portal when connectorId is provided', async () => {
-    developerPortal.getConnectorManifest.mockResolvedValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'orgToken', required: true, managed: true, managedScope: 'account' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-3',
-      platform: 'testCRM',
-      values: { orgToken: 'portal-token' }
-    });
-
-    const state = await managedAuthHandler.getManagedAuthState({
-      platform: 'testCRM',
-      connectorId: 'connector-123',
-      rcAccountId: 'acc-3'
-    });
-
-    expect(developerPortal.getConnectorManifest).toHaveBeenCalledWith({ rcAccountId: 'acc-3', connectorId: 'connector-123', isPrivate: false });
-    expect(state.hasManagedAuth).toBe(true);
-    expect(state.allRequiredFieldsSatisfied).toBe(true);
-    expect(state.visibleFieldConsts).toEqual([]);
-  });
-
-  test('getManagedAuthState surfaces missing required fields for unshared and missing shared values', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
-                  { const: 'userToken', required: true, managed: true, managedScope: 'user' },
-                  { const: 'apiSecret', required: true }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-4',
-      platform: 'testCRM',
-      values: { tenantId: 'tenant-4' }
-    });
-
-    const state = await managedAuthHandler.getManagedAuthState({
-      platform: 'testCRM',
-      rcAccountId: 'acc-4',
-      rcExtensionId: '404'
-    });
-
-    expect(state.hasManagedAuth).toBe(true);
-    expect(state.allRequiredFieldsSatisfied).toBe(false);
-    expect(state.visibleFieldConsts).toEqual(['userToken', 'apiSecret']);
-    expect(state.missingRequiredFieldConsts).toEqual(['userToken', 'apiSecret']);
-  });
-
-  test('getManagedAuthState returns full-form behavior when connector has no shared fields', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'apiKey', required: true },
-                  { const: 'tenantId', required: true },
-                  { const: 'region', required: false }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    const state = await managedAuthHandler.getManagedAuthState({
-      platform: 'testCRM',
-      rcAccountId: 'acc-plain',
-      rcExtensionId: '100'
-    });
-
-    expect(state.hasManagedAuth).toBe(false);
-    expect(state.allRequiredFieldsSatisfied).toBe(false);
-    expect(state.visibleFieldConsts).toBeNull();
-    expect(state.missingRequiredFieldConsts).toEqual(['apiKey', 'tenantId']);
-  });
-
-  test('getManagedAuthState falls back to the full auth form after managed auto-login fails', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', required: true, managed: true, managedScope: 'account' },
-                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' },
-                  { const: 'region', required: false }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-fallback',
-      platform: 'testCRM',
-      values: { tenantId: 'tenant-1' }
-    });
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-fallback',
-      platform: 'testCRM',
-      rcExtensionId: '501',
-      rcUserName: 'Agent 501',
-      values: { apiKey: 'bad-key' }
-    });
-    await managedAuthHandler.markManagedAuthLoginFailure({
-      rcAccountId: 'acc-fallback',
-      platform: 'testCRM',
-      rcExtensionId: '501'
-    });
-
-    const state = await managedAuthHandler.getManagedAuthState({
-      platform: 'testCRM',
-      rcAccountId: 'acc-fallback',
-      rcExtensionId: '501'
-    });
-
-    expect(state.hasManagedAuth).toBe(true);
-    expect(state.allRequiredFieldsSatisfied).toBe(false);
-    expect(state.visibleFieldConsts).toBeNull();
-    expect(state.missingRequiredFieldConsts).toEqual(['tenantId', 'apiKey']);
-    expect(state.fallbackToManualAuth).toBe(true);
-  });
-
-  test('resolveApiKeyLoginFields keeps submitted shared values when managed values are missing', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'companyId', required: true, managed: true, managedScope: 'account' },
-                  { const: 'userToken', required: true, managed: true, managedScope: 'user' },
-                  { const: 'region', required: false, managed: true, managedScope: 'account' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    const result = await managedAuthHandler.resolveApiKeyLoginFields({
-      platform: 'testCRM',
-      rcAccountId: 'acc-shared-fallback',
-      rcExtensionId: '201',
-      additionalInfo: {
-        companyId: 'company-123',
-        userToken: 'user-token-123',
-        region: 'us'
-      }
-    });
-
-    expect(result.resolvedAdditionalInfo).toEqual({
-      companyId: 'company-123',
-      userToken: 'user-token-123',
-      region: 'us'
-    });
-    expect(result.missingRequiredFieldConsts).toEqual([]);
-  });
-
-  test('resolveApiKeyLoginFields prefers submitted managed values during manual fallback', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'companyId', required: true, managed: true, managedScope: 'account' },
-                  { const: 'apiKey', required: true, managed: true, managedScope: 'user' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-override',
-      platform: 'testCRM',
-      values: { companyId: 'stored-company' }
-    });
-    await managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-override',
-      platform: 'testCRM',
-      rcExtensionId: '777',
-      rcUserName: 'Agent 777',
-      values: { apiKey: 'stored-key' }
-    });
-
-    const result = await managedAuthHandler.resolveApiKeyLoginFields({
-      platform: 'testCRM',
-      rcAccountId: 'acc-override',
-      rcExtensionId: '777',
-      additionalInfo: {
-        companyId: 'manual-company',
-        apiKey: 'manual-key'
+    expect(settings.userValues).toEqual([
+      {
+        rcExtensionId: '601',
+        rcUserName: 'Agent 601',
+        fields: {
+          apiKey: {
+            hasValue: true,
+            value: 'user-secret',
+          },
+        },
       },
-      preferSubmittedValuesForManagedFields: true
+    ]);
+
+    const rawOrgRecord = await AccountDataModel.findOne({
+      where: {
+        rcAccountId: 'admin-settings-account',
+        platformName: defaultPlatform,
+        dataKey: managedAuthHandler.MANAGED_AUTH_ORG_DATA_KEY,
+      },
+    });
+    expect(rawOrgRecord.data.fields.tenantId).toMatchObject({
+      version: 1,
+      encrypted: true,
+    });
+    expect(rawOrgRecord.data.fields.tenantId.value).not.toContain('tenant-secret');
+  });
+
+  test('field definitions can be loaded from Developer Portal for a connector id', async () => {
+    const fields = [
+      { const: 'orgToken', required: true, managed: true, managedScope: 'account' },
+    ];
+    developerPortal.getConnectorManifest.mockResolvedValue(
+      buildManifest(defaultPlatform, fields),
+    );
+    await managedAuthHandler.upsertOrgManagedAuthValues({
+      rcAccountId: 'developer-portal-account',
+      platform: defaultPlatform,
+      values: { orgToken: 'portal-token' },
     });
 
-    expect(result.resolvedAdditionalInfo).toEqual({
-      companyId: 'manual-company',
-      apiKey: 'manual-key'
+    const state = await managedAuthHandler.getManagedAuthState({
+      platform: defaultPlatform,
+      connectorId: 'connector-123',
+      rcAccountId: 'developer-portal-account',
     });
-    expect(result.resolvedApiKey).toBe('manual-key');
-    expect(result.missingRequiredFieldConsts).toEqual([]);
+
+    expect(developerPortal.getConnectorManifest).toHaveBeenCalledWith({
+      rcAccountId: 'developer-portal-account',
+      connectorId: 'connector-123',
+      isPrivate: false,
+    });
+    expect(state).toMatchObject({
+      hasManagedAuth: true,
+      allRequiredFieldsSatisfied: true,
+      visibleFieldConsts: [],
+    });
+  });
+
+  describe('resolveApiKeyLoginFields', () => {
+    test.each(managedAuthResolutionCases)('$label', async (...args: any[]) => {
+      const {
+        rcAccountId,
+        rcExtensionId,
+        fields,
+        orgValues,
+        userValues,
+        apiKey,
+        additionalInfo,
+        preferSubmittedValuesForManagedFields,
+        expectedResult,
+      } = args[0];
+      mockManifest(fields);
+      await seedManagedValues({
+        rcAccountId,
+        rcExtensionId,
+        orgValues,
+        userValues,
+      });
+
+      const result = await managedAuthHandler.resolveApiKeyLoginFields({
+        platform: defaultPlatform,
+        rcAccountId,
+        rcExtensionId,
+        apiKey,
+        additionalInfo,
+        preferSubmittedValuesForManagedFields,
+      });
+
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('managed value mutations', () => {
+    test.each(managedAuthMutationCases)('$label', async (...args: any[]) => {
+      const {
+        scope,
+        rcAccountId,
+        rcExtensionId,
+        fields,
+        initialValues,
+        updateValues,
+        fieldsToRemove,
+        expectedAdminValues,
+      } = args[0];
+      mockManifest(fields);
+      if (scope === 'account') {
+        await managedAuthHandler.upsertOrgManagedAuthValues({
+          rcAccountId,
+          platform: defaultPlatform,
+          values: initialValues,
+        });
+        await managedAuthHandler.upsertOrgManagedAuthValues({
+          rcAccountId,
+          platform: defaultPlatform,
+          values: updateValues,
+          fieldsToRemove,
+        });
+      } else {
+        await managedAuthHandler.upsertUserManagedAuthValues({
+          rcAccountId,
+          platform: defaultPlatform,
+          rcExtensionId,
+          rcUserName: 'Mutation Agent',
+          values: initialValues,
+        });
+        await managedAuthHandler.upsertUserManagedAuthValues({
+          rcAccountId,
+          platform: defaultPlatform,
+          rcExtensionId,
+          values: updateValues,
+          fieldsToRemove,
+        });
+      }
+
+      const settings = await managedAuthHandler.getManagedAuthAdminSettings({
+        platform: defaultPlatform,
+        rcAccountId,
+      });
+      const actualValues = scope === 'account'
+        ? settings.orgValues
+        : settings.userValues[0].fields;
+      expect(actualValues).toEqual(expectedAdminValues);
+    });
+
+    test.each(managedAuthIsolationCases)('$label', async (...args: any[]) => {
+      const { records, lookup, expectedAdditionalInfo } = args[0];
+      mockManifest(managedAuthIsolationFields);
+      for (const record of records) {
+        if (record.scope === 'account') {
+          await managedAuthHandler.upsertOrgManagedAuthValues({
+            rcAccountId: record.rcAccountId,
+            platform: record.platform,
+            values: record.values,
+          });
+        } else {
+          await managedAuthHandler.upsertUserManagedAuthValues({
+            rcAccountId: record.rcAccountId,
+            platform: record.platform,
+            rcExtensionId: record.rcExtensionId,
+            rcUserName: `Agent ${record.rcExtensionId}`,
+            values: record.values,
+          });
+        }
+      }
+
+      const result = await managedAuthHandler.resolveApiKeyLoginFields({
+        ...lookup,
+        additionalInfo: {},
+      });
+
+      expect(result).toEqual({
+        resolvedAdditionalInfo: expectedAdditionalInfo,
+        resolvedApiKey: expectedAdditionalInfo.apiKey,
+        missingRequiredFieldConsts: [],
+      });
+    });
+  });
+
+  test('persistSubmittedManagedValues stores account and user submissions and ignores a missing account id', async () => {
+    const fields = [
+      { const: 'tenantId', managed: true, managedScope: 'account' },
+      { const: 'apiKey', managed: true, managedScope: 'user' },
+    ];
+    mockManifest(fields);
+
+    await managedAuthHandler.persistSubmittedManagedValues({
+      platform: defaultPlatform,
+      rcAccountId: 'persist-account',
+      rcExtensionId: '701',
+      rcUserName: 'Agent 701',
+      submittedManagedValues: {
+        org: { tenantId: 'tenant-persisted' },
+        user: { apiKey: 'key-persisted' },
+      },
+    });
+    await managedAuthHandler.persistSubmittedManagedValues({
+      platform: defaultPlatform,
+      rcExtensionId: '702',
+      submittedManagedValues: {
+        org: { tenantId: 'ignored-without-account' },
+      },
+    });
+
+    const settings = await managedAuthHandler.getManagedAuthAdminSettings({
+      platform: defaultPlatform,
+      rcAccountId: 'persist-account',
+    });
+    expect(settings.orgValues.tenantId.value).toBe('tenant-persisted');
+    expect(settings.userValues[0].fields.apiKey.value).toBe('key-persisted');
+    await expect(AccountDataModel.count()).resolves.toBe(2);
   });
 
   test('getApiKeyFieldDefinitions returns no fields for missing platforms or manifest lookup failures', async () => {
-    expect(await managedAuthHandler.getApiKeyFieldDefinitions({
+    await expect(managedAuthHandler.getApiKeyFieldDefinitions({
       platform: '',
-      rcAccountId: 'acc-empty'
-    })).toEqual([]);
+      rcAccountId: 'definitions-empty-account',
+    })).resolves.toEqual([]);
 
     connectorRegistry.getManifest.mockImplementationOnce(() => {
       throw new Error('manifest unavailable');
     });
 
-    expect(await managedAuthHandler.getApiKeyFieldDefinitions({
-      platform: 'testCRM',
-      rcAccountId: 'acc-error'
-    })).toEqual([]);
+    await expect(managedAuthHandler.getApiKeyFieldDefinitions({
+      platform: defaultPlatform,
+      rcAccountId: 'definitions-error-account',
+    })).resolves.toEqual([]);
   });
 
-  test('persistSubmittedManagedValues stores submitted org and user managed fields', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', managed: true, managedScope: 'account' },
-                  { const: 'apiKey', managed: true, managedScope: 'user' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.persistSubmittedManagedValues({
-      platform: 'testCRM',
-      rcAccountId: 'acc-persist',
-      rcExtensionId: '888',
-      rcUserName: 'Agent 888',
-      submittedManagedValues: {
-        org: {
-          tenantId: 'tenant-persist'
-        },
-        user: {
-          apiKey: 'user-persist'
-        }
-      }
-    });
-
-    await managedAuthHandler.persistSubmittedManagedValues({
-      platform: 'testCRM',
-      rcExtensionId: '999',
-      submittedManagedValues: {
-        org: {
-          tenantId: 'ignored-without-account'
-        }
-      }
-    });
-
-    const records = await AccountDataModel.findAll({
-      where: {
-        platformName: 'testCRM'
-      }
-    });
-    const dataKeys = records.map(record => record.dataKey).sort();
-
-    expect(dataKeys).toEqual(['managed-auth-org', 'managed-auth-user:888']);
-
-    const settings = await managedAuthHandler.getManagedAuthAdminSettings({
-      platform: 'testCRM',
-      rcAccountId: 'acc-persist'
-    });
-
-    expect(settings.orgValues.tenantId.value).toBe('tenant-persist');
-    expect(settings.userValues[0].fields.apiKey.value).toBe('user-persist');
-  });
-
-  test('upsertUserManagedAuthValues throws when rcExtensionId is missing', async () => {
+  test('upsertUserManagedAuthValues requires an RC extension id', async () => {
     await expect(managedAuthHandler.upsertUserManagedAuthValues({
-      rcAccountId: 'acc-5',
-      platform: 'testCRM',
-      values: { apiKey: 'x' }
+      rcAccountId: 'missing-extension-account',
+      platform: defaultPlatform,
+      values: { apiKey: 'key' },
     })).rejects.toThrow('rcExtensionId is required for user managed auth values');
   });
-
-  test('upsertOrgManagedAuthValues removes specified fields', async () => {
-    connectorRegistry.getManifest.mockReturnValue({
-      platforms: {
-        testCRM: {
-          auth: {
-            type: 'apiKey',
-            apiKey: {
-              page: {
-                content: [
-                  { const: 'tenantId', managed: true, managedScope: 'account' },
-                  { const: 'region', managed: true, managedScope: 'account' }
-                ]
-              }
-            }
-          }
-        }
-      }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-6',
-      platform: 'testCRM',
-      values: { tenantId: 'tenant-6', region: 'us' }
-    });
-
-    await managedAuthHandler.upsertOrgManagedAuthValues({
-      rcAccountId: 'acc-6',
-      platform: 'testCRM',
-      values: {},
-      fieldsToRemove: ['tenantId']
-    });
-
-    const settings = await managedAuthHandler.getManagedAuthAdminSettings({
-      platform: 'testCRM',
-      rcAccountId: 'acc-6'
-    });
-    expect(settings.orgValues.tenantId.hasValue).toBe(false);
-    expect(settings.orgValues.region.value).toBe('us');
-
-    const record = await AccountDataModel.findOne({
-      where: {
-        rcAccountId: 'acc-6',
-        platformName: 'testCRM',
-        dataKey: 'managed-auth-org'
-      }
-    });
-    expect(record.data.fields.tenantId).toBeUndefined();
-    expect(record.data.fields.region).toBeDefined();
-  });
 });
-
 
 export {};

@@ -3,6 +3,11 @@ jest.mock('node-fetch');
 const fetch = require('node-fetch');
 const { RingCentral, isRefreshTokenValid, isAccessTokenValid } = require('../../lib/ringcentral');
 const tsRingCentral = require('../../lib/ringcentral.ts');
+const { rcCallLogSimpleCases } = require('../data/callLoggingCases');
+const { rcMessageFormatCases } = require('../data/messageLoggingCases');
+
+const rcCallLogSimpleRecords = rcCallLogSimpleCases.map(({ record }) => record);
+const rcMessageFormatRecords = rcMessageFormatCases.map(({ message }) => message);
 
 describe('ringcentral', () => {
   beforeEach(() => {
@@ -426,11 +431,11 @@ describe('ringcentral', () => {
 
       test('should get call log data with pagination', async () => {
         const page1 = {
-          records: [{ id: 'call-1' }, { id: 'call-2' }],
+          records: rcCallLogSimpleRecords.slice(0, 2),
           navigation: { nextPage: { uri: 'next-page' } }
         };
         const page2 = {
-          records: [{ id: 'call-3' }],
+          records: rcCallLogSimpleRecords.slice(2, 3),
           navigation: {}
         };
 
@@ -445,13 +450,13 @@ describe('ringcentral', () => {
           timeTo: '2024-01-31'
         });
 
-        expect(result.records).toHaveLength(3);
+        expect(result.records).toEqual(rcCallLogSimpleRecords.slice(0, 3));
         expect(fetch).toHaveBeenCalledTimes(2);
       });
 
       test('should handle single page of results', async () => {
         const response = {
-          records: [{ id: 'call-1' }],
+          records: rcCallLogSimpleRecords.slice(3),
           navigation: {}
         };
         fetch.mockResolvedValue({ status: 200, json: () => Promise.resolve(response) });
@@ -464,7 +469,7 @@ describe('ringcentral', () => {
           timeTo: '2024-01-31'
         });
 
-        expect(result.records).toHaveLength(1);
+        expect(result.records).toEqual(rcCallLogSimpleRecords.slice(3));
         expect(fetch).toHaveBeenCalledTimes(1);
       });
     });
@@ -474,11 +479,11 @@ describe('ringcentral', () => {
 
       test('should get SMS data with pagination', async () => {
         const page1 = {
-          records: [{ id: 'sms-1' }],
+          records: rcMessageFormatRecords.slice(0, 3),
           navigation: { nextPage: { uri: 'next' } }
         };
         const page2 = {
-          records: [{ id: 'sms-2' }],
+          records: rcMessageFormatRecords.slice(3),
           navigation: {}
         };
 
@@ -493,7 +498,7 @@ describe('ringcentral', () => {
           timeTo: '2024-01-31'
         });
 
-        expect(result.records).toHaveLength(2);
+        expect(result.records).toEqual(rcMessageFormatRecords);
       });
     });
   });

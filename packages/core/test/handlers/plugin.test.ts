@@ -17,6 +17,10 @@ const { AccountDataModel } = require('../../models/accountDataModel');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 const logger = require('../../lib/logger');
+const {
+  pluginManifestAccessCases,
+  pluginLicenseCases,
+} = require('../data/pluginServiceCases');
 
 describe('Plugin Handler', () => {
   beforeAll(async () => {
@@ -236,57 +240,33 @@ describe('Plugin Handler', () => {
   });
 
   describe('resolvePluginManifest', () => {
-    test('should load private manifests with owner account id and infer the platform key', async () => {
-      axios.get.mockResolvedValue({
-        data: {
-          platforms: {
-            'plugin.private': {
-              endpointUrl: 'https://plugins.example.com/private',
-              userRegisterEndpointUrl: 'https://plugins.example.com/private/register'
-            }
-          }
+    test.each(pluginManifestAccessCases)('$label', async (...args: any[]) => {
+      const {
+        pluginId,
+        pluginAccess,
+        ownerRcAccountId,
+        fetchResults,
+        expectedUrls,
+      } = args[0];
+      fetchResults.forEach((fetchResult) => {
+        if (fetchResult.error) {
+          axios.get.mockRejectedValueOnce(new Error(fetchResult.error));
+        } else {
+          axios.get.mockResolvedValueOnce({ data: fetchResult.data });
         }
       });
 
       const result = await pluginHandler.resolvePluginManifest({
-        pluginId: 'private-plugin',
-        pluginAccess: 'private',
-        ownerRcAccountId: 'owner-account'
+        pluginId,
+        pluginAccess,
+        ownerRcAccountId,
       });
 
-      expect(axios.get).toHaveBeenCalledWith(
-        'https://appconnect.labs.ringcentral.com/public-api/connectors/private-plugin/manifest?access=internal&type=plugin&accountId=owner-account'
+      expect(axios.get.mock.calls.map(([url]) => url)).toEqual(expectedUrls);
+      expect(result.platformKey).toBe('plugin.service');
+      expect(result.pluginManifest.endpointUrl).toBe(
+        'https://plugins.example.com/service',
       );
-      expect(result.platformKey).toBe('plugin.private');
-      expect(result.pluginManifest.endpointUrl).toBe('https://plugins.example.com/private');
-    });
-
-    test('should fall back from public to internal manifest when access is unspecified', async () => {
-      axios.get
-        .mockRejectedValueOnce(new Error('public missing'))
-        .mockResolvedValueOnce({
-          data: {
-            platforms: {
-              'plugin.shared': {
-                endpointUrl: 'https://plugins.example.com/shared'
-              }
-            }
-          }
-        });
-
-      const result = await pluginHandler.resolvePluginManifest({
-        pluginId: 'shared-plugin',
-        ownerRcAccountId: 'owner-account'
-      });
-
-      expect(axios.get).toHaveBeenCalledTimes(2);
-      expect(axios.get.mock.calls[0][0]).toBe(
-        'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-plugin/manifest?type=plugin'
-      );
-      expect(axios.get.mock.calls[1][0]).toBe(
-        'https://appconnect.labs.ringcentral.com/public-api/connectors/shared-plugin/manifest?access=internal&type=plugin&accountId=owner-account'
-      );
-      expect(result.platformKey).toBe('plugin.shared');
     });
 
     test('should throw the last manifest fetch error or platform resolution error', async () => {
@@ -311,74 +291,53 @@ describe('Plugin Handler', () => {
   });
 
   describe('getPluginLicenseStatus', () => {
-    test('should return null and skip provider call when plugin account data is missing', async () => {
-      const result = await pluginHandler.getPluginLicenseStatus({
-        rcAccountId: '12345',
-        pluginId: 'sync-all-caps'
-      });
+    test.each(pluginLicenseCases)('$label', async (...args: any[]) => {
+      const {
+        installed,
+        providerResponse,
+        providerError,
+        expectedResult,
+        expectedProviderCalls,
+      } = args[0];
+      const rcAccountId = 'license-account';
+      const pluginId = 'licensed-service';
+      const licenseStatusUrl = 'https://plugins.example.com/service/license';
 
-      expect(result).toBeNull();
-      expect(axios.get).not.toHaveBeenCalled();
-    });
+      if (installed) {
+        await AccountDataModel.create({
+          rcAccountId,
+          platformName: pluginId,
+          dataKey: 'pluginData',
+          data: {
+            jwtToken: 'plugin-jwt-token',
+            licenseStatusUrl,
+          },
+        });
+        if (providerError) {
+          axios.get.mockRejectedValueOnce(new Error(providerError));
+        } else {
+          axios.get.mockResolvedValueOnce({ data: providerResponse });
+        }
+      }
 
-    test('should call plugin license status endpoint with stored plugin bearer token', async () => {
-      const rcAccountId = '12345';
-      const pluginId = 'sync-all-caps';
-      await AccountDataModel.create({
+      const resultPromise = pluginHandler.getPluginLicenseStatus({
         rcAccountId,
-        platformName: pluginId,
-        dataKey: 'pluginData',
-        data: {
-          jwtToken: 'plugin-jwt-token',
-          licenseStatusUrl: `https://plugins.example.com/plugin/${pluginId}/license`
-        }
-      });
-      axios.get.mockResolvedValue({
-        data: {
-          licenseStatus: true,
-          licenseStatusDescription: 'Active'
-        }
+        pluginId,
       });
 
-      const result = await pluginHandler.getPluginLicenseStatus({ rcAccountId, pluginId });
-
-      expect(axios.get).toHaveBeenCalledWith(
-        `https://plugins.example.com/plugin/${pluginId}/license`,
-        {
+      if (providerError) {
+        await expect(resultPromise).rejects.toThrow(providerError);
+      } else {
+        await expect(resultPromise).resolves.toEqual(expectedResult);
+      }
+      expect(axios.get).toHaveBeenCalledTimes(expectedProviderCalls);
+      if (installed) {
+        expect(axios.get).toHaveBeenCalledWith(licenseStatusUrl, {
           headers: {
-            Authorization: 'Bearer plugin-jwt-token'
-          }
-        }
-      );
-      expect(result).toEqual({
-        licenseStatus: true,
-        licenseStatusDescription: 'Active'
-      });
-    });
-    test('should normalize non-standard plugin license provider responses to invalid status', async () => {
-      const rcAccountId = '12345';
-      const pluginId = 'sync-all-caps';
-      await AccountDataModel.create({
-        rcAccountId,
-        platformName: pluginId,
-        dataKey: 'pluginData',
-        data: {
-          jwtToken: 'plugin-jwt-token',
-          licenseStatusUrl: `https://plugins.example.com/plugin/${pluginId}/license`
-        }
-      });
-      axios.get.mockResolvedValue({
-        data: {
-          message: 'temporary unavailable'
-        }
-      });
-
-      const result = await pluginHandler.getPluginLicenseStatus({ rcAccountId, pluginId });
-
-      expect(result).toEqual({
-        licenseStatus: false,
-        licenseStatusDescription: 'Plugin license status unavailable'
-      });
+            Authorization: 'Bearer plugin-jwt-token',
+          },
+        });
+      }
     });
   });
   describe('unregisterPluginAccount', () => {

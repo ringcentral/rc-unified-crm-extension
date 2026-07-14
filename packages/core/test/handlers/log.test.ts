@@ -36,10 +36,35 @@ const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { composeCallLog } = require('../../lib/callLogComposer');
 const { NoteCache } = require('../../models/dynamo/noteCacheSchema');
+const { Connector } = require('../../models/dynamo/connectorSchema');
 const axios = require('axios');
 const { sequelize } = require('../../models/sequelize');
 const { getHashValue } = require('../../lib/util');
 const { MessageLogResponseSchema } = require('../../contracts');
+const {
+  buildCallLogUser,
+  buildCallLogIncomingData,
+  buildCallLogUpdateData,
+  rcCallLogRecordCases,
+  rcCallLogResultCases,
+  callLogAuthCases,
+  callLogDatabaseFailureCases,
+  callLogResultCases,
+  callLogUpdateInputCases,
+} = require('../data/callLoggingCases');
+const {
+  buildMessageLogUser,
+  buildMessageIncomingData,
+  cloneRingCentralMessageRecord,
+  rcMessageFormatCases,
+  rcMessageMediaCases,
+  rcMessageStatusCases,
+  messageLogLifecycleCases,
+  messageLogAuthCases,
+  messageLogDatabaseFailureCases,
+  messageLogResultCases,
+  oldestFirstMessageCase,
+} = require('../data/messageLoggingCases');
 
 describe('Log Handler', () => {
   beforeAll(async () => {
@@ -56,6 +81,7 @@ describe('Log Handler', () => {
     await UserModel.destroy({ where: {} });
     await AccountDataModel.destroy({ where: {} });
     await CacheModel.destroy({ where: {} });
+    jest.restoreAllMocks();
     jest.clearAllMocks();
   });
 
@@ -1030,6 +1056,396 @@ describe('Log Handler', () => {
     });
   });
 
+  describe('call logging data matrix', () => {
+    function buildCallConnector(overrides = {}) {
+      return {
+        getAuthType: jest.fn().mockResolvedValue('apiKey'),
+        getBasicAuth: jest.fn().mockReturnValue('encoded-call-key'),
+        getOauthInfo: jest.fn().mockResolvedValue({ tokenUrl: 'https://auth.example.test/token' }),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
+        createCallLog: jest.fn().mockResolvedValue({
+          logId: 'provider-created-call-log',
+          returnMessage: { message: 'Call logged', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
+        }),
+        getCallLog: jest.fn().mockResolvedValue({
+          callLogInfo: {
+            note: 'Existing provider note',
+            fullLogResponse: { id: 'provider-call-log' },
+          },
+          returnMessage: { message: 'Call fetched', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
+        }),
+        updateCallLog: jest.fn().mockResolvedValue({
+          updatedNote: 'Updated provider note',
+          returnMessage: { message: 'Call updated', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
+        }),
+        ...overrides,
+      };
+    }
+
+    async function seedCallLog({ sessionId, userId, extensionNumber = '101' }) {
+      return CallLogModel.create({
+        id: `telephony-${sessionId}`,
+        sessionId,
+        extensionNumber,
+        platform: 'testCRM',
+        thirdPartyLogId: `provider-${sessionId}`,
+        userId,
+        contactId: 'call-log-contact',
+      });
+    }
+
+    test.each<[any]>(rcCallLogRecordCases as [any][])(
+      'Create preserves the RingCentral $view payload for $label',
+      async ({ record, expectedContactNumber, expectedHasRecording }) => {
+        const suffix = String(record.id).replace(/\W+/g, '-').toLowerCase();
+        const contactNumber = expectedContactNumber
+          || (record.direction === 'Inbound' ? record.from.phoneNumber : record.to.phoneNumber);
+        const hasRecording = expectedHasRecording ?? !!record.recording;
+        const user = buildCallLogUser({ id: `rc-call-user-${suffix}` });
+        const providerLogId = `provider-${record.id}`;
+        await UserModel.create(user);
+
+        const connector = buildCallConnector({
+          createCallLog: jest.fn().mockResolvedValue({
+            logId: providerLogId,
+            returnMessage: { message: 'Call logged', messageType: 'success', ttl: 3000 },
+            extraDataTracking: {},
+          }),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue(`Composed ${record.id}`);
+
+        const incomingData = buildCallLogIncomingData({ logInfo: record });
+        const result = await logHandler.createCallLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData,
+          hashedAccountId: 'hashed-account',
+          isFromSSCL: false,
+        });
+
+        expect(result).toMatchObject({ successful: true, logId: providerLogId });
+        expect(connector.createCallLog).toHaveBeenCalledWith(expect.objectContaining({
+          callLog: incomingData.logInfo,
+          contactInfo: expect.objectContaining({ phoneNumber: contactNumber }),
+        }));
+        expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
+          callLog: incomingData.logInfo,
+          recordingLink: hasRecording ? record.recording.contentUri : undefined,
+        }));
+
+        const persisted = await CallLogModel.findByPk(record.telephonySessionId || record.id);
+        expect(persisted).toMatchObject({
+          sessionId: record.sessionId,
+          thirdPartyLogId: providerLogId,
+        });
+      },
+    );
+
+    test.each<[any]>(rcCallLogResultCases as [any][])(
+      'Create forwards RingCentral result fields for $label',
+      async ({ record, direction, result: callResult, duration }) => {
+        const suffix = String(record.id).replace(/\W+/g, '-').toLowerCase();
+        const user = buildCallLogUser({ id: `rc-result-user-${suffix}` });
+        await UserModel.create(user);
+
+        const connector = buildCallConnector({
+          createCallLog: jest.fn().mockResolvedValue({
+            logId: `provider-${record.id}`,
+            returnMessage: { message: 'Call logged', messageType: 'success', ttl: 3000 },
+            extraDataTracking: {},
+          }),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue(`Composed ${record.id}`);
+
+        const incomingData = buildCallLogIncomingData({ logInfo: record });
+        const response = await logHandler.createCallLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData,
+          hashedAccountId: 'hashed-account',
+          isFromSSCL: false,
+        });
+
+        expect(response.successful).toBe(true);
+        expect(connector.createCallLog).toHaveBeenCalledWith(expect.objectContaining({
+          callLog: expect.objectContaining({
+            direction,
+            result: callResult,
+            duration,
+          }),
+        }));
+      },
+    );
+
+    test.each<[any]>(callLogAuthCases as [any][])(
+      '$label returns a revoke result when OAuth refresh fails',
+      async ({ operation, sessionId }) => {
+        const user = buildCallLogUser({ id: `user-${operation}` });
+        await UserModel.create(user);
+
+        if (operation !== 'createCallLog') {
+          await seedCallLog({ sessionId, userId: user.id });
+        }
+
+        const connector = buildCallConnector({
+          getAuthType: jest.fn().mockResolvedValue('oauth'),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        oauth.getOAuthApp.mockReturnValue({ id: 'oauth-app' });
+        oauth.checkAndRefreshAccessToken.mockResolvedValue(null);
+
+        let result;
+        if (operation === 'createCallLog') {
+          result = await logHandler.createCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogIncomingData({
+              logInfo: { sessionId, telephonySessionId: `telephony-${sessionId}` },
+            }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        } else if (operation === 'getCallLog') {
+          result = await logHandler.getCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            sessionIds: sessionId,
+            requireDetails: true,
+          });
+        } else {
+          result = await logHandler.updateCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogUpdateData({ sessionId }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        }
+
+        expect(result).toMatchObject({
+          successful: false,
+          isRevokeUserSession: true,
+          returnMessage: {
+            message: 'User session expired. Please connect again.',
+            messageType: 'warning',
+          },
+        });
+        expect(connector[operation]).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each<[any]>(callLogAuthCases as [any][])(
+      '$label forwards proxy configuration through authentication and the connector operation',
+      async ({ operation, sessionId, proxyId }) => {
+        const user = buildCallLogUser({
+          id: `proxy-user-${operation}`,
+          platformAdditionalInfo: { proxyId },
+        });
+        await UserModel.create(user);
+
+        if (operation !== 'createCallLog') {
+          await seedCallLog({ sessionId, userId: user.id });
+        }
+
+        const proxyConfig = { id: proxyId, name: `Config for ${operation}` };
+        Connector.getProxyConfig.mockResolvedValue(proxyConfig);
+        const connector = buildCallConnector();
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue('Composed proxy call log');
+
+        if (operation === 'createCallLog') {
+          await logHandler.createCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogIncomingData({
+              logInfo: { sessionId, telephonySessionId: `telephony-${sessionId}` },
+            }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        } else if (operation === 'getCallLog') {
+          await logHandler.getCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            sessionIds: sessionId,
+            requireDetails: true,
+          });
+        } else {
+          await logHandler.updateCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogUpdateData({ sessionId }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        }
+
+        expect(Connector.getProxyConfig).toHaveBeenCalledWith(proxyId);
+        expect(connector.getAuthType).toHaveBeenCalledWith({ proxyId, proxyConfig });
+        expect(connector[operation]).toHaveBeenCalledWith(expect.objectContaining({
+          proxyConfig,
+        }));
+      },
+    );
+
+    test.each<[any]>(callLogDatabaseFailureCases as [any][])(
+      '$label returns a stable failure result',
+      async ({ operation, modelMethod }) => {
+        const sessionId = `database-${operation}-${modelMethod}`;
+        const user = buildCallLogUser({ id: `database-user-${operation}-${modelMethod}` });
+
+        if (operation === 'getCallLog' || modelMethod === 'create') {
+          await UserModel.create(user);
+        }
+
+        const connector = buildCallConnector();
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue('Composed database call log');
+        jest.spyOn(CallLogModel, modelMethod).mockRejectedValueOnce(new Error(`Database ${modelMethod} failed`));
+
+        let result;
+        if (operation === 'createCallLog') {
+          result = await logHandler.createCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogIncomingData({
+              logInfo: { sessionId, telephonySessionId: `telephony-${sessionId}` },
+            }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        } else if (operation === 'getCallLog') {
+          result = await logHandler.getCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            sessionIds: sessionId,
+            requireDetails: false,
+          });
+        } else {
+          result = await logHandler.updateCallLog({
+            platform: 'testCRM',
+            userId: user.id,
+            incomingData: buildCallLogUpdateData({ sessionId }),
+            hashedAccountId: 'hashed-account',
+            isFromSSCL: false,
+          });
+        }
+
+        expect(result.successful).toBe(false);
+        expect(result.returnMessage).toEqual(expect.objectContaining({
+          messageType: 'warning',
+        }));
+      },
+    );
+
+    test.each<[any]>(callLogResultCases as [any][])(
+      'Create handles $label',
+      async ({ connectorResult, expectedSuccessful, expectedLogId, expectedPersistedLogId }) => {
+        const user = buildCallLogUser({ id: `result-user-${String(expectedLogId)}` });
+        const sessionId = `result-session-${String(expectedLogId)}`;
+        await UserModel.create(user);
+
+        const connector = buildCallConnector({
+          createCallLog: jest.fn().mockResolvedValue(connectorResult),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue('Composed result call log');
+
+        const result = await logHandler.createCallLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData: buildCallLogIncomingData({
+            logInfo: { sessionId, telephonySessionId: `telephony-${sessionId}` },
+          }),
+          hashedAccountId: 'hashed-account',
+          isFromSSCL: false,
+        });
+
+        expect(result.successful).toBe(expectedSuccessful);
+        expect(result.logId).toBe(expectedLogId);
+        const persisted = await CallLogModel.findOne({ where: { sessionId } });
+        if (expectedPersistedLogId === null) {
+          expect(persisted).toBeNull();
+        } else {
+          expect(persisted.thirdPartyLogId).toBe(expectedPersistedLogId);
+        }
+      },
+    );
+
+    test.each<[any]>(callLogUpdateInputCases as [any][])(
+      'Update $label',
+      async ({
+        label,
+        logFormat,
+        getResult,
+        getError,
+        expectedExistingBody,
+        expectedExistingDetails,
+        expectDetailLookup = true,
+      }) => {
+        const suffix = label.replace(/\W+/g, '-').toLowerCase();
+        const sessionId = `update-input-${suffix}`;
+        const user = buildCallLogUser({ id: `update-input-user-${suffix}` });
+        await UserModel.create(user);
+        await seedCallLog({ sessionId, userId: user.id });
+
+        const getCallLog = getError
+          ? jest.fn().mockRejectedValue(new Error(getError))
+          : jest.fn().mockResolvedValue(getResult);
+        const connector = buildCallConnector({
+          getLogFormatType: jest.fn().mockReturnValue(logFormat),
+          getCallLog,
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        composeCallLog.mockReturnValue(`Composed ${suffix}`);
+
+        const incomingData = buildCallLogUpdateData({ sessionId });
+        const result = await logHandler.updateCallLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData,
+          hashedAccountId: 'hashed-account',
+          isFromSSCL: true,
+        });
+
+        expect(result.successful).toBe(true);
+        if (expectDetailLookup) {
+          expect(getCallLog).toHaveBeenCalledTimes(1);
+          expect(composeCallLog).toHaveBeenCalledWith(expect.objectContaining({
+            existingBody: expectedExistingBody,
+            note: incomingData.note,
+            ringSenseSummary: incomingData.ringSenseSummary,
+          }));
+        } else {
+          expect(getCallLog).not.toHaveBeenCalled();
+          expect(composeCallLog).not.toHaveBeenCalled();
+        }
+        expect(connector.updateCallLog).toHaveBeenCalledWith(expect.objectContaining({
+          recordingLink: incomingData.recordingLink,
+          recordingDownloadLink: incomingData.recordingDownloadLink,
+          aiNote: incomingData.aiNote,
+          transcript: incomingData.transcript,
+          legs: incomingData.legs,
+          ringSenseTranscript: incomingData.ringSenseTranscript,
+          ringSenseSummary: incomingData.ringSenseSummary,
+          ringSenseAIScore: incomingData.ringSenseAIScore,
+          ringSenseBulletedSummary: incomingData.ringSenseBulletedSummary,
+          ringSenseLink: incomingData.ringSenseLink,
+          additionalSubmission: incomingData.additionalSubmission,
+          existingCallLogDetails: expectedExistingDetails,
+          composedLogDetails: expectDetailLookup ? `Composed ${suffix}` : '',
+          hashedAccountId: 'hashed-account',
+          isFromSSCL: true,
+        }));
+      },
+    );
+  });
+
   describe('createMessageLog', () => {
     test('should return warning when no messages to log', async () => {
       // Act
@@ -1772,7 +2188,14 @@ describe('Log Handler', () => {
           logInfo: {
             messages: [{ id: 'shared-message-1', type: 'SMS', lastModifiedTime: '2026-06-12T10:05:00.000Z' }],
             entities: [
-              { type: 'Message', from: { name: 'Agent One' }, creationTime: '2026-06-12T10:00:00.000Z', lastModifiedTime: '2026-06-12T10:05:00.000Z', subject: 'Hello' }
+              {
+                recordType: 'AliveMessage',
+                direction: 'Inbound',
+                from: { name: 'Agent One' },
+                creationTime: '2026-06-12T10:00:00.000Z',
+                lastModifiedTime: '2026-06-12T10:05:00.000Z',
+                subject: 'Hello',
+              }
             ],
             correspondents: [{ phoneNumber: '+15550000001' }],
             conversationId: 'shared-conversation',
@@ -1800,65 +2223,396 @@ describe('Log Handler', () => {
       expect(mockConnector.createMessageLog).not.toHaveBeenCalled();
     });
 
-    test('should pass recording, fax, image, and video attachment details to CRM message creation', async () => {
-      await UserModel.create({
-        id: 'test-user-id',
-        platform: 'testCRM',
-        accessToken: 'test-token',
-        rcAccountId: 'rc-account-123',
-        platformAdditionalInfo: {}
-      });
+    test.each<[any]>(rcMessageMediaCases as [any][])(
+      '$label',
+      async ({ label, rawMessage, acMessage, logInfoOverrides, expectedDerivedMediaFields }) => {
+        const suffix = label.replace(/\W+/g, '-').toLowerCase();
+        const userId = `rc-media-user-${suffix}`;
+        await UserModel.create({
+          id: userId,
+          platform: 'testCRM',
+          accessToken: 'test-token',
+          rcAccountId: 'rc-account-123',
+          platformAdditionalInfo: {},
+        });
 
-      const mockConnector = {
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          createMessageLog: jest.fn().mockResolvedValue({
+            logId: `provider-${suffix}`,
+            returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 },
+            extraDataTracking: {},
+          }),
+          updateMessageLog: jest.fn(),
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+        const contactParty = acMessage.direction === 'Inbound' ? acMessage.from : acMessage.to[0];
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId,
+          incomingData: buildMessageIncomingData({
+            contactId: `rc-media-contact-${suffix}`,
+            contactName: contactParty.name || 'Media Contact',
+            logInfo: {
+              conversationId: acMessage.conversationId || `rc-media-conversation-${suffix}`,
+              conversationLogId: `rc-media-conversation-log-${suffix}`,
+              correspondents: [{
+                phoneNumber: contactParty.phoneNumber,
+                name: contactParty.name,
+              }],
+              messages: [acMessage],
+              ...logInfoOverrides,
+            },
+          }),
+        });
+
+        expect(result.successful).toBe(true);
+        expect(rawMessage.attachments.every((attachment) => attachment.link === undefined)).toBe(true);
+        expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+          message: acMessage,
+          ...expectedDerivedMediaFields,
+        }));
+      },
+    );
+  });
+
+  describe('message logging data matrix', () => {
+    function buildMessageConnector(overrides = {}) {
+      return {
         getAuthType: jest.fn().mockResolvedValue('apiKey'),
-        getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+        getBasicAuth: jest.fn().mockReturnValue('encoded-message-key'),
+        getOauthInfo: jest.fn().mockResolvedValue({ tokenUrl: 'https://auth.example.test/token' }),
+        getLogFormatType: jest.fn().mockReturnValue('text/plain'),
         createMessageLog: jest.fn().mockResolvedValue({
-          logId: 'msg-log-attachments',
-          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 2000 }
+          logId: 'provider-message-log',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
         }),
-        updateMessageLog: jest.fn()
+        updateMessageLog: jest.fn().mockResolvedValue({
+          returnMessage: { message: 'Message updated', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
+        }),
+        ...overrides,
       };
-      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+    }
+
+    function buildRcMessageIncomingData(message, label) {
+      const suffix = label.replace(/\W+/g, '-').toLowerCase();
+      const contactId = `rc-message-contact-${suffix}`;
+      const correspondentParties = message.direction === 'Inbound'
+        ? [message.from]
+        : message.to;
+      const correspondents = correspondentParties.map((party) => ({
+        phoneNumber: party.phoneNumber,
+        name: party.name,
+      }));
+
+      return {
+        contactId,
+        isGroup: correspondents.length > 1,
+        incomingData: buildMessageIncomingData({
+          contactId,
+          logInfo: {
+            conversationId: message.conversationId || message.conversation?.id,
+            conversationLogId: `rc-message-conversation-${suffix}`,
+            correspondents,
+            messages: [message],
+            rcAccessToken: 'rc-message-access-token',
+          },
+        }),
+      };
+    }
+
+    test.each<[any]>(rcMessageFormatCases as [any][])(
+      'Create preserves the RingCentral Message Store payload for $label',
+      async ({ label, message }) => {
+        const suffix = label.replace(/\W+/g, '-').toLowerCase();
+        const user = buildMessageLogUser({ id: `rc-message-user-${suffix}` });
+        const rawMessage = cloneRingCentralMessageRecord(message);
+        const { contactId, isGroup, incomingData } = buildRcMessageIncomingData(rawMessage, label);
+        const expectedMessage = cloneRingCentralMessageRecord(rawMessage);
+        if (isGroup) {
+          expectedMessage.id = `${expectedMessage.id}-${contactId}`;
+        }
+        await UserModel.create(user);
+
+        const connector = buildMessageConnector({
+          createMessageLog: jest.fn().mockResolvedValue({
+            logId: `provider-${suffix}`,
+            returnMessage: { message: 'Message logged', messageType: 'success', ttl: 3000 },
+            extraDataTracking: {},
+          }),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData,
+        });
+
+        expect(result).toMatchObject({
+          successful: true,
+          logIds: [String(expectedMessage.id)],
+        });
+        const createParams = connector.createMessageLog.mock.calls[0][0];
+        expect(createParams.message).toEqual(expectedMessage);
+        expect(message).toEqual(rawMessage);
+
+        const imageAttachment = rawMessage.attachments?.find(
+          (attachment) => attachment.type === 'MmsAttachment'
+            && attachment.contentType.startsWith('image/'),
+        );
+        const videoAttachment = rawMessage.attachments?.find(
+          (attachment) => attachment.type === 'MmsAttachment'
+            && attachment.contentType.startsWith('video/'),
+        );
+        if (imageAttachment) {
+          expect(createParams).toMatchObject({
+            imageLink: expect.stringContaining(encodeURIComponent(imageAttachment.uri)),
+            imageDownloadLink: `${imageAttachment.uri}?access_token=rc-message-access-token`,
+            imageContentType: imageAttachment.contentType,
+          });
+        }
+        if (videoAttachment) {
+          expect(createParams.videoLink).toEqual(
+            expect.stringContaining(encodeURIComponent(videoAttachment.uri)),
+          );
+        }
+      },
+    );
+
+    test.each<[any]>(rcMessageStatusCases as [any][])(
+      'Create forwards RingCentral message status $label',
+      async ({ label, message }) => {
+        const suffix = label.replace(/\W+/g, '-').toLowerCase();
+        const user = buildMessageLogUser({ id: `rc-status-user-${suffix}` });
+        const { incomingData } = buildRcMessageIncomingData(message, `status-${label}`);
+        await UserModel.create(user);
+
+        const connector = buildMessageConnector({
+          createMessageLog: jest.fn().mockResolvedValue({
+            logId: `provider-status-${suffix}`,
+            returnMessage: { message: 'Message logged', messageType: 'success', ttl: 3000 },
+            extraDataTracking: {},
+          }),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData,
+        });
+
+        expect(result.successful).toBe(true);
+        expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+          message: expect.objectContaining({
+            direction: message.direction,
+            messageStatus: message.messageStatus,
+          }),
+        }));
+      },
+    );
+
+    test.each<[any]>(messageLogLifecycleCases as [any][])(
+      '$label',
+      async ({
+        incomingOverrides,
+        seedLogs,
+        expectedOperation,
+        expectedLogIds,
+        expectedPersistedId,
+        providerLogId,
+        isShared,
+      }) => {
+        const user = buildMessageLogUser();
+        await UserModel.create(user);
+        if (seedLogs.length) {
+          await MessageLogModel.bulkCreate(seedLogs);
+        }
+
+        const connector = buildMessageConnector({
+          createMessageLog: jest.fn().mockResolvedValue({
+            logId: providerLogId,
+            returnMessage: { message: 'Message logged', messageType: 'success', ttl: 3000 },
+            extraDataTracking: {},
+          }),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData: buildMessageIncomingData(incomingOverrides),
+        });
+
+        expect(result).toMatchObject({
+          successful: true,
+          logIds: expectedLogIds,
+        });
+        if (expectedOperation === 'create') {
+          expect(connector.createMessageLog).toHaveBeenCalledTimes(1);
+          expect(connector.updateMessageLog).not.toHaveBeenCalled();
+        } else if (expectedOperation === 'update') {
+          expect(connector.createMessageLog).not.toHaveBeenCalled();
+          expect(connector.updateMessageLog).toHaveBeenCalledTimes(1);
+        } else {
+          expect(connector.createMessageLog).not.toHaveBeenCalled();
+          expect(connector.updateMessageLog).not.toHaveBeenCalled();
+        }
+
+        const persisted = await MessageLogModel.findByPk(expectedPersistedId);
+        expect(persisted).not.toBeNull();
+        expect(persisted.thirdPartyLogId).toBe(providerLogId);
+        if (isShared) {
+          expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+            sharedSMSLogContent: expect.objectContaining({
+              subject: 'SMS conversation with Message Contact',
+            }),
+          }));
+        }
+      },
+    );
+
+    test.each<[any]>(messageLogAuthCases as [any][])(
+      '$label',
+      async ({ proxyId, refreshedAccessToken, incomingOverrides }) => {
+        const user = buildMessageLogUser({
+          platformAdditionalInfo: {
+            proxyId,
+            tokenUrl: 'https://auth.example.test/token',
+          },
+        });
+        await UserModel.create(user);
+
+        const proxyConfig = { id: proxyId, name: 'Message proxy config' };
+        Connector.getProxyConfig.mockResolvedValue(proxyConfig);
+        const connector = buildMessageConnector({
+          getAuthType: jest.fn().mockResolvedValue('oauth'),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        oauth.getOAuthApp.mockReturnValue({ id: 'message-oauth-app' });
+        oauth.checkAndRefreshAccessToken.mockResolvedValue({
+          ...user,
+          accessToken: refreshedAccessToken,
+        });
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData: buildMessageIncomingData(incomingOverrides),
+        });
+
+        expect(result.successful).toBe(true);
+        expect(Connector.getProxyConfig).toHaveBeenCalledWith(proxyId);
+        expect(connector.getAuthType).toHaveBeenCalledWith({ proxyId, proxyConfig });
+        expect(connector.getOauthInfo).toHaveBeenCalledWith(expect.objectContaining({
+          proxyId,
+          proxyConfig,
+          tokenUrl: 'https://auth.example.test/token',
+        }));
+        expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+          authHeader: `Bearer ${refreshedAccessToken}`,
+          proxyConfig,
+        }));
+      },
+    );
+
+    test.each<[any]>(messageLogDatabaseFailureCases as [any][])(
+      '$label returns a stable failure result',
+      async ({ target }) => {
+        const user = buildMessageLogUser({ id: `database-message-user-${target}` });
+        if (target !== 'userLookup') {
+          await UserModel.create(user);
+        }
+
+        const connector = buildMessageConnector();
+        connectorRegistry.getConnector.mockReturnValue(connector);
+        if (target === 'userLookup') {
+          jest.spyOn(UserModel, 'findByPk').mockRejectedValueOnce(new Error('User lookup failed'));
+        } else if (target === 'messageLookup') {
+          jest.spyOn(MessageLogModel, 'findAll').mockRejectedValueOnce(new Error('Message lookup failed'));
+        } else if (target === 'conversationLookup') {
+          jest.spyOn(MessageLogModel, 'findOne').mockRejectedValueOnce(new Error('Conversation lookup failed'));
+        } else {
+          jest.spyOn(MessageLogModel, 'create').mockRejectedValueOnce(new Error('Message persistence failed'));
+        }
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData: buildMessageIncomingData({
+            logInfo: {
+              conversationId: `database-conversation-${target}`,
+              conversationLogId: `database-conversation-log-${target}`,
+              messages: [{ id: `database-message-${target}` }],
+            },
+          }),
+        });
+
+        expect(result.successful).toBe(false);
+        expect(result.returnMessage).toEqual(expect.objectContaining({
+          messageType: 'warning',
+        }));
+      },
+    );
+
+    test.each<[any]>(messageLogResultCases as [any][])(
+      'Create handles $label',
+      async ({ connectorResult, expectedSuccessful, expectedLogIds }) => {
+        const user = buildMessageLogUser({ id: 'message-result-user' });
+        await UserModel.create(user);
+        const connector = buildMessageConnector({
+          createMessageLog: jest.fn().mockResolvedValue(connectorResult),
+        });
+        connectorRegistry.getConnector.mockReturnValue(connector);
+
+        const result = await logHandler.createMessageLog({
+          platform: 'testCRM',
+          userId: user.id,
+          incomingData: buildMessageIncomingData({
+            logInfo: {
+              conversationId: 'message-result-conversation',
+              conversationLogId: 'message-result-conversation-log',
+              messages: [{ id: 'message-result-message' }],
+            },
+          }),
+        });
+
+        expect(result.successful).toBe(expectedSuccessful);
+        expect(result.logIds).toEqual(expectedLogIds);
+        await expect(MessageLogModel.findByPk('message-result-message')).resolves.toBeNull();
+      },
+    );
+
+    test(oldestFirstMessageCase.label, async () => {
+      const user = buildMessageLogUser({ id: 'ordered-message-user' });
+      await UserModel.create(user);
+      const connector = buildMessageConnector({
+        createMessageLog: jest.fn().mockResolvedValue({
+          logId: 'provider-ordered-message-log',
+          returnMessage: { message: 'Message logged', messageType: 'success', ttl: 3000 },
+          extraDataTracking: {},
+        }),
+      });
+      connectorRegistry.getConnector.mockReturnValue(connector);
 
       const result = await logHandler.createMessageLog({
         platform: 'testCRM',
-        userId: 'test-user-id',
-        incomingData: {
-          logInfo: {
-            rcAccessToken: 'rc-access-token',
-            messages: [{
-              id: 'msg-attachments',
-              type: 'SMS',
-              subject: 'Attachments',
-              direction: 'Outbound',
-              creationTime: new Date(),
-              attachments: [
-                { type: 'AudioRecording', link: 'https://media.example.com/audio.mp3' },
-                { type: 'RenderedDocument', link: 'https://media.example.com/fax.pdf', uri: 'https://platform.example.com/fax.pdf' },
-                { type: 'MmsAttachment', contentType: 'image/png', uri: 'https://platform.example.com/image.png' },
-                { type: 'MmsAttachment', contentType: 'video/mp4', uri: 'https://platform.example.com/video.mp4' }
-              ]
-            }],
-            correspondents: [{ phoneNumber: '+15550000001' }],
-            conversationId: 'conv-attachments',
-            conversationLogId: 'conv-log-attachments'
-          },
-          contactId: 'contact-attachments',
-          contactName: 'Attachment Contact',
-          additionalSubmission: {}
-        }
+        userId: user.id,
+        incomingData: buildMessageIncomingData(oldestFirstMessageCase.incomingOverrides),
       });
 
-      expect(result.successful).toBe(true);
-      expect(mockConnector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
-        recordingLink: 'https://media.example.com/audio.mp3',
-        faxDocLink: 'https://media.example.com/fax.pdf',
-        faxDownloadLink: 'https://platform.example.com/fax.pdf?access_token=rc-access-token',
-        imageLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=https%3A%2F%2Fplatform.example.com%2Fimage.png',
-        imageDownloadLink: 'https://platform.example.com/image.png?access_token=rc-access-token',
-        imageContentType: 'image/png',
-        videoLink: 'https://ringcentral.github.io/ringcentral-media-reader/?media=https%3A%2F%2Fplatform.example.com%2Fvideo.mp4'
+      expect(result.logIds).toEqual(oldestFirstMessageCase.expectedProviderOrder);
+      expect(connector.createMessageLog).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.objectContaining({ id: oldestFirstMessageCase.expectedProviderOrder[0] }),
       }));
+      expect(connector.updateMessageLog.mock.calls.map(([params]) => params.message.id)).toEqual(
+        oldestFirstMessageCase.expectedProviderOrder.slice(1),
+      );
     });
   });
 

@@ -21,21 +21,15 @@ const { UserModel } = require('../../models/userModel');
 const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { Connector } = require('../../models/dynamo/connectorSchema');
+const {
+  appointmentUser: baseUser,
+  appointmentCreatePayload: baseCreatePayload,
+  appointmentListRange,
+  appointmentApiKeyOperationCases,
+  invalidAppointmentConnectorResultCases,
+} = require('../data/appointmentCases');
 
 describe('Appointment Handler', () => {
-  const baseUser = {
-    id: 'user-1',
-    hostname: 'crm.example.com',
-    accessToken: 'access-token',
-    platformAdditionalInfo: {}
-  };
-  const baseCreatePayload = {
-    title: 'Meeting',
-    summary: 'Discuss the project',
-    startTimeUtc: '2026-07-20T19:00:00.000Z',
-    durationMinutes: 30
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -69,19 +63,26 @@ describe('Appointment Handler', () => {
     expect(result.returnMessage.message).toBe('Database operation failed');
   });
 
-  test('returns warning when user is missing or session has no token', async () => {
-    UserModel.findByPk.mockResolvedValueOnce(null);
+  test.each<[any]>(appointmentApiKeyOperationCases as [any][])(
+    '$label returns a warning when the user is missing',
+    async ({ handlerName, handlerArgs }) => {
+      UserModel.findByPk.mockResolvedValueOnce(null);
 
-    await expect(appointmentHandler.listAppointments({
-      platform: 'testCRM',
-      userId: 'missing-user'
-    })).resolves.toMatchObject({
-      successful: false,
-      returnMessage: {
-        message: 'User not found'
-      }
-    });
+      await expect(appointmentHandler[handlerName]({
+        platform: 'testCRM',
+        userId: 'missing-user',
+        ...handlerArgs,
+      })).resolves.toMatchObject({
+        successful: false,
+        returnMessage: {
+          message: 'User not found',
+        },
+      });
+      expect(connectorRegistry.getConnector).not.toHaveBeenCalled();
+    },
+  );
 
+  test('returns a warning when the user session has no token', async () => {
     UserModel.findByPk.mockResolvedValueOnce({ id: 'user-1' });
     const noTokenResult = await appointmentHandler.createAppointment({
       platform: 'testCRM',
@@ -91,6 +92,28 @@ describe('Appointment Handler', () => {
 
     expect(noTokenResult.successful).toBe(false);
     expect(noTokenResult.returnMessage.message).toBe('User not found');
+  });
+
+  test('forwards an empty auth header for connector-managed auth types', async () => {
+    const connector = mockApiKeyConnector({
+      getAuthType: jest.fn().mockResolvedValue('managed'),
+    });
+    UserModel.findByPk.mockResolvedValue(baseUser);
+
+    const result = await appointmentHandler.listAppointments({
+      platform: 'testCRM',
+      userId: 'user-1',
+      range: appointmentListRange,
+    });
+
+    expect(result.successful).toBe(true);
+    expect(connector.getBasicAuth).not.toHaveBeenCalled();
+    expect(connector.listAppointments).toHaveBeenCalledWith({
+      user: baseUser,
+      authHeader: '',
+      range: appointmentListRange,
+      proxyConfig: null,
+    });
   });
 
   test('listAppointments resolves oauth auth with proxy config and returns connector result', async () => {
@@ -124,7 +147,7 @@ describe('Appointment Handler', () => {
     const result = await appointmentHandler.listAppointments({
       platform: 'testCRM',
       userId: 'user-1',
-      range: { startDate: '2026-07-01', endDate: '2026-07-31' }
+      range: appointmentListRange
     });
 
     expect(connector.getOauthInfo).toHaveBeenCalledWith({
@@ -136,7 +159,7 @@ describe('Appointment Handler', () => {
     expect(connector.listAppointments).toHaveBeenCalledWith({
       user: refreshedUser,
       authHeader: 'Bearer fresh-token',
-      range: { startDate: '2026-07-01', endDate: '2026-07-31' },
+      range: appointmentListRange,
       proxyConfig: { id: 'proxy-1' }
     });
     expect(result).toMatchObject({
@@ -169,96 +192,56 @@ describe('Appointment Handler', () => {
     });
   });
 
-  test('apiKey auth is used by create, update, refresh, confirm, and cancel operations', async () => {
-    UserModel.findByPk.mockResolvedValue(baseUser);
-    const connector = mockApiKeyConnector();
+  test.each<[any]>(appointmentApiKeyOperationCases as [any][])(
+    '$label uses API-key auth and preserves the connector result',
+    async ({ handlerName, connectorMethod, handlerArgs, connectorArgs, connectorResult, expectedResult }) => {
+      UserModel.findByPk.mockResolvedValue(baseUser);
+      const connector = mockApiKeyConnector({
+        [connectorMethod]: jest.fn().mockResolvedValue(connectorResult),
+      });
 
-    const createResult = await appointmentHandler.createAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      payload: { ...baseCreatePayload, title: 'Create' }
-    });
-    const updateResult = await appointmentHandler.updateAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      appointmentId: 'appt-2',
-      patchBody: { title: 'Update' }
-    });
-    const refreshResult = await appointmentHandler.refreshAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      appointmentId: 'appt-3'
-    });
-    const confirmResult = await appointmentHandler.confirmAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      appointmentId: 'appt-4'
-    });
-    const cancelResult = await appointmentHandler.cancelAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      appointmentId: 'appt-5'
-    });
+      const result = await appointmentHandler[handlerName]({
+        platform: 'testCRM',
+        userId: 'user-1',
+        ...handlerArgs,
+      });
 
-    expect(createResult.appointmentId).toBe('appt-2');
-    expect(updateResult.appointment).toEqual({ id: 'appt-3' });
-    expect(refreshResult.appointment).toEqual({ id: 'appt-4' });
-    expect(confirmResult.appointment).toEqual({ id: 'appt-5' });
-    expect(cancelResult.appointment).toEqual({ id: 'appt-6' });
-    expect(connector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'access-token' });
-    expect(connector.createAppointment).toHaveBeenCalledWith({
-      user: baseUser,
-      authHeader: 'Basic encoded-key',
-      payload: { ...baseCreatePayload, title: 'Create' },
-      proxyConfig: null
-    });
-    expect(connector.updateAppointment).toHaveBeenCalledWith({
-      user: baseUser,
-      authHeader: 'Basic encoded-key',
-      appointmentId: 'appt-2',
-      patchBody: { title: 'Update' },
-      proxyConfig: null
-    });
-    expect(connector.refreshAppointment).toHaveBeenCalledWith({
-      user: baseUser,
-      authHeader: 'Basic encoded-key',
-      appointmentId: 'appt-3',
-      proxyConfig: null
-    });
-    expect(connector.confirmAppointment).toHaveBeenCalledWith({
-      user: baseUser,
-      authHeader: 'Basic encoded-key',
-      appointmentId: 'appt-4',
-      proxyConfig: null
-    });
-    expect(connector.cancelAppointment).toHaveBeenCalledWith({
-      user: baseUser,
-      authHeader: 'Basic encoded-key',
-      appointmentId: 'appt-5',
-      proxyConfig: null
-    });
-  });
+      expect(result).toMatchObject({
+        successful: true,
+        ...expectedResult,
+      });
+      expect(connector.getBasicAuth).toHaveBeenCalledWith({ apiKey: 'access-token' });
+      expect(connector[connectorMethod]).toHaveBeenCalledWith({
+        user: baseUser,
+        authHeader: 'Basic encoded-key',
+        ...connectorArgs,
+        proxyConfig: null,
+      });
+    },
+  );
 
-  test('operation errors are mapped through API error handler', async () => {
-    UserModel.findByPk.mockResolvedValue(baseUser);
-    mockApiKeyConnector({
-      updateAppointment: jest.fn().mockRejectedValue({
-        response: {
-          status: 429
-        }
-      })
-    });
+  test.each<[any]>(appointmentApiKeyOperationCases as [any][])(
+    '$label maps connector errors through the API error handler',
+    async ({ handlerName, connectorMethod, handlerArgs }) => {
+      UserModel.findByPk.mockResolvedValue(baseUser);
+      mockApiKeyConnector({
+        [connectorMethod]: jest.fn().mockRejectedValue({
+          response: {
+            status: 429
+          }
+        })
+      });
 
-    const result = await appointmentHandler.updateAppointment({
-      platform: 'testCRM',
-      userId: 'user-1',
-      appointmentId: 'appt-2',
-      patchBody: { title: 'Update' }
-    });
+      const result = await appointmentHandler[handlerName]({
+        platform: 'testCRM',
+        userId: 'user-1',
+        ...handlerArgs,
+      });
 
-    expect(result.successful).toBe(false);
-    expect(result.returnMessage.messageType).toBe('warning');
-  });
+      expect(result.successful).toBe(false);
+      expect(result.returnMessage.messageType).toBe('warning');
+    },
+  );
 
   test('preserves a literal false connector failure envelope', async () => {
     UserModel.findByPk.mockResolvedValue(baseUser);
@@ -307,24 +290,24 @@ describe('Appointment Handler', () => {
     });
   });
 
-  test('rejects a truthy string successful envelope', async () => {
-    UserModel.findByPk.mockResolvedValue(baseUser);
-    mockApiKeyConnector({
-      listAppointments: jest.fn().mockResolvedValue({
-        successful: 'false',
-        appointments: [{ id: 'appt-invalid' }]
-      })
-    });
+  test.each<[any]>(invalidAppointmentConnectorResultCases as [any][])(
+    'rejects $label from the connector',
+    async ({ connectorResult }) => {
+      UserModel.findByPk.mockResolvedValue(baseUser);
+      mockApiKeyConnector({
+        listAppointments: jest.fn().mockResolvedValue(connectorResult),
+      });
 
-    const result = await appointmentHandler.listAppointments({
-      platform: 'testCRM',
-      userId: 'user-1'
-    });
+      const result = await appointmentHandler.listAppointments({
+        platform: 'testCRM',
+        userId: 'user-1'
+      });
 
-    expect(result.successful).toBe(false);
-    expect(result.appointments).toBeUndefined();
-    expect(result.returnMessage.messageType).toBe('warning');
-  });
+      expect(result.successful).toBe(false);
+      expect(result.appointments).toBeUndefined();
+      expect(result.returnMessage.messageType).toBe('warning');
+    },
+  );
 });
 
 export {};

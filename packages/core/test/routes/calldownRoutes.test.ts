@@ -81,6 +81,25 @@ describe('Calldown Routes', () => {
     expect(calldown.schedule).not.toHaveBeenCalled();
   });
 
+  test('POST /calldown maps scheduling errors to a 400 response', async () => {
+    calldown.schedule.mockRejectedValue(new Error('Database unavailable'));
+
+    const response = await request(app)
+      .post('/calldown')
+      .query({ jwtToken: 'crm-jwt' })
+      .send({ contactId: 'contact-1' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Database unavailable',
+    });
+    expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({
+      eventName: 'Schedule call down',
+      interfaceName: 'scheduleCallDown',
+      success: false,
+    }));
+  });
+
   test('GET /calldown returns items from handler with status filter', async () => {
     calldown.list.mockResolvedValue({
       items: [

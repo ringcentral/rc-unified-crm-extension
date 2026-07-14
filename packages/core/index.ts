@@ -2484,12 +2484,18 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
-                if (extraDataTracking) {
-                    extraData = extraDataTracking;
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking, isRevokeUserSession } = await logCore.updateCallLog({ jwtToken, platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
+                if (isRevokeUserSession) {
+                    res.status(401).send(wrapDebugResponse(tracer, { successful, returnMessage }));
+                    success = false;
                 }
-                res.status(200).send(wrapDebugResponse(tracer, { successful, logId, updatedNote, returnMessage }));
-                success = true;
+                else {
+                    if (extraDataTracking) {
+                        extraData = extraDataTracking;
+                    }
+                    res.status(200).send(wrapDebugResponse(tracer, { successful, logId, updatedNote, returnMessage }));
+                    success = true;
+                }
             }
             else {
                 tracer?.trace('updateCallLog:noToken', {});
@@ -2683,14 +2689,9 @@ function createCoreRouter() {
                 res.status(400).send(wrapDebugResponse(tracer, 'Please go to Settings and authorize CRM platform'));
                 return;
             }
-            try {
-                const { id } = await calldown.schedule({ jwtToken, rcAccessToken: getRcAccessTokenFromRequest(req), body: req.body });
-                success = true;
-                res.status(200).send(wrapDebugResponse(tracer, { successful: true, id }));
-            }
-            catch (e) {
-                return handleDatabaseError(e, 'Error scheduling call down');
-            }
+            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: getRcAccessTokenFromRequest(req), body: req.body });
+            success = true;
+            res.status(200).send(wrapDebugResponse(tracer, { successful: true, id }));
         } catch (e) {
             logger.error('Schedule call down failed', { platform: platformName, stack: e.stack });
             statusCode = e.response?.status ?? 'unknown';

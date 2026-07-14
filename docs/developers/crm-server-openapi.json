@@ -2333,6 +2333,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedSession"
           }
         },
         "description": "Updates an existing CRM call activity using the local mapping found by sessionId and extension identity. hashedExtensionId is preferred when present; rcExtensionId is hashed locally for server-side logging; extensionNumber remains a legacy fallback."

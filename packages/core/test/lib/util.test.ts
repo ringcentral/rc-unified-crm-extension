@@ -3,6 +3,14 @@ jest.mock('country-state-city');
 
 const tzlookup = require('tz-lookup');
 const { State } = require('country-state-city');
+const crypto = require('crypto');
+const {
+  hashSerializationCases,
+  durationFormattingCases,
+  nonNumericDurationInputs,
+  mostRecentDateCases,
+  mediaLinkInputs,
+} = require('../data/utilCases');
 const {
   getTimeZone,
   getHashValue,
@@ -184,6 +192,15 @@ describe('Utility Functions', () => {
       expect(hash).toHaveLength(64);
       expect(hash).toMatch(/^[0-9a-f]{64}$/);
     });
+
+    test.each<[any]>(hashSerializationCases as [any][])('hashes the exact serialization of $label', ({ value, secret }) => {
+      const expected = crypto
+        .createHash('sha256')
+        .update(`${value}:${secret}`)
+        .digest('hex');
+
+      expect(getHashValue(value, secret)).toBe(expected);
+    });
   });
 
   describe('secondsToHoursMinutesSeconds', () => {
@@ -260,6 +277,14 @@ describe('Utility Functions', () => {
       // 90.5 seconds = 1 minute + remainder; decimal seconds are preserved
       expect(secondsToHoursMinutesSeconds(90.5)).toBe('1 minute, 30.5 seconds');
     });
+
+    test.each<[any]>(durationFormattingCases as [any][])('formats $seconds seconds as $expected', ({ seconds, expected }) => {
+      expect(secondsToHoursMinutesSeconds(seconds)).toBe(expected);
+    });
+
+    test.each<[any]>(nonNumericDurationInputs as [any][])('returns non-numeric input %p unchanged', (seconds) => {
+      expect(secondsToHoursMinutesSeconds(seconds)).toBe(seconds);
+    });
   });
 
   describe('getMostRecentDate', () => {
@@ -307,6 +332,10 @@ describe('Utility Functions', () => {
       const sameDate = new Date('2024-05-01').getTime();
       expect(getMostRecentDate({ allDateValues: [sameDate, sameDate, sameDate] })).toBe(sameDate);
     });
+
+    test.each<[any]>(mostRecentDateCases as [any][])('selects the latest timestamp for $label', ({ values, expected }) => {
+      expect(getMostRecentDate({ allDateValues: values })).toBe(expected);
+    });
   });
 
   describe('getMediaReaderLinkByPlatformMediaLink', () => {
@@ -352,6 +381,12 @@ describe('Utility Functions', () => {
       // Verify the URL is properly encoded
       expect(result).not.toContain('&type=');
       expect(result).toContain('%26type%3D');
+    });
+
+    test.each<[any]>(mediaLinkInputs as [any][])('encodes the complete media-link value %p as one query parameter', (platformLink) => {
+      expect(getMediaReaderLinkByPlatformMediaLink(platformLink)).toBe(
+        `https://ringcentral.github.io/ringcentral-media-reader/?media=${encodeURIComponent(platformLink)}`,
+      );
     });
   });
 

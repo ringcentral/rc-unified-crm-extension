@@ -10,6 +10,20 @@ const createAppointment = require('../../../mcp/tools/createAppointment');
 const updateAppointment = require('../../../mcp/tools/updateAppointment');
 const confirmAppointment = require('../../../mcp/tools/confirmAppointment');
 const cancelAppointment = require('../../../mcp/tools/cancelAppointment');
+const {
+  appointmentListFilterCases,
+  appointmentActionCases,
+} = require('../data/appointmentToolCases');
+
+const appointmentToolsByName: Record<string, any> = {
+  confirmAppointment,
+  cancelAppointment,
+};
+
+const appointmentHandlersByName: Record<string, any> = {
+  confirmAppointment: appointmentCore.confirmAppointment,
+  cancelAppointment: appointmentCore.cancelAppointment,
+};
 
 describe('MCP appointment tools', () => {
   const decodedToken = {
@@ -83,40 +97,38 @@ describe('MCP appointment tools', () => {
     });
   });
 
-  test.each([
-    ['today'],
-    ['past'],
-    ['all'],
-    ['unknown-filter']
-  ])('listAppointments resolves %s date ranges', async (filter) => {
-    appointmentCore.listAppointments.mockResolvedValueOnce({
-      successful: true,
-      appointments: undefined
-    });
+  test.each<[any]>(appointmentListFilterCases as [any][])(
+    'listAppointments resolves the $label date range',
+    async ({ filter }) => {
+      appointmentCore.listAppointments.mockResolvedValueOnce({
+        successful: true,
+        appointments: undefined
+      });
 
-    const result = await listAppointments.execute({
-      jwtToken: 'jwt-token',
-      filter
-    });
+      const result = await listAppointments.execute({
+        jwtToken: 'jwt-token',
+        filter
+      });
 
-    expect(result).toEqual({
-      success: true,
-      data: {
-        filter,
-        range: expect.objectContaining({
-          startDate: expect.any(String),
-          endDate: expect.any(String)
-        }),
-        totalCount: 0,
-        appointments: []
-      }
-    });
-    expect(appointmentCore.listAppointments).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        mineOnly: false
-      })
-    );
-  });
+      expect(result).toEqual({
+        success: true,
+        data: {
+          filter,
+          range: expect.objectContaining({
+            startDate: expect.any(String),
+            endDate: expect.any(String)
+          }),
+          totalCount: 0,
+          appointments: []
+        }
+      });
+      expect(appointmentCore.listAppointments).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mineOnly: false
+        })
+      );
+    },
+  );
 
   test('listAppointments defaults to all and fills missing custom bounds', async () => {
     appointmentCore.listAppointments
@@ -525,120 +537,124 @@ describe('MCP appointment tools', () => {
     });
   });
 
-  test.each([
-    ['confirmAppointment', confirmAppointment, appointmentCore.confirmAppointment],
-    ['cancelAppointment', cancelAppointment, appointmentCore.cancelAppointment]
-  ])('%s validates decoded JWT identity and custom messages', async (_name, tool, handlerFn) => {
-    jwt.decodeJwt.mockReturnValueOnce(null);
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: 'Invalid JWT token'
-    });
+  test.each<[any]>(appointmentActionCases as [any][])(
+    '$label validates decoded JWT identity and custom messages',
+    async ({ toolName, handlerName }) => {
+      const tool = appointmentToolsByName[toolName];
+      const handlerFn = appointmentHandlersByName[handlerName];
+      jwt.decodeJwt.mockReturnValueOnce(null);
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Invalid JWT token'
+      });
 
-    jwt.decodeJwt.mockReturnValueOnce({ platform: 'testCRM' });
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: 'Invalid JWT token: userId not found'
-    });
+      jwt.decodeJwt.mockReturnValueOnce({ platform: 'testCRM' });
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Invalid JWT token: userId not found'
+      });
 
-    handlerFn.mockResolvedValueOnce({
-      successful: true,
-      appointment: { id: 'appt-1' },
-      returnMessage: { message: 'Custom success' }
-    });
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: true,
-      data: expect.objectContaining({
-        message: 'Custom success'
-      })
-    });
-
-    handlerFn.mockResolvedValueOnce({
-      successful: false,
-      returnMessage: { message: 'Custom failure' }
-    });
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: 'Custom failure'
-    });
-  });
-
-  test.each([
-    ['confirmAppointment', confirmAppointment, 'confirmAppointment', appointmentCore.confirmAppointment, 'Appointment confirmed successfully', 'Failed to confirm appointment'],
-    ['cancelAppointment', cancelAppointment, 'cancelAppointment', appointmentCore.cancelAppointment, 'Appointment cancelled successfully', 'Failed to cancel appointment']
-  ])('%s validates, succeeds, fails, and checks capability', async (name, tool, capabilityName, handlerFn, defaultMessage, defaultError) => {
-    await expect(tool.execute({})).resolves.toMatchObject({
-      success: false,
-      error: 'Please go to Settings and authorize CRM platform'
-    });
-    await expect(tool.execute({ jwtToken: 'jwt-token' })).resolves.toMatchObject({
-      success: false,
-      error: 'appointmentId is required'
-    });
-
-    handlerFn.mockResolvedValueOnce({
-      successful: true,
-      appointment: { id: 'appt-1' },
-      returnMessage: {}
-    });
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toEqual({
-      success: true,
-      data: {
+      handlerFn.mockResolvedValueOnce({
+        successful: true,
         appointment: { id: 'appt-1' },
-        message: defaultMessage
-      }
-    });
-    expect(handlerFn).toHaveBeenCalledWith({
-      platform: 'testCRM',
-      userId: 'user-123',
-      appointmentId: 'appt-1'
-    });
+        returnMessage: { message: 'Custom success' }
+      });
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: true,
+        data: expect.objectContaining({
+          message: 'Custom success'
+        })
+      });
 
-    handlerFn.mockResolvedValueOnce({
-      successful: false,
-      returnMessage: {}
-    });
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: defaultError
-    });
+      handlerFn.mockResolvedValueOnce({
+        successful: false,
+        returnMessage: { message: 'Custom failure' }
+      });
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Custom failure'
+      });
+    },
+  );
 
-    connectorRegistry.getConnector.mockReturnValueOnce(null);
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: 'Platform connector not found for: testCRM'
-    });
+  test.each<[any]>(appointmentActionCases as [any][])(
+    '$label validates, succeeds, fails, and checks capability',
+    async ({ toolName, handlerName, capabilityName, defaultMessage, defaultError }) => {
+      const tool = appointmentToolsByName[toolName];
+      const handlerFn = appointmentHandlersByName[handlerName];
+      await expect(tool.execute({})).resolves.toMatchObject({
+        success: false,
+        error: 'Please go to Settings and authorize CRM platform'
+      });
+      await expect(tool.execute({ jwtToken: 'jwt-token' })).resolves.toMatchObject({
+        success: false,
+        error: 'appointmentId is required'
+      });
 
-    connectorRegistry.getConnector.mockReturnValueOnce({});
-    await expect(tool.execute({
-      jwtToken: 'jwt-token',
-      appointmentId: 'appt-1'
-    })).resolves.toMatchObject({
-      success: false,
-      error: `${capabilityName} is not implemented for platform: testCRM`
-    });
-  });
+      handlerFn.mockResolvedValueOnce({
+        successful: true,
+        appointment: { id: 'appt-1' },
+        returnMessage: {}
+      });
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toEqual({
+        success: true,
+        data: {
+          appointment: { id: 'appt-1' },
+          message: defaultMessage
+        }
+      });
+      expect(handlerFn).toHaveBeenCalledWith({
+        platform: 'testCRM',
+        userId: 'user-123',
+        appointmentId: 'appt-1'
+      });
+
+      handlerFn.mockResolvedValueOnce({
+        successful: false,
+        returnMessage: {}
+      });
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: defaultError
+      });
+
+      connectorRegistry.getConnector.mockReturnValueOnce(null);
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Platform connector not found for: testCRM'
+      });
+
+      connectorRegistry.getConnector.mockReturnValueOnce({});
+      await expect(tool.execute({
+        jwtToken: 'jwt-token',
+        appointmentId: 'appt-1'
+      })).resolves.toMatchObject({
+        success: false,
+        error: `${capabilityName} is not implemented for platform: testCRM`
+      });
+    },
+  );
 });
 
 export {};

@@ -32,6 +32,11 @@ const { UserModel } = require('../../models/userModel');
 const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { Connector } = require('../../models/dynamo/connectorSchema');
+const {
+  scalarSettingsMergeCases,
+  pluginSettingsMergeCases,
+  adminSettingsFallbackCases,
+} = require('../data/settingsCases');
 
 describe('User Handler', () => {
   beforeEach(() => {
@@ -196,102 +201,60 @@ describe('User Handler', () => {
     expect(result.userSettings.language.value).toBe('en');
   });
 
-  test('getUserSettings merges admin defaults, user overrides, removed keys, and plugin config rules', async () => {
-    AdminConfigModel.findByPk.mockResolvedValueOnce({
-      userSettings: {
-        removedSetting: { isRemoved: true, value: 'hidden' },
-        adminOnly: { value: 'admin-only', customizable: false },
-        userEditable: { value: 'admin-default', customizable: true },
-        plugin_sample: {
+  describe('getUserSettings', () => {
+    test.each(scalarSettingsMergeCases)('$label', async (...args: any[]) => {
+      const { adminSettings, userSettings, expectedSettings } = args[0];
+      AdminConfigModel.findByPk.mockResolvedValueOnce({
+        userSettings: adminSettings,
+      });
+
+      const result = await userHandler.getUserSettings({
+        user: { userSettings },
+        rcAccountId: 'hashed-account',
+      });
+
+      expect(result).toEqual(expectedSettings);
+    });
+
+    test.each(pluginSettingsMergeCases)('$label', async (...args: any[]) => {
+      const { adminSettings, userSettings, expectedConfig } = args[0];
+      AdminConfigModel.findByPk.mockResolvedValueOnce({
+        userSettings: adminSettings,
+      });
+
+      const result = await userHandler.getUserSettings({
+        user: { userSettings },
+        rcAccountId: 'hashed-account',
+      });
+
+      if (expectedConfig === null) {
+        expect(result.plugin_service).toBeUndefined();
+      } else {
+        expect(result.plugin_service).toMatchObject({
           customizable: true,
           value: {
-            config: {
-              locked: { value: 'admin-locked', customizable: false },
-              fillsEmpty: { value: 'admin-fill', customizable: true },
-              staysUserEditable: { value: 'admin-stay', customizable: true }
-            }
-          }
-        },
-        plugin_empty: {
-          customizable: true,
-          value: {
-            config: {
-              adminProvided: { value: 'admin-provided', customizable: true }
-            }
-          }
-        },
-        plugin_deleted: {
-          customizable: true,
-          value: {
-            config: null
-          }
-        }
+            config: expectedConfig,
+          },
+        });
       }
     });
 
-    const result = await userHandler.getUserSettings({
-      user: {
-        userSettings: {
-          removedSetting: { value: 'user-hidden' },
-          userEditable: { value: 'user-value', defaultValue: 'user-default', options: ['a'] },
-          userOnly: { value: 'user-only' },
-          plugin_sample: {
-            value: {
-              config: {
-                locked: { value: 'user-locked', customizable: true },
-                fillsEmpty: { value: '', customizable: true },
-                staysUserEditable: { value: 'user-stay', customizable: true }
-              }
-            }
-          },
-          plugin_empty: {
-            value: {
-              config: {}
-            }
-          },
-          plugin_deleted: {
-            value: {
-              config: {}
-            }
-          }
-        }
-      },
-      rcAccountId: 'hashed-account'
-    });
+    test.each(adminSettingsFallbackCases)('$label', async (...args: any[]) => {
+      const { lookupResult, userSettings } = args[0];
+      if (lookupResult === 'reject') {
+        AdminConfigModel.findByPk.mockRejectedValueOnce(
+          new Error('admin settings unavailable'),
+        );
+      } else {
+        AdminConfigModel.findByPk.mockResolvedValueOnce(null);
+      }
 
-    expect(result.removedSetting).toBeUndefined();
-    expect(result.adminOnly.value).toBe('admin-only');
-    expect(result.userOnly.value).toBe('user-only');
-    expect(result.userEditable).toEqual({
-      customizable: true,
-      value: 'user-value',
-      defaultValue: 'user-default',
-      options: ['a']
-    });
-    expect(result.plugin_sample.value.config.locked.value).toBe('admin-locked');
-    expect(result.plugin_sample.value.config.fillsEmpty.value).toBe('admin-fill');
-    expect(result.plugin_sample.value.config.staysUserEditable).toMatchObject({
-      value: 'user-stay',
-      customizable: true
-    });
-    expect(result.plugin_empty.value.config.adminProvided.value).toBe('admin-provided');
-    expect(result.plugin_deleted).toBeUndefined();
-  });
+      const result = await userHandler.getUserSettings({
+        user: { userSettings },
+        rcAccountId: 'hashed-account',
+      });
 
-  test('getUserSettings falls back to user settings when admin lookup fails', async () => {
-    AdminConfigModel.findByPk.mockRejectedValueOnce(new Error('admin settings unavailable'));
-
-    const result = await userHandler.getUserSettings({
-      user: {
-        userSettings: {
-          localOnly: { value: 'local' }
-        }
-      },
-      rcAccountId: 'hashed-account'
-    });
-
-    expect(result).toEqual({
-      localOnly: { value: 'local' }
+      expect(result).toEqual(userSettings);
     });
   });
 

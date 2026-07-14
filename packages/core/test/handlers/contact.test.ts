@@ -25,6 +25,14 @@ const connectorRegistry = require('../../connector/registry');
 const oauth = require('../../lib/oauth');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { sequelize } = require('../../models/sequelize');
+const {
+  phoneContactMatchCases,
+  nameContactMatchCases,
+} = require('../data/contactMatchCases');
+const {
+  createContactOAuthRefreshFailureCase,
+  createContactProxyForwardingCases,
+} = require('../data/contactCreationCases');
 
 describe('Contact Handler', () => {
   beforeAll(async () => {
@@ -84,6 +92,64 @@ describe('Contact Handler', () => {
       expect(result.successful).toBe(false);
       expect(result.returnMessage.message).toBe('Contact not found');
     });
+
+    test.each<[any]>(phoneContactMatchCases as [any][])(
+      'should handle $label by phone and apply the expected cache policy',
+      async ({
+        phoneNumber,
+        matchedContactInfo,
+        connectorSuccessful,
+        expectedRealContactCount,
+        shouldCache,
+      }) => {
+        await UserModel.create(mockUser);
+
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          findContact: jest.fn().mockResolvedValue({
+            successful: connectorSuccessful,
+            matchedContactInfo,
+          }),
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+        const result = await contactHandler.findContact({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          phoneNumber,
+        });
+
+        expect(result.successful).toBe(connectorSuccessful);
+        expect(result.contact).toEqual(matchedContactInfo);
+        const realContacts = Array.isArray(result.contact)
+          ? result.contact.filter(contact => !contact.isNewContact)
+          : [];
+        expect(realContacts).toHaveLength(expectedRealContactCount);
+
+        if (expectedRealContactCount === 0) {
+          expect(result.returnMessage).toMatchObject({
+            message: 'Contact not found',
+            messageType: 'warning',
+          });
+        }
+
+        const cachedData = await AccountDataModel.findOne({
+          where: {
+            rcAccountId: mockUser.rcAccountId,
+            platformName: mockUser.platform,
+            dataKey: `contact-${phoneNumber}`,
+          },
+        });
+        if (shouldCache) {
+          expect(cachedData).not.toBeNull();
+          expect(cachedData.data).toEqual(matchedContactInfo);
+        }
+        else {
+          expect(cachedData).toBeNull();
+        }
+      },
+    );
 
     test('should return cached contact when available', async () => {
       // Arrange
@@ -767,6 +833,79 @@ describe('Contact Handler', () => {
       expect(oauth.checkAndRefreshAccessToken).toHaveBeenCalled();
     });
 
+    test('should revoke contact creation when OAuth refresh fails', async () => {
+      const testCase = createContactOAuthRefreshFailureCase;
+      await UserModel.create(testCase.user);
+
+      const mockConnector = {
+        getAuthType: jest.fn().mockResolvedValue('oauth'),
+        getOauthInfo: jest.fn().mockResolvedValue(testCase.oauthInfo),
+        createContact: jest.fn(),
+      };
+      connectorRegistry.getConnector.mockReturnValue(mockConnector);
+      const mockOAuthApp = { id: 'create-contact-oauth-app' };
+      oauth.getOAuthApp.mockReturnValue(mockOAuthApp);
+      oauth.checkAndRefreshAccessToken.mockResolvedValue(null);
+
+      const result = await contactHandler.createContact(testCase.input);
+
+      expect(result).toMatchObject({
+        successful: false,
+        returnMessage: testCase.expectedReturnMessage,
+        isRevokeUserSession: true,
+      });
+      expect(mockConnector.getOauthInfo).toHaveBeenCalledWith({
+        tokenUrl: testCase.user.platformAdditionalInfo.tokenUrl,
+        hostname: testCase.user.hostname,
+        proxyId: undefined,
+        proxyConfig: null,
+      });
+      expect(oauth.checkAndRefreshAccessToken).toHaveBeenCalledWith(mockOAuthApp, expect.objectContaining({
+        id: testCase.user.id,
+        accessToken: testCase.user.accessToken,
+      }));
+      expect(mockConnector.createContact).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(createContactProxyForwardingCases as [any][])(
+      'should preserve proxy configuration and $label during contact creation',
+      async ({ user, input, proxyConfig, basicAuth, providerResult }) => {
+        await UserModel.create(user);
+        Connector.getProxyConfig.mockResolvedValue(proxyConfig);
+
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue(basicAuth),
+          createContact: jest.fn().mockResolvedValue(providerResult),
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+        const result = await contactHandler.createContact(input);
+
+        expect(Connector.getProxyConfig).toHaveBeenCalledWith(user.platformAdditionalInfo.proxyId);
+        expect(mockConnector.getAuthType).toHaveBeenCalledWith({
+          proxyId: user.platformAdditionalInfo.proxyId,
+          proxyConfig,
+        });
+        expect(mockConnector.getBasicAuth).toHaveBeenCalledWith({ apiKey: user.accessToken });
+        expect(mockConnector.createContact).toHaveBeenCalledWith({
+          user: expect.objectContaining({ id: user.id }),
+          authHeader: `Basic ${basicAuth}`,
+          phoneNumber: input.phoneNumber,
+          newContactName: input.newContactName,
+          newContactType: input.newContactType,
+          additionalSubmission: input.additionalSubmission,
+          proxyConfig,
+        });
+        expect(result).toEqual({
+          successful: true,
+          returnMessage: providerResult.returnMessage,
+          contact: providerResult.contactInfo,
+          extraDataTracking: providerResult.extraDataTracking,
+        });
+      },
+    );
+
     test('should return unsuccessful when platform returns null contactInfo', async () => {
       // Arrange
       await UserModel.create(mockUser);
@@ -894,6 +1033,42 @@ describe('Contact Handler', () => {
       expect(result.successful).toBe(false);
       expect(result.returnMessage.message).toContain('No contact found with name');
     });
+
+    test.each<[any]>(nameContactMatchCases as [any][])(
+      'should handle $label by name',
+      async ({ name, matchedContactInfo, connectorSuccessful, expectedRealContactCount }) => {
+        await UserModel.create(mockUser);
+
+        const mockConnector = {
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('base64-encoded'),
+          findContactWithName: jest.fn().mockResolvedValue({
+            successful: connectorSuccessful,
+            matchedContactInfo,
+          }),
+        };
+        connectorRegistry.getConnector.mockReturnValue(mockConnector);
+
+        const result = await contactHandler.findContactWithName({
+          platform: 'testCRM',
+          userId: 'test-user-id',
+          name,
+        });
+
+        expect(result.successful).toBe(connectorSuccessful);
+        expect(result.contact).toEqual(matchedContactInfo);
+        const realContacts = Array.isArray(result.contact)
+          ? result.contact.filter(contact => !contact.isNewContact)
+          : [];
+        expect(realContacts).toHaveLength(expectedRealContactCount);
+        if (expectedRealContactCount === 0) {
+          expect(result.returnMessage).toMatchObject({
+            messageType: 'warning',
+          });
+          expect(result.returnMessage.message).toContain('No contact found with name');
+        }
+      },
+    );
 
     test('should find contact by name with apiKey auth', async () => {
       // Arrange

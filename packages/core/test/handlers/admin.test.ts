@@ -30,6 +30,10 @@ const { RingCentral } = require('../../lib/ringcentral');
 const { Connector } = require('../../models/dynamo/connectorSchema');
 const { sequelize } = require('../../models/sequelize');
 const { getHashValue } = require('../../lib/util');
+const {
+  userAutoMatchRuleCases,
+  incrementalUserMappingPersistenceCases,
+} = require('../data/userMappingCases');
 
 describe('Admin Handler', () => {
   beforeAll(async () => {
@@ -520,6 +524,86 @@ describe('Admin Handler', () => {
       expect(result).toEqual([]);
     });
 
+    test.each<[any]>(userAutoMatchRuleCases as [any][])(
+      'should apply the isolated $label rule',
+      async ({ crmUser, rcExtensions, expectedExtensionIds }) => {
+        const hashedRcAccountId = `hashed-get-${crmUser.id}`;
+        await AdminConfigModel.create({
+          id: hashedRcAccountId,
+          userMappings: [],
+        });
+        const user = {
+          id: 'mapping-rule-user',
+          platform: 'testCRM',
+          accessToken: 'mapping-api-key',
+          platformAdditionalInfo: {},
+        };
+        connectorRegistry.getConnector.mockReturnValue({
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('encoded-mapping-key'),
+          getUserList: jest.fn().mockResolvedValue([crmUser]),
+        });
+
+        const result = await adminHandler.getUserMapping({
+          user,
+          hashedRcAccountId,
+          rcExtensionList: rcExtensions,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].rcUser.map(rcUser => rcUser.extensionId)).toEqual(expectedExtensionIds);
+        const persistedConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+        expect(persistedConfig.userMappings).toEqual(
+          expectedExtensionIds.length > 0
+            ? [{ crmUserId: String(crmUser.id), rcExtensionId: expectedExtensionIds }]
+            : [],
+        );
+      },
+    );
+
+    test.each<[any]>(incrementalUserMappingPersistenceCases as [any][])(
+      'should persist $label',
+      async ({
+        label,
+        initialMappings,
+        crmUsers,
+        rcExtensions,
+        expectedResultExtensionIdsByCrmUser,
+        expectedPersistedMappings,
+      }) => {
+        const hashedRcAccountId = `hashed-persistence-${label}`;
+        await AdminConfigModel.create({
+          id: hashedRcAccountId,
+          userMappings: initialMappings,
+        });
+        const user = {
+          id: 'mapping-persistence-user',
+          platform: 'testCRM',
+          accessToken: 'mapping-api-key',
+          platformAdditionalInfo: {},
+        };
+        connectorRegistry.getConnector.mockReturnValue({
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('encoded-mapping-key'),
+          getUserList: jest.fn().mockResolvedValue(crmUsers),
+        });
+
+        const result = await adminHandler.getUserMapping({
+          user,
+          hashedRcAccountId,
+          rcExtensionList: rcExtensions,
+        });
+
+        for (const mappingResult of result) {
+          expect(mappingResult.rcUser.map(rcUser => rcUser.extensionId)).toEqual(
+            expectedResultExtensionIdsByCrmUser[mappingResult.crmUser.id],
+          );
+        }
+        const persistedConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+        expect(persistedConfig.userMappings).toEqual(expectedPersistedMappings);
+      },
+    );
+
     test('should map CRM users to RC extensions', async () => {
       // Arrange
       await AdminConfigModel.create({
@@ -892,6 +976,39 @@ describe('Admin Handler', () => {
         rcExtensionList: []
       })).resolves.toEqual([]);
     });
+
+    test.each<[any]>(userAutoMatchRuleCases as [any][])(
+      'reinitializeUserMapping should apply the isolated $label rule',
+      async ({ crmUser, rcExtensions, expectedExtensionIds }) => {
+        const hashedRcAccountId = `hashed-reinitialize-${crmUser.id}`;
+        const user = {
+          id: 'reinitialize-rule-user',
+          platform: 'testCRM',
+          accessToken: 'mapping-api-key',
+          platformAdditionalInfo: {},
+        };
+        connectorRegistry.getConnector.mockReturnValue({
+          getAuthType: jest.fn().mockResolvedValue('apiKey'),
+          getBasicAuth: jest.fn().mockReturnValue('encoded-mapping-key'),
+          getUserList: jest.fn().mockResolvedValue([crmUser]),
+        });
+
+        const result = await adminHandler.reinitializeUserMapping({
+          user,
+          hashedRcAccountId,
+          rcExtensionList: rcExtensions,
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result[0].rcUser.map(rcUser => rcUser.extensionId)).toEqual(expectedExtensionIds);
+        const persistedConfig = await AdminConfigModel.findByPk(hashedRcAccountId);
+        expect(persistedConfig.userMappings).toEqual(
+          expectedExtensionIds.length > 0
+            ? [{ crmUserId: String(crmUser.id), rcExtensionId: expectedExtensionIds }]
+            : [],
+        );
+      },
+    );
 
     test('reinitializeUserMapping returns empty mappings when proxy config does not expose getUserList', async () => {
       const baseUser = {

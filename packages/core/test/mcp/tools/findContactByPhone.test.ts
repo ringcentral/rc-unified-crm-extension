@@ -2,6 +2,20 @@ const findContactByPhone = require('../../../mcp/tools/findContactByPhone');
 const jwt = require('../../../lib/jwt');
 const connectorRegistry = require('../../../connector/registry');
 const contactCore = require('../../../handlers/contact');
+const {
+  invalidContactAuthTokenCases,
+  invalidContactDecodedJwtCases,
+  invalidContactPhoneNumberCases,
+  normalizedAdapterRejectionCases,
+  invalidAdapterResponseCases,
+  successfulContactPayloadCases,
+  contactSearchFailureCases,
+} = require('../data/contactToolCases');
+const {
+  phoneSearchForwardingCases,
+  invalidPhoneSearchOptionCases,
+  invalidFindByPhoneCapabilityCases,
+} = require('../data/findContactByPhoneCases');
 
 // Mock dependencies
 jest.mock('../../../lib/jwt');
@@ -33,6 +47,20 @@ describe('MCP Tool: findContactByPhone', () => {
   });
 
   describe('execute', () => {
+    const arrangeAuthorizedSearch = (...resultArgs) => {
+      const searchResult = resultArgs.length === 0
+        ? { successful: true, contact: { id: 'contact-variation' } }
+        : resultArgs[0];
+      jwt.decodeJwt.mockReturnValue({
+        id: 'user-客户-42',
+        platform: 'crm-東京',
+      });
+      connectorRegistry.getConnector.mockReturnValue({
+        findContact: jest.fn(),
+      });
+      contactCore.findContact.mockResolvedValue(searchResult);
+    };
+
     test('should find contact by phone successfully', async () => {
       // Arrange
       const mockContact = {
@@ -290,6 +318,127 @@ describe('MCP Tool: findContactByPhone', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Database connection failed');
       expect(result.errorDetails).toBeDefined();
+    });
+
+    test.each<[any]>(phoneSearchForwardingCases as [any][])('forwards the exact $label and optional search controls', async ({
+      phoneNumber,
+      overridingFormat,
+      isExtension,
+      expectedFormat,
+      expectedExtension,
+    }) => {
+      arrangeAuthorizedSearch();
+
+      const result = await findContactByPhone.execute({
+        jwtToken: 'jwt-会话-🚀',
+        phoneNumber,
+        overridingFormat,
+        isExtension,
+      });
+
+      expect(result).toEqual({
+        success: true,
+        data: { id: 'contact-variation' },
+      });
+      expect(contactCore.findContact).toHaveBeenCalledWith({
+        platform: 'crm-東京',
+        userId: 'user-客户-42',
+        phoneNumber,
+        overridingFormat: expectedFormat,
+        isExtension: expectedExtension,
+      });
+    });
+
+    test.each<[any]>(successfulContactPayloadCases as [any][])('preserves a successful $label payload', async ({ contact }) => {
+      arrangeAuthorizedSearch({ successful: true, contact });
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toEqual({ success: true, data: contact });
+    });
+
+    test.each<[any]>(contactSearchFailureCases as [any][])('returns a stable failure for $label', async ({ searchResult, expected }) => {
+      arrangeAuthorizedSearch(searchResult);
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toEqual({ success: false, error: expected });
+    });
+
+    test.each<[any]>(invalidAdapterResponseCases as [any][])('handles an invalid $label handler response without throwing', async ({ result }) => {
+      arrangeAuthorizedSearch(result);
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Contact search returned an invalid response',
+      });
+    });
+
+    test.each<[any]>(normalizedAdapterRejectionCases as [any][])('normalizes a $label into a stable error result', async ({ rejection, expected }) => {
+      arrangeAuthorizedSearch();
+      contactCore.findContact.mockRejectedValueOnce(rejection);
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toMatchObject({ success: false, error: expected });
+    });
+
+    test.each<[any]>(invalidContactAuthTokenCases as [any][])('rejects $label before decoding authentication', async ({ jwtToken }) => {
+      await expect(findContactByPhone.execute({
+        jwtToken,
+        phoneNumber: '+14155550100',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'Not authenticated. Please connect to your CRM first.',
+      });
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidContactPhoneNumberCases as [any][])('rejects $label before decoding authentication', async ({ phoneNumber, expected }) => {
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber,
+      })).resolves.toMatchObject({ success: false, error: expected });
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidPhoneSearchOptionCases as [any][])('rejects invalid optional $field value $value', async ({ field, value, expected }) => {
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+        [field]: value,
+      })).resolves.toMatchObject({ success: false, error: expected });
+      expect(jwt.decodeJwt).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidContactDecodedJwtCases as [any][])('rejects decoded JWT with $label', async ({ decoded, expected }) => {
+      jwt.decodeJwt.mockReturnValue(decoded);
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toMatchObject({ success: false, error: expected });
+      expect(contactCore.findContact).not.toHaveBeenCalled();
+    });
+
+    test.each<[any]>(invalidFindByPhoneCapabilityCases as [any][])('rejects connector with $label', async ({ connector }) => {
+      jwt.decodeJwt.mockReturnValue({ id: 'user-1', platform: 'testCRM' });
+      connectorRegistry.getConnector.mockReturnValue(connector);
+
+      await expect(findContactByPhone.execute({
+        jwtToken: 'jwt-token',
+        phoneNumber: '+14155550100',
+      })).resolves.toMatchObject({
+        success: false,
+        error: 'findContactByPhone is not implemented for platform: testCRM',
+      });
+      expect(contactCore.findContact).not.toHaveBeenCalled();
     });
   });
 });
