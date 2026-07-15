@@ -3,6 +3,8 @@ apis:
     root: ./docs/developers/crm-server-openapi.json
   app-connect-public@v1:
     root: ./docs/developers/crm-server-openapi-public.json
+  plugin-server@v1:
+    root: ./docs/developers/plugin-server-openapi.json
 
 extends:
   - recommended-strict

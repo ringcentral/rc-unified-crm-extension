@@ -60,6 +60,7 @@ plugins:
   - swagger-ui-tag:
       filter_files:
         - developers/server-api.md
+        - developers/plugin-server-api.md
       docExpansion: none
       filter: true
       tryItOutEnabled: false
@@ -68,6 +69,7 @@ plugins:
   - print-site:
       exclude:
         - developers/server-api.md
+        - developers/plugin-server-api.md
 
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
@@ -191,6 +193,7 @@ nav:
   - 'Is your CRM compatible?': developers/proprietary-crm.md
   - 'Plugins':
     - 'Getting started': developers/plugins/index.md
+    - 'API reference': developers/plugin-server-api.md
 
   - 'Connectors': 
     - 'Getting started': developers/getting-started.md

@@ -24,7 +24,7 @@
     "generate:openapi": "npm run generate:openapi-contract && npm run generate:openapi-public",
     "check:openapi-contract": "tsx scripts/generate-openapi-contract.ts --check",
     "check:openapi-public": "node scripts/generate-public-openapi.cjs --check",
-    "lint:openapi": "npm run check:openapi-contract && npm run check:openapi-public && redocly lint app-connect@v1 --format=stylish && redocly lint app-connect-public@v1 --format=stylish",
+    "lint:openapi": "npm run check:openapi-contract && npm run check:openapi-public && redocly lint app-connect@v1 --format=stylish && redocly lint app-connect-public@v1 --format=stylish && redocly lint plugin-server@v1 --format=stylish",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:core": "tsc -p packages/core/tsconfig.json --noEmit",
     "typecheck:contracts": "tsc -p tsconfig.contracts.json --noEmit",
