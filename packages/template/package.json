@@ -48,6 +48,13 @@
     "supertest": "^6.3.1",
     "typescript": "^5.6.3"
   },
+  "overrides": {
+    "@tootallnate/once": "2.0.1",
+    "dynamodb-local": {
+      "tar": "7.5.19"
+    },
+    "qs": "6.15.2"
+  },
   "keywords": [
     "ringcentral",
     "app-connect",

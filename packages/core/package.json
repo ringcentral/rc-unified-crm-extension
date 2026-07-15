@@ -50,7 +50,7 @@
     "@aws-sdk/client-dynamodb": "^3.751.0",
     "@aws-sdk/client-s3": "^3.1086.0",
     "@aws-sdk/s3-request-presigner": "^3.1086.0",
-    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/express": "^4.17.25",
     "awesome-phonenumber": "^5.6.0",
     "body-parser": "^1.20.4",
@@ -77,7 +77,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
-    "@octokit/rest": "^19.0.5",
     "axios": "^1.12.2",
     "eslint": "^9.22.0",
     "express": "^4.22.1",

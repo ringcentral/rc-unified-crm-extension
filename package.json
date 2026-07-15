@@ -71,7 +71,6 @@
   "devDependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",
     "@eslint/js": "^9.22.0",
-    "@octokit/rest": "^19.0.5",
     "@redocly/cli": "^2.37.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.0",
@@ -96,7 +95,13 @@
     "typescript": "^5.6.3"
   },
   "overrides": {
-    "js-object-utilities": "2.2.1"
+    "@tootallnate/once": "2.0.1",
+    "dynamodb-local": {
+      "tar": "7.5.19"
+    },
+    "fast-xml-parser": "5.9.3",
+    "js-object-utilities": "2.2.1",
+    "qs": "6.15.2"
   },
   "bugs": {
     "url": "https://github.com/ringcentral/rc-unified-crm-extension/issues"
