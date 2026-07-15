@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "App Connect CRM Server API",
+    "title": "App Connect Connector Server API",
     "version": "1.7.38",
-    "description": "HTTP API for the App Connect CRM server. The contract covers shared routes from @app-connect/core and connector-specific routes in this server. Response payloads may include connector-defined fields where an operation delegates to a connector interface.",
+    "description": "HTTP API exposed by an App Connect connector server (called the CRM or adapter server in older code). The configured manifest serverUrl is the HTTPS base URL, without a trailing slash, to which App Connect appends these paths. The contract combines shared @app-connect/core routes with connector-specific routes implemented by this server; fields and supported capabilities can vary by connector where an operation delegates to a connector interface.\n\nAuthorization: userJwt is an App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback; it is not a RingCentral OAuth token. X-RC-Access-Token carries a RingCentral OAuth credential for RingCentral user or administrator validation. Legacy jwtToken and rcAccessToken query parameters remain active for older clients, but credentials in URLs can leak through logs and browser history and should be avoided.\n\nLegacy response convention: some connector operations return HTTP 200 with successful: false and returnMessage when the request was processed but the CRM operation failed. Callers must inspect the response body rather than treating every 2xx response as business success. Payloads can contain CRM records, communications content, recording URLs, and access tokens; do not log credentials or retain personal data beyond the workflow that requires it.",
     "contact": {
       "name": "RingCentral Labs",
       "url": "https://github.com/ringcentral/rc-unified-crm-extension"
@@ -40,63 +40,63 @@
   "tags": [
     {
       "name": "Health",
-      "description": "Health and runtime readiness endpoints."
+      "description": "Process liveness and legacy version metadata. Liveness does not imply database, connector, or upstream readiness."
     },
     {
       "name": "Manifest",
-      "description": "Connector manifests, implemented interfaces, release notes, and version metadata."
+      "description": "Connector manifests, capability discovery, release notes, and version metadata used by App Connect clients."
     },
     {
       "name": "Auth",
-      "description": "CRM authorization, managed-auth state, and user-session lifecycle."
+      "description": "CRM authorization, managed-auth discovery, and App Connect user-session lifecycle."
     },
     {
       "name": "Admin",
-      "description": "Account administration, managed credentials, settings, and user mapping."
+      "description": "RingCentral account settings, managed credentials, server-side logging configuration, and CRM user mapping."
     },
     {
       "name": "User",
-      "description": "Per-user settings and connector user information."
+      "description": "Effective per-user settings and connector-owned CRM user information."
     },
     {
       "name": "Contacts",
-      "description": "CRM contact lookup and creation."
+      "description": "Connector-backed CRM contact lookup and creation, including synthetic create-new choices."
     },
     {
       "name": "Appointments",
-      "description": "Connector-backed appointment listing and mutations."
+      "description": "Connector-backed appointment listing, creation, partial update, refresh, confirmation, cancellation, and status changes."
     },
     {
       "name": "Call Logs",
-      "description": "CRM call-log lookup, creation, updates, notes, and dispositions."
+      "description": "CRM call-activity lookup and mutation, temporary note caching, and connector-defined dispositions."
     },
     {
       "name": "Message Logs",
-      "description": "CRM logging for SMS, fax, voicemail, and related messages."
+      "description": "CRM logging for RingCentral SMS, MMS, fax, voicemail, and grouped conversations."
     },
     {
       "name": "Call Down",
-      "description": "Call-down list creation, retrieval, updates, and deletion."
+      "description": "Server-owned scheduled call-back entries scoped to the current App Connect user."
     },
     {
       "name": "Plugins",
-      "description": "Plugin registration, callbacks, license checks, and plugin execution."
+      "description": "Account-level plugin installation, advisory licensing, legacy built-ins, and asynchronous completion callbacks."
     },
     {
       "name": "MCP",
-      "description": "Model Context Protocol discovery, OAuth metadata, RPC, and widget calls."
+      "description": "Model Context Protocol metadata, PKCE authorization, JSON-RPC handling, and signed widget-session calls."
     },
     {
       "name": "RingCentral Reports",
-      "description": "RingCentral account and extension reporting endpoints."
+      "description": "RingCentral account and extension reports generated with stored account OAuth credentials."
     },
     {
       "name": "Google Integrations",
-      "description": "Google Sheets and Google Drive connector-specific flows."
+      "description": "Bundled legacy Google Sheets and Google Drive flows; these routes are omitted from the public connector reference."
     },
     {
       "name": "Pipedrive",
-      "description": "Pipedrive redirect and application lifecycle callbacks."
+      "description": "Bundled Pipedrive redirect helper and authenticated uninstall callback; these routes are omitted from the public connector reference."
     }
   ],
   "security": [],
@@ -106,7 +106,7 @@
         "tags": [
           "Health"
         ],
-        "summary": "Health check",
+        "summary": "Check HTTP process liveness",
         "operationId": "getIsAlive",
         "responses": {
           "200": {
@@ -126,7 +126,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Returns the literal text OK when the HTTP process can answer. The App Connect client treats any HTTP 200 as reachable and ignores the body. This route does not check the database, connector module, or upstream CRM dependencies."
       }
     },
     "/implementedInterfaces": {
@@ -192,7 +193,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Returns a boolean capability map for the selected connector. A true value means the connector exports the corresponding handler, not that its upstream service is healthy. App Connect uses these flags to enable features such as name search, call-note caching, dispositions, and user mapping; cacheCallNote also reflects server deployment configuration."
       }
     },
     "/crmManifest": {
@@ -201,7 +203,7 @@
           "Manifest"
         ],
         "summary": "Return a platform manifest",
-        "description": "Deprecated legacy manifest endpoint retained for client compatibility.",
+        "description": "Returns the selected connector manifest used by legacy App Connect clients. If platformName is omitted, the server uses its default connector. Development deployments can override manifest URLs with local server configuration.",
         "operationId": "getCrmManifest",
         "parameters": [
           {
@@ -209,7 +211,8 @@
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Connector platform key. When omitted, the server returns its default connector manifest."
           }
         ],
         "responses": {
@@ -228,7 +231,7 @@
         "tags": [
           "Manifest"
         ],
-        "summary": "Return merged global and connector release notes",
+        "summary": "Get release notes for connector versions",
         "operationId": "getReleaseNotes",
         "responses": {
           "200": {
@@ -258,7 +261,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Returns global and connector release-note sections for versions registered by the selected connector. Global notes are merged only into connector version keys, so global-only versions are not included; the client performs the final presentation merge."
       }
     },
     "/serverVersionInfo": {
@@ -295,7 +299,7 @@
           }
         },
         "deprecated": true,
-        "description": "Deprecated legacy version endpoint retained for client compatibility."
+        "description": "Returns legacy server-version metadata from the default connector manifest. This is a compatibility endpoint and is not a health or update-availability check."
       }
     },
     "/oauth-callback": {
@@ -311,48 +315,91 @@
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Opaque connector OAuth state. The server and connector use it to restore platform, user, redirect, and anti-forgery context."
           },
           {
             "name": "code",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "One-time authorization code returned by the CRM OAuth provider."
           },
           {
             "name": "callbackUri",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Full browser callback URI containing the CRM provider result. Legacy clients can send provider fields separately when this value is not encoded."
           },
           {
             "name": "hostname",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Optional tenant-specific CRM hostname retained through the OAuth flow."
           },
           {
             "name": "tokenUrl",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Optional connector-specific OAuth token endpoint retained through the authorization flow."
           },
           {
             "name": "apiUrl",
             "in": "query",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Optional connector-specific CRM API base URL retained through the authorization flow."
           },
           {
             "name": "proxyId",
             "in": "query",
             "required": false,
             "description": "Proxy connector identifier retained through the OAuth exchange.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rcAccountId",
+            "in": "query",
+            "required": false,
+            "description": "Optional RingCentral account context forwarded to connectors that bind CRM OAuth to an account.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rcExtensionId",
+            "in": "query",
+            "required": false,
+            "description": "Optional RingCentral extension context forwarded to connectors that bind CRM OAuth to a user.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userEmail",
+            "in": "query",
+            "required": false,
+            "description": "Optional RingCentral user email forwarded to connectors that need it during OAuth completion.",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "description": "Optional connector login name used by connectors such as Bullhorn during OAuth completion.",
             "schema": {
               "type": "string"
             }
@@ -365,7 +412,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Completes connector OAuth by passing the provider result and connector context to the selected connector, storing the resulting CRM credentials, and issuing an App Connect CRM-session JWT. Browser flows restore context from state or callbackUri. Connector-specific query fields such as account, extension, email, or username can also be forwarded. MCP authorization stores the completed session server-side and returns plain text instead of a browser token."
       }
     },
     "/apiKeyLogin": {
@@ -374,8 +422,20 @@
           "Auth"
         ],
         "summary": "API-key login",
-        "description": "Authenticates a user with connector-defined API-key credentials. The platform field selects the connector; credential fields can be supplied directly or resolved from managed authentication when a RingCentral access token is present.",
+        "description": "Authenticates an API-key connector and creates an App Connect CRM session. When a RingCentral access token is supplied, the server derives the RingCentral account and extension identities and can combine submitted values with administrator-managed credentials. A successful response returns userJwt as jwtToken; connector rejection is returned as HTTP 400 with an error or returnMessage.",
         "operationId": "postApiKeyLogin",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Ignored browser-client compatibility parameter. The server selects the connector from body.platform.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "$ref": "#/components/requestBodies/ApiKeyLogin"
         },
@@ -442,7 +502,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Invokes the connector disconnect or revocation hook for the CRM user identified by the current App Connect session. It does not delete the App Connect user record or independently invalidate the supplied App Connect JWT."
       }
     },
     "/licenseStatus": {
@@ -467,7 +528,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Returns the connector-reported license state for the current CRM user. The exact fields are connector-defined. Missing authorization or connector lookup failure can be represented by HTTP 200 with an invalid license state, so callers must inspect the body."
       }
     },
     "/authValidation": {
@@ -518,7 +580,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Validates the current user's stored CRM authorization through the connector. HTTP 200 with successful: false means validation ran and the connector rejected or expired the credentials; HTTP 400 represents missing session context, an invalid request, or an execution failure."
       }
     },
     "/apiKeyManagedAuthState": {
@@ -589,7 +652,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Derives RingCentral account and extension identity from the supplied RingCentral token and reports whether administrator-managed API-key fields can satisfy the selected connector login. Missing required manual fields and a previous managed-login fallback are returned explicitly. Client-supplied account or extension identifiers are not trusted for this decision."
       }
     },
     "/oauthManagedAuthState": {
@@ -637,7 +701,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Derives the RingCentral account from the supplied token and returns completed or pending administrator-managed OAuth state for the selected connector. Pending values are returned only to an authorized administrator and can contain sensitive client credentials."
       }
     },
     "/hostname": {
@@ -679,7 +744,7 @@
             "legacyUserJwt": []
           }
         ],
-        "description": "Returns the CRM hostname stored for the authenticated App Connect user."
+        "description": "Returns the CRM hostname stored for the user identified by the App Connect session. The value can be empty for connectors that do not use tenant-specific hosts."
       }
     },
     "/userInfoHash": {
@@ -739,7 +804,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "Produces deterministic server-keyed hashes for supplied RingCentral account or extension identifiers. Either input may be omitted. These opaque correlation values are not authentication proofs and this route does not validate ownership of the identifiers."
       }
     },
     "/admin/settings": {
@@ -778,7 +844,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Returns account-level connector settings after validating both the App Connect CRM session and the supplied RingCentral administrator token. If the account has no saved settings, the route returns the connector's default empty configuration."
       },
       "post": {
         "tags": [
@@ -822,7 +889,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Validates the supplied RingCentral administrator token and replaces account-level App Connect settings for that RingCentral account. The nested settings and optional custom-connector data come from the request body; this write path does not require a userJwt."
       }
     },
     "/admin/managedAuth": {
@@ -950,7 +1018,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Returns managed-auth field definitions and decrypted account or extension values for the connector selected by userJwt, after RingCentral administrator validation. Returned credential values are sensitive and must not be logged or exposed outside the administration flow."
       },
       "post": {
         "tags": [
@@ -1009,7 +1078,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Stores or removes account-scoped or extension-scoped managed API-key values for the connector selected by userJwt. RingCentral administrator validation is required, and submitted credential values must be treated as secrets."
       }
     },
     "/admin/managedOAuth/cache": {
@@ -1057,7 +1127,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Validates the RingCentral administrator and caches sensitive managed OAuth client values for the account until the connector OAuth flow activates them. Existing pending values can be replaced."
       },
       "delete": {
         "tags": [
@@ -1100,7 +1171,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Validates the RingCentral administrator and removes the account's pending, not-yet-activated managed OAuth values. Completed account OAuth configuration is not removed by this route."
       }
     },
     "/admin/managedOAuth/account": {
@@ -1149,7 +1221,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Validates the RingCentral administrator and removes completed account-scoped managed OAuth configuration for the selected connector. Users may need to authorize again afterward."
       }
     },
     "/admin/userMapping": {
@@ -1157,7 +1230,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Save admin user mapping",
+        "summary": "Resolve CRM user mappings",
         "operationId": "postAdminUserMapping",
         "parameters": [],
         "requestBody": {
@@ -1194,7 +1267,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Resolves CRM users for the supplied RingCentral extension list and returns the resulting account mapping. The connector can initialize missing mapping records or indicate that a user session should be revoked. This operation does not save the submitted extension list as configuration."
       }
     },
     "/admin/reinitializeUserMapping": {
@@ -1239,7 +1313,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Clears and rebuilds the account's CRM-to-RingCentral user mapping from the supplied extension list after App Connect session and RingCentral administrator validation. Existing mapping state can be replaced."
       }
     },
     "/admin/serverLoggingSettings": {
@@ -1264,7 +1339,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Returns connector-specific additional-field definitions and values used by server-side call logging for the current App Connect CRM user. Despite the admin path prefix, this route does not independently validate RingCentral administrator status."
       },
       "post": {
         "tags": [
@@ -1290,7 +1366,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Replaces connector-specific additionalFieldValues used by server-side call logging for the current App Connect CRM user. The body must include additionalFieldValues. Despite the admin path prefix, this route does not independently validate RingCentral administrator status."
       }
     },
     "/user/preloadSettings": {
@@ -1358,7 +1435,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Returns account-managed user settings before CRM login. The RingCentral account is derived from a supplied RingCentral token when present, or from rcAccountId for legacy pre-login clients."
       }
     },
     "/user/refreshInfo": {
@@ -1367,7 +1445,7 @@
           "User"
         ],
         "summary": "Refresh connector-owned CRM user information",
-        "description": "Resolves the current user from the App Connect JWT, refreshes OAuth credentials when needed, then calls the connector's refreshUserInfo interface.",
+        "description": "Refreshes connector-owned CRM identity and authorization information for the current App Connect user. A completed refresh that the connector cannot satisfy can return HTTP 200 with successful: false and a returnMessage.",
         "operationId": "postUserRefreshInfo",
         "security": [
           {
@@ -1475,7 +1553,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Returns effective user settings after merging the user's values with account-managed defaults and customization restrictions. rcAccountId is a legacy fallback for resolving account settings when RingCentral token context is unavailable."
       },
       "post": {
         "tags": [
@@ -1537,7 +1616,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Upserts supplied user settings and removes named setting keys for the current CRM user, then invokes the connector update hook when implemented. Connectors using the legacy update hook currently return an empty JSON object after the hook path; other connectors return the effective settings envelope."
       }
     },
     "/contact": {
@@ -1597,7 +1677,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Searches CRM contacts by phone number using connector-specific number formats and optional extension semantics. The server can use cached account data unless forceContactRefresh is requested. Results can include a synthetic create-new option marked isNewContact rather than an existing CRM record; clients must not treat that option as a match."
       },
       "post": {
         "tags": [
@@ -1633,7 +1714,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Creates a CRM contact using the supplied name, phone number, optional CRM entity type, and connector-defined additional submission fields. Connector validation failures can return HTTP 200 with successful: false and returnMessage."
       }
     },
     "/custom/contact/search": {
@@ -1679,7 +1761,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Searches CRM contacts by display name through the connector's optional findContactWithName capability. The returned contact array can include connector-specific fields, and connector-level failure can be represented by successful: false."
       }
     },
     "/appointments": {
@@ -1764,6 +1847,39 @@
         },
         "parameters": [
           {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Ignored browser-client compatibility object. Use startDate and endDate; the current server does not read range.",
+            "style": "deepObject",
+            "explode": true,
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          {
+            "name": "mineOnly",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Ignored browser-client compatibility flag. The current HTTP route does not filter appointments by owner.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "forceSync",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Ignored browser-client compatibility flag. The current HTTP route does not expose a force-synchronization option.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "x-app-connect-generated-contract": true,
             "name": "startDate",
             "in": "query",
@@ -1791,7 +1907,8 @@
             },
             "example": "2026-07-31"
           }
-        ]
+        ],
+        "description": "Lists CRM appointments through the active connector. Supply both startDate and endDate in YYYY-MM-DD form or neither; when omitted, the connector chooses its default range. The range, mineOnly, and forceSync parameters sent by older browser clients are ignored. Connector-level failures can return HTTP 200 with successful: false."
       },
       "post": {
         "tags": [
@@ -1853,7 +1970,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Creates a CRM appointment. The wrapped payload form is canonical; direct top-level appointment fields remain accepted for compatibility. Times use ISO 8601 with an explicit offset, and connector-level rejection can return HTTP 200 with successful: false."
       }
     },
     "/appointments/{appointmentId}": {
@@ -1930,7 +2048,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Partially updates a CRM appointment and preserves omitted fields. The wrapped patch form is canonical. Legacy replacement start-time fields remain supported but must be supplied with their paired duration fields."
       }
     },
     "/appointments/{appointmentId}/status": {
@@ -1939,7 +2058,7 @@
           "Appointments"
         ],
         "summary": "Update an appointment status",
-        "description": "Normalizes the supplied status to lowercase and delegates the update to the connector appointment interface.",
+        "description": "Requests a connector-specific appointment status change. The server normalizes the supplied status to lowercase. Supported status values depend on the connector, and an unsupported change can return successful: false.",
         "operationId": "postAppointmentStatus",
         "security": [
           {
@@ -2079,7 +2198,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Fetches the current CRM representation of an appointment after it may have changed outside App Connect. The response identifies the requested appointment and can report connector-level failure in the body."
       }
     },
     "/appointments/{appointmentId}/confirm": {
@@ -2139,7 +2259,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Confirms an appointment through the active connector. Depending on connector support, a successful response can include the current appointment record or only an appointment identifier and status message."
       }
     },
     "/appointments/{appointmentId}/cancel": {
@@ -2199,7 +2320,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Cancels an appointment through the active connector. Depending on connector support, a successful response can include the affected appointment or only an appointment identifier and status message."
       }
     },
     "/callLog": {
@@ -2249,7 +2371,7 @@
             "$ref": "#/components/parameters/requireDetails"
           }
         ],
-        "description": "Looks up local App Connect call-log linkage records by RingCentral session id and extension identity. hashedExtensionId is preferred when present; extensionNumber is retained as a legacy fallback. When requireDetails is true, also fetches the current CRM activity details through the connector getCallLog interface."
+        "description": "Checks up to five RingCentral call session IDs for existing local CRM call mappings, scoped by extension identity. When requireDetails is true, matched entries can include connector-provided CRM activity details. A revoked connector session can return HTTP 401."
       },
       "post": {
         "tags": [
@@ -2301,7 +2423,7 @@
             "$ref": "#/components/responses/UnauthorizedSession"
           }
         },
-        "description": "Creates one CRM activity/log for a RingCentral call and stores the local mapping for later updates. The mapping is keyed by session id plus extension identity. Client-side requests may send hashedExtensionId; server-side logging may send rcExtensionId, which the adapter server hashes locally before duplicate checks and persistence. The logInfo object follows the RingCentral CallLogRecord shape, trimmed to fields consumed by App Connect."
+        "description": "Creates a CRM activity for a RingCentral call and records the session-plus-extension mapping used for de-duplication and later updates. Both the browser client and server-side logging service use this route; the latter can create a pending call and later patch it. Synchronous plugins can transform the payload before CRM creation, and asynchronous call plugins are dispatched after the activity is saved."
       },
       "patch": {
         "tags": [
@@ -2338,7 +2460,7 @@
             "$ref": "#/components/responses/UnauthorizedSession"
           }
         },
-        "description": "Updates an existing CRM call activity using the local mapping found by sessionId and extension identity. hashedExtensionId is preferred when present; rcExtensionId is hashed locally for server-side logging; extensionNumber remains a legacy fallback."
+        "description": "Updates the CRM activity associated with a RingCentral session and the same extension identity used at creation. Only supplied activity fields are changed. Recording download URLs can contain RingCentral access tokens and must not be logged or retained unnecessarily. Registered plugins can augment the update."
       }
     },
     "/callLog/cacheNote": {
@@ -2373,7 +2495,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Caches a call note by RingCentral session ID before full server-side call logging when the connector advertises cacheCallNote. The cache entry expires after one hour. The legacy success response uses a plain-string returnMessage."
       }
     },
     "/callDisposition": {
@@ -2425,7 +2548,8 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedSession"
           }
-        }
+        },
+        "description": "Creates or updates connector-defined disposition values on the CRM activity identified by RingCentral session and extension identity. dispositions is an object keyed by connector-defined field identifier; additionalSubmission is retained only for backward compatibility and is not processed."
       }
     },
     "/messageLog": {
@@ -2490,7 +2614,7 @@
             "$ref": "#/components/responses/UnauthorizedSession"
           }
         },
-        "description": "Creates or updates CRM activities for SMS, MMS, voicemail, fax, and shared SMS conversations. The server groups normal messages by conversation/day and shared SMS by conversationLogId."
+        "description": "Logs RingCentral SMS, MMS, fax, voicemail, or text records to the CRM. Messages can be written individually or grouped into a shared conversation activity, and previously processed RingCentral message IDs are de-duplicated. Fax and MMS payloads can include a RingCentral access token for attachment downloads; treat it as secret and do not persist it."
       }
     },
     "/calldown": {
@@ -2498,7 +2622,7 @@
         "tags": [
           "Call Down"
         ],
-        "summary": "List call-down entries",
+        "summary": "List scheduled call-back entries",
         "operationId": "getCallDown",
         "security": [
           {
@@ -2510,7 +2634,19 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The current user's call-back entries ordered by scheduledAt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallDownListResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedUserJwt"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -2521,18 +2657,19 @@
             "name": "status",
             "in": "query",
             "required": false,
-            "description": "Optional call-down status filter.",
+            "description": "Optional status filter: called; not called, not_called, or notcalled; or any other value for all entries.",
             "schema": {
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "Lists server-owned scheduled call-back entries for the current App Connect user in ascending scheduledAt order. status=called returns completed entries; not called, not_called, and notcalled return entries whose status is not called; other values return all entries."
       },
       "post": {
         "tags": [
           "Call Down"
         ],
-        "summary": "Create a call-down entry",
+        "summary": "Schedule a call-back entry",
         "operationId": "postCallDown",
         "security": [
           {
@@ -2543,16 +2680,29 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CallDownCreate"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The call-back entry was scheduled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallDownCreateResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedUserJwt"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Creates a server-owned call-back entry for the current App Connect user with status scheduled and a generated identifier. contactId, contactType, and scheduledAt are persisted. Current browser clients also send contactName, phoneNumber, and note, but the current data model does not retain those fields."
       }
     },
     "/calldown/{id}": {
@@ -2560,7 +2710,7 @@
         "tags": [
           "Call Down"
         ],
-        "summary": "Update a call-down entry",
+        "summary": "Update a call-back entry",
         "operationId": "patchCallDown",
         "security": [
           {
@@ -2576,22 +2726,35 @@
           }
         ],
         "requestBody": {
-          "$ref": "#/components/requestBodies/GenericJson"
+          "$ref": "#/components/requestBodies/CallDownPatch"
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The owned call-back entry was updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallDownMutationResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedUserJwt"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Updates allowed fields on a call-back entry owned by the current App Connect user. status, scheduledAt, lastCallAt, contactId, and contactType are persisted. Current browser clients also send contactName, phoneNumber, and note, but the current data model does not retain those fields."
       },
       "delete": {
         "tags": [
           "Call Down"
         ],
-        "summary": "Delete a call-down entry",
+        "summary": "Delete a call-back entry",
         "operationId": "deleteCallDown",
         "security": [
           {
@@ -2608,12 +2771,25 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The owned call-back entry was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallDownMutationResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Refreshed-JWT-Token": {
+                "$ref": "#/components/headers/RefreshedUserJwt"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Deletes the identified call-back entry only when it belongs to the current App Connect user. A missing or foreign identifier is returned as a bad request with a not-found error."
       }
     },
     "/plugin/register": {
@@ -2666,7 +2842,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Installs a plugin for a RingCentral account. The route validates administrator access and account identity, resolves the selected platform entry from the Developer Console plugin manifest, calls its registration URL with the short-lived RingCentral administrator token, and stores the returned opaque plugin credential and manifest metadata."
       }
     },
     "/plugin/unregister": {
@@ -2674,9 +2851,40 @@
         "tags": [
           "Plugins"
         ],
-        "summary": "Unregister a plugin for an account",
+        "summary": "Remove a local plugin registration",
         "operationId": "deletePluginUnregister",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "pluginId",
+            "in": "query",
+            "required": true,
+            "description": "Developer Console plugin identifier whose local account registration will be removed.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "rcAccountId",
+            "in": "query",
+            "required": true,
+            "description": "RingCentral account that owns the local plugin registration. It must match the administrator token.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "pluginName",
+            "in": "query",
+            "required": false,
+            "deprecated": true,
+            "description": "Legacy plugin platform key accepted by the route but ignored by the current unregister handler.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/OkJson"
@@ -2695,7 +2903,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Removes the account's local App Connect plugin registration after RingCentral administrator validation. The current protocol does not notify the remote plugin server or revoke its credential, so providers need their own stale-account cleanup and retention policy."
       }
     },
     "/plugin/licenseStatus": {
@@ -2742,7 +2951,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Calls the installed plugin server's optional licenseStatusUrl with the stored account-scoped plugin credential and forwards its advisory status to the browser client. A missing installation returns null; provider lookup failures can be normalized to HTTP 200 with licenseStatus false. Current logging code does not use this result to gate invocation."
       }
     },
     "/plugin/async-callback/{taskId}": {
@@ -2751,7 +2961,7 @@
           "Plugins"
         ],
         "summary": "Receive an async plugin callback",
-        "description": "Receives async call-log plugin completion. The task id in the path validates the callback task.",
+        "description": "Completes a callback-enabled asynchronous call-plugin task identified by its random task UUID. The UUID is a bearer capability and expires after seven days. A successful report appends note to the existing CRM activity and deletes the task; a plugin-reported failure marks the task failed and is acknowledged with HTTP 200.",
         "operationId": "postPluginAsyncCallback",
         "parameters": [
           {
@@ -2860,7 +3070,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "Generates an account-level RingCentral calls and messages report using OAuth credentials previously stored for the RingCentral account associated with userJwt. The route authenticates an App Connect CRM user but does not independently verify that the caller is currently a RingCentral administrator."
       }
     },
     "/ringcentral/admin/userReport": {
@@ -2925,7 +3136,8 @@
               "format": "date-time"
             }
           }
-        ]
+        ],
+        "description": "Generates RingCentral calls and messages report data for the requested extension using OAuth credentials stored for the App Connect user's RingCentral account. The route does not independently verify current RingCentral administrator status."
       }
     },
     "/ringcentral/oauth/callback": {
@@ -2934,7 +3146,7 @@
           "RingCentral Reports"
         ],
         "summary": "RingCentral admin OAuth callback",
-        "description": "Exchanges the RingCentral OAuth authorization code for the account associated with the authenticated App Connect user.",
+        "description": "Exchanges a RingCentral OAuth authorization code and stores the resulting account-level credentials for report access. The target RingCentral account is taken from the App Connect CRM user session, not from a caller-supplied account identifier.",
         "operationId": "getRingCentralOauthCallback",
         "parameters": [
           {
@@ -3016,7 +3228,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Creates a presigned URL for uploading a JSON debug report to error-log storage. The URL accepts an HTTP PUT with JSON content and expires after five minutes; it should be treated as a short-lived bearer capability."
       }
     },
     "/.well-known/openai-apps-challenge": {
@@ -3030,7 +3243,8 @@
           "200": {
             "description": "Verification code as text/plain."
           }
-        }
+        },
+        "description": "Returns the configured OpenAI Apps verification challenge as plain text. This well-known route is public and exists only for deployment ownership verification."
       }
     },
     "/.well-known/oauth-protected-resource": {
@@ -3044,7 +3258,8 @@
           "200": {
             "$ref": "#/components/responses/OkJson"
           }
-        }
+        },
+        "description": "Returns OAuth protected-resource metadata for the MCP endpoint, including the authorization-server location and supported bearer-token method."
       }
     },
     "/.well-known/oauth-authorization-server": {
@@ -3058,7 +3273,8 @@
           "200": {
             "$ref": "#/components/responses/OkJson"
           }
-        }
+        },
+        "description": "Returns the OAuth authorization-server metadata exposed to MCP PKCE clients, including the authorization, token, and registration endpoints and supported S256 challenge method."
       }
     },
     "/oauth/authorize_shim": {
@@ -3150,7 +3366,8 @@
               ]
             }
           }
-        ]
+        ],
+        "description": "Validates an MCP OAuth authorization request and redirects it to RingCentral OAuth while preserving the client redirect, state, scope, and S256 PKCE challenge. The optional client_id must match the configured public MCP client."
       }
     },
     "/oauth/register": {
@@ -3167,7 +3384,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
-        }
+        },
+        "description": "Returns metadata for the single configured public MCP OAuth client. This compatibility registration route does not create a new client or issue a client secret."
       }
     },
     "/mcp": {
@@ -3211,7 +3429,7 @@
             "mcpBearer": []
           }
         ],
-        "description": "Handles MCP JSON-RPC requests. Discovery and handshake methods are public; tool calls that access user data require a RingCentral bearer token."
+        "description": "Handles stateless Model Context Protocol JSON-RPC requests. Discovery and initialization methods can be public, while tools that access RingCentral or CRM data require a RingCentral OAuth bearer token. Each request establishes its own MCP transport context."
       }
     },
     "/mcp/widget-tool-call": {
@@ -3219,7 +3437,7 @@
         "tags": [
           "MCP"
         ],
-        "summary": "Handle unauthenticated widget tool calls",
+        "summary": "Invoke an allowlisted widget tool",
         "operationId": "postMcpWidgetToolCall",
         "requestBody": {
           "$ref": "#/components/requestBodies/WidgetToolCall"
@@ -3263,7 +3481,7 @@
             "widgetSessionToken": []
           }
         ],
-        "description": "Executes an allowlisted widget tool after validating the signed widget-session header."
+        "description": "Invokes an allowlisted MCP widget tool with a short-lived signed widget-session token. The token authenticates widget context independently of RingCentral OAuth; unknown or disallowed tools are rejected."
       }
     },
     "/googleSheets/filePicker": {
@@ -3296,7 +3514,8 @@
             "filePickerJwt": []
           }
         ],
-        "parameters": []
+        "parameters": [],
+        "description": "Serves the bundled Google Sheets picker HTML for the App Connect user identified by the legacy token query parameter. This connector-specific route is omitted from the public API specification."
       }
     },
     "/googleSheets/sheet": {
@@ -3304,7 +3523,7 @@
         "tags": [
           "Google Integrations"
         ],
-        "summary": "Create or connect a Google Sheet",
+        "summary": "Create a Google Sheet",
         "operationId": "postGoogleSheetsSheet",
         "requestBody": {
           "$ref": "#/components/requestBodies/GenericJson"
@@ -3324,7 +3543,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Creates a new Google Sheet for the App Connect user and returns its name and URL. Selecting an existing sheet uses /googleSheets/selectedSheet instead."
       },
       "delete": {
         "tags": [
@@ -3334,7 +3554,15 @@
         "operationId": "deleteGoogleSheetsSheet",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "The stored sheet association was removed.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Sheet removed"
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -3347,7 +3575,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Disconnects the Google Sheet currently associated with the App Connect user and returns plain text. It does not delete the underlying file from Google Drive."
       }
     },
     "/googleSheets/selectedSheet": {
@@ -3367,7 +3596,8 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           }
-        }
+        },
+        "description": "Associates an existing Google Sheet and tab selected with a Google access token. The route resolves the Google user from that token before saving the selection."
       }
     },
     "/admin/googleSheets/filePicker": {
@@ -3379,7 +3609,14 @@
         "operationId": "getAdminGoogleSheetsFilePicker",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/OkJson"
+            "description": "Administrator Google Sheets picker page.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -3393,7 +3630,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Serves the bundled administrator Google Sheets picker HTML after resolving the App Connect user. RingCentral administrator validation occurs in the subsequent configuration operations."
       }
     },
     "/admin/googleSheets/sheet": {
@@ -3425,7 +3663,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Creates a new Google Sheet, validates the supplied RingCentral administrator token, and stores the resulting sheet as account-level configuration."
       }
     },
     "/admin/googleSheets/selectedSheet": {
@@ -3456,7 +3695,8 @@
           {
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Associates an existing Google Sheet with the RingCentral account after Google user lookup and RingCentral administrator validation."
       }
     },
     "/admin/googleSheets/config": {
@@ -3485,7 +3725,8 @@
             "legacyUserJwt": [],
             "legacyRingCentralAccessToken": []
           }
-        ]
+        ],
+        "description": "Returns account-level Google Sheets configuration after validating the App Connect CRM user and RingCentral administrator token."
       }
     },
     "/googleDrive/oauthUrl": {
@@ -3518,7 +3759,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "Returns the bundled Google Drive plugin's provider authorization URL for the App Connect user. pluginId is preserved in OAuth state for the browser callback."
       }
     },
     "/googleDrive/oauthCallback": {
@@ -3565,7 +3807,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "description": "Completes the bundled Google Drive OAuth flow by reconstructing the provider callback URI, resolving the App Connect user from state, storing Google credentials, and returning the plugin identifier."
       }
     },
     "/googleDrive/checkAuth": {
@@ -3587,7 +3830,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Checks whether the bundled Google Drive plugin has stored authorization for the App Connect user identified by the legacy session token."
       }
     },
     "/googleDrive/logout": {
@@ -3608,7 +3852,7 @@
         "requestBody": {
           "$ref": "#/components/requestBodies/GoogleDriveLogout"
         },
-        "description": "Legacy endpoint that accepts the App Connect session JWT in the request body."
+        "description": "Disconnects the bundled Google Drive plugin user identified by the App Connect CRM-session JWT in the body. The token is sensitive and must not be logged."
       }
     },
     "/pipedrive-redirect": {
@@ -3632,13 +3876,14 @@
           "500": {
             "description": "The redirect helper page could not be served."
           }
-        }
+        },
+        "description": "Serves the static Pipedrive redirect-helper HTML page used by the bundled connector. This route does not complete OAuth or mutate user state by itself."
       },
       "delete": {
         "tags": [
           "Pipedrive"
         ],
-        "summary": "Clear Pipedrive redirect state",
+        "summary": "Process a Pipedrive uninstall callback",
         "operationId": "deletePipedriveRedirect",
         "responses": {
           "200": {
@@ -3677,14 +3922,17 @@
                 ],
                 "properties": {
                   "user_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Pipedrive user identifier whose CRM authorization and App Connect user record will be removed."
                   }
                 },
-                "additionalProperties": false
+                "additionalProperties": false,
+                "description": "Pipedrive uninstall payload authenticated with the application HTTP Basic credential."
               }
             }
           }
-        }
+        },
+        "description": "Handles Pipedrive's authenticated uninstall callback. After HTTP Basic authentication, it invokes connector revocation for the supplied Pipedrive user_id and deletes that Pipedrive user record. Repeating the callback for a missing user still returns success."
       }
     },
     "/plugin/licenseStatus/{pluginId}": {
@@ -3701,7 +3949,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Identifier of a bundled, application-specific plugin supported by this server."
           }
         ],
         "responses": {
@@ -3719,7 +3968,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Returns license and authorization status for a bundled, application-specific plugin selected by pluginId. This legacy route uses userJwt in the query and is omitted from the public connector specification."
       }
     },
     "/plugin/{pluginId}": {
@@ -3736,7 +3986,8 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Identifier of a bundled, application-specific plugin supported by this server."
           }
         ],
         "requestBody": {
@@ -3754,7 +4005,8 @@
           {
             "legacyUserJwt": []
           }
-        ]
+        ],
+        "description": "Invokes a bundled, application-specific plugin for the current App Connect CRM user. The supported plugin IDs and response shape are hard-coded by this server; this legacy route is omitted from the public connector specification."
       }
     }
   },
@@ -3764,25 +4016,25 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "App Connect user-session JWT. A response may rotate this token in the X-Refreshed-JWT-Token header."
+        "description": "App Connect CRM-session JWT issued by /apiKeyLogin or /oauth-callback. It is not a RingCentral OAuth token. A response can rotate it in X-Refreshed-JWT-Token."
       },
       "legacyUserJwt": {
         "type": "apiKey",
         "in": "query",
         "name": "jwtToken",
-        "description": "Legacy App Connect user-session JWT query parameter. Prefer Authorization: Bearer."
+        "description": "Legacy query location for the App Connect CRM-session JWT. Prefer Authorization: Bearer. Query credentials can leak through URLs, logs, analytics, and browser history and must never be recorded."
       },
       "ringCentralAccessToken": {
         "type": "apiKey",
         "in": "header",
         "name": "X-RC-Access-Token",
-        "description": "RingCentral OAuth access token used for user or administrator validation."
+        "description": "RingCentral OAuth access token used to validate a RingCentral user or administrator. This credential is separate from userJwt and must not be logged."
       },
       "legacyRingCentralAccessToken": {
         "type": "apiKey",
         "in": "query",
         "name": "rcAccessToken",
-        "description": "Legacy RingCentral access-token query parameter. Prefer X-RC-Access-Token. Some legacy request bodies also carry rcAccessToken."
+        "description": "Legacy query location for a RingCentral OAuth access token. Prefer X-RC-Access-Token. Query credentials can leak through URLs and logs; some legacy request bodies also carry rcAccessToken."
       },
       "mcpBearer": {
         "type": "http",
@@ -3793,7 +4045,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-App-Connect-Widget-Token",
-        "description": "Short-lived signed session token issued to the App Connect MCP widget."
+        "description": "Short-lived signed session token issued to the App Connect MCP widget. It authenticates the allowed widget context without acting as a RingCentral OAuth token."
       },
       "filePickerJwt": {
         "type": "apiKey",
@@ -3814,7 +4066,8 @@
         "required": true,
         "schema": {
           "type": "string"
-        }
+        },
+        "description": "Connector platform key from the App Connect manifest."
       },
       "phoneNumber": {
         "name": "phoneNumber",
@@ -3831,7 +4084,8 @@
         "required": true,
         "schema": {
           "type": "string"
-        }
+        },
+        "description": "Connector-assigned CRM appointment identifier."
       },
       "id": {
         "name": "id",
@@ -3839,7 +4093,8 @@
         "required": true,
         "schema": {
           "type": "string"
-        }
+        },
+        "description": "Server-generated call-back entry identifier."
       },
       "taskId": {
         "name": "taskId",
@@ -3848,7 +4103,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Async plugin task id generated by App Connect."
+        "description": "Random asynchronous plugin task UUID embedded in the callback URL. Treat it as a bearer capability; tasks expire after seven days."
       },
       "sessionIds": {
         "name": "sessionIds",
@@ -3941,7 +4196,8 @@
               "$ref": "#/components/schemas/CreateContactRequest"
             }
           }
-        }
+        },
+        "description": "CRM contact identity and optional connector-defined creation fields."
       },
       "CreateCallLog": {
         "required": true,
@@ -3951,7 +4207,8 @@
               "$ref": "#/components/schemas/CreateCallLogRequest"
             }
           }
-        }
+        },
+        "description": "RingCentral call, CRM contact association, note, and optional enrichment data. Recording download URLs and nested tokens are sensitive."
       },
       "UpdateCallLog": {
         "required": true,
@@ -3961,7 +4218,8 @@
               "$ref": "#/components/schemas/UpdateCallLogRequest"
             }
           }
-        }
+        },
+        "description": "RingCentral session identity and the CRM call-activity fields to update."
       },
       "CallNoteCache": {
         "required": true,
@@ -3971,7 +4229,8 @@
               "$ref": "#/components/schemas/CallNoteCacheRequest"
             }
           }
-        }
+        },
+        "description": "RingCentral session ID and note to cache for up to one hour before server-side logging."
       },
       "CallDisposition": {
         "x-app-connect-generated-contract": true,
@@ -3989,12 +4248,9 @@
                   "sessionId": "s-a1b2c3d4",
                   "extensionNumber": "101",
                   "hashedExtensionId": "c16b7b40d7a9d5b5f6d8f633f0e362af",
-                  "dispositions": [
-                    {
-                      "id": "qualified-lead",
-                      "value": "Qualified lead"
-                    }
-                  ]
+                  "dispositions": {
+                    "outcome": "Qualified lead"
+                  }
                 }
               }
             }
@@ -4009,7 +4265,8 @@
               "$ref": "#/components/schemas/MessageLogRequest"
             }
           }
-        }
+        },
+        "description": "RingCentral message conversation, CRM contact association, and optional connector-specific logging fields."
       },
       "AsyncPluginCallback": {
         "required": true,
@@ -4019,7 +4276,8 @@
               "$ref": "#/components/schemas/AsyncPluginCallbackRequest"
             }
           }
-        }
+        },
+        "description": "Completion report for the task identified by the callback URL. successful describes plugin work, not HTTP transport success."
       },
       "AppointmentStatusUpdate": {
         "x-app-connect-generated-contract": true,
@@ -4049,7 +4307,8 @@
               "$ref": "#/components/schemas/WidgetToolCallRequest"
             }
           }
-        }
+        },
+        "description": "Tool name and arguments authorized by the signed widget-session token."
       },
       "GoogleDriveLogout": {
         "required": true,
@@ -4063,13 +4322,16 @@
               "properties": {
                 "jwtToken": {
                   "type": "string",
-                  "description": "Legacy App Connect user-session JWT."
+                  "description": "Sensitive App Connect CRM-session JWT. It is not a RingCentral OAuth token.",
+                  "format": "password",
+                  "writeOnly": true
                 }
               },
               "additionalProperties": false
             }
           }
-        }
+        },
+        "description": "Legacy bundled Google Drive logout body containing an App Connect CRM-session JWT."
       },
       "PluginRegister": {
         "x-app-connect-generated-contract": true,
@@ -4087,7 +4349,7 @@
                   "pluginId": "plugin.example",
                   "rcAccountId": "123456789",
                   "pluginAccess": "shared",
-                  "pluginName": "Example CRM workflow"
+                  "pluginName": "examplePlugin"
                 }
               }
             }
@@ -4274,11 +4536,33 @@
             }
           }
         }
+      },
+      "CallDownCreate": {
+        "required": true,
+        "description": "Callback scheduling fields. Current clients send display fields that the server accepts but does not currently persist.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CallDownCreateRequest"
+            }
+          }
+        }
+      },
+      "CallDownPatch": {
+        "required": true,
+        "description": "Persisted callback fields to update. At least one handler-supported field is required.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CallDownPatchRequest"
+            }
+          }
+        }
       }
     },
     "responses": {
       "OkJson": {
-        "description": "Successful JSON response. Exact response shape depends on the route and connector interface.",
+        "description": "Successful route-specific JSON response. Consult the operation description for ownership and semantics.",
         "content": {
           "application/json": {
             "schema": {
@@ -4378,7 +4662,8 @@
         "type": "object",
         "properties": {
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "User-facing status or error message."
           },
           "messageType": {
             "type": "string",
@@ -4388,18 +4673,22 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2147483647,
-            "format": "int32"
+            "format": "int32",
+            "description": "Suggested notification display time in milliseconds."
           },
           "details": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {},
-              "additionalProperties": true
-            }
+              "additionalProperties": true,
+              "description": "Extensible JSON object whose fields are defined by the selected connector or workflow."
+            },
+            "description": "Optional structured details for clients that can present more than the main message."
           }
         },
         "additionalProperties": true,
+        "description": "Optional user-facing notification returned by connector and App Connect workflows.",
         "x-app-connect-generated-contract": true
       },
       "ApiKeyLoginRequest": {
@@ -4423,6 +4712,35 @@
             "writeOnly": true,
             "deprecated": true,
             "description": "Legacy body location for a RingCentral access token. Use the X-RC-Access-Token header instead."
+          },
+          "rcAccountId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Ignored browser-client compatibility field. The server derives the RingCentral account from rcAccessToken.",
+            "deprecated": true
+          },
+          "rcExtensionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Ignored browser-client compatibility field. The server derives the RingCentral extension from rcAccessToken.",
+            "deprecated": true
+          },
+          "userEmail": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Ignored browser-client compatibility field. Connector credential fields belong in additionalInfo."
           },
           "hostname": {
             "type": "string",
@@ -4452,6 +4770,7 @@
           "platform"
         ],
         "additionalProperties": false,
+        "description": "Credentials and connector context used to establish an App Connect session for an API-key connector.",
         "x-app-connect-generated-contract": true
       },
       "ApiKeyLoginResponse": {
@@ -4466,6 +4785,7 @@
             "description": "Display name returned by the CRM connector."
           },
           "returnMessage": {
+            "description": "Optional connector message about the completed login.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReturnMessage"
@@ -4477,6 +4797,7 @@
           "jwtToken"
         ],
         "additionalProperties": true,
+        "description": "Successful API-key login result and the new App Connect session token.",
         "x-app-connect-generated-contract": true
       },
       "ErrorResponse": {
@@ -4487,9 +4808,12 @@
           {
             "type": "object",
             "properties": {
-              "error": {},
+              "error": {
+                "description": "Route-specific error value. It can be text, an Error-like object, or an upstream payload."
+              },
               "successful": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "False when the legacy error envelope reports business failure."
               },
               "returnMessage": {
                 "$ref": "#/components/schemas/ReturnMessage"
@@ -4504,26 +4828,32 @@
         "type": "object",
         "properties": {},
         "additionalProperties": true,
-        "description": "Connector-defined JSON response. The exact fields depend on the selected connector interface."
+        "description": "Route-specific JSON response. Consult the operation description; this generic shape is retained for legacy endpoints that do not have a stable shared schema."
       },
       "BasicMutationResponse": {
         "type": "object",
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the requested operation completed successfully."
           },
           "returnMessage": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ReturnMessage"
+              },
+              {
+                "type": "string"
               }
-            ]
+            ],
+            "description": "Optional status message. Most routes return a structured notification; a few legacy routes return plain text."
           }
         },
         "required": [
           "successful"
         ],
         "additionalProperties": true,
+        "description": "Standard result envelope for an App Connect mutation.",
         "x-app-connect-generated-contract": true
       },
       "ContactInfo": {
@@ -4537,45 +4867,58 @@
               {
                 "type": "number"
               }
-            ]
+            ],
+            "description": "CRM record identifier. The synthetic create-new-contact choice uses the exact sentinel createNewContact."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "CRM contact display name."
           },
           "phone": {
-            "type": "string"
+            "type": "string",
+            "description": "Phone number associated with the matched contact."
           },
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "Compatibility alias for the matched contact phone number."
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "CRM entity type, such as Contact, Lead, or Candidate."
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "description": "Contact job title when supplied by the connector."
           },
           "company": {
-            "type": "string"
+            "type": "string",
+            "description": "Contact company or organization name."
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "description": "Contact email address."
           },
           "createdDate": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-formatted CRM record creation date or timestamp."
           },
           "mostRecentActivityDate": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-formatted date or timestamp of the contact's most recent CRM activity."
           },
           "additionalInfo": {
             "type": "object",
             "properties": {},
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Connector-defined association, ownership, or display metadata for this contact."
           },
           "isNewContact": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether this is a synthetic create-new-contact option rather than an existing CRM record."
           }
         },
         "additionalProperties": true,
+        "description": "Connector-normalized CRM contact returned by lookup and create operations.",
         "x-app-connect-generated-contract": true
       },
       "ContactSearchResponse": {
@@ -4585,7 +4928,8 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector completed the lookup successfully."
           },
           "returnMessage": {
             "$ref": "#/components/schemas/ReturnMessage"
@@ -4594,9 +4938,11 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ContactInfo"
-            }
+            },
+            "description": "Matched contacts. The legacy property name is singular even though its value is an array and can include a synthetic create-new choice."
           }
-        }
+        },
+        "description": "Result of a connector-backed CRM contact search."
       },
       "CreateContactRequest": {
         "type": "object",
@@ -4606,19 +4952,24 @@
         ],
         "properties": {
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "Phone number for the new CRM record, normally in E.164 form."
           },
           "newContactName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name for the new CRM record."
           },
           "newContactType": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-defined CRM entity type, such as Contact, Lead, or Candidate."
           },
           "additionalSubmission": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Connector-defined creation or association fields collected by App Connect."
           }
-        }
+        },
+        "description": "Standard CRM contact creation fields plus connector-specific submission data."
       },
       "ContactMutationResponse": {
         "type": "object",
@@ -4627,7 +4978,8 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the CRM contact was created."
           },
           "returnMessage": {
             "$ref": "#/components/schemas/ReturnMessage"
@@ -4635,86 +4987,106 @@
           "contact": {
             "$ref": "#/components/schemas/ContactInfo"
           }
-        }
+        },
+        "description": "Result of creating a CRM contact through the active connector."
       },
       "RcParty": {
         "type": "object",
         "properties": {
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "External or direct phone number when available."
           },
           "extensionNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral extension number when available."
           },
           "extensionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral extension identifier when available."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Caller or callee display name."
           },
           "location": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral-provided geographic location text."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral caller or callee identity embedded in a call record."
       },
       "RcCallRecording": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral recording identifier."
           },
           "uri": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "RingCentral recording resource URI."
           },
           "type": {
             "type": "string",
             "enum": [
               "Automatic",
               "OnDemand"
-            ]
+            ],
+            "description": "Whether recording was automatic or started on demand."
           },
           "contentUri": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "RingCentral media endpoint. Access normally requires a RingCentral OAuth token."
           },
           "link": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Browser-accessible recording link when RingCentral provides one."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral call-recording metadata. Recording and download URLs can be sensitive."
       },
       "RcCallLogLeg": {
         "type": "object",
         "properties": {
           "legType": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral leg classification."
           },
           "master": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether this is the master leg for the call."
           },
           "direction": {
             "type": "string",
             "enum": [
               "Inbound",
               "Outbound"
-            ]
+            ],
+            "description": "Inbound or outbound leg direction."
           },
           "action": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral action such as Phone Call or VoIP Call."
           },
           "result": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral leg result such as Accepted, Missed, or Voicemail."
           },
           "startTime": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Leg start time in ISO 8601 date-time form."
           },
           "duration": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Leg duration in seconds."
           },
           "from": {
             "$ref": "#/components/schemas/RcParty"
@@ -4723,7 +5095,8 @@
             "$ref": "#/components/schemas/RcParty"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "One RingCentral call leg included in a detailed call record."
       },
       "RcCallLogRecord": {
         "type": "object",
@@ -4732,55 +5105,88 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call-log record identifier."
           },
           "uri": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "RingCentral call-log resource URI."
           },
           "accountId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral account identifier associated with the call."
           },
           "sessionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call session identifier used for App Connect de-duplication and CRM mapping."
           },
           "telephonySessionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral telephony session identifier when available."
           },
           "direction": {
             "type": "string",
             "enum": [
               "Inbound",
               "Outbound"
-            ]
+            ],
+            "description": "Inbound or outbound call direction."
           },
           "type": {
             "type": "string",
             "enum": [
               "Voice",
               "Fax"
-            ]
+            ],
+            "description": "RingCentral communication type."
           },
           "action": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call action."
           },
           "result": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call result."
           },
           "reason": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingCentral result reason."
           },
           "startTime": {
-            "type": "string",
-            "format": "date-time"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              }
+            ],
+            "description": "Call start as ISO 8601 date-time or epoch milliseconds. Server-side logging uses epoch milliseconds."
           },
           "duration": {
-            "type": "integer",
-            "format": "int64"
+            "oneOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "pending"
+                ]
+              }
+            ],
+            "description": "Call duration in seconds, or the literal pending for a server-side logging record created before call completion."
           },
           "durationMs": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Call duration in milliseconds when supplied by a realtime event."
           },
           "from": {
             "$ref": "#/components/schemas/RcParty"
@@ -4795,23 +5201,27 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RcCallLogLeg"
-            }
+            },
+            "description": "Detailed RingCentral call legs when available."
           },
           "customSubject": {
-            "type": "string"
+            "type": "string",
+            "description": "Client- or server-generated CRM activity subject."
           },
           "lastModifiedTime": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "RingCentral call-log last-modified timestamp."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral call record accepted from the browser client or server-side logging service. Unknown RingCentral fields are preserved for connector use."
       },
       "AdditionalSubmission": {
         "type": "object",
         "properties": {},
         "additionalProperties": true,
-        "description": "Connector-defined custom fields collected by the App Connect client.",
+        "description": "Connector-defined logging fields assembled by the browser client or server-side logging service, including Bullhorn note actions, Clio billing state, and administrator-assignment metadata when configured.",
         "x-app-connect-generated-contract": true
       },
       "CreateCallLogRequest": {
@@ -4826,53 +5236,78 @@
           },
           "extensionNumber": {
             "type": "string",
-            "description": "Legacy RingCentral extension number identity fallback."
+            "description": "Legacy RingCentral extension-number identity fallback used with sessionId."
           },
           "hashedExtensionId": {
             "type": "string",
-            "description": "Hashed RingCentral extension id generated by the client for client-side call logging requests."
+            "description": "Deployment-scoped hashed RingCentral extension identifier used by browser logging."
           },
           "rcExtensionId": {
             "type": "string",
-            "description": "Raw RingCentral extension id sent by server-side call logging; the adapter server hashes it locally before duplicate checks and persistence."
+            "description": "Raw RingCentral extension identifier sent by server-side logging and hashed by the connector server before persistence."
           },
           "contactId": {
-            "type": "string"
+            "type": "string",
+            "description": "CRM contact identifier associated with the activity."
           },
           "contactType": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-defined CRM entity type for contactId."
           },
           "contactName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the associated CRM contact."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "User or server-generated note for the CRM activity."
           },
           "additionalSubmission": {
             "$ref": "#/components/schemas/AdditionalSubmission"
           },
           "aiNote": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional AI-generated note text."
           },
           "transcript": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional call transcript text."
           },
           "ringSenseTranscript": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense transcript supplied by server-side logging."
           },
           "ringSenseSummary": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense summary supplied by server-side logging."
           },
           "ringSenseAIScore": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Connector-defined RingSense scoring data."
           },
           "ringSenseBulletedSummary": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense bulleted summary."
           },
           "ringSenseLink": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Link to the RingSense conversation record."
+          },
+          "overridingFormat": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "One or more connector-specific phone-number formats to try. A blank legacy string is also accepted from server-side logging."
           }
         },
         "example": {
@@ -4902,7 +5337,8 @@
           "contactName": "Jane Smith",
           "contactType": "Contact",
           "note": "Discussed renewal options."
-        }
+        },
+        "description": "Call, contact, note, identity, and optional RingSense data used to create a CRM call activity."
       },
       "UpdateCallLogRequest": {
         "type": "object",
@@ -4911,54 +5347,73 @@
         ],
         "properties": {
           "sessionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call session identifier used to find the local CRM activity mapping."
           },
           "extensionNumber": {
             "type": "string",
-            "description": "Legacy RingCentral extension number identity fallback."
+            "description": "Legacy extension-number identity fallback used with sessionId."
           },
           "hashedExtensionId": {
             "type": "string",
-            "description": "Hashed RingCentral extension id used to find the local call-log mapping."
+            "description": "Deployment-scoped hashed extension identifier used to find the mapping."
           },
           "rcExtensionId": {
             "type": "string",
-            "description": "Raw RingCentral extension id sent by server-side call logging; the adapter server hashes it locally before lookup."
+            "description": "Raw RingCentral extension identifier sent by server-side logging and hashed locally before lookup."
           },
           "accountId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral account identifier used for analytics context by server-side logging."
           },
           "recordingLink": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Browser-accessible RingCentral recording link."
           },
           "recordingDownloadLink": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Recording download URL that can embed a RingCentral access token. Treat as secret; do not log or retain unnecessarily."
           },
           "subject": {
-            "type": "string"
+            "type": "string",
+            "description": "Replacement CRM activity subject."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "Replacement or appended activity note, depending on connector behavior."
           },
           "startTime": {
-            "type": "string",
-            "format": "date-time"
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              }
+            ],
+            "description": "Call start as ISO 8601 date-time or epoch milliseconds. Server-side logging uses epoch milliseconds."
           },
           "duration": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Completed call duration in seconds."
           },
           "result": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call result."
           },
           "direction": {
             "type": "string",
             "enum": [
               "Inbound",
               "Outbound"
-            ]
+            ],
+            "description": "Inbound or outbound call direction."
           },
           "from": {
             "$ref": "#/components/schemas/RcParty"
@@ -4970,61 +5425,81 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RcCallLogLeg"
-            }
+            },
+            "description": "Replacement detailed RingCentral call legs."
           },
           "aiNote": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional AI-generated note text."
           },
           "transcript": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional call transcript text."
           },
           "additionalSubmission": {
             "$ref": "#/components/schemas/AdditionalSubmission"
           },
           "ringSenseTranscript": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense transcript."
           },
           "ringSenseSummary": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense summary."
           },
           "ringSenseAIScore": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Connector-defined RingSense scoring data."
           },
           "ringSenseBulletedSummary": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional RingSense bulleted summary."
           },
           "ringSenseLink": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Link to the RingSense conversation record."
+          },
+          "telephonySessionId": {
+            "type": "string",
+            "description": "RingCentral telephony session identifier supplied by current browser call updates when available."
           }
-        }
+        },
+        "description": "Fields used to find and partially update an existing CRM call activity."
       },
       "CallLogInfo": {
         "type": "object",
         "properties": {
           "subject": {
-            "type": "string"
+            "type": "string",
+            "description": "CRM activity subject."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "CRM activity note."
           },
           "fullBody": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-formatted complete activity body."
           },
           "fullLogResponse": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Raw connector activity response when details were requested."
           },
           "contactName": {
-            "type": "string"
+            "type": "string",
+            "description": "Associated CRM contact display name."
           },
           "dispositions": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Connector-defined disposition values."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Connector-normalized details for an existing CRM call activity."
       },
       "CallLogLookupItem": {
         "type": "object",
@@ -5034,18 +5509,22 @@
         ],
         "properties": {
           "sessionId": {
-            "type": "string"
+            "type": "string",
+            "description": "Requested RingCentral call session identifier."
           },
           "matched": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether a local CRM activity mapping exists for the session and extension identity."
           },
           "logId": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-assigned CRM activity identifier when matched."
           },
           "logData": {
             "$ref": "#/components/schemas/CallLogInfo"
           }
-        }
+        },
+        "description": "Lookup result for one requested RingCentral call session."
       },
       "CallLogLookupResponse": {
         "type": "object",
@@ -5055,24 +5534,28 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether lookup completed without connector-session failure."
           },
           "logs": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CallLogLookupItem"
-            }
+            },
+            "description": "One result per processed RingCentral session identifier."
           },
           "returnMessage": {
             "$ref": "#/components/schemas/ReturnMessage"
           }
-        }
+        },
+        "description": "Existing-activity lookup results for up to five RingCentral call sessions."
       },
       "CallLogMutationResponse": {
         "type": "object",
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the CRM call activity was created or accepted."
           },
           "logId": {
             "anyOf": [
@@ -5082,9 +5565,11 @@
               {
                 "type": "number"
               }
-            ]
+            ],
+            "description": "Connector-assigned CRM activity identifier."
           },
           "returnMessage": {
+            "description": "Optional connector status message.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReturnMessage"
@@ -5096,6 +5581,7 @@
           "successful"
         ],
         "additionalProperties": true,
+        "description": "Result of creating a CRM call activity.",
         "x-app-connect-generated-contract": true
       },
       "CallLogUpdateResponse": {
@@ -5105,18 +5591,22 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector updated the CRM activity."
           },
           "logId": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-assigned CRM activity identifier."
           },
           "updatedNote": {
-            "type": "string"
+            "type": "string",
+            "description": "Final note returned by the connector after update processing."
           },
           "returnMessage": {
             "$ref": "#/components/schemas/ReturnMessage"
           }
-        }
+        },
+        "description": "Result of updating an existing CRM call activity."
       },
       "CallNoteCacheRequest": {
         "type": "object",
@@ -5126,19 +5616,23 @@
         ],
         "properties": {
           "sessionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral call session identifier used as the cache key."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "Call note to retain for up to one hour."
           }
-        }
+        },
+        "description": "Temporary call note stored before full server-side call logging."
       },
       "CallDispositionRequest": {
         "type": "object",
         "properties": {
           "sessionId": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "RingCentral call session identifier."
           },
           "extensionNumber": {
             "anyOf": [
@@ -5167,10 +5661,10 @@
             "description": "Hashed RingCentral extension id used to find the local call-log mapping."
           },
           "dispositions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CallDispositionItem"
-            }
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true,
+            "description": "Disposition values keyed by connector-defined field identifier."
           },
           "additionalSubmission": {
             "description": "Accepted for client compatibility; the current call-disposition handler does not persist or forward these values.",
@@ -5185,6 +5679,7 @@
           "sessionId"
         ],
         "additionalProperties": true,
+        "description": "Call identity and connector-defined dispositions to apply to an existing CRM activity.",
         "x-app-connect-generated-contract": true
       },
       "MessageAttachment": {
@@ -5199,15 +5694,18 @@
                 "type": "integer",
                 "format": "int64"
               }
-            ]
+            ],
+            "description": "RingCentral attachment identifier."
           },
           "uri": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "RingCentral attachment resource URI."
           },
           "link": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Attachment link when supplied by RingCentral."
           },
           "type": {
             "type": "string",
@@ -5218,62 +5716,79 @@
               "SourceDocument",
               "RenderedDocument",
               "MmsAttachment"
-            ]
+            ],
+            "description": "RingCentral attachment type."
           },
           "contentType": {
-            "type": "string"
+            "type": "string",
+            "description": "Attachment MIME type."
           },
           "vmDuration": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Voicemail audio duration in seconds."
           },
           "fileName": {
-            "type": "string"
+            "type": "string",
+            "description": "Attachment file name."
           },
           "size": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Attachment size in bytes."
           },
           "height": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Image height in pixels."
           },
           "width": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Image width in pixels."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral message attachment metadata."
       },
       "MessageParty": {
         "type": "object",
         "properties": {
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "Sender or recipient phone number."
           },
           "extensionNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral extension number when available."
           },
           "extensionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral extension identifier when available."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Party display name."
           },
           "location": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral-provided geographic location."
           },
           "recipientId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral recipient identifier."
           },
           "target": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether this party is the target recipient."
           },
           "messageStatus": {
-            "type": "string"
+            "type": "string",
+            "description": "Per-recipient RingCentral delivery status."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Sender or recipient identity on a RingCentral message."
       },
       "RcMessage": {
         "type": "object",
@@ -5291,20 +5806,24 @@
                 "type": "integer",
                 "format": "int64"
               }
-            ]
+            ],
+            "description": "RingCentral message identifier used for de-duplication."
           },
           "uri": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "RingCentral message-store resource URI."
           },
           "extensionId": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral extension that owns the message."
           },
           "attachments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MessageAttachment"
-            }
+            },
+            "description": "RingCentral message attachment metadata."
           },
           "availability": {
             "type": "string",
@@ -5312,7 +5831,8 @@
               "Alive",
               "Deleted",
               "Purged"
-            ]
+            ],
+            "description": "Current RingCentral message availability."
           },
           "conversationId": {
             "oneOf": [
@@ -5323,26 +5843,31 @@
                 "type": "integer",
                 "format": "int64"
               }
-            ]
+            ],
+            "description": "RingCentral conversation identifier."
           },
           "conversation": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Additional RingCentral conversation metadata."
           },
           "creationTime": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Message creation time."
           },
           "lastModifiedTime": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Message last-modified time."
           },
           "direction": {
             "type": "string",
             "enum": [
               "Inbound",
               "Outbound"
-            ]
+            ],
+            "description": "Inbound or outbound message direction."
           },
           "from": {
             "$ref": "#/components/schemas/MessageParty"
@@ -5351,35 +5876,42 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MessageParty"
-            }
+            },
+            "description": "RingCentral message recipients."
           },
           "messageStatus": {
-            "type": "string"
+            "type": "string",
+            "description": "Overall RingCentral message status."
           },
           "priority": {
             "type": "string",
             "enum": [
               "Normal",
               "High"
-            ]
+            ],
+            "description": "RingCentral message priority."
           },
           "readStatus": {
             "type": "string",
             "enum": [
               "Read",
               "Unread"
-            ]
+            ],
+            "description": "RingCentral read state."
           },
           "smsDeliveryTime": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "SMS delivery timestamp when available."
           },
           "smsSendingAttemptsCount": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Number of SMS delivery attempts."
           },
           "subject": {
-            "type": "string"
+            "type": "string",
+            "description": "Message text or subject."
           },
           "type": {
             "type": "string",
@@ -5390,31 +5922,39 @@
               "VoiceMail",
               "Pager",
               "Text"
-            ]
+            ],
+            "description": "RingCentral message type."
           },
           "faxPageCount": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Number of fax pages."
           },
           "faxResolution": {
-            "type": "string"
+            "type": "string",
+            "description": "Fax resolution reported by RingCentral."
           },
           "deliveryErrorCode": {
-            "type": "string"
+            "type": "string",
+            "description": "RingCentral delivery error code."
           },
           "segmentCount": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Number of SMS segments."
           },
           "vmTranscriptionStatus": {
-            "type": "string"
+            "type": "string",
+            "description": "Voicemail transcription state."
           },
           "owner": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Additional RingCentral owner metadata."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral SMS, MMS, fax, voicemail, pager, or text record accepted for CRM logging."
       },
       "MessageCorrespondent": {
         "type": "object",
@@ -5423,19 +5963,24 @@
         ],
         "properties": {
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "description": "Correspondent phone number."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Correspondent display name."
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-defined CRM entity type."
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-assigned CRM record identifier."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "CRM association for one external participant in a message conversation."
       },
       "MessageConversationLog": {
         "type": "object",
@@ -5453,22 +5998,26 @@
                 "type": "integer",
                 "format": "int64"
               }
-            ]
+            ],
+            "description": "RingCentral conversation identifier."
           },
           "conversationLogId": {
-            "type": "string"
+            "type": "string",
+            "description": "Client-generated shared conversation mapping identifier."
           },
           "messages": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RcMessage"
-            }
+            },
+            "description": "RingCentral messages included in this logging request."
           },
           "correspondents": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MessageCorrespondent"
-            }
+            },
+            "description": "External participants and their CRM associations."
           },
           "owner": {
             "type": "object",
@@ -5477,7 +6026,8 @@
                 "type": "string"
               }
             },
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Conversation owner metadata used by supported connectors."
           },
           "assignee": {
             "type": "object",
@@ -5486,13 +6036,18 @@
                 "type": "string"
               }
             },
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Conversation assignee metadata used by supported connectors."
           },
           "rcAccessToken": {
-            "type": "string"
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "description": "RingCentral OAuth access token used only to download fax or MMS attachments. Treat as secret; do not log or persist it."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "RingCentral messages and CRM correspondents to log individually or as one shared conversation activity."
       },
       "MessageLogRequest": {
         "type": "object",
@@ -5505,16 +6060,33 @@
             "$ref": "#/components/schemas/MessageConversationLog"
           },
           "contactId": {
-            "type": "string"
+            "type": "string",
+            "description": "Primary CRM contact identifier for the message activity."
           },
           "contactType": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-defined CRM entity type for contactId."
           },
           "contactName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the primary CRM contact."
           },
           "additionalSubmission": {
             "$ref": "#/components/schemas/AdditionalSubmission"
+          },
+          "overridingFormat": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "One or more connector-specific phone-number formats to try when resolving message parties."
           }
         },
         "example": {
@@ -5550,13 +6122,15 @@
               }
             ]
           }
-        }
+        },
+        "description": "Message conversation, CRM association, and connector-specific fields used to create or update CRM message activities."
       },
       "MessageLogResponse": {
         "type": "object",
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether message logging completed without a connector error."
           },
           "returnMessage": {
             "anyOf": [
@@ -5570,7 +6144,8 @@
                   null
                 ]
               }
-            ]
+            ],
+            "description": "Optional connector status message; null is used when every message was already logged."
           },
           "logIds": {
             "type": "array",
@@ -5582,14 +6157,17 @@
                 {
                   "type": "number"
                 }
-              ]
-            }
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
+            },
+            "description": "RingCentral message or local conversation-mapping identifiers recorded by this request; an empty list can indicate a no-op."
           }
         },
         "required": [
           "successful"
         ],
         "additionalProperties": true,
+        "description": "Result of logging an SMS, MMS, fax, voicemail, or message conversation.",
         "x-app-connect-generated-contract": true
       },
       "AsyncPluginCallbackRequest": {
@@ -5599,16 +6177,20 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "JSON boolean describing plugin work: true requests a CRM note update; false records task failure."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "Text appended to existing CRM Agent notes when successful is true. Ignored when false."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Diagnostic result text. Stored as the task failure reason when successful is false; ignored on a successful callback."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Plugin completion report for a callback-enabled asynchronous call task."
       },
       "AsyncPluginCallbackResponse": {
         "type": "object",
@@ -5617,25 +6199,30 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the callback report was recorded, including a plugin-reported failure; false for callback validation or processing errors."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable validation or processing error when successful is false."
           }
-        }
+        },
+        "description": "App Connect callback-processing result. successful describes whether the callback was accepted or processed, not whether the plugin background work succeeded."
       },
       "AppointmentStatusUpdateRequest": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Requested connector status. The server normalizes this value to lowercase before dispatch."
           }
         },
         "required": [
           "status"
         ],
         "additionalProperties": false,
+        "description": "Generic appointment status update request.",
         "x-app-connect-generated-contract": true
       },
       "WidgetToolCallRequest": {
@@ -5647,7 +6234,7 @@
           "tool": {
             "type": "string",
             "minLength": 1,
-            "description": "Registered widget tool name."
+            "description": "Registered widget tool name. Only explicitly allowlisted tools can be invoked."
           },
           "toolArgs": {
             "type": "object",
@@ -5655,7 +6242,8 @@
             "description": "Arguments accepted by the selected widget tool."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Allowlisted MCP tool name and arguments submitted from a signed App Connect widget session."
       },
       "ServerVersionInfoResponse": {
         "type": "object",
@@ -5669,85 +6257,111 @@
           "version"
         ],
         "additionalProperties": false,
+        "description": "Legacy server version metadata retained for older App Connect clients.",
         "x-app-connect-generated-contract": true
       },
       "ImplementedInterfacesResponse": {
         "type": "object",
         "properties": {
           "getAuthType": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getAuthType."
           },
           "getOauthInfo": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "For OAuth connectors, whether getOauthInfo is implemented."
           },
           "getBasicAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "For API-key connectors, whether getBasicAuth is implemented."
           },
           "getUserInfo": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getUserInfo."
           },
           "createCallLog": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements createCallLog."
           },
           "updateCallLog": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements updateCallLog."
           },
           "getCallLog": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getCallLog."
           },
           "createMessageLog": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements createMessageLog."
           },
           "updateMessageLog": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements updateMessageLog."
           },
           "createContact": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements createContact."
           },
           "findContact": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements findContact."
           },
           "listAppointments": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements listAppointments."
           },
           "createAppointment": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements createAppointment."
           },
           "updateAppointment": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements updateAppointment."
           },
           "refreshAppointment": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements refreshAppointment."
           },
           "confirmAppointment": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements confirmAppointment."
           },
           "cancelAppointment": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements cancelAppointment."
           },
           "unAuthorize": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements unAuthorize."
           },
           "upsertCallDisposition": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements upsertCallDisposition."
           },
           "findContactWithName": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements findContactWithName."
           },
           "getUserList": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getUserList."
           },
           "getLicenseStatus": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getLicenseStatus."
           },
           "getLogFormatType": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements getLogFormatType."
           },
           "refreshUserInfo": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector implements refreshUserInfo."
           },
           "cacheCallNote": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether this App Connect deployment enables the temporary call-note cache."
           }
         },
         "required": [
@@ -5776,6 +6390,7 @@
           "cacheCallNote"
         ],
         "additionalProperties": true,
+        "description": "Feature flags derived from the selected connector module and server configuration.",
         "x-app-connect-generated-contract": true
       },
       "UserInfoHashResponse": {
@@ -5799,6 +6414,7 @@
           "accountId"
         ],
         "additionalProperties": true,
+        "description": "Server-keyed hashes of RingCentral account and extension identifiers.",
         "x-app-connect-generated-contract": true
       },
       "DebugReportUrlResponse": {
@@ -5814,6 +6430,7 @@
           "presignedUrl"
         ],
         "additionalProperties": true,
+        "description": "Temporary object-storage upload destination for an App Connect debug report.",
         "x-app-connect-generated-contract": true
       },
       "PluginRegisterRequest": {
@@ -5844,15 +6461,15 @@
                 "type": "number"
               }
             ],
-            "description": "RingCentral account that owns a shared plugin."
+            "description": "RingCentral account used to resolve a private or shared plugin manifest."
           },
           "pluginAccess": {
             "type": "string",
-            "description": "Plugin access mode, such as private, shared, or public."
+            "description": "Manifest lookup mode: public uses the public catalog; private or shared uses ownerRcAccountId; when omitted, the server tries both."
           },
           "pluginName": {
             "type": "string",
-            "description": "Human-readable plugin name."
+            "description": "Plugin platform key used to select the manifest entry when the manifest contains multiple platforms."
           },
           "rcAccessToken": {
             "type": "string",
@@ -5867,49 +6484,37 @@
           "rcAccountId"
         ],
         "additionalProperties": false,
+        "description": "Plugin catalog identity and RingCentral account context used for installation.",
         "x-app-connect-generated-contract": true
       },
       "PluginMutationResponse": {
         "type": "object",
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the plugin installation or removal operation completed."
           },
           "returnMessage": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional error or status message."
           }
         },
         "required": [
           "successful"
         ],
         "additionalProperties": true,
-        "x-app-connect-generated-contract": true
-      },
-      "CallDispositionItem": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          },
-          "value": {}
-        },
-        "additionalProperties": true,
+        "description": "Result of installing or removing an account-level plugin registration.",
         "x-app-connect-generated-contract": true
       },
       "AuthValidationResponse": {
         "type": "object",
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector considers the stored CRM authorization valid."
           },
           "returnMessage": {
+            "description": "Optional connector message explaining the validation result.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReturnMessage"
@@ -5921,19 +6526,23 @@
           "successful"
         ],
         "additionalProperties": true,
+        "description": "Result of validating the current user's stored CRM authorization.",
         "x-app-connect-generated-contract": true
       },
       "ManagedAuthStateResponse": {
         "type": "object",
         "properties": {
           "hasManagedAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the selected connector declares administrator-managed API-key fields."
           },
           "allRequiredFieldsSatisfied": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether every required login field can be resolved from managed storage; required manual fields make this false."
           },
           "visibleFieldConsts": {
             "nullable": true,
+            "description": "Required credential field identifiers that the login form should display; null means no visibility override and allows the complete manual form.",
             "type": "array",
             "items": {
               "type": "string"
@@ -5943,10 +6552,12 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Required credential field identifiers that are not currently available from managed storage, including unmanaged fields that must be entered manually."
           },
           "fallbackToManualAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether a previous managed-auth login failure marked this account and extension to retry with manual credentials."
           }
         },
         "required": [
@@ -5957,29 +6568,35 @@
           "fallbackToManualAuth"
         ],
         "additionalProperties": true,
+        "description": "Readiness of administrator-managed API-key credentials for a RingCentral account and extension.",
         "x-app-connect-generated-contract": true
       },
       "ManagedOAuthStateResponse": {
         "type": "object",
         "properties": {
           "isAdmin": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the supplied RingCentral token belongs to an account administrator."
           },
           "hasAccountOAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether completed account-scoped OAuth configuration exists for the connector."
           },
           "hasPendingOAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether administrator-supplied OAuth values are cached for an unfinished authorization flow."
           },
           "oauthValues": {
             "type": "object",
             "properties": {},
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Completed managed OAuth values that are safe to return to the requesting client."
           },
           "pendingValues": {
             "type": "object",
             "properties": {},
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Cached values for the administrator's in-progress OAuth setup. This object can contain sensitive client credentials."
           }
         },
         "required": [
@@ -5988,28 +6605,38 @@
           "hasPendingOAuth"
         ],
         "additionalProperties": true,
+        "description": "Account-level managed OAuth setup state for the selected connector.",
         "x-app-connect-generated-contract": true
       },
       "UserSetting": {
         "type": "object",
         "properties": {
-          "value": {},
+          "value": {
+            "description": "Setting value supplied by or returned to the client."
+          },
           "customizable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the user may override the account-managed value."
           },
           "isCustomizable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Legacy alias of customizable retained for older clients and connectors."
           },
           "isRemoved": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the setting has been removed and should be hidden by clients."
           },
-          "defaultValue": {},
+          "defaultValue": {
+            "description": "Connector-manifest default used when no value is stored."
+          },
           "options": {
             "type": "array",
-            "items": {}
+            "items": {},
+            "description": "Allowed or suggested values for selection-style settings."
           }
         },
         "additionalProperties": true,
+        "description": "One connector or App Connect user-setting entry.",
         "x-app-connect-generated-contract": true
       },
       "UserSettings": {
@@ -6024,6 +6651,7 @@
         "type": "object",
         "properties": {
           "userSettings": {
+            "description": "Settings available to the user.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserSettings"
@@ -6032,12 +6660,14 @@
           }
         },
         "additionalProperties": true,
+        "description": "Optional wrapper used by settings preload and update operations.",
         "x-app-connect-generated-contract": true
       },
       "UserSettingsUpdateRequest": {
         "type": "object",
         "properties": {
           "userSettings": {
+            "description": "Setting entries to create or replace.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/UserSettings"
@@ -6048,14 +6678,17 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Setting identifiers to remove from the user record."
           }
         },
         "additionalProperties": true,
+        "description": "Per-user settings upsert and removal request.",
         "x-app-connect-generated-contract": true
       },
       "AdminSuccessMessage": {
         "type": "string",
+        "description": "Plain-text confirmation returned after an administrator update succeeds.",
         "x-app-connect-generated-contract": true
       },
       "AdminSettingsUpdateRequest": {
@@ -6064,54 +6697,65 @@
           "adminSettings": {
             "type": "object",
             "properties": {},
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Account-level App Connect configuration, including user-setting overrides and optional custom-connector data."
           }
         },
         "required": [
           "adminSettings"
         ],
         "additionalProperties": true,
+        "description": "Account-level App Connect settings submitted by a RingCentral administrator.",
         "x-app-connect-generated-contract": true
       },
       "ManagedAuthFieldDefinition": {
         "type": "object",
         "properties": {
           "const": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable field identifier declared in the connector manifest."
           },
           "required": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether login requires a value for this field."
           },
           "managed": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether an administrator supplies this field."
           },
           "managedScope": {
             "type": "string",
             "enum": [
               "account",
               "user"
-            ]
+            ],
+            "description": "Whether one value is shared by the RingCentral account or stored separately per extension."
           }
         },
         "required": [
           "const"
         ],
         "additionalProperties": true,
+        "description": "Connector credential field that supports administrator-managed storage.",
         "x-app-connect-generated-contract": true
       },
       "StoredFieldValue": {
         "type": "object",
         "properties": {
           "hasValue": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether a non-empty value is stored for the field."
           },
-          "value": {}
+          "value": {
+            "description": "Sensitive decrypted value returned to the authenticated administrator, or an empty string when unset."
+          }
         },
         "required": [
           "hasValue",
           "value"
         ],
         "additionalProperties": true,
+        "description": "Administrator view of one stored managed-auth value.",
         "x-app-connect-generated-contract": true
       },
       "ManagedAuthAdminUserValue": {
@@ -6125,16 +6769,19 @@
               {
                 "type": "number"
               }
-            ]
+            ],
+            "description": "RingCentral extension that owns these user-scoped values."
           },
           "rcUserName": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name associated with the RingCentral extension."
           },
           "fields": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/StoredFieldValue"
-            }
+            },
+            "description": "Stored user-scoped values keyed by connector field identifier."
           }
         },
         "required": [
@@ -6143,43 +6790,50 @@
           "fields"
         ],
         "additionalProperties": true,
+        "description": "Managed-auth values stored for one RingCentral extension.",
         "x-app-connect-generated-contract": true
       },
       "ManagedAuthAdminResponse": {
         "type": "object",
         "properties": {
           "hasManagedAuth": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the connector declares any administrator-managed authentication fields."
           },
           "fields": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ManagedAuthFieldDefinition"
-            }
+            },
+            "description": "All managed field definitions."
           },
           "orgFields": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ManagedAuthFieldDefinition"
-            }
+            },
+            "description": "Managed fields whose values are shared across the RingCentral account."
           },
           "userFields": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ManagedAuthFieldDefinition"
-            }
+            },
+            "description": "Managed fields whose values are stored separately for each RingCentral extension."
           },
           "orgValues": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/StoredFieldValue"
-            }
+            },
+            "description": "Account-scoped stored values keyed by connector field identifier."
           },
           "userValues": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ManagedAuthAdminUserValue"
-            }
+            },
+            "description": "User-scoped stored values grouped by RingCentral extension."
           }
         },
         "required": [
@@ -6191,6 +6845,7 @@
           "userValues"
         ],
         "additionalProperties": true,
+        "description": "Administrator-facing managed-auth definitions and currently stored values.",
         "x-app-connect-generated-contract": true
       },
       "ManagedAuthUpdateRequest": {
@@ -6202,18 +6857,21 @@
                 "type": "string",
                 "enum": [
                   "org"
-                ]
+                ],
+                "description": "Update values shared by the RingCentral account."
               },
               "values": {
                 "type": "object",
                 "properties": {},
-                "additionalProperties": true
+                "additionalProperties": true,
+                "description": "Field values to create or replace, keyed by field identifier."
               },
               "fieldsToRemove": {
                 "type": "array",
                 "items": {
                   "type": "string"
-                }
+                },
+                "description": "Field identifiers whose stored values should be deleted."
               }
             },
             "required": [
@@ -6228,7 +6886,8 @@
                 "type": "string",
                 "enum": [
                   "user"
-                ]
+                ],
+                "description": "Update values for one RingCentral extension."
               },
               "rcExtensionId": {
                 "anyOf": [
@@ -6238,21 +6897,25 @@
                   {
                     "type": "number"
                   }
-                ]
+                ],
+                "description": "RingCentral extension that owns the values."
               },
               "rcUserName": {
-                "type": "string"
+                "type": "string",
+                "description": "Optional display name stored with the extension values."
               },
               "values": {
                 "type": "object",
                 "properties": {},
-                "additionalProperties": true
+                "additionalProperties": true,
+                "description": "Field values to create or replace, keyed by field identifier."
               },
               "fieldsToRemove": {
                 "type": "array",
                 "items": {
                   "type": "string"
-                }
+                },
+                "description": "Field identifiers whose stored values should be deleted."
               }
             },
             "required": [
@@ -6262,27 +6925,33 @@
             "additionalProperties": true
           }
         ],
+        "description": "Account-scoped or extension-scoped managed-auth value update.",
         "x-app-connect-generated-contract": true
       },
       "ManagedOAuthValues": {
         "type": "object",
         "properties": {
           "clientId": {
-            "type": "string"
+            "type": "string",
+            "description": "OAuth client identifier configured for the CRM provider."
           },
           "clientSecret": {
             "type": "string",
             "format": "password",
-            "writeOnly": true
+            "writeOnly": true,
+            "description": "OAuth client secret. Treat this value as sensitive and never log it."
           },
           "accessTokenUri": {
-            "type": "string"
+            "type": "string",
+            "description": "OAuth token endpoint URL."
           },
           "authorizationUri": {
-            "type": "string"
+            "type": "string",
+            "description": "OAuth authorization endpoint URL."
           },
           "redirectUri": {
-            "type": "string"
+            "type": "string",
+            "description": "Redirect URI registered with the CRM OAuth application."
           },
           "scopes": {
             "anyOf": [
@@ -6295,19 +6964,23 @@
                   "type": "string"
                 }
               }
-            ]
+            ],
+            "description": "Requested OAuth scopes, supplied as one provider-formatted string or a list of scope names."
           },
           "hostname": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional tenant-specific CRM hostname used by the OAuth flow."
           }
         },
         "additionalProperties": true,
+        "description": "Administrator-supplied values used to configure account-scoped CRM OAuth.",
         "x-app-connect-generated-contract": true
       },
       "AdminManagedOAuthCacheRequest": {
         "type": "object",
         "properties": {
           "values": {
+            "description": "OAuth values to hold until the administrator completes or cancels authorization.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ManagedOAuthValues"
@@ -6316,6 +6989,7 @@
           }
         },
         "additionalProperties": true,
+        "description": "Pending managed OAuth configuration to cache for the RingCentral account.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentAttendee": {
@@ -6329,25 +7003,31 @@
               {
                 "type": "number"
               }
-            ]
+            ],
+            "description": "CRM attendee or contact identifier."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Attendee display name."
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-specific attendee entity type."
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "description": "Connector-specific invitation or attendance status."
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "description": "Attendee email address."
           }
         },
         "required": [
           "id"
         ],
         "additionalProperties": true,
+        "description": "Normalized attendee returned with an appointment.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentContactReference": {
@@ -6364,7 +7044,8 @@
                 "exclusiveMinimum": true,
                 "maximum": 9007199254740991
               }
-            ]
+            ],
+            "description": "Positive CRM contact identifier."
           },
           {
             "type": "object",
@@ -6381,7 +7062,8 @@
                     "exclusiveMinimum": true,
                     "maximum": 9007199254740991
                   }
-                ]
+                ],
+                "description": "Positive CRM contact identifier."
               },
               "type": {
                 "type": "string"
@@ -6396,6 +7078,7 @@
             "additionalProperties": false
           }
         ],
+        "description": "CRM contact to associate with the appointment, as an id or typed reference.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentCreateRequest": {
@@ -6404,7 +7087,12 @@
             "type": "object",
             "properties": {
               "payload": {
-                "$ref": "#/components/schemas/AppointmentCreateInput"
+                "description": "Canonical appointment create payload.",
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AppointmentCreateInput"
+                  }
+                ]
               }
             },
             "required": [
@@ -6421,6 +7109,7 @@
             ]
           }
         ],
+        "description": "Canonical wrapped appointment create request or deprecated direct payload.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentPatchRequest": {
@@ -6429,7 +7118,12 @@
             "type": "object",
             "properties": {
               "patch": {
-                "$ref": "#/components/schemas/AppointmentPatchInput"
+                "description": "Canonical partial appointment update.",
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AppointmentPatchInput"
+                  }
+                ]
               }
             },
             "required": [
@@ -6446,6 +7140,7 @@
             ]
           }
         ],
+        "description": "Canonical wrapped appointment patch request or deprecated direct payload.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentListResponse": {
@@ -6457,25 +7152,29 @@
                 "type": "boolean",
                 "enum": [
                   true
-                ]
+                ],
+                "description": "Always true when the connector returned a list."
               },
               "appointments": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/IdentifiedAppointment"
-                }
+                },
+                "description": "Appointments in the requested date window."
               }
             },
             "required": [
               "successful",
               "appointments"
             ],
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Successful appointment list result."
           },
           {
             "$ref": "#/components/schemas/AppointmentFailureResponse"
           }
         ],
+        "description": "Appointment list result, including connector-level failures returned with HTTP 200.",
         "x-app-connect-generated-contract": true
       },
       "HealthResponse": {
@@ -6483,6 +7182,7 @@
         "enum": [
           "OK"
         ],
+        "description": "Literal liveness response. It does not verify databases, connectors, or upstream services.",
         "x-app-connect-generated-contract": true
       },
       "ReleaseNoteItem": {
@@ -6495,7 +7195,8 @@
           },
           "description": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Human-readable release-note text."
           }
         },
         "required": [
@@ -6503,6 +7204,7 @@
           "description"
         ],
         "additionalProperties": false,
+        "description": "One categorized App Connect or connector release note.",
         "x-app-connect-generated-contract": true
       },
       "ReleaseNoteSections": {
@@ -6513,6 +7215,7 @@
             "$ref": "#/components/schemas/ReleaseNoteItem"
           }
         },
+        "description": "Release-note lists keyed by global or connector platform name.",
         "x-app-connect-generated-contract": true
       },
       "ReleaseNotesResponse": {
@@ -6520,6 +7223,7 @@
         "additionalProperties": {
           "$ref": "#/components/schemas/ReleaseNoteSections"
         },
+        "description": "App Connect and connector release notes grouped by connector-declared server version; global-only versions are not emitted.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentCreateInput": {
@@ -6527,16 +7231,18 @@
         "properties": {
           "title": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Appointment title."
           },
           "summary": {
-            "type": "string"
+            "type": "string",
+            "description": "Appointment description or agenda."
           },
           "startTimeUtc": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "ISO-8601 appointment timestamp with a UTC offset."
+            "description": "Appointment start timestamp, including its UTC offset."
           },
           "durationMinutes": {
             "type": "integer",
@@ -6549,7 +7255,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AppointmentContactReference"
-            }
+            },
+            "description": "CRM contacts to associate with or invite to the appointment."
           }
         },
         "required": [
@@ -6559,6 +7266,7 @@
           "durationMinutes"
         ],
         "additionalProperties": false,
+        "description": "Fields required to create a connector appointment.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentPatchInput": {
@@ -6568,16 +7276,19 @@
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "Replacement appointment title."
               },
               "summary": {
-                "type": "string"
+                "type": "string",
+                "description": "Replacement appointment description or agenda."
               },
               "contacts": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/AppointmentContactReference"
-                }
+                },
+                "description": "Replacement set of associated CRM contacts."
               }
             },
             "additionalProperties": false,
@@ -6588,22 +7299,25 @@
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "Replacement appointment title."
               },
               "summary": {
-                "type": "string"
+                "type": "string",
+                "description": "Replacement appointment description or agenda."
               },
               "contacts": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/AppointmentContactReference"
-                }
+                },
+                "description": "Replacement set of associated CRM contacts."
               },
               "startTimeUtc": {
                 "type": "string",
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                "description": "ISO-8601 appointment timestamp with a UTC offset."
+                "description": "Replacement start timestamp, including its UTC offset."
               },
               "durationMinutes": {
                 "type": "integer",
@@ -6624,22 +7338,25 @@
             "properties": {
               "title": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "description": "Replacement appointment title."
               },
               "summary": {
-                "type": "string"
+                "type": "string",
+                "description": "Replacement appointment description or agenda."
               },
               "contacts": {
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/AppointmentContactReference"
-                }
+                },
+                "description": "Replacement set of associated CRM contacts."
               },
               "startTime": {
                 "type": "string",
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                "description": "ISO-8601 appointment timestamp with a UTC offset."
+                "description": "Deprecated replacement start time in ISO 8601 form with an explicit offset. The paired durationMinutes field is required."
               },
               "durationMinutes": {
                 "type": "integer",
@@ -6657,6 +7374,7 @@
             "deprecated": true
           }
         ],
+        "description": "Appointment fields to replace; omitted fields remain unchanged.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentFailureResponse": {
@@ -6666,10 +7384,16 @@
             "type": "boolean",
             "enum": [
               false
-            ]
+            ],
+            "description": "Always false for a rejected appointment operation."
           },
           "returnMessage": {
-            "$ref": "#/components/schemas/ReturnMessage"
+            "description": "Connector explanation of the failure.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReturnMessage"
+              }
+            ]
           }
         },
         "required": [
@@ -6677,6 +7401,7 @@
           "returnMessage"
         ],
         "additionalProperties": true,
+        "description": "Connector-level appointment failure returned with HTTP 200.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentCreateResponse": {
@@ -6688,7 +7413,8 @@
                 "type": "boolean",
                 "enum": [
                   true
-                ]
+                ],
+                "description": "Always true when the connector created the appointment."
               },
               "appointmentId": {
                 "anyOf": [
@@ -6699,9 +7425,11 @@
                   {
                     "type": "number"
                   }
-                ]
+                ],
+                "description": "Identifier assigned to the created appointment."
               },
               "appointment": {
+                "description": "Created appointment when the connector returns it.",
                 "allOf": [
                   {
                     "$ref": "#/components/schemas/IdentifiedAppointment"
@@ -6709,6 +7437,7 @@
                 ]
               },
               "returnMessage": {
+                "description": "Optional connector status message.",
                 "allOf": [
                   {
                     "$ref": "#/components/schemas/ReturnMessage"
@@ -6720,12 +7449,14 @@
               "successful",
               "appointmentId"
             ],
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Successful appointment creation result."
           },
           {
             "$ref": "#/components/schemas/AppointmentFailureResponse"
           }
         ],
+        "description": "Appointment creation result.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentRecordResponse": {
@@ -6737,7 +7468,8 @@
                 "type": "boolean",
                 "enum": [
                   true
-                ]
+                ],
+                "description": "Always true when the connector returned the updated record."
               },
               "appointmentId": {
                 "anyOf": [
@@ -6748,12 +7480,19 @@
                   {
                     "type": "number"
                   }
-                ]
+                ],
+                "description": "Identifier of the affected appointment."
               },
               "appointment": {
-                "$ref": "#/components/schemas/IdentifiedAppointment"
+                "description": "Current appointment after the operation.",
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/IdentifiedAppointment"
+                  }
+                ]
               },
               "returnMessage": {
+                "description": "Optional connector status message.",
                 "allOf": [
                   {
                     "$ref": "#/components/schemas/ReturnMessage"
@@ -6766,12 +7505,14 @@
               "appointmentId",
               "appointment"
             ],
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Successful appointment update or refresh result with the current record."
           },
           {
             "$ref": "#/components/schemas/AppointmentFailureResponse"
           }
         ],
+        "description": "Appointment mutation or refresh result that returns the current record on success.",
         "x-app-connect-generated-contract": true
       },
       "AppointmentActionResponse": {
@@ -6785,7 +7526,8 @@
                     "type": "boolean",
                     "enum": [
                       true
-                    ]
+                    ],
+                    "description": "Always true when the connector completed the action."
                   },
                   "appointmentId": {
                     "anyOf": [
@@ -6796,12 +7538,19 @@
                       {
                         "type": "number"
                       }
-                    ]
+                    ],
+                    "description": "Identifier of the affected appointment."
                   },
                   "appointment": {
-                    "$ref": "#/components/schemas/IdentifiedAppointment"
+                    "description": "Current appointment after the action.",
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/IdentifiedAppointment"
+                      }
+                    ]
                   },
                   "returnMessage": {
+                    "description": "Optional connector status message.",
                     "allOf": [
                       {
                         "$ref": "#/components/schemas/ReturnMessage"
@@ -6823,7 +7572,8 @@
                     "type": "boolean",
                     "enum": [
                       true
-                    ]
+                    ],
+                    "description": "Always true when the connector completed the action."
                   },
                   "appointmentId": {
                     "anyOf": [
@@ -6834,10 +7584,16 @@
                       {
                         "type": "number"
                       }
-                    ]
+                    ],
+                    "description": "Identifier of the affected appointment."
                   },
                   "returnMessage": {
-                    "$ref": "#/components/schemas/ReturnMessage"
+                    "description": "Connector confirmation when no record is returned.",
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/ReturnMessage"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -6847,12 +7603,14 @@
                 ],
                 "additionalProperties": true
               }
-            ]
+            ],
+            "description": "Successful confirm or cancel result, with either the current record or a status message."
           },
           {
             "$ref": "#/components/schemas/AppointmentFailureResponse"
           }
         ],
+        "description": "Appointment confirmation or cancellation result.",
         "x-app-connect-generated-contract": true
       },
       "IdentifiedAppointment": {
@@ -6867,7 +7625,8 @@
               {
                 "type": "number"
               }
-            ]
+            ],
+            "description": "Connector appointment identifier."
           },
           "thirdPartyAppointmentId": {
             "anyOf": [
@@ -6879,10 +7638,12 @@
                 "nullable": true,
                 "type": "number"
               }
-            ]
+            ],
+            "description": "CRM-native appointment identifier used when opening the record in the CRM."
           },
           "title": {
             "nullable": true,
+            "description": "Appointment title.",
             "type": "string"
           },
           "description": {
@@ -6897,22 +7658,25 @@
           },
           "participantName": {
             "nullable": true,
+            "description": "Compatibility display name for the primary participant.",
             "type": "string"
           },
           "startTimeUtc": {
             "nullable": true,
+            "description": "Appointment start timestamp, including its UTC offset.",
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-            "description": "ISO-8601 appointment timestamp with a UTC offset."
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
           "durationMinutes": {
             "nullable": true,
+            "description": "Appointment duration in minutes.",
             "type": "number",
             "minimum": 0
           },
           "status": {
             "nullable": true,
+            "description": "Connector-specific appointment status.",
             "type": "string"
           },
           "contactId": {
@@ -6925,17 +7689,20 @@
                 "nullable": true,
                 "type": "number"
               }
-            ]
+            ],
+            "description": "Primary related CRM contact identifier."
           },
           "contactType": {
             "nullable": true,
+            "description": "Primary related CRM contact type.",
             "type": "string"
           },
           "attendees": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AppointmentAttendee"
-            }
+            },
+            "description": "Normalized appointment attendees."
           },
           "attendeeIds": {
             "type": "array",
@@ -6947,7 +7714,8 @@
                 {
                   "type": "number"
                 }
-              ]
+              ],
+              "description": "Connector-defined entity identifier, represented as a string or number."
             },
             "description": "Compatibility representation returned by connectors that do not provide attendee objects."
           }
@@ -6956,7 +7724,217 @@
           "id"
         ],
         "additionalProperties": true,
+        "description": "Appointment record with the identifier required by list and mutation responses.",
         "x-app-connect-generated-contract": true
+      },
+      "CallDownEntry": {
+        "type": "object",
+        "description": "Server-owned scheduled call-back entry scoped to one App Connect user.",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated call-back entry identifier."
+          },
+          "userId": {
+            "type": "string",
+            "description": "Internal App Connect user identifier. Clients should treat this value as opaque."
+          },
+          "contactId": {
+            "type": "string",
+            "nullable": true,
+            "description": "CRM contact identifier associated with the callback."
+          },
+          "contactType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Connector-defined CRM entity type for contactId."
+          },
+          "status": {
+            "type": "string",
+            "description": "Call-back state. Current normal values are scheduled and called."
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Requested callback time, or null when none was supplied."
+          },
+          "lastCallAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Most recent call time after the entry is marked called."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Entry creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Entry last-update timestamp."
+          }
+        },
+        "additionalProperties": true
+      },
+      "CallDownCreateRequest": {
+        "type": "object",
+        "description": "Fields accepted when scheduling a server-owned call-back entry.",
+        "properties": {
+          "contactId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "CRM contact identifier to persist with the entry."
+          },
+          "contactType": {
+            "type": "string",
+            "description": "Connector-defined CRM entity type. Defaults to contact."
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Requested callback time."
+          },
+          "contactName": {
+            "type": "string",
+            "description": "Contact display name sent by the current browser client but not retained by the current persistence model."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Callback phone number sent by the current browser client but not retained by the current persistence model."
+          },
+          "note": {
+            "type": "string",
+            "description": "Callback note sent by the current browser client but not retained by the current persistence model."
+          }
+        },
+        "additionalProperties": true
+      },
+      "CallDownPatchRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Allowed fields for updating a server-owned call-back entry.",
+        "properties": {
+          "contactId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "description": "Replacement CRM contact identifier."
+          },
+          "contactType": {
+            "type": "string",
+            "description": "Replacement connector-defined CRM entity type."
+          },
+          "status": {
+            "type": "string",
+            "description": "Replacement status, normally scheduled or called."
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Replacement callback time."
+          },
+          "lastCallAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Replacement last-call time."
+          },
+          "contactName": {
+            "type": "string",
+            "description": "Replacement contact display name accepted by the handler but not retained by the current persistence model."
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Replacement callback phone number accepted by the handler but not retained by the current persistence model."
+          },
+          "note": {
+            "type": "string",
+            "description": "Replacement callback note accepted by the handler but not retained by the current persistence model."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CallDownCreateResponse": {
+        "type": "object",
+        "description": "Result of scheduling a call-back entry.",
+        "required": [
+          "successful",
+          "id"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Whether the entry was scheduled."
+          },
+          "id": {
+            "type": "string",
+            "description": "Generated call-back entry identifier."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CallDownListResponse": {
+        "type": "object",
+        "description": "Scheduled call-back entries owned by the current App Connect user.",
+        "required": [
+          "successful",
+          "items"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Whether the list was loaded."
+          },
+          "items": {
+            "type": "array",
+            "description": "Entries ordered by scheduledAt ascending.",
+            "items": {
+              "$ref": "#/components/schemas/CallDownEntry"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CallDownMutationResponse": {
+        "type": "object",
+        "description": "Result of updating or deleting a call-back entry.",
+        "required": [
+          "successful"
+        ],
+        "properties": {
+          "successful": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Whether the requested mutation completed."
+          }
+        },
+        "additionalProperties": false
       }
     },
     "headers": {
@@ -7014,7 +7992,6 @@
       "ContactInfo",
       "CallLogMutationResponse",
       "MessageLogResponse",
-      "CallDispositionItem",
       "CallDispositionRequest",
       "UserSetting",
       "UserSettings",

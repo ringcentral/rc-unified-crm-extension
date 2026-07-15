@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { JsonMapSchema, ReturnMessageSchema } from './common';
+import { EntityIdSchema, JsonMapSchema, ReturnMessageSchema } from './common';
 
 export const ApiKeyLoginRequestSchema = z.strictObject({
   platform: z.string().min(1).meta({
@@ -17,6 +17,18 @@ export const ApiKeyLoginRequestSchema = z.strictObject({
     deprecated: true,
     description: 'Legacy body location for a RingCentral access token. Use the X-RC-Access-Token header instead.',
   }).optional(),
+  rcAccountId: EntityIdSchema.meta({
+    deprecated: true,
+    description: 'Ignored browser-client compatibility field. The server derives the RingCentral account from rcAccessToken.',
+  }).optional(),
+  rcExtensionId: EntityIdSchema.meta({
+    deprecated: true,
+    description: 'Ignored browser-client compatibility field. The server derives the RingCentral extension from rcAccessToken.',
+  }).optional(),
+  userEmail: z.string().meta({
+    deprecated: true,
+    description: 'Ignored browser-client compatibility field. Connector credential fields belong in additionalInfo.',
+  }).optional(),
   hostname: z.string().describe(
     'Optional connector host name for CRM deployments with tenant-specific endpoints.',
   ).optional(),
@@ -31,36 +43,64 @@ export const ApiKeyLoginRequestSchema = z.strictObject({
   additionalInfo: JsonMapSchema.describe(
     'Connector-defined credential fields, such as tenant or user identifiers.',
   ).optional(),
-});
+}).describe(
+  'Credentials and connector context used to establish an App Connect session for an API-key connector.',
+);
 
 export const ApiKeyLoginResponseSchema = z.looseObject({
   jwtToken: z.string().describe(
     'App Connect JWT used to authenticate subsequent user operations.',
   ),
   name: z.string().describe('Display name returned by the CRM connector.').optional(),
-  returnMessage: ReturnMessageSchema.optional(),
-});
+  returnMessage: ReturnMessageSchema.describe(
+    'Optional connector message about the completed login.',
+  ).optional(),
+}).describe('Successful API-key login result and the new App Connect session token.');
 
 export const AuthValidationResponseSchema = z.looseObject({
-  successful: z.boolean(),
-  returnMessage: ReturnMessageSchema.optional(),
-});
+  successful: z.boolean().describe(
+    'Whether the connector considers the stored CRM authorization valid.',
+  ),
+  returnMessage: ReturnMessageSchema.describe(
+    'Optional connector message explaining the validation result.',
+  ).optional(),
+}).describe('Result of validating the current user\'s stored CRM authorization.');
 
 export const ManagedAuthStateResponseSchema = z.looseObject({
-  hasManagedAuth: z.boolean(),
-  allRequiredFieldsSatisfied: z.boolean(),
-  visibleFieldConsts: z.array(z.string()).nullable(),
-  missingRequiredFieldConsts: z.array(z.string()),
-  fallbackToManualAuth: z.boolean(),
-});
+  hasManagedAuth: z.boolean().describe(
+    'Whether the selected connector declares administrator-managed API-key fields.',
+  ),
+  allRequiredFieldsSatisfied: z.boolean().describe(
+    'Whether every required login field can be resolved from managed storage; required manual fields make this false.',
+  ),
+  visibleFieldConsts: z.array(z.string()).nullable().describe(
+    'Required credential field identifiers that the login form should display; null means no visibility override and allows the complete manual form.',
+  ),
+  missingRequiredFieldConsts: z.array(z.string()).describe(
+    'Required credential field identifiers that are not currently available from managed storage, including unmanaged fields that must be entered manually.',
+  ),
+  fallbackToManualAuth: z.boolean().describe(
+    'Whether a previous managed-auth login failure marked this account and extension to retry with manual credentials.',
+  ),
+}).describe(
+  'Readiness of administrator-managed API-key credentials for a RingCentral account and extension.',
+);
 
 export const ManagedOAuthStateResponseSchema = z.looseObject({
-  isAdmin: z.boolean(),
-  hasAccountOAuth: z.boolean(),
-  hasPendingOAuth: z.boolean(),
-  oauthValues: JsonMapSchema.optional(),
-  pendingValues: JsonMapSchema.optional(),
-});
+  isAdmin: z.boolean().describe('Whether the supplied RingCentral token belongs to an account administrator.'),
+  hasAccountOAuth: z.boolean().describe(
+    'Whether completed account-scoped OAuth configuration exists for the connector.',
+  ),
+  hasPendingOAuth: z.boolean().describe(
+    'Whether administrator-supplied OAuth values are cached for an unfinished authorization flow.',
+  ),
+  oauthValues: JsonMapSchema.describe(
+    'Completed managed OAuth values that are safe to return to the requesting client.',
+  ).optional(),
+  pendingValues: JsonMapSchema.describe(
+    'Cached values for the administrator\'s in-progress OAuth setup. This object can contain sensitive client credentials.',
+  ).optional(),
+}).describe('Account-level managed OAuth setup state for the selected connector.');
 
 export type ApiKeyLoginRequest = z.input<typeof ApiKeyLoginRequestSchema>;
 export type ApiKeyLoginResponse = z.input<typeof ApiKeyLoginResponseSchema>;

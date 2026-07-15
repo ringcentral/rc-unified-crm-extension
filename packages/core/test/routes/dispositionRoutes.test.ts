@@ -53,7 +53,7 @@ describe('Disposition Routes', () => {
       sessionId: 'session-1',
       extensionNumber: '101',
       hashedExtensionId: 'hashed-extension-1',
-      dispositions: [{ id: 'disp-1' }],
+      dispositions: { outcome: 'Qualified lead' },
       additionalSubmission: { note: 'extra' },
     };
     expect(CallDispositionRequestSchema.parse(requestBody)).toEqual(requestBody);
@@ -79,7 +79,7 @@ describe('Disposition Routes', () => {
       sessionId: 'session-1',
       extensionNumber: '101',
       hashedExtensionId: 'hashed-extension-1',
-      dispositions: [{ id: 'disp-1' }],
+      dispositions: { outcome: 'Qualified lead' },
       additionalSubmission: { note: 'extra' },
     });
     expect(analytics.track).toHaveBeenCalledWith(expect.objectContaining({

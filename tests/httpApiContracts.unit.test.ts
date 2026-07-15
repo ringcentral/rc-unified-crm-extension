@@ -88,11 +88,28 @@ describe('typed HTTP API contracts', () => {
   test('publishes the implemented appointment date-range query', () => {
     const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
     const parameters = spec.paths['/appointments'].get.parameters;
-    const parameterNames = parameters.map((parameter: { name: string }) => parameter.name);
+    const generatedParameters = parameters.filter((parameter: Record<string, unknown>) => (
+      parameter['x-app-connect-generated-contract'] === true
+    ));
+    const compatibilityParameters = parameters.filter((parameter: Record<string, unknown>) => (
+      parameter['x-app-connect-generated-contract'] !== true
+    ));
 
-    expect(parameterNames).toEqual(['startDate', 'endDate']);
-    for (const parameter of parameters) {
+    expect(generatedParameters.map((parameter: { name: string }) => parameter.name)).toEqual([
+      'startDate',
+      'endDate',
+    ]);
+    for (const parameter of generatedParameters) {
       expect(parameter.schema).toEqual(expect.objectContaining({ type: 'string', format: 'date' }));
+    }
+    expect(compatibilityParameters.map((parameter: { name: string }) => parameter.name)).toEqual([
+      'range',
+      'mineOnly',
+      'forceSync',
+    ]);
+    for (const parameter of compatibilityParameters) {
+      expect(parameter).toEqual(expect.objectContaining({ deprecated: true }));
+      expect(parameter.description).toContain('Ignored browser-client compatibility');
     }
   });
 
@@ -144,10 +161,10 @@ describe('typed HTTP API contracts', () => {
     const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
     const schemas = spec.components.schemas;
 
-    expect(schemas.CallDispositionRequest.properties.dispositions.type).toBe('array');
-    expect(schemas.CallDispositionRequest.properties.dispositions.items.$ref).toBe(
-      '#/components/schemas/CallDispositionItem',
-    );
+    expect(schemas.CallDispositionRequest.properties.dispositions).toEqual(expect.objectContaining({
+      type: 'object',
+      additionalProperties: true,
+    }));
     expect(schemas.ContactInfo.properties.id.anyOf).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'string' }),
       expect.objectContaining({ type: 'number' }),

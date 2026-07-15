@@ -127,6 +127,24 @@ describe('App Connect plugin-server OpenAPI contract', () => {
       expect(tag.description.length).toBeGreaterThan(0);
     }
 
+    for (const schema of Object.values(spec.components.schemas) as any[]) {
+      expect(schema.description).toEqual(expect.any(String));
+      expect(schema.description.length).toBeGreaterThan(0);
+      for (const property of Object.values(schema.properties || {}) as any[]) {
+        if (!property.$ref && !property.allOf) {
+          expect(property.description).toEqual(expect.any(String));
+          expect(property.description.length).toBeGreaterThan(0);
+        }
+      }
+    }
+
+    for (const section of ['parameters', 'requestBodies', 'securitySchemes', 'headers']) {
+      for (const component of Object.values(spec.components[section] || {}) as any[]) {
+        expect(component.description).toEqual(expect.any(String));
+        expect(component.description.length).toBeGreaterThan(0);
+      }
+    }
+
     for (const { key, operation } of operations) {
       expect(operation.summary).toEqual(expect.any(String));
       expect(operation.description).toEqual(expect.any(String));

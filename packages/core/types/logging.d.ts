@@ -181,19 +181,13 @@ export interface AppointmentSubmission {
   [key: string]: unknown;
 }
 
-export interface CallDispositionItem {
-  id?: string | number;
-  value?: unknown;
-  [key: string]: unknown;
-}
-
 export interface UpsertCallDispositionParams {
   platform: string;
   userId: string | number;
   sessionId: string;
   extensionNumber?: string | number | null;
   hashedExtensionId?: string | number | null;
-  dispositions?: CallDispositionItem[];
+  dispositions?: JsonObject;
 }
 
 export interface UpsertCallDispositionResult {

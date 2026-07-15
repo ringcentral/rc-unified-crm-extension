@@ -3,7 +3,7 @@
   "info": {
     "title": "App Connect Plugin Server API",
     "version": "1.7.38",
-    "description": "HTTP/JSON contract implemented by a remotely hosted App Connect plugin server. The paths in this document follow the App Connect JavaScript template and are reference conventions; the full URLs configured in the plugin manifest are authoritative. Production endpoints must use HTTPS. Registration requests contain a short-lived RingCentral administrator access token, and invocation payloads can contain contact and communications data. Implementations must treat credentials as secrets, avoid logging them, and retain payload data only when required for plugin behavior.",
+    "description": "Provider-side HTTP contract for independently hosted App Connect plugin servers. Most paths mirror the JavaScript plugin template; /oauth/callback is an illustrative plugin-owned target selected through OAuth state.redirectTo. Complete URLs in the plugin manifest, not these sample paths or servers, are authoritative.\n\nApp Connect calls registration, token, invocation, and license endpoints server-to-server. Its browser extension calls OAuth endpoints directly, so those endpoints need restricted CORS and a plugin-owned correlation or session mechanism. Production endpoints must use HTTPS. Requests can contain RingCentral access tokens, plugin bearer credentials, user configuration, contact and communications data, and recording URLs containing access tokens. Do not log credentials, and retain personal data only as required.\n\nThe current protocol has no uninstall callback. Removing a plugin deletes the App Connect registration only, so plugin providers need their own stale-account cleanup, credential revocation, and data-retention policy.",
     "contact": {
       "name": "RingCentral Labs",
       "url": "https://github.com/ringcentral/rc-unified-crm-extension"
@@ -36,27 +36,27 @@
   "tags": [
     {
       "name": "Health",
-      "description": "Optional plugin-server liveness checks."
+      "description": "Optional process-liveness convention from the JavaScript template; it is not part of App Connect invocation readiness."
     },
     {
       "name": "Registration",
-      "description": "Account registration and plugin-issued credential bootstrap."
+      "description": "Server-to-server RingCentral account validation and plugin-issued credential bootstrap."
     },
     {
       "name": "Token lifecycle",
-      "description": "Plugin credential validation and rotation before asynchronous dispatch."
+      "description": "Server-to-server validation and rotation of the stored account-scoped plugin credential."
     },
     {
       "name": "Invocation",
-      "description": "Synchronous transformations, asynchronous work, and completion callbacks."
+      "description": "Synchronous payload transformation, asynchronous background work, and App Connect completion callbacks."
     },
     {
       "name": "Licensing",
-      "description": "Optional plugin entitlement checks."
+      "description": "Optional advisory account-entitlement status displayed by the App Connect browser client."
     },
     {
       "name": "OAuth",
-      "description": "Optional browser-facing authorization, state, logout, and provider callback endpoints."
+      "description": "Optional browser-facing authorization URL, state, logout, and plugin-owned provider callback endpoints."
     }
   ],
   "security": [],
@@ -67,13 +67,13 @@
           "Health"
         ],
         "summary": "Check plugin-server liveness",
-        "description": "Optional convention implemented by the JavaScript template. App Connect does not currently call this endpoint as part of plugin execution.",
+        "description": "Optional deployment liveness convention implemented by the JavaScript template. App Connect does not call it during registration or invocation. The template returns the static text OK; it does not verify databases, third-party providers, or other readiness dependencies.",
         "operationId": "getPluginServerIsAlive",
         "security": [],
         "x-app-connect-required": false,
         "responses": {
           "200": {
-            "description": "The plugin server is running.",
+            "description": "The route returned the literal text OK. This confirms only process liveness, not dependency readiness.",
             "content": {
               "text/plain": {
                 "schema": {
@@ -92,7 +92,7 @@
           "Registration"
         ],
         "summary": "Register a RingCentral account",
-        "description": "Reference path for the manifest userRegisterEndpointUrl. App Connect sends the RingCentral administrator access token and the account being registered. The request body does not contain pluginId, so a host serving multiple plugins must bind plugin identity from the configured endpoint URL or trusted server-side configuration, never from untrusted request input. The plugin server must validate the token with RingCentral, verify that it belongs to rcAccountId, and return an account-scoped plugin credential. App Connect treats the returned credential as an opaque bearer token and stores it for later plugin requests. The registration token must not be logged or retained.",
+        "description": "Required reference operation for manifest userRegisterEndpointUrl. After App Connect validates the installing administrator, it sends the RingCentral access token and rcAccountId to the configured URL; pluginId is not included in the JSON body. The plugin server must independently validate the token with RingCentral, confirm that its account matches rcAccountId, and issue a non-empty account-scoped bearer credential in jwtToken. A host serving multiple plugins must derive plugin identity from the configured URL or trusted server configuration. The unmodified template reads req.params.pluginId even though its route has no :pluginId parameter, so adapt it before relying on plugin-id claims. App Connect treats jwtToken as opaque and stores it for protected provider calls. Never log or retain the RingCentral access token.",
         "operationId": "registerPluginAccount",
         "security": [],
         "x-app-connect-endpoint-source": "userRegisterEndpointUrl",
@@ -101,7 +101,7 @@
         },
         "responses": {
           "200": {
-            "description": "The account was validated and registered.",
+            "description": "The RingCentral account was validated and a non-empty plugin bearer credential was issued.",
             "content": {
               "application/json": {
                 "schema": {
@@ -119,7 +119,7 @@
             }
           },
           "400": {
-            "description": "The registration request or RingCentral identity could not be validated.",
+            "description": "The JSON body was invalid, the RingCentral access token was missing or rejected, or RingCentral identity lookup failed.",
             "content": {
               "text/plain": {
                 "schema": {
@@ -149,7 +149,7 @@
           "Token lifecycle"
         ],
         "summary": "Validate or rotate the plugin credential",
-        "description": "Reference path for tokenSyncUrl. Async plugins must expose this operation because App Connect calls it before asynchronous dispatch. The request body is an empty JSON object. Return a replacement account-scoped credential in X-Refreshed-JWT-Token when rotation is required; otherwise omit the header. Rotation for async plugins must happen here because App Connect does not consume token-refresh headers from the async processor response.",
+        "description": "Reference path for manifest tokenSyncUrl, required when isAsync is true. Before each asynchronous call, SMS, or fax dispatch, App Connect POSTs an empty JSON object with the stored plugin bearer. The response body is ignored. Return a replacement credential in X-Refreshed-JWT-Token when rotation is required; App Connect uses it for the immediately following invocation and persists it after dispatch. Refresh headers from the asynchronous invocation are ignored. A callback-enabled call token-sync failure marks the task failed without rolling back the already-saved CRM activity; SMS and fax logging continues after a failed fire-and-forget dispatch.",
         "operationId": "syncPluginToken",
         "security": [
           {
@@ -162,7 +162,7 @@
         },
         "responses": {
           "200": {
-            "description": "The existing credential is valid or a replacement was issued.",
+            "description": "The credential was accepted. The body is ignored; the template returns OK. An optional X-Refreshed-JWT-Token rotates the credential.",
             "headers": {
               "X-Refreshed-JWT-Token": {
                 "$ref": "#/components/headers/RefreshedPluginJwt"
@@ -203,7 +203,7 @@
           "Invocation"
         ],
         "summary": "Process a logging payload synchronously",
-        "description": "Reference path for endpointUrl when isAsync is false or omitted. App Connect calls the plugin before the connector saves the activity and replaces the current logging payload with this response. The plugin may transform fields but must preserve every field the remaining logging flow requires. Payload details vary by call, SMS, and fax workflows, so the stable contract is the outer envelope plus an extensible data object.",
+        "description": "Reference path for manifest endpointUrl when isAsync is false or omitted. App Connect invokes installed synchronous plugins sequentially before the connector creates or updates the CRM activity. The request envelope contains data, optional config, and, for call flows, hashedExtensionId. The response must be the bare logging payload, not the request envelope; it becomes input to the next plugin and then the connector. Preserve every downstream-required field. A network error, non-2xx response, or unusable response fails primary logging. App Connect persists X-Refreshed-JWT-Token from a successful synchronous response.",
         "operationId": "invokeSynchronousPlugin",
         "security": [
           {
@@ -216,7 +216,7 @@
         },
         "responses": {
           "200": {
-            "description": "The transformed logging payload. This is the data object itself, not an outer envelope.",
+            "description": "The transformed logging payload itself. App Connect passes it to the next synchronous plugin or connector; do not wrap it in a data envelope.",
             "headers": {
               "X-Refreshed-JWT-Token": {
                 "$ref": "#/components/headers/RefreshedPluginJwt"
@@ -281,7 +281,7 @@
           "Invocation"
         ],
         "summary": "Start asynchronous plugin processing",
-        "description": "Reference path for endpointUrl when isAsync is true. Call-log create and update requests include asyncTaskId and callbackUrl; the plugin must return promptly and later POST completion to callbackUrl. Async SMS and fax requests are currently fire-and-forget and omit those callback fields. The JavaScript template currently requires callback fields, so developers declaring async SMS or fax support must adapt its handler to accept the fire-and-forget variant. App Connect considers any successful 2xx dispatch accepted and does not use the response body to mutate the primary logging payload.",
+        "description": "Reference path for manifest endpointUrl when isAsync is true. For call create and update, App Connect saves the CRM activity first, creates a one-week callback task, synchronizes the plugin token, and POSTs data, config, asyncTaskId, callbackUrl, and hashedExtensionId. Any 2xx means dispatch completed; App Connect ignores the body and refresh headers. The plugin later reports completion to callbackUrl, and failure does not roll back the activity. For SMS and fax, App Connect synchronizes the token and starts an unawaited fire-and-forget POST before connector logging continues. That variant sends only data and config, with the original message payload nested at data.logInfo.logInfo. The unmodified JavaScript template rejects this variant because it requires callback fields; adapt it when declaring asynchronous SMS or fax support.",
         "operationId": "invokeAsynchronousPlugin",
         "security": [
           {
@@ -299,7 +299,7 @@
         },
         "responses": {
           "200": {
-            "description": "The plugin accepted the task. App Connect currently ignores this response body after a successful dispatch.",
+            "description": "Template acknowledgment for a callback-enabled task. For call dispatch, App Connect treats any 2xx as dispatched without inspecting accepted, asyncTaskId, or message; SMS and fax do not await or inspect the response.",
             "content": {
               "application/json": {
                 "schema": {
@@ -323,8 +323,14 @@
               }
             }
           },
+          "202": {
+            "description": "The provider accepted asynchronous processing. App Connect treats this the same as any other successful 2xx dispatch and ignores the body."
+          },
+          "204": {
+            "description": "The provider accepted asynchronous processing without a response body. App Connect treats this as a successful dispatch."
+          },
           "400": {
-            "description": "A callback-enabled request omitted asyncTaskId or callbackUrl.",
+            "description": "The unmodified template returns this whenever asyncTaskId or callbackUrl is absent, including for the documented fire-and-forget SMS or fax request unless the handler is adapted.",
             "content": {
               "application/json": {
                 "schema": {
@@ -363,7 +369,7 @@
           "Licensing"
         ],
         "summary": "Get plugin license status",
-        "description": "Optional reference path for licenseStatusUrl. App Connect sends the account-scoped plugin credential and expects an entitlement decision. Use tokenSyncUrl, rather than this response, for credential rotation required by async plugins.",
+        "description": "Optional reference path for manifest licenseStatusUrl. App Connect calls it server-to-server with the account-scoped plugin bearer only for a plugin marked requireLicense. licenseStatus drives a browser warning, licenseStatusDescription appears on the configuration page, and optional errorMessage appears in the installed-plugin list. The result is advisory: current App Connect logging code does not gate plugin invocation with it. Missing licenseStatus is normalized to false and unavailable. Credential-refresh headers from this response are not persisted.",
         "operationId": "getPluginServerLicenseStatus",
         "security": [
           {
@@ -374,7 +380,7 @@
         "x-app-connect-required": false,
         "responses": {
           "200": {
-            "description": "The current plugin entitlement state.",
+            "description": "The account entitlement result forwarded to the browser client. Missing licenseStatus is treated as unavailable and false; additional fields are preserved.",
             "content": {
               "application/json": {
                 "schema": {
@@ -417,7 +423,7 @@
           "OAuth"
         ],
         "summary": "Create a plugin authorization URL",
-        "description": "Optional reference path for authorizationUrl. The App Connect browser client calls this endpoint directly, so the plugin server must allow the App Connect extension origin. The returned provider URL must use the App Connect extension redirect URI and carry plugin routing data in OAuth state, including from=plugin and redirectTo for the plugin callback.",
+        "description": "Optional reference path for manifest authorizationUrl. The browser client directly calls authorizationUrl with pluginId as an untrusted routing hint; no plugin bearer credential is intentionally supplied. Shared Axios defaults can nevertheless add ambient RingCentral identity headers and sometimes an App Connect Authorization header; these values are not a supported plugin authentication contract and must not be trusted or logged. Return the provider URL as an object containing authUrl. For compatibility, the client also accepts a bare URL string. The provider URL must redirect to the App Connect extension URI and include state with from=plugin, the plugin callback URL in redirectTo, and plugin-generated anti-CSRF correlation that the callback validates. Restrict CORS to the supported extension origin and required headers.",
         "operationId": "getPluginAuthorizationUrl",
         "security": [],
         "x-app-connect-endpoint-source": "authorizationUrl",
@@ -429,15 +435,30 @@
         ],
         "responses": {
           "200": {
-            "description": "A provider authorization URL for the plugin.",
+            "description": "Preferred response is a JSON object containing authUrl; the current client also accepts a bare URL string for compatibility.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PluginAuthUrlResponse"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PluginAuthUrlResponse"
+                    },
+                    {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  ]
                 },
                 "example": {
                   "authUrl": "https://provider.example.com/oauth/authorize?client_id=plugin-client&redirect_uri=https%3A%2F%2Fringcentral.github.io%2Fringcentral-embeddable%2Fredirect.html&state=%7B%22from%22%3A%22plugin%22%2C%22redirectTo%22%3A%22https%3A%2F%2Fplugins.example.com%2Foauth%2Fcallback%22%2C%22nonce%22%3A%22csrf-correlation%22%7D"
                 }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "example": "https://provider.example.com/oauth/authorize?client_id=plugin-client"
               }
             }
           },
@@ -456,14 +477,14 @@
           "OAuth"
         ],
         "summary": "Check plugin authorization state",
-        "description": "Optional reference path for authStateUrl. The App Connect browser client calls this endpoint directly and currently sends no plugin bearer token or explicit user identifier. Implementations must not claim an authenticated user unless they have a separate, trusted browser-session mechanism. The plugin server must allow the App Connect extension origin.",
+        "description": "Optional reference path for manifest authStateUrl. The browser calls this URL directly without deliberately attaching a plugin credential or operation-specific user parameter. Shared Axios defaults can nevertheless add ambient App Connect headers such as rc-extension-id, rc-account-id, developer-author-name, and sometimes an App Connect Authorization header. Those ambient values are not a supported plugin authentication contract and must not be trusted or logged. A remote plugin needs its own trusted correlation or session mechanism to report per-user state. The client reads successful and can display returnMessage. Restrict CORS appropriately.",
         "operationId": "getPluginAuthorizationState",
         "security": [],
         "x-app-connect-endpoint-source": "authStateUrl",
         "x-app-connect-required": false,
         "responses": {
           "200": {
-            "description": "Whether the current browser context is authorized for the plugin.",
+            "description": "Authorization state for the correlated plugin user. The client uses successful and displays optional returnMessage.message and messageType with a fixed 3000 ms duration.",
             "content": {
               "application/json": {
                 "schema": {
@@ -487,7 +508,7 @@
             }
           },
           "500": {
-            "description": "The plugin could not determine authorization state."
+            "description": "The plugin could not determine authorization state. The client treats the request as disconnected and displays returnMessage when the error response supplies one."
           }
         }
       }
@@ -498,7 +519,7 @@
           "OAuth"
         ],
         "summary": "Disconnect the plugin user",
-        "description": "Optional reference path for logoutUrl. The App Connect browser client calls this endpoint directly and sends its current App Connect user-session token in the request body when available. Treat that value as opaque unless the plugin has a supported validation path, never log it, and use a separate trusted browser-session mechanism when identity must be established. The plugin server must allow the App Connect extension origin.",
+        "description": "Optional reference path for manifest logoutUrl. The browser directly POSTs an object whose optional jwtToken is its App Connect CRM-session token, not the plugin bearer. The value can be absent, and a separately hosted plugin generally cannot validate it; treat it as opaque and secret and use a trusted plugin-owned correlation or session mechanism. Ambient shared Axios headers are not a supported identity contract. The UI changes to logged out only when the response body contains successful: true. Restrict CORS appropriately.",
         "operationId": "logoutPluginUser",
         "security": [],
         "x-app-connect-endpoint-source": "logoutUrl",
@@ -508,7 +529,7 @@
         },
         "responses": {
           "200": {
-            "description": "The plugin disconnected the browser user.",
+            "description": "Logout processing completed. The client considers the user disconnected only when the JSON body contains successful: true.",
             "content": {
               "application/json": {
                 "schema": {
@@ -535,7 +556,7 @@
           "OAuth"
         ],
         "summary": "Complete plugin OAuth authorization",
-        "description": "Optional conventional target for state.redirectTo; the callback path itself is chosen by the plugin. After the OAuth provider redirects to the App Connect extension redirect URI, the App Connect browser client calls redirectTo with hashedExtensionId and callbackUri. The plugin extracts the provider code and state from callbackUri, validates state, exchanges the code, and stores provider credentials. For compatibility with current clients, implementations should tolerate provider callback query fields arriving alongside callbackUri when reserved characters were not encoded. The plugin server must allow the App Connect extension origin.",
+        "description": "Optional plugin-owned target selected by OAuth state.redirectTo; this path is not fixed and is not implemented by the JavaScript template. After the provider redirects to the App Connect extension URI, the browser calls redirectTo with hashedExtensionId and callbackUri. No plugin bearer is intentionally supplied. Shared Axios defaults can nevertheless add ambient RingCentral identity headers and sometimes an App Connect Authorization header; these values are not a supported plugin authentication contract and must not be trusted or logged. The current client interpolates callbackUri without percent-encoding, so fields after its first ampersand can arrive as top-level query parameters. Accept both a correctly encoded URI and the current flattened form, including OAuth errors. Validate the full state and anti-CSRF correlation before code exchange. hashedExtensionId is pseudonymous correlation, not authentication. Any 2xx is treated as success and the body is ignored.",
         "operationId": "completePluginOAuth",
         "security": [],
         "x-app-connect-endpoint-source": "state.redirectTo",
@@ -555,6 +576,12 @@
           },
           {
             "$ref": "#/components/parameters/legacyOAuthState"
+          },
+          {
+            "$ref": "#/components/parameters/legacyOAuthError"
+          },
+          {
+            "$ref": "#/components/parameters/legacyOAuthErrorDescription"
           }
         ],
         "responses": {
@@ -576,13 +603,12 @@
       "pluginBearer": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "Account-scoped credential issued by the plugin server from userRegisterEndpointUrl. App Connect treats the value as opaque and sends it in the Authorization header."
+        "description": "Account-scoped credential returned from userRegisterEndpointUrl. Despite the jwtToken property name, App Connect treats it as opaque and never inspects claims. The plugin server owns representation, signature, expiry, revocation, account scope, and plugin scope validation. App Connect stores it server-side and sends it only on protected provider calls."
       }
     },
     "headers": {
       "RefreshedPluginJwt": {
-        "description": "Replacement account-scoped plugin credential. App Connect persists this header from token synchronization and synchronous invocation responses.",
+        "description": "Optional replacement for the stored account-scoped plugin credential. App Connect reads and persists this header from token synchronization and synchronous invocation responses. It ignores the header on license and asynchronous invocation responses.",
         "schema": {
           "type": "string",
           "minLength": 1
@@ -594,7 +620,7 @@
         "name": "pluginId",
         "in": "query",
         "required": true,
-        "description": "Plugin identifier assigned by the App Connect Developer Console.",
+        "description": "Developer Console plugin identifier appended by the browser client to authorizationUrl. It is an untrusted routing hint and is not proof of user, account, or plugin-server authorization.",
         "schema": {
           "type": "string",
           "minLength": 1
@@ -605,7 +631,7 @@
         "name": "hashedExtensionId",
         "in": "query",
         "required": true,
-        "description": "Stable extension identifier supplied by the App Connect client for plugin-owned OAuth state.",
+        "description": "Deployment-scoped pseudonymous extension identifier read from App Connect client storage. It can be empty when user metadata is unavailable. Use it only for correlation after validating OAuth state; it is not an authentication credential.",
         "schema": {
           "type": "string"
         },
@@ -615,7 +641,7 @@
         "name": "callbackUri",
         "in": "query",
         "required": true,
-        "description": "Full App Connect extension callback URL containing the OAuth provider code and state. Standards-compliant clients percent-encode this query value. Current App Connect clients can flatten some provider fields into the legacy query parameters documented alongside it.",
+        "description": "URI on the App Connect extension redirect page containing the provider result and OAuth state. Correct clients percent-encode the full value. The current client inserts it raw, so this parameter can contain only the prefix before the first ampersand; reconstruct remaining top-level fields before validating state or exchanging a code.",
         "schema": {
           "type": "string",
           "format": "uri"
@@ -626,8 +652,7 @@
         "name": "code",
         "in": "query",
         "required": false,
-        "deprecated": true,
-        "description": "Provider authorization code flattened from callbackUri by current clients. Prefer the encoded callbackUri value.",
+        "description": "Provider authorization code that appears as a top-level parameter when it follows the first ampersand in the current client's unencoded callbackUri. Prefer a correctly encoded callbackUri.",
         "schema": {
           "type": "string"
         }
@@ -636,8 +661,7 @@
         "name": "scope",
         "in": "query",
         "required": false,
-        "deprecated": true,
-        "description": "Provider scope flattened from callbackUri by current clients. Prefer the encoded callbackUri value.",
+        "description": "Provider scope that appears as a top-level parameter when it follows the first ampersand in the current client's unencoded callbackUri. Prefer a correctly encoded callbackUri.",
         "schema": {
           "type": "string"
         }
@@ -646,8 +670,25 @@
         "name": "state",
         "in": "query",
         "required": false,
-        "deprecated": true,
-        "description": "OAuth state flattened from callbackUri when provider query ordering exposes it separately. The plugin must still validate it.",
+        "description": "OAuth state that appears as a top-level parameter when it follows the first ampersand in the current client's unencoded callbackUri. The plugin must reconstruct and validate the complete state.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "legacyOAuthError": {
+        "name": "error",
+        "in": "query",
+        "required": false,
+        "description": "Provider OAuth error flattened from the current client's unencoded callbackUri. When present, do not attempt a code exchange.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "legacyOAuthErrorDescription": {
+        "name": "error_description",
+        "in": "query",
+        "required": false,
+        "description": "Provider-supplied error detail flattened from callbackUri. Treat it as untrusted display or diagnostic text and do not echo secrets.",
         "schema": {
           "type": "string"
         }
@@ -661,7 +702,7 @@
               "Invocation"
             ],
             "summary": "Report asynchronous call-plugin completion",
-            "description": "Callback into the App Connect server for asynchronous call-log create and update tasks. The callback URL contains a random task identifier, acts as the callback credential, and expires after one week; no Authorization header is sent. On success, App Connect appends note to the CRM activity. On a reported failure, App Connect marks the task failed and stores message.",
+            "description": "Callback into App Connect for callback-enabled asynchronous call create and update tasks. The random task UUID embedded in callbackUrl is the callback bearer capability; no Authorization header is required. Tasks expire after one week and are deleted after successful completion. With successful true, App Connect reads the current CRM activity, appends note to existing Agent notes separated by a blank line, updates the activity, and deletes the task. With successful false, App Connect marks the task failed, stores message, ignores note, and still returns HTTP 200 with response successful true to acknowledge that the failure report was recorded.",
             "operationId": "postAsyncPluginCompletion",
             "security": [],
             "requestBody": {
@@ -690,7 +731,8 @@
                     }
                   }
                 }
-              }
+              },
+              "description": "Completion report for the task identified by the callback URL. successful describes plugin work, not HTTP transport success."
             },
             "responses": {
               "200": {
@@ -707,7 +749,7 @@
                 }
               },
               "400": {
-                "description": "The callback body omitted the required successful flag.",
+                "description": "successful was missing or was not a JSON boolean.",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -735,7 +777,7 @@
                 }
               },
               "500": {
-                "description": "The callback was valid, but App Connect failed to update the CRM activity.",
+                "description": "App Connect could not process a valid success callback, for example because the original call log, CRM session, CRM read, or CRM update was unavailable. The task is marked failed when it was successfully loaded.",
                 "content": {
                   "application/json": {
                     "schema": {
@@ -756,7 +798,7 @@
     "requestBodies": {
       "PluginRegistration": {
         "required": true,
-        "description": "RingCentral administrator identity used to register one account with the plugin.",
+        "description": "Secret RingCentral access token plus the claimed account ID for one plugin registration. No plugin ID is included; bind plugin identity from the configured endpoint or trusted server configuration.",
         "content": {
           "application/json": {
             "schema": {
@@ -788,7 +830,7 @@
       },
       "PluginInvocation": {
         "required": true,
-        "description": "Stable plugin invocation envelope around a workflow-specific logging payload.",
+        "description": "Synchronous invocation envelope. data is the current connector logging payload, config is the user's saved plugin configuration or null, and call flows can include hashedExtensionId. The response is data itself, not this envelope.",
         "content": {
           "application/json": {
             "schema": {
@@ -861,7 +903,7 @@
       },
       "AsyncPluginInvocation": {
         "required": true,
-        "description": "Callback-enabled call invocation or current fire-and-forget SMS/fax invocation.",
+        "description": "Either a callback-enabled call invocation or the current fire-and-forget SMS or fax invocation. Call requests include task and callback fields. SMS and fax omit them and wrap the original message payload under data.logInfo, producing message details at data.logInfo.logInfo.",
         "content": {
           "application/json": {
             "schema": {
@@ -949,7 +991,7 @@
       },
       "PluginLogout": {
         "required": true,
-        "description": "Current App Connect browser logout payload.",
+        "description": "Browser logout body. jwtToken is an optional App Connect CRM-session token, not the plugin bearer credential; it can be omitted and must be treated as secret and opaque.",
         "content": {
           "application/json": {
             "schema": {
@@ -984,7 +1026,7 @@
         }
       },
       "PluginBearerForbidden": {
-        "description": "The credential is valid but is not authorized for this plugin operation.",
+        "description": "The credential is valid but is not authorized for the requested account or plugin. The template's plugin-id comparison works only after the route or trusted configuration supplies a plugin identifier; its documented paths do not contain :pluginId.",
         "content": {
           "text/plain": {
             "schema": {
@@ -1000,10 +1042,12 @@
         "type": "string",
         "enum": [
           "OK"
-        ]
+        ],
+        "description": "Literal process-liveness response returned by the JavaScript template."
       },
       "TextError": {
-        "type": "string"
+        "type": "string",
+        "description": "Human-readable template error text. App Connect does not parse it as a stable machine error code."
       },
       "PluginRegistrationRequest": {
         "type": "object",
@@ -1022,10 +1066,11 @@
           "rcAccountId": {
             "type": "string",
             "minLength": 1,
-            "description": "RingCentral account being registered. App Connect sends this value as a string."
+            "description": "Claimed RingCentral account being registered. App Connect sends this value as a string; verify it against the access token."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Account registration input sent by the App Connect server to the configured plugin registration URL."
       },
       "PluginRegistrationResponse": {
         "type": "object",
@@ -1036,25 +1081,27 @@
           "jwtToken": {
             "type": "string",
             "minLength": 1,
-            "description": "Sensitive account-scoped plugin credential. It may be a JWT or another opaque bearer value understood by the plugin server."
+            "description": "Sensitive account-scoped plugin bearer credential. The name is retained for compatibility, but the value can be a JWT or any opaque token understood by the plugin server; App Connect does not inspect its claims."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Plugin-issued account credential that App Connect stores for later server-to-server calls."
       },
       "EmptyObject": {
         "type": "object",
         "maxProperties": 0,
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Empty JSON object used as the token synchronization request body."
       },
       "LoggingPayload": {
         "type": "object",
-        "description": "Workflow- and connector-dependent call, SMS, or fax logging payload. The object can contain contact and communications data and may contain sensitive tokens in nested fields. Preserve fields that downstream connector logging still requires.",
+        "description": "Opaque workflow- and connector-dependent call, SMS, or fax logging payload. It can contain contact details, communication contents, CRM metadata, and recording download URLs with embedded access tokens. Treat it as sensitive and untrusted. A synchronous plugin must preserve every field required by subsequent plugins and connector logging.",
         "additionalProperties": true
       },
       "PluginConfig": {
         "type": "object",
         "nullable": true,
-        "description": "Plugin configuration saved in App Connect user settings. Null means that the user has no saved plugin configuration.",
+        "description": "User-scoped manifest configuration read from the installed plugin setting. Entries commonly contain nested value and customization metadata. The object can be null or omit values on older or admin-managed clients; validate it and apply server-side defaults.",
         "additionalProperties": true
       },
       "PluginInvocationRequest": {
@@ -1072,10 +1119,11 @@
           "hashedExtensionId": {
             "type": "string",
             "nullable": true,
-            "description": "Stable hashed extension identifier when available. Current call flows send this field; SMS and fax flows may omit it."
+            "description": "Deployment-scoped pseudonymous extension identifier supplied for call correlation when available. It can be null and is omitted from current SMS and fax flows. It is not an authentication credential."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Envelope sent to a synchronous plugin; the successful response must be the bare LoggingPayload."
       },
       "AsyncCallbackInvocationRequest": {
         "type": "object",
@@ -1094,20 +1142,21 @@
           "asyncTaskId": {
             "type": "string",
             "format": "uuid",
-            "description": "App Connect task identifier for callback-enabled asynchronous call processing."
+            "description": "App Connect task UUID for callback-enabled asynchronous call processing."
           },
           "callbackUrl": {
             "type": "string",
             "format": "uri",
-            "description": "App Connect completion URL. Treat the embedded task identifier as a secret bearer capability."
+            "description": "App Connect completion URL. The embedded task UUID is a secret bearer capability that expires after one week."
           },
           "hashedExtensionId": {
             "type": "string",
             "nullable": true,
-            "description": "Stable hashed extension identifier when available."
+            "description": "Deployment-scoped pseudonymous extension identifier supplied for call correlation when available. It can be null and is not an authentication credential."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Asynchronous call create or update invocation with a one-week callback task and bearer-capability callback URL."
       },
       "AsyncFireAndForgetInvocationRequest": {
         "type": "object",
@@ -1122,7 +1171,8 @@
             "$ref": "#/components/schemas/PluginConfig"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Current asynchronous SMS or fax invocation. It has no task identifier or callback URL, and App Connect does not await its response."
       },
       "AsyncAcceptanceResponse": {
         "type": "object",
@@ -1131,17 +1181,21 @@
         ],
         "properties": {
           "accepted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Template-reported acceptance flag; not inspected by App Connect."
           },
           "asyncTaskId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Optional echo of the App Connect task UUID for plugin diagnostics; ignored by App Connect."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Optional plugin diagnostic; ignored by App Connect."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "JavaScript-template acknowledgment. App Connect does not inspect this body."
       },
       "AsyncRejectedResponse": {
         "type": "object",
@@ -1154,13 +1208,16 @@
             "type": "boolean",
             "enum": [
               false
-            ]
+            ],
+            "description": "Always false for this rejection response."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable reason for rejection."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "JavaScript-template rejection when required callback fields are absent."
       },
       "AsyncPluginCallbackRequest": {
         "type": "object",
@@ -1169,16 +1226,20 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "JSON boolean describing plugin work: true requests a CRM note update; false records task failure."
           },
           "note": {
-            "type": "string"
+            "type": "string",
+            "description": "Text appended to existing CRM Agent notes when successful is true. Ignored when false."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Diagnostic result text. Stored as the task failure reason when successful is false; ignored on a successful callback."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Plugin completion report for a callback-enabled asynchronous call task."
       },
       "AsyncPluginCallbackResponse": {
         "type": "object",
@@ -1187,12 +1248,15 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True when the callback report was recorded, including a plugin-reported failure; false for callback validation or processing errors."
           },
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "Human-readable validation or processing error when successful is false."
           }
-        }
+        },
+        "description": "App Connect callback-processing result. successful describes whether the callback was accepted or processed, not whether the plugin background work succeeded."
       },
       "PluginLicenseStatus": {
         "type": "object",
@@ -1201,13 +1265,20 @@
         ],
         "properties": {
           "licenseStatus": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "True for an active entitlement; false causes the browser to show a license warning."
           },
           "licenseStatusDescription": {
-            "type": "string"
+            "type": "string",
+            "description": "Detail shown on the plugin configuration page."
+          },
+          "errorMessage": {
+            "type": "string",
+            "description": "Short warning shown on the installed-plugin list when licenseStatus is false."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Advisory account entitlement result forwarded to the browser UI; it does not currently gate plugin execution."
       },
       "PluginAuthUrlResponse": {
         "type": "object",
@@ -1217,10 +1288,12 @@
         "properties": {
           "authUrl": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "description": "Absolute provider authorization URL that redirects to the App Connect extension URI and carries validated plugin routing and anti-CSRF state."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Preferred JSON response containing the third-party provider authorization URL."
       },
       "PluginAuthStateResponse": {
         "type": "object",
@@ -1229,13 +1302,15 @@
         ],
         "properties": {
           "successful": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "For auth-state checks, whether the correlated plugin user is connected; for logout, whether disconnection succeeded."
           },
           "returnMessage": {
             "$ref": "#/components/schemas/ReturnMessage"
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Browser-facing result reused for plugin authorization-state checks and logout."
       },
       "PluginLogoutRequest": {
         "type": "object",
@@ -1244,16 +1319,18 @@
             "type": "string",
             "format": "password",
             "writeOnly": true,
-            "description": "Sensitive App Connect user-session token sent by the current browser client. Treat it as opaque unless a supported validation path exists."
+            "description": "Optional sensitive App Connect CRM-session token sent by the browser client. It is not the plugin bearer; treat it as opaque unless a supported validation path exists."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Current browser logout payload containing an optional opaque App Connect CRM-session token."
       },
       "ReturnMessage": {
         "type": "object",
         "properties": {
           "message": {
-            "type": "string"
+            "type": "string",
+            "description": "User-facing status or error message."
           },
           "messageType": {
             "type": "string",
@@ -1263,18 +1340,22 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2147483647,
-            "format": "int32"
+            "format": "int32",
+            "description": "Suggested notification display time in milliseconds."
           },
           "details": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {},
-              "additionalProperties": true
-            }
+              "additionalProperties": true,
+              "description": "Extensible JSON object whose fields are defined by the selected connector or workflow."
+            },
+            "description": "Optional structured details for clients that can present more than the main message."
           }
         },
-        "additionalProperties": true
+        "additionalProperties": true,
+        "description": "Optional user-facing notification returned by connector and App Connect workflows."
       }
     }
   }

@@ -370,6 +370,24 @@ describe('App Connect OpenAPI contract', () => {
             expect(tag.description.length).toBeGreaterThan(0);
         }
 
+        for (const schema of Object.values(spec.components.schemas) as any[]) {
+            expect(schema.description).toEqual(expect.any(String));
+            expect(schema.description.length).toBeGreaterThan(0);
+            for (const property of Object.values(schema.properties || {}) as any[]) {
+                if (!property.$ref && !property.allOf) {
+                    expect(property.description).toEqual(expect.any(String));
+                    expect(property.description.length).toBeGreaterThan(0);
+                }
+            }
+        }
+
+        for (const section of ['parameters', 'requestBodies', 'securitySchemes', 'headers']) {
+            for (const component of Object.values(spec.components[section] || {}) as any[]) {
+                expect(component.description).toEqual(expect.any(String));
+                expect(component.description.length).toBeGreaterThan(0);
+            }
+        }
+
         for (const pathItem of Object.values(spec.paths) as any[]) {
             for (const method of HTTP_METHODS) {
                 const operation = pathItem[method];
@@ -378,6 +396,8 @@ describe('App Connect OpenAPI contract', () => {
                 }
 
                 expect(operation.summary).toEqual(expect.any(String));
+                expect(operation.description).toEqual(expect.any(String));
+                expect(operation.description.length).toBeGreaterThan(0);
                 expect(operation.operationId).toEqual(expect.any(String));
                 expect(operationIds.has(operation.operationId)).toBe(false);
                 operationIds.add(operation.operationId);

@@ -69,7 +69,6 @@ import {
 } from './common';
 import {
   AdditionalSubmissionSchema,
-  CallDispositionItemSchema,
   CallDispositionRequestSchema,
   CallLogMutationResponseSchema,
   ContactInfoSchema,
@@ -157,7 +156,6 @@ export const httpApiContractSchemas = {
   ContactInfo: ContactInfoSchema,
   CallLogMutationResponse: CallLogMutationResponseSchema,
   MessageLogResponse: MessageLogResponseSchema,
-  CallDispositionItem: CallDispositionItemSchema,
   CallDispositionRequest: CallDispositionRequestSchema,
   UserSetting: UserSettingSchema,
   UserSettings: UserSettingsSchema,
